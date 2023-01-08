@@ -163,6 +163,11 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_web_plugins:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   glob:
     dependency: transitive
     description:
@@ -171,6 +176,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
+  go_router:
+    dependency: "direct main"
+    description:
+      name: go_router
+      sha256: f611d4396469c46db1c61e934a86e2a590ce02de2a6050d01f677879ce151f4a
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.1"
   http_parser:
     dependency: transitive
     description:
@@ -394,3 +407,4 @@ packages:
     version: "3.1.1"
 sdks:
   dart: ">=2.19.0-255.2.beta <4.0.0"
+  flutter: ">=3.3.0"
