@@ -288,27 +288,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.3"
-  openapi_generator:
-    dependency: "direct main"
-    description:
-      name: openapi_generator
-      sha256: "2c9cf35d91a26330f09ec4a2370f07c5e3040921bd3f33751ba36ac4d2346dc0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.0"
   openapi_generator_annotations:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: openapi_generator_annotations
       sha256: "1745b86b57943c5a09647c37dd909da61060ad65a0d3d3e48bef58f9c1eebb32"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.0"
-  openapi_generator_cli:
-    dependency: transitive
-    description:
-      name: openapi_generator_cli
-      sha256: "5d558ea599202dc487f829193b0ba0f28a0e7ad559e819a611b2146ef20c77f5"
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"

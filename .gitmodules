@@ -1,0 +1,3 @@
+[submodule "external/certification-dashboard-manager"]
+	path = external/certification-dashboard-manager
+	url = git@github.com:canonical/certification-dashboard-manager
