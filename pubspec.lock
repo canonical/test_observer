@@ -5,18 +5,18 @@ packages:
     dependency: transitive
     description:
       name: _fe_analyzer_shared
-      sha256: "0c80aeab9bc807ab10022cd3b2f4cf2ecdf231949dc1ddd9442406a003f19201"
+      sha256: "37bb1e815e15fbeefe916e4c941ef070f2f64d15a7eacc3cc0f6e8847b62319c"
       url: "https://pub.dev"
     source: hosted
-    version: "52.0.0"
+    version: "48.0.0"
   analyzer:
     dependency: transitive
     description:
       name: analyzer
-      sha256: cd8ee83568a77f3ae6b913a36093a1c9b1264e7cb7f834d9ddd2311dade9c1f4
+      sha256: c50aea66893c20d44c365d4269983a74a5c1a4055b7b78f38fbf0e24f519b6a2
       url: "https://pub.dev"
     source: hosted
-    version: "5.4.0"
+    version: "5.0.0"
   args:
     dependency: transitive
     description:
@@ -288,6 +288,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.3"
+  openapi_generator:
+    dependency: "direct main"
+    description:
+      name: openapi_generator
+      sha256: "2c9cf35d91a26330f09ec4a2370f07c5e3040921bd3f33751ba36ac4d2346dc0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
+  openapi_generator_annotations:
+    dependency: transitive
+    description:
+      name: openapi_generator_annotations
+      sha256: "1745b86b57943c5a09647c37dd909da61060ad65a0d3d3e48bef58f9c1eebb32"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
+  openapi_generator_cli:
+    dependency: transitive
+    description:
+      name: openapi_generator_cli
+      sha256: "5d558ea599202dc487f829193b0ba0f28a0e7ad559e819a611b2146ef20c77f5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
   package_config:
     dependency: transitive
     description:
