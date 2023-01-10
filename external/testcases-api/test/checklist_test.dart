@@ -1,0 +1,48 @@
+//
+// AUTO-GENERATED FILE, DO NOT MODIFY!
+//
+// @dart=2.12
+
+// ignore_for_file: unused_element, unused_import
+// ignore_for_file: always_put_required_named_parameters_first
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: lines_longer_than_80_chars
+
+import 'package:testcases/api.dart';
+import 'package:test/test.dart';
+
+// tests for Checklist
+void main() {
+  // final instance = Checklist();
+
+  group('test Checklist', () {
+    // String id
+    test('to test the property `id`', () async {
+      // TODO
+    });
+
+    // String name
+    test('to test the property `name`', () async {
+      // TODO
+    });
+
+    // Id of the card where checklist is located
+    // String cardId
+    test('to test the property `cardId`', () async {
+      // TODO
+    });
+
+    // String boardId
+    test('to test the property `boardId`', () async {
+      // TODO
+    });
+
+    // List<CheckItem> checklistItems (default value: const [])
+    test('to test the property `checklistItems`', () async {
+      // TODO
+    });
+
+
+  });
+
+}
