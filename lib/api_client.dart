@@ -2,7 +2,7 @@ import "package:openapi_generator_annotations/openapi_generator_annotations.dart
 
 @Openapi(
     additionalProperties:
-        AdditionalProperties(pubName: 'testcases', pubAuthor: 'Nadzeya'),
+        DioProperties(pubName: 'testcases', pubAuthor: 'Nadzeya'),
     inputSpecFile:
         './external/certification-dashboard-manager/cardsapp_openapi.yaml',
     generatorName: Generator.dart,

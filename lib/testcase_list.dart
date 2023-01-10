@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'api/testcases/lib/api_client.dart';
+import 'package:testcases/api.dart';
 
 class TestcaseList extends StatelessWidget {
   @override
