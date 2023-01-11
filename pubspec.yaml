@@ -45,6 +45,7 @@ dependencies:
   testcases:
     path: ./external/testcases-api
   flutter_riverpod: ^2.1.3
+  appflowy_board: ^0.0.9
   
 dev_dependencies:
   flutter_test:
