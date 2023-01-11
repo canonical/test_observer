@@ -1,22 +1,19 @@
-import 'package:appflowy_board/appflowy_board.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:testcase_dashboard/multi_board_list_example.dart';
 import 'package:testcase_dashboard/single_board_list_example.dart';
-import 'package:testcase_dashboard/testcase_api/testcase_api_client.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: DashboardApp()));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class DashboardApp extends StatelessWidget {
+  const DashboardApp({super.key});
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return ProviderScope(
-        child: MaterialApp(
+    return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -31,7 +28,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    ));
+    );
   }
 }
 
@@ -54,19 +51,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -75,14 +59,35 @@ class _MyHomePageState extends State<MyHomePage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    return Scaffold(
-      body:
-          Container(color: Colors.white, child: const MultiBoardListExample()),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+          appBar: AppBar(
+            title: const Text("GeeksForGeeks"),
+            bottom: const TabBar(
+              tabs: [
+                Tab(
+                  icon: Icon(Icons.home_filled),
+                  text: "Snaps",
+                ),
+                Tab(
+                  icon: Icon(Icons.account_box_outlined),
+                  text: "Kernels",
+                ),
+                Tab(
+                  icon: Icon(Icons.dvr_rounded),
+                  text: "Images",
+                ),
+              ],
+            ),
+          ),
+          body: const TabBarView(
+            children: [
+              MultiBoardListExample(),
+              SingleBoardListExample(),
+              MultiBoardListExample()
+            ],
+          )),
     );
   }
 }
