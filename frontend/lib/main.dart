@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:testcase_dashboard/multi_board_list_example.dart';
-import 'package:testcase_dashboard/single_board_list_example.dart';
+// import 'package:testcase_dashboard/single_board_list_example.dart';
 
 void main() {
   runApp(const ProviderScope(child: DashboardApp()));
@@ -10,84 +10,129 @@ void main() {
 class DashboardApp extends StatelessWidget {
   const DashboardApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+        home: Scaffold(
+      appBar: AppBar(
+          title: const Text(
+            "Snap Update Verification",
+            style: TextStyle(
+              color: Color(0xff5E2750),
+              fontFamily: "Ubuntu",
+              fontWeight: FontWeight.bold,
+              fontSize: 36,
+            ),
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0),
+      drawerScrimColor: Colors.transparent,
+      drawer: Drawer(
+          backgroundColor: const Color(0xff5E2750),
+          child: Column(
+            children: const [
+              Logo(),
+              Text(
+                "Kernel Testing",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: "Ubuntu",
+                  fontWeight: FontWeight.normal,
+                  fontSize: 24,
+                ),
+              ),
+              Text(
+                "Snap Testing",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: "Ubuntu",
+                  fontWeight: FontWeight.normal,
+                  fontSize: 24,
+                ),
+              ),
+              Text(
+                "Image Testing",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: "Ubuntu",
+                  fontWeight: FontWeight.normal,
+                  fontSize: 24,
+                ),
+              ),
+            ],
+          )),
+    ));
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+class HomePage extends StatefulWidget {
+  const HomePage({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-          appBar: AppBar(
-            title: const Text("GeeksForGeeks"),
-            bottom: const TabBar(
-              tabs: [
-                Tab(
-                  icon: Icon(Icons.home_filled),
-                  text: "Snaps",
-                ),
-                Tab(
-                  icon: Icon(Icons.account_box_outlined),
-                  text: "Kernels",
-                ),
-                Tab(
-                  icon: Icon(Icons.dvr_rounded),
-                  text: "Images",
-                ),
-              ],
-            ),
-          ),
-          body: const TabBarView(
-            children: [
-              MultiBoardListExample(),
-              SingleBoardListExample(),
-              MultiBoardListExample()
-            ],
-          )),
+    return Material(
+        child: Row(children: const [
+      Flexible(
+          child: FractionallySizedBox(
+              widthFactor: 0.3, heightFactor: 1, child: SideLayout())),
+      Flexible(child: MultiBoardListExample()),
+    ]));
+  }
+}
+
+class SideLayout extends StatelessWidget {
+  const SideLayout({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        color: const Color(0xff772953),
+        child: Column(
+          children: <Widget>[
+            SizedBox(
+                child: Image.asset('../external/media/canonical_white_hex.png'))
+          ],
+        ),
+      ),
     );
+  }
+}
+
+class Logo extends StatelessWidget {
+  const Logo({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+        height: 100,
+        child: DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: Image.asset("../external/media/ubuntu.png")),
+                const SizedBox(width: 10),
+                const Text("Ubuntu\nCertification",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: "Ubuntu",
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    )),
+              ],
+            )));
   }
 }
