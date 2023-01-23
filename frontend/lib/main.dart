@@ -15,17 +15,32 @@ class DashboardApp extends StatelessWidget {
     return MaterialApp(
         home: Scaffold(
       appBar: AppBar(
-          title: const Text(
-            "Snap Update Verification",
-            style: TextStyle(
-              color: Color(0xff5E2750),
-              fontFamily: "Ubuntu",
-              fontWeight: FontWeight.bold,
-              fontSize: 36,
-            ),
+        title: const Text(
+          "Snap Update Verification",
+          style: TextStyle(
+            color: Color(0xff5E2750),
+            fontFamily: "Ubuntu",
+            fontWeight: FontWeight.bold,
+            fontSize: 36,
           ),
-          backgroundColor: Colors.white,
-          elevation: 0),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(
+                Icons.menu,
+                color: Colors.black,
+              ),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+              tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+            );
+          },
+        ),
+      ),
       drawerScrimColor: Colors.transparent,
       drawer: Drawer(
           backgroundColor: const Color(0xff5E2750),
@@ -61,6 +76,7 @@ class DashboardApp extends StatelessWidget {
               ),
             ],
           )),
+      body: const MultiBoardListExample(),
     ));
   }
 }
