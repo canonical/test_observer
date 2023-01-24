@@ -169,15 +169,6 @@ class _RichTextCardState extends State<RichTextCard> {
   }
 }
 
-class TextItem extends AppFlowyGroupItem {
-  final String s;
-
-  TextItem(this.s);
-
-  @override
-  String get id => s;
-}
-
 class RichTextItem extends AppFlowyGroupItem {
   final String title;
   final String subtitle;
@@ -186,6 +177,15 @@ class RichTextItem extends AppFlowyGroupItem {
 
   @override
   String get id => title;
+}
+
+class TextItem extends AppFlowyGroupItem {
+  final String s;
+
+  TextItem(this.s);
+
+  @override
+  String get id => s;
 }
 
 extension HexColor on Color {

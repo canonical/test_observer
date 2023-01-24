@@ -46,6 +46,9 @@ dependencies:
     path: ./external/testcases-api
   flutter_riverpod: ^2.1.3
   appflowy_board: ^0.0.9
+  yaru: ^0.4.8
+  yaru_icons: ^1.0.1
+  yaru_colors: ^0.1.2
   
 dev_dependencies:
   flutter_test:
