@@ -45,7 +45,6 @@ class _BoardViewState extends State<BoardView> {
         BuildArtefactItem(observedCount: 1),
         BuildArtefactItem(),
         BuildArtefactItem(),
-        BuildArtefactItem(),
       ],
     );
 
