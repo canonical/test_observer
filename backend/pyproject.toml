@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "test-observer"
 version = "0.1.0"
-description = ""
+description = "Observe the status and state of certification tests for various artefacts"
 authors = ["Omar Selo <omar.selo@canonical.com>"]
 readme = "README.md"
 packages = [{include = "src"}]
