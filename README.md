@@ -1,2 +1,3 @@
-# testcase_dashboard
-Flutter based dashboard for visualising SRU regression test results
+# Test Observer
+
+Observe the status and state of certification tests for various artefacts
