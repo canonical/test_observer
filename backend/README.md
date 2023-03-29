@@ -12,12 +12,12 @@ This project uses [Poetry](https://python-poetry.org/) for dependency management
 
 ### Add/Install dependency
 
-`> poetry add foo`
+`$ poetry add foo`
 
 If it's a dev dependency
 
-`> poetry add --group dev foo`
+`$ poetry add --group dev foo`
 
 ### Remove/Uninstall dependency
 
-`> poetry remove foo`
+`$ poetry remove foo`
