@@ -14,13 +14,12 @@ spec:
         app: api
     spec:
       containers:
-      - name: api
-        image: localhost:32000/api
-        ports:
-        - containerPort: 30000
+        - name: api
+          image: localhost:32000/api
+          ports:
+            - containerPort: 30000
 
 ---
-
 # Expose port on localhost
 apiVersion: v1
 kind: Service
