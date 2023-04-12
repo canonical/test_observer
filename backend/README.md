@@ -7,13 +7,14 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 ### 1. Install required tools
 
 - Install [microk8s](https://microk8s.io/docs/getting-started) and setup permissions
-- Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary) and it's required dependency [kubectl](https://snapcraft.io/kubectl)
+- Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary)
 - Install [Poetry](https://python-poetry.org/docs/#installation)
 
 ### 2. Setup Skaffold and microk8s
 
-- For Skaffold to work with microk8s, enable microk8s registry `$ microk8s enable registry`
-- For kubectl to work with microk8s, add configuration `$ microk8s config > ~/.kube/config`
+- Skaffold requires a k8s registry to push and pull images from so just run `$ microk8s enable registry`
+- Skaffold uses kubectl so create an alias for `microk8s.kubectl` using `snap alias microk8s.kubectl kubectl`
+- In order for Skaffold to connect to microk8s it needs it's configuration, so run `$ microk8s config > ~/.kube/config`
 
 ### 3. Install python dependencies for linting and completions
 
