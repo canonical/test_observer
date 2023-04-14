@@ -39,6 +39,8 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: test-observer-db
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
