@@ -90,3 +90,6 @@ venv/
 
 # No need for markdowns like README in container
 *.md
+
+# Emacs
+flycheck*
