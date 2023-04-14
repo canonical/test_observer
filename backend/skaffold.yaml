@@ -1,10 +1,10 @@
 apiVersion: skaffold/v4beta4
 kind: Config
 metadata:
-  name: api
+  name: test-observer-frontend
 build:
   artifacts:
-    - image: localhost:32000/api
+    - image: localhost:32000/test-observer-api
       docker:
         dockerfile: Dockerfile
       # Sync these files to avoid rebuilding images
@@ -19,8 +19,5 @@ build:
   # Use microk8s registry
   insecureRegistries:
     - localhost:32000
-manifests:
-  rawYaml:
-    - k8s.yaml
 deploy:
   kubeContext: microk8s
