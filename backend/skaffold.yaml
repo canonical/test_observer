@@ -1,0 +1,26 @@
+apiVersion: skaffold/v4beta4
+kind: Config
+metadata:
+  name: api
+build:
+  artifacts:
+    - image: localhost:32000/api
+      docker:
+        dockerfile: Dockerfile
+      # Sync these files to avoid rebuilding images
+      sync:
+        manual:
+          - dest: "src/"
+            src: "src/**"
+            strip: "src/"
+          - dest: "tests/"
+            src: "tests/**"
+            strip: "tests/"
+  # Use microk8s registry
+  insecureRegistries:
+    - localhost:32000
+manifests:
+  rawYaml:
+    - k8s.yaml
+deploy:
+  kubeContext: microk8s
