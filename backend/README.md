@@ -2,7 +2,7 @@
 
 ## Development Setup
 
-This project supports [microk8s](https://microk8s.io/) development environment with the help of [skaffold](https://skaffold.dev/). It also uses [Poetry](https://python-poetry.org/) for dependency management.
+This project supports [microk8s](https://microk8s.io/) development environment with the help of [Skaffold](https://skaffold.dev/). It also uses [Poetry](https://python-poetry.org/) for dependency management.
 
 ### 1. Install required tools
 
@@ -38,3 +38,17 @@ If it's a dev dependency
 ### Remove/Uninstall dependency
 
 `$ poetry remove foo`
+
+## Database Migrations
+
+The project uses [Alembic](https://alembic.sqlalchemy.org/en/latest/) to manage database migrations. Migrations will be applied automatically when running Skaffold. But making changes to data models requires manually creating and applying migrations.
+
+### Create Migrations
+
+For more information on how to create migrations, please check [Alembic docs](https://alembic.sqlalchemy.org/en/latest/). Note, that it's worth noting that Alembic can help [auto generate migrations](https://alembic.sqlalchemy.org/en/latest/autogenerate.html) based on differences between SQLAlchemy ORMs and the actual database. But developers have to check these migrations to make sure they're fine.
+
+### Applying Migrations
+
+Since the database is in microk8s cluster, migrations have to be applied inside the cluster and not on the host machine. To do that we can just run the migrations on our api service which will run in one of the api pods through:
+
+`$ kubectl exec -it service/test-observer-api -- alembic upgrade head`

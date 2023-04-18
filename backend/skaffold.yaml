@@ -16,8 +16,18 @@ build:
           - dest: "tests/"
             src: "tests/**"
             strip: "tests/"
+          - dest: "alembic/"
+            src: "alembic/**"
+            strip: "alembic/"
   # Use microk8s registry
   insecureRegistries:
     - localhost:32000
 deploy:
   kubeContext: microk8s
+  kubectl:
+    hooks:
+      after:
+        - container:
+            # Run database migrations
+            command: ["sh", "-c", "alembic upgrade head"]
+            podName: test-observer-api*

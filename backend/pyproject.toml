@@ -10,6 +10,7 @@ fastapi = "^0.95.0"
 uvicorn = {extras = ["standard"], version = "^0.21.1"}
 sqlalchemy = "^2.0.9"
 pg8000 = "^1.29.4"
+alembic = "^1.10.3"
 
 
 [tool.poetry.group.dev.dependencies]
