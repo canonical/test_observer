@@ -6,6 +6,7 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 
 ### 1. Install required tools
 
+- Install [docker](https://snapcraft.io/docker) and setup permissions
 - Install [microk8s](https://microk8s.io/docs/getting-started) and setup permissions
 - Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary)
 - Install [Poetry](https://python-poetry.org/docs/#installation)
@@ -14,6 +15,7 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 
 - Skaffold requires a k8s registry to push and pull images from so just run `$ microk8s enable registry`
 - Allow pods to communicate together in microk8s through CoreDNS by running `$ microk8s enable dns` 
+- Allow persistent volume claims to claim storage using `$ microk8s enable hostpath-storage`
 - Skaffold uses kubectl so create an alias for `microk8s.kubectl` using `snap alias microk8s.kubectl kubectl`
 - In order for Skaffold to connect to microk8s it needs it's configuration, so run `$ microk8s config > ~/.kube/config`. Note that if you get an error connecting to the cluster, it could be that the cluster's IP has changed for some reason, so you have to run this command again
 
