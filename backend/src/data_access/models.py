@@ -52,33 +52,33 @@ class Base(MappedAsDataclass, DeclarativeBase):
     """Subclasses will be converted to dataclasses"""
 
 
-class Page(Base):
-    """A model to represent page object"""
+class Family(Base):
+    """A model to represent package family object"""
 
-    __tablename__ = "page"
+    __tablename__ = "family"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     created_at: Mapped[timestamp]
     # Relationships
-    lanes: Mapped[List["Lane"]] = relationship(back_populates="page")
-    arterfacts: Mapped[List["Artefact"]] = relationship(back_populates="page")
+    stages: Mapped[List["Stage"]] = relationship(back_populates="family")
+    arterfacts: Mapped[List["Artefact"]] = relationship(back_populates="family")
     environments: Mapped[List["Environment"]] = relationship(
-        back_populates="page"
+        back_populates="family"
     )
 
 
-class Lane(Base):
-    """A model to represent lanes"""
+class Stage(Base):
+    """A model to represent package stage in the promotion cycle"""
 
-    __tablename__ = "lane"
+    __tablename__ = "stage"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     position: Mapped[int] = mapped_column(unique=True)
     # Relationships
-    page: Mapped[Page] = relationship(back_populates="lanes")
-    arterfacts: Mapped[List["Artefact"]] = relationship(back_populates="lane")
+    Family: Mapped[Family] = relationship(back_populates="stages")
+    arterfacts: Mapped[List["Artefact"]] = relationship(back_populates="stage")
 
 
 # A table to represent the expected envoronments.
@@ -148,8 +148,8 @@ class Artefact(Base):
         nullable=True,
     )
     # Relationships
-    page: Mapped[Page] = relationship(back_populates="artefacts")
-    lane: Mapped[Lane] = relationship(back_populates="artefacts")
+    family: Mapped[Family] = relationship(back_populates="artefacts")
+    stage: Mapped[Stage] = relationship(back_populates="artefacts")
     artefact_group: Mapped[ArtefactGroup] = relationship(
         back_populates="artefacts"
     )
@@ -173,7 +173,7 @@ class Environment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     # Relationships
-    page: Mapped[Page] = relationship(back_populates="environments")
+    family: Mapped[Family] = relationship(back_populates="environments")
     artefacts: Mapped[List["Artefact"]] = relationship(
         secondary=test_execution, back_populates="environments"
     )
