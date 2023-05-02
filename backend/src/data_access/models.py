@@ -77,7 +77,7 @@ class Stage(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     position: Mapped[int] = mapped_column(unique=True)
     # Relationships
-    Family: Mapped[Family] = relationship(back_populates="stages")
+    family: Mapped[Family] = relationship(back_populates="stages")
     arterfacts: Mapped[List["Artefact"]] = relationship(back_populates="stage")
 
 

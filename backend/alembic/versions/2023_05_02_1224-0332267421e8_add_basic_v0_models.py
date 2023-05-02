@@ -1,8 +1,8 @@
 """Add basic v0 models
 
-Revision ID: 52e9dd0e86ea
+Revision ID: 0332267421e8
 Revises: 
-Create Date: 2023-05-02 12:00:56.130842+00:00
+Create Date: 2023-05-02 12:24:15.795817+00:00
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '52e9dd0e86ea'
+revision = '0332267421e8'
 down_revision = None
 branch_labels = None
 depends_on = None
