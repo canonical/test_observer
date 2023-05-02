@@ -24,10 +24,3 @@ build:
     - localhost:32000
 deploy:
   kubeContext: microk8s
-  kubectl:
-    hooks:
-      after:
-        - container:
-            # Run database migrations
-            command: ["sh", "-c", "alembic upgrade head"]
-            podName: test-observer-api*
