@@ -71,7 +71,7 @@ class Family(Base):
 
 
 class Stage(Base):
-    """A model to represent package stage in the promotion cycle"""
+    """A model to represent artefact stage in the promotion cycle"""
 
     __tablename__ = "stage"
 
