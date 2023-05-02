@@ -62,7 +62,9 @@ class Family(Base):
     created_at: Mapped[timestamp]
     # Relationships
     stages: Mapped[List["Stage"]] = relationship(back_populates="family")
-    arterfacts: Mapped[List["Artefact"]] = relationship(back_populates="family")
+    arterfacts: Mapped[List["Artefact"]] = relationship(
+        back_populates="family"
+    )
     environments: Mapped[List["Environment"]] = relationship(
         back_populates="family"
     )
@@ -127,6 +129,8 @@ test_execution = Table(
             "In Progress",
             "Passed",
             "Failed",
+            "Error",
+            "Not Tested",
             name="test_status_enum",
         ),
         server_default="Not Started",
