@@ -53,7 +53,7 @@ class Base(MappedAsDataclass, DeclarativeBase):
 
 
 class Family(Base):
-    """A model to represent package family object"""
+    """A model to represent artefact family object"""
 
     __tablename__ = "family"
 
