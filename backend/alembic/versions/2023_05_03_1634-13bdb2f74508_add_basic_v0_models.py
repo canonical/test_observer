@@ -1,8 +1,8 @@
 """Add basic v0 models
 
-Revision ID: 7bc7d0a38ad8
+Revision ID: 13bdb2f74508
 Revises: 
-Create Date: 2023-05-03 14:26:28.854694+00:00
+Create Date: 2023-05-03 16:34:29.245043+00:00
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7bc7d0a38ad8'
+revision = '13bdb2f74508'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -67,6 +67,7 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=200), nullable=False),
     sa.Column('source', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+    sa.Column('due_date', sa.Date(), nullable=True),
     sa.Column('status', sa.Enum('Approved', 'Marked as Failed', name='artefact_status_enum'), nullable=True),
     sa.Column('family_id', sa.Integer(), nullable=True),
     sa.Column('stage_id', sa.Integer(), nullable=True),

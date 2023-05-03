@@ -19,7 +19,7 @@
 
 
 from typing import List
-from datetime import datetime
+from datetime import datetime, date
 from typing_extensions import Annotated
 
 from sqlalchemy import (
@@ -28,7 +28,7 @@ from sqlalchemy import (
     ForeignKey,
     Enum,
     String,
-    DateTime,
+    Date,
 )
 from sqlalchemy.sql import func, expression
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
@@ -44,7 +44,11 @@ from sqlalchemy.orm import (
 # DateTime custom type for mapped classes
 timestamp = Annotated[
     datetime,
-    mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),
+    mapped_column(server_default=func.CURRENT_TIMESTAMP()),
+]
+date = Annotated[
+    date,
+    mapped_column(nullable=True),
 ]
 
 
@@ -110,6 +114,7 @@ class Artefact(Base):
     name: Mapped[str] = mapped_column(String(200), index=True)
     source: Mapped[dict] = mapped_column(JSONB)
     created_at: Mapped[timestamp]
+    due_date: Mapped[date]
     status: Mapped[str] = mapped_column(
         Enum("Approved", "Marked as Failed", name="artefact_status_enum"),
         nullable=True,
