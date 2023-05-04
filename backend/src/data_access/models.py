@@ -66,12 +66,6 @@ class Family(Base):
     created_at: Mapped[timestamp]
     # Relationships
     stages: Mapped[List["Stage"]] = relationship(back_populates="family")
-    arterfacts: Mapped[List["Artefact"]] = relationship(
-        back_populates="family"
-    )
-    environments: Mapped[List["Environment"]] = relationship(
-        back_populates="family"
-    )
 
 
 class Stage(Base):
@@ -120,8 +114,6 @@ class Artefact(Base):
         nullable=True,
     )
     # Relationships
-    family_id = mapped_column(ForeignKey("family.id"))
-    family: Mapped[Family] = relationship(back_populates="artefacts")
     stage_id = mapped_column(ForeignKey("stage.id"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
     artefact_group_id = mapped_column(ForeignKey("artefact_group.id"))
@@ -148,9 +140,6 @@ class Environment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     # Relationships
-    families: Mapped[List["FamilyEnvironment"]] = relationship(
-        back_populates="environment"
-    )
     artefacts: Mapped[List["TestExecution"]] = relationship(
         back_populates="environment"
     )
@@ -213,21 +202,3 @@ class ExpectedEnvironment(Base):
     environment: Mapped["Environment"] = relationship(
         back_populates="artefact_groups"
     )
-
-
-class FamilyEnvironment(Base):
-    """
-    A table to represent the M2M relationship between Family and
-    Environment tables
-    """
-
-    __tablename__ = "family_environment"
-
-    family_id: Mapped[int] = mapped_column(
-        ForeignKey("family.id"), primary_key=True
-    )
-    environment_id: Mapped[int] = mapped_column(
-        ForeignKey("environment.id"), primary_key=True
-    )
-    family: Mapped["Family"] = relationship(back_populates="environments")
-    environment: Mapped["Environment"] = relationship(back_populates="family")
