@@ -9,6 +9,8 @@ dependencies:
     sdk: flutter
   freezed_annotation: ^2.2.0
   yaru: ^0.7.0
+  yaru_icons: ^1.0.4
+  yaru_widgets: ^2.4.1
 dev_dependencies:
   flutter_lints: ^2.0.0
   dependency_validator: ^3.2.2
