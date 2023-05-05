@@ -21,3 +21,6 @@ doc/api/
 *.js.map
 
 .flutter-plugins*
+
+# Generated code
+*.freezed.dart

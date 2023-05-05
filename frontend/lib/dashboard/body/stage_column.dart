@@ -9,7 +9,7 @@ class StageColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 320,
+      width: ArtefactCard.width,
       child: ListView.separated(
         itemBuilder: (_, __) => const ArtefactCard(),
         separatorBuilder: (_, __) => const SizedBox(height: Spacing.level4),
