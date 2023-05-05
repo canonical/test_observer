@@ -13,6 +13,7 @@ class ArtefactCard extends StatelessWidget {
     const artefact = dummyArtefact;
 
     return Card(
+      margin: const EdgeInsets.all(0),
       elevation: 0,
       shape: RoundedRectangleBorder(
         side: BorderSide(color: Theme.of(context).colorScheme.outline),
