@@ -9,6 +9,8 @@ class Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      padding:
+          const EdgeInsets.symmetric(horizontal: Spacing.pageHorizontalPadding),
       scrollDirection: Axis.horizontal,
       itemBuilder: (_, __) => const StageColumn(),
       separatorBuilder: (_, __) => const SizedBox(width: Spacing.level5),
