@@ -12,7 +12,8 @@ class App extends StatelessWidget {
       builder: (context, yaru, child) {
         return MaterialApp(
           theme: yaru.theme,
-          darkTheme: yaru.darkTheme,
+          // Colors are fixed as design doesn't support dark theme
+          darkTheme: yaru.theme,
           home: const Dashboard(),
         );
       },
