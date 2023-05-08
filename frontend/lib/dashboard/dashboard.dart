@@ -11,8 +11,13 @@ class Dashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Navbar(),
-      body: Column(children: const [Header(), Expanded(child: Body())]),
+      body: Column(
+        children: const [
+          Navbar(),
+          Header(),
+          Expanded(child: Body()),
+        ],
+      ),
       bottomNavigationBar: const Footer(),
     );
   }
