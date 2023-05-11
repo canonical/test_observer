@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart' hide Title;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 
 import 'body/body.dart';
 import 'footer.dart';
-import 'title.dart';
 import 'header.dart';
+import 'navbar.dart';
 
 class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
@@ -14,8 +14,8 @@ class Dashboard extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: const [
+          Navbar(),
           Header(),
-          Title(),
           Expanded(child: Body()),
         ],
       ),

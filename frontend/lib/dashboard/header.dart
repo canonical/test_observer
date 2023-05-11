@@ -1,46 +1,54 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
+import 'package:yaru_icons/yaru_icons.dart';
 
+import '../models/family.dart';
 import '../spacing.dart';
 
 class Header extends StatelessWidget {
-  const Header({super.key});
+  const Header({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    const navigationEntries = [_NavigationEntry('Snap Testing', '/snaps')];
+    const family = dummyFamily;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.pageHorizontalPadding,
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: Spacing.pageHorizontalPadding,
+        right: Spacing.pageHorizontalPadding,
+        top: Spacing.level6,
+        bottom: Spacing.level4,
       ),
-      color: YaruColors.coolGrey,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Image.asset('assets/canonical.png'),
-          const SizedBox(width: Spacing.level4),
-          Expanded(
-            child: Row(
-              children: navigationEntries
-                  .map(
-                    (entry) => Container(
-                      color: GoRouter.of(context).location == entry.url
-                          ? YaruColors.orange
-                          : null,
-                      padding: const EdgeInsets.all(Spacing.level4),
-                      child: Text(
-                        entry.title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.apply(color: Colors.white),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                family.name,
+                style: Theme.of(context).textTheme.headlineLarge,
+              ),
+              const SizedBox(height: Spacing.level4),
+              Row(
+                children: const [
+                  _LegendEntry(
+                    icon: Icon(YaruIcons.ok, color: YaruColors.success),
+                    text: 'Passed',
+                  ),
+                  SizedBox(width: Spacing.level4),
+                  _LegendEntry(
+                    icon: Icon(YaruIcons.error, color: YaruColors.red),
+                    text: 'Failed',
+                  ),
+                  SizedBox(width: Spacing.level4),
+                  _LegendEntry(
+                    icon: Icon(YaruIcons.information),
+                    text: 'No result',
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -48,9 +56,20 @@ class Header extends StatelessWidget {
   }
 }
 
-class _NavigationEntry {
-  final String title;
-  final String url;
+class _LegendEntry extends StatelessWidget {
+  const _LegendEntry({required this.icon, required this.text});
 
-  const _NavigationEntry(this.title, this.url);
+  final Icon icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        icon,
+        const SizedBox(width: Spacing.level3),
+        Text(text, style: Theme.of(context).textTheme.labelLarge),
+      ],
+    );
+  }
 }
