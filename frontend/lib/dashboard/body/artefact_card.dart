@@ -4,14 +4,13 @@ import '../../models/artefact.dart';
 import '../../spacing.dart';
 
 class ArtefactCard extends StatelessWidget {
-  const ArtefactCard({Key? key}) : super(key: key);
+  const ArtefactCard({Key? key, required this.artefact}) : super(key: key);
 
+  final Artefact artefact;
   static const double width = 320;
 
   @override
   Widget build(BuildContext context) {
-    const artefact = dummyArtefact;
-
     return Card(
       margin: const EdgeInsets.all(0),
       elevation: 0,

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../models/family.dart';
 import '../../spacing.dart';
 import 'stage_column.dart';
 
 class Body extends StatelessWidget {
-  const Body({Key? key}) : super(key: key);
+  const Body({Key? key, required this.family}) : super(key: key);
+
+  final Family family;
 
   @override
   Widget build(BuildContext context) {
@@ -12,9 +15,9 @@ class Body extends StatelessWidget {
       padding:
           const EdgeInsets.symmetric(horizontal: Spacing.pageHorizontalPadding),
       scrollDirection: Axis.horizontal,
-      itemBuilder: (_, __) => const StageColumn(),
+      itemBuilder: (_, i) => StageColumn(stage: family.stages[i]),
       separatorBuilder: (_, __) => const SizedBox(width: Spacing.level5),
-      itemCount: 2,
+      itemCount: family.stages.length,
     );
   }
 }

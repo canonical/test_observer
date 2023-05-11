@@ -8,5 +8,3 @@ class Artefact with _$Artefact {
     required String name,
   }) = _Artefact;
 }
-
-const dummyArtefact = Artefact(name: 'Artefact');
