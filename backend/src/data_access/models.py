@@ -106,6 +106,7 @@ class Artefact(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), index=True)
+    version: Mapped[str]
     source: Mapped[dict] = mapped_column(JSONB)
     created_at: Mapped[timestamp]
     due_date: Mapped[date]
