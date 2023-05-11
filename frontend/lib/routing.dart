@@ -1,26 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'dashboard/dashboard.dart';
-import 'dashboard/navbar.dart';
 
 final appRouter = GoRouter(
-  initialLocation: navbarEntries[0].url,
+  initialLocation: '/snaps',
   routes: [
     GoRoute(
       path: '/',
-      redirect: (context, state) => navbarEntries[0].url,
+      redirect: (context, state) => '/snaps',
     ),
-    ShellRoute(
-      builder: (_, __, ___) => const Dashboard(),
-      routes: navbarEntries
-          .map(
-            (entry) => GoRoute(
-              path: entry.url,
-              builder: (_, __) => Container(),
-            ),
-          )
-          .toList(),
+    GoRoute(
+      path: '/snaps',
+      builder: (context, state) => const Dashboard(),
     ),
   ],
 );

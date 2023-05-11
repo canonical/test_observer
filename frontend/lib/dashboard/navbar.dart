@@ -21,23 +21,21 @@ class Navbar extends StatelessWidget {
           const SizedBox(width: Spacing.level4),
           Expanded(
             child: Row(
-              children: navbarEntries
-                  .map(
-                    (entry) => Container(
-                      color: GoRouter.of(context).location == entry.url
-                          ? YaruColors.orange
-                          : null,
-                      padding: const EdgeInsets.all(Spacing.level4),
-                      child: Text(
-                        entry.title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.apply(color: Colors.white),
-                      ),
-                    ),
-                  )
-                  .toList(),
+              children: [
+                Container(
+                  color: GoRouter.of(context).location == '/snaps'
+                      ? YaruColors.orange
+                      : null,
+                  padding: const EdgeInsets.all(Spacing.level4),
+                  child: Text(
+                    'Snap Testing',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.apply(color: Colors.white),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -45,12 +43,3 @@ class Navbar extends StatelessWidget {
     );
   }
 }
-
-class _NavbarEntry {
-  final String title;
-  final String url;
-
-  const _NavbarEntry(this.title, this.url);
-}
-
-const navbarEntries = [_NavbarEntry('Snap Testing', '/snaps')];
