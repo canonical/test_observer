@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../models/family.dart';
+import '../../models/artefact_family.dart';
 import '../../spacing.dart';
 import 'stage_column.dart';
 
 class Body extends StatelessWidget {
   const Body({Key? key, required this.family}) : super(key: key);
 
-  final Family family;
+  final ArtefactFamily family;
 
   @override
   Widget build(BuildContext context) {

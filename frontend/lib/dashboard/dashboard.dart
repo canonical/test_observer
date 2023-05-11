@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yaru_widgets/widgets.dart';
 
-import '../models/family.dart';
+import '../providers.dart';
 import 'body/body.dart';
 import 'footer.dart';
 import 'header.dart';
@@ -12,15 +13,23 @@ class Dashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      body: Column(
-        children: const [
-          Navbar(),
-          Header(),
-          Expanded(child: Body(family: dummyFamily)),
-        ],
+    final family = ref.watch(fetchFamilyProvider('snaps'));
+
+    return family.when(
+      error: (error, _) => Text('Error: $error'),
+      loading: () => const Center(
+        child: YaruCircularProgressIndicator(),
       ),
-      bottomNavigationBar: const Footer(),
+      data: (family) => Scaffold(
+        body: Column(
+          children: [
+            const Navbar(),
+            Header(family: family),
+            Expanded(child: Body(family: family)),
+          ],
+        ),
+        bottomNavigationBar: const Footer(),
+      ),
     );
   }
 }
