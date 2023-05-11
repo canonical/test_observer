@@ -24,3 +24,6 @@ doc/api/
 
 # Generated code
 *.freezed.dart
+*.g.dart
+
+custom_lint.log
