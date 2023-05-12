@@ -2,11 +2,19 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
 import '../models/stage.dart';
+import 'dio.dart';
 
-part 'fetch_stages.g.dart';
+part 'stages.g.dart';
 
 @riverpod
-Future<List<Stage>> fetchStages(FetchStagesRef ref, String familyName) {
+Future<List<Stage>> stages(StagesRef ref, String familyName) async {
+  // final dio = ref.watch(dioProvider);
+
+  // final response = await dio.get('/family/$familyName/stages');
+  // final List stagesJson = response.data;
+  // final stages = stagesJson.map((json) => Stage.fromJson(json)).toList();
+  // return stages;
+
   if (familyName != 'snap') {
     throw Exception('Invalid familyName "$familyName"');
   }

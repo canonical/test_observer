@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/widgets.dart';
 
-import '../../providers/fetch_stages.dart';
+import '../../providers/stages.dart';
 import 'dashboard_body.dart';
 import 'dashboard_header.dart';
 
@@ -39,7 +39,7 @@ class _Dashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stages = ref.watch(fetchStagesProvider(familyName));
+    final stages = ref.watch(stagesProvider(familyName));
 
     return Column(
       children: [
