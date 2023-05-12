@@ -3,15 +3,18 @@ import 'package:go_router/go_router.dart';
 import 'ui/dashboard.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/snaps',
   routes: [
     GoRoute(
       path: '/',
-      redirect: (context, state) => '/snaps',
+      redirect: (context, state) => AppRoutes.snaps,
     ),
     GoRoute(
-      path: '/snaps',
-      builder: (context, state) => const Dashboard(),
+      path: AppRoutes.snaps,
+      builder: (context, state) => const SnapDashboard(),
     ),
   ],
 );
+
+class AppRoutes {
+  static const snaps = '/snaps';
+}

@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 
-import '../models/artefact_family.dart';
 import 'spacing.dart';
 
 class Header extends StatelessWidget {
-  const Header({Key? key, required this.family}) : super(key: key);
+  const Header({Key? key, required this.title}) : super(key: key);
 
-  final ArtefactFamily family;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +25,7 @@ class Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                family.name,
+                title,
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               const SizedBox(height: Spacing.level4),

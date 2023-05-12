@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../models/artefact_family.dart';
+import '../../models/stage.dart';
 import '../spacing.dart';
 import 'stage_column.dart';
 
 class Body extends StatelessWidget {
-  const Body({Key? key, required this.family}) : super(key: key);
+  const Body({Key? key, required this.stages}) : super(key: key);
 
-  final ArtefactFamily family;
+  final List<Stage> stages;
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +15,9 @@ class Body extends StatelessWidget {
       padding:
           const EdgeInsets.symmetric(horizontal: Spacing.pageHorizontalPadding),
       scrollDirection: Axis.horizontal,
-      itemBuilder: (_, i) => StageColumn(stage: family.stages[i]),
+      itemBuilder: (_, i) => StageColumn(stage: stages[i]),
       separatorBuilder: (_, __) => const SizedBox(width: Spacing.level5),
-      itemCount: family.stages.length,
+      itemCount: stages.length,
     );
   }
 }
