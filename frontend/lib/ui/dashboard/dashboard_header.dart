@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 
-import 'spacing.dart';
+import '../spacing.dart';
 
-class Header extends StatelessWidget {
-  const Header({Key? key, required this.title}) : super(key: key);
+class DashboardHeader extends StatelessWidget {
+  const DashboardHeader({Key? key, required this.title}) : super(key: key);
 
   final String title;
 

@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
-import 'ui/dashboard.dart';
+import 'ui/dashboard/dashboard.dart';
+import 'ui/skeleton.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -10,7 +11,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.snaps,
-      builder: (context, state) => const SnapDashboard(),
+      builder: (context, state) => const Skeleton(
+        body: SnapDashboard(),
+      ),
     ),
   ],
 );

@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/widgets.dart';
 
-import '../providers/fetch_stages.dart';
-import 'body/body.dart';
-import 'footer.dart';
-import 'header.dart';
-import 'navbar.dart';
+import '../../providers/fetch_stages.dart';
+import 'dashboard_body.dart';
+import 'dashboard_header.dart';
 
 class SnapDashboard extends StatelessWidget {
   const SnapDashboard({super.key});
@@ -31,21 +29,17 @@ class Dashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stages = ref.watch(fetchStagesProvider(familyName));
 
-    return stages.when(
-      error: (error, _) => Text('Error: $error'),
-      loading: () => const Center(
-        child: YaruCircularProgressIndicator(),
-      ),
-      data: (stages) => Scaffold(
-        body: Column(
-          children: [
-            const Navbar(),
-            Header(title: title),
-            Expanded(child: Body(stages: stages)),
-          ],
+    return Column(
+      children: [
+        DashboardHeader(title: title),
+        Expanded(
+          child: stages.when(
+            error: (error, _) => Center(child: Text('Error: $error')),
+            loading: () => const Center(child: YaruCircularProgressIndicator()),
+            data: (stages) => DashboardBody(stages: stages),
+          ),
         ),
-        bottomNavigationBar: const Footer(),
-      ),
+      ],
     );
   }
 }
