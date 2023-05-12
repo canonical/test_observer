@@ -25,7 +25,7 @@ class DebDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return const _Dashboard(
       familyName: 'deb',
-      title: 'Kernel Update Verification',
+      title: 'Deb Update Verification',
     );
   }
 }
