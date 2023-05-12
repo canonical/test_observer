@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 
-import 'dashboard/dashboard.dart';
+import 'ui/dashboard.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/snaps',

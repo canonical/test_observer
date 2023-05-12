@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
-import '../spacing.dart';
+import 'spacing.dart';
 
 class Navbar extends StatelessWidget {
   const Navbar({super.key});

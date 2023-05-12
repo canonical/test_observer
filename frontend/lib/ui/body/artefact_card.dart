@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/artefact.dart';
-import '../../spacing.dart';
+import '../spacing.dart';
 
 class ArtefactCard extends StatelessWidget {
   const ArtefactCard({Key? key, required this.artefact}) : super(key: key);

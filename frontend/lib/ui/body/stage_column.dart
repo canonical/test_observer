@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/stage.dart';
-import '../../spacing.dart';
+import '../spacing.dart';
 import 'artefact_card.dart';
 
 class StageColumn extends StatelessWidget {

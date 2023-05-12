@@ -3,7 +3,7 @@ import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 
 import '../models/artefact_family.dart';
-import '../spacing.dart';
+import 'spacing.dart';
 
 class Header extends StatelessWidget {
   const Header({Key? key, required this.family}) : super(key: key);

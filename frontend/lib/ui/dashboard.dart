@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/widgets.dart';
 
-import '../providers.dart';
+import '../providers/fetch_family.dart';
 import 'body/body.dart';
 import 'footer.dart';
 import 'header.dart';

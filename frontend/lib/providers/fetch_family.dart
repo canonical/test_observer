@@ -1,10 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'models/artefact.dart';
-import 'models/artefact_family.dart';
-import 'models/stage.dart';
+import '../models/artefact.dart';
+import '../models/artefact_family.dart';
+import '../models/stage.dart';
 
-part 'providers.g.dart';
+part 'fetch_family.g.dart';
 
 @riverpod
 Future<ArtefactFamily> fetchFamily(FetchFamilyRef ref, String familyName) {
