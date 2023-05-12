@@ -24,6 +24,7 @@ class Navbar extends StatelessWidget {
             child: Row(
               children: const [
                 _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
+                _NavbarEntry(title: 'Kernel Testing', route: AppRoutes.debs),
               ],
             ),
           ),

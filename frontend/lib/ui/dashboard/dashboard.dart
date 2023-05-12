@@ -11,15 +11,27 @@ class SnapDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Dashboard(
+    return const _Dashboard(
       familyName: 'snap',
       title: 'Snap Update Verification',
     );
   }
 }
 
-class Dashboard extends ConsumerWidget {
-  const Dashboard({Key? key, required this.familyName, required this.title})
+class DebDashboard extends StatelessWidget {
+  const DebDashboard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _Dashboard(
+      familyName: 'deb',
+      title: 'Kernel Update Verification',
+    );
+  }
+}
+
+class _Dashboard extends ConsumerWidget {
+  const _Dashboard({Key? key, required this.familyName, required this.title})
       : super(key: key);
 
   final String familyName;

@@ -9,15 +9,26 @@ final appRouter = GoRouter(
       path: '/',
       redirect: (context, state) => AppRoutes.snaps,
     ),
-    GoRoute(
-      path: AppRoutes.snaps,
-      builder: (context, state) => const Skeleton(
-        body: SnapDashboard(),
+    ShellRoute(
+      builder: (_, __, dashboard) => Skeleton(
+        body: dashboard,
       ),
+      routes: [
+        GoRoute(
+          path: AppRoutes.snaps,
+          pageBuilder: (_, __) =>
+              const NoTransitionPage(child: SnapDashboard()),
+        ),
+        GoRoute(
+          path: AppRoutes.debs,
+          pageBuilder: (_, __) => const NoTransitionPage(child: DebDashboard()),
+        ),
+      ],
     ),
   ],
 );
 
 class AppRoutes {
   static const snaps = '/snaps';
+  static const debs = '/debs';
 }
