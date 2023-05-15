@@ -23,15 +23,12 @@ from datetime import datetime, date
 from typing_extensions import Annotated
 
 from sqlalchemy import (
-    Column,
-    Table,
     ForeignKey,
     Enum,
     String,
-    Date,
 )
 from sqlalchemy.sql import func, expression
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
     MappedAsDataclass,
@@ -44,7 +41,7 @@ from sqlalchemy.orm import (
 # DateTime custom type for mapped classes
 timestamp = Annotated[
     datetime,
-    mapped_column(server_default=func.CURRENT_TIMESTAMP()),
+    mapped_column(default=func.CURRENT_TIMESTAMP()),
 ]
 date = Annotated[
     date,
@@ -61,11 +58,12 @@ class Family(Base):
 
     __tablename__ = "family"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
-    created_at: Mapped[timestamp]
     # Relationships
     stages: Mapped[List["Stage"]] = relationship(back_populates="family")
+    # Default fields
+    created_at: Mapped[timestamp]
 
 
 class Stage(Base):
@@ -73,7 +71,7 @@ class Stage(Base):
 
     __tablename__ = "stage"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     position: Mapped[int] = mapped_column(index=True)
     # Relationships
@@ -87,13 +85,11 @@ class ArtefactGroup(Base):
 
     __tablename__ = "artefact_group"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     version_pattern: Mapped[str] = mapped_column(String(100))
     # Relationships
-    artefacts: Mapped[List["Artefact"]] = relationship(
-        back_populates="artefact_group"
-    )
+    artefacts: Mapped[List["Artefact"]] = relationship(back_populates="artefact_group")
     environments: Mapped[List["ExpectedEnvironment"]] = relationship(
         back_populates="artefact_group"
     )
@@ -104,11 +100,10 @@ class Artefact(Base):
 
     __tablename__ = "artefact"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
     source: Mapped[dict] = mapped_column(JSONB)
-    created_at: Mapped[timestamp]
     due_date: Mapped[date]
     status: Mapped[str] = mapped_column(
         Enum("Approved", "Marked as Failed", name="artefact_status_enum"),
@@ -118,16 +113,13 @@ class Artefact(Base):
     stage_id = mapped_column(ForeignKey("stage.id"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
     artefact_group_id = mapped_column(ForeignKey("artefact_group.id"))
-    artefact_group: Mapped[ArtefactGroup] = relationship(
-        back_populates="artefacts"
-    )
+    artefact_group: Mapped[ArtefactGroup] = relationship(back_populates="artefacts")
     environments: Mapped[List["TestExecution"]] = relationship(
         back_populates="artefact"
     )
     # Default fields
-    is_archived: Mapped[bool] = mapped_column(
-        server_default=expression.false()
-    )
+    created_at: Mapped[timestamp]
+    is_archived: Mapped[bool] = mapped_column(default=expression.false())
 
 
 class Environment(Base):
@@ -138,7 +130,7 @@ class Environment(Base):
 
     __tablename__ = "environment"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     # Relationships
     artefacts: Mapped[List["TestExecution"]] = relationship(
@@ -166,6 +158,9 @@ class TestExecution(Base):
     jenkins_link: Mapped[str] = mapped_column(String(200), nullable=True)
     c3_link: Mapped[str] = mapped_column(String(200), nullable=True)
     updated_at: Mapped[timestamp] = mapped_column(onupdate=func.now())
+    artefact: Mapped["Artefact"] = relationship(back_populates="environments")
+    environment: Mapped["Environment"] = relationship(back_populates="artefacts")
+    # Default fields
     status: Mapped[str] = mapped_column(
         Enum(
             "Not Started",
@@ -175,11 +170,7 @@ class TestExecution(Base):
             "Not Tested",
             name="test_status_enum",
         ),
-        server_default="Not Started",
-    )
-    artefact: Mapped["Artefact"] = relationship(back_populates="environments")
-    environment: Mapped["Environment"] = relationship(
-        back_populates="artefacts"
+        default="Not Started",
     )
 
 
@@ -200,6 +191,4 @@ class ExpectedEnvironment(Base):
     artefact_group: Mapped["ArtefactGroup"] = relationship(
         back_populates="environments"
     )
-    environment: Mapped["Environment"] = relationship(
-        back_populates="artefact_groups"
-    )
+    environment: Mapped["Environment"] = relationship(back_populates="artefact_groups")

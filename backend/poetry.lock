@@ -123,6 +123,18 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
+name = "certifi"
+version = "2023.5.7"
+description = "Python package for providing Mozilla's CA Bundle."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "certifi-2023.5.7-py3-none-any.whl", hash = "sha256:c6c2e98f5c7869efca1f8916fed228dd91539f9f1b444c314c06eef02980c716"},
+    {file = "certifi-2023.5.7.tar.gz", hash = "sha256:0f0d56dc5a6ad56fd4ba36484d6cc34451e1c6548c61daad8c320169f91eddc7"},
+]
+
+[[package]]
 name = "click"
 version = "8.1.3"
 description = "Composable command line interface toolkit"
@@ -163,6 +175,21 @@ files = [
 
 [package.extras]
 graph = ["objgraph (>=1.7.2)"]
+
+[[package]]
+name = "exceptiongroup"
+version = "1.1.1"
+description = "Backport of PEP 654 (exception groups)"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "exceptiongroup-1.1.1-py3-none-any.whl", hash = "sha256:232c37c63e4f682982c8b6459f33a8981039e5fb8756b2074364e5055c498c9e"},
+    {file = "exceptiongroup-1.1.1.tar.gz", hash = "sha256:d484c3090ba2889ae2928419117447a14daf3c1231d5e30d0aae34f354f01785"},
+]
+
+[package.extras]
+test = ["pytest (>=6)"]
 
 [[package]]
 name = "fastapi"
@@ -273,6 +300,28 @@ files = [
 ]
 
 [[package]]
+name = "httpcore"
+version = "0.17.0"
+description = "A minimal low-level HTTP client."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "httpcore-0.17.0-py3-none-any.whl", hash = "sha256:0fdfea45e94f0c9fd96eab9286077f9ff788dd186635ae61b312693e4d943599"},
+    {file = "httpcore-0.17.0.tar.gz", hash = "sha256:cc045a3241afbf60ce056202301b4d8b6af08845e3294055eb26b09913ef903c"},
+]
+
+[package.dependencies]
+anyio = ">=3.0,<5.0"
+certifi = "*"
+h11 = ">=0.13,<0.15"
+sniffio = ">=1.0.0,<2.0.0"
+
+[package.extras]
+http2 = ["h2 (>=3,<5)"]
+socks = ["socksio (>=1.0.0,<2.0.0)"]
+
+[[package]]
 name = "httptools"
 version = "0.5.0"
 description = "A collection of framework independent HTTP protocol utils."
@@ -327,6 +376,30 @@ files = [
 test = ["Cython (>=0.29.24,<0.30.0)"]
 
 [[package]]
+name = "httpx"
+version = "0.24.0"
+description = "The next generation HTTP client."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "httpx-0.24.0-py3-none-any.whl", hash = "sha256:447556b50c1921c351ea54b4fe79d91b724ed2b027462ab9a329465d147d5a4e"},
+    {file = "httpx-0.24.0.tar.gz", hash = "sha256:507d676fc3e26110d41df7d35ebd8b3b8585052450f4097401c9be59d928c63e"},
+]
+
+[package.dependencies]
+certifi = "*"
+httpcore = ">=0.15.0,<0.18.0"
+idna = "*"
+sniffio = "*"
+
+[package.extras]
+brotli = ["brotli", "brotlicffi"]
+cli = ["click (>=8.0.0,<9.0.0)", "pygments (>=2.0.0,<3.0.0)", "rich (>=10,<14)"]
+http2 = ["h2 (>=3,<5)"]
+socks = ["socksio (>=1.0.0,<2.0.0)"]
+
+[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -336,6 +409,18 @@ python-versions = ">=3.5"
 files = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
     {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
+]
+
+[[package]]
+name = "iniconfig"
+version = "2.0.0"
+description = "brain-dead simple config-ini parsing"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
+    {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
 ]
 
 [[package]]
@@ -510,7 +595,7 @@ files = [
 name = "packaging"
 version = "23.0"
 description = "Core utilities for Python packages"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -561,6 +646,22 @@ files = [
 [package.extras]
 docs = ["furo (>=2022.12.7)", "proselint (>=0.13)", "sphinx (>=6.1.3)", "sphinx-autodoc-typehints (>=1.22,!=1.23.4)"]
 test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=7.2.2)", "pytest-cov (>=4)", "pytest-mock (>=3.10)"]
+
+[[package]]
+name = "pluggy"
+version = "1.0.0"
+description = "plugin and hook calling mechanisms for python"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
+    {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
+]
+
+[package.extras]
+dev = ["pre-commit", "tox"]
+testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pydantic"
@@ -645,6 +746,29 @@ spelling = ["pyenchant (>=3.2,<4.0)"]
 testutils = ["gitpython (>3)"]
 
 [[package]]
+name = "pytest"
+version = "7.3.1"
+description = "pytest: simple powerful testing with Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pytest-7.3.1-py3-none-any.whl", hash = "sha256:3799fa815351fea3a5e96ac7e503a96fa51cc9942c3753cda7651b93c1cfa362"},
+    {file = "pytest-7.3.1.tar.gz", hash = "sha256:434afafd78b1d78ed0addf160ad2b77a30d35d4bdf8af234fe621919d9ed15e3"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+exceptiongroup = {version = ">=1.0.0rc8", markers = "python_version < \"3.11\""}
+iniconfig = "*"
+packaging = "*"
+pluggy = ">=0.12,<2.0"
+tomli = {version = ">=1.0.0", markers = "python_version < \"3.11\""}
+
+[package.extras]
+testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
+
+[[package]]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
@@ -673,6 +797,21 @@ files = [
 
 [package.extras]
 cli = ["click (>=5.0)"]
+
+[[package]]
+name = "python-multipart"
+version = "0.0.6"
+description = "A streaming multipart parser for Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "python_multipart-0.0.6-py3-none-any.whl", hash = "sha256:ee698bab5ef148b0a760751c261902cd096e57e10558e11aca17646b74ee1c18"},
+    {file = "python_multipart-0.0.6.tar.gz", hash = "sha256:e9925a80bb668529f1b67c7fdb0a5dacdd7cbfc6fb0bff3ea443fe22bdd62132"},
+]
+
+[package.extras]
+dev = ["atomicwrites (==1.2.1)", "attrs (==19.2.0)", "coverage (==6.5.0)", "hatch", "invoke (==1.7.3)", "more-itertools (==4.3.0)", "pbr (==4.3.0)", "pluggy (==1.0.0)", "py (==1.11.0)", "pytest (==7.2.0)", "pytest-cov (==4.0.0)", "pytest-timeout (==2.1.0)", "pyyaml (==5.1)"]
 
 [[package]]
 name = "pyyaml"
@@ -842,6 +981,35 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
+name = "sqlalchemy-utils"
+version = "0.41.1"
+description = "Various utility functions for SQLAlchemy."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "SQLAlchemy-Utils-0.41.1.tar.gz", hash = "sha256:a2181bff01eeb84479e38571d2c0718eb52042f9afd8c194d0d02877e84b7d74"},
+    {file = "SQLAlchemy_Utils-0.41.1-py3-none-any.whl", hash = "sha256:6c96b0768ea3f15c0dc56b363d386138c562752b84f647fb8d31a2223aaab801"},
+]
+
+[package.dependencies]
+SQLAlchemy = ">=1.3"
+
+[package.extras]
+arrow = ["arrow (>=0.3.4)"]
+babel = ["Babel (>=1.3)"]
+color = ["colour (>=0.0.4)"]
+encrypted = ["cryptography (>=0.6)"]
+intervals = ["intervals (>=0.7.1)"]
+password = ["passlib (>=1.6,<2.0)"]
+pendulum = ["pendulum (>=2.0.5)"]
+phone = ["phonenumbers (>=5.9.2)"]
+test = ["Jinja2 (>=2.3)", "Pygments (>=1.2)", "backports.zoneinfo", "docutils (>=0.10)", "flake8 (>=2.4.0)", "flexmock (>=0.9.7)", "isort (>=4.2.2)", "pg8000 (>=1.12.4)", "psycopg (>=3.1.8)", "psycopg2 (>=2.5.1)", "psycopg2cffi (>=2.8.1)", "pymysql", "pyodbc", "pytest (>=2.7.1)", "python-dateutil (>=2.6)", "pytz (>=2014.2)"]
+test-all = ["Babel (>=1.3)", "Jinja2 (>=2.3)", "Pygments (>=1.2)", "arrow (>=0.3.4)", "backports.zoneinfo", "colour (>=0.0.4)", "cryptography (>=0.6)", "docutils (>=0.10)", "flake8 (>=2.4.0)", "flexmock (>=0.9.7)", "furl (>=0.4.1)", "intervals (>=0.7.1)", "isort (>=4.2.2)", "passlib (>=1.6,<2.0)", "pendulum (>=2.0.5)", "pg8000 (>=1.12.4)", "phonenumbers (>=5.9.2)", "psycopg (>=3.1.8)", "psycopg2 (>=2.5.1)", "psycopg2cffi (>=2.8.1)", "pymysql", "pyodbc", "pytest (>=2.7.1)", "python-dateutil", "python-dateutil (>=2.6)", "pytz (>=2014.2)"]
+timezone = ["python-dateutil"]
+url = ["furl (>=0.4.1)"]
+
+[[package]]
 name = "starlette"
 version = "0.26.1"
 description = "The little ASGI library that shines."
@@ -863,7 +1031,7 @@ full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyam
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1168,4 +1336,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "6fe390f920ab8e125ae9667003711d1d694cd0e8aa780bdadf02179be937152c"
+content-hash = "33f7f58f85dc726904225ff23de0cf23cd241f125f8c237d6ed710b733fc7009"

@@ -1,0 +1,1256 @@
+abb-dfa-apc2200-gadget:
+  arch: amd64
+  store: abbha9Ao5Eengooci8tu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - vasteras
+abb-dfa-apc2200-kernel:
+  arch: amd64
+  store: abbha9Ao5Eengooci8tu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - vasteras
+bluez:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        latest:
+          - caracalla-gpa
+          - caracalla-media
+          - caracalla-transport
+          - dawson-j
+          - kassel
+          - rpi3aplus-armhf
+          - rpi3aplus-arm64
+          - rpi3bplus-armhf
+          - rpi3bplus-arm64
+          - rpi4b4g-armhf
+          - rpi4b4g-arm64
+          - rpi4b8g-armhf
+          - rpi4b8g-arm64
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - stlouis
+          - tillamook
+          - tillamook-bt
+          - rpi400-arm64
+          - rpi400-armhf
+        "20":
+          - cm4l-arm64
+          - cm4l-armhf
+          - dawson-i
+          - dawson-j
+          - presidio
+          - rpi3bplus-armhf
+          - rpi3bplus-arm64
+          - rpi4b4g-armhf
+          - rpi4b4g-arm64
+          - rpi4b8g-armhf
+          - rpi4b8g-arm64
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+          - newparis
+          - staunton
+          - conroe
+          - thinkedge-se30
+        "22":
+          - cm4l-arm64
+          - cm4l-armhf
+          - dawson-i
+          - dawson-j
+          - rpi3bplus-armhf
+          - rpi3bplus-arm64
+          - rpi4b4g-armhf
+          - rpi4b4g-arm64
+          - rpi4b8g-armhf
+          - rpi4b8g-arm64
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+          - rpiz2-arm64
+          - rpiz2-armhf
+bosch-bt-s6lm-kernel:
+  arch: arm64
+  store: Xai4vooveinoo3soeboo
+  checklists:
+    Testflinger:
+      expected_tests:
+        - nuremberg-homegen2
+caracalla:
+  arch: amd64
+  store: he9Haizai7thooneiph9
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-transport
+        - caracalla-media-wwan
+        - caracalla-transport-wwan
+caracalla-kernel:
+  arch: amd64
+  store: he9Haizai7thooneiph9
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-transport
+        - caracalla-media-wwan
+        - caracalla-transport-wwan
+cascade:
+  arch: armhf
+  store: Rif9aiya1theiGie6Een
+  checklists:
+    Testflinger:
+      expected_tests:
+        - tillamook
+        - tillamook-edgedirect
+        - tillamook-bt
+        - tillamook-mac
+cascade-configuration:
+  arch: armhf
+  store: Rif9aiya1theiGie6Een
+  checklists:
+    Testflinger:
+      expected_tests:
+        - tillamook
+        - tillamook-edgedirect
+        - tillamook-bt
+        - tillamook-mac
+cascade-kernel:
+  arch: armhf
+  store: Rif9aiya1theiGie6Een
+  checklists:
+    Testflinger:
+      expected_tests:
+        - tillamook
+        - tillamook-edgedirect
+        - tillamook-bt
+        - tillamook-mac
+rigado-deviceops:
+  arch: armhf
+  store: Rif9aiya1theiGie6Een
+  checklists:
+    Testflinger:
+      expected_tests:
+        - tillamook-edgedirect
+checkbox:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "20.04":
+          - amd64-focal
+          - cm4l-arm64
+          - cm4l-armhf
+          - rpi3-arm64-focal
+          - rpi3bplus-armhf-focal
+          - rpi4b8g-arm64-focal
+        "18.04":
+          - amd64-bionic
+          - rpi3-arm64-bionic
+          - rpi3bplus-armhf-bionic
+          - rpi4b8g-arm64-bionic
+        "uc18":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - dragonboard
+          - rpi2
+          - rpi3-armhf
+          - rpi3-arm64
+          - rpi3aplus-armhf
+          - rpi3aplus-arm64
+          - rpi3bplus-armhf
+          - rpi3bplus-arm64
+          - rpi4b8g-arm64
+          - rpi4b8g-armhf
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+        "uc20":
+          - cm3-armhf
+          - cm3p-arm64
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-arm64
+          - rpi3bplus-armhf
+          - rpi4b8g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-armhf
+checkbox16:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-media-wwan
+        - caracalla-transport
+        - caracalla-transport-wwan
+        - stlouis
+        - stlouis-tpm2
+        - tillamook
+        - fortknox
+        - fortknox-tpu
+checkbox18:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - amd64
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+        - dawson-i
+        - dawson-j
+        - dragonboard
+        - i386
+        - presidio
+        - rpi2
+        - rpi3-armhf
+        - rpi3aplus-armhf
+        - rpi3bplus-armhf
+        - rpi3-arm64
+        - rpi3aplus-arm64
+        - rpi3bplus-arm64
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+        - vasteras
+        - cdts-smoke-dawson-j
+        - cdts-smoke-dearest-team
+        - cdts-smoke-rpi3
+checkbox20:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - amd64
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+        - cm4l-arm64
+        - cm4l-armhf
+        - dawson-i
+        - dawson-j
+        - elgin
+        - rpi2
+        - rpi3-armhf
+        - rpi3-arm64
+        - rpi3aplus-armhf
+        - rpi3bplus-armhf
+        - rpi3aplus-arm64
+        - rpi3bplus-arm64
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+        - newparis
+        - staunton
+        - cdts-smoke-dawson-j
+        - cdts-smoke-dearest-team
+        - cdts-smoke-rpi4b8g
+        - dawson-i-stress-ng
+        - conroe
+        - carlsbad
+        - havana-bullet
+        - havana-corner
+        - havana-dome
+        - nuremberg-homegen2
+        - katy
+        - inventec-e200
+        - havana-ptz
+checkbox22:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - amd64
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+        - cm4l-arm64
+        - cm4l-armhf
+        - dawson-i
+        - dawson-j
+        - rpi2
+        - rpi3-armhf
+        - rpi3-arm64
+        - rpi3aplus-armhf
+        - rpi3bplus-armhf
+        - rpi3aplus-arm64
+        - rpi3bplus-arm64
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+        - cdts-smoke-dawson-j
+        - cdts-smoke-dearest-team
+        - cdts-smoke-rpi4b8g
+        - dawson-i-stress-ng
+checkbox-conroe:
+  arch: amd64
+  store: queshaiPheeghei9weip
+  checklists:
+    Testflinger:
+      expected_tests:
+        - conroe
+checkbox-elgin:
+  arch: amd64
+  store: queshaiPheeghei9weip
+  checklists:
+    Testflinger:
+      expected_tests:
+        - elgin
+checkbox-fortknox:
+  arch: amd64
+  store: ahkeNeegh6tiekauz4oi
+  checklists:
+    Testflinger:
+      expected_tests:
+        - fortknox
+        - fortknox-tpu
+checkbox-newparis:
+  arch: amd64
+  store: tEs1e8j7lT0okg3XPKZt
+  checklists:
+    Testflinger:
+      expected_tests:
+        - newparis
+checkbox-staunton:
+  arch: amd64
+  store: XbaBoa8jCNipq290FVGb
+  checklists:
+    Testflinger:
+      expected_tests:
+        - staunton
+checkbox-carlsbad:
+  arch: amd64
+  store: xXJojO3mHEkSLBuM62FA
+  checklists:
+    Testflinger:
+      expected_tests:
+        - carlsbad
+checkbox-plano:
+  arch: amd64
+  store: he9Haizai7thooneiph9
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-media-wwan
+        - caracalla-transport
+        - caracalla-transport-wwan
+        - stlouis
+        - stlouis-tpm2
+checkbox-plano-classic:
+  arch: amd64
+  store: he9Haizai7thooneiph9
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-media-server
+        - caracalla-transport-server
+        - stlouis-server
+checkbox-snappy:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "18":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - dragonboard
+          - rpi2
+          - rpi3-armhf
+          - rpi3-arm64
+          - rpi3aplus-armhf
+          - rpi3aplus-arm64
+          - rpi3bplus-armhf
+          - rpi3bplus-arm64
+          - rpi4b8g-arm64
+          - rpi4b8g-armhf
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+        "20":
+          - cm3-armhf
+          - cm3p-arm64
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-arm64
+          - rpi3bplus-armhf
+          - rpi4b8g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-armhf
+checkbox-snappy-classic:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "18":
+          - amd64-bionic
+          - rpi3-arm64-bionic
+          - rpi3bplus-armhf-bionic
+          - rpi4b8g-arm64-bionic
+        "20":
+          - amd64-focal
+          - cm4l-arm64
+          - cm4l-armhf
+          - rpi3-arm64-focal
+          - rpi3bplus-armhf-focal
+          - rpi4b8g-arm64-focal
+checkbox-tillamook:
+  arch: armhf
+  store: Rif9aiya1theiGie6Een
+  checklists:
+    Testflinger:
+      expected_tests:
+        - tillamook
+        - tillamook-edgedirect
+        - tillamook-bt
+        - tillamook-mac
+checkbox-vasteras:
+  arch: amd64
+  store: abbha9Ao5Eengooci8tu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - vasteras
+checkbox-havana:
+  arch: arm64
+  store: dq8OtmyCoHLVDYf7Az55
+  checklists:
+    Testflinger:
+      expected_tests:
+        - havana-bullet
+        - havana-corner
+        - havana-dome
+        - havana-ptz
+checkbox-tillery:
+  arch: amd64
+  store: Jmzh1dswg3Uop8LSD3zC
+  checklists:
+    Testflinger:
+      expected_tests:
+        - tillery
+cm3:
+  arch: armhf
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+core:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-media-wwan
+        - caracalla-transport
+        - caracalla-transport-wwan
+        - fortknox
+        - fortknox-tpu
+        - stlouis
+        - stlouis-tpm2
+        - tillamook
+        - tillamook-bt
+        - tillamook-edgedirect
+        - staunton
+    Spread:
+      expected_tests:
+        - stlouis-spread
+        - caracalla-media-spread
+        - caracalla-transport-spread
+core18:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - amd64
+        - i386
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+        - dawson-j
+        - dragonboard
+        - kassel
+        - presidio
+        - rpi2
+        - rpi3-armhf
+        - rpi3aplus-armhf
+        - rpi3bplus-armhf
+        - rpi3-arm64
+        - rpi3aplus-arm64
+        - rpi3bplus-arm64
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+        - vasteras
+        - staunton
+core20:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - amd64
+        - amd64-fde
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+        - cm4l-arm64
+        - cm4l-armhf
+        - dawson-i
+        - dawson-j
+        - elgin
+        - presidio
+        - rpi2
+        - rpi3-armhf
+        - rpi3-arm64
+        - rpi3aplus-armhf
+        - rpi3bplus-armhf
+        - rpi3aplus-arm64
+        - rpi3bplus-arm64
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+        - newparis
+        - staunton
+        - advantech-uno-2271g-v2
+        - conroe
+        - thinkedge-se30
+        - carlsbad
+        - havana-bullet
+        - havana-corner
+        - havana-dome
+        - nuremberg-homegen2
+        - katy
+        - inventec-e200
+        - murcia-3200
+        - murcia-5200
+        - advantech-uno-420
+        - havana-ptz
+        - tillery
+core22:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - amd64
+        - amd64-fde
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+        - cm4l-arm64
+        - cm4l-armhf
+        - dawson-i
+        - dawson-j
+        - rpi2
+        - rpi3-armhf
+        - rpi3-arm64
+        - rpi3aplus-armhf
+        - rpi3bplus-armhf
+        - rpi3aplus-arm64
+        - rpi3bplus-arm64
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+docker:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-transport
+        - rpi2
+        - rpi3-armhf
+        - rpi3bplus-armhf
+        - rpi3-arm64
+        - rpi3bplus-arm64
+        - stlouis
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+dragonboard:
+  arch: arm64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - dragonboard
+dragonboard-kernel:
+  arch: arm64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - dragonboard
+easy-openvpn:
+  arch: amd64
+  store: ubuntu
+edgexfoundry:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        latest:
+          - caracalla-media
+          - amd64
+          - amd64-xenial
+          - rpi400-arm64
+          - rpi4b4g-arm64
+          - rpi4b8g-arm64
+          - stlouis
+        "2.0":
+          - caracalla-media
+          - amd64
+          - amd64-xenial
+          - rpi400-arm64
+          - rpi4b4g-arm64
+          - rpi4b8g-arm64
+          - stlouis
+        "2.1":
+          - caracalla-media
+          - amd64
+          - amd64-xenial
+          - rpi400-arm64
+          - rpi4b4g-arm64
+          - rpi4b8g-arm64
+          - stlouis
+bar:
+  arch: amd64
+  store: ahkeNeegh6tiekauz4oi
+  checklists:
+    Testflinger:
+      expected_tests:
+        - fortknox
+        - fortknox-tpu
+bar-kernel:
+  arch: amd64
+  store: ahkeNeegh6tiekauz4oi
+  checklists:
+    Testflinger:
+      expected_tests:
+        - fortknox
+        - fortknox-tpu
+hon-hbt-cv22-kernel:
+  arch: arm64
+  store: dq8OtmyCoHLVDYf7Az55
+  checklists:
+    Testflinger:
+      expected_tests:
+        - havana-bullet
+        - havana-corner
+        - havana-dome
+        - havana-ptz
+interactive-strength-fs0001-gadget:
+  arch: amd64
+  store: FiNahngahPoos1giez0g
+  checklists:
+    Testflinger:
+      expected_tests:
+        - presidio
+interactive-strength-fs0001-kernel:
+  arch: amd64
+  store: FiNahngahPoos1giez0g
+  checklists:
+    Testflinger:
+      expected_tests:
+        - presidio
+degw-iot-core-client-snap:
+  arch: amd64
+  store: Jmzh1dswg3Uop8LSD3zC
+  checklists:
+    Testflinger:
+      expected_tests:
+        - tillery
+iot-kernel:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "20":
+          - carlsbad
+          - katy
+mir-kiosk:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - presidio
+modem-manager:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        latest:
+          - caracalla-media-wwan
+          - caracalla-transport-wwan
+          - stlouis
+          - tillamook
+        "20":
+          - newparis
+          - staunton
+          - thinkedge-se30
+          - inventec-e200
+network-manager:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        latest:
+          - caracalla-gpa
+          - caracalla-media
+          - caracalla-transport
+          - caracalla-media-wwan
+          - caracalla-transport-wwan
+          - stlouis
+          - tillamook
+        "1.10":
+          - amd64
+          - presidio
+        "20":
+          - newparis
+          - staunton
+          - conroe
+          - thinkedge-se30
+          - carlsbad
+          - inventec-e200
+opennms-minion-pc-gadget:
+  arch: amd64
+  store: queshaiPheeghei9weip
+  checklists:
+    Testflinger:
+      expected_tests:
+        "20":
+          - elgin
+pc-kernel:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        latest:
+          - amd64
+        "18":
+          - amd64
+          - i386
+          - kassel
+          - dawson-j
+        "20":
+          - amd64
+          - amd64-fde
+          - dawson-i
+          - dawson-j
+          - elgin
+          - newparis
+          - staunton
+          - conroe
+          - advantech-uno-420
+          - tillery
+        "22":
+          - amd64
+          - amd64-fde
+          - dawson-i
+          - dawson-j
+pi:
+  arch: armhf
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "22":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - cm4l-arm64
+          - cm4l-armhf
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-armhf
+          - rpi3bplus-armhf
+          - rpi3-arm64
+          - rpi3aplus-arm64
+          - rpi3bplus-arm64
+          - rpi4b8g-armhf
+          - rpi4b8g-arm64
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-arm64
+          - rpi4b2g-armhf
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+          - rpiz2-arm64
+          - rpiz2-armhf
+        "20":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - cm4l-arm64
+          - cm4l-armhf
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-armhf
+          - rpi3bplus-armhf
+          - rpi3-arm64
+          - rpi3aplus-arm64
+          - rpi3bplus-arm64
+          - rpi4b8g-armhf
+          - rpi4b8g-arm64
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-arm64
+          - rpi4b2g-armhf
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+        "18-pi":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-armhf
+          - rpi3bplus-armhf
+          - rpi3-arm64
+          - rpi3aplus-arm64
+          - rpi3bplus-arm64
+          - rpi4b8g-armhf
+          - rpi4b8g-arm64
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-arm64
+          - rpi4b2g-armhf
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+pi-kernel:
+  arch: armhf
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "22":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - cm4l-arm64
+          - cm4l-armhf
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-armhf
+          - rpi3bplus-armhf
+          - rpi3-arm64
+          - rpi3aplus-arm64
+          - rpi3bplus-arm64
+          - rpi4b8g-arm64
+          - rpi4b8g-armhf
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+        "20":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - cm4l-arm64
+          - cm4l-armhf
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-armhf
+          - rpi3bplus-armhf
+          - rpi3-arm64
+          - rpi3aplus-arm64
+          - rpi3bplus-arm64
+          - rpi4b8g-arm64
+          - rpi4b8g-armhf
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+        "18-pi":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-armhf
+          - rpi3bplus-armhf
+          - rpi3-arm64
+          - rpi3aplus-arm64
+          - rpi3bplus-arm64
+          - rpi4b8g-armhf
+          - rpi4b8g-arm64
+          - rpi4b4g-arm64
+          - rpi4b4g-armhf
+          - rpi4b2g-armhf
+          - rpi4b2g-arm64
+          - rpi4b1g-arm64
+          - rpi4b1g-armhf
+          - rpi400-arm64
+          - rpi400-armhf
+        "18-pi3":
+          - cm3-armhf
+          - cm3-arm64
+          - cm3p-armhf
+          - cm3p-arm64
+          - rpi2
+          - rpi3-armhf
+          - rpi3aplus-armhf
+          - rpi3bplus-armhf
+          - rpi3-arm64
+          - rpi3aplus-arm64
+          - rpi3bplus-arm64
+pc:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "18":
+          - amd64
+          - i386
+          - kassel
+          - dawson-j
+        "20":
+          - amd64
+          - amd64-fde
+          - thinkedge-se30
+          - dawson-i
+          - dawson-j
+          - advantech-uno-2271g-v2
+          - murcia-3200
+          - murcia-5200
+        "22":
+          - amd64
+          - amd64-fde
+          - dawson-i
+          - dawson-j
+          - advantech-uno-2271g-v2
+          - advantech-uno-420
+snapd:
+  arch: amd64
+  store: ubuntu
+  # Manual testing required for presidio (check UI works)
+  labels:
+    - "CE QA REQUIRED"
+  checklists:
+    Testflinger:
+      expected_tests:
+        - amd64
+        - amd64-fde
+        - i386
+        - cm3-armhf
+        - cm3-arm64
+        - cm3p-armhf
+        - cm3p-arm64
+        - dawson-j
+        - dragonboard
+        - elgin
+        - kassel
+        - presidio
+        - rpi2
+        - rpi3-armhf
+        - rpi3aplus-armhf
+        - rpi3bplus-armhf
+        - rpi3-arm64
+        - rpi3aplus-arm64
+        - rpi3bplus-arm64
+        - rpi4b8g-armhf
+        - rpi4b8g-arm64
+        - rpi4b4g-arm64
+        - rpi4b4g-armhf
+        - rpi4b2g-armhf
+        - rpi4b2g-arm64
+        - rpi4b1g-arm64
+        - rpi4b1g-armhf
+        - rpi400-arm64
+        - rpi400-armhf
+        - vasteras
+        - amd64-uc20
+        - dawson-i-uc20
+        - dawson-j-uc20
+        - cm3-armhf-uc20
+        - cm3-arm64-uc20
+        - cm3p-armhf-uc20
+        - cm3p-arm64-uc20
+        - cm4l-arm64-uc20
+        - cm4l-armhf-uc20
+        - rpi2-armhf-uc20
+        - rpi3-arm64-uc20
+        - rpi3-armhf-uc20
+        - rpi3aplus-arm64-uc20
+        - rpi3aplus-armhf-uc20
+        - rpi3bplus-arm64-uc20
+        - rpi3bplus-armhf-uc20
+        - rpi4b8g-armhf-uc20
+        - rpi4b8g-arm64-uc20
+        - rpi4b4g-arm64-uc20
+        - rpi4b4g-armhf-uc20
+        - rpi4b2g-armhf-uc20
+        - rpi4b2g-arm64-uc20
+        - rpi4b1g-arm64-uc20
+        - rpi4b1g-armhf-uc20
+        - rpi400-arm64-uc20
+        - rpi400-armhf-uc20
+        - amd64-uc22
+        - amd64-fde-uc22
+        - cm3-armhf-uc22
+        - cm3-arm64-uc22
+        - cm3p-armhf-uc22
+        - cm3p-arm64-uc22
+        - cm4l-arm64-uc22
+        - cm4l-armhf-uc22
+        - dawson-i-uc22
+        - dawson-j-uc22
+        - rpi2-armhf-uc22
+        - rpi3-armhf-uc22
+        - rpi3-arm64-uc22
+        - rpi3aplus-armhf-uc22
+        - rpi3aplus-arm64-uc22
+        - rpi3bplus-arm64-uc22
+        - rpi3bplus-armhf-uc22
+        - rpi4b8g-armhf-uc22
+        - rpi4b8g-arm64-uc22
+        - rpi4b4g-arm64-uc22
+        - rpi4b4g-armhf-uc22
+        - rpi4b2g-armhf-uc22
+        - rpi4b2g-arm64-uc22
+        - rpi4b1g-arm64-uc22
+        - rpi4b1g-armhf-uc22
+        - rpi400-arm64-uc22
+        - rpi400-armhf-uc22
+        - rpiz2-arm64-uc22
+        - rpiz2-armhf-uc22
+        - amd64-edgex
+        - rpi4b4g-arm64-edgex
+        - newparis
+        - staunton
+        - advantech-uno-2271g-v2
+        - conroe
+        - thinkedge-se30
+        - carlsbad
+        - havana-bullet
+        - havana-corner
+        - havana-dome
+        - nuremberg-homegen2
+        - katy
+        - inventec-e200
+        - murcia-3200
+        - murcia-5200
+        - advantech-uno-420
+        - havana-ptz
+        - tillery
+stlouis:
+  arch: amd64
+  store: AiZ4ogoh1ohphaod6ca3
+  checklists:
+    Testflinger:
+      expected_tests:
+        - stlouis
+stlouis-kernel:
+  arch: amd64
+  store: AiZ4ogoh1ohphaod6ca3
+  checklists:
+    Testflinger:
+      expected_tests:
+        - stlouis
+        - stlouis-tpm2
+tpm2:
+  arch: amd64
+  store: AiZ4ogoh1ohphaod6ca3
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-transport
+        - stlouis-tpm2
+udisks2:
+  arch: amd64
+  store: he9Haizai7thooneiph9
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-transport
+uefi-fw-tools:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - stlouis
+wifi-ap:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-transport
+        - tillamook
+wpa-supplicant:
+  arch: amd64
+  store: he9Haizai7thooneiph9
+  checklists:
+    Testflinger:
+      expected_tests:
+        - caracalla-gpa
+        - caracalla-media
+        - caracalla-transport
+intel-kernel:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "20":
+          - advantech-uno-2271g-v2
+          - thinkedge-se30
+          - inventec-e200
+intel-iotg-kernel:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "20":
+          - murcia-3200
+          - murcia-5200
+iot-kernel:
+  arch: amd64
+  store: ubuntu
+  checklists:
+    Testflinger:
+      expected_tests:
+        "20":
+          - carlsbad
+# These are needed by saviq just for triggering right now
+mir-test-tools:
+  arch: amd64
+  store: ubuntu
+mesa-core20:
+  arch: amd64
+  store: ubuntu
+mesa-core22:
+  arch: amd64
+  store: ubuntu
+nvidia-core22:
+  arch: amd64
+  store: ubuntu
+graphics-test-tools:
+  arch: amd64
+  store: ubuntu
+ubuntu-frame:
+  arch: amd64
+  store: ubuntu
