@@ -49,6 +49,7 @@ def seed_db(session: Session):
         name="core20", stage=stage, version="1.1.1", source={}, artefact_group=None
     )
     session.add(artefact)
+    # Beta stage
     stage = Stage(name="beta", family=family, position=20)
     session.add(stage)
     artefact = Artefact(
@@ -59,13 +60,14 @@ def seed_db(session: Session):
     # Deb family
     family = Family(name="deb")
     session.add(family)
-    # Edge stage
+    # Proposed stage
     stage = Stage(name="proposed", family=family, position=10)
     session.add(stage)
     artefact = Artefact(
         name="jammy", stage=stage, version="2.1.1", source={}, artefact_group=None
     )
     session.add(artefact)
+    # Updates stage
     stage = Stage(name="updates", family=family, position=10)
     session.add(stage)
     artefact = Artefact(

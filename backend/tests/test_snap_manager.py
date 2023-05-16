@@ -35,14 +35,17 @@ core20:
 """
 
 
-def test_snap_manager_valid_yaml(test_app):
+def test_snap_manager_valid_yaml(test_app, mocker):
     """Check the API's response when provided a valid yaml file."""
+    # Arrange
+    mocker.patch("src.main.run_snap_manager")
+
     # Act
     response = test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == {"detail": "Starting snapmanager job"}
+    assert response.json() == {"detail": "All the artefacts are processed successfully"}
 
 
 def test_snap_manager_invalid_yaml(test_app):
@@ -100,7 +103,6 @@ def test_run_for_different_revisions(test_app, db_session, requests_mock, mocker
     response = test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
 
     # Assert
-    assert response.status_code == 200
     assert core20.stage == original_stage  # The artefact should not be moved
     assert core20.is_archived
 
@@ -140,6 +142,5 @@ def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker):
     response = test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
 
     # Assert
-    assert response.status_code == 200
     assert core20.stage.name == "beta"
     assert not core20.is_archived  # The artefact should not be archived

@@ -54,3 +54,8 @@ For more information on how to create migrations, please check [Alembic docs](ht
 Since the database is in microk8s cluster, migrations have to be applied inside the cluster and not on the host machine. To do that we can just run the migrations on our api service which will run in one of the api pods through:
 
 `$ kubectl exec -it service/test-observer-api -- alembic upgrade head`
+
+
+## Tests
+
+To run the tests, execute `$ kubectl exec -it service/test-observer-api -- pytest`

@@ -53,20 +53,30 @@ async def snap_manager(file: UploadFile):
         session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         with session() as sess:
             stages = get_stages_by_family_name(sess, "snap")
+            processed_artefacts = {}
             for stage in stages:
                 for artefact in stage.artefacts:
                     try:
+                        processed_artefacts[
+                            f"{artefact.name} - {artefact.version}"
+                        ] = True
                         run_snap_manager(sess, artefact, data)
                     except Exception as exc:
-                        logger.warning(
-                            "WARNING: Error while processing %s: %s",
-                            artefact,
-                            str(exc),
-                            exc_info=True,
-                        )
+                        processed_artefacts[
+                            f"{artefact.name} - {artefact.version}"
+                        ] = False
+                        logger.warning("WARNING: %s", str(exc), exc_info=True)
             sess.commit()
+            logger.info("INFO: Processed artefacts %s", processed_artefacts)
+        if False in processed_artefacts.values():
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "detail": f"Got some errors while processing the next artefacts: {', '.join(map(str, [k for k, v in processed_artefacts.items() if v is False]))}"
+                },
+            )
         return JSONResponse(
-            status_code=200, content={"detail": "Starting snapmanager job"}
+            status_code=200, content={"detail": "All the artefacts are processed successfully"}
         )
 
     except (yaml.parser.ParserError, yaml.scanner.ScannerError):
