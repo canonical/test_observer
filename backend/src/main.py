@@ -56,6 +56,8 @@ async def snap_manager(file: UploadFile):
             processed_artefacts = {}
             for stage in stages:
                 for artefact in stage.artefacts:
+                    if artefact.is_archived:
+                        continue
                     try:
                         processed_artefacts[
                             f"{artefact.name} - {artefact.version}"
