@@ -21,11 +21,12 @@
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy_utils import database_exists, create_database, drop_database
 from fastapi.testclient import TestClient
 from src.main import app
 from src.data_access import Base
+from src.data_access.models import Family, Stage, Artefact
 
 
 # Setup Test Database
@@ -36,21 +37,62 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture
+def seed_db(session: Session):
+    """Populate database"""
+    # Snap family
+    family = Family(name="snap")
+    session.add(family)
+    # Edge stage
+    stage = Stage(name="edge", family=family, position=10)
+    session.add(stage)
+    artefact = Artefact(
+        name="core20", stage=stage, version="1.1.1", source={}, artefact_group=None
+    )
+    session.add(artefact)
+    stage = Stage(name="beta", family=family, position=20)
+    session.add(stage)
+    artefact = Artefact(
+        name="core22", stage=stage, version="1.1.0", source={}, artefact_group=None
+    )
+    session.add(artefact)
+
+    # Deb family
+    family = Family(name="deb")
+    session.add(family)
+    # Edge stage
+    stage = Stage(name="proposed", family=family, position=10)
+    session.add(stage)
+    artefact = Artefact(
+        name="jammy", stage=stage, version="2.1.1", source={}, artefact_group=None
+    )
+    session.add(artefact)
+    stage = Stage(name="updates", family=family, position=10)
+    session.add(stage)
+    artefact = Artefact(
+        name="raspi", stage=stage, version="2.1.0", source={}, artefact_group=None
+    )
+    session.add(artefact)
+    session.commit()
+
+
+@pytest.fixture(scope="session")
 def db_session():
-    """Create a pytest fixture for app db"""
+    """Set up and tear down the test database"""
     if not database_exists(SQLALCHEMY_DATABASE_URL):
         create_database(SQLALCHEMY_DATABASE_URL)
 
     Base.metadata.create_all(bind=engine)
-    database = TestingSessionLocal()
-    yield database
-    database.close()
+    session = TestingSessionLocal()
+    seed_db(session)
+    yield session
+
+    # Cleanup
+    session.close()
     Base.metadata.drop_all(bind=engine)
     drop_database(SQLALCHEMY_DATABASE_URL)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def test_app():
     """Create a pytest fixture for the app"""
     client = TestClient(app)

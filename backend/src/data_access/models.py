@@ -45,7 +45,7 @@ timestamp = Annotated[
 ]
 date = Annotated[
     date,
-    mapped_column(nullable=True),
+    mapped_column(nullable=True, default=None),
 ]
 
 
@@ -58,10 +58,12 @@ class Family(Base):
 
     __tablename__ = "family"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
-    stages: Mapped[List["Stage"]] = relationship(back_populates="family")
+    stages: Mapped[List["Stage"]] = relationship(
+        back_populates="family", default_factory=list
+    )
     # Default fields
     created_at: Mapped[timestamp]
 
@@ -71,13 +73,15 @@ class Stage(Base):
 
     __tablename__ = "stage"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     position: Mapped[int] = mapped_column(index=True)
     # Relationships
     family_id = mapped_column(ForeignKey("family.id"))
     family: Mapped[Family] = relationship(back_populates="stages")
-    artefacts: Mapped[List["Artefact"]] = relationship(back_populates="stage")
+    artefacts: Mapped[List["Artefact"]] = relationship(
+        back_populates="stage", default_factory=list
+    )
 
 
 class ArtefactGroup(Base):
@@ -85,13 +89,15 @@ class ArtefactGroup(Base):
 
     __tablename__ = "artefact_group"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     version_pattern: Mapped[str] = mapped_column(String(100))
     # Relationships
-    artefacts: Mapped[List["Artefact"]] = relationship(back_populates="artefact_group")
+    artefacts: Mapped[List["Artefact"]] = relationship(
+        back_populates="artefact_group", default_factory=list
+    )
     environments: Mapped[List["ExpectedEnvironment"]] = relationship(
-        back_populates="artefact_group"
+        back_populates="artefact_group", default_factory=list
     )
 
 
@@ -100,24 +106,25 @@ class Artefact(Base):
 
     __tablename__ = "artefact"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
     source: Mapped[dict] = mapped_column(JSONB)
-    due_date: Mapped[date]
-    status: Mapped[str] = mapped_column(
-        Enum("Approved", "Marked as Failed", name="artefact_status_enum"),
-        nullable=True,
-    )
     # Relationships
     stage_id = mapped_column(ForeignKey("stage.id"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
     artefact_group_id = mapped_column(ForeignKey("artefact_group.id"))
     artefact_group: Mapped[ArtefactGroup] = relationship(back_populates="artefacts")
     environments: Mapped[List["TestExecution"]] = relationship(
-        back_populates="artefact"
+        back_populates="artefact", default_factory=list
     )
     # Default fields
+    due_date: Mapped[date]
+    status: Mapped[str] = mapped_column(
+        Enum("Approved", "Marked as Failed", name="artefact_status_enum"),
+        nullable=True,
+        default=None,
+    )
     created_at: Mapped[timestamp]
     is_archived: Mapped[bool] = mapped_column(default=expression.false())
 
@@ -130,14 +137,14 @@ class Environment(Base):
 
     __tablename__ = "environment"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     # Relationships
     artefacts: Mapped[List["TestExecution"]] = relationship(
-        back_populates="environment"
+        back_populates="environment", default_factory=list
     )
     artefact_groups: Mapped[List["ExpectedEnvironment"]] = relationship(
-        back_populates="environment"
+        back_populates="environment", default_factory=list
     )
 
 

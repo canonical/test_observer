@@ -18,47 +18,13 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 """Test services functions"""
 
-from unittest.mock import MagicMock
-from sqlalchemy.orm import Session
-from sqlalchemy.orm.exc import NoResultFound
 
-from src.data_access.models import Family, Stage, Artefact
 from src.services import get_stages_by_family_name, get_stage_by_name
 
 
-def seed_db(session: Session):
-    """Populate database"""
-    # Snap family
-    family = Family(name="snap")
-    session.add(family)
-    # Edge stage
-    stage = Stage(name="edge", family=family)
-    session.add(stage)
-    artefact = Artefact(name="core20", stage=stage, version="1.1.1", source={})
-    session.add(artefact)
-    stage = Stage(name="beta", family=family)
-    session.add(stage)
-    artefact = Artefact(name="core22", stage=stage, version="1.1.0", source={})
-    session.add(artefact)
-
-    # Deb family
-    family = Family(name="deb")
-    session.add(family)
-    # Edge stage
-    stage = Stage(name="proposed", family=family)
-    session.add(stage)
-    artefact = Artefact(name="jammy", stage=stage, version="2.1.1", source={})
-    session.add(artefact)
-    stage = Stage(name="updates", family=family)
-    session.add(stage)
-    artefact = Artefact(name="raspi", stage=stage, version="2.1.0", source={})
-    session.add(artefact)
-    session.commit()
-
-
 def test_get_stages_by_family_name(db_session):
+    """The function should select correct stages for the specified family name"""
     # Arrange
-    seed_db(db_session)
     family_name = "snap"
     expected_stage_names = ["edge", "beta"]
 
@@ -68,3 +34,39 @@ def test_get_stages_by_family_name(db_session):
     # Assert
     assert len(stages) == len(expected_stage_names)
     assert all(stage.name in expected_stage_names for stage in stages)
+
+
+def test_get_stages_by_family_name_no_such_family(db_session):
+    """The function should return empty list"""
+    # Arrange
+    family_name = "fake"
+
+    # Act
+    stages = get_stages_by_family_name(db_session, family_name)
+
+    # Assert
+    assert stages == []
+
+
+def test_get_stage_by_name(db_session):
+    """The function should select the correct stage by its name"""
+    # Arrange
+    stage_name = "proposed"
+
+    # Act
+    stage = get_stage_by_name(db_session, stage_name)
+
+    # Assert
+    assert stage.name == stage_name
+
+
+def test_get_stage_by_name_no_such_stage(db_session):
+    """The function should return None"""
+    # Arrange
+    stage_name = "fakestage"
+
+    # Act
+    stage = get_stage_by_name(db_session, stage_name)
+
+    # Assert
+    assert stage is None

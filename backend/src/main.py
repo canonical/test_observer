@@ -24,6 +24,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import yaml
+import logging
 
 from .services import get_stages_by_family_name
 from .controllers.snap_manager import run_snap_manager
@@ -33,6 +34,8 @@ engine = create_engine(
 )
 
 app = FastAPI()
+
+logger = logging.getLogger("test-observer-backend")
 
 
 @app.get("/")
@@ -52,7 +55,15 @@ async def snap_manager(file: UploadFile):
             stages = get_stages_by_family_name(sess, "snap")
             for stage in stages:
                 for artefact in stage.artefacts:
-                    run_snap_manager(sess, artefact, data)
+                    try:
+                        run_snap_manager(sess, artefact, data)
+                    except Exception as exc:
+                        logger.warning(
+                            "WARNING: Error while processing %s: %s",
+                            artefact,
+                            str(exc),
+                            exc_info=True,
+                        )
             sess.commit()
         return JSONResponse(
             status_code=200, content={"detail": "Starting snapmanager job"}

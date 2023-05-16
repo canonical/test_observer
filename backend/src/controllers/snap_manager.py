@@ -22,7 +22,6 @@ import sys
 import logging
 import requests
 
-from src.data_access.models import Stage
 from src.services import get_stage_by_name
 
 
@@ -62,7 +61,7 @@ def run_snap_manager(session, artefact, config_dict: dict) -> None:
         risk = channel_info["channel"]["risk"]
         try:
             version = channel_info["version"]
-            revision = str(channel_info["revision"])
+            revision = channel_info["revision"]
         except KeyError as exc:
             logger.warning(
                 "No key '%s' is found. Continue processing...",
@@ -71,7 +70,7 @@ def run_snap_manager(session, artefact, config_dict: dict) -> None:
             continue
         # If the snap with this name in this channel is a
         # different revision, then this is old. So, we archive it
-        if risk == artefact.stage.name and revision != artefact.source.revision:
+        if risk == artefact.stage.name and revision != artefact.source["revision"]:
             logger.info("Archiving old revision: '%s'", artefact)
             artefact.is_archived = True
             continue
@@ -79,7 +78,7 @@ def run_snap_manager(session, artefact, config_dict: dict) -> None:
         if (
             risk == next_risk != artefact.stage.name.lower()
             and version == artefact.version
-            and revision == artefact.source.revision
+            and revision == artefact.source["revision"]
         ):
             logger.info("Move artefact '%s' to the '%s' stage", artefact, next_risk)
             artefact.stage = get_stage_by_name(session, next_risk)

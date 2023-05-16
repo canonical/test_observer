@@ -12,9 +12,11 @@ sqlalchemy = "^2.0.9"
 pg8000 = "^1.29.4"
 alembic = "^1.10.3"
 python-multipart = "^0.0.6"
-pytest = "^7.3.1"
 httpx = "^0.24.0"
 sqlalchemy-utils = "^0.41.1"
+pytest = "^7.3.1"
+pytest-mock = "^3.10.0"
+requests-mock = "^1.10.0"
 
 
 [tool.poetry.group.dev.dependencies]
