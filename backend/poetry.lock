@@ -126,7 +126,7 @@ uvloop = ["uvloop (>=0.15.2)"]
 name = "certifi"
 version = "2023.5.7"
 description = "Python package for providing Mozilla's CA Bundle."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -388,7 +388,7 @@ files = [
 name = "httpcore"
 version = "0.17.0"
 description = "A minimal low-level HTTP client."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -464,7 +464,7 @@ test = ["Cython (>=0.29.24,<0.30.0)"]
 name = "httpx"
 version = "0.24.0"
 description = "The next generation HTTP client."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -905,7 +905,7 @@ cli = ["click (>=5.0)"]
 name = "python-multipart"
 version = "0.0.6"
 description = "A streaming multipart parser for Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1129,7 +1129,7 @@ sqlcipher = ["sqlcipher3-binary"]
 name = "sqlalchemy-utils"
 version = "0.41.1"
 description = "Various utility functions for SQLAlchemy."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -1499,4 +1499,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "542c69cc193f156b2e49b3612ab0780bf58d52bfc7d074381133a848457ab2e9"
+content-hash = "cff65644cf63d04091d03894ae93749b5762dff4913b51dd75b231c32c246a2c"
