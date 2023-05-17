@@ -73,7 +73,10 @@ async def snap_manager(file: UploadFile):
             return JSONResponse(
                 status_code=500,
                 content={
-                    "detail": f"Got some errors while processing the next artefacts: {', '.join(map(str, [k for k, v in processed_artefacts.items() if v is False]))}"
+                    "detail": (
+                        "Got some errors while processing the next artefacts: "
+                        f"{', '.join([k for k, v in processed_artefacts.items() if v is False])}"
+                    )
                 },
             )
         return JSONResponse(
