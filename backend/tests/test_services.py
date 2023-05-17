@@ -22,7 +22,7 @@
 from src.services import get_stages_by_family_name, get_stage_by_name
 
 
-def test_get_stages_by_family_name(db_session):
+def test_get_stages_by_family_name(db_session, seed_db):
     """The function should select correct stages for the specified family name"""
     # Arrange
     family_name = "snap"
@@ -36,7 +36,7 @@ def test_get_stages_by_family_name(db_session):
     assert all(stage.name in expected_stage_names for stage in stages)
 
 
-def test_get_stages_by_family_name_no_such_family(db_session):
+def test_get_stages_by_family_name_no_such_family(seed_db, db_session):
     """The function should return empty list"""
     # Arrange
     family_name = "fake"
@@ -48,7 +48,7 @@ def test_get_stages_by_family_name_no_such_family(db_session):
     assert stages == []
 
 
-def test_get_stage_by_name(db_session):
+def test_get_stage_by_name(seed_db, db_session):
     """The function should select the correct stage by its name"""
     # Arrange
     stage_name = "proposed"
@@ -60,7 +60,7 @@ def test_get_stage_by_name(db_session):
     assert stage.name == stage_name
 
 
-def test_get_stage_by_name_no_such_stage(db_session):
+def test_get_stage_by_name_no_such_stage(seed_db, db_session):
     """The function should return None"""
     # Arrange
     stage_name = "fakestage"

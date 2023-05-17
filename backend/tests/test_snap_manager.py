@@ -35,7 +35,7 @@ core20:
 """
 
 
-def test_snap_manager_valid_yaml(test_app, mocker):
+def test_snap_manager_valid_yaml(test_app, mocker, seed_db):
     """Check the API's response when provided a valid yaml file."""
     # Arrange
     mocker.patch("src.main.run_snap_manager")
@@ -48,7 +48,7 @@ def test_snap_manager_valid_yaml(test_app, mocker):
     assert response.json() == {"detail": "All the artefacts are processed successfully"}
 
 
-def test_snap_manager_invalid_yaml(test_app):
+def test_snap_manager_invalid_yaml(test_app, seed_db):
     """Check the API's response when provided an invalid yaml file."""
     # Arrange
     invalid_yaml = """
@@ -67,7 +67,9 @@ def test_snap_manager_invalid_yaml(test_app):
     assert response.json() == {"detail": "Error while parsing config"}
 
 
-def test_run_for_different_revisions(test_app, db_session, requests_mock, mocker):
+def test_run_for_different_revisions(
+    test_app, db_session, requests_mock, mocker, seed_db
+):
     """
     If revision in snapcraft response is different from the revision in
     card's name, the card should be archived
@@ -100,14 +102,14 @@ def test_run_for_different_revisions(test_app, db_session, requests_mock, mocker
     mocker.patch("src.main.engine", wraps=engine)
 
     # Act
-    response = test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
+    test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
 
     # Assert
     assert core20.stage == original_stage  # The artefact should not be moved
     assert core20.is_archived
 
 
-def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker):
+def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker, seed_db):
     """
     If card's current list name is different to its list name in
     snapcraft, the card is moved to the next list
@@ -139,7 +141,7 @@ def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker):
     mocker.patch("src.main.engine", wraps=engine)
 
     # Act
-    response = test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
+    test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
 
     # Assert
     assert core20.stage.name == "beta"

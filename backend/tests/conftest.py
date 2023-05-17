@@ -37,44 +37,55 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def seed_db(session: Session):
-    """Populate database"""
+@pytest.fixture
+def seed_db(db_session: Session):
+    """Populate database with fake data"""
     # Snap family
+    print("Create")
     family = Family(name="snap")
-    session.add(family)
+    db_session.add(family)
     # Edge stage
     stage = Stage(name="edge", family=family, position=10)
-    session.add(stage)
+    db_session.add(stage)
     artefact = Artefact(
         name="core20", stage=stage, version="1.1.1", source={}, artefact_group=None
     )
-    session.add(artefact)
+    db_session.add(artefact)
     # Beta stage
     stage = Stage(name="beta", family=family, position=20)
-    session.add(stage)
+    db_session.add(stage)
     artefact = Artefact(
         name="core22", stage=stage, version="1.1.0", source={}, artefact_group=None
     )
-    session.add(artefact)
+    db_session.add(artefact)
 
     # Deb family
     family = Family(name="deb")
-    session.add(family)
+    db_session.add(family)
     # Proposed stage
     stage = Stage(name="proposed", family=family, position=10)
-    session.add(stage)
+    db_session.add(stage)
     artefact = Artefact(
         name="jammy", stage=stage, version="2.1.1", source={}, artefact_group=None
     )
-    session.add(artefact)
+    db_session.add(artefact)
     # Updates stage
     stage = Stage(name="updates", family=family, position=10)
-    session.add(stage)
+    db_session.add(stage)
     artefact = Artefact(
         name="raspi", stage=stage, version="2.1.0", source={}, artefact_group=None
     )
-    session.add(artefact)
-    session.commit()
+    db_session.add(artefact)
+    db_session.commit()
+
+    yield
+
+    # Cleanup
+    print("Clean")
+    db_session.query(Artefact).delete()
+    db_session.query(Stage).delete()
+    db_session.query(Family).delete()
+    db_session.commit()
 
 
 @pytest.fixture(scope="session")
@@ -85,7 +96,6 @@ def db_session():
 
     Base.metadata.create_all(bind=engine)
     session = TestingSessionLocal()
-    seed_db(session)
     yield session
 
     # Cleanup
