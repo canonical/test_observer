@@ -52,12 +52,14 @@ def run_snap_manager(session, artefact, config_dict: dict) -> None:
         snap_name=artefact.name,
     )
     track = artefact.source.get("track", "latest")
+
     for channel_info in channel_map:
-        if (
-            channel_info["channel"]["track"] != track
-            or channel_info["channel"]["architecture"] != arch
+        if not (
+            channel_info["channel"]["track"] == track
+            and channel_info["channel"]["architecture"] == arch
         ):
             continue
+
         risk = channel_info["channel"]["risk"]
         try:
             version = channel_info["version"]
@@ -68,12 +70,15 @@ def run_snap_manager(session, artefact, config_dict: dict) -> None:
                 str(exc),
             )
             continue
+
         # If the snap with this name in this channel is a
         # different revision, then this is old. So, we archive it
         if risk == artefact.stage.name and revision != artefact.source["revision"]:
             logger.info("Archiving old revision: '%s'", artefact)
             artefact.is_archived = True
+            session.commit()
             continue
+
         next_risk = CHANNEL_PROMOTION_MAP[artefact.stage.name]
         if (
             risk == next_risk != artefact.stage.name.lower()
@@ -82,6 +87,7 @@ def run_snap_manager(session, artefact, config_dict: dict) -> None:
         ):
             logger.info("Move artefact '%s' to the '%s' stage", artefact, next_risk)
             artefact.stage = get_stage_by_name(session, next_risk)
+            session.commit()
             break
 
 

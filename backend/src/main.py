@@ -68,7 +68,6 @@ async def snap_manager(file: UploadFile):
                             f"{artefact.name} - {artefact.version}"
                         ] = False
                         logger.warning("WARNING: %s", str(exc), exc_info=True)
-            sess.commit()
             logger.info("INFO: Processed artefacts %s", processed_artefacts)
         if False in processed_artefacts.values():
             return JSONResponse(
@@ -78,7 +77,8 @@ async def snap_manager(file: UploadFile):
                 },
             )
         return JSONResponse(
-            status_code=200, content={"detail": "All the artefacts are processed successfully"}
+            status_code=200,
+            content={"detail": "All the artefacts are processed successfully"},
         )
 
     except (yaml.parser.ParserError, yaml.scanner.ScannerError):
