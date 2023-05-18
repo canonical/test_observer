@@ -19,23 +19,35 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
 
-from fastapi import FastAPI, UploadFile
-from fastapi.responses import JSONResponse
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-import yaml
 import logging
 
-from .services import get_stages_by_family_name
-from .controllers.snap_manager import run_snap_manager
+from fastapi import FastAPI, Depends
+from fastapi.responses import JSONResponse
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
+
+from src.data_access import models
+from src.controllers import snap_manager_controller
+
 
 engine = create_engine(
     "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres", echo=True
 )
+models.Base.metadata.create_all(bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI()
 
 logger = logging.getLogger("test-observer-backend")
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @app.get("/")
@@ -45,29 +57,12 @@ def root():
     return {"message": "Hello World"}
 
 
-@app.post("/snapmanager")
-async def snap_manager(file: UploadFile):
+@app.put("/snapmanager")
+async def snap_manager(db: Session = Depends(get_db)):
     try:
-        content = await file.read()
-        data = yaml.safe_load(content)
         session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         with session() as sess:
-            stages = get_stages_by_family_name(sess, "snap")
-            processed_artefacts = {}
-            for stage in stages:
-                for artefact in stage.artefacts:
-                    if artefact.is_archived:
-                        continue
-                    try:
-                        processed_artefacts[
-                            f"{artefact.name} - {artefact.version}"
-                        ] = True
-                        run_snap_manager(sess, artefact, data)
-                    except Exception as exc:
-                        processed_artefacts[
-                            f"{artefact.name} - {artefact.version}"
-                        ] = False
-                        logger.warning("WARNING: %s", str(exc), exc_info=True)
+            processed_artefacts = snap_manager_controller(sess)
             logger.info("INFO: Processed artefacts %s", processed_artefacts)
         if False in processed_artefacts.values():
             return JSONResponse(
@@ -75,18 +70,15 @@ async def snap_manager(file: UploadFile):
                 content={
                     "detail": (
                         "Got some errors while processing the next artefacts: "
-                        f"{', '.join([k for k, v in processed_artefacts.items() if v is False])}"
+                        ", ".join(
+                            [k for k, v in processed_artefacts.items() if v is False]
+                        )
                     )
                 },
             )
         return JSONResponse(
             status_code=200,
-            content={"detail": "All the artefacts are processed successfully"},
-        )
-
-    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
-        return JSONResponse(
-            status_code=400, content={"detail": "Error while parsing config"}
+            content={"detail": "All the artefacts have been processed successfully"},
         )
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})

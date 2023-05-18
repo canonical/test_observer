@@ -22,7 +22,10 @@ import sys
 import logging
 import requests
 
-from src.services import get_stage_by_name
+from sqlalchemy.orm import Session
+
+from src.services import get_stage_by_name, get_stages_by_family_name
+from src.data_access.models import Artefact
 
 
 CHANNEL_PROMOTION_MAP = {
@@ -37,7 +40,29 @@ CHANNEL_PROMOTION_MAP = {
 logger = logging.getLogger("test-observer-backend")
 
 
-def run_snap_manager(session, artefact, config_dict: dict) -> None:
+def snap_manager_controller(session: Session) -> dict:
+    """
+    Orchestrate the snap manager job
+
+    :session: DB connection session
+    :return: dict with the processed cards and the status of execution
+    """
+    stages = get_stages_by_family_name(session, "snap")
+    processed_artefacts = {}
+    for stage in stages:
+        for artefact in stage.artefacts:
+            if artefact.is_archived:
+                continue
+            try:
+                processed_artefacts[f"{artefact.name} - {artefact.version}"] = True
+                run_snap_manager(session, artefact)
+            except Exception as exc:
+                processed_artefacts[f"{artefact.name} - {artefact.version}"] = False
+                logger.warning("WARNING: %s", str(exc), exc_info=True)
+    return processed_artefacts
+
+
+def run_snap_manager(session: Session, artefact: Artefact) -> None:
     """
     Check snap artefacts state and move/archive them if necessary
 
@@ -45,10 +70,10 @@ def run_snap_manager(session, artefact, config_dict: dict) -> None:
     :artefact: an Artefact object
     :config_dict: parsed config file
     """
-    arch = config_dict[artefact.name]["arch"]
+    arch = artefact.source["architecture"]
     channel_map = get_channel_map_from_snapcraft(
         arch=arch,
-        snapstore=config_dict[artefact.name]["store"],
+        snapstore=artefact.source["store"],
         snap_name=artefact.name,
     )
     track = artefact.source.get("track", "latest")

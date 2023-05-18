@@ -23,50 +23,6 @@ from src.data_access.models import Artefact
 from .conftest import engine
 
 
-SNAP_CONFIG = """
-core20:
-    arch: amd64
-    store: test-store
-    checklists:
-        Testflinger:
-          expected_tests:
-          - caracalla-gpa
-          - caracalla-media
-"""
-
-
-def test_snap_manager_valid_yaml(test_app, mocker, seed_db):
-    """Check the API's response when provided a valid yaml file."""
-    # Arrange
-    mocker.patch("src.main.run_snap_manager")
-
-    # Act
-    response = test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
-
-    # Assert
-    assert response.status_code == 200
-    assert response.json() == {"detail": "All the artefacts are processed successfully"}
-
-
-def test_snap_manager_invalid_yaml(test_app, seed_db):
-    """Check the API's response when provided an invalid yaml file."""
-    # Arrange
-    invalid_yaml = """
-    core20:
-      arch: amd64
-        store: test-store
-    """
-
-    # Act
-    response = test_app.post(
-        "/snapmanager", files={"file": ("test.yaml", invalid_yaml)}
-    )
-
-    # Assert
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Error while parsing config"}
-
-
 def test_run_for_different_revisions(
     test_app, db_session, requests_mock, mocker, seed_db
 ):
@@ -95,14 +51,14 @@ def test_run_for_different_revisions(
     )
     core20 = db_session.query(Artefact).filter(Artefact.name == "core20").first()
     original_stage = core20.stage
-    core20.source = {"revision": 1823}
+    core20.source = {"revision": 1823, "architecture": "amd64", "store": "ubuntu"}
     core20.version = "1.1.1"
     core20.is_archived = False
     db_session.commit()
     mocker.patch("src.main.engine", wraps=engine)
 
     # Act
-    test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
+    test_app.put("/snapmanager")
 
     # Assert
     assert core20.stage == original_stage  # The artefact should not be moved
@@ -134,14 +90,14 @@ def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker, seed_
         },
     )
     core20 = db_session.query(Artefact).filter(Artefact.name == "core20").first()
-    core20.source = {"revision": 1883}
+    core20.source = {"revision": 1883, "architecture": "amd64", "store": "ubuntu"}
     core20.version = "1.1.1"
     core20.is_archived = False
     db_session.commit()
     mocker.patch("src.main.engine", wraps=engine)
 
     # Act
-    test_app.post("/snapmanager", files={"file": ("test.yaml", SNAP_CONFIG)})
+    test_app.put("/snapmanager")
 
     # Assert
     assert core20.stage.name == "beta"

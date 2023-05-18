@@ -41,7 +41,6 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 def seed_db(db_session: Session):
     """Populate database with fake data"""
     # Snap family
-    print("Create")
     family = Family(name="snap")
     db_session.add(family)
     # Edge stage
@@ -81,7 +80,6 @@ def seed_db(db_session: Session):
     yield
 
     # Cleanup
-    print("Clean")
     db_session.query(Artefact).delete()
     db_session.query(Stage).delete()
     db_session.query(Family).delete()
