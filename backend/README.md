@@ -58,4 +58,7 @@ Since the database is in microk8s cluster, migrations have to be applied inside 
 
 ## Tests
 
-To run the tests, execute `$ kubectl exec -it service/test-observer-api -- pytest`
+
+To run the tests, first make sure that you're running `skaffold dev` or `skaffold run`. Then execute the pytest command in the API pod:
+
+`$ kubectl exec -it service/test-observer-api -- pytest`
