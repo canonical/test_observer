@@ -24,7 +24,7 @@ import requests
 
 from sqlalchemy.orm import Session
 
-from src.services import get_stage_by_name, get_stages_by_family_name
+from src.repository import get_stage_by_name, get_stages_by_family_name
 from src.data_access.models import Artefact
 
 
@@ -111,7 +111,9 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
             and revision == artefact.source["revision"]
         ):
             logger.info("Move artefact '%s' to the '%s' stage", artefact, next_risk)
-            artefact.stage = get_stage_by_name(session, next_risk)
+            artefact.stage = get_stage_by_name(
+                session, stage_name=next_risk, family=artefact.stage.family
+            )
             session.commit()
             break
 

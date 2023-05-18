@@ -58,7 +58,7 @@ def root():
 
 
 @app.put("/snapmanager")
-async def snap_manager(db: Session = Depends(get_db)):
+def snap_manager(db: Session = Depends(get_db)):
     try:
         session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         with session() as sess:
