@@ -21,7 +21,7 @@
 
 import logging
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
@@ -79,3 +79,23 @@ def snap_manager(db: Session = Depends(get_db)):
         )
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})
+
+
+@app.get("/families/{family_name}/")
+def read_snap_family(family_name: str, db: Session = Depends(get_db)):
+    """Retrieve all the stages and artefacts from the snap family"""
+    family = db.query(models.Family).filter(models.Family.name == family_name).first()
+    if family is None:
+        raise HTTPException(status_code=404, detail="Family not found")
+
+    family_data = family.__dict__
+    family_data["stages"] = []
+
+    for stage in family.stages:
+        stage_data = stage.__dict__
+        stage_data["artefacts"] = []
+        for artefact in stage.artefacts:
+            stage_data["artefacts"].append(artefact.__dict__)
+        family_data["stages"].append(stage_data)
+
+    return family_data
