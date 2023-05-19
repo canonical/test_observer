@@ -13,3 +13,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Written by:
+#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+"""Controllers for artefacts manager/updater jobs"""
+
+
+from src.controllers.snap_manager import snap_manager_controller
+
+
+__all__ = ["snap_manager_controller"]

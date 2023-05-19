@@ -13,3 +13,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Written by:
+#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+
+
+from enum import Enum
+
+
+class FamilyName(Enum):
+    SNAP = "snap"
+    DEB = "deb"
+    IMAGE = "image"

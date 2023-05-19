@@ -16,16 +16,38 @@
 #
 # Written by:
 #        Omar Abou Selo <omar.selo@canonical.com>
+#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
 
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
+
+from src.data_access import models
+from src.controllers import snap_manager_controller
+
 
 engine = create_engine(
     "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres", echo=True
 )
+models.Base.metadata.create_all(bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI()
+
+logger = logging.getLogger("test-observer-backend")
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @app.get("/")
@@ -33,3 +55,30 @@ def root():
     with engine.connect() as conn:
         conn.execute(text("select 'test db connection'"))
     return {"message": "Hello World"}
+
+
+@app.put("/snapmanager")
+def snap_manager(db: Session = Depends(get_db)):
+    try:
+        session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        with session() as sess:
+            processed_artefacts = snap_manager_controller(sess)
+            logger.info("INFO: Processed artefacts %s", processed_artefacts)
+        if False in processed_artefacts.values():
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "detail": (
+                        "Got some errors while processing the next artefacts: "
+                        ", ".join(
+                            [k for k, v in processed_artefacts.items() if v is False]
+                        )
+                    )
+                },
+            )
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "All the artefacts have been processed successfully"},
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
