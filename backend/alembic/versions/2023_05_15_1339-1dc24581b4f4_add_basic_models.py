@@ -68,7 +68,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_stage_name"), "stage", ["name"], unique=True)
+    op.create_index(op.f("ix_stage_name"), "stage", ["name"], unique=False)
     op.create_index(op.f("ix_stage_position"), "stage", ["position"], unique=False)
     op.create_table(
         "artefact",

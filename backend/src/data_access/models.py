@@ -74,7 +74,7 @@ class Stage(Base):
     __tablename__ = "stage"
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), index=True)
     position: Mapped[int] = mapped_column(index=True)
     # Relationships
     family_id = mapped_column(ForeignKey("family.id"))

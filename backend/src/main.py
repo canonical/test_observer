@@ -20,6 +20,7 @@
 
 
 import logging
+from enum import Enum
 
 from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
@@ -48,6 +49,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+class FamilyName(Enum):
+    SNAP = "snap"
+    DEB = "deb"
 
 
 @app.get("/")

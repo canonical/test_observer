@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from src.repository import get_stage_by_name, get_stages_by_family_name
 from src.data_access.models import Artefact
+from src.data_access.models_enums import FamilyName
 
 
 CHANNEL_PROMOTION_MAP = {
@@ -47,7 +48,7 @@ def snap_manager_controller(session: Session) -> dict:
     :session: DB connection session
     :return: dict with the processed cards and the status of execution
     """
-    stages = get_stages_by_family_name(session, "snap")
+    stages = get_stages_by_family_name(session, FamilyName.SNAP)
     processed_artefacts = {}
     for stage in stages:
         for artefact in stage.artefacts:
