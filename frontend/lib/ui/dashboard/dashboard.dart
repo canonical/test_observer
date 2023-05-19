@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/widgets.dart';
 
+import '../../models/family_name.dart';
 import '../../providers/stages.dart';
 import 'dashboard_body.dart';
 import 'dashboard_header.dart';
@@ -12,7 +13,7 @@ class SnapDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _Dashboard(
-      familyName: 'snap',
+      familyName: FamilyName.snap,
       title: 'Snap Update Verification',
     );
   }
@@ -24,7 +25,7 @@ class DebDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _Dashboard(
-      familyName: 'deb',
+      familyName: FamilyName.deb,
       title: 'Deb Update Verification',
     );
   }
@@ -34,7 +35,7 @@ class _Dashboard extends ConsumerWidget {
   const _Dashboard({Key? key, required this.familyName, required this.title})
       : super(key: key);
 
-  final String familyName;
+  final FamilyName familyName;
   final String title;
 
   @override
