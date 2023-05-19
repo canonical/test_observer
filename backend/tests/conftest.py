@@ -50,6 +50,15 @@ def seed_db(db_session: Session):
         name="core20", stage=stage, version="1.1.1", source={}, artefact_group=None
     )
     db_session.add(artefact)
+    artefact = Artefact(
+        name="docker",
+        stage=stage,
+        version="1.1.1",
+        source={},
+        artefact_group=None,
+        is_archived=True,
+    )
+    db_session.add(artefact)
     # Beta stage
     stage = Stage(name="beta", family=family, position=20)
     db_session.add(stage)

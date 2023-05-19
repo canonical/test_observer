@@ -98,7 +98,7 @@ def test_get_artefacts_by_family_name(seed_db, db_session):
     """We should get a valid list of artefacts"""
     # Arrange
     family_name = "snap"
-    expected_artefact_names = ["core20", "core22"]
+    expected_artefact_names = ["core20", "core22", "docker"]
 
     # Act
     artefacts = get_artefacts_by_family_name(db_session, family_name)
@@ -106,6 +106,21 @@ def test_get_artefacts_by_family_name(seed_db, db_session):
     # Assert
     assert len(artefacts) == len(expected_artefact_names)
     assert all(artefact.name in expected_artefact_names for artefact in artefacts)
+
+
+def test_get_artefacts_by_family_name_filter_archived(seed_db, db_session):
+    """We should get a list of archived artefacts"""
+    # Arrange
+    family_name = "snap"
+    expected_artefact_names = ["docker"]
+
+    # Act
+    artefacts = get_artefacts_by_family_name(db_session, family_name, is_archived=True)
+
+    # Assert
+    assert len(artefacts) == len(expected_artefact_names)
+    assert all(artefact.name in expected_artefact_names for artefact in artefacts)
+    assert all(artefact.is_archived for artefact in artefacts)
 
 
 def test_get_artefacts_by_family_name_no_such_family(seed_db, db_session):

@@ -60,5 +60,7 @@ def rename_keys(data):
     if isinstance(data, list):
         return [rename_keys(i) for i in data]
     if isinstance(data, dict):
-        return {key.replace('-', '_'): rename_keys(value) for key, value in data.items()}
+        return {
+            key.replace("-", "_"): rename_keys(value) for key, value in data.items()
+        }
     return data

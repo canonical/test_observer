@@ -19,7 +19,7 @@
 """Services for working with objects from DB"""
 
 from sqlalchemy.orm import joinedload, Session
-from .data_access.models import Family, Stage
+from .data_access.models import Family, Stage, Artefact
 
 
 def get_stages_by_family_name(session: Session, family_name: str) -> list | None:
@@ -71,25 +71,32 @@ def get_family_by_name(session: Session, family_name: str):
     return family
 
 
-def get_artefacts_by_family_name(session: Session, family_name: str):
+def get_artefacts_by_family_name(
+    session: Session, family_name: str, is_archived: bool = None
+):
     """
     Get all the artefacts in a family
 
     :session: DB session
     :family_name: name of the family
+    :is_archived: filter archived/non-archived artefacts. None means "do NOT filter"
     :return: list of Artefacts
     """
-    # perform an "eager load" of the stages relationship of the Family object
-    # and the artefacts relationship of each Stage object.
-    family = (
-        session.query(Family)
-        .options(joinedload(Family.stages).joinedload(Stage.artefacts))
-        .filter(Family.name == family_name)
-        .first()
+    if is_archived is not None:
+        artefacts = (
+            session.query(Artefact)
+            .join(Stage)
+            .filter(Stage.family.has(Family.name == family_name))
+            .filter(Artefact.is_archived == is_archived)
+            .options(joinedload(Artefact.stage))
+            .all()
+        )
+        return artefacts
+    artefacts = (
+        session.query(Artefact)
+        .join(Stage)
+        .filter(Stage.family.has(Family.name == family_name))
+        .options(joinedload(Artefact.stage))
+        .all()
     )
-
-    if family is None:
-        return []
-
-    artefacts = [artefact for stage in family.stages for artefact in stage.artefacts]
     return artefacts

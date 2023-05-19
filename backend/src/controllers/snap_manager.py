@@ -18,7 +18,6 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
 
-
 import sys
 import logging
 import requests
@@ -51,11 +50,11 @@ def snap_manager_controller(session: Session) -> dict:
     :session: DB connection session
     :return: dict with the processed cards and the status of execution
     """
-    artefacts = get_artefacts_by_family_name(session, FamilyName.SNAP)
+    artefacts = get_artefacts_by_family_name(
+        session, FamilyName.SNAP, is_archived=False
+    )
     processed_artefacts = {}
     for artefact in artefacts:
-        if artefact.is_archived:
-            continue
         try:
             processed_artefacts[f"{artefact.name} - {artefact.version}"] = True
             run_snap_manager(session, artefact)
