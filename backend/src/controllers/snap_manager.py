@@ -18,15 +18,18 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
 
+
 import sys
 import logging
 import requests
+from dacite import from_dict
 
 from sqlalchemy.orm import Session
 
 from src.repository import get_stage_by_name, get_stages_by_family_name
 from src.data_access.models import Artefact
 from src.data_access.models_enums import FamilyName
+from .snapcraft_mapping import SnapInfo, rename_keys
 
 
 CHANNEL_PROMOTION_MAP = {
@@ -81,15 +84,15 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
 
     for channel_info in channel_map:
         if not (
-            channel_info["channel"]["track"] == track
-            and channel_info["channel"]["architecture"] == arch
+            channel_info.channel.track == track
+            and channel_info.channel.architecture == arch
         ):
             continue
 
-        risk = channel_info["channel"]["risk"]
+        risk = channel_info.channel.risk
         try:
-            version = channel_info["version"]
-            revision = channel_info["revision"]
+            version = channel_info.version
+            revision = channel_info.revision
         except KeyError as exc:
             logger.warning(
                 "No key '%s' is found. Continue processing...",
@@ -142,4 +145,9 @@ def get_channel_map_from_snapcraft(arch: str, snapstore: str, snap_name: str):
     if not req.ok:
         logger.error(json_resp["error-list"][0]["message"])
         sys.exit(1)
-    return json_resp["channel-map"]
+
+    snap_info = from_dict(
+        data_class=SnapInfo,
+        data=rename_keys(json_resp),
+    )
+    return snap_info.channel_map

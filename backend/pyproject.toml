@@ -11,6 +11,7 @@ uvicorn = {extras = ["standard"], version = "^0.21.1"}
 sqlalchemy = "^2.0.9"
 pg8000 = "^1.29.4"
 alembic = "^1.10.3"
+dacite = "^1.8.1"
 
 
 [tool.poetry.group.dev.dependencies]

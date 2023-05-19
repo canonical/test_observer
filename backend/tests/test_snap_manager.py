@@ -34,19 +34,27 @@ def test_run_for_different_revisions(
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
         json={
-            "name": "core20",
             "channel-map": [
                 {
                     "channel": {
                         "architecture": "amd64",
                         "name": "edge",
+                        "released-at": "2023-05-17T12:39:07.471800+00:00",
                         "risk": "edge",
                         "track": "latest",
                     },
-                    "revision": 1883,
+                    "created-at": "2023-04-10T09:59:22.309277+00:00",
+                    "download": {
+                        "deltas": [],
+                        "sha3-384": "70f0",
+                        "size": 130830336,
+                        "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
+                    },
+                    "revision": 2856,
+                    "type": "app",
                     "version": "1.1.1",
-                }
-            ],
+                },
+            ]
         },
     )
     core20 = db_session.query(Artefact).filter(Artefact.name == "core20").first()
@@ -74,19 +82,27 @@ def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker, seed_
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
         json={
-            "name": "core20",
             "channel-map": [
                 {
                     "channel": {
                         "architecture": "amd64",
                         "name": "beta",
+                        "released-at": "2023-05-17T12:39:07.471800+00:00",
                         "risk": "beta",
                         "track": "latest",
                     },
+                    "created-at": "2023-04-10T09:59:22.309277+00:00",
+                    "download": {
+                        "deltas": [],
+                        "sha3-384": "70f0",
+                        "size": 130830336,
+                        "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
+                    },
                     "revision": 1883,
+                    "type": "app",
                     "version": "1.1.1",
-                }
-            ],
+                },
+            ]
         },
     )
     core20 = db_session.query(Artefact).filter(Artefact.name == "core20").first()
