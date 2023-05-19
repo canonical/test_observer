@@ -26,7 +26,7 @@ from dacite import from_dict
 
 from sqlalchemy.orm import Session
 
-from src.repository import get_stage_by_name, get_stages_by_family_name
+from src.repository import get_stage_by_name, get_artefacts_by_family_name
 from src.data_access.models import Artefact
 from src.data_access.models_enums import FamilyName
 from .snapcraft_mapping import SnapInfo, rename_keys
@@ -51,18 +51,17 @@ def snap_manager_controller(session: Session) -> dict:
     :session: DB connection session
     :return: dict with the processed cards and the status of execution
     """
-    stages = get_stages_by_family_name(session, FamilyName.SNAP)
+    artefacts = get_artefacts_by_family_name(session, FamilyName.SNAP)
     processed_artefacts = {}
-    for stage in stages:
-        for artefact in stage.artefacts:
-            if artefact.is_archived:
-                continue
-            try:
-                processed_artefacts[f"{artefact.name} - {artefact.version}"] = True
-                run_snap_manager(session, artefact)
-            except Exception as exc:
-                processed_artefacts[f"{artefact.name} - {artefact.version}"] = False
-                logger.warning("WARNING: %s", str(exc), exc_info=True)
+    for artefact in artefacts:
+        if artefact.is_archived:
+            continue
+        try:
+            processed_artefacts[f"{artefact.name} - {artefact.version}"] = True
+            run_snap_manager(session, artefact)
+        except Exception as exc:
+            processed_artefacts[f"{artefact.name} - {artefact.version}"] = False
+            logger.warning("WARNING: %s", str(exc), exc_info=True)
     return processed_artefacts
 
 
