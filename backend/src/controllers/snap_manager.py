@@ -21,7 +21,6 @@
 import sys
 import logging
 import requests
-from dacite import from_dict
 
 from sqlalchemy.orm import Session
 
@@ -144,8 +143,5 @@ def get_channel_map_from_snapcraft(arch: str, snapstore: str, snap_name: str):
         logger.error(json_resp["error-list"][0]["message"])
         sys.exit(1)
 
-    snap_info = from_dict(
-        data_class=SnapInfo,
-        data=rename_keys(json_resp),
-    )
+    snap_info = SnapInfo(**rename_keys(json_resp))
     return snap_info.channel_map

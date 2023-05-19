@@ -20,19 +20,18 @@
 
 
 from dataclasses import dataclass
+from pydantic import BaseModel
 from typing import List
 
 
-@dataclass
-class Download:
+class Download(BaseModel):
     deltas: List[str]
     sha3_384: str
     size: int
     url: str
 
 
-@dataclass
-class Channel:
+class Channel(BaseModel):
     architecture: str
     name: str
     released_at: str
@@ -40,8 +39,7 @@ class Channel:
     track: str
 
 
-@dataclass
-class ChannelMap:
+class ChannelMap(BaseModel):
     channel: Channel
     created_at: str
     download: Download
@@ -50,8 +48,7 @@ class ChannelMap:
     version: str
 
 
-@dataclass
-class SnapInfo:
+class SnapInfo(BaseModel):
     channel_map: List[ChannelMap]
 
 
