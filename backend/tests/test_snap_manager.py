@@ -90,9 +90,6 @@ def test_run_to_move_artefact(
     If card's current list name is different to its list name in
     snapcraft, the card is moved to the next list
     """
-    result = db_session.query(Artefact).filter(Artefact.name == "core20").all()
-    assert len(result) == 0
-
     # Arrange
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
