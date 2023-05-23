@@ -16,24 +16,24 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 """Test services functions"""
 
 
-import pytest
-
+from sqlalchemy.orm import Session
 from src.repository import (
-    get_stages_by_family_name,
-    get_stage_by_name,
-    get_family_by_name,
     get_artefacts_by_family_name,
+    get_family_by_name,
+    get_stage_by_name,
+    get_stages_by_family_name,
 )
 
 
-def test_get_stages_by_family_name(db_session, seed_db):
+def test_get_stages_by_family_name(db_session: Session):
     """The function should select correct stages for the specified family name"""
     # Arrange
     family_name = "snap"
-    expected_stage_names = ["edge", "beta"]
+    expected_stage_names = ["edge", "beta", "candidate", "stable"]
 
     # Act
     stages = get_stages_by_family_name(db_session, family_name)
@@ -43,7 +43,7 @@ def test_get_stages_by_family_name(db_session, seed_db):
     assert all(stage.name in expected_stage_names for stage in stages)
 
 
-def test_get_stages_by_family_name_no_such_family(seed_db, db_session):
+def test_get_stages_by_family_name_no_such_family(db_session: Session):
     """The function should return empty list"""
     # Arrange
     family_name = "fake"
@@ -55,7 +55,7 @@ def test_get_stages_by_family_name_no_such_family(seed_db, db_session):
     assert stages == []
 
 
-def test_get_stage_by_name(seed_db, db_session):
+def test_get_stage_by_name(db_session: Session):
     """The function should select the correct stage by its name"""
     # Arrange
     family = get_family_by_name(db_session, "deb")
@@ -68,7 +68,7 @@ def test_get_stage_by_name(seed_db, db_session):
     assert stage.name == stage_name
 
 
-def test_get_stage_by_name_no_such_stage(seed_db, db_session):
+def test_get_stage_by_name_no_such_stage(db_session: Session):
     """The function should return None"""
     # Arrange
     family = get_family_by_name(db_session, "deb")
@@ -81,49 +81,38 @@ def test_get_stage_by_name_no_such_stage(seed_db, db_session):
     assert stage is None
 
 
-def test_get_stage_by_name_no_such_family(seed_db, db_session):
-    """The function should return None"""
-    # Arrange
-    family = get_family_by_name(db_session, "deb")
-    stage_name = "fakestage"
-
-    # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
-
-    # Assert
-    assert stage is None
-
-
-def test_get_artefacts_by_family_name(seed_db, db_session):
+def test_get_artefacts_by_family_name(db_session: Session, create_artefact):
     """We should get a valid list of artefacts"""
     # Arrange
-    family_name = "snap"
     expected_artefact_names = ["core20", "core22", "docker"]
+    for name in expected_artefact_names:
+        create_artefact("beta", name=name)
 
     # Act
-    artefacts = get_artefacts_by_family_name(db_session, family_name)
+    artefacts = get_artefacts_by_family_name(db_session, "snap")
 
     # Assert
     assert len(artefacts) == len(expected_artefact_names)
     assert all(artefact.name in expected_artefact_names for artefact in artefacts)
 
 
-def test_get_artefacts_by_family_name_filter_archived(seed_db, db_session):
+def test_get_artefacts_by_family_name_filter_archived(
+    db_session: Session, create_artefact
+):
     """We should get a list of archived artefacts"""
     # Arrange
-    family_name = "snap"
-    expected_artefact_names = ["docker"]
+    create_artefact("beta", name="docker", is_archived=True)
 
     # Act
-    artefacts = get_artefacts_by_family_name(db_session, family_name, is_archived=True)
+    artefacts = get_artefacts_by_family_name(db_session, "snap", is_archived=True)
 
     # Assert
-    assert len(artefacts) == len(expected_artefact_names)
-    assert all(artefact.name in expected_artefact_names for artefact in artefacts)
-    assert all(artefact.is_archived for artefact in artefacts)
+    assert len(artefacts) == 1
+    assert artefacts[0].name == "docker"
+    assert artefacts[0].is_archived
 
 
-def test_get_artefacts_by_family_name_no_such_family(seed_db, db_session):
+def test_get_artefacts_by_family_name_no_such_family(db_session: Session):
     """We should get an empty list when there's no such family"""
     # Arrange
     family_name = "fakename"
