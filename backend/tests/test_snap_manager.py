@@ -23,15 +23,13 @@
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
-
 from src.data_access.models import Artefact
+
+from .helpers import create_artefact
 
 
 def test_run_for_different_revisions(
-    test_client: TestClient,
-    db_session: Session,
-    requests_mock: Mocker,
-    create_artefact,
+    test_client: TestClient, db_session: Session, requests_mock: Mocker
 ):
     """
     If revision in snapcraft response is different from the revision in
@@ -65,6 +63,7 @@ def test_run_for_different_revisions(
         },
     )
     artefact = create_artefact(
+        db_session,
         "edge",
         name="core20",
         version="1.1.1",
@@ -81,10 +80,7 @@ def test_run_for_different_revisions(
 
 
 def test_run_to_move_artefact(
-    db_session: Session,
-    test_client: TestClient,
-    requests_mock: Mocker,
-    create_artefact,
+    db_session: Session, test_client: TestClient, requests_mock: Mocker
 ):
     """
     If card's current list name is different to its list name in
@@ -119,6 +115,7 @@ def test_run_to_move_artefact(
     )
 
     artefact = create_artefact(
+        db_session,
         "edge",
         name="core20",
         version="1.1.1",

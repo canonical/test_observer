@@ -28,6 +28,8 @@ from src.repository import (
     get_stages_by_family_name,
 )
 
+from .helpers import create_artefact
+
 
 def test_get_stages_by_family_name(db_session: Session):
     """The function should select correct stages for the specified family name"""
@@ -81,12 +83,12 @@ def test_get_stage_by_name_no_such_stage(db_session: Session):
     assert stage is None
 
 
-def test_get_artefacts_by_family_name(db_session: Session, create_artefact):
+def test_get_artefacts_by_family_name(db_session: Session):
     """We should get a valid list of artefacts"""
     # Arrange
     expected_artefact_names = ["core20", "core22", "docker"]
     for name in expected_artefact_names:
-        create_artefact("beta", name=name)
+        create_artefact(db_session, "beta", name=name)
 
     # Act
     artefacts = get_artefacts_by_family_name(db_session, "snap")
@@ -96,12 +98,10 @@ def test_get_artefacts_by_family_name(db_session: Session, create_artefact):
     assert all(artefact.name in expected_artefact_names for artefact in artefacts)
 
 
-def test_get_artefacts_by_family_name_filter_archived(
-    db_session: Session, create_artefact
-):
+def test_get_artefacts_by_family_name_filter_archived(db_session: Session):
     """We should get a list of archived artefacts"""
     # Arrange
-    create_artefact("beta", name="docker", is_archived=True)
+    create_artefact(db_session, "beta", name="docker", is_archived=True)
 
     # Act
     artefacts = get_artefacts_by_family_name(db_session, "snap", is_archived=True)

@@ -24,7 +24,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
 from src.data_access import Base
@@ -52,55 +52,22 @@ def db_engine():
     drop_database(db_uri)
 
 
-@pytest.fixture(scope="session")
-def db_sessionmaker(db_engine) -> sessionmaker[Session]:
-    return sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
-
-
 @pytest.fixture(scope="function")
-def db_session(db_sessionmaker: sessionmaker[Session]):
-    session = db_sessionmaker()
+def db_session(db_engine: Engine):
+    connection = db_engine.connect()
+    # Start transaction and not commit it to rollback automatically
+    transaction = connection.begin()
+    session = sessionmaker(autocommit=False, autoflush=False, bind=connection)()
+
     yield session
+
     session.close()
-
-
-@pytest.fixture(scope="session")
-def test_client(db_sessionmaker: sessionmaker[Session]) -> TestClient:
-    """Create a test http client"""
-
-    def _get_db():
-        session = db_sessionmaker()
-        try:
-            yield session
-        finally:
-            session.close()
-
-    app.dependency_overrides[get_db] = _get_db
-    return TestClient(app)
+    transaction.close()
+    connection.close()
 
 
 @pytest.fixture(scope="function")
-def create_artefact(db_session: Session):
-    created_artefacts = []
-
-    def _create_artefact(stage_name: str, **kwargs):
-        """Create a dummy artefact"""
-        stage = db_session.query(Stage).filter(Stage.name == stage_name).first()
-        artefact = Artefact(
-            name=kwargs.get("name", ""),
-            stage=stage,
-            version=kwargs.get("version", "1.1.1"),
-            source=kwargs.get("source", {}),
-            artefact_group=None,
-            is_archived=kwargs.get("is_archived", False),
-        )
-        db_session.add(artefact)
-        db_session.commit()
-        created_artefacts.append(artefact)
-        return artefact
-
-    yield _create_artefact
-
-    for artefact in created_artefacts:
-        db_session.delete(artefact)
-    db_session.commit()
+def test_client(db_session: Session) -> TestClient:
+    """Create a test http client"""
+    app.dependency_overrides[get_db] = lambda: db_session
+    return TestClient(app)
