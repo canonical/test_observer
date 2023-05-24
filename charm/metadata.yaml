@@ -1,0 +1,18 @@
+name: test-observer
+display-name: |
+  test-observer
+description: |
+  API and dashboard to observe the status of artefact (snaps, debs, etc) test status
+summary: |
+  API and dashboard to observe the status of artefact (snaps, debs, etc) test status
+assumes:
+  - juju >= 3.0
+  - k8s-api
+containers:
+  api:
+    resource: api-image
+resources:
+  api-image:
+    type: oci-image
+    description: OCI image from GitHub Container Repository
+    # upstream-source: ghcr.io/beliaev-maksim/api_demo_server:0.0.9
