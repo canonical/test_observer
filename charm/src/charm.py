@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus
