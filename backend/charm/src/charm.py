@@ -18,8 +18,7 @@ from charms.traefik_k8s.v1.ingress import (
     IngressPerAppRequirer,
 )
 
-# from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
-
+from requests import get
 import logging
 
 # Log messages can be retrieved using juju debug-log
@@ -106,7 +105,7 @@ class TestObserverBackendCharm(CharmBase):
                 self.pebble_service_name, self._pebble_layer, combine=True
             )
             self.container.restart(self.pebble_service_name)
-            # self.unit.set_workload_version(self.version)
+            self.unit.set_workload_version(self.version)
             self.unit.status = ActiveStatus()
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
@@ -148,6 +147,20 @@ class TestObserverBackendCharm(CharmBase):
                 return request(
                     "GET", f"http://localhost:{self.config['port']}/version"
                 ).json()["version"]
+            except Exception as e:
+                logger.warning(f"Failed to get version: {e}")
+                logger.exception(e)
+        return None
+
+    @property
+    def version(self) -> str | None:
+        if self.container.can_connect() and self.container.get_services(
+            self.pebble_service_name
+        ):
+            try:
+                return get(f"http://localhost:{self.config['port']}/version").json()[
+                    "version"
+                ]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
