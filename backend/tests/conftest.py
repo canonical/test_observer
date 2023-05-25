@@ -16,103 +16,58 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 """Fixtures for testing"""
 
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy_utils import database_exists, create_database, drop_database
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
-from src.main import app
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy_utils import create_database, database_exists, drop_database
 from src.data_access import Base
-from src.data_access.models import Family, Stage, Artefact
-
-
-# Setup Test Database
-SQLALCHEMY_DATABASE_URL = (
-    "postgresql+pg8000://postgres:password@test-observer-db:5432/test"
-)
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-@pytest.fixture
-def seed_db(db_session: Session):
-    """Populate database with fake data"""
-    # Snap family
-    family = Family(name="snap")
-    db_session.add(family)
-    # Edge stage
-    stage = Stage(name="edge", family=family, position=10)
-    db_session.add(stage)
-    artefact = Artefact(
-        name="core20", stage=stage, version="1.1.1", source={}, artefact_group=None
-    )
-    db_session.add(artefact)
-    artefact = Artefact(
-        name="docker",
-        stage=stage,
-        version="1.1.1",
-        source={},
-        artefact_group=None,
-        is_archived=True,
-    )
-    db_session.add(artefact)
-    # Beta stage
-    stage = Stage(name="beta", family=family, position=20)
-    db_session.add(stage)
-    artefact = Artefact(
-        name="core22", stage=stage, version="1.1.0", source={}, artefact_group=None
-    )
-    db_session.add(artefact)
-
-    # Deb family
-    family = Family(name="deb")
-    db_session.add(family)
-    # Proposed stage
-    stage = Stage(name="proposed", family=family, position=10)
-    db_session.add(stage)
-    artefact = Artefact(
-        name="jammy", stage=stage, version="2.1.1", source={}, artefact_group=None
-    )
-    db_session.add(artefact)
-    # Updates stage
-    stage = Stage(name="updates", family=family, position=10)
-    db_session.add(stage)
-    artefact = Artefact(
-        name="raspi", stage=stage, version="2.1.0", source={}, artefact_group=None
-    )
-    db_session.add(artefact)
-    db_session.commit()
-
-    yield
-
-    # Cleanup
-    db_session.query(Artefact).delete()
-    db_session.query(Stage).delete()
-    db_session.query(Family).delete()
-    db_session.commit()
+from src.data_access.models import Artefact, Stage
+from src.main import app, get_db
 
 
 @pytest.fixture(scope="session")
-def db_session():
-    """Set up and tear down the test database"""
-    if not database_exists(SQLALCHEMY_DATABASE_URL):
-        create_database(SQLALCHEMY_DATABASE_URL)
+def db_engine():
+    db_uri = "postgresql+pg8000://postgres:password@test-observer-db:5432/test"
 
-    Base.metadata.create_all(bind=engine)
-    session = TestingSessionLocal()
+    if not database_exists(db_uri):
+        create_database(db_uri)
+
+    engine = create_engine(db_uri)
+
+    alembic_config = Config("alembic.ini")
+    alembic_config.set_main_option("sqlalchemy.url", db_uri)
+    command.upgrade(alembic_config, "head")
+
+    yield engine
+
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+    drop_database(db_uri)
+
+
+@pytest.fixture(scope="function")
+def db_session(db_engine: Engine):
+    connection = db_engine.connect()
+    # Start transaction and not commit it to rollback automatically
+    transaction = connection.begin()
+    session = sessionmaker(autocommit=False, autoflush=False, bind=connection)()
+
     yield session
 
-    # Cleanup
     session.close()
-    Base.metadata.drop_all(bind=engine)
-    drop_database(SQLALCHEMY_DATABASE_URL)
+    transaction.close()
+    connection.close()
 
 
-@pytest.fixture(scope="session")
-def test_app():
-    """Create a pytest fixture for the app"""
-    client = TestClient(app)
-    yield client
+@pytest.fixture(scope="function")
+def test_client(db_session: Session) -> TestClient:
+    """Create a test http client"""
+    app.dependency_overrides[get_db] = lambda: db_session
+    return TestClient(app)

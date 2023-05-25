@@ -73,10 +73,8 @@ async def get_version():
 @app.put("/snapmanager")
 def snap_manager(db: Session = Depends(get_db)):
     try:
-        session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        with session() as sess:
-            processed_artefacts = snap_manager_controller(sess)
-            logger.info("INFO: Processed artefacts %s", processed_artefacts)
+        processed_artefacts = snap_manager_controller(db)
+        logger.info("INFO: Processed artefacts %s", processed_artefacts)
         if False in processed_artefacts.values():
             return JSONResponse(
                 status_code=500,

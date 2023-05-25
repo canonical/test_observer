@@ -22,26 +22,6 @@ from sqlalchemy.orm import joinedload, Session
 from .data_access.models import Family, Stage, Artefact
 
 
-def get_stages_by_family_name(session: Session, family_name: str) -> list | None:
-    """
-    Fetch stages objects related to specific family
-
-    :session: DB session
-    :family_name: name of the family
-    :return: list of stages
-    """
-    family = session.query(Family).filter(Family.name == family_name).first()
-    if family is None:
-        return []
-    stages = (
-        session.query(Stage)
-        .filter(Stage.family_id == family.id)
-        .options(joinedload(Stage.artefacts))
-        .all()
-    )
-    return stages
-
-
 def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stage:
     """
     Get the stage object by its name
@@ -59,21 +39,9 @@ def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stag
     return stage
 
 
-def get_family_by_name(session: Session, family_name: str):
-    """
-    Get the family object by its name
-
-    :session: DB session
-    :family_name: Name of the family
-    :return: Family
-    """
-    family = session.query(Family).filter(Family.name == family_name).first()
-    return family
-
-
 def get_artefacts_by_family_name(
     session: Session, family_name: str, is_archived: bool = None
-):
+) -> list[Artefact]:
     """
     Get all the artefacts in a family
 
