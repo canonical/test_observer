@@ -2,7 +2,7 @@
 
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
 import logging
 
@@ -16,7 +16,31 @@ class TestObserverCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.pebble_service_name = "test-observer"
+
+        logger.info("Containers")
+        logger.info(self.unit.containers)
+        self.container = self.unit.get_container("api")
         self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
+        self.framework.observe(self.on.config_changed, self._update_layer_and_restart)
+
+    def _on_config_changed(self, event):
+        self.unit.status = MaintenanceStatus("Reconfiguring")
+        self._update_layer_and_restart(None)
+        self.unit.status = ActiveStatus()
+
+    def _update_layer_and_restart(self, event):
+        self.unit.status = MaintenanceStatus(
+            f"Updating {self.pebble_service_name} layer"
+        )
+
+        if self.container.can_connect():
+            self.container.add_layer(
+                self.pebble_service_name, self._pebble_layer, combine=True
+            )
+            self.container.restart(self.pebble_service_name)
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = WaitingStatus("Waiting for Pebble for API")
 
     @property
     def _pebble_layer(self) -> Layer:
@@ -27,14 +51,14 @@ class TestObserverCharm(CharmBase):
                 "services": {
                     self.pebble_service_name: {
                         "override": "replace",
-                        "summary": "test observer",
+                        "summary": "test observer API server",
                         "command": " ".join(
                             [
                                 "uvicorn",
                                 "src.main:app",
                                 "--host",
                                 "0.0.0.0",
-                                "--port=30000",
+                                f"--port={self.config['port']}",
                             ]
                         ),
                         "startup": "enabled",
