@@ -19,30 +19,30 @@ class TestObserverCharm(CharmBase):
         self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
 
 
-def _pebble_layer(self) -> Layer:
-    return Layer(
-        {
-            "summary": "test observer",
-            "description": "pebble config layer for Test Observer",
-            "services": {
-                self.pebble_service_name: {
-                    "override": "replace",
-                    "summary": "test observer",
-                    "command": " ".join(
-                        ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port=30000"]
-                    ),
-                    "startup": "enabled",
-                }
-            },
-        }
-    )
+    def _pebble_layer(self) -> Layer:
+        return Layer(
+            {
+                "summary": "test observer",
+                "description": "pebble config layer for Test Observer",
+                "services": {
+                    self.pebble_service_name: {
+                        "override": "replace",
+                        "summary": "test observer",
+                        "command": " ".join(
+                            ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port=30000"]
+                        ),
+                        "startup": "enabled",
+                    }
+                },
+            }
+        )
 
 
-def _on_api_pebble_ready(self, event):
-    container = event.workload
-    container.add_layer("test-observer", self._pebble_layer, combine=True)
-    container.replan()
-    self.unit.status = ActiveStatus()
+    def _on_api_pebble_ready(self, event):
+        container = event.workload
+        container.add_layer("test-observer", self._pebble_layer, combine=True)
+        container.replan()
+        self.unit.status = ActiveStatus()
 
 
 if __name__ == "__main__":  # pragma: nocover
