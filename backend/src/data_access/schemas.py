@@ -29,11 +29,6 @@ class ArtefactDTO(BaseModel):
     id: int
     name: str
     version: str
-    source: dict
-    stage_id: int
-    artefact_group_id: int | None
-    due_date: datetime | None
-    status: str | None
 
     class Config:
         orm_mode = True
@@ -43,7 +38,6 @@ class StageDTO(BaseModel):
     id: int
     name: str
     position: int
-    family_id: int
     artefacts: List[ArtefactDTO]
 
     class Config:
