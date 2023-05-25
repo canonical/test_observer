@@ -12,13 +12,20 @@ Install prerequisites for developing the Test Observer charm:
 
 Get a GitHub personal access token at https://github.com/settings/tokens/new with the `package:read` permission.
 
-Configure containerd in microk8s over at `/var/snap/microk8s/current/args/containerd-template.toml` with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries:
+Configure containerd in microk8s with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries by appending the following to `/var/snap/microk8s/current/args/containerd-template.toml`:
 
 ```yaml
 [plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]
   username = "mz2"
   password = "your-GitHub-API-token"
 ```
+
+After this config file tweak, restart containerd and microk8s:
+
+```bash
+sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.stop && sudo microk8s.start
+```
+
 
 Create a microk8s Juju controller and model:
 
