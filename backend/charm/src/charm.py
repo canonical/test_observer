@@ -34,6 +34,9 @@ class TestObserverCharm(CharmBase):
             self, relation_name="database", database_name="test_observer_db"
         )
         self.framework.observe(
+            self.database.on.database_relation_created, self._on_database_changed
+        )
+        self.framework.observe(
             self.database.on.database_created, self._on_database_changed
         )
         self.framework.observe(
@@ -51,8 +54,10 @@ class TestObserverCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
     def _on_database_changed(
-        self, event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent
+        self,
+        event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent,
     ):
+        logger.info("Database changed event: %s", event)
         self.unit.status = MaintenanceStatus(
             "Updating layer and restarting after database change"
         )
