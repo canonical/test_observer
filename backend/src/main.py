@@ -26,9 +26,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.data_access import models, schemas
+from src.data_access import models
 from src.controllers import snap_manager_controller
-
+from .data_transfer_objects import FamilyDTO
 
 engine = create_engine(
     "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres", echo=True
@@ -81,7 +81,7 @@ def snap_manager(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
-@app.get("/families/{family_name}/", response_model=schemas.FamilyDTO)
+@app.get("/families/{family_name}/", response_model=FamilyDTO)
 def read_snap_family(family_name: str, db: Session = Depends(get_db)):
     """Retrieve all the stages and artefacts from the snap family"""
     family = db.query(models.Family).filter(models.Family.name == family_name).first()
