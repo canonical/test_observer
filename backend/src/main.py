@@ -30,10 +30,14 @@ from src.data_access import models
 from src.controllers import snap_manager_controller
 from importlib.metadata import version, PackageNotFoundError
 
+from os import environ
 
-engine = create_engine(
-    "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres", echo=True
-)
+db_url = environ.get("DB_URL")
+if db_url is None:
+    db_url = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
+
+engine = create_engine(db_url, echo=True)
+
 models.Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

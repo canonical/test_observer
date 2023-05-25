@@ -2,9 +2,15 @@
 
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
+from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
-from requests import get
+from requests import request
+
+from lib.charms.data_platform_libs.v0.data_interfaces import (
+    DatabaseCreatedEvent,
+    DatabaseEndpointsChangedEvent,
+    DatabaseRequires,
+)
 import logging
 
 # Log messages can be retrieved using juju debug-log
@@ -24,10 +30,40 @@ class TestObserverCharm(CharmBase):
         self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
         self.framework.observe(self.on.config_changed, self._update_layer_and_restart)
 
+        self.database = DatabaseRequires(
+            self, relation_name="database", database_name="test_observer_db"
+        )
+        self.framework.observe(
+            self.database.on.database_created, self._on_database_changed
+        )
+        self.framework.observe(
+            self.database.on.endpoints_chnaged, self._on_database_changed
+        )
+        self.framework.observe(
+            self.database.on.database_relation_broken, self._on_database_relation_broken
+        )
+
     def _on_config_changed(self, event):
-        self.unit.status = MaintenanceStatus("Reconfiguring")
+        self.unit.status = MaintenanceStatus(
+            "Updating layer and restarting after config change"
+        )
         self._update_layer_and_restart(None)
         self.unit.status = ActiveStatus()
+
+    def _on_database_changed(
+        self, event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent
+    ):
+        self.unit.status = MaintenanceStatus(
+            "Updating layer and restarting after database change"
+        )
+        self._update_layer_and_restart(None)
+        self.unit.status = ActiveStatus()
+
+    def _on_database_relation_broken(self, event):
+        self.unit.status = MaintenanceStatus(
+            "Waiting for database relation after relation removed"
+        )
+        raise SystemExit(0)
 
     def _update_layer_and_restart(self, event):
         self.unit.status = MaintenanceStatus(
@@ -44,15 +80,34 @@ class TestObserverCharm(CharmBase):
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
 
+    def _postgres_relation_data(self) -> dict:
+        data = self.database.fetch_relation_data()
+        logger.info("Got following database data: %s", data)
+
+        val = next((v for v in data.values() if v), None)
+
+        if val is None:
+            return {"DB_URL": None}
+
+        logger.info(f"New database endpoint is {val['endpoints']}")
+        host, port = val["endpoints"].split(":")
+
+        db_url = f"postgresql+pg8000://{val['username']}:{val['password']}@{val['host']}:{val['port']}/test_observer_db"
+        return {"DB_URL": db_url}
+
+    @property
+    def _app_environment(self) -> dict:
+        return {**self._postgres_relation_data(), **{}}
+
     @property
     def version(self) -> str | None:
         if self.container.can_connect() and self.container.get_services(
             self.pebble_service_name
         ):
             try:
-                return get(f"http://localhost:{self.config['port']}/version").json()[
-                    "version"
-                ]
+                return request.get(
+                    f"http://localhost:{self.config['port']}/version"
+                ).json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
@@ -78,6 +133,7 @@ class TestObserverCharm(CharmBase):
                             ]
                         ),
                         "startup": "enabled",
+                        "environment": self._app_environment,
                     }
                 },
             }

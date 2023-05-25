@@ -11,6 +11,10 @@ assumes:
 containers:
   api:
     resource: api-image
+requires:
+  database:
+    interface: postgresql_client
+    limit: 1
 resources:
   api-image:
     type: oci-image
