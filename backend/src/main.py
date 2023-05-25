@@ -24,7 +24,7 @@ import logging
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker, subqueryload
 
 from src.data_access import models
 from src.controllers import snap_manager_controller
@@ -88,4 +88,5 @@ def read_snap_family(family_name: str, db: Session = Depends(get_db)):
     if family is None:
         raise HTTPException(status_code=404, detail="Family not found")
 
+    family.stages = sorted(family.stages, key=lambda x: x.position)
     return family

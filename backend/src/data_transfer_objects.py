@@ -37,7 +37,6 @@ class ArtefactDTO(BaseModel):
 class StageDTO(BaseModel):
     id: int
     name: str
-    position: int
     artefacts: List[ArtefactDTO]
 
     class Config:
