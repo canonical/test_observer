@@ -41,7 +41,7 @@ def test_get_stage_by_name(db_session: Session):
 
 
 def test_get_stage_by_name_no_such_stage(db_session: Session):
-    """TThe function should return None"""
+    """The function should return None"""
     # Arrange
     family = db_session.query(Family).filter(Family.name == "deb").first()
     stage_name = "fakestage"

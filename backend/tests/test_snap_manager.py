@@ -73,8 +73,9 @@ def test_run_for_different_revisions(
     # Act
     test_client.put("/snapmanager")
 
-    # Assert
     db_session.refresh(artefact)
+
+    # Assert
     assert artefact.stage.name == "edge"  # The artefact should not be moved
     assert artefact.is_archived
 
@@ -125,7 +126,8 @@ def test_run_to_move_artefact(
     # Act
     test_client.put("/snapmanager")
 
-    # Assert
     db_session.refresh(artefact)
+
+    # Assert
     assert artefact.stage.name == "beta"
     assert not artefact.is_archived  # The artefact should not be archived
