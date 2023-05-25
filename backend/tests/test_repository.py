@@ -21,9 +21,23 @@
 
 
 from sqlalchemy.orm import Session
+from src.data_access.models import Family
 from src.repository import get_artefacts_by_family_name, get_stage_by_name
 
 from .helpers import create_artefact
+
+
+def test_get_stage_by_name(db_session: Session):
+    """The function should select the correct stage by its name"""
+    # Arrange
+    family = db_session.query(Family).filter(Family.name == "deb").first()
+    stage_name = "proposed"
+
+    # Act
+    stage = get_stage_by_name(db_session, stage_name, family)
+
+    # Assert
+    assert stage.name == stage_name
 
 
 def test_get_artefacts_by_family_name(db_session: Session):
