@@ -144,9 +144,9 @@ class TestObserverBackendCharm(CharmBase):
             self.pebble_service_name
         ):
             try:
-                return request(
-                    "GET", f"http://localhost:{self.config['port']}/version"
-                ).json()["version"]
+                return get(f"http://localhost:{self.config['port']}/version").json()[
+                    "version"
+                ]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
@@ -158,9 +158,9 @@ class TestObserverBackendCharm(CharmBase):
             self.pebble_service_name
         ):
             try:
-                return get(f"http://localhost:{self.config['port']}/version").json()[
-                    "version"
-                ]
+                return request.get(
+                    f"http://localhost:{self.config['port']}/version"
+                ).json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
