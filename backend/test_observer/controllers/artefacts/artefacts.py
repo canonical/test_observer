@@ -17,6 +17,7 @@
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
+"""Functions for managing artefacts in the snap family"""
 
 
 import logging
@@ -97,7 +98,6 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
 
     :session: DB connection session
     :artefact: an Artefact object
-    :config_dict: parsed config file
     """
     arch = artefact.source["architecture"]
     channel_map = get_channel_map_from_snapcraft(
