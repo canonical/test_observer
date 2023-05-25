@@ -40,6 +40,32 @@ def test_get_stage_by_name(db_session: Session):
     assert stage.name == stage_name
 
 
+def test_get_stage_by_name_no_such_stage(db_session: Session):
+    """TThe function should return None"""
+    # Arrange
+    family = db_session.query(Family).filter(Family.name == "deb").first()
+    stage_name = "fakestage"
+
+    # Act
+    stage = get_stage_by_name(db_session, stage_name, family)
+
+    # Assert
+    assert stage is None
+
+
+def test_get_stage_by_name_no_such_family(db_session: Session):
+    """The function should return None"""
+    # Arrange
+    family = db_session.query(Family).filter(Family.name == "fakefamily").first()
+    stage_name = "proposed"
+
+    # Act
+    stage = get_stage_by_name(db_session, stage_name, family)
+
+    # Assert
+    assert stage is None
+
+
 def test_get_artefacts_by_family_name(db_session: Session):
     """We should get a valid list of artefacts"""
     # Arrange
