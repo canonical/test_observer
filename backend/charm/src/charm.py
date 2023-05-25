@@ -6,7 +6,7 @@ from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
 from requests import request
 
-from lib.charms.data_platform_libs.v0.data_interfaces import (
+from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
     DatabaseRequires,
@@ -37,7 +37,7 @@ class TestObserverCharm(CharmBase):
             self.database.on.database_created, self._on_database_changed
         )
         self.framework.observe(
-            self.database.on.endpoints_chnaged, self._on_database_changed
+            self.database.on.endpoints_changed, self._on_database_changed
         )
         self.framework.observe(
             self.database.on.database_relation_broken, self._on_database_relation_broken
