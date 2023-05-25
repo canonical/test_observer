@@ -18,7 +18,7 @@ class TestObserverCharm(CharmBase):
         self.pebble_service_name = "test-observer"
         self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
 
-
+    @property
     def _pebble_layer(self) -> Layer:
         return Layer(
             {
@@ -29,14 +29,19 @@ class TestObserverCharm(CharmBase):
                         "override": "replace",
                         "summary": "test observer",
                         "command": " ".join(
-                            ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port=30000"]
+                            [
+                                "uvicorn",
+                                "src.main:app",
+                                "--host",
+                                "0.0.0.0",
+                                "--port=30000",
+                            ]
                         ),
                         "startup": "enabled",
                     }
                 },
             }
         )
-
 
     def _on_api_pebble_ready(self, event):
         container = event.workload
