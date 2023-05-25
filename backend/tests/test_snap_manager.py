@@ -16,15 +16,20 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 """Test snap manager API"""
 
 
+from fastapi.testclient import TestClient
+from requests_mock import Mocker
+from sqlalchemy.orm import Session
 from src.data_access.models import Artefact
-from .conftest import engine
+
+from .helpers import create_artefact
 
 
 def test_run_for_different_revisions(
-    test_app, db_session, requests_mock, mocker, seed_db
+    test_client: TestClient, db_session: Session, requests_mock: Mocker
 ):
     """
     If revision in snapcraft response is different from the revision in
@@ -57,23 +62,27 @@ def test_run_for_different_revisions(
             ]
         },
     )
-    core20 = db_session.query(Artefact).filter(Artefact.name == "core20").first()
-    original_stage = core20.stage
-    core20.source = {"revision": 1823, "architecture": "amd64", "store": "ubuntu"}
-    core20.version = "1.1.1"
-    core20.is_archived = False
-    db_session.commit()
-    mocker.patch("src.main.engine", wraps=engine)
+    artefact = create_artefact(
+        db_session,
+        "edge",
+        name="core20",
+        version="1.1.1",
+        source={"revision": 1823, "architecture": "amd64", "store": "ubuntu"},
+    )
 
     # Act
-    test_app.put("/snapmanager")
+    test_client.put("/snapmanager")
+
+    db_session.refresh(artefact)
 
     # Assert
-    assert core20.stage == original_stage  # The artefact should not be moved
-    assert core20.is_archived
+    assert artefact.stage.name == "edge"  # The artefact should not be moved
+    assert artefact.is_archived
 
 
-def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker, seed_db):
+def test_run_to_move_artefact(
+    db_session: Session, test_client: TestClient, requests_mock: Mocker
+):
     """
     If card's current list name is different to its list name in
     snapcraft, the card is moved to the next list
@@ -105,16 +114,20 @@ def test_run_to_move_artefact(db_session, test_app, requests_mock, mocker, seed_
             ]
         },
     )
-    core20 = db_session.query(Artefact).filter(Artefact.name == "core20").first()
-    core20.source = {"revision": 1883, "architecture": "amd64", "store": "ubuntu"}
-    core20.version = "1.1.1"
-    core20.is_archived = False
-    db_session.commit()
-    mocker.patch("src.main.engine", wraps=engine)
+
+    artefact = create_artefact(
+        db_session,
+        "edge",
+        name="core20",
+        version="1.1.1",
+        source={"revision": 1883, "architecture": "amd64", "store": "ubuntu"},
+    )
 
     # Act
-    test_app.put("/snapmanager")
+    test_client.put("/snapmanager")
+
+    db_session.refresh(artefact)
 
     # Assert
-    assert core20.stage.name == "beta"
-    assert not core20.is_archived  # The artefact should not be archived
+    assert artefact.stage.name == "beta"
+    assert not artefact.is_archived  # The artefact should not be archived

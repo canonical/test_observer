@@ -33,7 +33,6 @@ from src.controllers import snap_manager_controller
 engine = create_engine(
     "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres", echo=True
 )
-models.Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI()
@@ -60,10 +59,8 @@ def root():
 @app.put("/snapmanager")
 def snap_manager(db: Session = Depends(get_db)):
     try:
-        session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        with session() as sess:
-            processed_artefacts = snap_manager_controller(sess)
-            logger.info("INFO: Processed artefacts %s", processed_artefacts)
+        processed_artefacts = snap_manager_controller(db)
+        logger.info("INFO: Processed artefacts %s", processed_artefacts)
         if False in processed_artefacts.values():
             return JSONResponse(
                 status_code=500,
