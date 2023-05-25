@@ -29,7 +29,7 @@ sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.
 
 Create a microk8s Juju controller and model:
 
-```
+```bash
 juju bootstrap microk8s
 juju add-model test-observer
 
@@ -39,13 +39,14 @@ juju model-config logging-config="<root>=DEBUG"
 
 Build and deploy the charm:
 
-```
+```bash
 charmcraft pack
 juju deploy ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer:charm
 ```
 
 Update the charm after making edits:
-```
+
+```bash
 charmcraft pack
 juju refresh test-observer --path ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer:charm
 ```
