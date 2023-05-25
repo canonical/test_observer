@@ -21,81 +21,31 @@
 
 
 from sqlalchemy.orm import Session
-from src.repository import (
-    get_artefacts_by_family_name,
-    get_family_by_name,
-    get_stage_by_name,
-    get_stages_by_family_name,
-)
+from src.repository import get_artefacts_by_family_name, get_stage_by_name
 
 from .helpers import create_artefact
-
-
-def test_get_stages_by_family_name(db_session: Session):
-    """The function should select correct stages for the specified family name"""
-    # Arrange
-    family_name = "snap"
-    expected_stage_names = ["edge", "beta", "candidate", "stable"]
-
-    # Act
-    stages = get_stages_by_family_name(db_session, family_name)
-
-    # Assert
-    assert len(stages) == len(expected_stage_names)
-    assert all(stage.name in expected_stage_names for stage in stages)
-
-
-def test_get_stages_by_family_name_no_such_family(db_session: Session):
-    """The function should return empty list"""
-    # Arrange
-    family_name = "fake"
-
-    # Act
-    stages = get_stages_by_family_name(db_session, family_name)
-
-    # Assert
-    assert stages == []
-
-
-def test_get_stage_by_name(db_session: Session):
-    """The function should select the correct stage by its name"""
-    # Arrange
-    family = get_family_by_name(db_session, "deb")
-    stage_name = "proposed"
-
-    # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
-
-    # Assert
-    assert stage.name == stage_name
-
-
-def test_get_stage_by_name_no_such_stage(db_session: Session):
-    """The function should return None"""
-    # Arrange
-    family = get_family_by_name(db_session, "deb")
-    stage_name = "fakestage"
-
-    # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
-
-    # Assert
-    assert stage is None
 
 
 def test_get_artefacts_by_family_name(db_session: Session):
     """We should get a valid list of artefacts"""
     # Arrange
-    expected_artefact_names = ["core20", "core22", "docker"]
-    for name in expected_artefact_names:
-        create_artefact(db_session, "beta", name=name)
+    artefact_name_stage_pair = {
+        ("core20", "edge"),
+        ("core22", "beta"),
+        ("docker", "candidate"),
+    }
+
+    for name, stage in artefact_name_stage_pair:
+        create_artefact(db_session, stage, name=name)
 
     # Act
     artefacts = get_artefacts_by_family_name(db_session, "snap")
 
     # Assert
-    assert len(artefacts) == len(expected_artefact_names)
-    assert all(artefact.name in expected_artefact_names for artefact in artefacts)
+    assert len(artefacts) == len(artefact_name_stage_pair)
+    assert {
+        (artefact.name, artefact.stage.name) for artefact in artefacts
+    } == artefact_name_stage_pair
 
 
 def test_get_artefacts_by_family_name_filter_archived(db_session: Session):
