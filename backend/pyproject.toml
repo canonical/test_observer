@@ -12,11 +12,12 @@ sqlalchemy = "^2.0.9"
 pg8000 = "^1.29.4"
 alembic = "^1.10.3"
 
-
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
 pylint = "^2.17.1"
 
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"

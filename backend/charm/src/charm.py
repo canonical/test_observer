@@ -4,6 +4,7 @@ from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
+from requests import get
 import logging
 
 # Log messages can be retrieved using juju debug-log
@@ -38,9 +39,24 @@ class TestObserverCharm(CharmBase):
                 self.pebble_service_name, self._pebble_layer, combine=True
             )
             self.container.restart(self.pebble_service_name)
+            self.unit.set_workload_version(self.version)
             self.unit.status = ActiveStatus()
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
+
+    @property
+    def version(self) -> str | None:
+        if self.container.can_connect() and self.container.get_services(
+            self.pebble_service_name
+        ):
+            try:
+                return get(f"http://localhost:{self.config['port']}/version").json()[
+                    "version"
+                ]
+            except Exception as e:
+                logger.warning(f"Failed to get version: {e}")
+                logger.exception(e)
+        return None
 
     @property
     def _pebble_layer(self) -> Layer:

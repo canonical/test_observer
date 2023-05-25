@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from src.data_access import models
 from src.controllers import snap_manager_controller
+from importlib.metadata import version, PackageNotFoundError
 
 
 engine = create_engine(
@@ -55,6 +56,14 @@ def root():
     with engine.connect() as conn:
         conn.execute(text("select 'test db connection'"))
     return {"message": "Hello World"}
+
+
+@app.get("/version")
+async def get_version():
+    try:
+        return {"version": version("test-observer")}
+    except PackageNotFoundError:
+        return {"version": "package not found"}
 
 
 @app.put("/snapmanager")
