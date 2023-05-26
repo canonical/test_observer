@@ -1,3 +1,11 @@
+name: Create and publish a Docker image
+on:
+  push:
+    branches: ["charm", "main"]
+
+env:
+  REGISTRY: ghcr.io
+
 jobs:
   build-and-push-backend-image:
     runs-on: ubuntu-latest
