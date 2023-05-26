@@ -26,7 +26,6 @@ After this config file tweak, restart containerd and microk8s:
 sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.stop && sudo microk8s.start
 ```
 
-
 Create a microk8s Juju controller and model:
 
 ```bash
@@ -41,12 +40,20 @@ Build and deploy the charm:
 
 ```bash
 charmcraft pack
-juju deploy ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer:charm
+juju deploy ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer:[tag or sha]
 ```
 
 Update the charm after making edits:
 
 ```bash
 charmcraft pack
-juju refresh test-observer --path ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer:charm
+juju refresh test-observer --path ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer:[tag or sha]
+```
+
+### Fetching the data platform libraries
+
+In case you need to fetch the data platform libraries to update them, `charmcraft` is your friend:
+
+```bash
+charmcraft fetch-lib charms.data_platform_libs.v0.data_interfaces
 ```
