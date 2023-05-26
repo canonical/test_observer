@@ -43,7 +43,23 @@ class TestObserverCharm(CharmBase):
             self.database.on.database_relation_broken, self._on_database_relation_broken
         )
 
+        self.framework.observe(self.on.migrate_database_action, self._migrate_database)
+
+    def _migrate_database(self, event):
+        process = self.container.exec(
+            ["alembic", "upgrade", "head"], working_dir="./backend", timeout=None
+        )
+        stdout, stderr = process.wait_output()
+
+        for line in stdout.splitlines():
+            logger.info(line.strip())
+
+        if stderr:
+            for line in stderr.splitlines():
+                logger.error(line.strip())
+
     def _on_config_changed(self, event):
+        logger.info(event)
         self.unit.status = MaintenanceStatus(
             "Updating layer and restarting after config change"
         )
