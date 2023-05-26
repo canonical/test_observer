@@ -34,9 +34,6 @@ class TestObserverCharm(CharmBase):
             self, relation_name="database", database_name="test_observer_db"
         )
         self.framework.observe(
-            self.database.on.database_relation_created, self._on_database_changed
-        )
-        self.framework.observe(
             self.database.on.database_created, self._on_database_changed
         )
         self.framework.observe(
@@ -58,16 +55,10 @@ class TestObserverCharm(CharmBase):
         event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent,
     ):
         logger.info("Database changed event: %s", event)
-        self.unit.status = MaintenanceStatus(
-            "Updating layer and restarting after database change"
-        )
         self._update_layer_and_restart(None)
-        self.unit.status = ActiveStatus()
 
     def _on_database_relation_broken(self, event):
-        self.unit.status = MaintenanceStatus(
-            "Waiting for database relation after relation removed"
-        )
+        self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
 
     def _update_layer_and_restart(self, event):
@@ -80,29 +71,23 @@ class TestObserverCharm(CharmBase):
                 self.pebble_service_name, self._pebble_layer, combine=True
             )
             self.container.restart(self.pebble_service_name)
-            self.unit.set_workload_version(self.version)
+            # self.unit.set_workload_version(self.version)
             self.unit.status = ActiveStatus()
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
 
     def _postgres_relation_data(self) -> dict:
         data = self.database.fetch_relation_data()
-        logger.info("Got following database data: %s", data)
-
-        val = next((v for v in data.values() if v), None)
-
-        if val is None:
-            return {"DB_URL": None}
-
-        logger.info(f"New database endpoint is {val['endpoints']}")
-        host, port = val["endpoints"].split(":")
-
-        db_url = f"postgresql+pg8000://{val['username']}:{val['password']}@{val['host']}:{val['port']}/test_observer_db"
-        return {"DB_URL": db_url}
-
-    @property
-    def _app_environment(self) -> dict:
-        return {**self._postgres_relation_data(), **{}}
+        logger.debug("Got following database data: %s", data)
+        for key, val in data.items():
+            if not val:
+                continue
+            logger.info("New PSQL database endpoint is %s", val["endpoints"])
+            host, port = val["endpoints"].split(":")
+            db_url = f"postgresql+pg8000://{val['username']}:{val['password']}@{host}:{port}/test_observer_db"
+            return {"DB_URL": db_url}
+        self.unit.status = WaitingStatus("Waiting for database relation")
+        raise SystemExit(0)
 
     @property
     def version(self) -> str | None:
@@ -110,8 +95,8 @@ class TestObserverCharm(CharmBase):
             self.pebble_service_name
         ):
             try:
-                return request.get(
-                    f"http://localhost:{self.config['port']}/version"
+                return request(
+                    "get", f"http://localhost:{self.config['port']}/version"
                 ).json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
@@ -138,7 +123,7 @@ class TestObserverCharm(CharmBase):
                             ]
                         ),
                         "startup": "enabled",
-                        "environment": self._app_environment,
+                        "environment": {**self._postgres_relation_data(), **{}},
                     }
                 },
             }
