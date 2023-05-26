@@ -23,10 +23,8 @@ class TestObserverCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.pebble_service_name = "test-observer-api"
-
-        logger.info("Containers")
-        logger.info(self.unit.containers)
         self.container = self.unit.get_container("api")
+        
         self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
         self.framework.observe(self.on.config_changed, self._update_layer_and_restart)
 

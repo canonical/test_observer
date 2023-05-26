@@ -6,7 +6,7 @@ description: |
   Test Observer Frontend offers a dashboard for presenting test results served by the test-observer backend service.
 
 containers:
-  test-observer-frontend:
+  frontend:
     resource: frontend-image
 
 resources:
