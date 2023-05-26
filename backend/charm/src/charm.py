@@ -94,7 +94,7 @@ class TestObserverCharm(CharmBase):
 
     def _postgres_relation_data(self) -> dict:
         data = self.database.fetch_relation_data()
-        logger.debug("Got following database data: %s", data)
+        logger.debug("Got following database relation data: %s", data)
         for key, val in data.items():
             if not val:
                 continue
@@ -102,6 +102,7 @@ class TestObserverCharm(CharmBase):
             host, port = val["endpoints"].split(":")
             db_url = f"postgresql+pg8000://{val['username']}:{val['password']}@{host}:{port}/test_observer_db"
             return {"DB_URL": db_url}
+        
         self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
 
@@ -112,7 +113,7 @@ class TestObserverCharm(CharmBase):
         ):
             try:
                 return request(
-                    "get", f"http://localhost:{self.config['port']}/version"
+                    "GET", f"http://localhost:{self.config['port']}/version"
                 ).json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
