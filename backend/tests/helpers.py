@@ -10,7 +10,6 @@ def create_artefact(db_session: Session, stage_name: str, **kwargs):
         stage=stage,
         version=kwargs.get("version", "1.1.1"),
         source=kwargs.get("source", {}),
-        artefact_group=None,
         is_archived=kwargs.get("is_archived", False),
     )
     db_session.add(artefact)
