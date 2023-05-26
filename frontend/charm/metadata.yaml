@@ -1,0 +1,16 @@
+name: test-observer-frontend
+display-name: Test Observer Frontend
+summary: A Flutter based frontend to the test-observer backend service.
+
+description: |
+  Test Observer Frontend offers a dashboard for presenting test results served by the test-observer backend service.
+
+containers:
+  test-observer-frontend:
+    resource: frontend-image
+
+resources:
+  frontend-image:
+    type: oci-image
+    description: OCI image for test-observer-frontend
+    upstream-source: kennethreitz/httpbin
