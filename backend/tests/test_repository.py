@@ -22,7 +22,10 @@
 
 from sqlalchemy.orm import Session
 from src.data_access.models import Family
-from src.repository import get_artefacts_by_family_name, get_stage_by_name
+from src.data_access.repository import (
+    get_artefacts_by_family_name,
+    get_stage_by_name,
+)
 
 from .helpers import create_artefact
 

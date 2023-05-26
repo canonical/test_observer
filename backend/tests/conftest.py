@@ -28,7 +28,6 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
 from src.data_access import Base
-from src.data_access.models import Artefact, Stage
 from src.main import app, get_db
 
 

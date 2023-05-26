@@ -19,7 +19,7 @@
 """Services for working with objects from DB"""
 
 from sqlalchemy.orm import joinedload, Session
-from .data_access.models import Family, Stage, Artefact
+from .models import Family, Stage, Artefact
 
 
 def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stage:
