@@ -47,7 +47,13 @@ The project uses [Alembic](https://alembic.sqlalchemy.org/en/latest/) to manage 
 
 ### Create Migrations
 
-For more information on how to create migrations, please check [Alembic docs](https://alembic.sqlalchemy.org/en/latest/). Note, that it's worth noting that Alembic can help [auto generate migrations](https://alembic.sqlalchemy.org/en/latest/autogenerate.html) based on differences between SQLAlchemy ORMs and the actual database. But developers have to check these migrations to make sure they're fine.
+For more information on how to create migrations, please check [Alembic docs](https://alembic.sqlalchemy.org/en/latest/). Note, that it's worth noting that Alembic can help [auto generate migrations](https://alembic.sqlalchemy.org/en/latest/autogenerate.html) based on differences between SQLAlchemy ORMs and the actual database. But developers have to check these migrations to make sure they're fine. To generate migrations automatically though, just run:
+
+`$ kubectl exec -it service/test-observer-api -- alembic revision --autogenerate -m "Migration description"`
+
+Note however that this created migration will reside inside the pod not on your host machine. So you have to copy it over by:
+
+`$ kubectl cp test-observer-api-RESTOFPODNAME:/home/app/alembic/versions ./alembic/versions`
 
 ### Applying Migrations
 
