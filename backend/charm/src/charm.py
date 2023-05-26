@@ -22,7 +22,7 @@ class TestObserverCharm(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.pebble_service_name = "test-observer"
+        self.pebble_service_name = "test-observer-api"
 
         logger.info("Containers")
         logger.info(self.unit.containers)
@@ -148,7 +148,7 @@ class TestObserverCharm(CharmBase):
 
     def _on_api_pebble_ready(self, event):
         container = event.workload
-        container.add_layer("test-observer", self._pebble_layer, combine=True)
+        container.add_layer("test-observer-api", self._pebble_layer, combine=True)
         container.replan()
         self.unit.status = ActiveStatus()
 

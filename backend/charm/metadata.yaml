@@ -1,6 +1,6 @@
-name: test-observer
+name: test-observer-api
 display-name: |
-  test-observer
+  Test Observer API server
 description: |
   API and dashboard to observe the status of artefact (snaps, debs, etc) test status
 summary: |

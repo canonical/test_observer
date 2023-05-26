@@ -43,4 +43,4 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
 
 if __name__ == "__main__":  # pragma: nocover
-    ops.main(CharmCharm)
+    ops.main(TestObserverFrontendCharm)

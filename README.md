@@ -47,13 +47,13 @@ Build and deploy the backend charm:
 ```bash
 cd backend/charm
 charmcraft pack
-juju deploy ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
+juju deploy ./test-observer-api_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
 ```
 
 Integrate the test observer service with the database:
 
 ```bash
-juju integrate pg test-observer
+juju integrate pg test-observer-api
 ```
 
 Build and deploy the frontend charm:
@@ -61,15 +61,22 @@ Build and deploy the frontend charm:
 ```bash
 cd frontend/charm
 charmcraft pack
-juju deploy ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
+juju deploy ./test-observer-api_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
 ```
 
 Update the charm after making edits:
 
 ```bash
 charmcraft pack
-juju refresh test-observer --path ./test-observer_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
-juju refresh test-observer-frontend --path ./test-observer-frontend_ubuntu-22.04-amd64.charm --resource frontend-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
+juju refresh test-observer-api --path ./test-observer_ubuntu-22.04-amd64.charm
+juju refresh test-observer-frontend --path ./test-observer-frontend_ubuntu-22.04-amd64.charm
+```
+
+To update the image reference, use `juju attach-resource`
+
+```bash
+juju attach-resource test-observer-api api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
+juju attach-resource test-observer-frontend api-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
 ```
 
 ### Fetching the data platform libraries
