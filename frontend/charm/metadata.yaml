@@ -13,4 +13,4 @@ resources:
   frontend-image:
     type: oci-image
     description: OCI image for test-observer-frontend
-    upstream-source: kennethreitz/httpbin
+    upstream-source: ghcr.io/canonical/test-observer/frontend

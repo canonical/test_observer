@@ -22,11 +22,10 @@ async def test_build_and_deploy(ops_test: OpsTest):
 
     Assert on the unit status before any relations/configurations take place.
     """
-    # Build and deploy charm from local source folder
-    charm = await ops_test.build_charm(".")
-    resources = {"httpbin-image": METADATA["resources"]["httpbin-image"]["upstream-source"]}
 
-    # Deploy the charm and wait for active/idle status
+    charm = await ops_test.build_charm(".")
+    resources = {"frontend-image": METADATA["resources"]["frontend-image"]["upstream-source"]}
+
     await asyncio.gather(
         ops_test.model.deploy(charm, resources=resources, application_name=APP_NAME),
         ops_test.model.wait_for_idle(
