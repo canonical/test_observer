@@ -97,6 +97,8 @@ juju integrate nginx-ingress-integrator test-observer-api
 juju integrate nginx-ingress-integrator test-observer-frontend
 ```
 
+**_NOTE:_** I _think_ that if the configuration parameters involved in the nginx ingress routing change (`hostname` and `port` properties of both the API and frontend application, respectively), you should remove the relation with `juju remove-relation nginx-ingress-integrator [name-of-the-changed-application]` and add it back with `juju integrate` after the config change, given the nginx-integrator's charm lib refers to the `nginx_route` call having to be done in the charm's `__init__`, not in config change handler for example.
+
 After all is up, `juju status --relations` should give you output to the direction of:
 
 ```
