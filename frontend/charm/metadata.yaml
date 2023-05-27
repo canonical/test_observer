@@ -9,6 +9,12 @@ containers:
   frontend:
     resource: frontend-image
 
+requires:
+  test-observer-rest-api-v1:
+    interface: http
+  nginx-route:
+    interface: nginx-route
+
 resources:
   frontend-image:
     type: oci-image

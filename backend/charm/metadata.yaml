@@ -15,6 +15,12 @@ requires:
   database:
     interface: postgresql_client
     limit: 1
+  nginx-route:
+    interface: nginx-route
+provides:
+  test-observer-rest-api-v1:
+    interface: http
+    scope: global
 resources:
   api-image:
     type: oci-image

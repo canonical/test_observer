@@ -1,7 +1,17 @@
 # See https://juju.is/docs/config for guidance.
 
 options:
-  test-observer-api-base-uri:
-    description: The base URI for the API. This is used to generate the links to the API in the frontend.
-    default: "http://localhost:30000"
+  hostname:
+    description: Public hostname for the frontend (through nginx ingress)
+    default: test-observer-frontend
+    type: string
+
+  port:
+    description: Port for the service in the K8s cluster's network (_not_ necessarily the port through which the service will be exposed through nginx ingress)
+    default: 80
+    type: int
+
+  test-observer-api-scheme:
+    description: Scheme for accessing Test Observer API (used to construct URLs for API requests)
+    default: "https://"
     type: string

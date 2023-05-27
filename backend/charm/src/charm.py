@@ -10,21 +10,26 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
     DatabaseRequires,
+    RelationJoinedEvent,
+    RelationChangedEvent,
 )
+
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+
 import logging
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
 
 
-class TestObserverCharm(CharmBase):
+class TestObserverBackendCharm(CharmBase):
     """Charm the service."""
 
     def __init__(self, *args):
         super().__init__(*args)
         self.pebble_service_name = "test-observer-api"
         self.container = self.unit.get_container("api")
-        
+
         self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
         self.framework.observe(self.on.config_changed, self._update_layer_and_restart)
 
@@ -39,6 +44,22 @@ class TestObserverCharm(CharmBase):
         )
         self.framework.observe(
             self.database.on.database_relation_broken, self._on_database_relation_broken
+        )
+
+        self.framework.observe(
+            self.on.test_observer_rest_api_v1_relation_joined,
+            self._test_observer_rest_api_client_joined,
+        )
+        self.framework.observe(
+            self.on.test_observer_rest_api_v1_relation_changed,
+            self._test_observer_rest_api_client_changed,
+        )
+
+        require_nginx_route(
+            charm=self,
+            service_hostname=self.config["hostname"],
+            service_name=self.app.name,
+            service_port=self.config["port"],
         )
 
         self.framework.observe(self.on.migrate_database_action, self._migrate_database)
@@ -100,9 +121,23 @@ class TestObserverCharm(CharmBase):
             host, port = val["endpoints"].split(":")
             db_url = f"postgresql+pg8000://{val['username']}:{val['password']}@{host}:{port}/test_observer_db"
             return {"DB_URL": db_url}
-        
+
         self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
+
+    def _test_observer_rest_api_client_joined(self, event: RelationJoinedEvent) -> None:
+        logger.info(f"Test Observer REST API client joined {event}")
+
+    def _test_observer_rest_api_client_changed(
+        self, event: RelationChangedEvent
+    ) -> None:
+        if self.unit.is_leader():
+            logger.debug(
+                f"Setting hostname in data bag for {self.app}: {self.config['hostname']}"
+            )
+            event.relation.data[self.app].update(
+                {"hostname": self.config["hostname"], "port": self.config["port"]}
+            )
 
     @property
     def version(self) -> str | None:
@@ -152,4 +187,4 @@ class TestObserverCharm(CharmBase):
 
 
 if __name__ == "__main__":  # pragma: nocover
-    main(TestObserverCharm)
+    main(TestObserverBackendCharm)
