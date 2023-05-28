@@ -15,8 +15,11 @@ requires:
   database:
     interface: postgresql_client
     limit: 1
-  nginx-route:
-    interface: nginx-route
+  #nginx-route:
+  #  interface: nginx-route
+  ingress:
+    interface: ingress
+    limit: 1
 provides:
   test-observer-rest-api-v1:
     interface: http

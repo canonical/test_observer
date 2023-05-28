@@ -11,7 +11,13 @@ from ops.pebble import Layer
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.framework import StoredState
 
-from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+# from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+
+from charms.traefik_k8s.v1.ingress import (
+    IngressPerAppRequirer,
+    IngressPerAppReadyEvent,
+    IngressPerAppRevokedEvent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +45,16 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._test_observer_rest_api_relation_broken,
         )
 
-        require_nginx_route(
-            charm=self,
-            service_hostname=self.config["hostname"],
-            service_name=self.app.name,
-            service_port=self.config["port"],
-        )
+        self.ingress = IngressPerAppRequirer(self, port=self.config["port"])
+        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
+        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
+
+        # require_nginx_route(
+        #    charm=self,
+        #    service_hostname=self.config["hostname"],
+        #    service_name=self.app.name,
+        #    service_port=self.config["port"],
+        # )
 
         self._stored.set_default(backend_hostname=None)
 
@@ -53,6 +63,12 @@ class TestObserverFrontendCharm(ops.CharmBase):
         container.add_layer("frontend", self._pebble_layer, combine=True)
         container.replan()
         self.unit.status = ops.ActiveStatus()
+
+    def _on_ingress_ready(self, event: IngressPerAppReadyEvent):
+        logger.info("Ingress ready: %s", event.url)
+
+    def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent):
+        logger.info("App ingress revoked")
 
     def _test_observer_rest_api_relation_joined(self, event):
         api_hostname = event.relation.data[event.app].get("hostname")
