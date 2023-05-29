@@ -61,13 +61,9 @@ class TestObserverBackendCharm(CharmBase):
             self._test_observer_rest_api_client_changed,
         )
 
-        # require_nginx_route(
-        #    charm=self,
-        #    service_hostname=self.config["hostname"],
-        #    service_name=self.app.name,
-        #    service_port=self.config["port"],
-        # )
-        self.ingress = IngressPerAppRequirer(self, port=self.config["port"])
+        self.ingress = IngressPerAppRequirer(
+            self, host=self.config["hostname"], port=self.config["port"]
+        )
         self.framework.observe(self.on.migrate_database_action, self._migrate_database)
 
     def _migrate_database(self, event):
