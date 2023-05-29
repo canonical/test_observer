@@ -21,14 +21,14 @@
 
 import logging
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker, subqueryload
 
 from src.data_access import models
 from src.controllers import snap_manager_controller
-
+from .data_transfer_objects import FamilyDTO
 
 engine = create_engine(
     "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres", echo=True
@@ -79,3 +79,14 @@ def snap_manager(db: Session = Depends(get_db)):
         )
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})
+
+
+@app.get("/families/{family_name}/", response_model=FamilyDTO)
+def read_snap_family(family_name: str, db: Session = Depends(get_db)):
+    """Retrieve all the stages and artefacts from the snap family"""
+    family = db.query(models.Family).filter(models.Family.name == family_name).first()
+    if family is None:
+        raise HTTPException(status_code=404, detail="Family not found")
+
+    family.stages = sorted(family.stages, key=lambda x: x.position)
+    return family
