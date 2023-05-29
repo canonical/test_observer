@@ -23,7 +23,6 @@
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
-from src.data_access.models import Artefact
 
 from .helpers import create_artefact
 
@@ -71,7 +70,7 @@ def test_run_for_different_revisions(
     )
 
     # Act
-    test_client.put("/snapmanager")
+    test_client.post("/artefacts/update")
 
     db_session.refresh(artefact)
 
@@ -124,7 +123,7 @@ def test_run_to_move_artefact(
     )
 
     # Act
-    test_client.put("/snapmanager")
+    test_client.post("/artefacts/update")
 
     db_session.refresh(artefact)
 
