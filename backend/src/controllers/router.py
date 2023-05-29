@@ -7,7 +7,7 @@ from .artefacts import artefacts
 from .families import families
 from .test_execution import test_execution
 
-router = APIRouter()
+router = APIRouter(prefix="/v1")
 router.include_router(artefacts.router, prefix="/artefacts")
 router.include_router(test_execution.router, prefix="/test-execution")
 router.include_router(families.router, prefix="/families")

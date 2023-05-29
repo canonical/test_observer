@@ -70,7 +70,7 @@ def test_run_for_different_revisions(
     )
 
     # Act
-    test_client.post("/artefacts/update")
+    test_client.post("/v1/artefacts/update")
 
     db_session.refresh(artefact)
 
@@ -123,7 +123,7 @@ def test_run_to_move_artefact(
     )
 
     # Act
-    test_client.post("/artefacts/update")
+    test_client.post("/v1/artefacts/update")
 
     db_session.refresh(artefact)
 
