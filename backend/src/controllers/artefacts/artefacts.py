@@ -74,9 +74,7 @@ def snap_manager_controller(session: Session) -> dict:
     :session: DB connection session
     :return: dict with the processed cards and the status of execution
     """
-    artefacts = get_artefacts_by_family_name(
-        session, FamilyName.SNAP, is_archived=False
-    )
+    artefacts = get_artefacts_by_family_name(session, FamilyName.SNAP)
     processed_artefacts = {}
     for artefact in artefacts:
         try:
@@ -125,9 +123,6 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
         # If the snap with this name in this channel is a
         # different revision, then this is old. So, we archive it
         if risk == artefact.stage.name and revision != artefact.source["revision"]:
-            logger.info("Archiving old revision: '%s'", artefact)
-            artefact.is_archived = True
-            session.commit()
             continue
 
         next_risk = CHANNEL_PROMOTION_MAP[artefact.stage.name]

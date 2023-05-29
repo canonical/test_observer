@@ -39,27 +39,14 @@ def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stag
     return stage
 
 
-def get_artefacts_by_family_name(
-    session: Session, family_name: str, is_archived: bool = None
-) -> list[Artefact]:
+def get_artefacts_by_family_name(session: Session, family_name: str) -> list[Artefact]:
     """
     Get all the artefacts in a family
 
     :session: DB session
     :family_name: name of the family
-    :is_archived: filter archived/non-archived artefacts. None means "do NOT filter"
     :return: list of Artefacts
     """
-    if is_archived is not None:
-        artefacts = (
-            session.query(Artefact)
-            .join(Stage)
-            .filter(Stage.family.has(Family.name == family_name))
-            .filter(Artefact.is_archived == is_archived)
-            .options(joinedload(Artefact.stage))
-            .all()
-        )
-        return artefacts
     artefacts = (
         session.query(Artefact)
         .join(Stage)

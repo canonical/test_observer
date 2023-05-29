@@ -96,7 +96,6 @@ class Artefact(Base):
         nullable=True,
         default=None,
     )
-    is_archived: Mapped[bool] = mapped_column(default=expression.false())
 
     __table_args__ = (
         UniqueConstraint("name", "version", "source", name="unique_artefact"),
