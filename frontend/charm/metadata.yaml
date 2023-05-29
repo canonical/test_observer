@@ -22,4 +22,4 @@ resources:
   frontend-image:
     type: oci-image
     description: OCI image for test-observer-frontend
-    upstream-source: ghcr.io/canonical/test-observer/frontend:charm
+    upstream-source: ghcr.io/canonical/test_observer/frontend:charm

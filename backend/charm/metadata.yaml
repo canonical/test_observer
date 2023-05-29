@@ -28,4 +28,4 @@ resources:
   api-image:
     type: oci-image
     description: OCI image from GitHub Container Repository
-    upstream-source: ghcr.io/canonical/test-observer/api:charm
+    upstream-source: ghcr.io/canonical/test_observer/api:charm
