@@ -31,7 +31,6 @@ from sqlalchemy.sql import func, expression
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
-    MappedAsDataclass,
     Mapped,
     mapped_column,
     relationship,
@@ -49,7 +48,7 @@ date = Annotated[
 ]
 
 
-class Base(MappedAsDataclass, DeclarativeBase):
+class Base(DeclarativeBase):
     """Subclasses will be converted to dataclasses"""
 
 
@@ -58,11 +57,11 @@ class Family(Base):
 
     __tablename__ = "family"
 
-    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
     stages: Mapped[List["Stage"]] = relationship(
-        back_populates="family", default_factory=list
+        back_populates="family",
     )
     # Default fields
     created_at: Mapped[timestamp]
@@ -73,14 +72,14 @@ class Stage(Base):
 
     __tablename__ = "stage"
 
-    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), index=True)
     position: Mapped[int] = mapped_column(index=True)
     # Relationships
     family_id = mapped_column(ForeignKey("family.id"))
     family: Mapped[Family] = relationship(back_populates="stages")
     artefacts: Mapped[List["Artefact"]] = relationship(
-        back_populates="stage", default_factory=list
+        back_populates="stage",
     )
 
 
@@ -89,15 +88,15 @@ class ArtefactGroup(Base):
 
     __tablename__ = "artefact_group"
 
-    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     version_pattern: Mapped[str] = mapped_column(String(100))
     # Relationships
     artefacts: Mapped[List["Artefact"]] = relationship(
-        back_populates="artefact_group", default_factory=list
+        back_populates="artefact_group",
     )
     environments: Mapped[List["ExpectedEnvironment"]] = relationship(
-        back_populates="artefact_group", default_factory=list
+        back_populates="artefact_group",
     )
 
 
@@ -106,7 +105,7 @@ class Artefact(Base):
 
     __tablename__ = "artefact"
 
-    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
     source: Mapped[dict] = mapped_column(JSONB)
@@ -116,7 +115,7 @@ class Artefact(Base):
     artefact_group_id = mapped_column(ForeignKey("artefact_group.id"))
     artefact_group: Mapped[ArtefactGroup] = relationship(back_populates="artefacts")
     environments: Mapped[List["TestExecution"]] = relationship(
-        back_populates="artefact", default_factory=list
+        back_populates="artefact",
     )
     # Default fields
     due_date: Mapped[date]
@@ -137,14 +136,14 @@ class Environment(Base):
 
     __tablename__ = "environment"
 
-    id: Mapped[int] = mapped_column(init=False, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     # Relationships
     artefacts: Mapped[List["TestExecution"]] = relationship(
-        back_populates="environment", default_factory=list
+        back_populates="environment",
     )
     artefact_groups: Mapped[List["ExpectedEnvironment"]] = relationship(
-        back_populates="environment", default_factory=list
+        back_populates="environment",
     )
 
 

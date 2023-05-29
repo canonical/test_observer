@@ -16,8 +16,6 @@ from charms.data_platform_libs.v0.data_interfaces import (
 
 from charms.traefik_k8s.v1.ingress import (
     IngressPerAppRequirer,
-    IngressPerAppReadyEvent,
-    IngressPerAppRevokedEvent,
 )
 
 # from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
