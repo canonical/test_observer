@@ -4,7 +4,7 @@ from fastapi import APIRouter
 router = APIRouter()
 
 
-@router.post("/start")
+@router.put("/start")
 def start_test_execution():
     pass
 

@@ -42,7 +42,7 @@ CHANNEL_PROMOTION_MAP = {
 }
 
 
-@router.post("/update")
+@router.put("/update")
 def update_artefacts(db: Session = Depends(get_db)):
     try:
         processed_artefacts = snap_manager_controller(db)
