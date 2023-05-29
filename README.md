@@ -2,17 +2,26 @@
 
 Observe the status and state of certification tests for various artefacts
 
-## Developing and deploying the charm locally
+## Prerequisites for developing and deploying locally
 
-Install prerequisites for developing the Test Observer charm:
+- `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
+- `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`)
+- `terraform` 1.4.6 or later (`sudo snap install terraform`)
+- optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
 
-- juju 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
-- microk8s 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`)
-- charmcraft (`sudo snap install charmcraft`)
+## Deploying a local copy of the system
 
-Get a GitHub personal access token at https://github.com/settings/tokens/new with the `package:read` permission.
+Fist configure microk8s with the needed extensions:
 
-Configure containerd in microk8s with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries by appending the following to `/var/snap/microk8s/current/args/containerd-template.toml`:
+```
+sudo microk8s enable community # required for installing traefik
+sudo microk8s enable dns hostpath-storage metallb traefik
+```
+
+Then help microk8s work with an authorized (private) OCI image registry at ghcr.io:
+
+1. Get a GitHub personal access token at https://github.com/settings/tokens/new with the `package:read` permission.
+2. Configure containerd in microk8s with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries by appending the following to `/var/snap/microk8s/current/args/containerd-template.toml`:
 
 ```yaml
 [plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]
@@ -24,144 +33,118 @@ After this config file tweak, restart containerd and microk8s:
 
 ```bash
 sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.stop && sudo microk8s.start
-```
-
-Create a microk8s Juju controller and model:
-
-```bash
 juju bootstrap microk8s
-juju add-model test-observer
-
-# enable debug logging
 juju model-config logging-config="<root>=DEBUG"
 ```
 
-Deploy PostgreSQL into your cluster:
+### Deploy with Terraform
+
+In the `terraform` directory of your working copy, complete the one-time initialisation:
 
 ```bash
-juju deploy postgresql-k8s --channel=14/stable pg
+cd terraform
+terraform init
 ```
 
-Build and deploy the backend charm:
+After initialization (or after making changes to the terraform configuration) you can deploy the whole system with:
 
 ```bash
-cd backend/charm
-charmcraft pack
-juju deploy ./test-observer-api_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
+TF_VAR_environment=development terraform apply -auto-approve
 ```
 
-Integrate the test observer service with the database:
+At the time of writing, this will accomplish the following:
+
+- the backend API server
+- the frontend served using nginx
+- a postgresql database
+- traefik as ingress
+- backend connected to frontend (the backend's public facing base URI passed to the frontend app)
+- backend connected to database
+- backend connected to load balancer
+- frontend connected to load balancer
+
+You can also get SSL certificates automatically managed for the ingress (in case you happen to have a DNS zone with Cloudflare DNS available):
 
 ```bash
-juju integrate pg test-observer-api
+TF_VAR_environment=development TF_VAR_cloudflare_acme=true TF_VAR_cloudflare_dns_api_token=... TF_VAR_cloudflare_zone_read_api_token=... TF_VAR_cloudflare_email=... terraform apply -auto-approve
 ```
 
-Build and deploy the frontend charm:
+After all is up, `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
 
 ```bash
-cd frontend/charm
-charmcraft pack
-juju deploy ./test-observer-api_ubuntu-22.04-amd64.charm --resource api-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
-```
-
-### Relate the frontend to the API server
-
-The frontend application needs to be related to the API server for the frontend application to find out the correct hostname to connect to:
-
-```bash
-juju integrate test-observer-api test-observer-frontend
-```
-
-### Expose the application through ingress
-
-To test the application with the frontend and API server ports exposed through the nginx ingress controller (i.e. how it will run in production), do the following.
-
-Firstly, add the following hostnames for `127.0.0.1` in `/etc/hosts`:
-
-```bash
-❯ cat /etc/hosts
-127.0.0.1       localhost test-observer-frontend test-observer-api
-# ...
-```
-
-Then deploy the `nginx-ingress-integrator` charm and relate it to both the frontend and the API server:
-
-```bash
-juju deploy nginx-ingress-integrator
-
-# to avoid messing around with self signed SSL certificates,
-# change this from https:// to http://
-juju config test-observer-frontend test-observer-api-scheme=http://
-
-juju integrate nginx-ingress-integrator test-observer-api
-juju integrate nginx-ingress-integrator test-observer-frontend
-```
-
-**_NOTE:_** I _think_ that if the configuration parameters involved in the nginx ingress routing change (`hostname` and `port` properties of both the API and frontend application, respectively), you should remove the relation with `juju remove-relation nginx-ingress-integrator [name-of-the-changed-application]` and add it back with `juju integrate` after the config change, given the nginx-integrator's charm lib refers to the `nginx_route` call having to be done in the charm's `__init__`, not in config change handler for example.
-
-After all is up, `juju status --relations` should give you output to the direction of:
-
-```
 ❯ juju status --relations
-Model          Controller          Cloud/Region        Version  SLA          Timestamp
-test-observer  microk8s-localhost  microk8s/localhost  3.1.2    unsupported  12:30:41+03:00
+Model                      Controller          Cloud/Region        Version  SLA          Timestamp
+test-observer-development  microk8s-localhost  microk8s/localhost  3.1.2    unsupported  23:23:01+03:00
 
-App                       Version  Status  Scale  Charm                     Channel    Rev  Address         Exposed  Message
-nginx-ingress-integrator  25.3.0   active      1  nginx-ingress-integrator  stable      59  10.152.183.54   no       Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.58, 10.152.183.232
-pg                        14.7     active      1  postgresql-k8s            14/stable   73  10.152.183.97   no       Primary
-test-observer-api                  active      1  test-observer-api                     10  10.152.183.23   no
-test-observer-frontend             active      1  test-observer-frontend                19  10.152.183.175  no
+App                     Version  Status  Scale  Charm                     Channel    Rev  Address         Exposed  Message
+acme-operator                    active      1  cloudflare-acme-operator  beta         3  10.152.183.59   no
+ingress                 2.9.6    active      1  traefik-k8s               stable     110  192.168.0.202   no
+pg                      14.7     active      1  postgresql-k8s            14/stable   73  10.152.183.106  no       Primary
+test-observer-api                active      1  test-observer-api         edge         6  10.152.183.207  no
+test-observer-frontend           active      1  test-observer-frontend    edge         2  10.152.183.111  no
 
-Unit                         Workload  Agent  Address      Ports  Message
-nginx-ingress-integrator/0*  active    idle   10.1.92.140         Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.58, 10.152.183.232
-pg/0*                        active    idle   10.1.92.129         Primary
-test-observer-api/0*         active    idle   10.1.92.145
-test-observer-frontend/0*    active    idle   10.1.92.148
+Unit                       Workload  Agent  Address      Ports  Message
+acme-operator/0*           active    idle   10.1.92.188
+ingress/0*                 active    idle   10.1.92.182
+pg/0*                      active    idle   10.1.92.137         Primary
+test-observer-api/0*       active    idle   10.1.92.143
+test-observer-frontend/0*  active    idle   10.1.92.189
 
 Relation provider                            Requirer                                          Interface          Type     Message
-nginx-ingress-integrator:nginx-route         test-observer-api:nginx-route                     nginx-route        regular
-nginx-ingress-integrator:nginx-route         test-observer-frontend:nginx-route                nginx-route        regular
+acme-operator:certificates                   ingress:certificates                              tls-certificates   regular
+ingress:ingress                              test-observer-api:ingress                         ingress            regular
+ingress:ingress                              test-observer-frontend:ingress                    ingress            regular
 pg:database                                  test-observer-api:database                        postgresql_client  regular
 pg:database-peers                            pg:database-peers                                 postgresql_peers   peer
 pg:restart                                   pg:restart                                        rolling_op         peer
 test-observer-api:test-observer-rest-api-v1  test-observer-frontend:test-observer-rest-api-v1  http               regular
 ```
 
-### Fetching the data platform libraries
+## Build and refresh the backend charm
 
-In case you need to fetch the data platform libraries to update them, `charmcraft` is your friend:
+Once you have your system running, you can make edits to the backend charm and refresh it in the running system on the fly with:
 
 ```bash
 cd backend/charm
-charmcraft fetch-lib charms.data_platform_libs.v0.data_interfaces
-charmcraft fetch-lib charms.nginx_ingress_integrator.v0.nginx_route
+charmcraft pack
+juju refresh test-observer-api --path ./test-observer-api_ubuntu-22.04-amd64.charm
+
+# If you want to update the OCI image that runs the backend
+juju attach-resource test-observer-api --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
 ```
 
-### Update the charm after making edits:
+## Build and refresh the frontend charm
 
-To update the deployed charms after making edits, do `charmcraft pack && juju refresh ...`:
+Same thing with the frontend:
 
 ```bash
-pushd backend/charm
+cd frontend/charm
 charmcraft pack
-juju refresh test-observer-api --path ./test-observer_ubuntu-22.04-amd64.charm
-popd
 
-pushd frontend/charm
-charmcraft pack
-juju refresh test-observer-frontend --path ./test-observer-frontend_ubuntu-22.04-amd64.charm
-popd
+juju refresh test-observer-frontend ./test-observer-frontend_ubuntu-22.04-amd64.charm
+
+# If you want to update the OCI image that runs the backend
+juju attach-resource test-observer-frontend frontend-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
 ```
 
-### Updating the image reference with `juju attach-resource`
+### Expose the application through ingress
 
-To update the OCI image that the API server and frontend applications run, use `juju attach-resource`:
+To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` either to `127.0.0.1` or the IP address that you gave `metallb` (`juju status` will find you that):
 
 ```bash
-juju attach-resource test-observer-api api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
-juju attach-resource test-observer-frontend api-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
+❯ cat /etc/hosts
+127.0.0.1       localhost test-observer-frontend test-observer-api
+...
 ```
 
-### Handy documentation pointers about charming
+## Handy documentation pointers about charming
 
 - [Integrations (how to provide and require relations)](https://juju.is/docs/sdk/integration)
+
+### Enable the K8s Dashboard
+
+You need an auth token in case you want to connect to the kubernetes dashboard:
+
+```bash
+microk8s kubectl describe secret -n kube-system microk8s-dashboard-token
+```
