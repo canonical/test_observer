@@ -24,7 +24,7 @@ from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
-from .helpers import create_artefact
+from ...helpers import create_artefact
 
 
 def test_run_for_different_revisions(
