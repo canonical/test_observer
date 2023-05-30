@@ -21,8 +21,8 @@ router = APIRouter()
 
 
 @router.get("/{family_name}", response_model=FamilyDTO)
-def read_snap_family(family_name: str, db: Session = Depends(get_db)):
-    """Retrieve all the stages and artefacts from the snap family"""
+def read_family(family_name: str, db: Session = Depends(get_db)):
+    """Retrieve all the stages and artefacts from the family"""
     family = db.query(Family).filter(Family.name == family_name).first()
     if family is None:
         raise HTTPException(status_code=404, detail="Family not found")

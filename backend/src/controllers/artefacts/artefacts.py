@@ -42,8 +42,9 @@ CHANNEL_PROMOTION_MAP = {
 }
 
 
-@router.put("/update")
-def update_artefacts(db: Session = Depends(get_db)):
+@router.put("/promote")
+def promote_artefacts(db: Session = Depends(get_db)):
+    # TODO: make generic to promote all artefact stages not just snaps
     try:
         processed_artefacts = snap_manager_controller(db)
         logger.info("INFO: Processed artefacts %s", processed_artefacts)

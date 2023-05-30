@@ -55,6 +55,10 @@ Note however that this created migration will reside inside the pod not on your 
 
 `$ kubectl cp test-observer-api-RESTOFPODNAME:/home/app/alembic/versions ./alembic/versions`
 
+You can get RESTOFPODNAME by running
+
+`$ kubectl get pods`
+
 ### Applying Migrations
 
 Since the database is in microk8s cluster, migrations have to be applied inside the cluster and not on the host machine. To do that we can just run the migrations on our api service which will run in one of the api pods through:

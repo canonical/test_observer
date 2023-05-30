@@ -71,7 +71,7 @@ def test_run_to_move_artefact(
     )
 
     # Act
-    test_client.put("/v0/artefacts/update")
+    test_client.put("/v0/artefacts/promote")
 
     db_session.refresh(artefact)
 
