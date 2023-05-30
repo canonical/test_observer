@@ -54,7 +54,7 @@ After initialization (or after making changes to the terraform configuration) yo
 TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" terraform apply -auto-approve
 ```
 
-At the time of writing, this will accomplish the following:
+At the time of writing, this will accomplish deploying the following:
 
 - the backend API server
 - the frontend served using nginx
@@ -64,6 +64,12 @@ At the time of writing, this will accomplish the following:
 - backend connected to database
 - backend connected to load balancer
 - frontend connected to load balancer
+
+Terraform works by applying changes between the current state of the system and what is in the plan (the test-observer.tf configuration file). When `terraform apply` is run the 1st time, there is no state -> it will create the Juju model and all resources inside it. When it is run with a pre-existing model already in place, it will instead set / unset config values that have changed, add / remove relations, add / remove applications, etc. Basically, it makes working with Juju declarative - yay!
+
+The terraform juju provider is documented over here: https://registry.terraform.io/providers/juju/juju/latest/docs
+
+Terraform tracks its state with a .tfstate file which is created as a result of running `terraform apply` -- for production purposes this will be stored in an S3-like bucket remotely, and for local development purposes it sits in the `terraform` directory aftery you have done a `terraform apply`).
 
 You can optionally get SSL certificates automatically managed for the ingress (in case you happen to have a DNS zone with Cloudflare DNS available):
 
