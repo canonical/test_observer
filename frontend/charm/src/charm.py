@@ -77,6 +77,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._stored.backend_hostname = None
 
     def nginx_config(self, base_uri):
+        """Return an nginx config where the index.html served is replaced with the specified `base_uri`."""
         return f"""
         server {{
             listen       80;
@@ -87,7 +88,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 index  index.html index.htm;
                 try_files $uri $uri/ /index.html =404;
 
-                sub_filter 'http://localhost:30000/' '{base_uri}';
+                sub_filter 'http://api-placeholder:30000/' '{base_uri}';
                 sub_filter_once on;
             }}
 
