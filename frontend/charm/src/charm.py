@@ -48,12 +48,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
         self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
 
-        # require_nginx_route(
-        #    charm=self,
-        #    service_hostname=self.config["hostname"],
-        #    service_name=self.app.name,
-        #    service_port=self.config["port"],
-        # )
 
         self._stored.set_default(backend_hostname=None)
 
