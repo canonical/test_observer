@@ -40,6 +40,7 @@ if db_url is None:
 engine = create_engine(db_url, echo=True)
 
 models.Base.metadata.create_all(bind=engine)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI()
