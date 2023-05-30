@@ -16,4 +16,4 @@ router.include_router(families.router, prefix="/v1/families")
 @router.get("/")
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
-    return {"message": "Hello World"}
+    return "test observer api"
