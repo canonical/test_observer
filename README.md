@@ -72,7 +72,7 @@ TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com"
 After all is up, `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
 
 ```bash
-❯ juju status --relations
+$ juju status --relations
 Model                      Controller          Cloud/Region        Version  SLA          Timestamp
 test-observer-development  microk8s-localhost  microk8s/localhost  3.1.2    unsupported  23:23:01+03:00
 
