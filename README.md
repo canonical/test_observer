@@ -39,7 +39,7 @@ juju bootstrap microk8s
 juju model-config logging-config="<root>=DEBUG"
 ```
 
-### Deploy with Terraform
+### Deploy the system locally with Terraform
 
 In the `terraform` directory of your working copy, complete the one-time initialisation:
 
@@ -140,6 +140,13 @@ juju refresh test-observer-frontend ./test-observer-frontend_ubuntu-22.04-amd64.
 # to update the OCI image that runs the backend
 juju attach-resource test-observer-frontend frontend-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
 ```
+
+Note that the frontend app is made aware of the backend URL to connect to using the global `window.testObserverAPIBaseURI`, which is set at runtime with some nginx config level trickery based on...
+
+- the `test-observer-api` charm's `hostname` config value.
+- the frontend charm's `test-observer-api-scheme` config value.
+
+These in turn can be set using the terraform plan (`terraform/test-observer.tf` and associated variables).
 
 ## Handy documentation pointers about charming
 
