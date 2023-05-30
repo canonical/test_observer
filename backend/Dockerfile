@@ -10,8 +10,9 @@ COPY pyproject.toml .
 
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --without dev
+    poetry install --no-interaction --no-ansi --without dev && \
+    poetry install --user poetry-dynamic-versioning[plugin]
 
 COPY . .
 
-CMD [ "uvicorn",  "src.main:app", "--host", "0.0.0.0", "--port", "30000", "--reload" ]
+CMD [ "uvicorn",  "test_observer.main:app", "--host", "0.0.0.0", "--port", "30000", "--reload" ]

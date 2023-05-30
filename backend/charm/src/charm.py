@@ -4,7 +4,6 @@ from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
-from requests import request
 
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
@@ -144,23 +143,9 @@ class TestObserverBackendCharm(CharmBase):
             self.pebble_service_name
         ):
             try:
-                return get(f"http://localhost:{self.config['port']}/version").json()[
+                return get(f"http://0.0.0.0:{self.config['port']}/version").json()[
                     "version"
                 ]
-            except Exception as e:
-                logger.warning(f"Failed to get version: {e}")
-                logger.exception(e)
-        return None
-
-    @property
-    def version(self) -> str | None:
-        if self.container.can_connect() and self.container.get_services(
-            self.pebble_service_name
-        ):
-            try:
-                return request.get(
-                    f"http://localhost:{self.config['port']}/version"
-                ).json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
@@ -179,7 +164,7 @@ class TestObserverBackendCharm(CharmBase):
                         "command": " ".join(
                             [
                                 "uvicorn",
-                                "src.main:app",
+                                "test_observer.main:app",
                                 "--host",
                                 "0.0.0.0",
                                 f"--port={self.config['port']}",

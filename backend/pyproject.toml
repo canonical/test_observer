@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "test-observer"
-version = "0.0.1"
+version = "0.0.0"
 description = "Observe the status and state of certification tests for various artefacts"
 authors = []
 
@@ -11,13 +11,19 @@ uvicorn = {extras = ["standard"], version = "^0.21.1"}
 sqlalchemy = "^2.0.9"
 pg8000 = "^1.29.4"
 alembic = "^1.10.3"
+poetry-dynamic-versioning = {extras = ["plugin"], version = "^0.22.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
 pylint = "^2.17.1"
 
-[tool.setuptools_scm]
-fallback_version = "0.0.0"
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+metadata = "true"
+tagged-metadata = "true"
+
+
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
@@ -27,5 +33,5 @@ httpx = "^0.24.0"
 sqlalchemy-utils = "^0.41.1"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
