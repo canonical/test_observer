@@ -9,13 +9,13 @@ Observe the status and state of certification tests for various artefacts
 - `terraform` 1.4.6 or later (`sudo snap install terraform`)
 - optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
 
-## Deploying a local copy of the system
+## Deploying a copy of the system with terraform / juju in microk8s
 
 Fist configure microk8s with the needed extensions:
 
 ```
 sudo microk8s enable community # required for installing traefik
-sudo microk8s enable dns hostpath-storage metallb traefik
+sudo microk8s enable dns hostpath-storage metallb traefik # metallb setup involves choosing a free IP range for the load balancer.
 ```
 
 Then help microk8s work with an authorized (private) OCI image registry at ghcr.io:
@@ -49,7 +49,7 @@ terraform init
 After initialization (or after making changes to the terraform configuration) you can deploy the whole system with:
 
 ```bash
-TF_VAR_environment=development terraform apply -auto-approve
+TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" terraform apply -auto-approve
 ```
 
 At the time of writing, this will accomplish the following:
@@ -63,10 +63,10 @@ At the time of writing, this will accomplish the following:
 - backend connected to load balancer
 - frontend connected to load balancer
 
-You can also get SSL certificates automatically managed for the ingress (in case you happen to have a DNS zone with Cloudflare DNS available):
+You can optionally get SSL certificates automatically managed for the ingress (in case you happen to have a DNS zone with Cloudflare DNS available):
 
 ```bash
-TF_VAR_environment=development TF_VAR_cloudflare_acme=true TF_VAR_cloudflare_dns_api_token=... TF_VAR_cloudflare_zone_read_api_token=... TF_VAR_cloudflare_email=... terraform apply -auto-approve
+TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" TF_VAR_cloudflare_acme=true TF_VAR_cloudflare_dns_api_token=... TF_VAR_cloudflare_zone_read_api_token=... TF_VAR_cloudflare_email=... terraform apply -auto-approve
 ```
 
 After all is up, `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
@@ -100,20 +100,32 @@ pg:restart                                   pg:restart                         
 test-observer-api:test-observer-rest-api-v1  test-observer-frontend:test-observer-rest-api-v1  http               regular
 ```
 
-## Build and refresh the backend charm
+To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer-frontend.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
 
-Once you have your system running, you can make edits to the backend charm and refresh it in the running system on the fly with:
+```bash
+❯ cat /etc/hosts
+192.168.0.202   test-observer-frontend.mah-domain.com test-observer-api.mah-domain.com
+...
+```
+
+## Developing the charm
+
+To develop and test updates to the backend and frontend charms, you would typically want to first complete the above steps to deploy a working system. Once you have done that, proceed with the following steps.
+
+### Build and refresh the backend charm
+
+You can make edits to the backend charm and refresh it in the running system on the fly with:
 
 ```bash
 cd backend/charm
 charmcraft pack
 juju refresh test-observer-api --path ./test-observer-api_ubuntu-22.04-amd64.charm
 
-# If you want to update the OCI image that runs the backend
+# to update the OCI image that runs the backend
 juju attach-resource test-observer-api --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
 ```
 
-## Build and refresh the frontend charm
+### Build and refresh the frontend charm
 
 Same thing with the frontend:
 
@@ -123,18 +135,8 @@ charmcraft pack
 
 juju refresh test-observer-frontend ./test-observer-frontend_ubuntu-22.04-amd64.charm
 
-# If you want to update the OCI image that runs the backend
+# to update the OCI image that runs the backend
 juju attach-resource test-observer-frontend frontend-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
-```
-
-### Expose the application through ingress
-
-To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` either to `127.0.0.1` or the IP address that you gave `metallb` (`juju status` will find you that):
-
-```bash
-❯ cat /etc/hosts
-127.0.0.1       localhost test-observer-frontend test-observer-api
-...
 ```
 
 ## Handy documentation pointers about charming

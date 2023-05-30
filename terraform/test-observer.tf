@@ -58,7 +58,7 @@ resource "juju_model" "test-observer" {
 }
 
 variable "environment" {
-    description = "The environment to deploy to (dev, stage, prod)"
+  description = "The environment to deploy to (dev, stage, prod)"
 }
 
 variable "cloud" {
@@ -71,30 +71,35 @@ variable "cloud" {
 }
 
 variable "cloudflare_acme" {
-    description = "Control whether Cloudflare ACME operator should be included in the deployment"
-    type = bool
-    default = false
+  description = "Control whether Cloudflare ACME operator should be included in the deployment"
+  type        = bool
+  default     = false
 }
 
 variable "cloudflare_dns_api_token" {
   description = "Cloudflare DNS API token"
   type        = string
   sensitive   = true
-  default = ""
+  default     = ""
 }
 
 variable "cloudflare_zone_read_api_token" {
   description = "Cloudflare zone read API token"
   type        = string
   sensitive   = true
-  default = ""
+  default     = ""
 }
 
 variable "cloudflare_email" {
   description = "Cloudflare account email address"
   type        = string
   sensitive   = true
-  default = ""
+  default     = ""
+}
+
+variable "external_ingress_hostname" {
+  description = "External hostname for the ingress"
+  type        = string
 }
 
 resource "juju_application" "ingress" {
@@ -107,7 +112,8 @@ resource "juju_application" "ingress" {
   }
 
   config = {
-    routing_mode = "subdomain"
+    routing_mode      = "subdomain"
+    external_hostname = var.external_ingress_hostname
   }
 }
 
@@ -162,7 +168,7 @@ resource "juju_application" "acme-operator" {
   name  = "acme-operator"
   model = juju_model.test-observer.name
   count = var.cloudflare_acme ? 1 : 0
-  
+
   charm {
     name    = "cloudflare-acme-operator"
     channel = "beta"
@@ -177,18 +183,18 @@ resource "juju_application" "acme-operator" {
 }
 
 resource "juju_integration" "ingress-to-cloudflare-acme-operator" {
-    model = juju_model.test-observer.name
-    count = var.cloudflare_acme ? 1 : 0
+  model = juju_model.test-observer.name
+  count = var.cloudflare_acme ? 1 : 0
 
-    application {
-        name = juju_application.ingress.name
-        endpoint = "certificates"
-    }
+  application {
+    name     = juju_application.ingress.name
+    endpoint = "certificates"
+  }
 
-    application {
-        name = juju_application.acme-operator[count.index].name
-        endpoint = "certificates"
-    }
+  application {
+    name     = juju_application.acme-operator[count.index].name
+    endpoint = "certificates"
+  }
 }
 
 resource "juju_integration" "test-observer-api-database-access" {
