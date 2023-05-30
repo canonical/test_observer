@@ -23,7 +23,7 @@
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
-from src.data_access.models import Artefact
+from test_observer.data_access.models import Artefact
 
 from .helpers import create_artefact
 

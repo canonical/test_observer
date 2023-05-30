@@ -7,6 +7,8 @@ Observe the status and state of certification tests for various artefacts
 - `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
 - `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`)
 - `terraform` 1.4.6 or later (`sudo snap install terraform`)
+- `lxd` 5.13 or later (`sudo snap install lxc --channel=5.0/stable`)
+- `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable`)
 - optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
 
 ## Deploying a copy of the system with terraform / juju in microk8s

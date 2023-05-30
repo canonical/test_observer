@@ -8,8 +8,8 @@ Create Date: 2023-05-19 08:32:55.157515+00:00
 from alembic import op
 from sqlalchemy.orm import Session
 
-from src.data_access.models import Family, Stage
-from src.data_access.models_enums import FamilyName
+from test_observer.data_access.models import Family, Stage
+from test_observer.data_access.models_enums import FamilyName
 
 
 # revision identifiers, used by Alembic.

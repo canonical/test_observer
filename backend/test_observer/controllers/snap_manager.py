@@ -24,9 +24,9 @@ import requests
 
 from sqlalchemy.orm import Session
 
-from src.repository import get_stage_by_name, get_artefacts_by_family_name
-from src.data_access.models import Artefact
-from src.data_access.models_enums import FamilyName
+from test_observer.repository import get_stage_by_name, get_artefacts_by_family_name
+from test_observer.data_access.models import Artefact
+from test_observer.data_access.models_enums import FamilyName
 from .snapcraft_mapping import SnapInfo, rename_keys
 
 

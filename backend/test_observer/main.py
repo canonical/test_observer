@@ -25,10 +25,10 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
-from backend.src.data_transfer_objects import FamilyDTO
+from test_observer.data_transfer_objects import FamilyDTO
 
-from src.data_access import models
-from src.controllers import snap_manager_controller
+from test_observer.data_access import models
+from test_observer.controllers import snap_manager_controller
 from importlib.metadata import version, PackageNotFoundError
 
 from os import environ
