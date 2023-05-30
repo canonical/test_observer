@@ -129,10 +129,13 @@ class Environment(Base):
 
     __tablename__ = "environment"
 
-    name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    architecture: Mapped[str] = mapped_column(String(100))
     test_executions: Mapped[List["TestExecution"]] = relationship(
         back_populates="environment"
     )
+
+    __table_args__ = (UniqueConstraint("name", "architecture"),)
 
 
 class TestExecution(Base):
