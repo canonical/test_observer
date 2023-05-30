@@ -11,7 +11,6 @@ from ops.pebble import Layer
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.framework import StoredState
 
-# from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 
 from charms.traefik_k8s.v1.ingress import (
     IngressPerAppRequirer,
