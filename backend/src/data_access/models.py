@@ -16,18 +16,19 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 
 
 from typing import List
 from datetime import datetime, date
-from typing_extensions import Annotated
 
 from sqlalchemy import (
     ForeignKey,
     Enum,
     String,
+    UniqueConstraint,
 )
-from sqlalchemy.sql import func, expression
+from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -37,19 +38,14 @@ from sqlalchemy.orm import (
 )
 
 
-# DateTime custom type for mapped classes
-timestamp = Annotated[
-    datetime,
-    mapped_column(default=func.CURRENT_TIMESTAMP()),
-]
-date = Annotated[
-    date,
-    mapped_column(nullable=True, default=None),
-]
-
-
 class Base(DeclarativeBase):
-    """Subclasses will be converted to dataclasses"""
+    """Base model for all the models"""
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        default=func.now(), onupdate=func.now()
+    )
 
 
 class Family(Base):
@@ -57,14 +53,11 @@ class Family(Base):
 
     __tablename__ = "family"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
     stages: Mapped[List["Stage"]] = relationship(
-        back_populates="family",
+        back_populates="family", cascade="all, delete-orphan"
     )
-    # Default fields
-    created_at: Mapped[timestamp]
 
 
 class Stage(Base):
@@ -72,31 +65,13 @@ class Stage(Base):
 
     __tablename__ = "stage"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), index=True)
-    position: Mapped[int] = mapped_column(index=True)
+    position: Mapped[int] = mapped_column()
     # Relationships
     family_id = mapped_column(ForeignKey("family.id"))
     family: Mapped[Family] = relationship(back_populates="stages")
     artefacts: Mapped[List["Artefact"]] = relationship(
-        back_populates="stage",
-    )
-
-
-class ArtefactGroup(Base):
-    """A model to represent groups of artefacts"""
-
-    __tablename__ = "artefact_group"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
-    version_pattern: Mapped[str] = mapped_column(String(100))
-    # Relationships
-    artefacts: Mapped[List["Artefact"]] = relationship(
-        back_populates="artefact_group",
-    )
-    environments: Mapped[List["ExpectedEnvironment"]] = relationship(
-        back_populates="artefact_group",
+        back_populates="stage", cascade="all, delete-orphan"
     )
 
 
@@ -105,27 +80,45 @@ class Artefact(Base):
 
     __tablename__ = "artefact"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
     source: Mapped[dict] = mapped_column(JSONB)
     # Relationships
     stage_id = mapped_column(ForeignKey("stage.id"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
-    artefact_group_id = mapped_column(ForeignKey("artefact_group.id"))
-    artefact_group: Mapped[ArtefactGroup] = relationship(back_populates="artefacts")
-    environments: Mapped[List["TestExecution"]] = relationship(
-        back_populates="artefact",
+    builds: Mapped[List["ArtefactBuild"]] = relationship(
+        back_populates="artefact", cascade="all, delete-orphan"
     )
     # Default fields
-    due_date: Mapped[date]
+    due_date: Mapped[date | None]
     status: Mapped[str] = mapped_column(
         Enum("Approved", "Marked as Failed", name="artefact_status_enum"),
         nullable=True,
         default=None,
     )
-    created_at: Mapped[timestamp]
-    is_archived: Mapped[bool] = mapped_column(default=expression.false())
+
+    __table_args__ = (
+        UniqueConstraint("name", "version", "source", name="unique_artefact"),
+    )
+
+
+class ArtefactBuild(Base):
+    """A model to represent specific builds of artefact (e.g. arm64 revision 2)"""
+
+    __tablename__ = "artefact_build"
+
+    architecture: Mapped[str] = mapped_column(String(100), index=True)
+    revision: Mapped[int | None]
+    # Relationships
+    artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id"))
+    artefact: Mapped[Artefact] = relationship(
+        back_populates="builds", foreign_keys=[artefact_id]
+    )
+    test_executions: Mapped[List["TestExecution"]] = relationship(
+        back_populates="artefact_build", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (UniqueConstraint("artefact_id", "architecture", "revision"),)
 
 
 class Environment(Base):
@@ -136,15 +129,13 @@ class Environment(Base):
 
     __tablename__ = "environment"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
-    # Relationships
-    artefacts: Mapped[List["TestExecution"]] = relationship(
-        back_populates="environment",
+    name: Mapped[str] = mapped_column(String(200))
+    architecture: Mapped[str] = mapped_column(String(100))
+    test_executions: Mapped[List["TestExecution"]] = relationship(
+        back_populates="environment"
     )
-    artefact_groups: Mapped[List["ExpectedEnvironment"]] = relationship(
-        back_populates="environment",
-    )
+
+    __table_args__ = (UniqueConstraint("name", "architecture"),)
 
 
 class TestExecution(Base):
@@ -155,17 +146,15 @@ class TestExecution(Base):
 
     __tablename__ = "test_execution"
 
-    artefact_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact.id"), primary_key=True
-    )
-    environment_id: Mapped[int] = mapped_column(
-        ForeignKey("environment.id"), primary_key=True
-    )
     jenkins_link: Mapped[str] = mapped_column(String(200), nullable=True)
     c3_link: Mapped[str] = mapped_column(String(200), nullable=True)
-    updated_at: Mapped[timestamp] = mapped_column(onupdate=func.now())
-    artefact: Mapped["Artefact"] = relationship(back_populates="environments")
-    environment: Mapped["Environment"] = relationship(back_populates="artefacts")
+    # Relationships
+    artefact_build_id: Mapped[int] = mapped_column(ForeignKey("artefact_build.id"))
+    artefact_build: Mapped["ArtefactBuild"] = relationship(
+        back_populates="test_executions"
+    )
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"))
+    environment: Mapped["Environment"] = relationship(back_populates="test_executions")
     # Default fields
     status: Mapped[str] = mapped_column(
         Enum(
@@ -179,22 +168,4 @@ class TestExecution(Base):
         default="Not Started",
     )
 
-
-class ExpectedEnvironment(Base):
-    """
-    A table to represent the expected envoronments.
-    It's the M2M relationship between ArtefactGroup and Environment tables
-    """
-
-    __tablename__ = "expected_environment"
-
-    artefact_group_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact_group.id"), primary_key=True
-    )
-    environment_id: Mapped[int] = mapped_column(
-        ForeignKey("environment.id"), primary_key=True
-    )
-    artefact_group: Mapped["ArtefactGroup"] = relationship(
-        back_populates="environments"
-    )
-    environment: Mapped["Environment"] = relationship(back_populates="artefact_groups")
+    __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)

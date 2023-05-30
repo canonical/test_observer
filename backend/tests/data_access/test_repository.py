@@ -22,9 +22,12 @@
 
 from sqlalchemy.orm import Session
 from src.data_access.models import Family
-from src.repository import get_artefacts_by_family_name, get_stage_by_name
+from src.data_access.repository import (
+    get_artefacts_by_family_name,
+    get_stage_by_name,
+)
 
-from .helpers import create_artefact
+from ..helpers import create_artefact
 
 
 def test_get_stage_by_name(db_session: Session):
@@ -86,20 +89,6 @@ def test_get_artefacts_by_family_name(db_session: Session):
     assert {
         (artefact.name, artefact.stage.name) for artefact in artefacts
     } == artefact_name_stage_pair
-
-
-def test_get_artefacts_by_family_name_filter_archived(db_session: Session):
-    """We should get a list of archived artefacts"""
-    # Arrange
-    create_artefact(db_session, "beta", name="docker", is_archived=True)
-
-    # Act
-    artefacts = get_artefacts_by_family_name(db_session, "snap", is_archived=True)
-
-    # Assert
-    assert len(artefacts) == 1
-    assert artefacts[0].name == "docker"
-    assert artefacts[0].is_archived
 
 
 def test_get_artefacts_by_family_name_no_such_family(db_session: Session):

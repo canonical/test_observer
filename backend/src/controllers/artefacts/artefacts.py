@@ -16,19 +16,22 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 
 
-import sys
 import logging
-import requests
-
+from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-
-from src.repository import get_stage_by_name, get_artefacts_by_family_name
+from src.data_access.setup import get_db
 from src.data_access.models import Artefact
 from src.data_access.models_enums import FamilyName
-from .snapcraft_mapping import SnapInfo, rename_keys
+from src.data_access.repository import get_artefacts_by_family_name, get_stage_by_name
+from src.external_apis.snapcraft import get_channel_map_from_snapcraft
 
+router = APIRouter()
+
+logger = logging.getLogger("test-observer-backend")
 
 CHANNEL_PROMOTION_MAP = {
     # channel -> next-channel
@@ -39,7 +42,30 @@ CHANNEL_PROMOTION_MAP = {
 }
 
 
-logger = logging.getLogger("test-observer-backend")
+@router.put("/promote")
+def promote_artefacts(db: Session = Depends(get_db)):
+    # TODO: make generic to promote all artefact stages not just snaps
+    try:
+        processed_artefacts = snap_manager_controller(db)
+        logger.info("INFO: Processed artefacts %s", processed_artefacts)
+        if False in processed_artefacts.values():
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "detail": (
+                        "Got some errors while processing the next artefacts: "
+                        ", ".join(
+                            [k for k, v in processed_artefacts.items() if v is False]
+                        )
+                    )
+                },
+            )
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "All the artefacts have been processed successfully"},
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
 def snap_manager_controller(session: Session) -> dict:
@@ -49,9 +75,7 @@ def snap_manager_controller(session: Session) -> dict:
     :session: DB connection session
     :return: dict with the processed cards and the status of execution
     """
-    artefacts = get_artefacts_by_family_name(
-        session, FamilyName.SNAP, is_archived=False
-    )
+    artefacts = get_artefacts_by_family_name(session, FamilyName.SNAP)
     processed_artefacts = {}
     for artefact in artefacts:
         try:
@@ -100,9 +124,6 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
         # If the snap with this name in this channel is a
         # different revision, then this is old. So, we archive it
         if risk == artefact.stage.name and revision != artefact.source["revision"]:
-            logger.info("Archiving old revision: '%s'", artefact)
-            artefact.is_archived = True
-            session.commit()
             continue
 
         next_risk = CHANNEL_PROMOTION_MAP[artefact.stage.name]
@@ -117,31 +138,3 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
             )
             session.commit()
             break
-
-
-def get_channel_map_from_snapcraft(arch: str, snapstore: str, snap_name: str):
-    """
-    Get channel_map from snapcraft.io
-
-    :arch: architecture
-    :snapstore: Snapstore name
-    :snap_name: snap name
-    :return: channgel map as python dict (JSON format)
-    """
-    headers = {
-        "Snap-Device-Series": "16",
-        "Snap-Device-Architecture": arch,
-        "Snap-Device-Store": snapstore,
-    }
-    req = requests.get(
-        f"https://api.snapcraft.io/v2/snaps/info/{snap_name}",
-        headers=headers,
-        timeout=10,  # 10 seconds
-    )
-    json_resp = req.json()
-    if not req.ok:
-        logger.error(json_resp["error-list"][0]["message"])
-        sys.exit(1)
-
-    snap_info = SnapInfo(**rename_keys(json_resp))
-    return snap_info.channel_map

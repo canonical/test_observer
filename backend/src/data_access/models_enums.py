@@ -24,4 +24,3 @@ from enum import Enum
 class FamilyName(Enum):
     SNAP = "snap"
     DEB = "deb"
-    IMAGE = "image"
