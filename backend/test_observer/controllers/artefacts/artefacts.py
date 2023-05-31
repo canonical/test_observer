@@ -17,7 +17,6 @@
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
-"""Functions for managing artefacts in the snap family"""
 
 
 import logging
