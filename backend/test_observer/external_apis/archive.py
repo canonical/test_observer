@@ -41,8 +41,6 @@ def get_data_from_archive(arch: str, series: str, pocket: str, apt_repo: str) ->
     url = f"http://{archive_url}/{series}-{pocket}/{apt_repo}/binary-{arch}/Packages.gz"
     filepath = download_and_decompress_file(url)
     return filepath
-    # return convert_packages_json(filepath)
-    # return convert_meta_package_to_kernel_image("", filepath)
 
 
 def download_and_decompress_file(url: str) -> str:
@@ -82,13 +80,14 @@ def download_and_decompress_file(url: str) -> str:
     return decompressed_file_path
 
 
-def convert_packages_json(filepath) -> dict:
+def get_deb_version_from_package(filepath: str, deb_kernel_image: str) -> str:
     """
-    Convert Packages file from archive
+    Convert Packages file from archive to json and get version from it
     This function corresponds the method used by jenkins from the hwcert-jenkins-tools
     See https://git.launchpad.net/hwcert-jenkins-tools/tree/convert-packages-json
 
     :filepath: path to the Packages file
+    :deb_kernel_image: the deb image
     :return: parsed dict (json)
     """
     json_data = {}
@@ -107,7 +106,7 @@ def convert_packages_json(filepath) -> dict:
     return json_data
 
 
-def convert_meta_package_to_kernel_image(meta_pkg_name, filepath):
+def convert_meta_package_to_kernel_image(meta_pkg_name: str, filepath: str):
     """Convert package to its kernel image"""
 
     def get_package(pkg_name, filepath):

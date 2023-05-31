@@ -36,7 +36,7 @@ from test_observer.external_apis.snapcraft import get_channel_map_from_snapcraft
 from test_observer.external_apis.archive import (
     get_data_from_archive,
     convert_meta_package_to_kernel_image,
-    convert_packages_json,
+    get_deb_version_from_package,
 )
 
 router = APIRouter()
@@ -181,9 +181,8 @@ def run_deb_manager(session: Session, artefact: Artefact) -> None:
             apt_repo=artefact.source["repo"],
         )
         deb_kernel_image = convert_meta_package_to_kernel_image(artefact.name, filepath)
-        pkg_json = convert_packages_json(filepath)
         try:
-            deb_version = pkg_json[deb_kernel_image]
+            deb_version = get_deb_version_from_package(filepath, deb_kernel_image)
         except KeyError:
             logger.error(
                 "Cannot find deb_version with image %s in package data",
