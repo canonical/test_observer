@@ -154,6 +154,24 @@ Note that the frontend app is made aware of the backend URL to connect to using 
 
 These in turn can be set using the terraform plan (`terraform/test-observer.tf` and associated variables).
 
+## Releasing the charms
+
+You can use [release-k8s-charm](https://github.com/mz2/release-k8s-charm) to release the charms to charmhub, until we ingroduce a GitHub action driven workflow for releasing them (the `upload-charm` action in [canonical/charming-actions](https://github.com/canonical/charming-actions) will be the longer term solution).
+
+To release the backend charm:
+
+```bash
+cd backend/charm
+wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel edge
+```
+
+To release the frontend charm:
+
+```bash
+cd frontend/charm
+wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel edge
+```
+
 ## Handy documentation pointers about charming
 
 - [Integrations (how to provide and require relations)](https://juju.is/docs/sdk/integration)
