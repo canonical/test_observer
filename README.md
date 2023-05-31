@@ -111,7 +111,7 @@ test-observer-api:test-observer-rest-api     test-observer-frontend:test-observe
 To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer-frontend.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
 
 ```bash
-❯ cat /etc/hosts
+$ cat /etc/hosts
 192.168.0.202   test-observer-frontend.mah-domain.com test-observer-api.mah-domain.com
 ...
 ```
