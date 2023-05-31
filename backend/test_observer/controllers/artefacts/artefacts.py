@@ -33,6 +33,11 @@ from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.snapcraft import get_channel_map_from_snapcraft
+from test_observer.external_apis.archive import (
+    get_data_from_archive,
+    convert_meta_package_to_kernel_image,
+    convert_packages_json,
+)
 
 router = APIRouter()
 
@@ -46,12 +51,17 @@ CHANNEL_PROMOTION_MAP = {
     "stable": "stable",
 }
 
+REPOSITORY_PROMOTION_MAP = {
+    # repository -> next-repository
+    "proposed": "updates",
+    "updates": "updates",
+}
+
 
 @router.put("/promote")
 def promote_artefacts(db: Session = Depends(get_db)):
-    # TODO: make generic to promote all artefact stages not just snaps
     try:
-        processed_artefacts = snap_manager_controller(db)
+        processed_artefacts = manager_controller(db)
         logger.info("INFO: Processed artefacts %s", processed_artefacts)
         if False in processed_artefacts.values():
             return JSONResponse(
@@ -73,22 +83,31 @@ def promote_artefacts(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
-def snap_manager_controller(session: Session) -> dict:
+def manager_controller(session: Session) -> dict:
     """
     Orchestrate the snap manager job
 
     :session: DB connection session
     :return: dict with the processed cards and the status of execution
     """
-    artefacts = get_artefacts_by_family_name(session, FamilyName.SNAP)
-    processed_artefacts = {}
-    for artefact in artefacts:
-        try:
-            processed_artefacts[f"{artefact.name} - {artefact.version}"] = True
-            run_snap_manager(session, artefact)
-        except Exception as exc:
-            processed_artefacts[f"{artefact.name} - {artefact.version}"] = False
-            logger.warning("WARNING: %s", str(exc), exc_info=True)
+    family_mapping = {
+        FamilyName.SNAP: run_snap_manager,
+        FamilyName.DEB: run_deb_manager,
+    }
+    for family, manager_funciton in family_mapping.items():
+        artefacts = get_artefacts_by_family_name(session, family)
+        processed_artefacts = {}
+        for artefact in artefacts:
+            try:
+                processed_artefacts[
+                    f"{family} - {artefact.name} - {artefact.version}"
+                ] = True
+                run_snap_manager(session, artefact)
+            except Exception as exc:
+                processed_artefacts[
+                    f"{family} - {artefact.name} - {artefact.version}"
+                ] = False
+                logger.warning("WARNING: %s", str(exc), exc_info=True)
     return processed_artefacts
 
 
@@ -143,4 +162,40 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
             if stage:
                 artefact.stage = stage
                 session.commit()
+            break
+
+
+def run_deb_manager(session: Session, artefact: Artefact) -> None:
+    """
+    Check deb artefacts state and move/archive them if necessary
+
+    :session: DB connection session
+    :artefact: an Artefact object
+    """
+    arch = artefact.source["architecture"]
+    for repo in REPOSITORY_PROMOTION_MAP:
+        filepath = get_data_from_archive(
+            arch=arch,
+            series=artefact.source["series"],
+            pocket=repo,
+            apt_repo=artefact.source["repo"],
+        )
+        deb_kernel_image = convert_meta_package_to_kernel_image(artefact.name, filepath)
+        pkg_json = convert_packages_json(filepath)
+        try:
+            deb_version = pkg_json[deb_kernel_image]
+        except KeyError:
+            logger.error(
+                "Cannot find deb_version with image %s in package data",
+                deb_kernel_image,
+            )
+            continue
+
+        next_repo = REPOSITORY_PROMOTION_MAP.get(artefact.stage.name)
+        if repo == next_repo != artefact.stage.name and deb_version == artefact.version:
+            logger.info("Move artefact '%s' to the '%s' stage", artefact, next_repo)
+            artefact.stage = get_stage_by_name(
+                session, stage_name=next_repo, family=artefact.stage.family
+            )
+            session.commit()
             break
