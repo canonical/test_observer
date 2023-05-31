@@ -49,11 +49,11 @@ class TestObserverBackendCharm(CharmBase):
         )
 
         self.framework.observe(
-            self.on.test_observer_rest_api_v1_relation_joined,
+            self.on.test_observer_rest_api_relation_joined,
             self._test_observer_rest_api_client_joined,
         )
         self.framework.observe(
-            self.on.test_observer_rest_api_v1_relation_changed,
+            self.on.test_observer_rest_api_relation_changed,
             self._test_observer_rest_api_client_changed,
         )
 

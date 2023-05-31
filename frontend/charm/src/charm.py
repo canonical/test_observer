@@ -34,11 +34,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.framework.observe(self.on.frontend_pebble_ready, self._on_frontend_pebble_ready)
         self.framework.observe(self.on.config_changed, self._update_layer_and_restart)
         self.framework.observe(
-            self.on.test_observer_rest_api_v1_relation_joined,
+            self.on.test_observer_rest_api_relation_joined,
             self._test_observer_rest_api_relation_joined,
         )
         self.framework.observe(
-            self.on.test_observer_rest_api_v1_relation_broken,
+            self.on.test_observer_rest_api_relation_broken,
             self._test_observer_rest_api_relation_broken,
         )
 
