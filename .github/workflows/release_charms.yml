@@ -15,9 +15,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Select charmhub channel
-        uses: canonical/charming-actions/channel@2.2.0
-        id: channel
+      #- name: Select charmhub channel
+      #  uses: canonical/charming-actions/channel@2.2.0
+      #  id: channel
       - name: Upload charm to charmhub
         uses: canonical/charming-actions/upload-charm@2.2.0
         with:
@@ -25,4 +25,4 @@ jobs:
           credentials: "${{ secrets.CHARMHUB_AUTH_API }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           upload-image: "true"
-          channel: "${{ steps.channel.outputs.name }}"
+          channel: edge # "${{ steps.channel.outputs.name }}"
