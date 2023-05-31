@@ -1,0 +1,1 @@
+enum FamilyName { snap, deb }

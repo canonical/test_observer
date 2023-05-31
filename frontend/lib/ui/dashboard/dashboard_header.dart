@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 
-import '../models/family.dart';
 import '../spacing.dart';
 
-class Header extends StatelessWidget {
-  const Header({Key? key}) : super(key: key);
+class DashboardHeader extends StatelessWidget {
+  const DashboardHeader({Key? key, required this.title}) : super(key: key);
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    const family = dummyFamily;
-
     return Padding(
       padding: const EdgeInsets.only(
         left: Spacing.pageHorizontalPadding,
@@ -26,7 +25,7 @@ class Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                family.name,
+                title,
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               const SizedBox(height: Spacing.level4),
