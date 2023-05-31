@@ -12,8 +12,6 @@ containers:
 requires:
   test-observer-rest-api-v1:
     interface: http
-  #nginx-route:
-  #  interface: nginx-route
   ingress:
     interface: ingress
     limit: 1
