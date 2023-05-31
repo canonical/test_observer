@@ -211,7 +211,7 @@ resource "juju_integration" "test-observer-api-database-access" {
   }
 }
 
-resource "juju_integration" "test-observer-frontend-to-rest-api-v1-access" {
+resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
   model = juju_model.test-observer.name
 
   application {
