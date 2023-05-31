@@ -19,90 +19,21 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
 
-import logging
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.responses import JSONResponse
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
-from test_observer.data_transfer_objects import FamilyDTO
-
-from test_observer.data_access import models
-from test_observer.controllers import snap_manager_controller
-from importlib.metadata import version, PackageNotFoundError
-
-from os import environ
-
-db_url = environ.get("DB_URL")
-if db_url is None:
-    db_url = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
-
-engine = create_engine(db_url, echo=True)
-
-models.Base.metadata.create_all(bind=engine)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from test_observer.controllers.router import router
 
 app = FastAPI()
 
-logger = logging.getLogger("test-observer-backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@app.get("/")
-def root():
-    with engine.connect() as conn:
-        conn.execute(text("select 'test db connection'"))
-    return {"message": "Hello World"}
-
-
-@app.get("/version")
-async def get_version():
-    try:
-        return {"version": version("test-observer")}
-    except PackageNotFoundError:
-        return {"version": "package not found"}
-
-
-@app.put("/snapmanager")
-def snap_manager(db: Session = Depends(get_db)):
-    try:
-        processed_artefacts = snap_manager_controller(db)
-        logger.info("INFO: Processed artefacts %s", processed_artefacts)
-        if False in processed_artefacts.values():
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "detail": (
-                        "Got some errors while processing the next artefacts: "
-                        ", ".join(
-                            [k for k, v in processed_artefacts.items() if v is False]
-                        )
-                    )
-                },
-            )
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "All the artefacts have been processed successfully"},
-        )
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"detail": str(e)})
-
-
-@app.get("/families/{family_name}/", response_model=FamilyDTO)
-def read_snap_family(family_name: str, db: Session = Depends(get_db)):
-    """Retrieve all the stages and artefacts from the snap family"""
-    family = db.query(models.Family).filter(models.Family.name == family_name).first()
-    if family is None:
-        raise HTTPException(status_code=404, detail="Family not found")
-
-    family.stages = sorted(family.stages, key=lambda x: x.position)
-    return family
+app.include_router(router)

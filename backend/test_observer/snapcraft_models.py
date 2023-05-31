@@ -15,37 +15,48 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Written by:
-#        Omar Abou Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-"""Data Transfer Object for creating API responses"""
+"""Mappings for json objects from snapcraft"""
 
 
-from typing import List
 from pydantic import BaseModel
+from typing import List
 
 
-class ArtefactDTO(BaseModel):
-    id: int
+class Download(BaseModel):
+    deltas: List[str]
+    sha3_384: str
+    size: int
+    url: str
+
+
+class Channel(BaseModel):
+    architecture: str
     name: str
+    released_at: str
+    risk: str
+    track: str
+
+
+class ChannelMap(BaseModel):
+    channel: Channel
+    created_at: str
+    download: Download
+    revision: int
+    type: str
     version: str
 
-    class Config:
-        orm_mode = True
+
+class SnapInfo(BaseModel):
+    channel_map: List[ChannelMap]
 
 
-class StageDTO(BaseModel):
-    id: int
-    name: str
-    artefacts: List[ArtefactDTO]
-
-    class Config:
-        orm_mode = True
-
-
-class FamilyDTO(BaseModel):
-    id: int
-    name: str
-    stages: List[StageDTO]
-
-    class Config:
-        orm_mode = True
+def rename_keys(data):
+    """Replace - with _ in dicts to avoid errors in mapping"""
+    if isinstance(data, list):
+        return [rename_keys(i) for i in data]
+    if isinstance(data, dict):
+        return {
+            key.replace("-", "_"): rename_keys(value) for key, value in data.items()
+        }
+    return data

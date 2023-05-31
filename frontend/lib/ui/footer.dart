@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../spacing.dart';
+import 'spacing.dart';
 
 class Footer extends StatelessWidget {
   const Footer({Key? key}) : super(key: key);

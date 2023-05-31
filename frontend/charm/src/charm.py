@@ -18,7 +18,6 @@ from ops.framework import StoredState
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
 
-
 logger = logging.getLogger(__name__)
 
 

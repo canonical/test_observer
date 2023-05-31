@@ -23,61 +23,8 @@
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import Artefact
 
-from .helpers import create_artefact
-
-
-def test_run_for_different_revisions(
-    test_client: TestClient, db_session: Session, requests_mock: Mocker
-):
-    """
-    If revision in snapcraft response is different from the revision in
-    card's name, the card should be archived
-    """
-    # Arrange
-    requests_mock.get(
-        "https://api.snapcraft.io/v2/snaps/info/core20",
-        json={
-            "channel-map": [
-                {
-                    "channel": {
-                        "architecture": "amd64",
-                        "name": "edge",
-                        "released-at": "2023-05-17T12:39:07.471800+00:00",
-                        "risk": "edge",
-                        "track": "latest",
-                    },
-                    "created-at": "2023-04-10T09:59:22.309277+00:00",
-                    "download": {
-                        "deltas": [],
-                        "sha3-384": "70f0",
-                        "size": 130830336,
-                        "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
-                    },
-                    "revision": 2856,
-                    "type": "app",
-                    "version": "1.1.1",
-                },
-            ]
-        },
-    )
-    artefact = create_artefact(
-        db_session,
-        "edge",
-        name="core20",
-        version="1.1.1",
-        source={"revision": 1823, "architecture": "amd64", "store": "ubuntu"},
-    )
-
-    # Act
-    test_client.put("/snapmanager")
-
-    db_session.refresh(artefact)
-
-    # Assert
-    assert artefact.stage.name == "edge"  # The artefact should not be moved
-    assert artefact.is_archived
+from ...helpers import create_artefact
 
 
 def test_run_to_move_artefact(
@@ -124,10 +71,9 @@ def test_run_to_move_artefact(
     )
 
     # Act
-    test_client.put("/snapmanager")
+    test_client.put("/v0/artefacts/promote")
 
     db_session.refresh(artefact)
 
     # Assert
     assert artefact.stage.name == "beta"
-    assert not artefact.is_archived  # The artefact should not be archived
