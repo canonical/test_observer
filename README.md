@@ -27,7 +27,7 @@ Then help microk8s work with an authorized (private) OCI image registry at ghcr.
 
 ```yaml
 [plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]
-  username = "mz2"
+  username = "your-GitHub-username"
   password = "your-GitHub-API-token"
 ```
 

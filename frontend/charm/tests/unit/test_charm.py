@@ -16,15 +16,14 @@ class TestCharm(unittest.TestCase):
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
 
-    def test_httpbin_pebble_ready(self):
+    def test_pebble_ready(self):
         expected_plan = {
             "services": {
-                "httpbin": {
+                "nginx": {
                     "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
+                    "summary": "nginx",
+                    "command": "nginx -g 'daemon off;'",
                     "startup": "enabled",
-                    "environment": {"GUNICORN_CMD_ARGS": "--log-level info"},
                 }
             },
         }
@@ -60,7 +59,7 @@ class TestCharm(unittest.TestCase):
 
     def test_config_changed_invalid(self):
         # Ensure the simulated Pebble API is reachable
-        self.harness.set_can_connect("test-observer-frontend", True)
+        self.harness.set_can_connect("frontend", True)
         # Trigger a config-changed event with an updated value
         self.harness.update_config({"log-level": "foobar"})
         # Check the charm is in BlockedStatus
