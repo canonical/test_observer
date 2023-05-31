@@ -137,7 +137,7 @@ class TestObserverBackendCharm(CharmBase):
             # 0.0.0.0 instead of config['hostname'] intentional:
             # request made from pebble's container to api in the same unit (same pod).
             try:
-                return get(f"http://0.0.0.0:{self.config['port']}/version").json()[
+                return get(f"http://0.0.0.0:{self.config['port']}/v1/version").json()[
                     "version"
                 ]
             except Exception as e:
