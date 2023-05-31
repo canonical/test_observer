@@ -6,6 +6,6 @@ router = APIRouter()
 @router.get("/")
 async def get_version():
     try:
-        return {"version": version("test-observer")}
+        return {"version": version(__package__)}
     except PackageNotFoundError:
         return {"version": "0.0.0"}
