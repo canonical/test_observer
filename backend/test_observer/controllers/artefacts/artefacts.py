@@ -28,7 +28,7 @@ from test_observer.data_access.repository import get_stage_by_name, get_artefact
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
-from test_observer.snapcraft import get_channel_map_from_snapcraft
+from test_observer.external_apis.snapcraft import get_channel_map_from_snapcraft
 
 router = APIRouter()
 
