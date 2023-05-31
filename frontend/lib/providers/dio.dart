@@ -5,6 +5,6 @@ part 'dio.g.dart';
 
 @riverpod
 Dio dio(DioRef ref) {
-  final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3000'));
+  final dio = Dio(BaseOptions(baseUrl: 'http://localhost:30000'));
   return dio;
 }

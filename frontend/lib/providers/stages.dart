@@ -10,8 +10,8 @@ part 'stages.g.dart';
 Future<List<Stage>> stages(StagesRef ref, FamilyName familyName) async {
   final dio = ref.watch(dioProvider);
 
-  final response = await dio.get('/families/${familyName.name}');
-  final List stagesJson = response.data;
+  final response = await dio.get('/v1/families/${familyName.name}');
+  final List stagesJson = response.data['stages'];
   final stages = stagesJson.map((json) => Stage.fromJson(json)).toList();
   return stages;
 }
