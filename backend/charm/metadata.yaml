@@ -26,4 +26,4 @@ resources:
   api-image:
     type: oci-image
     description: OCI image from GitHub Container Repository
-    upstream-source: ghcr.io/canonical/test_observer/api:v0.0.7
+    upstream-source: ghcr.io/canonical/test_observer/api:v0.0.9
