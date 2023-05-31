@@ -171,7 +171,7 @@ class TestObserverBackendCharm(CharmBase):
                             ]
                         ),
                         "startup": "enabled",
-                        "environment": {**self._postgres_relation_data(), **{}},
+                        "environment": self._postgres_relation_data(),
                     }
                 },
             }
