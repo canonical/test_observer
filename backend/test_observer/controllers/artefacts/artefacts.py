@@ -24,11 +24,11 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from test_observer.repository import get_stage_by_name, get_artefacts_by_family_name
+from test_observer.data_access.repository import get_stage_by_name, get_artefacts_by_family_name
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
-from backend.test_observer.snapcraft import get_channel_map_from_snapcraft
+from test_observer.snapcraft import get_channel_map_from_snapcraft
 
 router = APIRouter()
 

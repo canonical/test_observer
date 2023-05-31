@@ -12,8 +12,8 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from src.data_access.models import Family
-from src.data_access.setup import get_db
+from test_observer.data_access.models import Family
+from test_observer.data_access.setup import get_db
 
 from .models import FamilyDTO
 

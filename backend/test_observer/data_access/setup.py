@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from sys import environ
+from os import environ
 
 db_url = environ.get("DB_URL")
 if db_url is None:

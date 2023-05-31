@@ -8,10 +8,10 @@ COPY backend/poetry.lock .
 
 COPY backend/pyproject.toml .
 
-RUN pip3 install poetry && \
+RUN --mount=source=.git,target=.git,type=bind pip3 install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --without dev && \
-    poetry install --user poetry-dynamic-versioning[plugin]
+    pip3 install --user poetry-dynamic-versioning[plugin]
 
 COPY ./backend .
 
