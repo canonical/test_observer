@@ -75,14 +75,6 @@ class TestObserverBackendCharm(CharmBase):
             for line in stderr.splitlines():
                 logger.error(line.strip())
 
-    def _on_config_changed(self, event):
-        logger.info(event)
-        self.unit.status = MaintenanceStatus(
-            "Updating layer and restarting after config change"
-        )
-        self._update_layer_and_restart(None)
-        self.unit.status = ActiveStatus()
-
     def _on_database_changed(
         self,
         event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent,
