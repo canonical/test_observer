@@ -142,6 +142,8 @@ class TestObserverBackendCharm(CharmBase):
         if self.container.can_connect() and self.container.get_services(
             self.pebble_service_name
         ):
+            # 0.0.0.0 instead of config['hostname'] intentional:
+            # request made from pebble's container to api in the same unit (same pod).
             try:
                 return get(f"http://0.0.0.0:{self.config['port']}/version").json()[
                     "version"

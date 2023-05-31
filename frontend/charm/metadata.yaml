@@ -10,7 +10,7 @@ containers:
     resource: frontend-image
 
 requires:
-  test-observer-rest-api-v1:
+  test-observer-rest-api:
     interface: http
   ingress:
     interface: ingress

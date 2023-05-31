@@ -19,7 +19,7 @@ requires:
     interface: ingress
     limit: 1
 provides:
-  test-observer-rest-api-v1:
+  test-observer-rest-api:
     interface: http
     scope: global
 resources:

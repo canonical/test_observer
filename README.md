@@ -105,7 +105,7 @@ ingress:ingress                              test-observer-frontend:ingress     
 pg:database                                  test-observer-api:database                        postgresql_client  regular
 pg:database-peers                            pg:database-peers                                 postgresql_peers   peer
 pg:restart                                   pg:restart                                        rolling_op         peer
-test-observer-api:test-observer-rest-api-v1  test-observer-frontend:test-observer-rest-api-v1  http               regular
+test-observer-api:test-observer-rest-api     test-observer-frontend:test-observer-rest-api     http               regular
 ```
 
 To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer-frontend.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
