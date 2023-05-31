@@ -21,8 +21,6 @@ from ops.pebble import Layer
 
 logger = logging.getLogger(__name__)
 
-VALID_LOG_LEVELS = ["info", "debug", "warning", "error", "critical"]
-
 
 class TestObserverFrontendCharm(ops.CharmBase):
     """Test Observer frontend charm exists chiefly to modulate the nginx config for the served app."""
