@@ -86,3 +86,25 @@ The version "0.0.0" stated in the `pyproject.toml` is a "fallback version" which
 
 1. ... directly from source, i.e. not built and launched as wheel.
 2. ... using a wheel built with `poetry build` when `poetry-dynamic-versioning[plugin]` was not installed (this is installed in the `Dockerfile`).
+
+## Building Docker images
+
+There are two Docker images in the repo:
+
+- `backend/Dockerfile`: local development intended image
+- `backend/Dockerfile.production`: intended for production-like environments (production, staging, integration test runs)
+
+To build the local development oriented Docker image by hand, do the following:
+
+```bash
+cd backend
+docker build . -t your-choice-of-tag -f backend/Dockerfile.production
+```
+
+In case you need to build the production oriented image locally, do the following **in the root of the repository** (since the build context requires the `.git` from the repo at build time):
+
+```bash
+DOCKER_BUILDKIT=1 docker build . -t your-choice-of-tag -f backend/Dockerfile.production
+```
+
+GitHub built images are also made available in the authorisation requiring private registry at `ghcr.io/canonical/test_observer/api` (every main branch commit and tag following the pattern `v*.*.*` gets stored there).
