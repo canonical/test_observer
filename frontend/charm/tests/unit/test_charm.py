@@ -1,4 +1,4 @@
-# Copyright 2023 Matias Piipari
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 #
 # Learn more about testing at: https://juju.is/docs/sdk/testing
@@ -19,7 +19,7 @@ class TestCharm(unittest.TestCase):
     def test_pebble_ready(self):
         expected_plan = {
             "services": {
-                "nginx": {
+                "test-observer-frontend": {
                     "override": "replace",
                     "summary": "nginx",
                     "command": "nginx -g 'daemon off;'",
@@ -27,40 +27,66 @@ class TestCharm(unittest.TestCase):
                 }
             },
         }
-        # Simulate the container coming up and emission of pebble-ready event
-        self.harness.container_pebble_ready("test-observer-frontend")
-        # Get the plan now we've run PebbleReady
-        updated_plan = self.harness.get_container_pebble_plan("test-observer-frontend").to_dict()
-        # Check we've got the plan we expected
+
+        self.harness.container_pebble_ready("frontend")
+        updated_plan = self.harness.get_container_pebble_plan(
+            "frontend"
+        ).to_dict()
+
         self.assertEqual(expected_plan, updated_plan)
-        # Check the service was started
-        service = self.harness.model.unit.get_container("httpbin").get_service("httpbin")
+
+        service = self.harness.model.unit.get_container(
+            "frontend"
+        ).get_service("test-observer-frontend")
         self.assertTrue(service.is_running())
-        # Ensure we set an ActiveStatus with no message
         self.assertEqual(self.harness.model.unit.status, ops.ActiveStatus())
 
-    def test_config_changed_valid_can_connect(self):
-        # Ensure the simulated Pebble API is reachable
-        self.harness.set_can_connect("test-observer-frontend", True)
-        # Trigger a config-changed event with an updated value
-        self.harness.update_config({"log-level": "debug"})
-        # Get the plan now we've run PebbleReady
-        updated_plan = self.harness.get_container_pebble_plan("test-observer-frontend").to_dict()
-        updated_env = updated_plan["services"]["test-observer-frontend"]["environment"]
-        # Check the config change was effective
-        self.assertEqual(updated_env, {"GUNICORN_CMD_ARGS": "--log-level debug"})
-        self.assertEqual(self.harness.model.unit.status, ops.ActiveStatus())
+    def test_relating(self):
+        harness = ops.testing.Harness(TestObserverFrontendCharm)
+        harness.set_leader(True)
+        self.addCleanup(harness.cleanup)
 
-    def test_config_changed_valid_cannot_connect(self):
-        # Trigger a config-changed event with an updated value
-        self.harness.update_config({"log-level": "debug"})
-        # Check the charm is in WaitingStatus
-        self.assertIsInstance(self.harness.model.unit.status, ops.WaitingStatus)
+        rel_id = harness.add_relation("test-observer-rest-api", "backend")
+        harness.container_pebble_ready("frontend")
+        harness.set_can_connect("frontend", True)
+        harness.update_config({"test-observer-api-scheme": "https://"})
+        harness.begin_with_initial_hooks()
 
-    def test_config_changed_invalid(self):
-        # Ensure the simulated Pebble API is reachable
+        harness.add_relation_unit(rel_id, "backend/0")
+        harness.update_relation_data(
+            rel_id, "backend", {"hostname": "teh-backend", "port": "443"}
+        )
+
+        service = harness.model.unit.get_container("frontend").get_service(
+            "test-observer-frontend"
+        )
+        self.assertTrue(service.is_running())
+        self.assertEqual(harness.model.unit.status, ops.ActiveStatus())
+
+        nginx_config = (
+            harness.model.unit.get_container("frontend")
+            .pull("/etc/nginx/conf.d/default.conf")
+            .read()
+        )
+        print(nginx_config)
+
+    def test_config_invalid_port(self):
         self.harness.set_can_connect("frontend", True)
-        # Trigger a config-changed event with an updated value
-        self.harness.update_config({"log-level": "foobar"})
-        # Check the charm is in BlockedStatus
-        self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
+        self.harness.update_config({"port": -1})
+        self.assertIsInstance(
+            self.harness.model.unit.status, ops.BlockedStatus
+        )
+
+    def test_config_invalid_api_scheme(self):
+        self.harness.set_can_connect("frontend", True)
+        self.harness.update_config({"test-observer-api-scheme": "foobar"})
+        self.assertIsInstance(
+            self.harness.model.unit.status, ops.BlockedStatus
+        )
+
+    def test_config_empty_hostname(self):
+        self.harness.set_can_connect("frontend", True)
+        self.harness.update_config({"hostname": ""})
+        self.assertIsInstance(
+            self.harness.model.unit.status, ops.BlockedStatus
+        )

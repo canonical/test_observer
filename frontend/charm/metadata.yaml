@@ -12,6 +12,7 @@ containers:
 requires:
   test-observer-rest-api:
     interface: http
+    limit: 1
   ingress:
     interface: ingress
     limit: 1
@@ -20,4 +21,4 @@ resources:
   frontend-image:
     type: oci-image
     description: OCI image for test-observer-frontend
-    upstream-source: ghcr.io/canonical/test_observer/frontend:v0.0.3
+    upstream-source: ghcr.io/canonical/test_observer/frontend:v0.0.10

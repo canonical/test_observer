@@ -1,0 +1,73 @@
+name: Run charm tests
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*.*.*"]
+
+jobs:
+  lint-report:
+    name: Lint report
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install tox
+        run: pip install tox
+      - name: Run tests using tox
+        run: tox -e lint
+
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install tox
+        run: pip install tox
+      - name: Run tests using tox
+        run: tox -e static
+
+  unit-tests-with-coverage:
+    name: Unit tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install tox
+        run: pip install tox
+      - name: Run tests using tox
+        run: tox -e unit
+
+  integration-test:
+    name: Integration tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup LXD
+        uses: canonical/setup-lxd@main
+        with:
+          channel: 5.12/stable
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: microk8s
+      - name: Run integration tests
+        run: tox -e integration
+      - name: Archive Tested Charm
+        uses: actions/upload-artifact@v3
+        if: ${{ github.ref_name == 'main' }}
+        with:
+          name: tested-charm
+          path: .tox/**/route53-acme-operator_ubuntu-22.04-amd64.charm
+          retention-days: 5
+      - name: Archive charmcraft logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: charmcraft-logs
+          path: /home/runner/.local/state/charmcraft/log/*.log
+      - name: Archive juju crashdump
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: juju-crashdump
+          path: juju-crashdump-*.tar.xz
+

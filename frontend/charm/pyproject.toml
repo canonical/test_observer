@@ -11,7 +11,7 @@ log_cli_level = "INFO"
 
 # Formatting tools configuration
 [tool.black]
-line-length = 99
+line-length = 79
 target-version = ["py38"]
 
 # Linting tools configuration

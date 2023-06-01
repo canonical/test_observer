@@ -2,7 +2,7 @@
 
 options:
   hostname:
-    description: Public hostname for the frontend (through nginx ingress)
+    description: Public hostname for the frontend (through ingress)
     default: test-observer-frontend
     type: string
 
