@@ -31,9 +31,9 @@ import requests
 try:
     from debian.deb822 import Packages
 except ModuleNotFoundError:
-    # Since debian package can be installe only via apt and it's installed
-    # to the /usr/lib/python3/dist-packages/ dir, we append it to the end of the path
-    # to make sure that it and it's dependencies are findable
+    # Since debian package can be installe only via apt and it's installed to the
+    # /usr/lib/python3/dist-packages/ dir (not python3.10 that is used by venv), we append
+    # it to the end of the path to make sure that it and it's dependencies are findable
     from sys import path
 
     path.append("/usr/lib/python3/dist-packages/")
