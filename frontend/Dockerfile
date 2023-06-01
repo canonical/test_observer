@@ -6,9 +6,8 @@ RUN apt-get update
 RUN apt-get install -y curl git wget unzip libgconf-2-4 gdb libstdc++6 libglu1-mesa fonts-droid-fallback lib32stdc++6 python3
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
+    cd /opt/flutter && git checkout '3.7.9' && \
     /opt/flutter/bin/flutter doctor && \
-    /opt/flutter/bin/flutter channel stable && \
-    /opt/flutter/bin/flutter upgrade && \
     /opt/flutter/bin/flutter config --enable-web
 
 ENV PATH $PATH:/opt/flutter/bin
