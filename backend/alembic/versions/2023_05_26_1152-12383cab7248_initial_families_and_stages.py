@@ -8,8 +8,8 @@ Create Date: 2023-05-26 11:52:18.703471+00:00
 from alembic import op
 from sqlalchemy.orm import Session
 
-from src.data_access.models import Family, Stage
-from src.data_access.models_enums import FamilyName
+from test_observer.data_access.models import Family, Stage
+from test_observer.data_access.models_enums import FamilyName
 
 initial_families_and_stages = {
     FamilyName.SNAP: ["edge", "beta", "candidate", "stable"],

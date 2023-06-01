@@ -1,0 +1,29 @@
+name: test-observer-api
+display-name: |
+  Test Observer API server
+description: |
+  API and dashboard to observe the status of artifact (snaps, debs, etc) test status
+summary: |
+  API and dashboard to observe the status of artifact (snaps, debs, etc) test status
+assumes:
+  - juju >= 3.0
+  - k8s-api
+containers:
+  api:
+    resource: api-image
+requires:
+  database:
+    interface: postgresql_client
+    limit: 1
+  ingress:
+    interface: ingress
+    limit: 1
+provides:
+  test-observer-rest-api:
+    interface: http
+    scope: global
+resources:
+  api-image:
+    type: oci-image
+    description: OCI image from GitHub Container Repository
+    upstream-source: ghcr.io/canonical/test_observer/api:v0.0.9

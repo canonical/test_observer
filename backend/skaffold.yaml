@@ -10,9 +10,9 @@ build:
       # Sync these files to avoid rebuilding images
       sync:
         manual:
-          - dest: "src/"
-            src: "src/**"
-            strip: "src/"
+          - dest: "test_observer/"
+            src: "test_observer/**"
+            strip: "test_observer/"
           - dest: "tests/"
             src: "tests/**"
             strip: "tests/"

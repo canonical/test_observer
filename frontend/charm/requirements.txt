@@ -1,0 +1,2 @@
+ops >= 2.2.0
+jsonschema == 4.17.3

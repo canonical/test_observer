@@ -22,7 +22,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.controllers.router import router
+from test_observer.controllers.router import router
 
 app = FastAPI()
 

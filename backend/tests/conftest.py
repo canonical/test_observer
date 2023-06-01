@@ -27,9 +27,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
-from src.data_access import Base
-from src.data_access.setup import get_db
-from src.main import app
+from test_observer.data_access import Base
+from test_observer.main import app, get_db
 
 
 @pytest.fixture(scope="session")

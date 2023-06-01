@@ -33,6 +33,11 @@
   <link rel="manifest" href="manifest.json">
 
   <script>
+    // Actual URL is set at runtime with some nginx config level trickery.
+    window.testObserverAPIBaseURI = 'http://api-placeholder:30000/';
+  </script>
+
+  <script>
     // The value below is injected by flutter build, do not touch.
     var serviceWorkerVersion = null;
   </script>

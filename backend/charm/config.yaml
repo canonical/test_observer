@@ -1,0 +1,10 @@
+options:
+  port:
+    default: 30000
+    description: The port to listen on for incoming HTTP requests.
+    type: int
+
+  hostname:
+    default: test-observer-api
+    description: Public hostname for the service.
+    type: string
