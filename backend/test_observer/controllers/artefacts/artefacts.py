@@ -59,6 +59,10 @@ REPOSITORY_PROMOTION_MAP = {
 
 @router.put("/promote")
 def promote_artefacts(db: Session = Depends(get_db)):
+    """
+    Promote all the artefacts in all the families if it has been updated on the
+    external source
+    """
     try:
         processed_artefacts = manager_controller(db)
         logger.info("INFO: Processed artefacts %s", processed_artefacts)

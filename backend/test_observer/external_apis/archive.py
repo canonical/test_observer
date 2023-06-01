@@ -26,8 +26,18 @@ import re
 import gzip
 import tempfile
 from urllib.error import HTTPError
-from debian.deb822 import Packages
 import requests
+
+try:
+    from debian.deb822 import Packages
+except ModuleNotFoundError:
+    # Since debian package can be installe only via apt and it's installed
+    # to the /usr/lib/python3/dist-packages/ dir, we append it to the end of the path
+    # to make sure that it and it's dependencies are findable
+    from sys import path
+
+    path.append("/usr/lib/python3/dist-packages/")
+    from debian.deb822 import Packages
 
 
 def get_data_from_archive(arch: str, series: str, pocket: str, apt_repo: str) -> dict:
