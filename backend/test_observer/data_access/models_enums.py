@@ -16,11 +16,25 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 
 
-from enum import Enum
+from enum import Enum, auto
 
 
 class FamilyName(Enum):
     SNAP = "snap"
     DEB = "deb"
+
+
+class TestExecutionStatus(Enum):
+    NOT_STARTED = auto()
+    IN_PROGRESS = auto()
+    PASSED = auto()
+    FAILED = auto()
+    NOT_TESTED = auto()
+
+
+class ArtefactStatus(Enum):
+    APPROVED = auto()
+    MARKED_AS_FAILED = auto()
