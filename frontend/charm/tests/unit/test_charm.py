@@ -50,12 +50,14 @@ class TestCharm(unittest.TestCase):
         harness.container_pebble_ready("frontend")
         harness.set_can_connect("frontend", True)
         harness.update_config({"test-observer-api-scheme": "https://"})
+        harness.update_config({"hostname": "teh-backend"})
+        harness.update_config({"port": 443})
         harness.begin_with_initial_hooks()
 
         harness.add_relation_unit(rel_id, "backend/0")
-        harness.update_relation_data(
-            rel_id, "backend", {"hostname": "teh-backend", "port": "443"}
-        )
+        # harness.update_relation_data(
+        #    rel_id, "backend", {"hostname": "teh-backend", "port": "443"}
+        # )
 
         service = harness.model.unit.get_container("frontend").get_service(
             "test-observer-frontend"
