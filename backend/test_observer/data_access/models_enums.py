@@ -19,7 +19,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
-from enum import Enum, auto
+from enum import Enum
 
 
 class FamilyName(Enum):
@@ -28,13 +28,13 @@ class FamilyName(Enum):
 
 
 class TestExecutionStatus(Enum):
-    NOT_STARTED = auto()
-    IN_PROGRESS = auto()
-    PASSED = auto()
-    FAILED = auto()
-    NOT_TESTED = auto()
+    NOT_STARTED = "NOT_STARTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    NOT_TESTED = "NOT_TESTED"
 
 
 class ArtefactStatus(Enum):
-    APPROVED = auto()
-    MARKED_AS_FAILED = auto()
+    APPROVED = "APPROVED"
+    MARKED_AS_FAILED = "MARKED_AS_FAILED"
