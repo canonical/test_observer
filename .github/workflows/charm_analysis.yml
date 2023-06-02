@@ -47,7 +47,7 @@ jobs:
       - name: Setup LXD
         uses: canonical/setup-lxd@main
         with:
-          channel: 5.14/stable
+          channel: 5.13/stable
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
