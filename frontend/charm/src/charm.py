@@ -142,7 +142,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
         scheme = self.config["test-observer-api-scheme"]
         hostname = self._stored.backend_hostname
         port = self._stored.backend_port
-        base_uri = f"{scheme}{hostname}:{port}"
+
+        if int(port) == 80 or int(port) == 443:
+            base_uri = f"{scheme}{hostname}"
+        else:
+            base_uri = f"{scheme}{hostname}:{port}"
 
         self.container.push(
             "/etc/nginx/sites-available/test-observer-frontend",
