@@ -20,6 +20,7 @@
 """Fixtures for testing"""
 
 
+from os import environ
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -34,7 +35,11 @@ from test_observer.main import app
 
 @pytest.fixture(scope="session")
 def db_engine():
-    db_uri = "postgresql+pg8000://postgres:password@test-observer-db:5432/test"
+    # Get the test database URI from the environment variable
+    db_uri = environ.get(
+        "TEST_DB_URL",
+        "postgresql+pg8000://postgres:password@test-observer-db:5432/test",
+    )
 
     if not database_exists(db_uri):
         create_database(db_uri)

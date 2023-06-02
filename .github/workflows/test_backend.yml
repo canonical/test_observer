@@ -1,11 +1,23 @@
 name: Test Backend
 on: [push]
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:15.2
+        env:
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -15,3 +27,6 @@ jobs:
         with:
           poetry-version: "1.4.1"
       - run: poetry install
+      - run: poetry run pytest
+        env:
+          TEST_DB_URL: postgres://postgres:password@localhost:5432/postgres
