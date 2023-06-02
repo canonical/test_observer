@@ -1,4 +1,6 @@
 name: Test Backend
+# set run name to be branch name plus actor
+run-name: ${{ github.actor }}@${{ github.ref_name }} is testing backend
 on: [push]
 jobs:
   test:
@@ -27,6 +29,6 @@ jobs:
         with:
           poetry-version: "1.4.1"
       - run: poetry install
-      - run: pytest
+      - run: poetry run pytest
         env:
           TEST_DB_URL: postgres://postgres:password@localhost:5432/postgres
