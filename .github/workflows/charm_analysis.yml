@@ -1,5 +1,8 @@
 name: Run charm tests
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
@@ -70,4 +73,3 @@ jobs:
         with:
           name: juju-crashdump
           path: juju-crashdump-*.tar.xz
-

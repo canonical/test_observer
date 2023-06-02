@@ -47,11 +47,11 @@ class TestCharm(unittest.TestCase):
         harness.container_pebble_ready("frontend")
         harness.set_can_connect("frontend", True)
         harness.update_config({"test-observer-api-scheme": "https://"})
-        harness.update_config({"hostname": "teh-backend"})
-        harness.update_config({"port": 443})
         harness.begin()
         rel_id = harness.add_relation("test-observer-rest-api", "backend")
-        harness.update_relation_data(rel_id, "backend", {"hostname": "teh-backend", "port": "443"})
+        harness.update_relation_data(
+            rel_id, "backend", {"hostname": "teh-backend", "port": "443"}
+        )
 
         service = harness.model.unit.get_container("frontend").get_service(
             "test-observer-frontend"
@@ -65,7 +65,7 @@ class TestCharm(unittest.TestCase):
             .read()
         )
 
-        self.assertRegexpMatches(nginx_config, r"http:.*teh-backend:443")
+        self.assertRegexpMatches(nginx_config, r"https:\/\/teh-backend")
 
     def test_config_invalid_port(self):
         self.harness.set_can_connect("frontend", True)
