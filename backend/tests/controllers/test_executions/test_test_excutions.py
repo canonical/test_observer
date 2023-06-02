@@ -10,7 +10,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import TestExecutionStatus
 
 
-def test_creates_all_data_models(db_session: Session, test_client: TestClient):
+def test_updates_test_execution(db_session: Session, test_client: TestClient):
     stage = db_session.query(Stage).filter(Stage.name == "beta").one()
     artefact = Artefact(name="some artefact", version="1.0.0", source={}, stage=stage)
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
