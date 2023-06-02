@@ -10,5 +10,6 @@ jobs:
           python-version: "3.10"
       - uses: Gr1N/setup-poetry@v8
         with:
-          poetry-version: "1.4.x"
+          poetry-version: "1.4"
+      - run: cd backend
       - run: poetry install
