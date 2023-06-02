@@ -9,7 +9,7 @@ jobs:
     name: Lint report
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -19,7 +19,7 @@ jobs:
     name: Static analysis
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -29,7 +29,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup LXD
         uses: canonical/setup-lxd@main
         with:
