@@ -3,6 +3,9 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -11,5 +14,4 @@ jobs:
       - uses: Gr1N/setup-poetry@v8
         with:
           poetry-version: "1.4.1"
-      - run: cd backend
       - run: poetry install
