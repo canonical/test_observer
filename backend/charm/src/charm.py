@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 
-from ops.charm import CharmBase
-from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import Layer
+import logging
 
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
     DatabaseRequires,
-    RelationJoinedEvent,
     RelationChangedEvent,
+    RelationJoinedEvent,
 )
-
 from charms.traefik_k8s.v1.ingress import (
     IngressPerAppRequirer,
 )
-
+from ops.charm import CharmBase
+from ops.main import main
+from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
+from ops.pebble import Layer
 from requests import get
-import logging
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)

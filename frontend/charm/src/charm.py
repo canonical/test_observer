@@ -108,6 +108,8 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._stored.backend_hostname = api_hostname
             self._stored.backend_port = api_port
 
+        self._update_layer_and_restart(event)
+
     def _on_rest_api_relation_broken(self, event):
         logger.debug("REST API relation broken -> removing backend hostname")
 
@@ -149,7 +151,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         base_uri = f"{scheme}{hostname}:{port}"
 
         self.container.push(
-            "/etc/nginx/conf.d/default.conf",
+            "/etc/nginx/sites-available/test-observer-frontend",
             self.nginx_config(base_uri=base_uri),
             make_dirs=True,
         )
