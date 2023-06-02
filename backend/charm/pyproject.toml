@@ -16,7 +16,7 @@ target-version = ["py38"]
 
 # Linting tools configuration
 [tool.ruff]
-line-length = 78
+line-length = 79
 select = ["E", "W", "F", "C", "N", "D", "I001"]
 extend-ignore = [
     "D203",
