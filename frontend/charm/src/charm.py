@@ -37,9 +37,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.pebble_service_name = "test-observer-frontend"
         self.container = self.unit.get_container("frontend")
 
-        self.framework.observe(
-            self.on.frontend_pebble_ready, self._on_frontend_pebble_ready
-        )
+        self.framework.observe(self.on.frontend_pebble_ready, self._on_frontend_pebble_ready)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
             self.on.test_observer_rest_api_relation_joined,
@@ -56,9 +54,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         self.ingress = IngressPerAppRequirer(self, port=self.config["port"])
         self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
-        self.framework.observe(
-            self.ingress.on.revoked, self._on_ingress_revoked
-        )
+        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
 
         self._stored.set_default(backend_hostname=None, backend_port=None)
 
@@ -141,9 +137,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         """
 
     def _update_layer_and_restart(self, event):
-        self.unit.status = MaintenanceStatus(
-            f"Updating {self.pebble_service_name} layer"
-        )
+        self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         scheme = self.config["test-observer-api-scheme"]
         hostname = self._stored.backend_hostname
@@ -157,9 +151,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         )
 
         if self.container.can_connect():
-            self.container.add_layer(
-                self.pebble_service_name, self._pebble_layer, combine=True
-            )
+            self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
             self.container.restart(self.pebble_service_name)
             self.unit.status = ActiveStatus()
         else:

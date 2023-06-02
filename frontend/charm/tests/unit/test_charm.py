@@ -29,15 +29,13 @@ class TestCharm(unittest.TestCase):
         }
 
         self.harness.container_pebble_ready("frontend")
-        updated_plan = self.harness.get_container_pebble_plan(
-            "frontend"
-        ).to_dict()
+        updated_plan = self.harness.get_container_pebble_plan("frontend").to_dict()
 
         self.assertEqual(expected_plan, updated_plan)
 
-        service = self.harness.model.unit.get_container(
-            "frontend"
-        ).get_service("test-observer-frontend")
+        service = self.harness.model.unit.get_container("frontend").get_service(
+            "test-observer-frontend"
+        )
         self.assertTrue(service.is_running())
         self.assertEqual(self.harness.model.unit.status, ops.ActiveStatus())
 
@@ -53,9 +51,7 @@ class TestCharm(unittest.TestCase):
         harness.update_config({"port": 443})
         harness.begin()
         rel_id = harness.add_relation("test-observer-rest-api", "backend")
-        harness.update_relation_data(
-            rel_id, "backend", {"hostname": "teh-backend", "port": "443"}
-        )
+        harness.update_relation_data(rel_id, "backend", {"hostname": "teh-backend", "port": "443"})
 
         service = harness.model.unit.get_container("frontend").get_service(
             "test-observer-frontend"
@@ -74,20 +70,14 @@ class TestCharm(unittest.TestCase):
     def test_config_invalid_port(self):
         self.harness.set_can_connect("frontend", True)
         self.harness.update_config({"port": -1})
-        self.assertIsInstance(
-            self.harness.model.unit.status, ops.BlockedStatus
-        )
+        self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 
     def test_config_invalid_api_scheme(self):
         self.harness.set_can_connect("frontend", True)
         self.harness.update_config({"test-observer-api-scheme": "foobar"})
-        self.assertIsInstance(
-            self.harness.model.unit.status, ops.BlockedStatus
-        )
+        self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 
     def test_config_empty_hostname(self):
         self.harness.set_can_connect("frontend", True)
         self.harness.update_config({"hostname": ""})
-        self.assertIsInstance(
-            self.harness.model.unit.status, ops.BlockedStatus
-        )
+        self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)

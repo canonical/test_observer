@@ -11,12 +11,12 @@ log_cli_level = "INFO"
 
 # Formatting tools configuration
 [tool.black]
-line-length = 79
+line-length = 99
 target-version = ["py38"]
 
 # Linting tools configuration
 [tool.ruff]
-line-length = 79
+line-length = 99
 select = ["E", "W", "F", "C", "N", "D", "I001"]
 extend-ignore = [
     "D203",
