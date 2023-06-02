@@ -6,7 +6,7 @@ on:
 
 jobs:
   lint-report:
-    name: Lint report
+    name: Lint and format report
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
