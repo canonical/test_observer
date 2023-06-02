@@ -56,7 +56,7 @@ jobs:
         if: ${{ github.ref_name == 'main' }}
         with:
           name: tested-charm
-          path: .tox/**/route53-acme-operator_ubuntu-22.04-amd64.charm
+          path: .tox/**/test-observer-frontend_ubuntu-22.04-amd64.charm
           retention-days: 5
       - name: Archive charmcraft logs
         if: failure()
