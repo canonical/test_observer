@@ -36,7 +36,7 @@ from sqlalchemy.orm import (
     relationship,
 )
 
-from src.data_access.models_enums import ArtefactStatus, TestExecutionStatus
+from test_observer.data_access.models_enums import ArtefactStatus, TestExecutionStatus
 
 
 class Base(DeclarativeBase):

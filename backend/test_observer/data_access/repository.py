@@ -16,10 +16,13 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 """Services for working with objects from DB"""
 
+from typing import TypeVar
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, Session
-from .models import Family, Stage, Artefact
+from .models import Base, Family, Stage, Artefact
 
 
 def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stage:
@@ -55,3 +58,20 @@ def get_artefacts_by_family_name(session: Session, family_name: str) -> list[Art
         .all()
     )
     return artefacts
+
+
+DataModel = TypeVar("DataModel", bound=Base)
+
+
+def get_or_create(db: Session, model: DataModel, **kwargs) -> DataModel:
+    # Try to create first to avoid race conditions
+    stmt = insert(model).values([kwargs]).on_conflict_do_nothing().returning(model)
+
+    result = db.execute(stmt).scalar_one_or_none()
+    db.commit()
+
+    if result is None:
+        # If the object already existed, we need to query it
+        result = db.query(model).filter_by(**kwargs).one()
+
+    return result
