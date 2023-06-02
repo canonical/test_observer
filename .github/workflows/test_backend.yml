@@ -27,6 +27,6 @@ jobs:
         with:
           poetry-version: "1.4.1"
       - run: poetry install
-      - run: poetry run pytest
+      - run: pytest
         env:
           TEST_DB_URL: postgres://postgres:password@localhost:5432/postgres
