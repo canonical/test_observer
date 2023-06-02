@@ -1,6 +1,4 @@
 name: Test Backend
-# set run name to be branch name plus actor
-run-name: ${{ github.actor }}@${{ github.ref_name }} is testing backend
 on: [push]
 jobs:
   test:
