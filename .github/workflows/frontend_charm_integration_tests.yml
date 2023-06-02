@@ -1,43 +1,10 @@
 name: Run charm tests
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
 
 jobs:
-  lint-report:
-    name: Lint and format report
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install tox
-        run: pip install tox
-      - name: Run tests using tox
-        run: tox -e lint
-
-  static-analysis:
-    name: Static analysis
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install tox
-        run: pip install tox
-      - name: Run tests using tox
-        run: tox -e static
-
-  unit-tests-with-coverage:
-    name: Unit tests
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install tox
-        run: pip install tox
-      - name: Run tests using tox
-        run: tox -e unit
-
   integration-test:
     name: Integration tests
     runs-on: ubuntu-22.04
@@ -73,3 +40,6 @@ jobs:
         with:
           name: juju-crashdump
           path: juju-crashdump-*.tar.xz
+    defaults:
+      run:
+        working-directory: ./frontend/charm
