@@ -17,7 +17,6 @@ router.include_router(version.router, prefix="/v1/version")
 router.include_router(test_executions.router, prefix="/v1/test-executions")
 
 
-
 @router.get("/")
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
