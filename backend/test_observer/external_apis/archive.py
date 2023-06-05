@@ -24,20 +24,11 @@ import os
 from io import StringIO
 import re
 import gzip
+import random
+import string
 import tempfile
 from urllib.error import HTTPError
 import requests
-
-try:
-    from debian.deb822 import Packages
-except ModuleNotFoundError:
-    # Since debian package can be installe only via apt and it's installed to the
-    # /usr/lib/python3/dist-packages/ dir (not python3.10 that is used by venv), we append
-    # it to the end of the path to make sure that it and it's dependencies are findable
-    from sys import path
-
-    path.append("/usr/lib/python3/dist-packages/")
-    from debian.deb822 import Packages
 
 
 def get_data_from_archive(arch: str, series: str, pocket: str, apt_repo: str) -> dict:
@@ -63,10 +54,16 @@ def download_and_decompress_file(url: str) -> str:
     # Creating a temporary directory
     temp_dir = tempfile.gettempdir()
 
-    filepath = url.split("/")[-1]
+    filepath = url.split("/")[-1] + "".join(
+        random.choice(string.ascii_lowercase) for i in range(10)
+    )
     gz_file_path = os.path.join(temp_dir, filepath)
     # Remove .gz extension
-    decompressed_file_path = os.path.join(temp_dir, filepath[:-3])
+    decompressed_file_path = os.path.join(
+        temp_dir,
+        filepath[:-3]
+        + "".join(random.choice(string.ascii_lowercase) for i in range(10)),
+    )
 
     response = requests.get(url, stream=True)
 
@@ -90,15 +87,15 @@ def download_and_decompress_file(url: str) -> str:
     return decompressed_file_path
 
 
-def get_deb_version_from_package(filepath: str, deb_kernel_image: str) -> str:
+def get_deb_version_from_package(filepath: str, debname: str) -> str:
     """
     Convert Packages file from archive to json and get version from it
     This function corresponds the method used by jenkins from the hwcert-jenkins-tools
     See https://git.launchpad.net/hwcert-jenkins-tools/tree/convert-packages-json
 
     :filepath: path to the Packages file
-    :deb_kernel_image: the deb image
-    :return: parsed dict (json)
+    :debname: the deb name (package name)
+    :return: deb version
     """
     json_data = {}
 
@@ -113,47 +110,4 @@ def get_deb_version_from_package(filepath: str, deb_kernel_image: str) -> str:
             # Periods in json keys are bad, convert them to _
             pkg_name_key = pkg_name.group(1).replace(".", "_")
             json_data[pkg_name_key] = pkg_ver.group(1)
-    return json_data
-
-
-def convert_meta_package_to_kernel_image(meta_pkg_name: str, filepath: str):
-    """Convert package to its kernel image"""
-
-    def get_package(pkg_name, filepath):
-        """Extract package from decompressed Package file"""
-        with open(filepath) as deb822_data:
-            for package in Packages.iter_paragraphs(deb822_data):
-                if package["Package"] == pkg_name:
-                    return package
-        return None
-
-    def get_depends(package):
-        """Get depends key from extracted package"""
-        if "Depends" in package.keys():
-            return [
-                re.sub(r"\([^()]*\)", "", d).strip()
-                for d in package["Depends"].split(",")
-            ]
-        return None
-
-    def image_package(depends):
-        for pack in depends:
-            if pack.startswith("linux-image"):
-                return pack
-        return None
-
-    def get_top_image(package, filepath):
-        while True:
-            deps = get_depends(package)
-            imagepack = image_package(deps)
-            if imagepack:
-                break
-            package = get_package(deps[0], filepath)
-        return imagepack
-
-    meta_package = get_package(meta_pkg_name, filepath)
-    if not meta_package:
-        raise ValueError("Did not find meta-package in repo package_data")
-    top_image_pkg = get_top_image(meta_package, filepath)
-    kernel_image_pkg = image_package(get_depends(get_package(top_image_pkg, filepath)))
-    return kernel_image_pkg
+    return json_data[debname]

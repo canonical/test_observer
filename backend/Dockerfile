@@ -12,8 +12,6 @@ RUN pip3 install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --without dev
 
-RUN apt-get update && apt-get install -y python3-debian
-
 COPY . .
 
 CMD [ "uvicorn",  "test_observer.main:app", "--host", "0.0.0.0", "--port", "30000", "--reload" ]

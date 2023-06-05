@@ -20,6 +20,8 @@
 """Test snap manager API"""
 
 
+import gzip
+
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
@@ -91,8 +93,20 @@ def test_run_to_move_artefact_deb(
         db_session,
         "proposed",
         name="linux-generic",
-        version="5.19.0.44.40",
-        source={"series": "kinetic", "repo": "main"},
+        version="5.19.0.43.39",
+        source={"series": "kinetic", "repo": "main", "architecture": "amd64"},
+    )
+    with open("tests/test_data/Packages-proposed.gz", "rb") as f:
+        proposed_content = f.read()
+    requests_mock.get(
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/binary-amd64/Packages.gz",
+        content=proposed_content,
+    )
+    with open("tests/test_data/Packages-updates.gz", "rb") as f:
+        updates_content = f.read()
+    requests_mock.get(
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/binary-amd64/Packages.gz",
+        content=updates_content,
     )
 
     # Act
@@ -101,4 +115,4 @@ def test_run_to_move_artefact_deb(
     db_session.refresh(artefact)
 
     # Assert
-    assert artefact.stage.name == "beta"
+    assert artefact.stage.name == "updates"

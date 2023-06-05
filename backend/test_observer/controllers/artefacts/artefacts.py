@@ -19,6 +19,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
+import os
 import logging
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -34,7 +35,6 @@ from test_observer.data_access.setup import get_db
 from test_observer.external_apis.snapcraft import get_channel_map_from_snapcraft
 from test_observer.external_apis.archive import (
     get_data_from_archive,
-    convert_meta_package_to_kernel_image,
     get_deb_version_from_package,
 )
 
@@ -97,18 +97,18 @@ def manager_controller(session: Session) -> dict:
         FamilyName.SNAP: run_snap_manager,
         FamilyName.DEB: run_deb_manager,
     }
-    for family, manager_funciton in family_mapping.items():
-        artefacts = get_artefacts_by_family_name(session, family)
+    for family_name, manager_function in family_mapping.items():
+        artefacts = get_artefacts_by_family_name(session, family_name)
         processed_artefacts = {}
         for artefact in artefacts:
             try:
                 processed_artefacts[
-                    f"{family} - {artefact.name} - {artefact.version}"
+                    f"{family_name} - {artefact.name} - {artefact.version}"
                 ] = True
-                run_snap_manager(session, artefact)
+                manager_function(session, artefact)
             except Exception as exc:
                 processed_artefacts[
-                    f"{family} - {artefact.name} - {artefact.version}"
+                    f"{family_name} - {artefact.name} - {artefact.version}"
                 ] = False
                 logger.warning("WARNING: %s", str(exc), exc_info=True)
     return processed_artefacts
@@ -183,17 +183,21 @@ def run_deb_manager(session: Session, artefact: Artefact) -> None:
             pocket=repo,
             apt_repo=artefact.source["repo"],
         )
-        deb_kernel_image = convert_meta_package_to_kernel_image(artefact.name, filepath)
         try:
-            deb_version = get_deb_version_from_package(filepath, deb_kernel_image)
+            deb_version = get_deb_version_from_package(filepath, artefact.name)
         except KeyError:
             logger.error(
-                "Cannot find deb_version with image %s in package data",
-                deb_kernel_image,
+                "Cannot find deb_version with deb %s in package data",
+                artefact.name,
             )
             continue
+        finally:
+            os.remove(filepath)  # Cleanup
 
         next_repo = REPOSITORY_PROMOTION_MAP.get(artefact.stage.name)
+        logger.debug(
+            "Artefact version: %s, deb version: %s", artefact.version, deb_version
+        )
         if repo == next_repo != artefact.stage.name and deb_version == artefact.version:
             logger.info("Move artefact '%s' to the '%s' stage", artefact, next_repo)
             artefact.stage = get_stage_by_name(
