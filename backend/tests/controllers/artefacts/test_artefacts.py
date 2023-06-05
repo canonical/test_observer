@@ -20,8 +20,6 @@
 """Test snap manager API"""
 
 
-import gzip
-
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
