@@ -22,6 +22,8 @@
 from typing import TypeVar
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, Session
+
+from .models_enums import FamilyName
 from .models import Base, Family, Stage, Artefact
 
 
@@ -37,12 +39,14 @@ def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stag
     stage = (
         session.query(Stage)
         .filter(Stage.name == stage_name, Stage.family == family)
-        .first()
+        .one()
     )
     return stage
 
 
-def get_artefacts_by_family_name(session: Session, family_name: str) -> list[Artefact]:
+def get_artefacts_by_family_name(
+    session: Session, family_name: FamilyName
+) -> list[Artefact]:
     """
     Get all the artefacts in a family
 

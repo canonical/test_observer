@@ -15,15 +15,9 @@ poetry-dynamic-versioning = {extras = ["plugin"], version = "^0.22.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
-pylint = "^2.17.1"
-
-[tool.poetry-dynamic-versioning]
-enable = true
-vcs = "git"
-metadata = "true"
-tagged-metadata = "true"
-
-
+mypy = "^1.3.0"
+pylint = "^2.17.4"
+ruff = "^0.0.270"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
@@ -31,6 +25,26 @@ requests-mock = "^1.10.0"
 python-multipart = "^0.0.6"
 httpx = "^0.24.0"
 sqlalchemy-utils = "^0.41.1"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+metadata = "true"
+tagged-metadata = "true"
+
+[tool.pylint.basic]
+good-names = ["db", "e"]
+
+[tool.pylint.format]
+max-line-length = "88"
+
+[tool.pylint."messages control"]
+extension-pkg-whitelist = "pydantic"
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+]
 
 [build-system]
 requires = ["poetry-core", "poetry-dynamic-versioning"]
