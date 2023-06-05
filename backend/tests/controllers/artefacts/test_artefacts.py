@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from ...helpers import create_artefact
 
 
-def test_run_to_move_artefact(
+def test_run_to_move_artefact_snap(
     db_session: Session, test_client: TestClient, requests_mock: Mocker
 ):
     """
@@ -68,6 +68,31 @@ def test_run_to_move_artefact(
         name="core20",
         version="1.1.1",
         source={"revision": 1883, "architecture": "amd64", "store": "ubuntu"},
+    )
+
+    # Act
+    test_client.put("/v0/artefacts/promote")
+
+    db_session.refresh(artefact)
+
+    # Assert
+    assert artefact.stage.name == "beta"
+
+
+def test_run_to_move_artefact_deb(
+    db_session: Session, test_client: TestClient, requests_mock: Mocker
+):
+    """
+    If card's current list name is different to its list name in
+    snapcraft, the card is moved to the next list
+    """
+    # Arrange
+    artefact = create_artefact(
+        db_session,
+        "proposed",
+        name="linux-generic",
+        version="5.19.0.44.40",
+        source={"series": "kinetic", "repo": "main"},
     )
 
     # Act
