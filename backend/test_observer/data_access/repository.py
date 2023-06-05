@@ -64,6 +64,13 @@ DataModel = TypeVar("DataModel", bound=Base)
 
 
 def get_or_create(db: Session, model: DataModel, **kwargs) -> DataModel:
+    """
+    Creates an object if it doesn't exist, otherwise returns the existing one
+
+    :db: DB session
+    :model: model to create e.g. Stage, Family, Artefact
+    :kwargs: keyword arguments to pass to the model
+    """
     # Try to create first to avoid race conditions
     stmt = insert(model).values([kwargs]).on_conflict_do_nothing().returning(model)
 
