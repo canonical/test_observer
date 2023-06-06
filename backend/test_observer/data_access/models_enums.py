@@ -16,6 +16,7 @@
 #
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 
 
 from enum import Enum
@@ -24,3 +25,16 @@ from enum import Enum
 class FamilyName(Enum):
     SNAP = "snap"
     DEB = "deb"
+
+
+class TestExecutionStatus(Enum):
+    NOT_STARTED = "NOT_STARTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    NOT_TESTED = "NOT_TESTED"
+
+
+class ArtefactStatus(Enum):
+    APPROVED = "APPROVED"
+    MARKED_AS_FAILED = "MARKED_AS_FAILED"
