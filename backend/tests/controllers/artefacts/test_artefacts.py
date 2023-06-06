@@ -31,8 +31,8 @@ def test_run_to_move_artefact_snap(
     db_session: Session, test_client: TestClient, requests_mock: Mocker
 ):
     """
-    If card's current list name is different to its list name in
-    snapcraft, the card is moved to the next list
+    If artefact's current stage name is different to its stage name on
+    snapcraft, the artefact is moved to the next stage
     """
     # Arrange
     requests_mock.get(
@@ -83,8 +83,8 @@ def test_run_to_move_artefact_deb(
     db_session: Session, test_client: TestClient, requests_mock: Mocker
 ):
     """
-    If card's current list name is different to its list name in
-    snapcraft, the card is moved to the next list
+    If artefact's current stage name is different to its stage name on
+    deb archive, the artefact is moved to the next stage
     """
     # Arrange
     artefact = create_artefact(

@@ -31,9 +31,14 @@ from urllib.error import HTTPError
 import requests
 
 
-def get_data_from_archive(arch: str, series: str, pocket: str, apt_repo: str) -> dict:
+def get_data_from_archive(arch: str, series: str, pocket: str, apt_repo: str) -> str:
     """
     Get json data abourt deb packages from archive
+
+    :arch: deb architecture
+    :series: deb series (e.g. focal, jammy)
+    :pocket: deb pocket ("proposed" or "updates")
+    :apt_repo: repo on archive (e.g. main, universe)
     """
     if arch == "arm":
         archive_url = "ports.ubuntu.com/ubuntu-ports/dists"
