@@ -28,7 +28,8 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
 from test_observer.data_access import Base
-from test_observer.main import app, get_db
+from test_observer.data_access.setup import get_db
+from test_observer.main import app
 
 
 @pytest.fixture(scope="session")
