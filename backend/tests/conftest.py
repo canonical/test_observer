@@ -32,7 +32,6 @@ from sqlalchemy_utils import (  # type: ignore
     create_database,
     drop_database,
 )
-from test_observer.data_access import Base
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
 
