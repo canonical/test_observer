@@ -36,4 +36,4 @@ jobs:
       - run: poetry run mypy test_observer tests
       - run: poetry run pytest
         env:
-          TEST_DB_URL: postgresql://postgres:password@localhost:5432/postgres
+          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
