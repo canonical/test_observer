@@ -34,34 +34,21 @@ from ..helpers import create_artefact
 def test_get_stage_by_name(db_session: Session):
     """The function should select the correct stage by its name"""
     # Arrange
-    family = db_session.query(Family).filter(Family.name == "deb").one()
+    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
     stage_name = "proposed"
 
     # Act
     stage = get_stage_by_name(db_session, stage_name, family)
 
     # Assert
-    assert stage.name == stage_name
+    assert stage and stage.name == stage_name
 
 
 def test_get_stage_by_name_no_such_stage(db_session: Session):
     """The function should return None"""
     # Arrange
-    family = db_session.query(Family).filter(Family.name == "deb").one()
+    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
     stage_name = "fakestage"
-
-    # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
-
-    # Assert
-    assert stage is None
-
-
-def test_get_stage_by_name_no_such_family(db_session: Session):
-    """The function should return None"""
-    # Arrange
-    family = db_session.query(Family).filter(Family.name == "fakefamily").one()
-    stage_name = "proposed"
 
     # Act
     stage = get_stage_by_name(db_session, stage_name, family)

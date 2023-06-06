@@ -27,7 +27,9 @@ from .models_enums import FamilyName
 from .models import DataModel, Family, Stage, Artefact
 
 
-def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stage:
+def get_stage_by_name(
+    session: Session, stage_name: str, family: Family
+) -> Stage | None:
     """
     Get the stage object by its name
 
@@ -39,7 +41,7 @@ def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stag
     stage = (
         session.query(Stage)
         .filter(Stage.name == stage_name, Stage.family == family)
-        .one()
+        .one_or_none()
     )
     return stage
 
