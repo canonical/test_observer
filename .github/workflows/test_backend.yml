@@ -2,7 +2,7 @@ name: Test Backend
 on: [push]
 # Cancel inprogress runs if new commit pushed
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   test:
