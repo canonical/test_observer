@@ -18,6 +18,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 """Fixtures for testing"""
+# pylint: disable=redefined-outer-name
 
 
 from os import environ
@@ -27,7 +28,11 @@ from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy_utils import create_database, database_exists, drop_database  # type: ignore
+from sqlalchemy_utils import (  # type: ignore
+    create_database,
+    database_exists,
+    drop_database,
+)
 from test_observer.data_access import Base
 from test_observer.data_access.setup import get_db
 from test_observer.main import app

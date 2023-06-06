@@ -35,7 +35,7 @@ metadata = "true"
 tagged-metadata = "true"
 
 [tool.pylint.basic]
-good-names = ["db", "e"]
+good-names = ["db", "e", "id"]
 
 [tool.pylint.format]
 max-line-length = "88"
@@ -43,9 +43,13 @@ max-line-length = "88"
 [tool.pylint."messages control"]
 extension-pkg-whitelist = "pydantic"
 disable = [
+    "redefined-builtin",
+    "too-few-public-methods",
     "missing-module-docstring",
     "missing-class-docstring",
     "missing-function-docstring",
+    "fixme",
+    "broad-exception-caught"
 ]
 
 [build-system]

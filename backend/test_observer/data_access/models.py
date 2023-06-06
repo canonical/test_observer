@@ -17,7 +17,7 @@
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
-
+# pylint: disable=not-callable
 
 from typing import List, TypeVar
 from datetime import datetime, date
