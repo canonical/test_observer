@@ -27,7 +27,7 @@ from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy_utils import create_database, database_exists, drop_database
+from sqlalchemy_utils import create_database, database_exists, drop_database  # type: ignore
 from test_observer.data_access import Base
 from test_observer.data_access.setup import get_db
 from test_observer.main import app

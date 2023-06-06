@@ -19,7 +19,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
-from typing import List
+from typing import List, TypeVar
 from datetime import datetime, date
 
 from sqlalchemy import (
@@ -158,3 +158,6 @@ class TestExecution(Base):
     )
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
+
+
+DataModel = TypeVar("DataModel", bound=Base)
