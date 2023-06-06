@@ -154,6 +154,16 @@ Note that the frontend app is made aware of the backend URL to connect to using 
 
 These in turn can be set using the terraform plan (`terraform/test-observer.tf` and associated variables).
 
+## Running tests
+
+To run the unit and integration tests for the frontend charms, do the following:
+
+```bash
+cd frontend/charm
+tox -e unit
+tox -e integration
+```
+
 ## Releasing the charms
 
 You can use [release-k8s-charm](https://github.com/mz2/release-k8s-charm) to release the charms to charmhub, until we ingroduce a GitHub action driven workflow for releasing them (the `upload-charm` action in [canonical/charming-actions](https://github.com/canonical/charming-actions) will be the longer term solution).

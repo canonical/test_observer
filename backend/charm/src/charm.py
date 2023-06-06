@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 
-from ops.charm import CharmBase
-from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import Layer
+import logging
 
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseCreatedEvent,
     DatabaseEndpointsChangedEvent,
     DatabaseRequires,
-    RelationJoinedEvent,
     RelationChangedEvent,
+    RelationJoinedEvent,
 )
-
 from charms.traefik_k8s.v1.ingress import (
     IngressPerAppRequirer,
 )
-
+from ops.charm import CharmBase
+from ops.main import main
+from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
+from ops.pebble import Layer
 from requests import get
-import logging
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
@@ -33,7 +31,7 @@ class TestObserverBackendCharm(CharmBase):
         self.container = self.unit.get_container("api")
 
         self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
-        self.framework.observe(self.on.config_changed, self._update_layer_and_restart)
+        self.framework.observe(self.on.config_changed, self._on_config_changed)
 
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
@@ -45,7 +43,8 @@ class TestObserverBackendCharm(CharmBase):
             self.database.on.endpoints_changed, self._on_database_changed
         )
         self.framework.observe(
-            self.database.on.database_relation_broken, self._on_database_relation_broken
+            self.database.on.database_relation_broken,
+            self._on_database_relation_broken,
         )
 
         self.framework.observe(
@@ -64,7 +63,9 @@ class TestObserverBackendCharm(CharmBase):
 
     def _migrate_database(self, event):
         process = self.container.exec(
-            ["alembic", "upgrade", "head"], working_dir="./backend", timeout=None
+            ["alembic", "upgrade", "head"],
+            working_dir="./backend",
+            timeout=None,
         )
         stdout, stderr = process.wait_output()
 
@@ -85,6 +86,14 @@ class TestObserverBackendCharm(CharmBase):
     def _on_database_relation_broken(self, event):
         self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
+
+    def _on_config_changed(self, event):
+        for relation in self.model.relations["test-observer-rest-api"]:
+            host = self.config["hostname"]
+            port = str(self.config["port"])
+            relation.data[self.app].update({"hostname": host, "port": port})
+
+        self._update_layer_and_restart(event)
 
     def _update_layer_and_restart(self, event):
         self.unit.status = MaintenanceStatus(
@@ -126,7 +135,10 @@ class TestObserverBackendCharm(CharmBase):
                 f"Setting hostname in data bag for {self.app}: {self.config['hostname']}"
             )
             event.relation.data[self.app].update(
-                {"hostname": self.config["hostname"], "port": str(self.config["port"])}
+                {
+                    "hostname": self.config["hostname"],
+                    "port": str(self.config["port"]),
+                }
             )
 
     @property
