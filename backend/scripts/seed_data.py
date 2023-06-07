@@ -78,21 +78,21 @@ REQUESTS = [
     ),
     StartTestExecutionRequest(
         family="deb",
-        name="linux-generic",
+        name="linux-raspi",
         version="5.15.0.73.71",
         source={"series": "jammy", "repo": "main"},
         arch="arm64",
         execution_stage="proposed",
-        environment="linux-raspi",
+        environment="rpi400",
     ),
     StartTestExecutionRequest(
         family="deb",
-        name="linux-generic",
+        name="linux-raspi",
         version="5.15.0.73.70",
         source={"series": "jammy", "repo": "main"},
         arch="arm64",
         execution_stage="updates",
-        environment="linux-raspi",
+        environment="rpi400",
     ),
 ]
 
