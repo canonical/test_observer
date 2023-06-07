@@ -29,6 +29,7 @@ import string
 import tempfile
 from urllib.error import HTTPError
 import requests
+from types import TracebackType
 import logging
 
 
@@ -60,7 +61,12 @@ class ArchiveManager:
         self._decompress_data()
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(
+        self,
+        exctype: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
+    ):
         logger.error(value)
         os.remove(self.gz_filepath)
         os.remove(self.decompressed_filepath)
@@ -68,7 +74,8 @@ class ArchiveManager:
     def get_deb_version(self, debname: str) -> str:
         """
         Convert Packages file from archive to json and get version from it
-        This function corresponds the method used by jenkins from the hwcert-jenkins-tools
+        This function corresponds the method used by jenkins from the
+        hwcert-jenkins-tools
         See https://git.launchpad.net/hwcert-jenkins-tools/tree/convert-packages-json
 
         :debname: name of the deb package
@@ -126,6 +133,7 @@ class ArchiveManager:
 
     def _decompress_data(self) -> None:
         """Decompress the downloaded data"""
-        with gzip.open(self.gz_filepath, "rb") as f_in:
-            with open(self.decompressed_filepath, "wb") as f_out:
-                f_out.write(f_in.read())
+        with gzip.open(self.gz_filepath, "rb") as f_in, open(
+            self.decompressed_filepath, "wb"
+        ) as f_out:
+            f_out.write(f_in.read())

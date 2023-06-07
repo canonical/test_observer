@@ -60,7 +60,7 @@ def promote_artefacts(db: Session = Depends(get_db)):
     external source
     """
     try:
-        processed_artefacts = manager_controller(db)
+        processed_artefacts = promoter_controller(db)
         logger.info("INFO: Processed artefacts %s", processed_artefacts)
         if False in processed_artefacts.values():
             return JSONResponse(
@@ -82,18 +82,18 @@ def promote_artefacts(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 
-def manager_controller(session: Session) -> dict:
+def promoter_controller(session: Session) -> dict:
     """
-    Orchestrate the snap manager job
+    Orchestrate the snap promoter job
 
     :session: DB connection session
     :return: dict with the processed cards and the status of execution
     """
     family_mapping = {
-        FamilyName.SNAP: run_snap_manager,
-        FamilyName.DEB: run_deb_manager,
+        FamilyName.SNAP: run_snap_promoter,
+        FamilyName.DEB: run_deb_promoter,
     }
-    for family_name, manager_function in family_mapping.items():
+    for family_name, promoter_function in family_mapping.items():
         artefacts = get_artefacts_by_family_name(session, family_name)
         processed_artefacts = {}
         for artefact in artefacts:
@@ -101,7 +101,7 @@ def manager_controller(session: Session) -> dict:
                 processed_artefacts[
                     f"{family_name} - {artefact.name} - {artefact.version}"
                 ] = True
-                manager_function(session, artefact)
+                promoter_function(session, artefact)
             except Exception as exc:
                 processed_artefacts[
                     f"{family_name} - {artefact.name} - {artefact.version}"
@@ -110,7 +110,7 @@ def manager_controller(session: Session) -> dict:
     return processed_artefacts
 
 
-def run_snap_manager(session: Session, artefact: Artefact) -> None:
+def run_snap_promoter(session: Session, artefact: Artefact) -> None:
     """
     Check snap artefacts state and move/archive them if necessary
 
@@ -164,7 +164,7 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
             break
 
 
-def run_deb_manager(session: Session, artefact: Artefact) -> None:
+def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     """
     Check deb artefacts state and move/archive them if necessary
 
