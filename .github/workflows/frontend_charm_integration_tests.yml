@@ -6,6 +6,10 @@ on:
 
 jobs:
   integration-test:
+    permissions:
+      contents: read
+      packages: read
+
     name: Integration tests
     runs-on: ubuntu-22.04
     steps:
