@@ -22,13 +22,13 @@ jobs:
       - name: Setup operator environment
         uses: mz2/actions-operator@4fcb55b99e2a0f69a5910870d3639d203aeb87aa
         with:
+          channel: 1.27-strict/stable
+          provider: microk8s
           juju-channel: 3.1/stable
           juju-classic-confinement: "false"
           microk8s-classic-confinement: "false"
           charmcraft-channel: 2.x/stable
           lxd-channel: 5.13/stable
-          channel: 1.27-strict/stable
-          provider: microk8s
       - name: Adjust containerd template to accept ghcr.io images
         run: |
           sudo mkdir -p /var/snap/microk8s/current/args &&
