@@ -18,7 +18,7 @@ jobs:
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
-          juju-channel: 3.1/stable
+          juju-channel: 3.0/stable
           charmcraft-channel: 2.x/stable
           lxd-channel: 5.13/stable
           provider: microk8s
