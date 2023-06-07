@@ -20,11 +20,10 @@
 
 
 from pydantic import BaseModel
-from typing import List
 
 
 class Download(BaseModel):
-    deltas: List[str]
+    deltas: list[str]
     sha3_384: str
     size: int
     url: str
@@ -48,10 +47,10 @@ class ChannelMap(BaseModel):
 
 
 class SnapInfo(BaseModel):
-    channel_map: List[ChannelMap]
+    channel_map: list[ChannelMap]
 
 
-def rename_keys(data):
+def rename_keys(data: list | dict):
     """Replace - with _ in dicts to avoid errors in mapping"""
     if isinstance(data, list):
         return [rename_keys(i) for i in data]

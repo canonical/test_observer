@@ -20,7 +20,6 @@
 """Data Transfer Object for creating API responses"""
 
 
-from typing import List
 from pydantic import BaseModel
 
 
@@ -36,7 +35,7 @@ class ArtefactDTO(BaseModel):
 class StageDTO(BaseModel):
     id: int
     name: str
-    artefacts: List[ArtefactDTO]
+    artefacts: list[ArtefactDTO]
 
     class Config:
         orm_mode = True
@@ -45,7 +44,7 @@ class StageDTO(BaseModel):
 class FamilyDTO(BaseModel):
     id: int
     name: str
-    stages: List[StageDTO]
+    stages: list[StageDTO]
 
     class Config:
         orm_mode = True

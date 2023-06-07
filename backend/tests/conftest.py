@@ -18,9 +18,6 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 """Fixtures for testing"""
-# pylint: disable=redefined-outer-name
-
-
 from os import environ
 import pytest
 from alembic import command
@@ -38,8 +35,10 @@ from test_observer.main import app
 
 @pytest.fixture(scope="session")
 def db_url():
-    """Retrieves the database url from the environment variable TEST_DB_URL
-    or creates a new database and returns the url"""
+    """
+    Retrieves the database url from the environment variable TEST_DB_URL
+    or creates a new database and returns the url
+    """
     db_url = environ.get("TEST_DB_URL")
     if db_url:
         yield db_url

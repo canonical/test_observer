@@ -47,9 +47,7 @@ def downgrade() -> None:
     session = Session(bind=bind)
 
     families = (
-        session.query(Family)
-        .filter(Family.name in initial_families_and_stages.keys())
-        .all()
+        session.query(Family).filter(Family.name.in_(initial_families_and_stages)).all()
     )
 
     for family in families:

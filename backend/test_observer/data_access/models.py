@@ -17,9 +17,7 @@
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
-# pylint: disable=not-callable
-
-from typing import List, TypeVar
+from typing import TypeVar
 from datetime import datetime, date
 
 from sqlalchemy import (
@@ -56,7 +54,7 @@ class Family(Base):
 
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
-    stages: Mapped[List["Stage"]] = relationship(
+    stages: Mapped[list["Stage"]] = relationship(
         back_populates="family", cascade="all, delete-orphan"
     )
 
@@ -71,7 +69,7 @@ class Stage(Base):
     # Relationships
     family_id: Mapped[int] = mapped_column(ForeignKey("family.id"))
     family: Mapped[Family] = relationship(back_populates="stages")
-    artefacts: Mapped[List["Artefact"]] = relationship(
+    artefacts: Mapped[list["Artefact"]] = relationship(
         back_populates="stage", cascade="all, delete-orphan"
     )
 
@@ -87,7 +85,7 @@ class Artefact(Base):
     # Relationships
     stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
-    builds: Mapped[List["ArtefactBuild"]] = relationship(
+    builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete-orphan"
     )
     # Default fields
@@ -111,7 +109,7 @@ class ArtefactBuild(Base):
     artefact: Mapped[Artefact] = relationship(
         back_populates="builds", foreign_keys=[artefact_id]
     )
-    test_executions: Mapped[List["TestExecution"]] = relationship(
+    test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete-orphan"
     )
 
@@ -128,7 +126,7 @@ class Environment(Base):
 
     name: Mapped[str] = mapped_column(String(200))
     architecture: Mapped[str] = mapped_column(String(100))
-    test_executions: Mapped[List["TestExecution"]] = relationship(
+    test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="environment"
     )
 

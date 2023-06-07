@@ -19,7 +19,6 @@
 #        Omar Selo <omar.selo@canonical.com>
 """Services for working with objects from DB"""
 
-from typing import Type
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, Session
 
@@ -66,7 +65,7 @@ def get_artefacts_by_family_name(
     return artefacts
 
 
-def get_or_create(db: Session, model: Type[DataModel], **kwargs) -> DataModel:
+def get_or_create(db: Session, model: type[DataModel], **kwargs) -> DataModel:
     """
     Creates an object if it doesn't exist, otherwise returns the existing one
 
