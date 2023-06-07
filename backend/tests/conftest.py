@@ -18,38 +18,51 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 """Fixtures for testing"""
-
-
+from os import environ
 import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy_utils import create_database, database_exists, drop_database
-from test_observer.data_access import Base
+from sqlalchemy_utils import (  # type: ignore
+    create_database,
+    drop_database,
+)
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
 
 
 @pytest.fixture(scope="session")
-def db_engine():
-    db_uri = "postgresql+pg8000://postgres:password@test-observer-db:5432/test"
+def db_url():
+    """
+    Retrieves the database url from the environment variable TEST_DB_URL
+    or creates a new database and returns the url
+    """
+    db_url = environ.get("TEST_DB_URL")
+    if db_url:
+        yield db_url
+    else:
+        db_url = "postgresql+pg8000://postgres:password@test-observer-db:5432/test"
+        create_database(db_url)
 
-    if not database_exists(db_uri):
-        create_database(db_uri)
+        yield db_url
 
-    engine = create_engine(db_uri)
+        drop_database(db_url)
+
+
+@pytest.fixture(scope="session")
+def db_engine(db_url: str):
+    engine = create_engine(db_url)
 
     alembic_config = Config("alembic.ini")
-    alembic_config.set_main_option("sqlalchemy.url", db_uri)
+    alembic_config.set_main_option("sqlalchemy.url", db_url)
     command.upgrade(alembic_config, "head")
 
     yield engine
 
-    Base.metadata.drop_all(engine)
+    command.downgrade(alembic_config, "base")
     engine.dispose()
-    drop_database(db_uri)
 
 
 @pytest.fixture(scope="function")

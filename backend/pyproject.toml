@@ -12,18 +12,13 @@ sqlalchemy = "^2.0.9"
 pg8000 = "^1.29.4"
 alembic = "^1.10.3"
 poetry-dynamic-versioning = {extras = ["plugin"], version = "^0.22.0"}
+requests = "^2.31.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
-pylint = "^2.17.1"
-
-[tool.poetry-dynamic-versioning]
-enable = true
-vcs = "git"
-metadata = "true"
-tagged-metadata = "true"
-
-
+mypy = "^1.3.0"
+ruff = "^0.0.270"
+types-requests = "^2.31.0.1"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
@@ -31,6 +26,19 @@ requests-mock = "^1.10.0"
 python-multipart = "^0.0.6"
 httpx = "^0.24.0"
 sqlalchemy-utils = "^0.41.1"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+metadata = "true"
+tagged-metadata = "true"
+
+[tool.ruff]
+select = ["E", "F", "B", "N", "UP", "ANN", "C4", "T20", "SIM", "ARG", "ERA", "PLE"]
+ignore = ["ANN201", "ANN003", "N999"]
+
+[tool.ruff.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query"]
 
 [build-system]
 requires = ["poetry-core", "poetry-dynamic-versioning"]

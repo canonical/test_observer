@@ -1,7 +1,8 @@
 from importlib.metadata import version, PackageNotFoundError
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter
 
 router = APIRouter()
+
 
 @router.get("/")
 async def get_version():

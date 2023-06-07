@@ -21,10 +21,12 @@ def upgrade() -> None:
         "environment", sa.Column("architecture", sa.String(length=100), nullable=False)
     )
     op.drop_index("ix_environment_name", table_name="environment")
-    op.create_unique_constraint(None, "environment", ["name", "architecture"])
+    op.create_unique_constraint(
+        "unique_environment", "environment", ["name", "architecture"]
+    )
 
 
 def downgrade() -> None:
-    op.drop_constraint(None, "environment", type_="unique")
+    op.drop_constraint("unique_environment", "environment", type_="unique")
     op.create_index("ix_environment_name", "environment", ["name"], unique=False)
     op.drop_column("environment", "architecture")

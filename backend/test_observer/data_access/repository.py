@@ -19,13 +19,16 @@
 #        Omar Selo <omar.selo@canonical.com>
 """Services for working with objects from DB"""
 
-from typing import TypeVar
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, Session
-from .models import Base, Family, Stage, Artefact
+
+from .models_enums import FamilyName
+from .models import DataModel, Family, Stage, Artefact
 
 
-def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stage:
+def get_stage_by_name(
+    session: Session, stage_name: str, family: Family
+) -> Stage | None:
     """
     Get the stage object by its name
 
@@ -37,12 +40,14 @@ def get_stage_by_name(session: Session, stage_name: str, family: Family) -> Stag
     stage = (
         session.query(Stage)
         .filter(Stage.name == stage_name, Stage.family == family)
-        .first()
+        .one_or_none()
     )
     return stage
 
 
-def get_artefacts_by_family_name(session: Session, family_name: str) -> list[Artefact]:
+def get_artefacts_by_family_name(
+    session: Session, family_name: FamilyName
+) -> list[Artefact]:
     """
     Get all the artefacts in a family
 
@@ -60,10 +65,7 @@ def get_artefacts_by_family_name(session: Session, family_name: str) -> list[Art
     return artefacts
 
 
-DataModel = TypeVar("DataModel", bound=Base)
-
-
-def get_or_create(db: Session, model: DataModel, **kwargs) -> DataModel:
+def get_or_create(db: Session, model: type[DataModel], **kwargs) -> DataModel:
     """
     Creates an object if it doesn't exist, otherwise returns the existing one
 

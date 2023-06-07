@@ -73,16 +73,14 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
 
 def test_uses_existing_models(db_session: Session, test_client: TestClient):
     request = StartTestExecutionRequest(
-        **{
-            "family": "snap",
-            "name": "core22",
-            "version": "abec123",
-            "revision": 123,
-            "source": {"track": "22"},
-            "arch": "arm64",
-            "execution_stage": "beta",
-            "environment": "cm3",
-        }
+        family="snap",
+        name="core22",
+        version="abec123",
+        revision=123,
+        source={"track": "22"},
+        arch="arm64",
+        execution_stage="beta",
+        environment="cm3",
     )
     stage = (
         db_session.query(Stage).filter(Stage.name == request.execution_stage).first()

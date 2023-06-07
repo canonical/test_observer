@@ -1,0 +1,39 @@
+name: Test Backend
+on: [push]
+# Cancel inprogress runs if new commit pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:15.2
+        env:
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - uses: Gr1N/setup-poetry@v8
+        with:
+          poetry-version: "1.5.1"
+      - run: poetry install
+      - run: poetry run black --check test_observer tests migrations/versions
+      - run: poetry run ruff test_observer tests migrations/versions
+      - run: poetry run mypy test_observer tests migrations/versions
+      - run: poetry run pytest
+        env:
+          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres

@@ -24,7 +24,10 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.repository import get_stage_by_name, get_artefacts_by_family_name
+from test_observer.data_access.repository import (
+    get_stage_by_name,
+    get_artefacts_by_family_name,
+)
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
@@ -134,8 +137,10 @@ def run_snap_manager(session: Session, artefact: Artefact) -> None:
             and revision == artefact.source["revision"]
         ):
             logger.info("Move artefact '%s' to the '%s' stage", artefact, next_risk)
-            artefact.stage = get_stage_by_name(
+            stage = get_stage_by_name(
                 session, stage_name=next_risk, family=artefact.stage.family
             )
-            session.commit()
+            if stage:
+                artefact.stage = stage
+                session.commit()
             break

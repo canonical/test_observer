@@ -22,7 +22,11 @@
 
 from sqlalchemy.orm import Session
 from test_observer.data_access.models import Family
-from test_observer.data_access.repository import get_artefacts_by_family_name, get_stage_by_name
+from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.repository import (
+    get_artefacts_by_family_name,
+    get_stage_by_name,
+)
 
 from ..helpers import create_artefact
 
@@ -30,34 +34,21 @@ from ..helpers import create_artefact
 def test_get_stage_by_name(db_session: Session):
     """The function should select the correct stage by its name"""
     # Arrange
-    family = db_session.query(Family).filter(Family.name == "deb").first()
+    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
     stage_name = "proposed"
 
     # Act
     stage = get_stage_by_name(db_session, stage_name, family)
 
     # Assert
-    assert stage.name == stage_name
+    assert stage and stage.name == stage_name
 
 
 def test_get_stage_by_name_no_such_stage(db_session: Session):
     """The function should return None"""
     # Arrange
-    family = db_session.query(Family).filter(Family.name == "deb").first()
+    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
     stage_name = "fakestage"
-
-    # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
-
-    # Assert
-    assert stage is None
-
-
-def test_get_stage_by_name_no_such_family(db_session: Session):
-    """The function should return None"""
-    # Arrange
-    family = db_session.query(Family).filter(Family.name == "fakefamily").first()
-    stage_name = "proposed"
 
     # Act
     stage = get_stage_by_name(db_session, stage_name, family)
@@ -79,22 +70,10 @@ def test_get_artefacts_by_family_name(db_session: Session):
         create_artefact(db_session, stage, name=name)
 
     # Act
-    artefacts = get_artefacts_by_family_name(db_session, "snap")
+    artefacts = get_artefacts_by_family_name(db_session, FamilyName.SNAP)
 
     # Assert
     assert len(artefacts) == len(artefact_name_stage_pair)
     assert {
         (artefact.name, artefact.stage.name) for artefact in artefacts
     } == artefact_name_stage_pair
-
-
-def test_get_artefacts_by_family_name_no_such_family(db_session: Session):
-    """We should get an empty list when there's no such family"""
-    # Arrange
-    family_name = "fakename"
-
-    # Act
-    artefacts = get_artefacts_by_family_name(db_session, family_name)
-
-    # Assert
-    assert artefacts == []
