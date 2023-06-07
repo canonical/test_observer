@@ -15,7 +15,6 @@ from charms.traefik_k8s.v1.ingress import (
     IngressPerAppRequirer,
     IngressPerAppRevokedEvent,
 )
-from ops.framework import StoredState
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
