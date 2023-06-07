@@ -83,7 +83,7 @@ REQUESTS = [
         source={"series": "jammy", "repo": "main"},
         arch="arm64",
         execution_stage="proposed",
-        environment="rpi400",
+        environment="linux-raspi",
     ),
     StartTestExecutionRequest(
         family="deb",
@@ -92,7 +92,7 @@ REQUESTS = [
         source={"series": "jammy", "repo": "main"},
         arch="arm64",
         execution_stage="updates",
-        environment="rpi400",
+        environment="linux-raspi",
     ),
 ]
 
