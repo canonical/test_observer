@@ -31,11 +31,11 @@ jobs:
           provider: microk8s
       - name: Adjust containerd template to accept ghcr.io images
         run: |
-          sudo mkdir -p /var/snap/microk8s/current/args
-          echo "" | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml
-          echo "[plugins.\"io.containerd.grpc.v1.cri\".registry.configs.\"ghcr.io\".auth]" | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml
-          echo "  username = \"${GHCR_PACKAGE_API_USER}\" | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml
-          echo "  password = \"${GHCR_PACKAGE_API_TOKEN}\" | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml
+          sudo mkdir -p /var/snap/microk8s/current/args &&
+          echo "" | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
+          echo '[plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]' | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
+          echo '  username = "$GHCR_PACKAGE_API_USER"' | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
+          echo '  password = "$GHCR_PACKAGE_API_TOKEN"' | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
           sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.stop && sudo microk8s.start
         env:
           GHCR_PACKAGE_API_USER: ${{ secrets.GHCR_PACKAGE_API_USER }}
