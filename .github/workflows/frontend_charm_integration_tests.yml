@@ -29,6 +29,18 @@ jobs:
           lxd-channel: 5.13/stable
           channel: 1.27-strict/stable
           provider: microk8s
+      - name: Adjust containerd template to accept ghcr.io images
+        run: |
+          sudo mkdir -p /var/snap/microk8s/current/args
+          echo "" >> /var/snap/microk8s/current/args/containerd-template.toml
+          echo "[plugins.\"io.containerd.grpc.v1.cri\".registry.configs.\"ghcr.io\".auth]" >> /var/snap/microk8s/current/args/containerd-template.toml
+          echo "  username = \"${GHCR_PACKAGE_API_USER}\" >> /var/snap/microk8s/current/args/containerd-template.toml
+          echo "  password = \"${GHCR_PACKAGE_API_TOKEN}\" >> /var/snap/microk8s/current/args/containerd-template.toml
+          echo $GHCR_PACKAGE_API_TOKEN | docker login ghcr.io -u $GHCR_PACKAGE_API_USER --password-stdin
+          sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.stop && sudo microk8s.start
+        env:
+          GHCR_PACKAGE_API_USER: ${{ secrets.GHCR_PACKAGE_API_USER }}
+          GHCR_PACKAGE_API_TOKEN: ${{ secrets.GHCR_PACKAGE_API_TOKEN }}
       - name: Run integration tests
         run: tox -e integration
       - name: Archive Tested Charm
