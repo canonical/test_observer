@@ -39,7 +39,7 @@ jobs:
           sudo systemctl restart snap.microk8s.daemon-containerd.service && 
           sudo microk8s.stop && 
           sudo microk8s.start && 
-          microk8s status --wait-ready
+          sudo microk8s status --wait-ready
         env:
           GHCR_PACKAGE_API_USER: ${{ secrets.GHCR_PACKAGE_API_USER }}
           GHCR_PACKAGE_API_TOKEN: ${{ secrets.GHCR_PACKAGE_API_TOKEN }}
