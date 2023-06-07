@@ -29,90 +29,103 @@ import string
 import tempfile
 from urllib.error import HTTPError
 import requests
+import logging
 
 
-def get_data_from_archive(arch: str, series: str, pocket: str, apt_repo: str) -> str:
-    """
-    Get json data abourt deb packages from archive
-
-    :arch: deb architecture
-    :series: deb series (e.g. focal, jammy)
-    :pocket: deb pocket ("proposed" or "updates")
-    :apt_repo: repo on archive (e.g. main, universe)
-    """
-    if arch == "arm":
-        archive_url = "ports.ubuntu.com/ubuntu-ports/dists"
-    else:
-        archive_url = "us.archive.ubuntu.com/ubuntu/dists"
-    url = f"http://{archive_url}/{series}-{pocket}/{apt_repo}/binary-{arch}/Packages.gz"
-    filepath = download_and_decompress_file(url)
-    return filepath
+logger = logging.getLogger("test-observer-backend")
 
 
-def download_and_decompress_file(url: str) -> str:
-    """
-    Download file from a specified url
+class ArchiveManager:
+    """Class for working with deb packages from archive"""
 
-    :url: the archive full url
-    :return: filepath of the decompressed file
-    """
-    # Creating a temporary directory
-    temp_dir = tempfile.gettempdir()
+    def __init__(self, arch: str, series: str, pocket: str, apt_repo: str):
+        """
+        Get json data abourt deb packages from archive
 
-    filepath = url.split("/")[-1] + "".join(
-        random.choice(string.ascii_lowercase) for i in range(10)
-    )
-    gz_file_path = os.path.join(temp_dir, filepath)
-    # Remove .gz extension
-    decompressed_file_path = os.path.join(
-        temp_dir,
-        filepath[:-3]
-        + "".join(random.choice(string.ascii_lowercase) for i in range(10)),
-    )
+        :arch: deb architecture
+        :series: deb series (e.g. focal, jammy)
+        :pocket: deb pocket ("proposed" or "updates")
+        :apt_repo: repo on archive (e.g. main, universe)
+        """
+        if arch == "arm":
+            archive_url = "ports.ubuntu.com/ubuntu-ports/dists"
+        else:
+            archive_url = "us.archive.ubuntu.com/ubuntu/dists"
+        self.url = f"http://{archive_url}/{series}-{pocket}/{apt_repo}/binary-{arch}/Packages.gz"
+        logger.debug(self.url)
 
-    response = requests.get(url, stream=True)
+    def __enter__(self):
+        self._create_download_and_extract_filepaths()
+        self._download_data()
+        self._decompress_data()
+        return self
 
-    if not response.ok:
-        raise HTTPError(
-            url,
-            code=response.status_code,
-            msg=f"Cannot retrieve file from {url}",
-            hdrs={},
-            fp=StringIO(),
+    def __exit__(self, type, value, traceback):
+        logger.error(value)
+        os.remove(self.gz_filepath)
+        os.remove(self.decompressed_filepath)
+
+    def get_deb_version(self, debname: str) -> str:
+        """
+        Convert Packages file from archive to json and get version from it
+        This function corresponds the method used by jenkins from the hwcert-jenkins-tools
+        See https://git.launchpad.net/hwcert-jenkins-tools/tree/convert-packages-json
+
+        :debname: name of the deb package
+        :return: deb version
+        """
+        json_data = {}
+
+        with open(self.decompressed_filepath, encoding="utf-8") as p_file:
+            pkg_data = p_file.read()
+
+        pkg_list = pkg_data.split("\n\n")
+        for pkg in pkg_list:
+            pkg_name = re.search("Package: (.+)", pkg)
+            pkg_ver = re.search("Version: (.+)", pkg)
+            if pkg_name and pkg_ver:
+                # Periods in json keys are bad, convert them to _
+                pkg_name_key = pkg_name.group(1).replace(".", "_")
+                json_data[pkg_name_key] = pkg_ver.group(1)
+        return json_data.get(debname)
+
+    def _create_download_and_extract_filepaths(self) -> None:
+        """
+        Create filepaths in temp dir for downloading and extracting Packages.gz file
+        """
+        # Creating a temporary directory
+        temp_dir = tempfile.gettempdir()
+
+        filepath = self.url.split("/")[-1] + "".join(
+            random.choice(string.ascii_lowercase) for i in range(10)
         )
+        self.gz_filepath = os.path.join(temp_dir, filepath)
+        # Remove .gz extension
+        self.decompressed_filepath = os.path.join(
+            temp_dir,
+            filepath[:-3]
+            + "".join(random.choice(string.ascii_lowercase) for i in range(10)),
+        )
+        logger.debug("Compressed filepath: %s", self.gz_filepath)
+        logger.debug("Decompressed filepath: %s", self.decompressed_filepath)
 
-    with open(gz_file_path, "wb") as file:
-        file.write(response.content)
+    def _download_data(self) -> None:
+        """Download Packages.gz file from archive"""
+        response = requests.get(self.url, stream=True)
+        if not response.ok:
+            raise HTTPError(
+                self.url,
+                code=response.status_code,
+                msg=f"Cannot retrieve file from {self.url}",
+                hdrs={},
+                fp=StringIO(),
+            )
 
-    with gzip.open(gz_file_path, "rb") as f_in:
-        with open(decompressed_file_path, "wb") as f_out:
-            f_out.write(f_in.read())
+        with open(self.gz_filepath, "wb") as file:
+            file.write(response.content)
 
-    os.remove(gz_file_path)
-    return decompressed_file_path
-
-
-def get_deb_version_from_package(filepath: str, debname: str) -> str:
-    """
-    Convert Packages file from archive to json and get version from it
-    This function corresponds the method used by jenkins from the hwcert-jenkins-tools
-    See https://git.launchpad.net/hwcert-jenkins-tools/tree/convert-packages-json
-
-    :filepath: path to the Packages file
-    :debname: the deb name (package name)
-    :return: deb version
-    """
-    json_data = {}
-
-    with open(filepath, encoding="utf-8") as p_file:
-        pkg_data = p_file.read()
-
-    pkg_list = pkg_data.split("\n\n")
-    for pkg in pkg_list:
-        pkg_name = re.search("Package: (.+)", pkg)
-        pkg_ver = re.search("Version: (.+)", pkg)
-        if pkg_name and pkg_ver:
-            # Periods in json keys are bad, convert them to _
-            pkg_name_key = pkg_name.group(1).replace(".", "_")
-            json_data[pkg_name_key] = pkg_ver.group(1)
-    return json_data[debname]
+    def _decompress_data(self) -> None:
+        """Decompress the downloaded data"""
+        with gzip.open(self.gz_filepath, "rb") as f_in:
+            with open(self.decompressed_filepath, "wb") as f_out:
+                f_out.write(f_in.read())

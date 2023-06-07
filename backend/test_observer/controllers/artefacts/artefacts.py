@@ -19,7 +19,6 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
-import os
 import logging
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -33,10 +32,7 @@ from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.snapcraft import get_channel_map_from_snapcraft
-from test_observer.external_apis.archive import (
-    get_data_from_archive,
-    get_deb_version_from_package,
-)
+from test_observer.external_apis.archive import ArchiveManager
 
 router = APIRouter()
 
@@ -177,23 +173,19 @@ def run_deb_manager(session: Session, artefact: Artefact) -> None:
     """
     arch = artefact.source["architecture"]
     for repo in REPOSITORY_PROMOTION_MAP:
-        filepath = get_data_from_archive(
+        with ArchiveManager(
             arch=arch,
             series=artefact.source["series"],
             pocket=repo,
             apt_repo=artefact.source["repo"],
-        )
-        try:
-            deb_version = get_deb_version_from_package(filepath, artefact.name)
-        except KeyError:
-            logger.error(
-                "Cannot find deb_version with deb %s in package data",
-                artefact.name,
-            )
-            continue
-        finally:
-            os.remove(filepath)  # Cleanup
-
+        ) as archivemanager:
+            deb_version = archivemanager.get_deb_version(artefact.name)
+            if deb_version is None:
+                logger.error(
+                    "Cannot find deb_version with deb %s in package data",
+                    artefact.name,
+                )
+                continue
         next_repo = REPOSITORY_PROMOTION_MAP.get(artefact.stage.name)
         logger.debug(
             "Artefact version: %s, deb version: %s", artefact.version, deb_version
