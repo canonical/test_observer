@@ -146,13 +146,13 @@ class TestObserverFrontendCharm(ops.CharmBase):
         # Blocked status is set without a pebble re-configuration or container restart here.
         # Frontend charm _could_ instead make nginx present an error page when backend has not been configured.
         if hostname is None:
-            self.unit.status = BlockedStatus(
+            self.unit.status = MaintenanceStatus(
                 "test-observer-rest-api relation not connected, or hostname not populated based on relation data."
             )
             return
 
         if hostname is None:
-            self.unit.status = BlockedStatus(
+            self.unit.status = MaintenanceStatus(
                 "test-observer-rest-api relation not connected, or port not populated based on relation data."
             )
             return

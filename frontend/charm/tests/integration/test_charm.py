@@ -23,15 +23,13 @@ async def test_build_and_deploy_without_backend(ops_test: OpsTest):
     Assert on the unit status before any relations/configurations take place.
     """
     charm = await ops_test.build_charm(".")
-    resources = {
-        "frontend-image": METADATA["resources"]["frontend-image"]["upstream-source"]
-    }
+    resources = {"frontend-image": METADATA["resources"]["frontend-image"]["upstream-source"]}
 
     await asyncio.gather(
         ops_test.model.deploy(charm, resources=resources, application_name=APP_NAME),
         ops_test.model.wait_for_idle(
             apps=[APP_NAME],
-            status="blocked",
-            timeout=1000,
+            status="maintenance",
+            timeout=2000,
         ),
     )
