@@ -62,6 +62,11 @@ class _ArtefactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final artefactDetails = [
+      'version: ${artefact.version}',
+      ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
+    ];
+
     return Card(
       margin: const EdgeInsets.all(0),
       elevation: 0,
@@ -73,9 +78,23 @@ class _ArtefactCard extends StatelessWidget {
         width: width,
         height: 156,
         padding: const EdgeInsets.all(Spacing.level4),
-        child: Text(
-          artefact.name,
-          style: Theme.of(context).textTheme.titleLarge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              artefact.name,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: Spacing.level2),
+            ...artefactDetails
+                .expand(
+                  (detail) => [
+                    Text(detail),
+                    const SizedBox(height: Spacing.level2),
+                  ],
+                )
+                .toList()
+          ],
         ),
       ),
     );

@@ -27,6 +27,7 @@ class ArtefactDTO(BaseModel):
     id: int
     name: str
     version: str
+    source: dict[str, int | str]
 
     class Config:
         orm_mode = True
