@@ -18,7 +18,7 @@ depends_on = None
 def upgrade() -> None:
     op.execute("ALTER TYPE artefact_status_enum RENAME VALUE 'Approved' TO 'APPROVED'")
     op.execute(
-        "ALTER TYPE artefact_status_enum"
+        "ALTER TYPE artefact_status_enum "
         "RENAME VALUE 'Marked as Failed' TO 'MARKED_AS_FAILED'"
     )
 
@@ -36,7 +36,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute("ALTER TYPE artefact_status_enum RENAME VALUE 'APPROVED' TO 'Approved'")
     op.execute(
-        "ALTER TYPE artefact_status_enum"
+        "ALTER TYPE artefact_status_enum "
         "RENAME VALUE 'MARKED_AS_FAILED' TO 'Marked as Failed'"
     )
 
