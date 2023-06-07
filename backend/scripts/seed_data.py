@@ -12,9 +12,9 @@ REQUESTS = [
         version="20230531",
         revision=1,
         source={"track": "22"},
-        arch="arm64",
+        arch="armhf",
         execution_stage="beta",
-        environment="env1",
+        environment="rpi2",
     ),
     StartTestExecutionRequest(
         family="snap",
@@ -22,9 +22,9 @@ REQUESTS = [
         version="20.10.24",
         revision=1,
         source={"track": "latest"},
-        arch="arm64",
+        arch="armhf",
         execution_stage="beta",
-        environment="env1",
+        environment="rpi2",
     ),
     StartTestExecutionRequest(
         family="snap",
@@ -32,9 +32,9 @@ REQUESTS = [
         version="20.10.24",
         revision=1,
         source={"track": "core18"},
-        arch="arm64",
+        arch="armhf",
         execution_stage="beta",
-        environment="env1",
+        environment="rpi2",
     ),
     StartTestExecutionRequest(
         family="snap",
@@ -42,9 +42,9 @@ REQUESTS = [
         version="5.64-2",
         revision=1,
         source={"track": "22"},
-        arch="arm64",
+        arch="amd64",
         execution_stage="edge",
-        environment="env2",
+        environment="dawson-i",
     ),
     StartTestExecutionRequest(
         family="snap",
@@ -52,9 +52,9 @@ REQUESTS = [
         version="20230531",
         revision=1,
         source={"track": "22"},
-        arch="amd64",
+        arch="arm64",
         execution_stage="candidate",
-        environment="env3",
+        environment="cm3",
     ),
     StartTestExecutionRequest(
         family="snap",
@@ -62,9 +62,9 @@ REQUESTS = [
         version="2.6",
         revision=1,
         source={"track": "latest"},
-        arch="amd64",
+        arch="arm64",
         execution_stage="stable",
-        environment="env3",
+        environment="cm3",
     ),
     StartTestExecutionRequest(
         family="snap",
@@ -74,7 +74,7 @@ REQUESTS = [
         source={"track": "latest"},
         arch="arm64",
         execution_stage="stable",
-        environment="env4",
+        environment="dragonboard",
     ),
     StartTestExecutionRequest(
         family="deb",
@@ -83,7 +83,7 @@ REQUESTS = [
         source={"series": "jammy", "repo": "main"},
         arch="arm64",
         execution_stage="proposed",
-        environment="caracalla",
+        environment="rpi400",
     ),
     StartTestExecutionRequest(
         family="deb",
@@ -92,7 +92,7 @@ REQUESTS = [
         source={"series": "jammy", "repo": "main"},
         arch="arm64",
         execution_stage="updates",
-        environment="caracalla",
+        environment="rpi400",
     ),
 ]
 
