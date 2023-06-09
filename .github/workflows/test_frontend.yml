@@ -1,0 +1,22 @@
+name: Test Frontend
+on: [push]
+# Cancel inprogress runs if new commit pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter pub run build_runner build
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web
