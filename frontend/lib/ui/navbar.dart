@@ -20,9 +20,9 @@ class Navbar extends StatelessWidget {
         children: [
           Image.asset('assets/canonical.png'),
           const SizedBox(width: Spacing.level4),
-          Expanded(
+          const Expanded(
             child: Row(
-              children: const [
+              children: [
                 _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
                 _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
               ],
