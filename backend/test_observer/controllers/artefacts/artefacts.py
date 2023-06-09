@@ -27,11 +27,14 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.repository import (
     get_stage_by_name,
     get_artefacts_by_family_name,
+    get_latest_builds_for_artefact,
 )
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
-from test_observer.external_apis.snapcraft import get_channel_map_from_snapcraft
+from test_observer.external_apis.snapcraft import (
+    get_channel_map_from_snapcraft,
+)
 from test_observer.external_apis.archive import ArchiveManager
 
 router = APIRouter()
@@ -115,53 +118,56 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
     Check snap artefacts state and move/archive them if necessary
 
     :session: DB connection session
-    :artefact: an Artefact object
+    :artefact_build: an ArtefactBuild object
     """
-    arch = artefact.source["architecture"]
-    channel_map = get_channel_map_from_snapcraft(
-        arch=arch,
-        snapstore=artefact.source["store"],
-        snap_name=artefact.name,
-    )
-    track = artefact.source.get("track", "latest")
+    latest_builds = get_latest_builds_for_artefact(session, artefact)
+    for build in latest_builds:
+        arch = build.architecture
+        channel_map = get_channel_map_from_snapcraft(
+            arch=arch,
+            snapstore=artefact.source["store"],
+            snap_name=artefact.name,
+        )
+        track = artefact.source.get("track", "latest")
 
-    for channel_info in channel_map:
-        if not (
-            channel_info.channel.track == track
-            and channel_info.channel.architecture == arch
-        ):
-            continue
+        for channel_info in channel_map:
+            if not (
+                channel_info.channel.track == track
+                and channel_info.channel.architecture == arch
+            ):
+                continue
 
-        risk = channel_info.channel.risk
-        try:
-            version = channel_info.version
-            revision = channel_info.revision
-        except KeyError as exc:
-            logger.warning(
-                "No key '%s' is found. Continue processing...",
-                str(exc),
-            )
-            continue
+            risk = channel_info.channel.risk
+            try:
+                version = channel_info.version
+                revision = channel_info.revision
+            except KeyError as exc:
+                logger.warning(
+                    "No key '%s' is found. Continue processing...",
+                    str(exc),
+                )
+                continue
 
-        # If the snap with this name in this channel is a
-        # different revision, then this is old. So, we archive it
-        if risk == artefact.stage.name and revision != artefact.source["revision"]:
-            continue
+            # If the snap with this name in this channel is a
+            # different revision, then this is old. So, we archive it
+            if risk == artefact.stage.name and revision != build.revision:
+                continue
 
-        next_risk = CHANNEL_PROMOTION_MAP[artefact.stage.name]
-        if (
-            risk == next_risk != artefact.stage.name.lower()
-            and version == artefact.version
-            and revision == artefact.source["revision"]
-        ):
-            logger.info("Move artefact '%s' to the '%s' stage", artefact, next_risk)
-            stage = get_stage_by_name(
-                session, stage_name=next_risk, family=artefact.stage.family
-            )
-            if stage:
-                artefact.stage = stage
-                session.commit()
-            break
+            next_risk = CHANNEL_PROMOTION_MAP[artefact.stage.name]
+            if (
+                risk == next_risk != artefact.stage.name.lower()
+                and version == artefact.version
+                and revision == build.revision
+            ):
+                logger.info("Move artefact '%s' to the '%s' stage", artefact, next_risk)
+                stage = get_stage_by_name(
+                    session, stage_name=next_risk, family=artefact.stage.family
+                )
+                if stage:
+                    artefact.stage = stage
+                    session.commit()
+                    # The artefact was promoted, so we're done
+                    return
 
 
 def run_deb_promoter(session: Session, artefact: Artefact) -> None:
@@ -171,29 +177,37 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     :session: DB connection session
     :artefact: an Artefact object
     """
-    arch = artefact.source["architecture"]
-    for repo in REPOSITORY_PROMOTION_MAP:
-        with ArchiveManager(
-            arch=arch,
-            series=artefact.source["series"],
-            pocket=repo,
-            apt_repo=artefact.source["repo"],
-        ) as archivemanager:
-            deb_version = archivemanager.get_deb_version(artefact.name)
-            if deb_version is None:
-                logger.error(
-                    "Cannot find deb_version with deb %s in package data",
-                    artefact.name,
-                )
-                continue
-        next_repo = REPOSITORY_PROMOTION_MAP.get(artefact.stage.name)
-        logger.debug(
-            "Artefact version: %s, deb version: %s", artefact.version, deb_version
-        )
-        if repo == next_repo != artefact.stage.name and deb_version == artefact.version:
-            logger.info("Move artefact '%s' to the '%s' stage", artefact, next_repo)
-            artefact.stage = get_stage_by_name(
-                session, stage_name=next_repo, family=artefact.stage.family
+    latest_builds = get_latest_builds_for_artefact(session, artefact)
+    for build in latest_builds:
+        arch = build.architecture
+        for repo in REPOSITORY_PROMOTION_MAP:
+            with ArchiveManager(
+                arch=arch,
+                series=artefact.source["series"],
+                pocket=repo,
+                apt_repo=artefact.source["repo"],
+            ) as archivemanager:
+                deb_version = archivemanager.get_deb_version(artefact.name)
+                if deb_version is None:
+                    logger.error(
+                        "Cannot find deb_version with deb %s in package data",
+                        artefact.name,
+                    )
+                    continue
+            next_repo = REPOSITORY_PROMOTION_MAP.get(artefact.stage.name)
+            logger.debug(
+                "Artefact version: %s, deb version: %s", artefact.version, deb_version
             )
-            session.commit()
-            break
+            if (
+                repo == next_repo != artefact.stage.name
+                and deb_version == artefact.version
+            ):
+                logger.info("Move artefact '%s' to the '%s' stage", artefact, next_repo)
+                stage = get_stage_by_name(
+                    session, stage_name=next_repo, family=artefact.stage.family
+                )
+                if stage:
+                    artefact.stage = stage
+                    session.commit()
+                    # The artefact was promoted, so we're done
+                    return

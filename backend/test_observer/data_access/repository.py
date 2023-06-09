@@ -19,11 +19,13 @@
 #        Omar Selo <omar.selo@canonical.com>
 """Services for working with objects from DB"""
 
+
+from sqlalchemy import func, and_
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import joinedload, Session
+from sqlalchemy.orm import joinedload, aliased, Session
 
 from .models_enums import FamilyName
-from .models import DataModel, Family, Stage, Artefact
+from .models import DataModel, Family, Stage, Artefact, ArtefactBuild
 
 
 def get_stage_by_name(
@@ -63,6 +65,46 @@ def get_artefacts_by_family_name(
         .all()
     )
     return artefacts
+
+
+def get_latest_builds_for_artefact(
+    session: Session, artefact: Artefact
+) -> list[ArtefactBuild]:
+    """
+    Get the latest artefact build for each architecture for a given artefact.
+
+    :session: DB session
+    :artefact: The artefact for which to get the latest builds
+    :return: list of latest ArtefactBuilds for each architecture
+    """
+    ab_alias = aliased(ArtefactBuild)
+
+    # Get the latest created_at for each architecture
+    subquery = (
+        session.query(
+            ab_alias.architecture, func.max(ab_alias.created_at).label("max_created_at")
+        )
+        .filter(ab_alias.artefact_id == artefact.id)
+        .group_by(ab_alias.architecture)
+        .subquery()
+    )
+
+    # Join with the subquery on architecture and created_at to get the latest builds
+    latest_builds = (
+        session.query(ArtefactBuild)
+        .join(
+            subquery,
+            and_(
+                ArtefactBuild.architecture == subquery.c.architecture,
+                ArtefactBuild.created_at == subquery.c.max_created_at,
+            ),
+        )
+        .filter(ArtefactBuild.artefact_id == artefact.id)
+        .order_by(ArtefactBuild.architecture)
+        .all()
+    )
+
+    return latest_builds
 
 
 def get_or_create(db: Session, model: type[DataModel], **kwargs) -> DataModel:

@@ -26,9 +26,10 @@ from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import (
     get_artefacts_by_family_name,
     get_stage_by_name,
+    get_latest_builds_for_artefact,
 )
 
-from ..helpers import create_artefact
+from ..helpers import create_artefact, create_artefact_builds
 
 
 def test_get_stage_by_name(db_session: Session):
@@ -77,3 +78,44 @@ def test_get_artefacts_by_family_name(db_session: Session):
     assert {
         (artefact.name, artefact.stage.name) for artefact in artefacts
     } == artefact_name_stage_pair
+
+
+def test_get_latest_builds_for_artefact(db_session: Session):
+    """
+    The function should select the correct latest builds by architecture for a
+    given artefact
+    """
+    # Arrange
+    artefact = create_artefact(db_session, stage_name="edge", name="core20")
+    create_artefact_builds(db_session, artefact)
+
+    # Act
+    latest_builds = get_latest_builds_for_artefact(db_session, artefact)
+
+    # Assert
+    # Group returned builds by architecture
+    builds_by_arch: dict = {}
+    for build in latest_builds:
+        if build.architecture not in builds_by_arch:
+            builds_by_arch[build.architecture] = []
+        builds_by_arch[build.architecture].append(build)
+
+    # Check that for each architecture we have only one build and that it is the latest
+    for builds in builds_by_arch.values():
+        assert len(builds) == 1
+        latest_build = max(builds, key=lambda b: b.created_at)
+        assert builds[0] == latest_build
+
+
+def test_get_latest_builds_for_artefact_no_builds(db_session: Session):
+    """The function should return an empty list if no builds exist for the artefact"""
+    # Arrange
+    # Create an artefact with no builds
+    artefact = create_artefact(db_session, stage_name="edge", name="core20")
+
+    # Act
+    latest_builds = get_latest_builds_for_artefact(db_session, artefact)
+
+    # Assert
+    assert isinstance(latest_builds, list)
+    assert len(latest_builds) == 0

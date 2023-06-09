@@ -21,13 +21,11 @@
 
 
 import os
-from io import StringIO
 import re
 import gzip
 import random
 import string
 import tempfile
-from urllib.error import HTTPError
 import requests
 from types import TracebackType
 import logging
@@ -71,7 +69,7 @@ class ArchiveManager:
         os.remove(self.gz_filepath)
         os.remove(self.decompressed_filepath)
 
-    def get_deb_version(self, debname: str) -> str:
+    def get_deb_version(self, debname: str) -> str | None:
         """
         Convert Packages file from archive to json and get version from it
         This function corresponds the method used by jenkins from the
@@ -120,13 +118,7 @@ class ArchiveManager:
         """Download Packages.gz file from archive"""
         response = requests.get(self.url, stream=True)
         if not response.ok:
-            raise HTTPError(
-                self.url,
-                code=response.status_code,
-                msg=f"Cannot retrieve file from {self.url}",
-                hdrs={},
-                fp=StringIO(),
-            )
+            response.raise_for_status()
 
         with open(self.gz_filepath, "wb") as file:
             file.write(response.content)
