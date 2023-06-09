@@ -148,11 +148,6 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 )
                 continue
 
-            # If the snap with this name in this channel is a
-            # different revision, then this is old. So, we archive it
-            if risk == artefact.stage.name and revision != build.revision:
-                continue
-
             next_risk = CHANNEL_PROMOTION_MAP[artefact.stage.name]
             if (
                 risk == next_risk != artefact.stage.name.lower()
