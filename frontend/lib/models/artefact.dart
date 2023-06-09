@@ -7,6 +7,8 @@ part 'artefact.g.dart';
 class Artefact with _$Artefact {
   const factory Artefact({
     required String name,
+    required String version,
+    required Map<String, dynamic> source,
   }) = _Artefact;
 
   factory Artefact.fromJson(Map<String, Object?> json) =>

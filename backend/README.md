@@ -29,6 +29,10 @@ Linting is done using ruff, formatting using black and type checking using mypy.
 
 Assuming that your microk8s cluster is running, you can start the development environment by simply running `$ skaffold dev`. This command will build the docker images and push them to your microk8s registry, then apply your k8s manifest to start the cluster and pull those images. Additionally, skaffold will watch for file changes and either sync them directly inside the running containers or rebuild and redeploy k8s cluster for you automatically.
 
+### 5. [Optional] seed the database
+
+Run `scripts/seed_data.py` script to seed the database with some dummy data. This can be useful when working with front-end.
+
 ## Dependency Management
 
 ### Add/Install dependency
