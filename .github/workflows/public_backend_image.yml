@@ -1,9 +1,8 @@
 name: Create and publish a Docker image
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "get-migrations-working-in-charms"]
     tags: ["v*.*.*"]
-  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
