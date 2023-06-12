@@ -1,8 +1,7 @@
 from logging.config import fileConfig
 from os import environ
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import pool, create_engine
 
 from alembic import context
 
@@ -17,6 +16,8 @@ from test_observer.data_access import Base
 
 target_metadata = Base.metadata
 
+default_db_url = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -30,7 +31,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = environ.get("DB_URL", config.get_main_option("sqlalchemy.url"))
+    url = environ.get("DB_URL", default_db_url)
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -49,13 +50,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    engine = create_engine(
+        environ.get("DB_URL", default_db_url),
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
+    with engine.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
