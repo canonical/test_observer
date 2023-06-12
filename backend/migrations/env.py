@@ -1,27 +1,25 @@
 from logging.config import fileConfig
-from os import environ
 
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+
+from test_observer.data_access import Base
+
+from test_observer.data_access.setup import DB_URL
+
+# for 'autogenerate' support
+target_metadata = Base.metadata
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-from test_observer.data_access import Base
 
-target_metadata = Base.metadata
-
-db_url = environ.get(
-    "DB_URL",
-    "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres",
-)
-
-config.set_main_option("sqlalchemy.url", db_url)
+# Don't overwrite value if set by tests
+if config.get_main_option("sqlalchemy.url") is None:
+    config.set_main_option("sqlalchemy.url", DB_URL)
 
 
 def run_migrations_offline() -> None:
