@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 from os import environ
 
-from sqlalchemy import pool, create_engine
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
@@ -16,7 +16,12 @@ from test_observer.data_access import Base
 
 target_metadata = Base.metadata
 
-default_db_url = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
+db_url = environ.get(
+    "DB_URL",
+    "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres",
+)
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 
 def run_migrations_offline() -> None:
@@ -31,9 +36,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = environ.get("DB_URL", default_db_url)
     context.configure(
-        url=url,
+        url=db_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -50,12 +54,13 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    engine = create_engine(
-        environ.get("DB_URL", default_db_url),
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
-    with engine.connect() as connection:
+    with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
