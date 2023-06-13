@@ -20,12 +20,11 @@
 """Services for working with objects from DB"""
 
 
-from sqlalchemy import func, and_
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import joinedload, aliased, Session
+from sqlalchemy.orm import joinedload, Session
 
 from .models_enums import FamilyName
-from .models import DataModel, Family, Stage, Artefact, ArtefactBuild
+from .models import DataModel, Family, Stage, Artefact, LatestArtefactsView
 
 
 def get_stage_by_name(
@@ -48,63 +47,41 @@ def get_stage_by_name(
 
 
 def get_artefacts_by_family_name(
-    session: Session, family_name: FamilyName
+    session: Session, family_name: FamilyName, latest_only: bool = True
 ) -> list[Artefact]:
     """
     Get all the artefacts in a family
 
     :session: DB session
     :family_name: name of the family
+    :latest_only: return only latest artefacts, i.e. for each group of artefacts
+                  with the same name and source but different version return
+                  the latest one in a stage
     :return: list of Artefacts
     """
-    artefacts = (
-        session.query(Artefact)
-        .join(Stage)
-        .filter(Stage.family.has(Family.name == family_name))
-        .options(joinedload(Artefact.stage))
-        .all()
-    )
+    if latest_only:
+        latest_artefacts_view_ids = (
+            session.query(LatestArtefactsView.id)
+            .join(Stage, LatestArtefactsView.stage_id == Stage.id)
+            .filter(Stage.family.has(Family.name == family_name))
+            .scalar_subquery()
+        )
+
+        # Get Artefact objects that match the IDs
+        artefacts = (
+            session.query(Artefact)
+            .filter(Artefact.id.in_(latest_artefacts_view_ids))
+            .all()
+        )
+    else:
+        artefacts = (
+            session.query(Artefact)
+            .join(Stage)
+            .filter(Stage.family.has(Family.name == family_name))
+            .options(joinedload(Artefact.stage))
+            .all()
+        )
     return artefacts
-
-
-def get_latest_builds_for_artefact(
-    session: Session, artefact: Artefact
-) -> list[ArtefactBuild]:
-    """
-    Get the latest artefact build for each architecture for a given artefact.
-
-    :session: DB session
-    :artefact: The artefact for which to get the latest builds
-    :return: list of latest ArtefactBuilds for each architecture
-    """
-    ab_alias = aliased(ArtefactBuild)
-
-    # Get the latest created_at for each architecture
-    subquery = (
-        session.query(
-            ab_alias.architecture, func.max(ab_alias.created_at).label("max_created_at")
-        )
-        .filter(ab_alias.artefact_id == artefact.id)
-        .group_by(ab_alias.architecture)
-        .subquery()
-    )
-
-    # Join with the subquery on architecture and created_at to get the latest builds
-    latest_builds = (
-        session.query(ArtefactBuild)
-        .join(
-            subquery,
-            and_(
-                ArtefactBuild.architecture == subquery.c.architecture,
-                ArtefactBuild.created_at == subquery.c.max_created_at,
-            ),
-        )
-        .filter(ArtefactBuild.artefact_id == artefact.id)
-        .order_by(ArtefactBuild.architecture)
-        .all()
-    )
-
-    return latest_builds
 
 
 def get_or_create(db: Session, model: type[DataModel], **kwargs) -> DataModel:

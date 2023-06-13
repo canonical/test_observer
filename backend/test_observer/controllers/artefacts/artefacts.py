@@ -27,7 +27,6 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.repository import (
     get_stage_by_name,
     get_artefacts_by_family_name,
-    get_latest_builds_for_artefact,
 )
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
@@ -81,8 +80,8 @@ def promote_artefacts(db: Session = Depends(get_db)):
             status_code=200,
             content={"detail": "All the artefacts have been processed successfully"},
         )
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"detail": str(e)})
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
 def promoter_controller(session: Session) -> dict:
@@ -120,8 +119,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
     :session: DB connection session
     :artefact_build: an ArtefactBuild object
     """
-    latest_builds = get_latest_builds_for_artefact(session, artefact)
-    for build in latest_builds:
+    for build in artefact.builds:
         arch = build.architecture
         channel_map = get_channel_map_from_snapcraft(
             arch=arch,
@@ -172,8 +170,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     :session: DB connection session
     :artefact: an Artefact object
     """
-    latest_builds = get_latest_builds_for_artefact(session, artefact)
-    for build in latest_builds:
+    for build in artefact.builds:
         arch = build.architecture
         for repo in REPOSITORY_PROMOTION_MAP:
             with ArchiveManager(

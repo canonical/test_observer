@@ -20,11 +20,11 @@
 """Test snap manager API"""
 
 
+from datetime import datetime, timedelta
+
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
-
-from test_observer.data_access.repository import get_latest_builds_for_artefact
 
 from ...helpers import create_artefact, create_artefact_builds
 
@@ -42,17 +42,25 @@ def test_run_to_move_artefact_snap(
         "edge",
         name="core20",
         version="1.1.1",
-        source={"revision": 1883, "store": "ubuntu"},
+        source={"store": "ubuntu"},
+        created_at=datetime.utcnow(),
     )
     create_artefact_builds(db_session, artefact)
-    latest_build = get_latest_builds_for_artefact(db_session, artefact)[1]
+    create_artefact(
+        db_session,
+        "edge",
+        name="core20",
+        version="1.1.0",
+        source={"store": "ubuntu"},
+        created_at=datetime.utcnow() - timedelta(days=1),
+    )
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
         json={
             "channel-map": [
                 {
                     "channel": {
-                        "architecture": latest_build.architecture,
+                        "architecture": artefact.builds[0].architecture,
                         "name": "beta",
                         "released-at": "2023-05-17T12:39:07.471800+00:00",
                         "risk": "beta",
@@ -65,7 +73,7 @@ def test_run_to_move_artefact_snap(
                         "size": 130830336,
                         "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
                     },
-                    "revision": latest_build.revision,
+                    "revision": artefact.builds[0].revision,
                     "type": "app",
                     "version": "1.1.1",
                 },
@@ -96,15 +104,24 @@ def test_run_to_move_artefact_deb(
         name="linux-generic",
         version="5.19.0.43.39",
         source={"series": "kinetic", "repo": "main"},
+        created_at=datetime.utcnow(),
     )
     create_artefact_builds(db_session, artefact)
+    create_artefact(
+        db_session,
+        "proposed",
+        name="linux-generic",
+        version="5.19.0.43.38",
+        source={"series": "kinetic", "repo": "main"},
+        created_at=datetime.utcnow() - timedelta(days=1),
+    )
 
     with open("tests/test_data/Packages-proposed.gz", "rb") as f:
         proposed_content = f.read()
     with open("tests/test_data/Packages-updates.gz", "rb") as f:
         updates_content = f.read()
 
-    for build in get_latest_builds_for_artefact(db_session, artefact):
+    for build in artefact.builds:
         requests_mock.get(
             "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
             f"binary-{build.architecture}/Packages.gz",
