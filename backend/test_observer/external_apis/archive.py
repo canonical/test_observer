@@ -26,9 +26,9 @@ import gzip
 import random
 import string
 import tempfile
-import requests
-from types import TracebackType
 import logging
+from types import TracebackType
+import requests
 
 
 logger = logging.getLogger("test-observer-backend")

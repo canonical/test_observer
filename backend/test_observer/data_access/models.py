@@ -20,16 +20,14 @@
 from typing import TypeVar
 from datetime import datetime, date
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint, select
+from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.sql import func
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     mapped_column,
     relationship,
-    Session,
 )
 
 from test_observer.data_access.models_enums import ArtefactStatus, TestExecutionStatus
@@ -154,34 +152,6 @@ class TestExecution(Base):
     )
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
-
-
-class LatestArtefactsView(Base):
-    __tablename__ = "latest_artefacts_view"
-
-    name: Mapped[str] = mapped_column(String(200), index=True)
-    version: Mapped[str]
-    source: Mapped[dict] = mapped_column(JSONB)
-    stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id"))
-    due_date: Mapped[date | None]
-    status: Mapped[ArtefactStatus | None]
-
-    @hybrid_property
-    def stage(self):
-        return (
-            Session.object_session(self)
-            .execute(select(Stage).where(Stage.id == self.stage_id))
-            .scalar()
-        )
-
-    @hybrid_property
-    def builds(self):
-        return (
-            Session.object_session(self)
-            .execute(select(ArtefactBuild).where(ArtefactBuild.artefact_id == self.id))
-            .scalars()
-            .all()
-        )
 
 
 DataModel = TypeVar("DataModel", bound=Base)

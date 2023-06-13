@@ -20,11 +20,13 @@
 """Services for working with objects from DB"""
 
 
+from sqlalchemy import func, and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, Session
 
+
 from .models_enums import FamilyName
-from .models import DataModel, Family, Stage, Artefact, LatestArtefactsView
+from .models import DataModel, Family, Stage, Artefact
 
 
 def get_stage_by_name(
@@ -60,17 +62,28 @@ def get_artefacts_by_family_name(
     :return: list of Artefacts
     """
     if latest_only:
-        latest_artefacts_view_ids = (
-            session.query(LatestArtefactsView.id)
-            .join(Stage, LatestArtefactsView.stage_id == Stage.id)
-            .filter(Stage.family.has(Family.name == family_name))
-            .scalar_subquery()
+        subquery = (
+            session.query(
+                Artefact.stage_id,
+                Artefact.name,
+                Artefact.source,
+                func.max(Artefact.created_at).label("max_created"),
+            )
+            .group_by(Artefact.stage_id, Artefact.name, Artefact.source)
+            .subquery()
         )
 
-        # Get Artefact objects that match the IDs
         artefacts = (
             session.query(Artefact)
-            .filter(Artefact.id.in_(latest_artefacts_view_ids))
+            .join(
+                subquery,
+                and_(
+                    Artefact.stage_id == subquery.c.stage_id,
+                    Artefact.name == subquery.c.name,
+                    Artefact.source == subquery.c.source,
+                    Artefact.created_at == subquery.c.max_created,
+                ),
+            )
             .all()
         )
     else:
