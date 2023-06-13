@@ -59,7 +59,7 @@ For more information on how to create migrations, please check [Alembic docs](ht
 
 Note however that this created migration will reside inside the pod not on your host machine. So you have to copy it over by:
 
-`$ kubectl cp test-observer-api-RESTOFPODNAME:/home/app/alembic/versions ./alembic/versions`
+`$ kubectl cp test-observer-api-RESTOFPODNAME:/home/app/migrations/versions ./migrations/versions`
 
 You can get RESTOFPODNAME by running
 

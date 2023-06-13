@@ -20,28 +20,47 @@
 """Test snap manager API"""
 
 
+from datetime import datetime, timedelta
+
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
-from ...helpers import create_artefact
+from ...helpers import create_artefact, create_artefact_builds
 
 
-def test_run_to_move_artefact(
+def test_run_to_move_artefact_snap(
     db_session: Session, test_client: TestClient, requests_mock: Mocker
 ):
     """
-    If card's current list name is different to its list name in
-    snapcraft, the card is moved to the next list
+    If artefact's current stage name is different to its stage name on
+    snapcraft, the artefact is moved to the next stage
     """
     # Arrange
+    artefact = create_artefact(
+        db_session,
+        "edge",
+        name="core20",
+        version="1.1.1",
+        source={"store": "ubuntu"},
+        created_at=datetime.utcnow(),
+    )
+    create_artefact_builds(db_session, artefact)
+    create_artefact(
+        db_session,
+        "edge",
+        name="core20",
+        version="1.1.0",
+        source={"store": "ubuntu"},
+        created_at=datetime.utcnow() - timedelta(days=1),
+    )
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
         json={
             "channel-map": [
                 {
                     "channel": {
-                        "architecture": "amd64",
+                        "architecture": artefact.builds[0].architecture,
                         "name": "beta",
                         "released-at": "2023-05-17T12:39:07.471800+00:00",
                         "risk": "beta",
@@ -54,20 +73,12 @@ def test_run_to_move_artefact(
                         "size": 130830336,
                         "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
                     },
-                    "revision": 1883,
+                    "revision": artefact.builds[0].revision,
                     "type": "app",
                     "version": "1.1.1",
                 },
             ]
         },
-    )
-
-    artefact = create_artefact(
-        db_session,
-        "edge",
-        name="core20",
-        version="1.1.1",
-        source={"revision": 1883, "architecture": "amd64", "store": "ubuntu"},
     )
 
     # Act
@@ -77,3 +88,55 @@ def test_run_to_move_artefact(
 
     # Assert
     assert artefact.stage.name == "beta"
+
+
+def test_run_to_move_artefact_deb(
+    db_session: Session, test_client: TestClient, requests_mock: Mocker
+):
+    """
+    If artefact's current stage name is different to its stage name on
+    deb archive, the artefact is moved to the next stage
+    """
+    # Arrange
+    artefact = create_artefact(
+        db_session,
+        "proposed",
+        name="linux-generic",
+        version="5.19.0.43.39",
+        source={"series": "kinetic", "repo": "main"},
+        created_at=datetime.utcnow(),
+    )
+    create_artefact_builds(db_session, artefact)
+    create_artefact(
+        db_session,
+        "proposed",
+        name="linux-generic",
+        version="5.19.0.43.38",
+        source={"series": "kinetic", "repo": "main"},
+        created_at=datetime.utcnow() - timedelta(days=1),
+    )
+
+    with open("tests/test_data/Packages-proposed.gz", "rb") as f:
+        proposed_content = f.read()
+    with open("tests/test_data/Packages-updates.gz", "rb") as f:
+        updates_content = f.read()
+
+    for build in artefact.builds:
+        requests_mock.get(
+            "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
+            f"binary-{build.architecture}/Packages.gz",
+            content=proposed_content,
+        )
+        requests_mock.get(
+            "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/"
+            f"binary-{build.architecture}/Packages.gz",
+            content=updates_content,
+        )
+
+    # Act
+    test_client.put("/v0/artefacts/promote")
+
+    db_session.refresh(artefact)
+
+    # Assert
+    assert artefact.stage.name == "updates"

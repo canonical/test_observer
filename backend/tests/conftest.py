@@ -18,6 +18,8 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 """Fixtures for testing"""
+
+
 from os import environ
 import pytest
 from alembic import command
