@@ -62,6 +62,14 @@ class TestObserverBackendCharm(CharmBase):
         self._migrate_database()
 
     def _migrate_database(self):
+        # only leader runs database migrations
+        if not self.unit.is_leader():
+            raise SystemExit(0)
+
+        if not self.container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            raise SystemExit(0)
+
         self.unit.status = MaintenanceStatus("Migrating database")
 
         process = self.container.exec(
