@@ -1,13 +1,11 @@
+from os import environ
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from os import environ
+DEFAULT_DB_URL = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
+DB_URL = environ.get("DB_URL", DEFAULT_DB_URL)
 
-db_url = environ.get("DB_URL")
-if db_url is None:
-    db_url = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
-
-engine = create_engine(db_url, echo=True)
+engine = create_engine(DB_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

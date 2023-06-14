@@ -23,9 +23,15 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 
 While technically not required to run the code, it helps to have dependencies installed on host system to get code completions and linting. To do that just run `$ poetry install`. Note that poetry will create a virtual environment for you, but if you want poetry to create that virtual environment inside this project's directory just run `$ poetry config virtualenvs.in-project true` before installing dependencies.
 
+Linting is done using ruff, formatting using black and type checking using mypy. We have CI in place to make those checks, but it's probably a good idea to setup your editor to use these. Note that their settings are in `pyproject.toml`.
+
 ### 4. Start the development environment
 
 Assuming that your microk8s cluster is running, you can start the development environment by simply running `$ skaffold dev`. This command will build the docker images and push them to your microk8s registry, then apply your k8s manifest to start the cluster and pull those images. Additionally, skaffold will watch for file changes and either sync them directly inside the running containers or rebuild and redeploy k8s cluster for you automatically.
+
+### 5. [Optional] seed the database
+
+Run `scripts/seed_data.py` script to seed the database with some dummy data. This can be useful when working with front-end.
 
 ## Dependency Management
 
@@ -53,7 +59,7 @@ For more information on how to create migrations, please check [Alembic docs](ht
 
 Note however that this created migration will reside inside the pod not on your host machine. So you have to copy it over by:
 
-`$ kubectl cp test-observer-api-RESTOFPODNAME:/home/app/alembic/versions ./alembic/versions`
+`$ kubectl cp test-observer-api-RESTOFPODNAME:/home/app/migrations/versions ./migrations/versions`
 
 You can get RESTOFPODNAME by running
 

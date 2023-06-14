@@ -17,17 +17,10 @@
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
-
-
-from typing import List
+from typing import TypeVar
 from datetime import datetime, date
 
-from sqlalchemy import (
-    ForeignKey,
-    Enum,
-    String,
-    UniqueConstraint,
-)
+from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
@@ -36,6 +29,8 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
+
+from test_observer.data_access.models_enums import ArtefactStatus, TestExecutionStatus
 
 
 class Base(DeclarativeBase):
@@ -55,7 +50,7 @@ class Family(Base):
 
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
-    stages: Mapped[List["Stage"]] = relationship(
+    stages: Mapped[list["Stage"]] = relationship(
         back_populates="family", cascade="all, delete-orphan"
     )
 
@@ -68,9 +63,9 @@ class Stage(Base):
     name: Mapped[str] = mapped_column(String(100), index=True)
     position: Mapped[int] = mapped_column()
     # Relationships
-    family_id = mapped_column(ForeignKey("family.id"))
+    family_id: Mapped[int] = mapped_column(ForeignKey("family.id"))
     family: Mapped[Family] = relationship(back_populates="stages")
-    artefacts: Mapped[List["Artefact"]] = relationship(
+    artefacts: Mapped[list["Artefact"]] = relationship(
         back_populates="stage", cascade="all, delete-orphan"
     )
 
@@ -84,18 +79,14 @@ class Artefact(Base):
     version: Mapped[str]
     source: Mapped[dict] = mapped_column(JSONB)
     # Relationships
-    stage_id = mapped_column(ForeignKey("stage.id"))
+    stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
-    builds: Mapped[List["ArtefactBuild"]] = relationship(
+    builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete-orphan"
     )
     # Default fields
     due_date: Mapped[date | None]
-    status: Mapped[str] = mapped_column(
-        Enum("Approved", "Marked as Failed", name="artefact_status_enum"),
-        nullable=True,
-        default=None,
-    )
+    status: Mapped[ArtefactStatus | None]
 
     __table_args__ = (
         UniqueConstraint("name", "version", "source", name="unique_artefact"),
@@ -114,7 +105,7 @@ class ArtefactBuild(Base):
     artefact: Mapped[Artefact] = relationship(
         back_populates="builds", foreign_keys=[artefact_id]
     )
-    test_executions: Mapped[List["TestExecution"]] = relationship(
+    test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete-orphan"
     )
 
@@ -131,7 +122,7 @@ class Environment(Base):
 
     name: Mapped[str] = mapped_column(String(200))
     architecture: Mapped[str] = mapped_column(String(100))
-    test_executions: Mapped[List["TestExecution"]] = relationship(
+    test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="environment"
     )
 
@@ -156,16 +147,11 @@ class TestExecution(Base):
     environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"))
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
     # Default fields
-    status: Mapped[str] = mapped_column(
-        Enum(
-            "Not Started",
-            "In Progress",
-            "Passed",
-            "Failed",
-            "Not Tested",
-            name="test_status_enum",
-        ),
-        default="Not Started",
+    status: Mapped[TestExecutionStatus] = mapped_column(
+        default=TestExecutionStatus.NOT_STARTED
     )
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
+
+
+DataModel = TypeVar("DataModel", bound=Base)

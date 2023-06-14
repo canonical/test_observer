@@ -29,8 +29,8 @@ class DashboardHeader extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               const SizedBox(height: Spacing.level4),
-              Row(
-                children: const [
+              const Row(
+                children: [
                   _LegendEntry(
                     icon: Icon(YaruIcons.ok, color: YaruColors.success),
                     text: 'Passed',

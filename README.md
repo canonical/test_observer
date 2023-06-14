@@ -83,7 +83,7 @@ You can optionally get SSL certificates automatically managed for the ingress (i
 TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" TF_VAR_cloudflare_acme=true TF_VAR_cloudflare_dns_api_token=... TF_VAR_cloudflare_zone_read_api_token=... TF_VAR_cloudflare_email=... terraform apply -auto-approve
 ```
 
-After all is up, `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
+After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
 
 ```bash
 $ juju status --relations
@@ -136,7 +136,7 @@ charmcraft pack
 juju refresh test-observer-api --path ./test-observer-api_ubuntu-22.04-amd64.charm
 
 # to update the OCI image that runs the backend
-juju attach-resource test-observer-api --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
+juju attach-resource test-observer-api api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
 ```
 
 ### Build and refresh the frontend charm
@@ -159,6 +159,16 @@ Note that the frontend app is made aware of the backend URL to connect to using 
 - the frontend charm's `test-observer-api-scheme` config value.
 
 These in turn can be set using the terraform plan (`terraform/test-observer.tf` and associated variables).
+
+## Running tests
+
+To run the unit and integration tests for the frontend charms, do the following:
+
+```bash
+cd frontend/charm
+tox -e unit
+tox -e integration
+```
 
 ## Releasing the charms
 
