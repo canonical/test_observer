@@ -36,12 +36,8 @@ class TestObserverBackendCharm(CharmBase):
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
         )
-        self.framework.observe(
-            self.database.on.database_created, self._on_database_changed
-        )
-        self.framework.observe(
-            self.database.on.endpoints_changed, self._on_database_changed
-        )
+        self.framework.observe(self.database.on.database_created, self._on_database_changed)
+        self.framework.observe(self.database.on.endpoints_changed, self._on_database_changed)
         self.framework.observe(
             self.database.on.database_relation_broken,
             self._on_database_relation_broken,
@@ -56,31 +52,46 @@ class TestObserverBackendCharm(CharmBase):
             self._test_observer_rest_api_client_changed,
         )
 
+        self.framework.observe(self.on.upgrade_charm, self._on_upgrade_charm)
+
         self.ingress = IngressPerAppRequirer(
             self, host=self.config["hostname"], port=self.config["port"]
         )
-        self.framework.observe(self.on.migrate_database_action, self._migrate_database)
 
-    def _migrate_database(self, event):
+    def _on_upgrade_charm(self, event):
+        self._migrate_database()
+
+    def _migrate_database(self):
+        # only leader runs database migrations
+        if not self.unit.is_leader():
+            raise SystemExit(0)
+
+        if not self.container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            raise SystemExit(0)
+
+        self.unit.status = MaintenanceStatus("Migrating database")
+
         process = self.container.exec(
             ["alembic", "upgrade", "head"],
-            working_dir="./backend",
-            timeout=None,
+            working_dir="/home/app",
+            environment=self._postgres_relation_data(),
         )
         stdout, stderr = process.wait_output()
 
-        for line in stdout.splitlines():
-            logger.info(line.strip())
-
+        logger.info(stdout)
         if stderr:
-            for line in stderr.splitlines():
-                logger.error(line.strip())
+            logger.error(stderr)
+
+        self.unit.status = ActiveStatus()
 
     def _on_database_changed(
         self,
         event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent,
     ):
         logger.info("Database changed event: %s", event)
+        if isinstance(event, DatabaseCreatedEvent):
+            self._migrate_database()
         self._update_layer_and_restart(None)
 
     def _on_database_relation_broken(self, event):
@@ -96,14 +107,10 @@ class TestObserverBackendCharm(CharmBase):
         self._update_layer_and_restart(event)
 
     def _update_layer_and_restart(self, event):
-        self.unit.status = MaintenanceStatus(
-            f"Updating {self.pebble_service_name} layer"
-        )
+        self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         if self.container.can_connect():
-            self.container.add_layer(
-                self.pebble_service_name, self._pebble_layer, combine=True
-            )
+            self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
             self.container.restart(self.pebble_service_name)
             self.unit.set_workload_version(self.version)
             self.unit.status = ActiveStatus()
@@ -127,13 +134,9 @@ class TestObserverBackendCharm(CharmBase):
     def _test_observer_rest_api_client_joined(self, event: RelationJoinedEvent) -> None:
         logger.info(f"Test Observer REST API client joined {event}")
 
-    def _test_observer_rest_api_client_changed(
-        self, event: RelationChangedEvent
-    ) -> None:
+    def _test_observer_rest_api_client_changed(self, event: RelationChangedEvent) -> None:
         if self.unit.is_leader():
-            logger.debug(
-                f"Setting hostname in data bag for {self.app}: {self.config['hostname']}"
-            )
+            logger.debug(f"Setting hostname in data bag for {self.app}: {self.config['hostname']}")
             event.relation.data[self.app].update(
                 {
                     "hostname": self.config["hostname"],
@@ -143,15 +146,11 @@ class TestObserverBackendCharm(CharmBase):
 
     @property
     def version(self) -> str | None:
-        if self.container.can_connect() and self.container.get_services(
-            self.pebble_service_name
-        ):
+        if self.container.can_connect() and self.container.get_services(self.pebble_service_name):
             # 0.0.0.0 instead of config['hostname'] intentional:
             # request made from pebble's container to api in the same unit (same pod).
             try:
-                return get(f"http://0.0.0.0:{self.config['port']}/v1/version").json()[
-                    "version"
-                ]
+                return get(f"http://0.0.0.0:{self.config['port']}/v1/version").json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
