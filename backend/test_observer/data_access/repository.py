@@ -69,6 +69,8 @@ def get_artefacts_by_family_name(
                 Artefact.source,
                 func.max(Artefact.created_at).label("max_created"),
             )
+            .join(Stage)
+            .filter(Stage.family.has(Family.name == family_name))
             .group_by(Artefact.stage_id, Artefact.name, Artefact.source)
             .subquery()
         )

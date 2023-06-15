@@ -90,8 +90,7 @@ class ArchiveManager:
             pkg_ver = re.search("Version: (.+)", pkg)
             if pkg_name and pkg_ver:
                 # Periods in json keys are bad, convert them to _
-                pkg_name_key = pkg_name.group(1).replace(".", "_")
-                json_data[pkg_name_key] = pkg_ver.group(1)
+                json_data[pkg_name.group(1)] = pkg_ver.group(1)
         return json_data.get(debname)
 
     def _create_download_and_extract_filepaths(self) -> None:
