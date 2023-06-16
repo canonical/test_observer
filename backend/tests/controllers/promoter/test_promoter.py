@@ -17,7 +17,7 @@
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
-"""Test snap manager API"""
+"""Test promoter API"""
 
 
 from datetime import datetime, timedelta
