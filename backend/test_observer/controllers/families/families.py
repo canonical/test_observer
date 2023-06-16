@@ -28,9 +28,9 @@ def read_family(family_name: str, db: Session = Depends(get_db)):
     if family is None:
         raise HTTPException(status_code=404, detail="Family not found")
 
-    latest_artefacts = get_artefacts_by_family_name(db, family_name, latest_only=True)
+    latest_artefacts = get_artefacts_by_family_name(db, family_name)  # type: ignore
 
-    stage_artefact_dict = {stage.id: [] for stage in family.stages}
+    stage_artefact_dict: dict = {stage.id: [] for stage in family.stages}
     for artefact in latest_artefacts:
         stage_artefact_dict[artefact.stage_id].append(artefact)
 
