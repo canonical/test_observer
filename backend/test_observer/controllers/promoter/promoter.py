@@ -55,7 +55,7 @@ REPOSITORY_PROMOTION_MAP = {
 }
 
 
-@router.put("/promote")
+@router.put("/v0/artefacts/promote")
 def promote_artefacts(db: Session = Depends(get_db)):
     """
     Promote all the artefacts in all the families if it has been updated on the
