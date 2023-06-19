@@ -85,14 +85,15 @@ def test_get_artefacts_by_family_name(db_session: Session):
 
 
 def test_get_artefacts_by_family_name_latest(db_session: Session):
-    """We should get a only latest artefacts in each stage"""
+    """We should get a only latest artefacts in each stage for the specified family"""
     # Arrange
     artefact_name_stage_pair = [
         ("core20", "edge", datetime.utcnow()),
+        ("oem-jammy", "proposed", datetime.utcnow()),
         ("core20", "edge", datetime.utcnow() - timedelta(days=10)),
         ("core20", "beta", datetime.utcnow() - timedelta(days=20)),
     ]
-    expected_artefacts = {artefact_name_stage_pair[0], artefact_name_stage_pair[2]}
+    expected_artefacts = {artefact_name_stage_pair[0], artefact_name_stage_pair[-1]}
 
     for name, stage, created_at in artefact_name_stage_pair:
         create_artefact(

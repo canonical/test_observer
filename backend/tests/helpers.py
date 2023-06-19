@@ -6,7 +6,7 @@ from test_observer.data_access.models import Artefact, Stage, ArtefactBuild
 from test_observer.data_access.models_enums import FamilyName
 
 
-def create_artefact(db_session: Session, stage_name: str, **kwargs):
+def create_artefact(db_session: Session, stage_name: str, **kwargs) -> Artefact:
     """Create a dummy artefact"""
     stage = db_session.query(Stage).filter(Stage.name == stage_name).first()
     artefact = Artefact(
