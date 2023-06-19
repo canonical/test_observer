@@ -20,9 +20,9 @@
 """Services for working with objects from DB"""
 
 
-from sqlalchemy import func, and_
+from sqlalchemy import and_, func
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import joinedload, Session
+from sqlalchemy.orm import Session, joinedload
 
 
 from .models_enums import FamilyName

@@ -23,7 +23,7 @@ def create_artefact(db_session: Session, stage_name: str, **kwargs) -> Artefact:
 
 def create_artefact_builds(
     db_session: Session, artefact: Artefact, num_builds: int = 5
-):
+) -> list[ArtefactBuild]:
     """
     Create a number of ArtefactBuild instances for an Artefact and add them
     to the database
