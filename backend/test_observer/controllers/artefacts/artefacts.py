@@ -30,6 +30,11 @@ router = APIRouter()
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
 def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
+    """Get latest artefact builds of an artefact together with their test executions"""
     return (
-        db.query(ArtefactBuild).filter(ArtefactBuild.artefact_id == artefact_id).all()
+        db.query(ArtefactBuild)
+        .filter(ArtefactBuild.artefact_id == artefact_id)
+        .distinct(ArtefactBuild.architecture)
+        .order_by(ArtefactBuild.architecture, ArtefactBuild.revision.desc())
+        .all()
     )

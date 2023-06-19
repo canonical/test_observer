@@ -19,12 +19,12 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import Environment, TestExecution
+from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
 
 from tests.helpers import create_artefact, create_artefact_builds
 
 
-def test_get_artefact(db_session: Session, test_client: TestClient):
+def test_get_artefact_builds(db_session: Session, test_client: TestClient):
     artefact = create_artefact(db_session, "beta")
     artefact_build = create_artefact_builds(db_session, artefact, 1)[0]
     environment = Environment(
@@ -55,5 +55,28 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
                     },
                 }
             ],
+        }
+    ]
+
+
+def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "beta")
+    artefact_build1 = ArtefactBuild(
+        architecture="amd64", revision="1", artefact=artefact
+    )
+    artefact_build2 = ArtefactBuild(
+        architecture="amd64", revision="2", artefact=artefact
+    )
+    db_session.add_all([artefact_build1, artefact_build2])
+    db_session.commit()
+
+    response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": artefact_build2.id,
+            "revision": artefact_build2.revision,
+            "test_executions": [],
         }
     ]
