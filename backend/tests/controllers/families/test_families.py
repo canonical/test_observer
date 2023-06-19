@@ -22,15 +22,12 @@ from datetime import datetime, timedelta
 from random import randint
 
 from fastapi.testclient import TestClient
-from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
 from tests.helpers import create_artefact
 
 
-def test_retreive_family(
-    db_session: Session, test_client: TestClient, requests_mock: Mocker
-):
+def test_retreive_family(db_session: Session, test_client: TestClient):
     """
     We should get json for a specific family with its stages and artefacts
     """
@@ -52,15 +49,15 @@ def test_retreive_family(
                 version=str(randint(1, 100)),
             )
         )
-    stage = artefacts[0].stage
+    snap_stage = artefacts[0].stage
 
     # Act
     response = test_client.get("/v1/families/snap")
 
     # Assert
     assert response.json() == {
-        "id": stage.family_id,
-        "name": stage.family.name,
+        "id": snap_stage.family_id,
+        "name": snap_stage.family.name,
         "stages": [
             {
                 "id": 1,
