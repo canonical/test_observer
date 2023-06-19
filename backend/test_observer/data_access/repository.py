@@ -20,9 +20,9 @@
 """Services for working with objects from DB"""
 
 
-from sqlalchemy import func, and_
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import joinedload, Session
+from sqlalchemy.orm import Session
 
 
 from .models_enums import FamilyName
@@ -61,40 +61,23 @@ def get_artefacts_by_family_name(
                   the latest one in a stage
     :return: list of Artefacts
     """
+    query = (
+        select(Artefact)
+        .join(Stage)
+        .join(Family)
+        .where(Artefact.stage.has(Family.name == family_name))
+    )
     if latest_only:
-        subquery = (
-            session.query(
-                Artefact.stage_id,
-                Artefact.name,
-                Artefact.source,
-                func.max(Artefact.created_at).label("max_created"),
-            )
-            .group_by(Artefact.stage_id, Artefact.name, Artefact.source)
-            .subquery()
+        query = query.distinct(
+            Artefact.name, Artefact.source, Artefact.stage_id
+        ).order_by(
+            Artefact.name,
+            Artefact.source,
+            Artefact.stage_id,
+            Artefact.created_at.desc(),
         )
 
-        artefacts = (
-            session.query(Artefact)
-            .join(
-                subquery,
-                and_(
-                    Artefact.stage_id == subquery.c.stage_id,
-                    Artefact.name == subquery.c.name,
-                    Artefact.source == subquery.c.source,
-                    Artefact.created_at == subquery.c.max_created,
-                ),
-            )
-            .all()
-        )
-    else:
-        artefacts = (
-            session.query(Artefact)
-            .join(Stage)
-            .filter(Stage.family.has(Family.name == family_name))
-            .options(joinedload(Artefact.stage))
-            .all()
-        )
-    return artefacts
+    return list(session.scalars(query).all())
 
 
 def get_or_create(db: Session, model: type[DataModel], **kwargs) -> DataModel:
