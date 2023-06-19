@@ -26,7 +26,7 @@ from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
-from ...helpers import create_artefact, create_artefact_builds
+from tests.helpers import create_artefact, create_artefact_builds
 
 
 def test_run_to_move_artefact_snap(

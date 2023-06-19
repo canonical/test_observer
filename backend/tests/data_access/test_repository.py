@@ -31,7 +31,7 @@ from test_observer.data_access.repository import (
     get_stage_by_name,
 )
 
-from ..helpers import create_artefact
+from tests.helpers import create_artefact
 
 
 def test_get_stage_by_name(db_session: Session):
