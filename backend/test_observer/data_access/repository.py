@@ -64,8 +64,7 @@ def get_artefacts_by_family_name(
     query = (
         select(Artefact)
         .join(Stage)
-        .join(Family)
-        .where(Artefact.stage.has(Family.name == family_name))
+        .where(Stage.family_id.in_(select(Family.id).where(Family.name == family_name)))
     )
     if latest_only:
         query = query.distinct(
