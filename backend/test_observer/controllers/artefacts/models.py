@@ -15,37 +15,34 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Written by:
-#        Omar Abou Selo <omar.selo@canonical.com>
+#        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-"""Data Transfer Object for creating API responses"""
-
-
 from pydantic import BaseModel
 
 
-class ArtefactDTO(BaseModel):
+class EnvironmentDTO(BaseModel):
     id: int
     name: str
-    version: str
-    source: dict[str, int | str]
+    architecture: str
 
     class Config:
         orm_mode = True
 
 
-class StageDTO(BaseModel):
+class TestExecutionDTO(BaseModel):
     id: int
-    name: str
-    artefacts: list[ArtefactDTO]
+    jenkins_link: str | None
+    c3_link: str | None
+    environment: EnvironmentDTO
 
     class Config:
         orm_mode = True
 
 
-class FamilyDTO(BaseModel):
+class ArtefactBuildDTO(BaseModel):
     id: int
-    name: str
-    stages: list[StageDTO]
+    revision: int | None
+    test_executions: list[TestExecutionDTO]
 
     class Config:
         orm_mode = True

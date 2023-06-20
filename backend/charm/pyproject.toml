@@ -18,7 +18,11 @@ target-version = ["py38"]
 [tool.ruff]
 line-length = 99
 select = ["E", "W", "F", "C", "N", "D", "I001"]
-extend-ignore = [
+ignore = [
+    "D100",
+    "D102",
+    "E501",
+    "D107",
     "D203",
     "D204",
     "D213",
@@ -31,12 +35,13 @@ extend-ignore = [
     "D409",
     "D413",
 ]
-ignore = ["E501", "D107"]
-extend-exclude = ["__pycache__", "*.egg_info"]
-per-file-ignores = {"tests/*" = ["D100","D101","D102","D103","D104"]}
+extend-exclude = ["__pycache__", "*.egg_info", "lib"]
 
 [tool.ruff.mccabe]
 max-complexity = 10
+
+[tool.mypy]
+exclude = ["lib"]
 
 [tool.codespell]
 skip = "build,lib,venv,icon.svg,.tox,.git,.mypy_cache,.ruff_cache,.coverage"

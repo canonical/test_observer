@@ -19,6 +19,9 @@ build:
           - dest: "migrations/"
             src: "migrations/**"
             strip: "migrations/"
+          - dest: "scripts/"
+            src: "scripts/**"
+            strip: "scripts/"
   # Use microk8s registry
   insecureRegistries:
     - localhost:32000
