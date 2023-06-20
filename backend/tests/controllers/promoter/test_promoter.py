@@ -25,8 +25,9 @@ from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
+from test_observer.data_access.models import ArtefactBuild
 
-from tests.helpers import create_artefact, create_artefact_builds
+from tests.helpers import create_artefact
 
 
 def test_run_to_move_artefact_snap(
@@ -45,7 +46,6 @@ def test_run_to_move_artefact_snap(
         source={"store": "ubuntu"},
         created_at=datetime.utcnow(),
     )
-    create_artefact_builds(db_session, artefact)
     create_artefact(
         db_session,
         "edge",
@@ -54,6 +54,8 @@ def test_run_to_move_artefact_snap(
         source={"store": "ubuntu"},
         created_at=datetime.utcnow() - timedelta(days=1),
     )
+    ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
+
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
         json={
@@ -106,7 +108,6 @@ def test_run_to_move_artefact_deb(
         source={"series": "kinetic", "repo": "main"},
         created_at=datetime.utcnow(),
     )
-    create_artefact_builds(db_session, artefact)
     create_artefact(
         db_session,
         "proposed",
@@ -115,6 +116,8 @@ def test_run_to_move_artefact_deb(
         source={"series": "kinetic", "repo": "main"},
         created_at=datetime.utcnow() - timedelta(days=1),
     )
+    db_session.add(ArtefactBuild(architecture="x64", artefact=artefact))
+    db_session.commit()
 
     with open("tests/test_data/Packages-proposed.gz", "rb") as f:
         proposed_content = f.read()

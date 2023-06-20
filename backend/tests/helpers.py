@@ -19,31 +19,3 @@ def create_artefact(db_session: Session, stage_name: str, **kwargs) -> Artefact:
     db_session.add(artefact)
     db_session.commit()
     return artefact
-
-
-def create_artefact_builds(
-    db_session: Session, artefact: Artefact, num_builds: int = 5
-) -> list[ArtefactBuild]:
-    """
-    Create a number of ArtefactBuild instances for an Artefact and add them
-    to the database
-    """
-    architectures = ["arm64", "x86", "amd64"]
-
-    for i in range(num_builds):
-        architecture = choice(architectures)
-
-        build = ArtefactBuild(
-            architecture=architecture,
-            revision=i + 1
-            if artefact.stage.family.name == FamilyName.SNAP.value
-            else None,
-            artefact_id=artefact.id,
-        )
-
-        # Add the build to the artefact's builds
-        artefact.builds.append(build)
-
-    # Commit the changes to the database
-    db_session.commit()
-    return artefact.builds
