@@ -80,7 +80,7 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
     )
     assert artefact_build
 
-    test_execution =  (
+    test_execution = (
         db_session.query(TestExecution)
         .filter(
             TestExecution.artefact_build == artefact_build,
