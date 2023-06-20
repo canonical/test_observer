@@ -1,9 +1,7 @@
-from random import choice
 from datetime import datetime
 
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import Artefact, Stage, ArtefactBuild
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models import Artefact, Stage
 
 
 def create_artefact(db_session: Session, stage_name: str, **kwargs) -> Artefact:
