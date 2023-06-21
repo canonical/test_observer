@@ -54,7 +54,14 @@ def test_run_to_move_artefact_snap(
         source={"store": "ubuntu"},
         created_at=datetime.utcnow() - timedelta(days=1),
     )
-    ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
+    db_session.add_all(
+        [
+            ArtefactBuild(architecture="amd64", artefact=artefact, revision=1),
+            ArtefactBuild(architecture="amd64", artefact=artefact, revision=2),
+            ArtefactBuild(architecture="arm64", artefact=artefact, revision=1),
+        ]
+    )
+    db_session.commit()
 
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
