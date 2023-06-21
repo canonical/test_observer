@@ -116,7 +116,7 @@ def test_run_to_move_artefact_deb(
         source={"series": "kinetic", "repo": "main"},
         created_at=datetime.utcnow() - timedelta(days=1),
     )
-    db_session.add(ArtefactBuild(architecture="x64", artefact=artefact))
+    db_session.add(ArtefactBuild(architecture="amd64", artefact=artefact))
     db_session.commit()
 
     with open("tests/test_data/Packages-proposed.gz", "rb") as f:
