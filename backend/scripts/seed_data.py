@@ -1,6 +1,6 @@
 import requests
 
-from test_observer.controllers.test_execution.models import StartTestExecutionRequest
+from test_observer.controllers.test_executions.models import StartTestExecutionRequest
 
 BASE_URL = "http://localhost:30000/v1"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-execution/start"
