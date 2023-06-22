@@ -32,7 +32,7 @@ jobs:
           poetry-version: "1.5.1"
       - run: poetry install
       - run: poetry run black --check test_observer tests migrations scripts
-      - run: poetry run ruff test_observer tests migrations scripts
+      - run: poetry run ruff --explicit-package-bases test_observer tests migrations scripts
       - run: poetry run mypy test_observer tests migrations scripts
       - run: poetry run pytest
         env:
