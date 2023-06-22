@@ -109,6 +109,6 @@ def test_get_artefacts_by_family_name_latest(db_session: Session):
     # Assert
     assert len(artefacts) == len(expected_artefacts)
     assert {
-        (artefact.name, artefact.stage.name, artefact.created_at)
+        (artefact.name, artefact.stage.name, artefact.created_at, artefact.version)
         for artefact in artefacts
     } == expected_artefacts
