@@ -19,7 +19,6 @@
 
 
 from datetime import datetime, timedelta
-from random import randint
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -32,21 +31,21 @@ def test_retreive_family(db_session: Session, test_client: TestClient):
     We should get json for a specific family with its stages and artefacts
     """
     # Arrange
-    artefact_name_stage_pair = [
-        ("core20", "edge", datetime.utcnow()),
-        ("oem-jammy", "proposed", datetime.utcnow()),
-        ("core20", "edge", datetime.utcnow() - timedelta(days=10)),
-        ("core20", "beta", datetime.utcnow() - timedelta(days=20)),
+    artefact_tuple = [
+        ("core20", "edge", datetime.utcnow(), "1"),
+        ("oem-jammy", "proposed", datetime.utcnow(), "1"),
+        ("core20", "edge", datetime.utcnow() - timedelta(days=10), "2"),
+        ("core20", "beta", datetime.utcnow() - timedelta(days=20), "3"),
     ]
     artefacts = []
-    for name, stage, created_at in artefact_name_stage_pair:
+    for name, stage, created_at, version in artefact_tuple:
         artefacts.append(
             create_artefact(
                 db_session,
                 stage,
                 name=name,
                 created_at=created_at,
-                version=str(randint(1, 100)),
+                version=version,
             )
         )
     snap_stage = artefacts[0].stage
