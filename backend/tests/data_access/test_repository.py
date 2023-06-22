@@ -21,7 +21,6 @@
 
 
 from datetime import datetime, timedelta
-from random import randint
 
 from sqlalchemy.orm import Session
 from test_observer.data_access.models import Family
@@ -87,21 +86,21 @@ def test_get_artefacts_by_family_name(db_session: Session):
 def test_get_artefacts_by_family_name_latest(db_session: Session):
     """We should get a only latest artefacts in each stage for the specified family"""
     # Arrange
-    artefact_name_stage_pair = [
-        ("core20", "edge", datetime.utcnow()),
-        ("oem-jammy", "proposed", datetime.utcnow()),
-        ("core20", "edge", datetime.utcnow() - timedelta(days=10)),
-        ("core20", "beta", datetime.utcnow() - timedelta(days=20)),
+    artefact_tuple = [
+        ("core20", "edge", datetime.utcnow(), "1"),
+        ("oem-jammy", "proposed", datetime.utcnow(), "1"),
+        ("core20", "edge", datetime.utcnow() - timedelta(days=10), "2"),
+        ("core20", "beta", datetime.utcnow() - timedelta(days=20), "3"),
     ]
-    expected_artefacts = {artefact_name_stage_pair[0], artefact_name_stage_pair[-1]}
+    expected_artefacts = {artefact_tuple[0], artefact_tuple[-1]}
 
-    for name, stage, created_at in artefact_name_stage_pair:
+    for name, stage, created_at, version in artefact_tuple:
         create_artefact(
             db_session,
             stage,
             name=name,
             created_at=created_at,
-            version=str(randint(1, 100)),
+            version=version,
         )
 
     # Act
@@ -110,6 +109,6 @@ def test_get_artefacts_by_family_name_latest(db_session: Session):
     # Assert
     assert len(artefacts) == len(expected_artefacts)
     assert {
-        (artefact.name, artefact.stage.name, artefact.created_at)
+        (artefact.name, artefact.stage.name, artefact.created_at, artefact.version)
         for artefact in artefacts
     } == expected_artefacts
