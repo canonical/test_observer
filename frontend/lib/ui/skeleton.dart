@@ -10,14 +10,16 @@ class Skeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          const Navbar(),
-          Expanded(child: body),
-        ],
+    return SelectionArea(
+      child: Scaffold(
+        body: Column(
+          children: [
+            const Navbar(),
+            Expanded(child: body),
+          ],
+        ),
+        bottomNavigationBar: const Footer(),
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 }

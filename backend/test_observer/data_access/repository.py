@@ -20,9 +20,9 @@
 """Services for working with objects from DB"""
 
 
-from sqlalchemy import func, and_
+from sqlalchemy import and_, func
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import joinedload, Session
+from sqlalchemy.orm import Session, joinedload
 
 
 from .models_enums import FamilyName
@@ -69,6 +69,8 @@ def get_artefacts_by_family_name(
                 Artefact.source,
                 func.max(Artefact.created_at).label("max_created"),
             )
+            .join(Stage)
+            .filter(Stage.family.has(Family.name == family_name))
             .group_by(Artefact.stage_id, Artefact.name, Artefact.source)
             .subquery()
         )

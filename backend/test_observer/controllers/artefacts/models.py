@@ -17,24 +17,32 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from test_observer.data_access.models import ArtefactBuild
-from test_observer.data_access.setup import get_db
-
-from .models import ArtefactBuildDTO
+from pydantic import BaseModel
 
 
-router = APIRouter()
+class EnvironmentDTO(BaseModel):
+    id: int
+    name: str
+    architecture: str
+
+    class Config:
+        orm_mode = True
 
 
-@router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
-def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
-    """Get latest artefact builds of an artefact together with their test executions"""
-    return (
-        db.query(ArtefactBuild)
-        .filter(ArtefactBuild.artefact_id == artefact_id)
-        .distinct(ArtefactBuild.architecture)
-        .order_by(ArtefactBuild.architecture, ArtefactBuild.revision.desc())
-        .all()
-    )
+class TestExecutionDTO(BaseModel):
+    id: int
+    jenkins_link: str | None
+    c3_link: str | None
+    environment: EnvironmentDTO
+
+    class Config:
+        orm_mode = True
+
+
+class ArtefactBuildDTO(BaseModel):
+    id: int
+    revision: int | None
+    test_executions: list[TestExecutionDTO]
+
+    class Config:
+        orm_mode = True

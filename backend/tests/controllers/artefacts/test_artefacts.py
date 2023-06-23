@@ -15,128 +15,68 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Written by:
-#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
-"""Test snap manager API"""
-
-
-from datetime import datetime, timedelta
-
+#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi.testclient import TestClient
-from requests_mock import Mocker
 from sqlalchemy.orm import Session
+from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
 
-from ...helpers import create_artefact, create_artefact_builds
+from tests.helpers import create_artefact
 
 
-def test_run_to_move_artefact_snap(
-    db_session: Session, test_client: TestClient, requests_mock: Mocker
-):
-    """
-    If artefact's current stage name is different to its stage name on
-    snapcraft, the artefact is moved to the next stage
-    """
-    # Arrange
-    artefact = create_artefact(
-        db_session,
-        "edge",
-        name="core20",
-        version="1.1.1",
-        source={"store": "ubuntu"},
-        created_at=datetime.utcnow(),
+def test_get_artefact_builds(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "beta")
+    artefact_build = ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
+    environment = Environment(
+        name="some-environment", architecture=artefact_build.architecture
     )
-    create_artefact_builds(db_session, artefact)
-    create_artefact(
-        db_session,
-        "edge",
-        name="core20",
-        version="1.1.0",
-        source={"store": "ubuntu"},
-        created_at=datetime.utcnow() - timedelta(days=1),
+    test_execution = TestExecution(
+        artefact_build=artefact_build, environment=environment
     )
-    requests_mock.get(
-        "https://api.snapcraft.io/v2/snaps/info/core20",
-        json={
-            "channel-map": [
+    db_session.add_all([environment, test_execution, artefact_build])
+    db_session.commit()
+
+    response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": artefact_build.id,
+            "revision": artefact_build.revision,
+            "test_executions": [
                 {
-                    "channel": {
-                        "architecture": artefact.builds[0].architecture,
-                        "name": "beta",
-                        "released-at": "2023-05-17T12:39:07.471800+00:00",
-                        "risk": "beta",
-                        "track": "latest",
+                    "id": test_execution.id,
+                    "jenkins_link": test_execution.jenkins_link,
+                    "c3_link": test_execution.c3_link,
+                    "environment": {
+                        "id": environment.id,
+                        "name": environment.name,
+                        "architecture": environment.architecture,
                     },
-                    "created-at": "2023-04-10T09:59:22.309277+00:00",
-                    "download": {
-                        "deltas": [],
-                        "sha3-384": "70f0",
-                        "size": 130830336,
-                        "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
-                    },
-                    "revision": artefact.builds[0].revision,
-                    "type": "app",
-                    "version": "1.1.1",
-                },
-            ]
-        },
+                }
+            ],
+        }
+    ]
+
+
+def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "beta")
+    artefact_build1 = ArtefactBuild(
+        architecture="amd64", revision="1", artefact=artefact
     )
-
-    # Act
-    test_client.put("/v0/artefacts/promote")
-
-    db_session.refresh(artefact)
-
-    # Assert
-    assert artefact.stage.name == "beta"
-
-
-def test_run_to_move_artefact_deb(
-    db_session: Session, test_client: TestClient, requests_mock: Mocker
-):
-    """
-    If artefact's current stage name is different to its stage name on
-    deb archive, the artefact is moved to the next stage
-    """
-    # Arrange
-    artefact = create_artefact(
-        db_session,
-        "proposed",
-        name="linux-generic",
-        version="5.19.0.43.39",
-        source={"series": "kinetic", "repo": "main"},
-        created_at=datetime.utcnow(),
+    artefact_build2 = ArtefactBuild(
+        architecture="amd64", revision="2", artefact=artefact
     )
-    create_artefact_builds(db_session, artefact)
-    create_artefact(
-        db_session,
-        "proposed",
-        name="linux-generic",
-        version="5.19.0.43.38",
-        source={"series": "kinetic", "repo": "main"},
-        created_at=datetime.utcnow() - timedelta(days=1),
-    )
+    db_session.add_all([artefact_build1, artefact_build2])
+    db_session.commit()
 
-    with open("tests/test_data/Packages-proposed.gz", "rb") as f:
-        proposed_content = f.read()
-    with open("tests/test_data/Packages-updates.gz", "rb") as f:
-        updates_content = f.read()
+    response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
 
-    for build in artefact.builds:
-        requests_mock.get(
-            "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
-            f"binary-{build.architecture}/Packages.gz",
-            content=proposed_content,
-        )
-        requests_mock.get(
-            "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/"
-            f"binary-{build.architecture}/Packages.gz",
-            content=updates_content,
-        )
-
-    # Act
-    test_client.put("/v0/artefacts/promote")
-
-    db_session.refresh(artefact)
-
-    # Assert
-    assert artefact.stage.name == "updates"
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": artefact_build2.id,
+            "revision": artefact_build2.revision,
+            "test_executions": [],
+        }
+    ]

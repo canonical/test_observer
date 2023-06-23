@@ -109,7 +109,15 @@ class ArtefactBuild(Base):
         back_populates="artefact_build", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (UniqueConstraint("artefact_id", "architecture", "revision"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "artefact_id",
+            "architecture",
+            "revision",
+            name="unique_artefact_build",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
 
 class Environment(Base):
