@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/artefact.dart';
 import '../../models/stage.dart';
 import '../spacing.dart';
+import 'artefact_dialog.dart';
 
 class DashboardBody extends StatelessWidget {
   const DashboardBody({Key? key, required this.stages}) : super(key: key);
@@ -67,34 +68,42 @@ class _ArtefactCard extends StatelessWidget {
       ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
     ];
 
-    return Card(
-      margin: const EdgeInsets.all(0),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: Theme.of(context).colorScheme.outline),
-        borderRadius: BorderRadius.circular(2.25),
+    return GestureDetector(
+      onTap: () => showDialog(
+        context: context,
+        builder: (_) => ArtefactDialog(
+          artefact: artefact,
+        ),
       ),
-      child: Container(
-        width: width,
-        height: 156,
-        padding: const EdgeInsets.all(Spacing.level4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              artefact.name,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: Spacing.level2),
-            ...artefactDetails
-                .expand(
-                  (detail) => [
-                    Text(detail),
-                    const SizedBox(height: Spacing.level2),
-                  ],
-                )
-                .toList()
-          ],
+      child: Card(
+        margin: const EdgeInsets.all(0),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: Theme.of(context).colorScheme.outline),
+          borderRadius: BorderRadius.circular(2.25),
+        ),
+        child: Container(
+          width: width,
+          height: 156,
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                artefact.name,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: Spacing.level2),
+              ...artefactDetails
+                  .expand(
+                    (detail) => [
+                      Text(detail),
+                      const SizedBox(height: Spacing.level2),
+                    ],
+                  )
+                  .toList()
+            ],
+          ),
         ),
       ),
     );
