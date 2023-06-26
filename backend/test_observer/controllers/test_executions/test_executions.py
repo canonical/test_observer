@@ -54,33 +54,40 @@ def start_test_execution(
     artefact = get_or_create(
         db,
         Artefact,
-        name=request.name,
-        version=request.version,
-        source=request.source,
-        stage_id=stage.id,
+        filter_kwargs={
+            "name": request.name,
+            "version": request.version,
+            "source": request.source,
+        },
+        creation_kwargs={"stage_id": stage.id},
     )
 
     environment = get_or_create(
         db,
         Environment,
-        name=request.environment,
-        architecture=request.arch,
+        filter_kwargs={"name": request.environment, "architecture": request.arch},
     )
 
     artefact_build = get_or_create(
         db,
         ArtefactBuild,
-        architecture=request.arch,
-        revision=request.revision,
-        artefact_id=artefact.id,
+        filter_kwargs={
+            "architecture": request.arch,
+            "revision": request.revision,
+            "artefact_id": artefact.id,
+        },
     )
 
     test_execution = get_or_create(
         db,
         TestExecution,
-        environment_id=environment.id,
-        artefact_build_id=artefact_build.id,
-        status=TestExecutionStatus.IN_PROGRESS,
+        filter_kwargs={
+            "environment_id": environment.id,
+            "artefact_build_id": artefact_build.id,
+        },
+        creation_kwargs={
+            "status": TestExecutionStatus.IN_PROGRESS,
+        },
     )
     return {"id": test_execution.id}
 

@@ -1,9 +1,10 @@
 import requests
+from fastapi.testclient import TestClient
 
-from test_observer.controllers.test_execution.models import StartTestExecutionRequest
+from test_observer.controllers.test_executions.models import StartTestExecutionRequest
 
 BASE_URL = "http://localhost:30000/v1"
-START_TEST_EXECUTION_URL = f"{BASE_URL}/test-execution/start"
+START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 
 REQUESTS = [
     StartTestExecutionRequest(
@@ -97,10 +98,10 @@ REQUESTS = [
 ]
 
 
-def seed_data():
+def seed_data(client: TestClient | requests.Session):
     for request in REQUESTS:
-        requests.put(START_TEST_EXECUTION_URL, json=request.dict())
+        client.put(START_TEST_EXECUTION_URL, json=request.dict()).raise_for_status()
 
 
 if __name__ == "__main__":
-    seed_data()
+    seed_data(requests.Session())
