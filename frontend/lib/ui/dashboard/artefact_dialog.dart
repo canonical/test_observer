@@ -1,9 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 import 'package:yaru_widgets/widgets.dart';
 
 import '../../models/artefact.dart';
+import '../../models/artefact_build.dart';
+import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
 import '../spacing.dart';
 
@@ -15,9 +19,9 @@ class ArtefactDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: FractionallySizedBox(
-        heightFactor: 0.8,
-        widthFactor: 0.8,
+      child: SizedBox(
+        height: min(800, MediaQuery.of(context).size.height * 0.8),
+        width: min(1200, MediaQuery.of(context).size.width * 0.8),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: Spacing.level5,
@@ -26,11 +30,11 @@ class ArtefactDialog extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Header(title: artefact.name),
+              _ArtefactHeader(title: artefact.name),
               const SizedBox(height: Spacing.level4),
-              _Info(artefact: artefact),
+              _ArtefactInfoSection(artefact: artefact),
               const SizedBox(height: Spacing.level4),
-              _Environments(artefact: artefact),
+              Expanded(child: _EnvironmentsSection(artefact: artefact)),
             ],
           ),
         ),
@@ -39,8 +43,8 @@ class ArtefactDialog extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.title});
+class _ArtefactHeader extends StatelessWidget {
+  const _ArtefactHeader({required this.title});
 
   final String title;
 
@@ -70,8 +74,8 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Info extends StatelessWidget {
-  const _Info({required this.artefact});
+class _ArtefactInfoSection extends StatelessWidget {
+  const _ArtefactInfoSection({required this.artefact});
 
   final Artefact artefact;
 
@@ -82,24 +86,47 @@ class _Info extends StatelessWidget {
       ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
     ];
 
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...artefactDetails
-            .expand(
-              (detail) => [
-                Text(detail, style: Theme.of(context).textTheme.bodyLarge),
-                const SizedBox(height: Spacing.level2),
-              ],
-            )
-            .toList()
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ...artefactDetails
+                .expand(
+                  (detail) => [
+                    Text(detail, style: Theme.of(context).textTheme.bodyLarge),
+                    const SizedBox(height: Spacing.level2),
+                  ],
+                )
+                .toList(),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: TestExecutionStatus.values
+              .map(
+                (status) => Row(
+                  children: [
+                    status.icon,
+                    const SizedBox(width: Spacing.level2),
+                    Text(
+                      status.name,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              )
+              .toList(),
+        ),
       ],
     );
   }
 }
 
-class _Environments extends ConsumerWidget {
-  const _Environments({required this.artefact});
+class _EnvironmentsSection extends ConsumerWidget {
+  const _EnvironmentsSection({required this.artefact});
 
   final Artefact artefact;
 
@@ -109,15 +136,77 @@ class _Environments extends ConsumerWidget {
 
     return artefactBuilds.when(
       data: (artefactBuilds) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Environments', style: Theme.of(context).textTheme.titleLarge),
-          ...artefactBuilds.map((build) => Text(build.architecture))
+          Expanded(
+            child: ListView.builder(
+              itemCount: artefactBuilds.length,
+              itemBuilder: (_, i) =>
+                  _ArtefactBuildView(artefactBuild: artefactBuilds[i]),
+            ),
+          ),
         ],
       ),
       loading: () => const YaruCircularProgressIndicator(),
       error: (error, stackTrace) {
         return Center(child: Text('Error: $error'));
       },
+    );
+  }
+}
+
+class _ArtefactBuildView extends StatelessWidget {
+  const _ArtefactBuildView({required this.artefactBuild});
+
+  final ArtefactBuild artefactBuild;
+
+  @override
+  Widget build(BuildContext context) {
+    return YaruExpandable(
+      expandButtonPosition: YaruExpandableButtonPosition.start,
+      isExpanded: true,
+      header: Text(
+        artefactBuild.architecture,
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(left: Spacing.level4),
+        child: Column(
+          children: artefactBuild.testExecutions
+              .map(
+                (testExecution) =>
+                    _TestExecutionView(testExecution: testExecution),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _TestExecutionView extends StatelessWidget {
+  const _TestExecutionView({required this.testExecution});
+
+  final TestExecution testExecution;
+
+  @override
+  Widget build(BuildContext context) {
+    return YaruExpandable(
+      header: Row(
+        children: [
+          testExecution.status.icon,
+          const SizedBox(width: Spacing.level2),
+          Text(
+            testExecution.environment.name,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const Spacer(),
+          Text('links'),
+        ],
+      ),
+      expandButtonPosition: YaruExpandableButtonPosition.start,
+      child: Container(),
     );
   }
 }
