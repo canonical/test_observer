@@ -99,22 +99,34 @@ def get_artefacts_by_family_name(
     return artefacts
 
 
-def get_or_create(db: Session, model: type[DataModel], **kwargs) -> DataModel:
+def get_or_create(
+    db: Session,
+    model: type[DataModel],
+    filter_kwargs: dict,
+    creation_kwargs: dict | None = None,
+) -> DataModel:
     """
     Creates an object if it doesn't exist, otherwise returns the existing one
 
     :db: DB session
     :model: model to create e.g. Stage, Family, Artefact
-    :kwargs: keyword arguments to pass to the model
+    :filter_kwargs: arguments to pass to the model when querying and creating
+    :creation_kwargs: extra arguments to pass to the model when creating only
     """
     # Try to create first to avoid race conditions
-    stmt = insert(model).values([kwargs]).on_conflict_do_nothing().returning(model)
+    creation_kwargs = creation_kwargs or {}
+    stmt = (
+        insert(model)
+        .values([{**filter_kwargs, **creation_kwargs}])
+        .on_conflict_do_nothing()
+        .returning(model)
+    )
 
     result = db.execute(stmt).scalar_one_or_none()
     db.commit()
 
     if result is None:
         # If the object already existed, we need to query it
-        result = db.query(model).filter_by(**kwargs).one()
+        result = db.query(model).filter_by(**filter_kwargs).one()
 
     return result

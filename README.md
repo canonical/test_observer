@@ -6,12 +6,18 @@ Observe the status and state of certification tests for various artefacts
 
 - `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
 - `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`) + [permission setup steps after install](https://juju.is/docs/sdk/set-up-your-development-environment#heading--install-microk8s)
-- `terraform` 1.4.6 or later (`sudo snap install terraform`)
-- `lxd` 5.13 or later (`sudo snap install lxc --channel=5.0/stable`) + `lxd init` after install.
-- `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable`)
+- `terraform` 1.4.6 or later (`sudo snap install terraform --classic`)
+- `lxd` 5.13 or later (`sudo snap install lxd --channel=5.13/stable` or `sudo snap refresh lxd --channel=5.13/stable` if already installed) + `lxd init --auto` after install.
+- `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable --classic`)
 - optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
 
 ## Deploying a copy of the system with terraform / juju in microk8s
+
+Workaround for juju bug https://bugs.launchpad.net/juju/+bug/1988355
+
+```
+mkdir -p ~/.local/share
+```
 
 Fist configure microk8s with the needed extensions:
 
@@ -22,7 +28,7 @@ sudo microk8s enable dns hostpath-storage metallb traefik # metallb setup involv
 
 Then help microk8s work with an authorized (private) OCI image registry at ghcr.io:
 
-1. Get a GitHub personal access token at https://github.com/settings/tokens/new with the `package:read` permission.
+1. Get a GitHub personal access token at https://github.com/settings/tokens/new with the `read:packages` permission.
 2. Configure containerd in microk8s with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries by appending the following to `/var/snap/microk8s/current/args/containerd-template.toml`:
 
 ```yaml
