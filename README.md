@@ -6,12 +6,18 @@ Observe the status and state of certification tests for various artefacts
 
 - `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
 - `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`) + [permission setup steps after install](https://juju.is/docs/sdk/set-up-your-development-environment#heading--install-microk8s)
-- `terraform` 1.4.6 or later (`sudo snap install terraform`)
-- `lxd` 5.13 or later (`sudo snap install lxc --channel=5.0/stable`) + `lxd init` after install.
-- `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable`)
+- `terraform` 1.4.6 or later (`sudo snap install terraform --classic`)
+- `lxd` 5.13 or later (`sudo snap install lxd --channel=5.13/stable` or `sudo snap refresh lxd --channel=5.13/stable` if already installed) + `lxd init --auto` after install.
+- `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable --classic`)
 - optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
 
 ## Deploying a copy of the system with terraform / juju in microk8s
+
+Workaround for juju bug https://bugs.launchpad.net/juju/+bug/1988355
+
+```
+mkdir -p ~/.local/share
+```
 
 Fist configure microk8s with the needed extensions:
 
@@ -22,7 +28,7 @@ sudo microk8s enable dns hostpath-storage metallb traefik # metallb setup involv
 
 Then help microk8s work with an authorized (private) OCI image registry at ghcr.io:
 
-1. Get a GitHub personal access token at https://github.com/settings/tokens/new with the `package:read` permission.
+1. Get a GitHub personal access token at https://github.com/settings/tokens/new with the `read:packages` permission.
 2. Configure containerd in microk8s with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries by appending the following to `/var/snap/microk8s/current/args/containerd-template.toml`:
 
 ```yaml
@@ -77,7 +83,7 @@ You can optionally get SSL certificates automatically managed for the ingress (i
 TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" TF_VAR_cloudflare_acme=true TF_VAR_cloudflare_dns_api_token=... TF_VAR_cloudflare_zone_read_api_token=... TF_VAR_cloudflare_email=... terraform apply -auto-approve
 ```
 
-After all is up, `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
+After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
 
 ```bash
 $ juju status --relations
@@ -130,7 +136,7 @@ charmcraft pack
 juju refresh test-observer-api --path ./test-observer-api_ubuntu-22.04-amd64.charm
 
 # to update the OCI image that runs the backend
-juju attach-resource test-observer-api --resource api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
+juju attach-resource test-observer-api api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
 ```
 
 ### Build and refresh the frontend charm

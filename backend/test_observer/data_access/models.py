@@ -20,11 +20,7 @@
 from typing import TypeVar
 from datetime import datetime, date
 
-from sqlalchemy import (
-    ForeignKey,
-    String,
-    UniqueConstraint,
-)
+from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
@@ -113,7 +109,15 @@ class ArtefactBuild(Base):
         back_populates="artefact_build", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (UniqueConstraint("artefact_id", "architecture", "revision"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "artefact_id",
+            "architecture",
+            "revision",
+            name="unique_artefact_build",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
 
 class Environment(Base):

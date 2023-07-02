@@ -1,0 +1,88 @@
+# Copyright 2023 Canonical Ltd.
+# All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Written by:
+#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+
+
+from datetime import datetime, timedelta
+
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from tests.helpers import create_artefact
+
+
+def test_retreive_family(db_session: Session, test_client: TestClient):
+    """
+    We should get json for a specific family with its stages and artefacts
+    """
+    # Arrange
+    artefact_tuple = [
+        ("core20", "edge", datetime.utcnow(), "1"),
+        ("oem-jammy", "proposed", datetime.utcnow(), "1"),
+        ("core20", "edge", datetime.utcnow() - timedelta(days=10), "2"),
+        ("core20", "beta", datetime.utcnow() - timedelta(days=20), "3"),
+    ]
+    artefacts = []
+    for name, stage, created_at, version in artefact_tuple:
+        artefacts.append(
+            create_artefact(
+                db_session,
+                stage,
+                name=name,
+                created_at=created_at,
+                version=version,
+            )
+        )
+    snap_stage = artefacts[0].stage
+
+    # Act
+    response = test_client.get("/v1/families/snap")
+
+    # Assert
+    assert response.json() == {
+        "id": snap_stage.family_id,
+        "name": snap_stage.family.name,
+        "stages": [
+            {
+                "id": 1,
+                "name": "edge",
+                "artefacts": [
+                    {
+                        "id": artefacts[0].id,
+                        "name": artefacts[0].name,
+                        "version": artefacts[0].version,
+                        "source": artefacts[0].source,
+                    }
+                ],
+            },
+            {
+                "id": 2,
+                "name": "beta",
+                "artefacts": [
+                    {
+                        "id": artefacts[-1].id,
+                        "name": artefacts[-1].name,
+                        "version": artefacts[-1].version,
+                        "source": artefacts[-1].source,
+                    }
+                ],
+            },
+            {"id": 3, "name": "candidate", "artefacts": []},
+            {"id": 4, "name": "stable", "artefacts": []},
+        ],
+    }
