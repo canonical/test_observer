@@ -43,11 +43,13 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
         {
             "id": artefact_build.id,
             "revision": artefact_build.revision,
+            "architecture": artefact_build.architecture,
             "test_executions": [
                 {
                     "id": test_execution.id,
                     "jenkins_link": test_execution.jenkins_link,
                     "c3_link": test_execution.c3_link,
+                    "status": test_execution.status,
                     "environment": {
                         "id": environment.id,
                         "name": environment.name,
@@ -77,6 +79,7 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
         {
             "id": artefact_build2.id,
             "revision": artefact_build2.revision,
+            "architecture": artefact_build2.architecture,
             "test_executions": [],
         }
     ]
