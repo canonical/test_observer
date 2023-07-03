@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intersperse/intersperse.dart';
 
 import '../../models/artefact.dart';
 import '../../models/stage.dart';
@@ -95,13 +96,10 @@ class _ArtefactCard extends StatelessWidget {
               ),
               const SizedBox(height: Spacing.level2),
               ...artefactDetails
-                  .expand(
-                    (detail) => [
-                      Text(detail),
-                      const SizedBox(height: Spacing.level2),
-                    ],
-                  )
+                  .map<Widget>((detail) => Text(detail))
                   .toList()
+                  .intersperse(const SizedBox(height: Spacing.level2))
+                  .toList(),
             ],
           ),
         ),

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intersperse/intersperse.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 import 'package:yaru_widgets/widgets.dart';
 
@@ -93,16 +94,14 @@ class _ArtefactInfoSection extends StatelessWidget {
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...artefactDetails
-                .expand(
-                  (detail) => [
+          children: artefactDetails
+              .map<Widget>(
+                (detail) =>
                     Text(detail, style: Theme.of(context).textTheme.bodyLarge),
-                    const SizedBox(height: Spacing.level2),
-                  ],
-                )
-                .toList(),
-          ],
+              )
+              .toList()
+              .intersperse(const SizedBox(height: Spacing.level2))
+              .toList(),
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,17 +176,19 @@ class _ArtefactBuildView extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(width: Spacing.level4),
-          ...artefactBuild.testExecutionStatusCounts.entries.expand(
-            (entry) => [
-              entry.key.icon,
-              const SizedBox(width: Spacing.level3),
-              Text(
-                entry.value.toString(),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(width: Spacing.level3),
-            ],
-          )
+          ...artefactBuild.testExecutionStatusCounts.entries
+              .expand(
+                (entry) => [
+                  entry.key.icon,
+                  const SizedBox(width: Spacing.level3),
+                  Text(
+                    entry.value.toString(),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              )
+              .toList()
+              .intersperse(const SizedBox(width: Spacing.level3))
         ],
       ),
       child: Padding(
