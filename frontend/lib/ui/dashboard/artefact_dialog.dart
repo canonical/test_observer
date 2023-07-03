@@ -106,7 +106,7 @@ class _ArtefactInfoSection extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: TestExecutionStatus.values
-              .map(
+              .map<Widget>(
                 (status) => Row(
                   children: [
                     status.icon,
@@ -118,6 +118,8 @@ class _ArtefactInfoSection extends StatelessWidget {
                   ],
                 ),
               )
+              .toList()
+              .intersperse(const SizedBox(height: Spacing.level2))
               .toList(),
         ),
       ],
