@@ -202,7 +202,7 @@ class _TestExecutionView extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const Spacer(),
-          Text('links'),
+          const Text('links'),
         ],
       ),
       expandButtonPosition: YaruExpandableButtonPosition.start,
