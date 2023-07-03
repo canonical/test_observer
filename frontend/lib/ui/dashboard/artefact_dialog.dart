@@ -164,12 +164,31 @@ class _ArtefactBuildView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final revisionText =
+        artefactBuild.revision == null ? '' : ' (${artefactBuild.revision})';
+
     return YaruExpandable(
       expandButtonPosition: YaruExpandableButtonPosition.start,
       isExpanded: true,
-      header: Text(
-        artefactBuild.architecture,
-        style: Theme.of(context).textTheme.titleLarge,
+      header: Row(
+        children: [
+          Text(
+            artefactBuild.architecture + revisionText,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(width: Spacing.level4),
+          ...artefactBuild.testExecutionStatusCounts.entries.expand(
+            (entry) => [
+              entry.key.icon,
+              const SizedBox(width: Spacing.level3),
+              Text(
+                entry.value.toString(),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(width: Spacing.level3),
+            ],
+          )
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.only(left: Spacing.level4),
