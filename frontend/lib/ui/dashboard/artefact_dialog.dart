@@ -9,6 +9,7 @@ import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
+import '../inline_url_text.dart';
 import '../spacing.dart';
 
 class ArtefactDialog extends StatelessWidget {
@@ -192,21 +193,38 @@ class _TestExecutionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final jenkinsLink = testExecution.jenkinsLink;
+    final c3Link = testExecution.c3Link;
+
     return YaruExpandable(
       header: Row(
         children: [
           testExecution.status.icon,
-          const SizedBox(width: Spacing.level2),
+          const SizedBox(width: Spacing.level4),
           Text(
             testExecution.environment.name,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const Spacer(),
-          const Text('links'),
+          Row(
+            children: [
+              if (jenkinsLink != null)
+                InlineUrlText(
+                  url: jenkinsLink,
+                  urlText: 'Jenkins',
+                ),
+              const SizedBox(width: Spacing.level3),
+              if (c3Link != null)
+                InlineUrlText(
+                  url: c3Link,
+                  urlText: 'C3',
+                ),
+            ],
+          ),
         ],
       ),
       expandButtonPosition: YaruExpandableButtonPosition.start,
-      child: Container(),
+      child: const SizedBox.shrink(),
     );
   }
 }
