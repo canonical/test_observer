@@ -177,15 +177,17 @@ class _ArtefactBuildView extends StatelessWidget {
           ),
           const SizedBox(width: Spacing.level4),
           ...artefactBuild.testExecutionStatusCounts.entries
-              .expand(
-                (entry) => [
-                  entry.key.icon,
-                  const SizedBox(width: Spacing.level3),
-                  Text(
-                    entry.value.toString(),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ],
+              .map<Widget>(
+                (entry) => Row(
+                  children: [
+                    entry.key.icon,
+                    const SizedBox(width: Spacing.level3),
+                    Text(
+                      entry.value.toString(),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ],
+                ),
               )
               .toList()
               .intersperse(const SizedBox(width: Spacing.level3))
