@@ -150,7 +150,7 @@ class _EnvironmentsSection extends ConsumerWidget {
           ),
         ],
       ),
-      loading: () => const YaruCircularProgressIndicator(),
+      loading: () => const Center(child: YaruCircularProgressIndicator()),
       error: (error, stackTrace) {
         return Center(child: Text('Error: $error'));
       },

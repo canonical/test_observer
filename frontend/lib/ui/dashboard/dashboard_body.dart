@@ -72,9 +72,7 @@ class _ArtefactCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => showDialog(
         context: context,
-        builder: (_) => ArtefactDialog(
-          artefact: artefact,
-        ),
+        builder: (_) => ArtefactDialog(artefact: artefact),
       ),
       child: Card(
         margin: const EdgeInsets.all(0),
