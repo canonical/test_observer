@@ -5,6 +5,7 @@ import 'package:intersperse/intersperse.dart';
 import '../../models/artefact.dart';
 import '../../models/stage.dart';
 import '../../providers/name_of_selected_stage.dart';
+import '../../providers/names_of_stages.dart';
 import '../spacing.dart';
 import 'artefact_dialog.dart';
 
@@ -15,13 +16,19 @@ class DashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding:
-          const EdgeInsets.symmetric(horizontal: Spacing.pageHorizontalPadding),
-      scrollDirection: Axis.horizontal,
-      itemBuilder: (_, i) => _StageColumn(stage: stages[i]),
-      separatorBuilder: (_, __) => const SizedBox(width: Spacing.level5),
-      itemCount: stages.length,
+    return ProviderScope(
+      overrides: [
+        namesOfStagesProvider
+            .overrideWithValue(stages.map((stage) => stage.name).toList())
+      ],
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.pageHorizontalPadding),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (_, i) => _StageColumn(stage: stages[i]),
+        separatorBuilder: (_, __) => const SizedBox(width: Spacing.level5),
+        itemCount: stages.length,
+      ),
     );
   }
 }

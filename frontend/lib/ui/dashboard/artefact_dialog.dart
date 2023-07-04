@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
+import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 import 'package:yaru_widgets/widgets.dart';
 
@@ -11,6 +12,7 @@ import '../../models/artefact_build.dart';
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
 import '../../providers/name_of_selected_stage.dart';
+import '../../providers/names_of_stages.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
 
@@ -84,7 +86,8 @@ class _ArtefactInfoSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stageName = ref.watch(nameOfSelectedStageProvider);
+    final selectedStageName = ref.watch(nameOfSelectedStageProvider);
+    final namesOfStages = ref.watch(namesOfStagesProvider);
 
     final artefactDetails = [
       'version: ${artefact.version}',
@@ -98,8 +101,25 @@ class _ArtefactInfoSection extends ConsumerWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(stageName),
-            const SizedBox(height: Spacing.level2),
+            Row(
+              children: namesOfStages
+                  .map<Widget>(
+                    (stageName) => Text(
+                      stageName,
+                      style: Theme.of(context).textTheme.bodyLarge?.apply(
+                            color: stageName == selectedStageName
+                                ? YaruColors.orange
+                                : null,
+                          ),
+                    ),
+                  )
+                  .toList()
+                  .intersperse(
+                    Text(' > ', style: Theme.of(context).textTheme.bodyLarge),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: Spacing.level3),
             ...artefactDetails
                 .map<Widget>(
                   (detail) => Text(
@@ -108,7 +128,7 @@ class _ArtefactInfoSection extends ConsumerWidget {
                   ),
                 )
                 .toList()
-                .intersperse(const SizedBox(height: Spacing.level2))
+                .intersperse(const SizedBox(height: Spacing.level3))
                 .toList()
           ],
         ),

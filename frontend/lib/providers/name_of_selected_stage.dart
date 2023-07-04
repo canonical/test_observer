@@ -4,5 +4,5 @@ part 'name_of_selected_stage.g.dart';
 
 @riverpod
 String nameOfSelectedStage(NameOfSelectedStageRef ref) {
-  throw Exception('No stage selected yet');
+  throw Exception('Name of selected stage not set yet');
 }
