@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
 
 import '../../models/artefact.dart';
 import '../../models/stage.dart';
+import '../../providers/name_of_selected_stage.dart';
 import '../spacing.dart';
 import 'artefact_dialog.dart';
 
@@ -31,39 +33,42 @@ class _StageColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          stage.name,
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: Spacing.level4),
-        Expanded(
-          child: SizedBox(
-            width: _ArtefactCard.width,
-            child: ListView.separated(
-              itemBuilder: (_, i) =>
-                  _ArtefactCard(artefact: stage.artefacts[i]),
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: Spacing.level4),
-              itemCount: stage.artefacts.length,
+    return ProviderScope(
+      overrides: [nameOfSelectedStageProvider.overrideWithValue(stage.name)],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            stage.name,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: Spacing.level4),
+          Expanded(
+            child: SizedBox(
+              width: _ArtefactCard.width,
+              child: ListView.separated(
+                itemBuilder: (_, i) =>
+                    _ArtefactCard(artefact: stage.artefacts[i]),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: Spacing.level4),
+                itemCount: stage.artefacts.length,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _ArtefactCard extends StatelessWidget {
+class _ArtefactCard extends ConsumerWidget {
   const _ArtefactCard({Key? key, required this.artefact}) : super(key: key);
 
   final Artefact artefact;
   static const double width = 320;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final artefactDetails = [
       'version: ${artefact.version}',
       ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
@@ -72,7 +77,10 @@ class _ArtefactCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => showDialog(
         context: context,
-        builder: (_) => ArtefactDialog(artefact: artefact),
+        builder: (_) => ProviderScope(
+          parent: ProviderScope.containerOf(context),
+          child: ArtefactDialog(artefact: artefact),
+        ),
       ),
       child: Card(
         margin: const EdgeInsets.all(0),

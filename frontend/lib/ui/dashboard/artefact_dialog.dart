@@ -10,6 +10,7 @@ import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
+import '../../providers/name_of_selected_stage.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
 
@@ -76,13 +77,15 @@ class _ArtefactHeader extends StatelessWidget {
   }
 }
 
-class _ArtefactInfoSection extends StatelessWidget {
+class _ArtefactInfoSection extends ConsumerWidget {
   const _ArtefactInfoSection({required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stageName = ref.watch(nameOfSelectedStageProvider);
+
     final artefactDetails = [
       'version: ${artefact.version}',
       ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
@@ -94,14 +97,20 @@ class _ArtefactInfoSection extends StatelessWidget {
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: artefactDetails
-              .map<Widget>(
-                (detail) =>
-                    Text(detail, style: Theme.of(context).textTheme.bodyLarge),
-              )
-              .toList()
-              .intersperse(const SizedBox(height: Spacing.level2))
-              .toList(),
+          children: [
+            Text(stageName),
+            const SizedBox(height: Spacing.level2),
+            ...artefactDetails
+                .map<Widget>(
+                  (detail) => Text(
+                    detail,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                )
+                .toList()
+                .intersperse(const SizedBox(height: Spacing.level2))
+                .toList()
+          ],
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
