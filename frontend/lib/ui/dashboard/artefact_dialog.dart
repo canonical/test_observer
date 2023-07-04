@@ -23,24 +23,26 @@ class ArtefactDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: SizedBox(
-        height: min(800, MediaQuery.of(context).size.height * 0.8),
-        width: min(1200, MediaQuery.of(context).size.width * 0.8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.level5,
-            vertical: Spacing.level3,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ArtefactHeader(title: artefact.name),
-              const SizedBox(height: Spacing.level4),
-              _ArtefactInfoSection(artefact: artefact),
-              const SizedBox(height: Spacing.level4),
-              Expanded(child: _EnvironmentsSection(artefact: artefact)),
-            ],
+    return SelectionArea(
+      child: Dialog(
+        child: SizedBox(
+          height: min(800, MediaQuery.of(context).size.height * 0.8),
+          width: min(1200, MediaQuery.of(context).size.width * 0.8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.level5,
+              vertical: Spacing.level3,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ArtefactHeader(title: artefact.name),
+                const SizedBox(height: Spacing.level4),
+                _ArtefactInfoSection(artefact: artefact),
+                const SizedBox(height: Spacing.level4),
+                Expanded(child: _EnvironmentsSection(artefact: artefact)),
+              ],
+            ),
           ),
         ),
       ),
