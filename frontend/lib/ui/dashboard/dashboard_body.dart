@@ -23,7 +23,8 @@ class DashboardBody extends StatelessWidget {
       ],
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.pageHorizontalPadding),
+          horizontal: Spacing.pageHorizontalPadding,
+        ),
         scrollDirection: Axis.horizontal,
         itemBuilder: (_, i) => _StageColumn(stage: stages[i]),
         separatorBuilder: (_, __) => const SizedBox(width: Spacing.level5),
