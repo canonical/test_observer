@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
@@ -81,16 +82,13 @@ class _ArtefactHeader extends StatelessWidget {
   }
 }
 
-class _ArtefactInfoSection extends ConsumerWidget {
+class _ArtefactInfoSection extends StatelessWidget {
   const _ArtefactInfoSection({required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedStageName = ref.watch(nameOfSelectedStageProvider);
-    final namesOfStages = ref.watch(namesOfStagesProvider);
-
+  Widget build(BuildContext context) {
     final artefactDetails = [
       'version: ${artefact.version}',
       ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
@@ -103,24 +101,7 @@ class _ArtefactInfoSection extends ConsumerWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: namesOfStages
-                  .map<Widget>(
-                    (stageName) => Text(
-                      stageName,
-                      style: Theme.of(context).textTheme.bodyLarge?.apply(
-                            color: stageName == selectedStageName
-                                ? YaruColors.orange
-                                : null,
-                          ),
-                    ),
-                  )
-                  .toList()
-                  .intersperse(
-                    Text(' > ', style: Theme.of(context).textTheme.bodyLarge),
-                  )
-                  .toList(),
-            ),
+            const _StagesRow(),
             const SizedBox(height: Spacing.level3),
             ...artefactDetails
                 .map<Widget>(
@@ -154,6 +135,43 @@ class _ArtefactInfoSection extends ConsumerWidget {
               .toList(),
         ),
       ],
+    );
+  }
+}
+
+class _StagesRow extends ConsumerWidget {
+  const _StagesRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedStageName = ref.watch(nameOfSelectedStageProvider);
+    final namesOfStages = ref.watch(namesOfStagesProvider);
+
+    final stageNamesWidgets = <Widget>[];
+    bool passedSelectedStage = false;
+    for (final stageName in namesOfStages) {
+      Color fontColor = YaruColors.warmGrey;
+      if (passedSelectedStage) {
+        fontColor = YaruColors.textGrey;
+      } else if (stageName == selectedStageName) {
+        passedSelectedStage = true;
+        fontColor = YaruColors.orange;
+      }
+
+      stageNamesWidgets.add(
+        Text(
+          stageName.capitalize(),
+          style: Theme.of(context).textTheme.bodyLarge?.apply(color: fontColor),
+        ),
+      );
+    }
+
+    return Row(
+      children: stageNamesWidgets
+          .intersperse(
+            Text(' > ', style: Theme.of(context).textTheme.bodyLarge),
+          )
+          .toList(),
     );
   }
 }
