@@ -244,7 +244,7 @@ class _ArtefactBuildView extends StatelessWidget {
                 ),
               )
               .toList()
-              .intersperse(const SizedBox(width: Spacing.level3))
+              .intersperse(const SizedBox(width: Spacing.level4))
         ],
       ),
       child: Padding(
