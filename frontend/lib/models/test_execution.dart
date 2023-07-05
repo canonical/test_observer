@@ -23,16 +23,16 @@ class TestExecution with _$TestExecution {
 }
 
 enum TestExecutionStatus {
+  @JsonValue('FAILED')
+  failed,
   @JsonValue('NOT_STARTED')
   notStarted,
+  @JsonValue('NOT_TESTED')
+  notTested,
   @JsonValue('IN_PROGRESS')
   inProgress,
   @JsonValue('PASSED')
-  passed,
-  @JsonValue('FAILED')
-  failed,
-  @JsonValue('NOT_TESTED')
-  notTested;
+  passed;
 
   String get name {
     switch (this) {
