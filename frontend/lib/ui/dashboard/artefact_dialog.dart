@@ -125,7 +125,10 @@ class _ArtefactInfoSection extends StatelessWidget {
                     const SizedBox(width: Spacing.level2),
                     Text(
                       status.name,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.apply(color: YaruColors.warmGrey),
                     ),
                   ],
                 ),

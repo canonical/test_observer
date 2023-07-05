@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 
+import '../../models/test_execution.dart';
 import '../spacing.dart';
 
 class DashboardHeader extends StatelessWidget {
@@ -29,20 +30,20 @@ class DashboardHeader extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               const SizedBox(height: Spacing.level4),
-              const Row(
+              Row(
                 children: [
                   _LegendEntry(
-                    icon: Icon(YaruIcons.error, color: YaruColors.red),
+                    icon: TestExecutionStatus.failed.icon,
                     text: 'Failed',
                   ),
-                  SizedBox(width: Spacing.level4),
+                  const SizedBox(width: Spacing.level4),
                   _LegendEntry(
-                    icon: Icon(YaruIcons.information),
+                    icon: TestExecutionStatus.notTested.icon,
                     text: 'No result',
                   ),
-                  SizedBox(width: Spacing.level4),
+                  const SizedBox(width: Spacing.level4),
                   _LegendEntry(
-                    icon: Icon(YaruIcons.ok, color: YaruColors.success),
+                    icon: TestExecutionStatus.passed.icon,
                     text: 'Passed',
                   ),
                 ],

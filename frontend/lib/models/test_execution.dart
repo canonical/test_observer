@@ -52,17 +52,18 @@ enum TestExecutionStatus {
   }
 
   Icon get icon {
+    const size = 20.0;
     switch (this) {
       case notStarted:
-        return const Icon(YaruIcons.media_play);
+        return const Icon(YaruIcons.media_play, size: size);
       case inProgress:
-        return const Icon(YaruIcons.refresh);
+        return const Icon(YaruIcons.refresh, size: size);
       case passed:
-        return const Icon(YaruIcons.ok, color: YaruColors.success);
+        return const Icon(YaruIcons.ok, color: YaruColors.success, size: size);
       case failed:
-        return const Icon(YaruIcons.error, color: YaruColors.red);
+        return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
       case notTested:
-        return const Icon(YaruIcons.information);
+        return const Icon(YaruIcons.information, size: size);
       default:
         throw Exception('Unknown TestExecutionStatus: $this');
     }
