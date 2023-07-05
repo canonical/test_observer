@@ -235,7 +235,7 @@ class _ArtefactBuildView extends StatelessWidget {
                 (entry) => Row(
                   children: [
                     entry.key.icon,
-                    const SizedBox(width: Spacing.level3),
+                    const SizedBox(width: Spacing.level2),
                     Text(
                       entry.value.toString(),
                       style: Theme.of(context).textTheme.titleLarge,
