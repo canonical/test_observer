@@ -5,6 +5,7 @@ version: 1.0.0+1
 environment:
   sdk: ">=2.19.0-255.2.beta <3.0.0"
 dependencies:
+  dartx: ^1.1.0
   dio: ^5.1.2
   flutter:
     sdk: flutter

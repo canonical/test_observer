@@ -1,3 +1,4 @@
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
@@ -47,7 +48,7 @@ class _StageColumn extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            stage.name,
+            stage.name.capitalize(),
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: Spacing.level4),
