@@ -19,6 +19,8 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from pydantic import BaseModel
 
+from test_observer.data_access.models_enums import TestExecutionStatus
+
 
 class EnvironmentDTO(BaseModel):
     id: int
@@ -34,6 +36,7 @@ class TestExecutionDTO(BaseModel):
     jenkins_link: str | None
     c3_link: str | None
     environment: EnvironmentDTO
+    status: TestExecutionStatus
 
     class Config:
         orm_mode = True
@@ -41,6 +44,7 @@ class TestExecutionDTO(BaseModel):
 
 class ArtefactBuildDTO(BaseModel):
     id: int
+    architecture: str
     revision: int | None
     test_executions: list[TestExecutionDTO]
 

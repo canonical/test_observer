@@ -1,8 +1,8 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import 'spacing.dart';
+import 'inline_url_text.dart';
 
 class Footer extends StatelessWidget {
   const Footer({Key? key}) : super(key: key);
@@ -26,22 +26,11 @@ class Footer extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          RichText(
-            text: TextSpan(
-              style: fontStyle,
-              children: [
-                const TextSpan(text: 'Powered by '),
-                TextSpan(
-                  text: 'Canonical Ltd.',
-                  style: fontStyle?.apply(
-                    decoration: TextDecoration.underline,
-                    color: Colors.blue,
-                  ),
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () => launchUrlString('https://canonical.com/'),
-                ),
-              ],
-            ),
+          InlineUrlText(
+            url: 'https://canonical.com/',
+            fontStyle: fontStyle,
+            urlText: 'Canonical Ltd.',
+            leadingText: 'Powered by ',
           ),
           const SizedBox(height: Spacing.level3),
           GestureDetector(

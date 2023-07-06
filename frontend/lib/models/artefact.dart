@@ -6,6 +6,7 @@ part 'artefact.g.dart';
 @freezed
 class Artefact with _$Artefact {
   const factory Artefact({
+    required int id,
     required String name,
     required String version,
     required Map<String, dynamic> source,

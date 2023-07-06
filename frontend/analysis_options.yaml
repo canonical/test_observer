@@ -5,7 +5,11 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   plugins:
     - custom_lint
-  exclude: ["lib/models/*.g.dart", "lib/models/*.freezed.dart"]
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+  errors:
+    invalid_annotation_target: ignore
 
 linter:
   rules:
