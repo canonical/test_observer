@@ -4,5 +4,7 @@ part 'name_of_selected_stage.g.dart';
 
 @riverpod
 String nameOfSelectedStage(NameOfSelectedStageRef ref) {
-  throw Exception('Name of selected stage not set yet');
+  throw Exception(
+    'Name of selected stage not set yet, need to override provider',
+  );
 }
