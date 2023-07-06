@@ -46,8 +46,6 @@ enum TestExecutionStatus {
         return 'Failed';
       case notTested:
         return 'Not Tested';
-      default:
-        throw Exception('Unknown TestExecutionStatus: $this');
     }
   }
 
@@ -64,8 +62,6 @@ enum TestExecutionStatus {
         return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
       case notTested:
         return const Icon(YaruIcons.information, size: size);
-      default:
-        throw Exception('Unknown TestExecutionStatus: $this');
     }
   }
 }
