@@ -112,9 +112,7 @@ class _ArtefactCard extends ConsumerWidget {
               const SizedBox(height: Spacing.level2),
               ...artefactDetails
                   .map<Widget>((detail) => Text(detail))
-                  .toList()
-                  .intersperse(const SizedBox(height: Spacing.level2))
-                  .toList(),
+                  .intersperse(const SizedBox(height: Spacing.level2)),
             ],
           ),
         ),

@@ -110,9 +110,7 @@ class _ArtefactInfoSection extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 )
-                .toList()
-                .intersperse(const SizedBox(height: Spacing.level3))
-                .toList()
+                .intersperse(const SizedBox(height: Spacing.level3)),
           ],
         ),
         Column(
@@ -133,7 +131,6 @@ class _ArtefactInfoSection extends StatelessWidget {
                   ],
                 ),
               )
-              .toList()
               .intersperse(const SizedBox(height: Spacing.level2))
               .toList(),
         ),
@@ -243,8 +240,7 @@ class _ArtefactBuildView extends StatelessWidget {
                   ],
                 ),
               )
-              .toList()
-              .intersperse(const SizedBox(width: Spacing.level4))
+              .intersperse(const SizedBox(width: Spacing.level4)),
         ],
       ),
       child: Padding(
