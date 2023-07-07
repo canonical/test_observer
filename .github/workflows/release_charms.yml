@@ -3,7 +3,7 @@ on:
 #    branches:
 #      - main
   push:
-    branches: ["changes-to-deploy-staging"]
+    branches: ["a-branch-that-definitely-does-not-exist"]
     # tags: ["v*.*.*"]
 
 jobs:
