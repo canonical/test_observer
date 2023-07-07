@@ -21,4 +21,4 @@ resources:
   frontend-image:
     type: oci-image
     description: OCI image for test-observer-frontend
-    upstream-source: ghcr.io/canonical/test_observer/frontend:v0.0.10
+    upstream-source: ghcr.io/canonical/test_observer/frontend:main

@@ -7,7 +7,7 @@ options:
     type: string
 
   port:
-    description: Port for the service in the K8s cluster's network (_not_ necessarily the port through which the service will be exposed through nginx ingress)
+    description: Port for the frontend (through ingress)
     default: 80
     type: int
 

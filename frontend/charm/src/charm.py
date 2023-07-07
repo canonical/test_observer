@@ -10,11 +10,7 @@ import logging
 from typing import Tuple
 
 import ops
-from charms.traefik_k8s.v1.ingress import (
-    IngressPerAppReadyEvent,
-    IngressPerAppRequirer,
-    IngressPerAppRevokedEvent,
-)
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.framework import StoredState
 from ops.model import (
     ActiveStatus,
@@ -52,23 +48,23 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._on_rest_api_relation_broken,
         )
 
-        self.ingress = IngressPerAppRequirer(self, port=self.config["port"])
-        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
-        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
-
         self._stored.set_default(backend_hostname=None, backend_port=None)
+
+        self._setup_ingress()
+
+    def _setup_ingress(self):
+        require_nginx_route(
+            charm=self,
+            service_hostname=self.config["hostname"],
+            service_name=self.app.name,
+            service_port=int(self.config["port"]),
+        )
 
     def _on_frontend_pebble_ready(self, event: ops.PebbleReadyEvent):
         container = event.workload
         container.add_layer("frontend", self._pebble_layer, combine=True)
         container.replan()
         self.unit.status = ops.ActiveStatus()
-
-    def _on_ingress_ready(self, event: IngressPerAppReadyEvent):
-        logger.info("Ingress ready: %s", event.url)
-
-    def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent):
-        logger.info("App ingress revoked")
 
     def _on_config_changed(self, event):
         is_valid, reason = self._config_is_valid(self.config)

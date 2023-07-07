@@ -25,15 +25,11 @@ resource "juju_model" "test-observer" {
 resource "juju_application" "ingress" {
   name  = "ingress"
   model = juju_model.test-observer.name
+  trust = true
 
   charm {
-    name    = "traefik-k8s"
+    name    = "nginx-ingress-integrator"
     channel = "stable"
-  }
-
-  config = {
-    routing_mode      = "subdomain"
-    external_hostname = var.external_ingress_hostname
   }
 }
 
@@ -119,7 +115,6 @@ resource "juju_integration" "test-observer-frontend-ingress" {
 
   application {
     name     = juju_application.ingress.name
-    endpoint = "ingress"
   }
 }
 
@@ -133,6 +128,5 @@ resource "juju_integration" "test-observer-api-ingress" {
 
   application {
     name     = juju_application.ingress.name
-    endpoint = "ingress"
   }
 }

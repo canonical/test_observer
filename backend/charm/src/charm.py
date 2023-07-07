@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import logging
 
 from charms.data_platform_libs.v0.data_interfaces import (
@@ -9,9 +7,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     RelationChangedEvent,
     RelationJoinedEvent,
 )
-from charms.traefik_k8s.v1.ingress import (
-    IngressPerAppRequirer,
-)
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
@@ -54,8 +50,14 @@ class TestObserverBackendCharm(CharmBase):
 
         self.framework.observe(self.on.upgrade_charm, self._on_upgrade_charm)
 
-        self.ingress = IngressPerAppRequirer(
-            self, host=self.config["hostname"], port=self.config["port"]
+        self._setup_nginx()
+
+    def _setup_nginx(self):
+        require_nginx_route(
+            charm=self,
+            service_hostname=self.config["hostname"],
+            service_name=self.app.name,
+            service_port=int(self.config["port"]),
         )
 
     def _on_upgrade_charm(self, event):
