@@ -10,7 +10,7 @@ terraform {
 provider "juju" {}
 
 variable "environment" {
-  description = "The environment to deploy to (dev, stage, prod)"
+  description = "The environment to deploy to (development, staging, production)"
 }
 
 variable "external_ingress_hostname" {

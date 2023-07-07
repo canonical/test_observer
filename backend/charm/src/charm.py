@@ -1,8 +1,6 @@
 import logging
 
 from charms.data_platform_libs.v0.data_interfaces import (
-    DatabaseCreatedEvent,
-    DatabaseEndpointsChangedEvent,
     DatabaseRequires,
     RelationChangedEvent,
     RelationJoinedEvent,
@@ -87,13 +85,8 @@ class TestObserverBackendCharm(CharmBase):
 
         self.unit.status = ActiveStatus()
 
-    def _on_database_changed(
-        self,
-        event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent,
-    ):
-        logger.info("Database changed event: %s", event)
-        if isinstance(event, DatabaseCreatedEvent):
-            self._migrate_database()
+    def _on_database_changed(self, event):
+        self._migrate_database()
         self._update_layer_and_restart(None)
 
     def _on_database_relation_broken(self, event):
