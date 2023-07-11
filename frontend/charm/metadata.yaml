@@ -13,9 +13,8 @@ requires:
   test-observer-rest-api:
     interface: http
     limit: 1
-  ingress:
-    interface: ingress
-    limit: 1
+  nginx-route:
+    interface: nginx-route
 
 resources:
   frontend-image:
