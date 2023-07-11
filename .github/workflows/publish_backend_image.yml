@@ -1,7 +1,7 @@
 name: Create and publish api Docker image
 on:
   push:
-    branches: ["main", "changes-to-deploy-staging"]
+    branches: ["main"]
     tags: ["v*.*.*"]
 
 env:
