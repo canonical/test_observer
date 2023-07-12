@@ -13,8 +13,8 @@ variable "environment" {
   description = "The environment to deploy to (development, staging, production)"
 }
 
-variable "external_ingress_hostname" {
-  description = "External hostname for the ingress"
+variable "tls_secret_name" {
+  description = "Secret where the TLS certificate for ingress is stored"
   type        = string
 }
 
@@ -30,6 +30,10 @@ resource "juju_application" "ingress" {
   charm {
     name    = "nginx-ingress-integrator"
     channel = "stable"
+  }
+
+  config = {
+    tls-secret-name = var.tls_secret_name
   }
 }
 
