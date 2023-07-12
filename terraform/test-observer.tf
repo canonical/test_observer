@@ -55,7 +55,7 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname = "test-observer-api"
+    hostname = "test-observer-api-staging"
   }
 
   units = 1
@@ -73,7 +73,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname                 = "test-observer-frontend"
+    hostname                 = "test-observer-staging"
     test-observer-api-scheme = "http://"
   }
 

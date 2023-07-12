@@ -3,7 +3,7 @@
 options:
   hostname:
     description: Public hostname for the frontend (through ingress)
-    default: test-observer-frontend
+    default: test-observer
     type: string
 
   port:
