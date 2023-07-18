@@ -40,6 +40,7 @@ resource "juju_application" "ingress" {
 resource "juju_application" "pg" {
   name  = "pg"
   model = juju_model.test-observer.name
+  trust = true
 
   charm {
     name    = "postgresql-k8s"
