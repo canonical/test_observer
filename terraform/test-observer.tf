@@ -23,7 +23,6 @@ resource "juju_model" "test-observer" {
 }
 
 resource "juju_application" "ingress" {
-  name  = "ingress"
   model = juju_model.test-observer.name
   trust = true
 
@@ -38,7 +37,6 @@ resource "juju_application" "ingress" {
 }
 
 resource "juju_application" "pg" {
-  name  = "pg"
   model = juju_model.test-observer.name
   trust = true
 
@@ -50,7 +48,6 @@ resource "juju_application" "pg" {
 }
 
 resource "juju_application" "test-observer-api" {
-  name  = "test-observer-api"
   model = juju_model.test-observer.name
 
   charm {
@@ -60,15 +57,14 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname = "test-observer-api-staging"
+    hostname = var.environment == "staging" ? "test-observer-api-staging" : "test-observer-api"
+    port = var.environment == "development" ? 30000 : 443
   }
 
   units = 1
 }
 
 resource "juju_application" "test-observer-frontend" {
-  name = "test-observer-frontend"
-
   model = juju_model.test-observer.name
 
   charm {
@@ -78,8 +74,8 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname                 = "test-observer-staging"
-    test-observer-api-scheme = "http://"
+    hostname = var.environment == "staging" ? "test-observer-staging" : "test-observer"
+    test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
   units = 1
