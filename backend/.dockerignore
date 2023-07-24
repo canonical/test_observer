@@ -96,3 +96,6 @@ venv/
 
 # Emacs
 flycheck*
+
+# Juju Charm
+charm/
