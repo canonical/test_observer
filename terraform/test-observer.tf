@@ -52,7 +52,7 @@ resource "juju_application" "test-observer-api" {
 
   charm {
     name    = "test-observer-api"
-    channel = "edge"
+    channel = "latest/edge"
     series  = "jammy"
   }
 
@@ -69,7 +69,7 @@ resource "juju_application" "test-observer-frontend" {
 
   charm {
     name    = "test-observer-frontend"
-    channel = "edge"
+    channel = "latest/edge"
     series  = "jammy"
   }
 

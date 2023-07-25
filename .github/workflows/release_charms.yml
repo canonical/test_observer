@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Release test-observer-api charm to edge
+    name: Release test-observer-api charm to latest/edge
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,4 +25,4 @@ jobs:
           credentials: "${{ secrets.CHARMHUB_AUTH_API }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           upload-image: "true"
-          channel: edge # "${{ steps.channel.outputs.name }}"
+          channel: latest/edge # "${{ steps.channel.outputs.name }}"

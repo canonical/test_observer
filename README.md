@@ -178,14 +178,14 @@ To release the backend charm:
 
 ```bash
 cd backend/charm
-wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel edge
+wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel latest/edge
 ```
 
 To release the frontend charm:
 
 ```bash
 cd frontend/charm
-wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel edge
+wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel latest/edge
 ```
 
 ## VS Code & charm libraries
