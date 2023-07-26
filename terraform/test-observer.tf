@@ -16,6 +16,13 @@ variable "environment" {
 variable "tls_secret_name" {
   description = "Secret where the TLS certificate for ingress is stored"
   type        = string
+  default     = ""
+}
+
+variable "external_ingress_hostname" {
+  description = "External hostname for the ingress"
+  type        = string
+  default     = "canonical.com"
 }
 
 resource "juju_model" "test-observer" {
@@ -57,7 +64,7 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname = var.environment == "staging" ? "test-observer-api-staging.canonical.com" : "test-observer-api.canonical.com"
+    hostname = var.environment == "staging" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
     port = var.environment == "development" ? 30000 : 443
   }
 
@@ -74,7 +81,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname = var.environment == "staging" ? "test-observer-staging.canonical.com" : "test-observer.canonical.com"
+    hostname = var.environment == "staging" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
