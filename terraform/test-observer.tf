@@ -90,7 +90,6 @@ resource "juju_integration" "test-observer-api-database-access" {
 
   application {
     name     = juju_application.pg.name
-    endpoint = "database"
   }
 }
 
