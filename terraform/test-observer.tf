@@ -98,7 +98,6 @@ resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
 
   application {
     name     = juju_application.test-observer-api.name
-    endpoint = "test-observer-rest-api"
   }
 
   application {
