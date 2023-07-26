@@ -2,7 +2,7 @@
 
 Observe the status and state of certification tests for various artefacts
 
-## Prerequisites for developing and deploying locally
+## Prerequisites for deploying locally
 
 - `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
 - `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`) + [permission setup steps after install](https://juju.is/docs/sdk/set-up-your-development-environment#heading--install-microk8s)
@@ -22,8 +22,7 @@ mkdir -p ~/.local/share
 Fist configure microk8s with the needed extensions:
 
 ```
-sudo microk8s enable community # required for installing traefik
-sudo microk8s enable dns hostpath-storage metallb traefik # metallb setup involves choosing a free IP range for the load balancer.
+sudo microk8s enable dns hostpath-storage metallb ingress# metallb setup involves choosing a free IP range for the load balancer.
 ```
 
 Then help microk8s work with an authorized (private) OCI image registry at ghcr.io:
@@ -65,7 +64,7 @@ At the time of writing, this will accomplish deploying the following:
 - the backend API server
 - the frontend served using nginx
 - a postgresql database
-- traefik as ingress
+- nginx as ingress
 - backend connected to frontend (the backend's public facing base URI passed to the frontend app)
 - backend connected to database
 - backend connected to load balancer
@@ -77,41 +76,32 @@ The terraform juju provider is documented over here: https://registry.terraform.
 
 Terraform tracks its state with a .tfstate file which is created as a result of running `terraform apply` -- for production purposes this will be stored in an S3-like bucket remotely, and for local development purposes it sits in the `terraform` directory aftery you have done a `terraform apply`).
 
-You can optionally get SSL certificates automatically managed for the ingress (in case you happen to have a DNS zone with Cloudflare DNS available):
-
-```bash
-TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" TF_VAR_cloudflare_acme=true TF_VAR_cloudflare_dns_api_token=... TF_VAR_cloudflare_zone_read_api_token=... TF_VAR_cloudflare_email=... terraform apply -auto-approve
-```
-
 After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
 
 ```bash
 $ juju status --relations
-Model                      Controller          Cloud/Region        Version  SLA          Timestamp
-test-observer-development  microk8s-localhost  microk8s/localhost  3.1.2    unsupported  23:23:01+03:00
+Model                     Controller          Cloud/Region        Version  SLA          Timestamp
+test-observer-staging     microk8s-localhost  microk8s/localhost  3.1.2    unsupported  23:23:01+03:00
 
-App                     Version  Status  Scale  Charm                     Channel    Rev  Address         Exposed  Message
-acme-operator                    active      1  cloudflare-acme-operator  beta         3  10.152.183.59   no
-ingress                 2.9.6    active      1  traefik-k8s               stable     110  192.168.0.202   no
-pg                      14.7     active      1  postgresql-k8s            14/stable   73  10.152.183.106  no       Primary
-test-observer-api                active      1  test-observer-api         edge         6  10.152.183.207  no
-test-observer-frontend           active      1  test-observer-frontend    edge         2  10.152.183.111  no
+App                       Version  Status  Scale  Charm                     Channel    Rev  Address      Exposed  Message
+nginx-ingress-integrator  25.3.0   active      1  nginx-ingress-integrator  stable      59  10.85.1.101  no       Ingress IP(s): 10.131.205.170, 10.131.205.170, Service IP(s): 10.85.1.202, 10.85.0.101
+postgresql-k8s            14.7     active      1  postgresql-k8s            14/stable   73  10.85.1.76   no       Primary
+test-observer-api         0.0.0    active      1  test-observer-api                      9  10.85.1.232  no       
+test-observer-frontend             active      1  test-observer-frontend                 8  10.85.1.72   no       
 
-Unit                       Workload  Agent  Address      Ports  Message
-acme-operator/0*           active    idle   10.1.92.188
-ingress/0*                 active    idle   10.1.92.182
-pg/0*                      active    idle   10.1.92.137         Primary
-test-observer-api/0*       active    idle   10.1.92.143
-test-observer-frontend/0*  active    idle   10.1.92.189
+Unit                         Workload  Agent  Address      Ports  Message
+nginx-ingress-integrator/0*  active    idle   10.86.45.49         Ingress IP(s): 10.131.205.170, 10.131.205.170, Service IP(s): 10.85.1.202, 10.85.0.101
+postgresql-k8s/0*            active    idle   10.86.58.81         Primary
+test-observer-api/0*         active    idle   10.86.36.36         
+test-observer-frontend/0*    active    idle   10.86.36.38         
 
-Relation provider                            Requirer                                          Interface          Type     Message
-acme-operator:certificates                   ingress:certificates                              tls-certificates   regular
-ingress:ingress                              test-observer-api:ingress                         ingress            regular
-ingress:ingress                              test-observer-frontend:ingress                    ingress            regular
-pg:database                                  test-observer-api:database                        postgresql_client  regular
-pg:database-peers                            pg:database-peers                                 postgresql_peers   peer
-pg:restart                                   pg:restart                                        rolling_op         peer
-test-observer-api:test-observer-rest-api     test-observer-frontend:test-observer-rest-api     http               regular
+Relation provider                         Requirer                                       Interface          Type     Message
+nginx-ingress-integrator:nginx-route      test-observer-api:nginx-route                  nginx-route        regular  
+nginx-ingress-integrator:nginx-route      test-observer-frontend:nginx-route             nginx-route        regular  
+postgresql-k8s:database                   test-observer-api:database                     postgresql_client  regular  
+postgresql-k8s:database-peers             postgresql-k8s:database-peers                  postgresql_peers   peer     
+postgresql-k8s:restart                    postgresql-k8s:restart                         rolling_op         peer     
+test-observer-api:test-observer-rest-api  test-observer-frontend:test-observer-rest-api  http               regular
 ```
 
 To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer-frontend.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
@@ -172,21 +162,7 @@ tox -e integration
 
 ## Releasing the charms
 
-You can use [release-k8s-charm](https://github.com/mz2/release-k8s-charm) to release the charms to charmhub, until we ingroduce a GitHub action driven workflow for releasing them (the `upload-charm` action in [canonical/charming-actions](https://github.com/canonical/charming-actions) will be the longer term solution).
-
-To release the backend charm:
-
-```bash
-cd backend/charm
-wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel latest/edge
-```
-
-To release the frontend charm:
-
-```bash
-cd frontend/charm
-wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel latest/edge
-```
+Charms are released through GitHub actions on push to main. If however you need to release charms on your branch before merging with main you could always just add your branch as a trigger to those same GitHub actions.
 
 ## VS Code & charm libraries
 
