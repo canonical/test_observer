@@ -57,7 +57,7 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname = var.environment == "staging" ? "test-observer-api-staging" : "test-observer-api"
+    hostname = var.environment == "staging" ? "test-observer-api-staging.canonical.com" : "test-observer-api.canonical.com"
     port = var.environment == "development" ? 30000 : 443
   }
 
@@ -74,7 +74,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname = var.environment == "staging" ? "test-observer-staging" : "test-observer"
+    hostname = var.environment == "staging" ? "test-observer-staging.canonical.com" : "test-observer.canonical.com"
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
