@@ -30,6 +30,7 @@ resource "juju_model" "test-observer" {
 }
 
 resource "juju_application" "ingress" {
+  name  = "ingress"
   model = juju_model.test-observer.name
   trust = true
 
@@ -44,6 +45,7 @@ resource "juju_application" "ingress" {
 }
 
 resource "juju_application" "pg" {
+  name  = "db"
   model = juju_model.test-observer.name
   trust = true
 
@@ -55,6 +57,7 @@ resource "juju_application" "pg" {
 }
 
 resource "juju_application" "test-observer-api" {
+  name  = "api"
   model = juju_model.test-observer.name
 
   charm {
@@ -65,13 +68,14 @@ resource "juju_application" "test-observer-api" {
 
   config = {
     hostname = var.environment == "staging" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
-    port = var.environment == "development" ? 30000 : 443
+    port     = var.environment == "development" ? 30000 : 443
   }
 
   units = 1
 }
 
 resource "juju_application" "test-observer-frontend" {
+  name  = "frontend"
   model = juju_model.test-observer.name
 
   charm {
@@ -81,7 +85,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname = var.environment == "staging" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
+    hostname                 = var.environment == "staging" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
@@ -92,11 +96,11 @@ resource "juju_integration" "test-observer-api-database-access" {
   model = juju_model.test-observer.name
 
   application {
-    name     = juju_application.test-observer-api.name
+    name = juju_application.test-observer-api.name
   }
 
   application {
-    name     = juju_application.pg.name
+    name = juju_application.pg.name
   }
 }
 
@@ -104,11 +108,11 @@ resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
   model = juju_model.test-observer.name
 
   application {
-    name     = juju_application.test-observer-api.name
+    name = juju_application.test-observer-api.name
   }
 
   application {
-    name     = juju_application.test-observer-frontend.name
+    name = juju_application.test-observer-frontend.name
   }
 }
 
@@ -116,11 +120,11 @@ resource "juju_integration" "test-observer-frontend-ingress" {
   model = juju_model.test-observer.name
 
   application {
-    name     = juju_application.test-observer-frontend.name
+    name = juju_application.test-observer-frontend.name
   }
 
   application {
-    name     = juju_application.ingress.name
+    name = juju_application.ingress.name
   }
 }
 
@@ -129,10 +133,10 @@ resource "juju_integration" "test-observer-api-ingress" {
   model = juju_model.test-observer.name
 
   application {
-    name     = juju_application.test-observer-api.name
+    name = juju_application.test-observer-api.name
   }
 
   application {
-    name     = juju_application.ingress.name
+    name = juju_application.ingress.name
   }
 }
