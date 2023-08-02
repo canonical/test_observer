@@ -68,37 +68,41 @@ After all is up, you can run `juju switch test-observer-development` to use the 
 
 ```bash
 $ juju status --relations
-Model                     Controller          Cloud/Region        Version  SLA          Timestamp
-test-observer-staging     microk8s-localhost  microk8s/localhost  3.1.2    unsupported  23:23:01+03:00
+Model                      Controller       Cloud/Region        Version  SLA          Timestamp
+test-observer-development  juju-controller  microk8s/localhost  3.1.2    unsupported  15:38:51+03:00
 
-App                       Version  Status  Scale  Charm                     Channel    Rev  Address      Exposed  Message
-nginx-ingress-integrator  25.3.0   active      1  nginx-ingress-integrator  stable      59  10.85.1.101  no       Ingress IP(s): 10.131.205.170, 10.131.205.170, Service IP(s): 10.85.1.202, 10.85.0.101
-postgresql-k8s            14.7     active      1  postgresql-k8s            14/stable   73  10.85.1.76   no       Primary
-test-observer-api         0.0.0    active      1  test-observer-api                      9  10.85.1.232  no       
-test-observer-frontend             active      1  test-observer-frontend                 8  10.85.1.72   no       
+App       Version  Status  Scale  Charm                     Channel      Rev  Address         Exposed  Message
+api                active      1  test-observer-api         latest/edge   15  10.152.183.182  no       
+db        14.7     active      1  postgresql-k8s            14/stable     73  10.152.183.172  no       Primary
+frontend           active      1  test-observer-frontend    latest/edge    8  10.152.183.79   no       
+ingress   25.3.0   active      1  nginx-ingress-integrator  stable        59  10.152.183.103  no       Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
 
-Unit                         Workload  Agent  Address      Ports  Message
-nginx-ingress-integrator/0*  active    idle   10.86.45.49         Ingress IP(s): 10.131.205.170, 10.131.205.170, Service IP(s): 10.85.1.202, 10.85.0.101
-postgresql-k8s/0*            active    idle   10.86.58.81         Primary
-test-observer-api/0*         active    idle   10.86.36.36         
-test-observer-frontend/0*    active    idle   10.86.36.38         
+Unit         Workload  Agent  Address       Ports  Message
+api/0*       active    idle   10.1.131.142         
+db/0*        active    idle   10.1.131.132         Primary
+frontend/0*  active    idle   10.1.131.169         
+ingress/0*   active    idle   10.1.131.167         Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
 
-Relation provider                         Requirer                                       Interface          Type     Message
-nginx-ingress-integrator:nginx-route      test-observer-api:nginx-route                  nginx-route        regular  
-nginx-ingress-integrator:nginx-route      test-observer-frontend:nginx-route             nginx-route        regular  
-postgresql-k8s:database                   test-observer-api:database                     postgresql_client  regular  
-postgresql-k8s:database-peers             postgresql-k8s:database-peers                  postgresql_peers   peer     
-postgresql-k8s:restart                    postgresql-k8s:restart                         rolling_op         peer     
-test-observer-api:test-observer-rest-api  test-observer-frontend:test-observer-rest-api  http               regular
+Relation provider           Requirer                         Interface          Type     Message
+api:test-observer-rest-api  frontend:test-observer-rest-api  http               regular  
+db:database                 api:database                     postgresql_client  regular  
+db:database-peers           db:database-peers                postgresql_peers   peer     
+db:restart                  db:restart                       rolling_op         peer     
+ingress:nginx-route         api:nginx-route                  nginx-route        regular  
+ingress:nginx-route         frontend:nginx-route             nginx-route        regular
 ```
 
-To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer-frontend.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
+## Add /etc/hosts entries
+
+To test the application, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
 
 ```bash
 $ cat /etc/hosts
-192.168.0.202   test-observer-frontend.mah-domain.com test-observer-api.mah-domain.com
+192.168.0.202   test-observer.mah-domain.com test-observer-api.mah-domain.com
 ...
 ```
+
+Note that without this step the frontend will fail to connect to api as it's trying to use `test-observer-api.mah-domain.com`
 
 ## Developing the charm
 
