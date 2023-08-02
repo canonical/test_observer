@@ -7,15 +7,11 @@
 """Test Observer frontend charm."""
 
 import logging
+import sys
 from typing import Tuple
 
 import ops
-from charms.traefik_k8s.v1.ingress import (
-    IngressPerAppReadyEvent,
-    IngressPerAppRequirer,
-    IngressPerAppRevokedEvent,
-)
-from ops.framework import StoredState
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
@@ -29,8 +25,6 @@ logger = logging.getLogger(__name__)
 
 class TestObserverFrontendCharm(ops.CharmBase):
     """The frontend charm operates serving the frontend through nginx."""
-
-    _stored = StoredState()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -52,23 +46,21 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._on_rest_api_relation_broken,
         )
 
-        self.ingress = IngressPerAppRequirer(self, port=self.config["port"])
-        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
-        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
+        self._setup_ingress()
 
-        self._stored.set_default(backend_hostname=None, backend_port=None)
+    def _setup_ingress(self):
+        require_nginx_route(
+            charm=self,
+            service_hostname=self.config["hostname"],
+            service_name=self.app.name,
+            service_port=int(self.config["port"]),
+        )
 
     def _on_frontend_pebble_ready(self, event: ops.PebbleReadyEvent):
         container = event.workload
         container.add_layer("frontend", self._pebble_layer, combine=True)
         container.replan()
         self.unit.status = ops.ActiveStatus()
-
-    def _on_ingress_ready(self, event: IngressPerAppReadyEvent):
-        logger.info("Ingress ready: %s", event.url)
-
-    def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent):
-        logger.info("App ingress revoked")
 
     def _on_config_changed(self, event):
         is_valid, reason = self._config_is_valid(self.config)
@@ -98,20 +90,12 @@ class TestObserverFrontendCharm(ops.CharmBase):
     def _on_rest_api_relation_update(self, event):
         api_hostname = event.relation.data[event.app].get("hostname")
         api_port = event.relation.data[event.app].get("port")
-        logger.debug(f"API hostname: {api_hostname} (app: {event.app})")
-
-        if self.unit.is_leader():
-            self._stored.backend_hostname = api_hostname
-            self._stored.backend_port = api_port
-
+        logger.debug(f"API hostname: {api_hostname}, port: {api_port} (app: {event.app})")
         self._update_layer_and_restart(event)
 
     def _on_rest_api_relation_broken(self, event):
-        logger.debug("REST API relation broken -> removing backend hostname")
-
-        if self.unit.is_leader():
-            self._stored.backend_hostname = None
-            self._stored.backend_port = None
+        logger.debug("REST API relation broken")
+        self._update_layer_and_restart(event)
 
     def nginx_config(self, base_uri: str) -> str:
         """Return a config where the backend port `base_uri` is adjusted."""
@@ -136,30 +120,96 @@ class TestObserverFrontendCharm(ops.CharmBase):
         }}
         """
 
+    def nginx_503_config(self) -> str:
+        """Return a config for the situation when the backend is not yet available."""
+        return """
+        server {
+            listen 80 default_server;
+            server_name _;
+            return 503;
+            error_page 503 @maintenance;
+
+            location @maintenance {
+                rewrite ^(.*)$ /503.html break;
+                root /usr/share/nginx/html;
+            }
+        }
+        """
+
+    def html_503(self) -> str:
+        """Return a 503 response page."""
+        return """
+        <html>
+            <head>
+                <title>503 Service Unavailable</title>
+            </head>
+            <body>
+                <h1>503 Service Unavailable</h1>
+                <p>Backend not yet configured.</p>
+            </body>
+        </html>
+        """
+
     def _update_layer_and_restart(self, event):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
+        api_relation = next(iter(self.model.relations["test-observer-rest-api"]), None)
+
+        if api_relation is None:
+            if self.container.can_connect():
+                self.container.add_layer(
+                    self.pebble_service_name, self._pebble_layer, combine=True
+                )
+                self.container.push(
+                    "/etc/nginx/sites-available/test-observer-frontend",
+                    self.nginx_503_config(),
+                    make_dirs=True,
+                )
+                self.container.push(
+                    "/usr/share/nginx/html/503.html",
+                    self.html_503(),
+                    make_dirs=True,
+                )
+                self.container.restart(self.pebble_service_name)
+                self.unit.status = MaintenanceStatus(
+                    "test-observer-rest-api relation not connected."
+                )
+            else:
+                self.unit.status = WaitingStatus(
+                    "Waiting for Pebble for API to set maintenance state"
+                )
+
+            return
+
+        relation_data = api_relation.data[api_relation.app]
+        if not relation_data:
+            self.unit.status = WaitingStatus("Waiting for test observer api relation data")
+            sys.exit()
+
+        hostname = api_relation.data[api_relation.app]["hostname"]
+        port = api_relation.data[api_relation.app]["port"]
+
         scheme = self.config["test-observer-api-scheme"]
-        hostname = self._stored.backend_hostname
-        port = self._stored.backend_port
+
+        logger.info(f"Hostname: {hostname} (from relation: {hostname})")
+        logger.info(f"Port: {port} (from relation: {port})")
 
         if int(port) == 80 or int(port) == 443:
             base_uri = f"{scheme}{hostname}"
         else:
             base_uri = f"{scheme}{hostname}:{port}"
 
-        self.container.push(
-            "/etc/nginx/sites-available/test-observer-frontend",
-            self.nginx_config(base_uri=base_uri),
-            make_dirs=True,
-        )
-
         if self.container.can_connect():
             self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
+            self.container.push(
+                "/etc/nginx/sites-available/test-observer-frontend",
+                self.nginx_config(base_uri=base_uri),
+                make_dirs=True,
+            )
             self.container.restart(self.pebble_service_name)
             self.unit.status = ActiveStatus()
         else:
-            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            self.unit.status = WaitingStatus("Waiting for Pebble for API to set available state")
 
     @property
     def _pebble_layer(self):

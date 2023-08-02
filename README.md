@@ -2,7 +2,7 @@
 
 Observe the status and state of certification tests for various artefacts
 
-## Prerequisites for developing and deploying locally
+## Prerequisites for deploying locally
 
 - `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
 - `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`) + [permission setup steps after install](https://juju.is/docs/sdk/set-up-your-development-environment#heading--install-microk8s)
@@ -22,25 +22,12 @@ mkdir -p ~/.local/share
 Fist configure microk8s with the needed extensions:
 
 ```
-sudo microk8s enable community # required for installing traefik
-sudo microk8s enable dns hostpath-storage metallb traefik # metallb setup involves choosing a free IP range for the load balancer.
+sudo microk8s enable dns hostpath-storage metallb ingress# metallb setup involves choosing a free IP range for the load balancer.
 ```
 
-Then help microk8s work with an authorized (private) OCI image registry at ghcr.io:
-
-1. Get a GitHub personal access token at https://github.com/settings/tokens/new with the `read:packages` permission.
-2. Configure containerd in microk8s with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries by appending the following to `/var/snap/microk8s/current/args/containerd-template.toml`:
-
-```yaml
-[plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]
-  username = "your-GitHub-username"
-  password = "your-GitHub-API-token"
-```
-
-After this config file tweak, restart containerd and microk8s:
+Setup juju:
 
 ```bash
-sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.stop && sudo microk8s.start
 juju bootstrap microk8s
 juju model-config logging-config="<root>=DEBUG"
 ```
@@ -65,7 +52,7 @@ At the time of writing, this will accomplish deploying the following:
 - the backend API server
 - the frontend served using nginx
 - a postgresql database
-- traefik as ingress
+- nginx as ingress
 - backend connected to frontend (the backend's public facing base URI passed to the frontend app)
 - backend connected to database
 - backend connected to load balancer
@@ -77,50 +64,45 @@ The terraform juju provider is documented over here: https://registry.terraform.
 
 Terraform tracks its state with a .tfstate file which is created as a result of running `terraform apply` -- for production purposes this will be stored in an S3-like bucket remotely, and for local development purposes it sits in the `terraform` directory aftery you have done a `terraform apply`).
 
-You can optionally get SSL certificates automatically managed for the ingress (in case you happen to have a DNS zone with Cloudflare DNS available):
-
-```bash
-TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" TF_VAR_cloudflare_acme=true TF_VAR_cloudflare_dns_api_token=... TF_VAR_cloudflare_zone_read_api_token=... TF_VAR_cloudflare_email=... terraform apply -auto-approve
-```
-
-After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
+After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following:
 
 ```bash
 $ juju status --relations
-Model                      Controller          Cloud/Region        Version  SLA          Timestamp
-test-observer-development  microk8s-localhost  microk8s/localhost  3.1.2    unsupported  23:23:01+03:00
+Model                      Controller       Cloud/Region        Version  SLA          Timestamp
+test-observer-development  juju-controller  microk8s/localhost  3.1.2    unsupported  15:38:51+03:00
 
-App                     Version  Status  Scale  Charm                     Channel    Rev  Address         Exposed  Message
-acme-operator                    active      1  cloudflare-acme-operator  beta         3  10.152.183.59   no
-ingress                 2.9.6    active      1  traefik-k8s               stable     110  192.168.0.202   no
-pg                      14.7     active      1  postgresql-k8s            14/stable   73  10.152.183.106  no       Primary
-test-observer-api                active      1  test-observer-api         edge         6  10.152.183.207  no
-test-observer-frontend           active      1  test-observer-frontend    edge         2  10.152.183.111  no
+App       Version  Status  Scale  Charm                     Channel      Rev  Address         Exposed  Message
+api                active      1  test-observer-api         latest/edge   15  10.152.183.182  no       
+db        14.7     active      1  postgresql-k8s            14/stable     73  10.152.183.172  no       Primary
+frontend           active      1  test-observer-frontend    latest/edge    8  10.152.183.79   no       
+ingress   25.3.0   active      1  nginx-ingress-integrator  stable        59  10.152.183.103  no       Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
 
-Unit                       Workload  Agent  Address      Ports  Message
-acme-operator/0*           active    idle   10.1.92.188
-ingress/0*                 active    idle   10.1.92.182
-pg/0*                      active    idle   10.1.92.137         Primary
-test-observer-api/0*       active    idle   10.1.92.143
-test-observer-frontend/0*  active    idle   10.1.92.189
+Unit         Workload  Agent  Address       Ports  Message
+api/0*       active    idle   10.1.131.142         
+db/0*        active    idle   10.1.131.132         Primary
+frontend/0*  active    idle   10.1.131.169         
+ingress/0*   active    idle   10.1.131.167         Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
 
-Relation provider                            Requirer                                          Interface          Type     Message
-acme-operator:certificates                   ingress:certificates                              tls-certificates   regular
-ingress:ingress                              test-observer-api:ingress                         ingress            regular
-ingress:ingress                              test-observer-frontend:ingress                    ingress            regular
-pg:database                                  test-observer-api:database                        postgresql_client  regular
-pg:database-peers                            pg:database-peers                                 postgresql_peers   peer
-pg:restart                                   pg:restart                                        rolling_op         peer
-test-observer-api:test-observer-rest-api     test-observer-frontend:test-observer-rest-api     http               regular
+Relation provider           Requirer                         Interface          Type     Message
+api:test-observer-rest-api  frontend:test-observer-rest-api  http               regular  
+db:database                 api:database                     postgresql_client  regular  
+db:database-peers           db:database-peers                postgresql_peers   peer     
+db:restart                  db:restart                       rolling_op         peer     
+ingress:nginx-route         api:nginx-route                  nginx-route        regular  
+ingress:nginx-route         frontend:nginx-route             nginx-route        regular
 ```
 
-To test the application with the frontend and API server ports exposed, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer-frontend.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
+## Add /etc/hosts entries
+
+To test the application, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
 
 ```bash
 $ cat /etc/hosts
-192.168.0.202   test-observer-frontend.mah-domain.com test-observer-api.mah-domain.com
+192.168.0.202   test-observer.mah-domain.com test-observer-api.mah-domain.com
 ...
 ```
+
+Note that without this step the frontend will fail to connect to api as it's trying to use `test-observer-api.mah-domain.com`
 
 ## Developing the charm
 
@@ -172,21 +154,7 @@ tox -e integration
 
 ## Releasing the charms
 
-You can use [release-k8s-charm](https://github.com/mz2/release-k8s-charm) to release the charms to charmhub, until we ingroduce a GitHub action driven workflow for releasing them (the `upload-charm` action in [canonical/charming-actions](https://github.com/canonical/charming-actions) will be the longer term solution).
-
-To release the backend charm:
-
-```bash
-cd backend/charm
-wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel edge
-```
-
-To release the frontend charm:
-
-```bash
-cd frontend/charm
-wherever-you-stash-source-code/release-k8s-charm/main.py --charm-metadata ./metadata.yaml --channel edge
-```
+Charms are released through GitHub actions on push to main. If however you need to release charms on your branch before merging with main you could always just add your branch as a trigger to those same GitHub actions.
 
 ## VS Code & charm libraries
 

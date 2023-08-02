@@ -3,15 +3,11 @@
 import logging
 
 from charms.data_platform_libs.v0.data_interfaces import (
-    DatabaseCreatedEvent,
-    DatabaseEndpointsChangedEvent,
     DatabaseRequires,
     RelationChangedEvent,
     RelationJoinedEvent,
 )
-from charms.traefik_k8s.v1.ingress import (
-    IngressPerAppRequirer,
-)
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
@@ -30,7 +26,7 @@ class TestObserverBackendCharm(CharmBase):
         self.pebble_service_name = "test-observer-api"
         self.container = self.unit.get_container("api")
 
-        self.framework.observe(self.on.api_pebble_ready, self._on_api_pebble_ready)
+        self.framework.observe(self.on.api_pebble_ready, self._update_layer_and_restart)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
 
         self.database = DatabaseRequires(
@@ -39,7 +35,7 @@ class TestObserverBackendCharm(CharmBase):
         self.framework.observe(self.database.on.database_created, self._on_database_changed)
         self.framework.observe(self.database.on.endpoints_changed, self._on_database_changed)
         self.framework.observe(
-            self.database.on.database_relation_broken,
+            self.on.database_relation_broken,
             self._on_database_relation_broken,
         )
 
@@ -54,8 +50,14 @@ class TestObserverBackendCharm(CharmBase):
 
         self.framework.observe(self.on.upgrade_charm, self._on_upgrade_charm)
 
-        self.ingress = IngressPerAppRequirer(
-            self, host=self.config["hostname"], port=self.config["port"]
+        self._setup_nginx()
+
+    def _setup_nginx(self):
+        require_nginx_route(
+            charm=self,
+            service_hostname=self.config["hostname"],
+            service_name=self.app.name,
+            service_port=int(self.config["port"]),
         )
 
     def _on_upgrade_charm(self, event):
@@ -77,21 +79,15 @@ class TestObserverBackendCharm(CharmBase):
             working_dir="/home/app",
             environment=self._postgres_relation_data(),
         )
-        stdout, stderr = process.wait_output()
+
+        stdout, _ = process.wait_output()
 
         logger.info(stdout)
-        if stderr:
-            logger.error(stderr)
 
         self.unit.status = ActiveStatus()
 
-    def _on_database_changed(
-        self,
-        event: DatabaseCreatedEvent | DatabaseEndpointsChangedEvent,
-    ):
-        logger.info("Database changed event: %s", event)
-        if isinstance(event, DatabaseCreatedEvent):
-            self._migrate_database()
+    def _on_database_changed(self, event):
+        self._migrate_database()
         self._update_layer_and_restart(None)
 
     def _on_database_relation_broken(self, event):
@@ -112,7 +108,9 @@ class TestObserverBackendCharm(CharmBase):
         if self.container.can_connect():
             self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
             self.container.restart(self.pebble_service_name)
-            self.unit.set_workload_version(self.version)
+            version = self.version
+            if version:
+                self.unit.set_workload_version(self.version)
             self.unit.status = ActiveStatus()
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
@@ -181,12 +179,6 @@ class TestObserverBackendCharm(CharmBase):
                 },
             }
         )
-
-    def _on_api_pebble_ready(self, event):
-        container = event.workload
-        container.add_layer("test-observer-api", self._pebble_layer, combine=True)
-        container.replan()
-        self.unit.status = ActiveStatus()
 
 
 if __name__ == "__main__":  # pragma: nocover
