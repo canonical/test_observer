@@ -25,21 +25,9 @@ Fist configure microk8s with the needed extensions:
 sudo microk8s enable dns hostpath-storage metallb ingress# metallb setup involves choosing a free IP range for the load balancer.
 ```
 
-Then help microk8s work with an authorized (private) OCI image registry at ghcr.io:
-
-1. Get a GitHub personal access token at https://github.com/settings/tokens/new with the `read:packages` permission.
-2. Configure containerd in microk8s with the auth credentials needed to pull images from non-default, authorisation requiring OCI registries by appending the following to `/var/snap/microk8s/current/args/containerd-template.toml`:
-
-```yaml
-[plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]
-  username = "your-GitHub-username"
-  password = "your-GitHub-API-token"
-```
-
-After this config file tweak, restart containerd and microk8s:
+Setup juju:
 
 ```bash
-sudo systemctl restart snap.microk8s.daemon-containerd.service && sudo microk8s.stop && sudo microk8s.start
 juju bootstrap microk8s
 juju model-config logging-config="<root>=DEBUG"
 ```
@@ -76,7 +64,7 @@ The terraform juju provider is documented over here: https://registry.terraform.
 
 Terraform tracks its state with a .tfstate file which is created as a result of running `terraform apply` -- for production purposes this will be stored in an S3-like bucket remotely, and for local development purposes it sits in the `terraform` directory aftery you have done a `terraform apply`).
 
-After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following (the acme-operator only there if `TF_VAR_cloudflare_acme` was passed in):
+After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following:
 
 ```bash
 $ juju status --relations
