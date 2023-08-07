@@ -43,7 +43,7 @@ def test_run_to_move_artefact_snap(
         "edge",
         name="core20",
         version="1.1.1",
-        source={"store": "ubuntu"},
+        source={},
         created_at=datetime.utcnow(),
     )
     create_artefact(
