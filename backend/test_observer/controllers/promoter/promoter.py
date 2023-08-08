@@ -123,7 +123,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
         arch = build.architecture
         channel_map = get_channel_map_from_snapcraft(
             arch=arch,
-            snapstore=artefact.source.get("store", "ubuntu"),
+            snapstore=artefact.source["store"],
             snap_name=artefact.name,
         )
         track = artefact.source.get("track", "latest")
