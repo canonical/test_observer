@@ -6,7 +6,6 @@ Create Date: 2023-08-08 09:46:34.620860+00:00
 
 """
 from alembic import op
-import sqlalchemy as sa
 from sqlalchemy.sql import text
 
 
@@ -21,14 +20,17 @@ def upgrade() -> None:
     conn = op.get_bind()
 
     # Ensure all 'snap' artefacts have the "store" key
-    artefacts = conn.execute(text("""
+    artefacts = conn.execute(
+        text(
+            """
         SELECT a.id, a.source
         FROM artefact AS a
         JOIN stage AS s ON a.stage_id = s.id
         JOIN family AS f ON s.family_id = f.id
         WHERE f.name = 'snap'
-    """)).fetchall()
-
+    """
+        )
+    ).fetchall()
 
     for artefact in artefacts:
         source_data = artefact.source
@@ -41,7 +43,8 @@ def upgrade() -> None:
                 {"source": source_data, "id": artefact.id},
             )
     # Create the trigger function
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION ensure_store_key_for_snap() RETURNS TRIGGER AS $$
         BEGIN
             IF (EXISTS (
@@ -50,33 +53,41 @@ def upgrade() -> None:
                 JOIN family f ON s.family_id = f.id
                 WHERE s.id = NEW.stage_id AND f.name = 'snap'
             ) AND NOT NEW.source ? 'store') THEN
-                RAISE EXCEPTION 'The "store" key is required in source for artefacts with the snap family';
+                RAISE EXCEPTION
+            'The "store" key is required in source for artefacts with the snap family';
             END IF;
 
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
-    """)
+    """
+    )
 
     # Attach the trigger to the artefact table
-    op.execute("""
+    op.execute(
+        """
         CREATE TRIGGER trigger_ensure_store_key_for_snap
         BEFORE INSERT OR UPDATE
         ON artefact
         FOR EACH ROW
         EXECUTE FUNCTION ensure_store_key_for_snap();
-    """)
+    """
+    )
 
 
 def downgrade() -> None:
     conn = op.get_bind()
-    artefacts = conn.execute(text("""
+    artefacts = conn.execute(
+        text(
+            """
         SELECT a.id, a.source
         FROM artefact AS a
         JOIN stage AS s ON a.stage_id = s.id
         JOIN family AS f ON s.family_id = f.id
         WHERE f.name = 'snap'
-    """)).fetchall()
+    """
+        )
+    ).fetchall()
 
     for artefact in artefacts:
         source_data = artefact.source
