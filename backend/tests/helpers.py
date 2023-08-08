@@ -11,7 +11,7 @@ def create_artefact(db_session: Session, stage_name: str, **kwargs) -> Artefact:
         name=kwargs.get("name", ""),
         stage=stage,
         version=kwargs.get("version", "1.1.1"),
-        source=kwargs.get("source", {}),
+        source=kwargs.get("source", {"store": "ubuntu"}),
         created_at=kwargs.get("created_at", datetime.utcnow()),
     )
     db_session.add(artefact)
