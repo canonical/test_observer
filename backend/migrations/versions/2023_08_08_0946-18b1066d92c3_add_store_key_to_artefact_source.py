@@ -42,37 +42,6 @@ def upgrade() -> None:
                 ),
                 {"source": source_data, "id": artefact.id},
             )
-    # Create the trigger function
-    op.execute(
-        """
-        CREATE OR REPLACE FUNCTION ensure_store_key_for_snap() RETURNS TRIGGER AS $$
-        BEGIN
-            IF (EXISTS (
-                SELECT 1
-                FROM stage s
-                JOIN family f ON s.family_id = f.id
-                WHERE s.id = NEW.stage_id AND f.name = 'snap'
-            ) AND NOT NEW.source ? 'store') THEN
-                RAISE EXCEPTION
-            'The "store" key is required in source for artefacts with the snap family';
-            END IF;
-
-            RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-    """
-    )
-
-    # Attach the trigger to the artefact table
-    op.execute(
-        """
-        CREATE TRIGGER trigger_ensure_store_key_for_snap
-        BEFORE INSERT OR UPDATE
-        ON artefact
-        FOR EACH ROW
-        EXECUTE FUNCTION ensure_store_key_for_snap();
-    """
-    )
 
 
 def downgrade() -> None:
@@ -99,5 +68,3 @@ def downgrade() -> None:
                 ),
                 {"source": source_data, "id": artefact.id},
             )
-    op.execute("DROP TRIGGER IF EXISTS trigger_ensure_store_key_for_snap ON artefact")
-    op.execute("DROP FUNCTION IF EXISTS ensure_store_key_for_snap()")

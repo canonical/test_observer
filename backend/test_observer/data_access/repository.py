@@ -23,7 +23,7 @@
 from sqlalchemy import and_, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
-
+from sqlalchemy.exc import IntegrityError
 
 from .models_enums import FamilyName
 from .models import DataModel, Family, Stage, Artefact
@@ -115,18 +115,16 @@ def get_or_create(
     """
     # Try to create first to avoid race conditions
     creation_kwargs = creation_kwargs or {}
-    stmt = (
-        insert(model)
-        .values([{**filter_kwargs, **creation_kwargs}])
-        .on_conflict_do_nothing()
-        .returning(model)
-    )
+    instance = model(**filter_kwargs, **creation_kwargs)
 
-    result = db.execute(stmt).scalar_one_or_none()
-    db.commit()
+    try:
+        # Attempt to add and commit the new instance
+        db.add(instance)
+        db.commit()
+        return instance
+    except IntegrityError:
+        # In case of unique constraint violation, rollback the session
+        db.rollback()
 
-    if result is None:
-        # If the object already existed, we need to query it
-        result = db.query(model).filter_by(**filter_kwargs).one()
-
-    return result
+        # Query and return the existing instance
+        return db.query(model).filter_by(**filter_kwargs).one()
