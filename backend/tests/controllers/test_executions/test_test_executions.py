@@ -93,6 +93,27 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
     assert response.json() == {"id": test_execution.id}
 
 
+def test_invalid_artefact_format(test_client: TestClient):
+    """Artefact with invalid format (no store in snap source) should not be created"""
+    response = test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": "snap",
+            "name": "core22",
+            "version": "abec123",
+            "revision": 123,
+            "source": {"track": "22"},
+            "arch": "arm64",
+            "execution_stage": "beta",
+            "environment": "cm3",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Snap artefacts should have store key in source"
+    }
+
+
 def test_uses_existing_models(db_session: Session, test_client: TestClient):
     request = StartTestExecutionRequest(
         family="snap",
