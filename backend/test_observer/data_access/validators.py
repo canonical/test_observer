@@ -21,10 +21,13 @@
 from sqlalchemy import select, event
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Mapper
+
 from .models import Stage, Family, Artefact
+from .models_enums import FamilyName
 
 
 @event.listens_for(Artefact, "before_insert")
+@event.listens_for(Artefact, "before_update")
 def validate_artefact(
     mapper: Mapper, connection: Connection, artefact: Artefact  # noqa: ARG001
 ) -> None:
@@ -41,4 +44,10 @@ def validate_artefact(
     family_id = connection.execute(stage).scalar()
     stage_family = select(Family.name).where(Family.id == family_id)
     family_name = connection.execute(stage_family).scalar()
-    artefact.source = artefact.validate_source("source", artefact.source, family_name)
+    if family_name == FamilyName.SNAP.value:
+        # Check that store key is specified
+        if "store" not in artefact.source:
+            raise ValueError("Snap artefacts should have store key in source")
+        # Check that store key has a correct value
+        if not isinstance(artefact.source["store"], str):
+            raise ValueError("Store key in source field should be a string")

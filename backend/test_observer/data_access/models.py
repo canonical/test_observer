@@ -28,13 +28,11 @@ from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
-    validates,
 )
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionStatus,
-    FamilyName,
 )
 
 
@@ -96,30 +94,6 @@ class Artefact(Base):
     __table_args__ = (
         UniqueConstraint("name", "version", "source", name="unique_artefact"),
     )
-
-    @validates("source")
-    def validate_source(
-        self, key: str, value: dict, family_name: str | None = None  # noqa: ARG002
-    ) -> dict:
-        """
-        Validate source field
-
-        :key: the key to validate. Not used now but is passed during the call.
-              I'm not replacing it with _ to avoid confusions in future
-        :value: the value to validate
-        :family_name: optional argument for the case when stage is not set yet
-                      but we need it to get family name
-        """
-        if (
-            self.stage and self.stage.family.name == FamilyName.SNAP.value
-        ) or family_name == FamilyName.SNAP.value:
-            # Check that store key is specified
-            if "store" not in value:
-                raise ValueError("Snap artefacts should have store key in source")
-            # Check that store key has a correct value
-            if not isinstance(value["store"], str):
-                raise ValueError("Store key in source field should be a string")
-        return value
 
 
 class ArtefactBuild(Base):
