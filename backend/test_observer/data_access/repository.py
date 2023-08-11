@@ -21,11 +21,11 @@
 
 
 from sqlalchemy import and_, func
-from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, joinedload
 
+from .models import Artefact, DataModel, Family, Stage
 from .models_enums import FamilyName
-from .models import DataModel, Family, Stage, Artefact
 
 
 def get_stage_by_name(
@@ -117,10 +117,11 @@ def get_or_create(
 
     try:
         # Attempt to add and commit the new instance
-        db.add(instance)
-        db.commit()
-        return instance
-    except Exception:
+        # Use a nested transaction to avoid rolling back the entire session
+        with db.begin_nested():
+            db.add(instance)
+    except IntegrityError:
         # Query and return the existing instance
-        return db.query(model).filter_by(**filter_kwargs).one()
+        instance = db.query(model).filter_by(**filter_kwargs).one()
 
+    return instance
