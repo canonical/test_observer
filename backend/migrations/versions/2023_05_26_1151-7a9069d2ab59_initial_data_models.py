@@ -1,7 +1,7 @@
 """Initial data models
 
 Revision ID: 7a9069d2ab59
-Revises: 
+Revises:
 Create Date: 2023-05-26 11:51:06.722382+00:00
 
 """

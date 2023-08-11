@@ -40,7 +40,7 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
             "name": "core22",
             "version": "abec123",
             "revision": 123,
-            "source": {"track": "22"},
+            "source": {"track": "22", "store": "ubuntu"},
             "arch": "arm64",
             "execution_stage": "beta",
             "environment": "cm3",
@@ -52,7 +52,7 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
         .filter(
             Artefact.name == "core22",
             Artefact.version == "abec123",
-            Artefact.source == {"track": "22"},
+            Artefact.source == {"track": "22", "store": "ubuntu"},
             Artefact.stage.has(name="beta"),
         )
         .one_or_none()
@@ -93,13 +93,34 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
     assert response.json() == {"id": test_execution.id}
 
 
+def test_invalid_artefact_format(test_client: TestClient):
+    """Artefact with invalid format (no store in snap source) should not be created"""
+    response = test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": "snap",
+            "name": "core22",
+            "version": "abec123",
+            "revision": 123,
+            "source": {"track": "22"},
+            "arch": "arm64",
+            "execution_stage": "beta",
+            "environment": "cm3",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Snap artefacts should have store key in source"
+    }
+
+
 def test_uses_existing_models(db_session: Session, test_client: TestClient):
     request = StartTestExecutionRequest(
         family="snap",
         name="core22",
         version="abec123",
         revision=123,
-        source={"track": "22"},
+        source={"track": "22", "store": "ubuntu"},
         arch="arm64",
         execution_stage="beta",
         environment="cm3",
@@ -144,7 +165,9 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
 
 def test_updates_test_execution(db_session: Session, test_client: TestClient):
     stage = db_session.query(Stage).filter(Stage.name == "beta").one()
-    artefact = Artefact(name="some artefact", version="1.0.0", source={}, stage=stage)
+    artefact = Artefact(
+        name="some artefact", version="1.0.0", source={"store": "ubuntu"}, stage=stage
+    )
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
     test_execution = TestExecution(

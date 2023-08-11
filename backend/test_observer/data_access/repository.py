@@ -21,12 +21,11 @@
 
 
 from sqlalchemy import and_, func
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-
+from .models import Artefact, DataModel, Family, Stage
 from .models_enums import FamilyName
-from .models import DataModel, Family, Stage, Artefact
 
 
 def get_stage_by_name(
@@ -113,20 +112,16 @@ def get_or_create(
     :filter_kwargs: arguments to pass to the model when querying and creating
     :creation_kwargs: extra arguments to pass to the model when creating only
     """
-    # Try to create first to avoid race conditions
     creation_kwargs = creation_kwargs or {}
-    stmt = (
-        insert(model)
-        .values([{**filter_kwargs, **creation_kwargs}])
-        .on_conflict_do_nothing()
-        .returning(model)
-    )
+    instance = model(**filter_kwargs, **creation_kwargs)
 
-    result = db.execute(stmt).scalar_one_or_none()
-    db.commit()
+    try:
+        # Attempt to add and commit the new instance
+        # Use a nested transaction to avoid rolling back the entire session
+        with db.begin_nested():
+            db.add(instance)
+    except IntegrityError:
+        # Query and return the existing instance
+        instance = db.query(model).filter_by(**filter_kwargs).one()
 
-    if result is None:
-        # If the object already existed, we need to query it
-        result = db.query(model).filter_by(**filter_kwargs).one()
-
-    return result
+    return instance

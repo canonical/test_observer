@@ -19,7 +19,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
@@ -51,45 +51,48 @@ def start_test_execution(
         .one()
     )
 
-    artefact = get_or_create(
-        db,
-        Artefact,
-        filter_kwargs={
-            "name": request.name,
-            "version": request.version,
-            "source": request.source,
-        },
-        creation_kwargs={"stage_id": stage.id},
-    )
+    try:
+        artefact = get_or_create(
+            db,
+            Artefact,
+            filter_kwargs={
+                "name": request.name,
+                "version": request.version,
+                "source": request.source,
+            },
+            creation_kwargs={"stage_id": stage.id},
+        )
 
-    environment = get_or_create(
-        db,
-        Environment,
-        filter_kwargs={"name": request.environment, "architecture": request.arch},
-    )
+        environment = get_or_create(
+            db,
+            Environment,
+            filter_kwargs={"name": request.environment, "architecture": request.arch},
+        )
 
-    artefact_build = get_or_create(
-        db,
-        ArtefactBuild,
-        filter_kwargs={
-            "architecture": request.arch,
-            "revision": request.revision,
-            "artefact_id": artefact.id,
-        },
-    )
+        artefact_build = get_or_create(
+            db,
+            ArtefactBuild,
+            filter_kwargs={
+                "architecture": request.arch,
+                "revision": request.revision,
+                "artefact_id": artefact.id,
+            },
+        )
 
-    test_execution = get_or_create(
-        db,
-        TestExecution,
-        filter_kwargs={
-            "environment_id": environment.id,
-            "artefact_build_id": artefact_build.id,
-        },
-        creation_kwargs={
-            "status": TestExecutionStatus.IN_PROGRESS,
-        },
-    )
-    return {"id": test_execution.id}
+        test_execution = get_or_create(
+            db,
+            TestExecution,
+            filter_kwargs={
+                "environment_id": environment.id,
+                "artefact_build_id": artefact_build.id,
+            },
+            creation_kwargs={
+                "status": TestExecutionStatus.IN_PROGRESS,
+            },
+        )
+        return {"id": test_execution.id}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.patch("/{id}")
