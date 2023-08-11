@@ -22,6 +22,7 @@
 
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import IntegrityError
 
 from .models_enums import FamilyName
 from .models import DataModel, Family, Stage, Artefact
@@ -114,9 +115,12 @@ def get_or_create(
     creation_kwargs = creation_kwargs or {}
     instance = model(**filter_kwargs, **creation_kwargs)
 
-    db_instance = db.query(model).filter_by(**filter_kwargs).one_or_none()
-    if db_instance is None:
+    try:
+        # Attempt to add and commit the new instance
         db.add(instance)
         db.commit()
         return instance
-    return db_instance
+    except Exception:
+        # Query and return the existing instance
+        return db.query(model).filter_by(**filter_kwargs).one()
+
