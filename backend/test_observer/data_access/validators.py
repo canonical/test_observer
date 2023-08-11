@@ -18,12 +18,13 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 """Functions to validate the whole models (not just specific field)"""
 
-from sqlalchemy import select
+from sqlalchemy import select, event
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Mapper
 from .models import Stage, Family, Artefact
 
 
+@event.listens_for(Artefact, "before_insert")
 def validate_artefact(
     mapper: Mapper, connection: Connection, artefact: Artefact  # noqa: ARG001
 ) -> None:
