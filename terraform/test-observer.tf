@@ -45,7 +45,7 @@ resource "juju_application" "ingress" {
 }
 
 resource "juju_application" "pg" {
-  name  = "db"
+  name  = "postgresql-k8s"
   model = juju_model.test-observer.name
   trust = true
 
@@ -57,7 +57,7 @@ resource "juju_application" "pg" {
 }
 
 resource "juju_application" "test-observer-api" {
-  name  = "api"
+  name  = "test-observer-api"
   model = juju_model.test-observer.name
 
   charm {
@@ -76,7 +76,7 @@ resource "juju_application" "test-observer-api" {
 }
 
 resource "juju_application" "test-observer-frontend" {
-  name  = "frontend"
+  name  = "test-observer-frontend"
   model = juju_model.test-observer.name
 
   charm {
