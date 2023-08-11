@@ -64,7 +64,7 @@ resource "juju_application" "test-observer-api" {
     name     = "test-observer-api"
     channel  = "latest/edge"
     series   = "jammy"
-    revision = 17
+    revision = 18
   }
 
   config = {
@@ -83,7 +83,7 @@ resource "juju_application" "test-observer-frontend" {
     name     = "test-observer-frontend"
     channel  = "latest/edge"
     series   = "jammy"
-    revision = 10
+    revision = 11
   }
 
   config = {
