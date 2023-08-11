@@ -30,7 +30,7 @@ resource "juju_model" "test-observer" {
 }
 
 resource "juju_application" "ingress" {
-  name  = "ingress"
+  name  = "nginx-ingress-integrator"
   model = juju_model.test-observer.name
   trust = true
 
