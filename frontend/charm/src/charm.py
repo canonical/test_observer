@@ -96,7 +96,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
     def _on_rest_api_relation_broken(self, event):
         logger.debug("REST API relation broken")
         self._update_layer_and_restart(event)
-
+    
     def nginx_config(self, base_uri: str) -> str:
         """Return a config where the backend port `base_uri` is adjusted."""
         return f"""
@@ -108,6 +108,10 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 root   /usr/share/nginx/html;
                 index  index.html index.htm;
                 try_files $uri $uri/ /index.html =404;
+
+                # Ensure no caching
+                expires -1;
+                add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
 
                 sub_filter 'http://api-placeholder:30000/' '{base_uri}';
                 sub_filter_once on;
@@ -132,6 +136,10 @@ class TestObserverFrontendCharm(ops.CharmBase):
             location @maintenance {
                 rewrite ^(.*)$ /503.html break;
                 root /usr/share/nginx/html;
+
+                # Ensure no caching
+                expires -1;
+                add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
             }
         }
         """
