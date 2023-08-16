@@ -123,5 +123,5 @@ def get_or_create(
     except IntegrityError:
         # Query and return the existing instance
         instance = db.query(model).filter_by(**filter_kwargs).one()
-
+    db.commit()
     return instance
