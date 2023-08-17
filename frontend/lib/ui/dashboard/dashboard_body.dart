@@ -20,7 +20,7 @@ class DashboardBody extends StatelessWidget {
     return ProviderScope(
       overrides: [
         namesOfStagesProvider
-            .overrideWithValue(stages.map((stage) => stage.name).toList())
+            .overrideWithValue(stages.map((stage) => stage.name).toList()),
       ],
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(
