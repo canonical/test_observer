@@ -75,7 +75,7 @@ class _ArtefactHeader extends StatelessWidget {
               size: 60,
             ),
             onTap: () => Navigator.pop(context),
-          )
+          ),
         ],
       ),
     );
