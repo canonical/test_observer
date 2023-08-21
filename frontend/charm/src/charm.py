@@ -96,7 +96,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
     def _on_rest_api_relation_broken(self, event):
         logger.debug("REST API relation broken")
         self._update_layer_and_restart(event)
-    
+
     def nginx_config(self, base_uri: str) -> str:
         """Return a config where the backend port `base_uri` is adjusted."""
         return f"""
