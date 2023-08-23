@@ -4,8 +4,6 @@
 .dart_tool/
 .packages
 build/
-# If you're building an application, you may want to check-in your pubspec.lock
-pubspec.lock
 
 # Directory created by dartdoc
 # If you don't generate documentation locally you can remove this line.
@@ -19,3 +17,11 @@ doc/api/
 *.js_
 *.js.deps
 *.js.map
+
+.flutter-plugins*
+
+# Generated code
+*.freezed.dart
+*.g.dart
+
+custom_lint.log

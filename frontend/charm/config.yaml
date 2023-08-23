@@ -1,0 +1,17 @@
+# See https://juju.is/docs/config for guidance.
+
+options:
+  hostname:
+    description: Public hostname for the frontend (through ingress)
+    default: test-observer
+    type: string
+
+  port:
+    description: Port for the frontend (through ingress)
+    default: 80
+    type: int
+
+  test-observer-api-scheme:
+    description: Scheme for accessing Test Observer API (used to construct URLs for API requests)
+    default: "https://"
+    type: string

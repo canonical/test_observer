@@ -1,0 +1,29 @@
+apiVersion: skaffold/v4beta4
+kind: Config
+metadata:
+  name: test-observer-frontend
+build:
+  artifacts:
+    - image: localhost:32000/test-observer-api
+      docker:
+        dockerfile: Dockerfile
+      # Sync these files to avoid rebuilding images
+      sync:
+        manual:
+          - dest: "test_observer/"
+            src: "test_observer/**"
+            strip: "test_observer/"
+          - dest: "tests/"
+            src: "tests/**"
+            strip: "tests/"
+          - dest: "migrations/"
+            src: "migrations/**"
+            strip: "migrations/"
+          - dest: "scripts/"
+            src: "scripts/**"
+            strip: "scripts/"
+  # Use microk8s registry
+  insecureRegistries:
+    - localhost:32000
+deploy:
+  kubeContext: microk8s

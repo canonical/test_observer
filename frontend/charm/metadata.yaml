@@ -1,0 +1,27 @@
+name: test-observer-frontend
+display-name: Test Observer Frontend
+summary: A Flutter based frontend to the test-observer backend service.
+
+description: |
+  Test Observer Frontend offers a dashboard for presenting test results served by the test-observer backend service.
+
+assumes:
+  - juju >= 2.9
+  - k8s-api
+
+containers:
+  frontend:
+    resource: frontend-image
+
+requires:
+  test-observer-rest-api:
+    interface: http
+    limit: 1
+  nginx-route:
+    interface: nginx-route
+
+resources:
+  frontend-image:
+    type: oci-image
+    description: OCI image for test-observer-frontend
+    upstream-source: ghcr.io/canonical/test_observer/frontend:main
