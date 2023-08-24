@@ -32,8 +32,4 @@ def read_family(family_name: str, db: Session = Depends(get_db)):
     if family is None:
         raise HTTPException(status_code=404, detail="Family not found")
 
-
-
-    # for stage, artefacts in stage_artefact_dict:
-
     return family
