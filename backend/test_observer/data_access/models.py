@@ -17,11 +17,12 @@
 # Written by:
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
+from datetime import date, datetime
+from itertools import groupby
+from operator import attrgetter
 from typing import TypeVar
-from datetime import datetime, date
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint, Index, column
-from sqlalchemy.sql import func
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -29,6 +30,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
+from sqlalchemy.sql import func
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -46,6 +48,15 @@ class Base(DeclarativeBase):
     )
 
 
+DataModel = TypeVar("DataModel", bound=Base)
+
+
+def data_model_repr(obj: DataModel, *keys: str) -> str:
+    all_keys = ("id", "created_at", "updated_at") + keys
+    kwargs = [f"{key}={getattr(obj, key)!r}" for key in all_keys]
+    return f"{type(obj).__name__}({', '.join(kwargs)})"
+
+
 class Family(Base):
     """A model to represent artefact family object"""
 
@@ -54,8 +65,11 @@ class Family(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
     stages: Mapped[list["Stage"]] = relationship(
-        back_populates="family", cascade="all, delete-orphan"
+        back_populates="family", cascade="all, delete-orphan", order_by="Stage.position"
     )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name")
 
 
 class Stage(Base):
@@ -71,6 +85,18 @@ class Stage(Base):
     artefacts: Mapped[list["Artefact"]] = relationship(
         back_populates="stage", cascade="all, delete-orphan"
     )
+
+    @property
+    def latest_artefacts(self) -> list["Artefact"]:
+        artefact_groups = groupby(self.artefacts, attrgetter("name", "source"))
+
+        return [
+            max(artefacts, key=attrgetter("created_at"))
+            for _, artefacts in artefact_groups
+        ]
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name", "position", "family_id")
 
 
 class Artefact(Base):
@@ -94,6 +120,11 @@ class Artefact(Base):
     __table_args__ = (
         UniqueConstraint("name", "version", "source", name="unique_artefact"),
     )
+
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self, "name", "version", "source", "stage_id", "due_date", "status"
+        )
 
 
 class ArtefactBuild(Base):
@@ -132,6 +163,9 @@ class ArtefactBuild(Base):
         ),
     )
 
+    def __repr__(self) -> str:
+        return data_model_repr(self, "architecture", "revision", "artefact_id")
+
 
 class Environment(Base):
     """
@@ -148,6 +182,9 @@ class Environment(Base):
     )
 
     __table_args__ = (UniqueConstraint("name", "architecture"),)
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name", "architecture")
 
 
 class TestExecution(Base):
@@ -174,5 +211,12 @@ class TestExecution(Base):
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
-
-DataModel = TypeVar("DataModel", bound=Base)
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self,
+            "artefact_build_id",
+            "environment_id",
+            "status",
+            "jenkins_link",
+            "c3_link",
+        )

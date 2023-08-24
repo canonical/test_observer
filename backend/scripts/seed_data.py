@@ -100,7 +100,9 @@ REQUESTS = [
 
 def seed_data(client: TestClient | requests.Session):
     for request in REQUESTS:
-        client.put(START_TEST_EXECUTION_URL, json=request.dict()).raise_for_status()
+        client.put(
+            START_TEST_EXECUTION_URL, json=request.model_dump()
+        ).raise_for_status()
 
 
 if __name__ == "__main__":

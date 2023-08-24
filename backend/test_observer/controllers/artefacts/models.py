@@ -17,36 +17,33 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from test_observer.data_access.models_enums import TestExecutionStatus
 
 
 class EnvironmentDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     architecture: str
 
-    class Config:
-        orm_mode = True
-
 
 class TestExecutionDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     jenkins_link: str | None
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
 
-    class Config:
-        orm_mode = True
-
 
 class ArtefactBuildDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionDTO]
-
-    class Config:
-        orm_mode = True

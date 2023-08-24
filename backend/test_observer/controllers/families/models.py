@@ -20,32 +20,29 @@
 """Data Transfer Object for creating API responses"""
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ArtefactDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     version: str
     source: dict[str, int | str]
 
-    class Config:
-        orm_mode = True
-
 
 class StageDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
-    artefacts: list[ArtefactDTO]
-
-    class Config:
-        orm_mode = True
+    latest_artefacts: list[ArtefactDTO] = Field(..., serialization_alias="artefacts")
 
 
 class FamilyDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     stages: list[StageDTO]
-
-    class Config:
-        orm_mode = True
