@@ -21,15 +21,16 @@
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
+from test_observer.controllers.test_executions.models import StartTestExecutionRequest
 from test_observer.data_access.models import (
     Artefact,
-    Stage,
-    TestExecution,
     ArtefactBuild,
     Environment,
+    Stage,
+    TestExecution,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
-from test_observer.controllers.test_executions.models import StartTestExecutionRequest
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):
@@ -149,7 +150,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
 
     test_client.put(
         "/v1/test-executions/start-test",
-        json=request.dict(),
+        json=request.model_dump(),
     )
 
     assert (
