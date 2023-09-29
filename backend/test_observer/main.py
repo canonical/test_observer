@@ -30,7 +30,7 @@ from test_observer.controllers.router import router
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
-    sentry_sdk.init(SENTRY_DSN)
+    sentry_sdk.init(SENTRY_DSN)  # type: ignore
 
 
 app = FastAPI()
