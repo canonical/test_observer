@@ -37,6 +37,9 @@ spec:
           image: localhost:32000/test-observer-api
           ports:
             - containerPort: 30000
+          env:
+            - name: SENTRY_DSN
+              value: "https://dd931d36e0c24681aaeed6abd312c896@sentry.is.canonical.com//66"
       initContainers:
         - name: wait-for-db-migrations
           image: ghcr.io/groundnuty/k8s-wait-for:v2.0

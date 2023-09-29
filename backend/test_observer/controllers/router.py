@@ -41,3 +41,9 @@ router.include_router(artefacts.router, prefix="/v1/artefacts")
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
     return "test observer api"
+
+
+@router.get("/sentry-debug")
+def trigger_error():
+    division_by_zero = 1 / 0
+    return division_by_zero
