@@ -6,7 +6,7 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 
 ### 1. Install required tools
 
-- Install [docker](https://snapcraft.io/docker) and setup permissions
+- Install [docker](https://docs.docker.com/engine/install/ubuntu/) and [setup permissions](https://docs.docker.com/engine/install/linux-postinstall/)
 - Install [microk8s](https://microk8s.io/docs/getting-started) and setup permissions
 - Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary)
 - Install [Poetry](https://python-poetry.org/docs/#installation)

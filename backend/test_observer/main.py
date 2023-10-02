@@ -18,14 +18,22 @@
 #        Omar Abou Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import sentry_sdk
+
 
 from test_observer.controllers.router import router
 
-app = FastAPI()
 
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(SENTRY_DSN)  # type: ignore
+
+
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
