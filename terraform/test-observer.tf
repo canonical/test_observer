@@ -25,6 +25,12 @@ variable "external_ingress_hostname" {
   default     = "canonical.com"
 }
 
+variable "nginx_ingress_integrator_charm_whitelist_source_range" {
+  description = "Allowed client IP source ranges. The value is a comma separated list of CIDRs."
+  type        = string
+  default     = ""
+}
+
 locals {
   sentry_dsn_map = {
     production  = "https://dd931d36e0c24681aaeed6abd312c896@sentry.is.canonical.com//66"
@@ -49,6 +55,7 @@ resource "juju_application" "ingress" {
 
   config = {
     tls-secret-name = var.tls_secret_name
+    whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
 
