@@ -129,6 +129,17 @@ class TestObserverBackendCharm(CharmBase):
         self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
 
+    @property
+    def _app_environment(self):
+        """
+        This creates a dictionary of environment variables needed by the application
+        """
+        env = {
+            "SENTRY_DSN": self.config["sentry_dsn"]
+        }
+        env.update(self._postgres_relation_data())
+        return env
+
     def _test_observer_rest_api_client_joined(self, event: RelationJoinedEvent) -> None:
         logger.info(f"Test Observer REST API client joined {event}")
 
@@ -174,7 +185,7 @@ class TestObserverBackendCharm(CharmBase):
                             ]
                         ),
                         "startup": "enabled",
-                        "environment": self._postgres_relation_data(),
+                        "environment": self._app_environment(),
                     }
                 },
             }
