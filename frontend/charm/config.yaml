@@ -15,3 +15,8 @@ options:
     description: Scheme for accessing Test Observer API (used to construct URLs for API requests)
     default: "https://"
     type: string
+
+  sentry_dsn:
+    description: Sentry DSN name for sending errors to sentry server
+    default: ""
+    type: string

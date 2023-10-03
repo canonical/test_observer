@@ -97,7 +97,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         logger.debug("REST API relation broken")
         self._handle_no_api_relation()
 
-    def nginx_config(self, base_uri: str) -> str:
+    def nginx_config(self, base_uri: str, sentry_dsn: str) -> str:
         """Return a config where the backend port `base_uri` is adjusted."""
         return f"""
         server {{
@@ -114,6 +114,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
 
                 sub_filter 'http://api-placeholder:30000/' '{base_uri}';
+                sub_filter 'http://sentry-dsn-placeholder/', '{sentry_dsn}';
                 sub_filter_once on;
             }}
 
@@ -164,7 +165,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         if self.container.can_connect():
             self.container.push(
                 "/etc/nginx/sites-available/test-observer-frontend",
-                self.nginx_config(base_uri=self._api_url),
+                self.nginx_config(base_uri=self._api_url, sentry_dsn=self.config["sentry_dsn"]),
                 make_dirs=True,
             )
             self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
