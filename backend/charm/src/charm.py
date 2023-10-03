@@ -185,7 +185,7 @@ class TestObserverBackendCharm(CharmBase):
                             ]
                         ),
                         "startup": "enabled",
-                        "environment": self._app_environment(),
+                        "environment": self._app_environment,
                     }
                 },
             }
