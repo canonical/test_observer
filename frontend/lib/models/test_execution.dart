@@ -57,7 +57,7 @@ enum TestExecutionStatus {
       case inProgress:
         return const Icon(YaruIcons.refresh, size: size);
       case passed:
-        return const Icon(YaruIcons.ok, color: YaruColors.success, size: size);
+        return Icon(YaruIcons.ok, color: YaruColors.light.success, size: size);
       case failed:
         return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
       case notTested:
