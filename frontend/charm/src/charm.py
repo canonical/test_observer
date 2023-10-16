@@ -113,7 +113,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 expires -1;
                 add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
 
-                sub_filter 'http://api-placeholder:30000/' '{base_uri}';
+                sub_filter 'http://localhost:30000/' '{base_uri}';
                 sub_filter_once on;
             }}
 

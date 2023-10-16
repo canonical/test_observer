@@ -10,7 +10,7 @@ part 'dio.g.dart';
 
 @riverpod
 Dio dio(DioRef ref) {
-  final baseUrl = js_util.getProperty(window, 'testObserverAPIBaseURI');
-  final dio = Dio(BaseOptions(baseUrl: baseUrl ?? 'http://localhost:30000'));
+  final baseUrl = js_util.getProperty<String>(window, 'testObserverAPIBaseURI');
+  final dio = Dio(BaseOptions(baseUrl: baseUrl));
   return dio;
 }
