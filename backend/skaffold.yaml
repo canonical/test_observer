@@ -1,7 +1,7 @@
 apiVersion: skaffold/v4beta4
 kind: Config
 metadata:
-  name: test-observer-frontend
+  name: test-observer-api
 build:
   artifacts:
     - image: localhost:32000/test-observer-api
