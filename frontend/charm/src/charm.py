@@ -31,7 +31,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.pebble_service_name = "test-observer-frontend"
         self.container = self.unit.get_container("frontend")
 
-        self.framework.observe(self.on.frontend_pebble_ready, self._on_frontend_pebble_ready)
+        self.framework.observe(self.on.frontend_pebble_ready, self._update_layer_and_restart)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
             self.on.test_observer_rest_api_relation_joined,
@@ -55,12 +55,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
             service_name=self.app.name,
             service_port=int(self.config["port"]),
         )
-
-    def _on_frontend_pebble_ready(self, event: ops.PebbleReadyEvent):
-        container = event.workload
-        container.add_layer("frontend", self._pebble_layer, combine=True)
-        container.replan()
-        self.unit.status = ops.ActiveStatus()
 
     def _on_config_changed(self, event):
         is_valid, reason = self._config_is_valid(self.config)
@@ -168,7 +162,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 make_dirs=True,
             )
             self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
-            self.container.restart(self.pebble_service_name)
+            self.container.replan()
             self.unit.status = ActiveStatus()
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API to set available state")
