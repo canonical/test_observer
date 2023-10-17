@@ -1,6 +1,5 @@
 FROM ubuntu:22.04 as builder
 
-ENV TEST_OBSERVER_API_BASE_URI=http://localhost:30000
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y curl git wget unzip libgconf-2-4 gdb libstdc++6 libglu1-mesa fonts-droid-fallback lib32stdc++6 python3
