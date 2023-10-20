@@ -48,6 +48,22 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
     ]
 
 
+def test_get_artefact(db_session: Session, test_client: TestClient):
+    """Should be able to fetch an existing artefact"""
+    artefact = create_artefact(db_session, "edge")
+
+    response = test_client.get(f"/v1/artefacts/{artefact.id}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": artefact.id,
+        "name": artefact.name,
+        "version": artefact.version,
+        "source": artefact.source,
+        "stage": artefact.stage.name,
+    }
+
+
 def test_get_artefact_builds(db_session: Session, test_client: TestClient):
     artefact = create_artefact(db_session, "beta")
     artefact_build = ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
