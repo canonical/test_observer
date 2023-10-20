@@ -19,13 +19,26 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import ArtefactBuild
+
+from test_observer.controllers.families.models import ArtefactDTO
+from test_observer.data_access.models import ArtefactBuild, Family, Stage
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 from .models import ArtefactBuildDTO
 
-
 router = APIRouter()
+
+
+@router.get("/", response_model=list[ArtefactDTO])
+def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
+    """Get latest artefacts by family"""
+    query = db.query(Stage)
+    if family:
+        query = query.filter(Stage.family.has(Family.name == family))
+    stages = query.all()
+
+    return [artefact for stage in stages for artefact in stage.latest_artefacts]
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
