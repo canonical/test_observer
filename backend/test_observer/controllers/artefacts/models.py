@@ -17,7 +17,7 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-from pydantic import BaseModel, ConfigDict
+from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
 from test_observer.data_access.models_enums import TestExecutionStatus
 
@@ -29,6 +29,7 @@ class ArtefactDTO(BaseModel):
     name: str
     version: str
     source: dict[str, int | str]
+    stage: str = Field(validation_alias=AliasPath("stage", "name"))
 
 
 class EnvironmentDTO(BaseModel):

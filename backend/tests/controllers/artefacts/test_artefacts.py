@@ -43,6 +43,7 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
             "name": relevant_artefact.name,
             "version": relevant_artefact.version,
             "source": relevant_artefact.source,
+            "stage": relevant_artefact.stage.name,
         }
     ]
 
