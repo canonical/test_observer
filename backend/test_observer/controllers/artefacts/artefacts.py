@@ -20,12 +20,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.families.models import ArtefactDTO
 from test_observer.data_access.models import ArtefactBuild, Family, Stage
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
-from .models import ArtefactBuildDTO
+from .models import ArtefactBuildDTO, ArtefactDTO
 
 router = APIRouter()
 

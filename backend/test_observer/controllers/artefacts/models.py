@@ -22,6 +22,15 @@ from pydantic import BaseModel, ConfigDict
 from test_observer.data_access.models_enums import TestExecutionStatus
 
 
+class ArtefactDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    version: str
+    source: dict[str, int | str]
+
+
 class EnvironmentDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
