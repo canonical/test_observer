@@ -10,20 +10,23 @@ import 'package:yaru_widgets/widgets.dart';
 
 import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
+import '../../models/stage_name.dart';
 import '../../models/test_execution.dart';
+import '../../providers/artefact.dart';
 import '../../providers/artefact_builds.dart';
-import '../../providers/name_of_selected_stage.dart';
-import '../../providers/names_of_stages.dart';
+import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
 
-class ArtefactDialog extends StatelessWidget {
-  const ArtefactDialog({super.key, required this.artefact});
+class ArtefactDialog extends ConsumerWidget {
+  const ArtefactDialog({super.key, required this.artefactId});
 
-  final Artefact artefact;
+  final String artefactId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final artefact = ref.watch(artefactProvider(artefactId));
+
     return SelectionArea(
       child: Dialog(
         child: SizedBox(
@@ -34,15 +37,21 @@ class ArtefactDialog extends StatelessWidget {
               horizontal: Spacing.level5,
               vertical: Spacing.level3,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ArtefactHeader(title: artefact.name),
-                const SizedBox(height: Spacing.level4),
-                _ArtefactInfoSection(artefact: artefact),
-                const SizedBox(height: Spacing.level4),
-                Expanded(child: _EnvironmentsSection(artefact: artefact)),
-              ],
+            child: artefact.when(
+              data: (artefact) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ArtefactHeader(title: artefact.name),
+                  const SizedBox(height: Spacing.level4),
+                  _ArtefactInfoSection(artefact: artefact),
+                  const SizedBox(height: Spacing.level4),
+                  Expanded(child: _EnvironmentsSection(artefact: artefact)),
+                ],
+              ),
+              loading: () =>
+                  const Center(child: YaruCircularProgressIndicator()),
+              error: (error, stackTrace) =>
+                  Text('Failed to fetch artefact $artefactId $error'),
             ),
           ),
         ),
@@ -101,7 +110,7 @@ class _ArtefactInfoSection extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _StagesRow(),
+            _StagesRow(stage: artefact.stage),
             const SizedBox(height: Spacing.level3),
             ...artefactDetails
                 .map<Widget>(
@@ -140,12 +149,15 @@ class _ArtefactInfoSection extends StatelessWidget {
 }
 
 class _StagesRow extends ConsumerWidget {
-  const _StagesRow();
+  const _StagesRow({required this.stage});
+
+  final StageName stage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedStageName = ref.watch(nameOfSelectedStageProvider);
-    final namesOfStages = ref.watch(namesOfStagesProvider);
+    final family = AppRoutes.familyFromContext(context);
+    final selectedStageName = stage;
+    final namesOfStages = familyStages(family);
 
     final stageNamesWidgets = <Widget>[];
     bool passedSelectedStage = false;
@@ -160,7 +172,7 @@ class _StagesRow extends ConsumerWidget {
 
       stageNamesWidgets.add(
         Text(
-          stageName.capitalize(),
+          stageName.name.capitalize(),
           style: Theme.of(context).textTheme.bodyLarge?.apply(color: fontColor),
         ),
       );
