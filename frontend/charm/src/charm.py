@@ -7,7 +7,6 @@
 """Test Observer frontend charm."""
 
 import logging
-import sys
 from typing import Tuple
 
 import ops
@@ -31,7 +30,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.pebble_service_name = "test-observer-frontend"
         self.container = self.unit.get_container("frontend")
 
-        self.framework.observe(self.on.frontend_pebble_ready, self._on_frontend_pebble_ready)
+        self.framework.observe(self.on.frontend_pebble_ready, self._update_layer_and_restart)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
             self.on.test_observer_rest_api_relation_joined,
@@ -55,12 +54,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
             service_name=self.app.name,
             service_port=int(self.config["port"]),
         )
-
-    def _on_frontend_pebble_ready(self, event: ops.PebbleReadyEvent):
-        container = event.workload
-        container.add_layer("frontend", self._pebble_layer, combine=True)
-        container.replan()
-        self.unit.status = ops.ActiveStatus()
 
     def _on_config_changed(self, event):
         is_valid, reason = self._config_is_valid(self.config)
@@ -162,29 +155,35 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         if self.container.can_connect():
-            self.container.push(
-                "/etc/nginx/sites-available/test-observer-frontend",
-                self.nginx_config(base_uri=self._api_url),
-                make_dirs=True,
-            )
-            self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
-            self.container.restart(self.pebble_service_name)
-            self.unit.status = ActiveStatus()
+            api_url = self._api_url
+            if api_url:
+                self.container.push(
+                    "/etc/nginx/sites-available/test-observer-frontend",
+                    self.nginx_config(base_uri=api_url),
+                    make_dirs=True,
+                )
+                self.container.add_layer(
+                    self.pebble_service_name, self._pebble_layer, combine=True
+                )
+                self.container.replan()
+                self.unit.status = ActiveStatus()
+            else:
+                self._handle_no_api_relation()
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API to set available state")
 
     @property
-    def _api_url(self):
+    def _api_url(self) -> str | None:
         api_relation = self.model.get_relation("test-observer-rest-api")
 
         if api_relation is None:
             self._handle_no_api_relation()
-            sys.exit()
+            return
 
         relation_data = api_relation.data[api_relation.app]
         if not relation_data:
             self.unit.status = WaitingStatus("Waiting for test observer api relation data")
-            sys.exit()
+            return
 
         hostname = relation_data["hostname"]
         port = relation_data["port"]
