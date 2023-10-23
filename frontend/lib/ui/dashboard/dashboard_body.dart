@@ -83,7 +83,10 @@ class _ArtefactCard extends ConsumerWidget {
     ];
 
     return GestureDetector(
-      onTap: () => context.go('${AppRoutes.snaps}/${artefact.id}'),
+      onTap: () {
+        final currentRoute = GoRouterState.of(context).fullPath;
+        context.go('$currentRoute/${artefact.id}');
+      },
       child: Card(
         margin: const EdgeInsets.all(0),
         elevation: 0,
