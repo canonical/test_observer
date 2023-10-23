@@ -45,7 +45,7 @@ class _NavbarEntry extends StatelessWidget {
     return InkWell(
       onTap: () => context.go(route),
       child: Container(
-        color: GoRouterState.of(context).uri.toString() == route
+        color: GoRouterState.of(context).fullPath!.startsWith(route)
             ? YaruColors.orange
             : null,
         padding: const EdgeInsets.all(Spacing.level4),
