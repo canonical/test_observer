@@ -11,12 +11,12 @@ class Dashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final familyName = AppRoutes.familyFromContext(context);
+    final family = AppRoutes.familyFromContext(context);
 
     return Column(
       children: [
         DashboardHeader(
-          title: '${familyName.name.capitalize()} Update Verification',
+          title: '${family.name.capitalize()} Update Verification',
         ),
         const Expanded(child: DashboardBody()),
       ],

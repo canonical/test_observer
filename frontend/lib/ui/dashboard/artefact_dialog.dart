@@ -110,7 +110,7 @@ class _ArtefactInfoSection extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _StagesRow(stage: artefact.stage),
+            _StagesRow(artefactStage: artefact.stage),
             const SizedBox(height: Spacing.level3),
             ...artefactDetails
                 .map<Widget>(
@@ -149,30 +149,29 @@ class _ArtefactInfoSection extends StatelessWidget {
 }
 
 class _StagesRow extends ConsumerWidget {
-  const _StagesRow({required this.stage});
+  const _StagesRow({required this.artefactStage});
 
-  final StageName stage;
+  final StageName artefactStage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final family = AppRoutes.familyFromContext(context);
-    final selectedStageName = stage;
-    final namesOfStages = familyStages(family);
+    final stages = familyStages(family);
 
     final stageNamesWidgets = <Widget>[];
     bool passedSelectedStage = false;
-    for (final stageName in namesOfStages) {
+    for (final stage in stages) {
       Color fontColor = YaruColors.warmGrey;
       if (passedSelectedStage) {
         fontColor = YaruColors.textGrey;
-      } else if (stageName == selectedStageName) {
+      } else if (stage == artefactStage) {
         passedSelectedStage = true;
         fontColor = YaruColors.orange;
       }
 
       stageNamesWidgets.add(
         Text(
-          stageName.name.capitalize(),
+          stage.name.capitalize(),
           style: Theme.of(context).textTheme.bodyLarge?.apply(color: fontColor),
         ),
       );
