@@ -34,7 +34,7 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
     create_artefact(db_session, "edge", created_at=old_timestamp, version="1")
     create_artefact(db_session, "proposed")
 
-    response = test_client.get("/v1/artefacts?family=snap")
+    response = test_client.get("/v1/artefacts", params={"family": "snap"})
 
     assert response.status_code == 200
     assert response.json() == [
