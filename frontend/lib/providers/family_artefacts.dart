@@ -12,8 +12,10 @@ Future<List<Artefact>> familyArtefacts(
   FamilyName family,
 ) async {
   final dio = ref.watch(dioProvider);
-
-  final response = await dio.get('/v1/artefacts?family=${family.name}');
+  final response = await dio.get(
+    '/v1/artefacts',
+    queryParameters: {'family': family.name},
+  );
   final List artefactsJson = response.data;
   final artefacts =
       artefactsJson.map((json) => Artefact.fromJson(json)).toList();
