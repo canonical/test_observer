@@ -1,10 +1,11 @@
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
+
 from fastapi import APIRouter
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 async def get_version():
     try:
         return {"version": version(__package__)}
