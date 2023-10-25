@@ -29,7 +29,7 @@ from .models import ArtefactBuildDTO, ArtefactDTO
 router = APIRouter()
 
 
-@router.get("/", response_model=list[ArtefactDTO])
+@router.get("", response_model=list[ArtefactDTO])
 def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts by family"""
     query = db.query(Stage)
