@@ -10,7 +10,7 @@ on:
 jobs:
   lint-report:
     name: Lint and format report
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, linux, large]
     steps:
       - uses: actions/checkout@v3
       - name: Install tox
@@ -23,7 +23,7 @@ jobs:
 
   static-analysis:
     name: Static analysis
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v3
       - name: Install tox
@@ -36,7 +36,7 @@ jobs:
 
   unit-tests-with-coverage:
     name: Unit tests
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v3
       - name: Install tox
