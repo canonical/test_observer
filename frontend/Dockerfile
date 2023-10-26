@@ -1,12 +1,11 @@
 FROM ubuntu:22.04 as builder
 
-ENV TEST_OBSERVER_API_BASE_URI=http://localhost:30000
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y curl git wget unzip libgconf-2-4 gdb libstdc++6 libglu1-mesa fonts-droid-fallback lib32stdc++6 python3
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
-    cd /opt/flutter && git checkout '3.10.3' && \
+    cd /opt/flutter && git checkout '3.13.0' && \
     /opt/flutter/bin/flutter doctor && \
     /opt/flutter/bin/flutter config --enable-web
 

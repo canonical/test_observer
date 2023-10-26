@@ -16,28 +16,12 @@ class TestCharm(unittest.TestCase):
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
 
-    def test_pebble_ready(self):
-        expected_plan = {
-            "services": {
-                "test-observer-frontend": {
-                    "override": "replace",
-                    "summary": "nginx",
-                    "command": "nginx -g 'daemon off;'",
-                    "startup": "enabled",
-                }
-            },
-        }
-
+    def test_pebble_ready_no_relation(self):
         self.harness.container_pebble_ready("frontend")
-        updated_plan = self.harness.get_container_pebble_plan("frontend").to_dict()
-
-        self.assertEqual(expected_plan, updated_plan)
-
-        service = self.harness.model.unit.get_container("frontend").get_service(
-            "test-observer-frontend"
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ops.MaintenanceStatus("test-observer-rest-api relation not connected."),
         )
-        self.assertTrue(service.is_running())
-        self.assertEqual(self.harness.model.unit.status, ops.ActiveStatus())
 
     def test_relating(self):
         harness = ops.testing.Harness(TestObserverFrontendCharm)

@@ -1,2 +1,0 @@
-migrate-database:
-  description: Migrates the application database schema. Not yet implemented.

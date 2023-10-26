@@ -25,13 +25,11 @@ from test_observer.data_access.setup import get_db
 
 from .application import version
 from .artefacts import artefacts
-from .families import families
 from .promoter import promoter
 from .test_executions import test_executions
 
 router = APIRouter()
 router.include_router(promoter.router)
-router.include_router(families.router, prefix="/v1/families")
 router.include_router(version.router, prefix="/v1/version")
 router.include_router(test_executions.router, prefix="/v1/test-executions")
 router.include_router(artefacts.router, prefix="/v1/artefacts")
@@ -41,3 +39,9 @@ router.include_router(artefacts.router, prefix="/v1/artefacts")
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
     return "test observer api"
+
+
+@router.get("/sentry-debug")
+def trigger_error():
+    division_by_zero = 1 / 0
+    return division_by_zero

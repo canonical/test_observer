@@ -8,3 +8,7 @@ options:
     default: test-observer-api
     description: Public hostname for the service.
     type: string
+  sentry_dsn:
+    default: ""
+    description: value for SENTRY_DSN that is used to send errors to sentry
+    type: string

@@ -10,11 +10,7 @@ import logging
 from typing import Tuple
 
 import ops
-from charms.traefik_k8s.v1.ingress import (
-    IngressPerAppReadyEvent,
-    IngressPerAppRequirer,
-    IngressPerAppRevokedEvent,
-)
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
@@ -34,7 +30,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.pebble_service_name = "test-observer-frontend"
         self.container = self.unit.get_container("frontend")
 
-        self.framework.observe(self.on.frontend_pebble_ready, self._on_frontend_pebble_ready)
+        self.framework.observe(self.on.frontend_pebble_ready, self._update_layer_and_restart)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(
             self.on.test_observer_rest_api_relation_joined,
@@ -49,21 +45,15 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._on_rest_api_relation_broken,
         )
 
-        self.ingress = IngressPerAppRequirer(self, port=self.config["port"])
-        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
-        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
+        self._setup_ingress()
 
-    def _on_frontend_pebble_ready(self, event: ops.PebbleReadyEvent):
-        container = event.workload
-        container.add_layer("frontend", self._pebble_layer, combine=True)
-        container.replan()
-        self.unit.status = ops.ActiveStatus()
-
-    def _on_ingress_ready(self, event: IngressPerAppReadyEvent):
-        logger.info("Ingress ready: %s", event.url)
-
-    def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent):
-        logger.info("App ingress revoked")
+    def _setup_ingress(self):
+        require_nginx_route(
+            charm=self,
+            service_hostname=self.config["hostname"],
+            service_name=self.app.name,
+            service_port=int(self.config["port"]),
+        )
 
     def _on_config_changed(self, event):
         is_valid, reason = self._config_is_valid(self.config)
@@ -98,7 +88,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
     def _on_rest_api_relation_broken(self, event):
         logger.debug("REST API relation broken")
+<<<<<<< HEAD
         self._update_layer_and_restart(event)
+=======
+        self._handle_no_api_relation()
+>>>>>>> 5944c53a8531a0af407dfc20274774ec67d3d07d
 
     def nginx_config(self, base_uri: str) -> str:
         """Return a config where the backend port `base_uri` is adjusted."""
@@ -112,7 +106,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 index  index.html index.htm;
                 try_files $uri $uri/ /index.html =404;
 
-                sub_filter 'http://api-placeholder:30000/' '{base_uri}';
+                # Ensure no caching
+                expires -1;
+                add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+
+                sub_filter 'http://localhost:30000/' '{base_uri}';
                 sub_filter_once on;
             }}
 
@@ -135,6 +133,13 @@ class TestObserverFrontendCharm(ops.CharmBase):
             location @maintenance {
                 rewrite ^(.*)$ /503.html break;
                 root /usr/share/nginx/html;
+<<<<<<< HEAD
+=======
+
+                # Ensure no caching
+                expires -1;
+                add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+>>>>>>> 5944c53a8531a0af407dfc20274774ec67d3d07d
             }
         }
         """
@@ -156,6 +161,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
     def _update_layer_and_restart(self, event):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
+<<<<<<< HEAD
         api_relation = self.model.relations["test-observer-rest-api"][0]
 
         if api_relation is None:
@@ -186,6 +192,41 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         hostname = api_relation.data[api_relation.app]["hostname"]
         port = api_relation.data[api_relation.app]["port"]
+=======
+        if self.container.can_connect():
+            api_url = self._api_url
+            if api_url:
+                self.container.push(
+                    "/etc/nginx/sites-available/test-observer-frontend",
+                    self.nginx_config(base_uri=api_url),
+                    make_dirs=True,
+                )
+                self.container.add_layer(
+                    self.pebble_service_name, self._pebble_layer, combine=True
+                )
+                self.container.replan()
+                self.unit.status = ActiveStatus()
+            else:
+                self._handle_no_api_relation()
+        else:
+            self.unit.status = WaitingStatus("Waiting for Pebble for API to set available state")
+
+    @property
+    def _api_url(self) -> str | None:
+        api_relation = self.model.get_relation("test-observer-rest-api")
+
+        if api_relation is None:
+            self._handle_no_api_relation()
+            return
+
+        relation_data = api_relation.data[api_relation.app]
+        if not relation_data:
+            self.unit.status = WaitingStatus("Waiting for test observer api relation data")
+            return
+
+        hostname = relation_data["hostname"]
+        port = relation_data["port"]
+>>>>>>> 5944c53a8531a0af407dfc20274774ec67d3d07d
 
         scheme = self.config["test-observer-api-scheme"]
 
@@ -196,8 +237,23 @@ class TestObserverFrontendCharm(ops.CharmBase):
             base_uri = f"{scheme}{hostname}"
         else:
             base_uri = f"{scheme}{hostname}:{port}"
+        return base_uri
 
+<<<<<<< HEAD
+=======
+    def _handle_no_api_relation(self):
+>>>>>>> 5944c53a8531a0af407dfc20274774ec67d3d07d
         if self.container.can_connect():
+            self.container.push(
+                "/etc/nginx/sites-available/test-observer-frontend",
+                self.nginx_503_config(),
+                make_dirs=True,
+            )
+            self.container.push(
+                "/usr/share/nginx/html/503.html",
+                self.html_503(),
+                make_dirs=True,
+            )
             self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
             self.container.push(
                 "/etc/nginx/sites-available/test-observer-frontend",
@@ -205,9 +261,13 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 make_dirs=True,
             )
             self.container.restart(self.pebble_service_name)
-            self.unit.status = ActiveStatus()
+            self.unit.status = MaintenanceStatus("test-observer-rest-api relation not connected.")
         else:
+<<<<<<< HEAD
             self.unit.status = WaitingStatus("Waiting for Pebble for API to set available state")
+=======
+            self.unit.status = WaitingStatus("Waiting for Pebble for API to set maintenance state")
+>>>>>>> 5944c53a8531a0af407dfc20274774ec67d3d07d
 
     @property
     def _pebble_layer(self):

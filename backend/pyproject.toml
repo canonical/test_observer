@@ -6,13 +6,14 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = "^0.95.0"
+fastapi = "^0.101.1"
 uvicorn = {extras = ["standard"], version = "^0.21.1"}
 sqlalchemy = "^2.0.16"
 pg8000 = "^1.29.4"
 alembic = "^1.10.3"
 poetry-dynamic-versioning = {extras = ["plugin"], version = "^0.22.0"}
 requests = "^2.31.0"
+sentry-sdk = "0.10.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"

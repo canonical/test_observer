@@ -17,15 +17,38 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import ArtefactBuild
+
+from test_observer.data_access.models import Artefact, ArtefactBuild, Family, Stage
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
-from .models import ArtefactBuildDTO
-
+from .models import ArtefactBuildDTO, ArtefactDTO
 
 router = APIRouter()
+
+
+@router.get("", response_model=list[ArtefactDTO])
+def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
+    """Get latest artefacts by family"""
+    query = db.query(Stage)
+    if family:
+        query = query.filter(Stage.family.has(Family.name == family))
+    stages = query.all()
+
+    return [artefact for stage in stages for artefact in stage.latest_artefacts]
+
+
+@router.get("/{artefact_id}", response_model=ArtefactDTO)
+def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
+    """Get an artefact by id"""
+    artefact = db.query(Artefact).get(artefact_id)
+
+    if artefact is None:
+        raise HTTPException(status_code=404, detail="Artefact not found")
+
+    return artefact
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])

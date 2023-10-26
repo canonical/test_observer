@@ -17,11 +17,51 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+from datetime import timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
 
+from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
 from tests.helpers import create_artefact
+
+
+def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestClient):
+    """Should only get latest artefacts and only ones that belong to given family"""
+    relevant_artefact = create_artefact(db_session, "edge", version="2")
+
+    old_timestamp = relevant_artefact.created_at - timedelta(days=1)
+    create_artefact(db_session, "edge", created_at=old_timestamp, version="1")
+    create_artefact(db_session, "proposed")
+
+    response = test_client.get("/v1/artefacts", params={"family": "snap"})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": relevant_artefact.id,
+            "name": relevant_artefact.name,
+            "version": relevant_artefact.version,
+            "source": relevant_artefact.source,
+            "stage": relevant_artefact.stage.name,
+        }
+    ]
+
+
+def test_get_artefact(db_session: Session, test_client: TestClient):
+    """Should be able to fetch an existing artefact"""
+    artefact = create_artefact(db_session, "edge")
+
+    response = test_client.get(f"/v1/artefacts/{artefact.id}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": artefact.id,
+        "name": artefact.name,
+        "version": artefact.version,
+        "source": artefact.source,
+        "stage": artefact.stage.name,
+    }
 
 
 def test_get_artefact_builds(db_session: Session, test_client: TestClient):
@@ -43,11 +83,13 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
         {
             "id": artefact_build.id,
             "revision": artefact_build.revision,
+            "architecture": artefact_build.architecture,
             "test_executions": [
                 {
                     "id": test_execution.id,
                     "jenkins_link": test_execution.jenkins_link,
                     "c3_link": test_execution.c3_link,
+                    "status": test_execution.status.value,
                     "environment": {
                         "id": environment.id,
                         "name": environment.name,
@@ -77,6 +119,7 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
         {
             "id": artefact_build2.id,
             "revision": artefact_build2.revision,
+            "architecture": artefact_build2.architecture,
             "test_executions": [],
         }
     ]
