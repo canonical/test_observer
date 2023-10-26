@@ -24,7 +24,7 @@ jobs:
         with:
           channel: 1.27/stable # 1.26.4
           provider: microk8s
-          juju-channel: 3.0/stable
+          juju-channel: 3.2/stable
           # juju-classic-confinement: "false"
           # microk8s-classic-confinement: "false"
           charmcraft-channel: 2.x/stable
