@@ -22,7 +22,7 @@ jobs:
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main # mz2/actions-operator@4fcb55b99e2a0f69a5910870d3639d203aeb87aa
         with:
-          channel: 1.27/stable # 1.26.4
+          channel: 1.28/stable # 1.26.4
           provider: microk8s
           juju-channel: 3.2/stable
           # juju-classic-confinement: "false"
