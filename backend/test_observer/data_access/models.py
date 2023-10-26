@@ -23,7 +23,6 @@ from operator import attrgetter
 from typing import TypeVar
 
 from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, column
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -65,7 +64,7 @@ class Family(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
     stages: Mapped[list["Stage"]] = relationship(
-        back_populates="family", cascade="all, delete-orphan", order_by="Stage.position"
+        back_populates="family", cascade="all, delete", order_by="Stage.position"
     )
 
     def __repr__(self) -> str:
@@ -80,10 +79,10 @@ class Stage(Base):
     name: Mapped[str] = mapped_column(String(100), index=True)
     position: Mapped[int] = mapped_column()
     # Relationships
-    family_id: Mapped[int] = mapped_column(ForeignKey("family.id"))
+    family_id: Mapped[int] = mapped_column(ForeignKey("family.id", ondelete="CASCADE"))
     family: Mapped[Family] = relationship(back_populates="stages")
     artefacts: Mapped[list["Artefact"]] = relationship(
-        back_populates="stage", cascade="all, delete-orphan"
+        back_populates="stage", cascade="all, delete"
     )
 
     @property
@@ -106,19 +105,24 @@ class Artefact(Base):
 
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
-    source: Mapped[dict] = mapped_column(JSONB)
+    track: Mapped[str | None]
+    store: Mapped[str | None]
+    series: Mapped[str | None]
+    repo: Mapped[str | None]
     # Relationships
-    stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id"))
+    stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id", ondelete="CASCADE"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
     builds: Mapped[list["ArtefactBuild"]] = relationship(
-        back_populates="artefact", cascade="all, delete-orphan"
+        back_populates="artefact", cascade="all, delete"
     )
     # Default fields
     due_date: Mapped[date | None]
     status: Mapped[ArtefactStatus | None]
 
     __table_args__ = (
-        UniqueConstraint("name", "version", "source", name="unique_artefact"),
+        UniqueConstraint(
+            "name", "version", "track", "series", "repo", name="unique_artefact"
+        ),
     )
 
     def __repr__(self) -> str:
@@ -135,12 +139,14 @@ class ArtefactBuild(Base):
     architecture: Mapped[str] = mapped_column(String(100), index=True)
     revision: Mapped[int | None]
     # Relationships
-    artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id"))
+    artefact_id: Mapped[int] = mapped_column(
+        ForeignKey("artefact.id", ondelete="CASCADE")
+    )
     artefact: Mapped[Artefact] = relationship(
         back_populates="builds", foreign_keys=[artefact_id]
     )
     test_executions: Mapped[list["TestExecution"]] = relationship(
-        back_populates="artefact_build", cascade="all, delete-orphan"
+        back_populates="artefact_build", cascade="all, delete"
     )
 
     __table_args__ = (
@@ -198,7 +204,9 @@ class TestExecution(Base):
     jenkins_link: Mapped[str] = mapped_column(String(200), nullable=True)
     c3_link: Mapped[str] = mapped_column(String(200), nullable=True)
     # Relationships
-    artefact_build_id: Mapped[int] = mapped_column(ForeignKey("artefact_build.id"))
+    artefact_build_id: Mapped[int] = mapped_column(
+        ForeignKey("artefact_build.id", ondelete="CASCADE")
+    )
     artefact_build: Mapped["ArtefactBuild"] = relationship(
         back_populates="test_executions"
     )
