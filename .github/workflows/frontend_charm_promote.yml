@@ -14,7 +14,7 @@ on:
 jobs:
   promote:
     name: Promote Charm
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
