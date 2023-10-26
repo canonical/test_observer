@@ -1,7 +1,7 @@
 name: Run charm tests
 on:
   push:
-    branches: ["main", "integration-test-fix"]
+    branches: ["main", "integration-test-fix*"]
     tags: ["v*.*.*"]
 
 jobs:
