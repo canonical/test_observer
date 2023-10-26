@@ -6,7 +6,7 @@ description: |
 summary: |
   API and dashboard to observe the status of artifact (snaps, debs, etc) test status
 assumes:
-  - juju >= 3.0
+  - juju >= 3.2
   - k8s-api
 containers:
   api:
