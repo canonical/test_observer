@@ -18,7 +18,7 @@ jobs:
       - name: Setup LXD
         uses: canonical/setup-lxd@main
         with:
-          channel: 5.13/stable
+          channel: 5.19/stable
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main # mz2/actions-operator@4fcb55b99e2a0f69a5910870d3639d203aeb87aa
         with:
@@ -28,7 +28,7 @@ jobs:
           # juju-classic-confinement: "false"
           # microk8s-classic-confinement: "false"
           charmcraft-channel: 2.x/stable
-          lxd-channel: 5.13/stable
+          lxd-channel: 5.19/stable
       - name: Adjust containerd template to accept ghcr.io images
         run: |
           sudo mkdir -p /var/snap/microk8s/current/args &&
