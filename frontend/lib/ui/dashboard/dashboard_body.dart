@@ -93,7 +93,7 @@ class _ArtefactCard extends StatelessWidget {
                     const SizedBox(height: Spacing.level2),
                   ],
                 )
-                .toList()
+                .toList(),
           ],
         ),
       ),
