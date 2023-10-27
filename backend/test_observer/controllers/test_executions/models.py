@@ -18,20 +18,41 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer, model_validator
 
-from test_observer.data_access.models_enums import TestExecutionStatus
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 
 
 class StartTestExecutionRequest(BaseModel):
-    family: str
+    family: FamilyName
     name: str
     version: str
     revision: int | None = None
-    source: dict
+    track: str | None = None
+    store: str | None = None
+    series: str | None = None
+    repo: str | None = None
     arch: str
     execution_stage: str
     environment: str
+
+    @field_serializer("family")
+    def serialize_dt(self, family: FamilyName):
+        return family.value
+
+    @model_validator(mode="after")
+    def validate_required_fields(self) -> "StartTestExecutionRequest":
+        required_fields = {
+            FamilyName.SNAP: ("store", "track", "revision"),
+            FamilyName.DEB: ("series", "repo"),
+        }
+        family = self.family
+
+        for required_field in required_fields[family]:
+            if getattr(self, required_field) is None:
+                raise ValueError(f"{required_field} is required for {family} family")
+
+        return self
 
 
 class TestExecutionsPatchRequest(BaseModel):

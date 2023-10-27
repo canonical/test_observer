@@ -23,17 +23,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
-    TestExecution,
-    Stage,
     Artefact,
     ArtefactBuild,
     Environment,
+    Stage,
+    TestExecution,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-from .models import TestExecutionsPatchRequest, StartTestExecutionRequest
+from .models import StartTestExecutionRequest, TestExecutionsPatchRequest
 
 router = APIRouter()
 
@@ -58,7 +58,10 @@ def start_test_execution(
             filter_kwargs={
                 "name": request.name,
                 "version": request.version,
-                "source": request.source,
+                "track": request.track,
+                "store": request.store,
+                "series": request.series,
+                "repo": request.repo,
             },
             creation_kwargs={"stage_id": stage.id},
         )

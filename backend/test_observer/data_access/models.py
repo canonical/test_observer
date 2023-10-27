@@ -18,8 +18,6 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 from datetime import date, datetime
-from itertools import groupby
-from operator import attrgetter
 from typing import TypeVar
 
 from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, column
@@ -85,15 +83,6 @@ class Stage(Base):
         back_populates="stage", cascade="all, delete"
     )
 
-    @property
-    def latest_artefacts(self) -> list["Artefact"]:
-        artefact_groups = groupby(self.artefacts, attrgetter("name", "source"))
-
-        return [
-            max(artefacts, key=attrgetter("created_at"))
-            for _, artefacts in artefact_groups
-        ]
-
     def __repr__(self) -> str:
         return data_model_repr(self, "name", "position", "family_id")
 
@@ -127,7 +116,16 @@ class Artefact(Base):
 
     def __repr__(self) -> str:
         return data_model_repr(
-            self, "name", "version", "source", "stage_id", "due_date", "status"
+            self,
+            "name",
+            "version",
+            "track",
+            "store",
+            "series",
+            "repo",
+            "stage_id",
+            "due_date",
+            "status",
         )
 
 
