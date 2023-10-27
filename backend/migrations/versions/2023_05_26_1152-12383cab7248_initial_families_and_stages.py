@@ -5,10 +5,11 @@ Revises: 7a9069d2ab59
 Create Date: 2023-05-26 11:52:18.703471+00:00
 
 """
-from alembic import op
-from sqlalchemy.orm import Session
+from datetime import datetime
 
-from test_observer.data_access.models import Family, Stage
+import sqlalchemy as sa
+from alembic import op
+
 from test_observer.data_access.models_enums import FamilyName
 
 initial_families_and_stages = {
@@ -24,33 +25,49 @@ depends_on = None
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    session = Session(bind=bind)
+    conn = op.get_bind()
 
-    for family_name, stage_names in initial_families_and_stages.items():
-        family = Family(name=family_name)
-        session.add(family)
-        session.commit()
+    family_table = sa.table(
+        "family",
+        sa.column("id", sa.Integer()),
+        sa.column("name", sa.String()),
+        sa.column("created_at", sa.DateTime()),
+        sa.column("updated_at", sa.DateTime()),
+    )
+    stage_table = sa.table(
+        "stage",
+        sa.column("name", sa.String()),
+        sa.column("family_id", sa.Integer()),
+        sa.column("position", sa.Integer()),
+        sa.column("created_at", sa.DateTime()),
+        sa.column("updated_at", sa.DateTime()),
+    )
 
+    for family in initial_families_and_stages:
+        (inserted_family,) = conn.execute(
+            sa.insert(family_table)
+            .values(
+                name=family.value,
+                created_at=sa.func.now(),
+                updated_at=sa.func.now(),
+            )
+            .returning(family_table.c.id)
+        )
         stage_position = 10
-        for stage_name in stage_names:
-            stage = Stage(name=stage_name, family=family, position=stage_position)
-            session.add(stage)
-            # Increment by 10 to make it easier to rearrange stages in future
+        for stage in initial_families_and_stages[family]:
+            conn.execute(
+                sa.insert(stage_table).values(
+                    name=stage,
+                    family_id=inserted_family.id,
+                    position=stage_position,
+                    created_at=sa.func.now(),
+                    updated_at=sa.func.now(),
+                )
+            )
             stage_position += 10
-
-    session.commit()
 
 
 def downgrade() -> None:
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
-    families = (
-        session.query(Family).filter(Family.name.in_(initial_families_and_stages)).all()
-    )
-
-    for family in families:
-        session.delete(family)
-
-    session.commit()
+    conn = op.get_bind()
+    conn.execute(sa.delete(sa.table("stage")))
+    conn.execute(sa.delete(sa.table("family")))
