@@ -6,7 +6,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, large]
     defaults:
       run:
         working-directory: backend

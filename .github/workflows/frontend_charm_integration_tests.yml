@@ -7,7 +7,7 @@ on:
 jobs:
   integration-test:
     name: Integration tests
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, linux, large]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
