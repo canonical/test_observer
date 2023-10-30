@@ -20,9 +20,8 @@
 """Services for working with objects from DB"""
 
 
-from operator import attrgetter
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
