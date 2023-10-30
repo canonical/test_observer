@@ -120,11 +120,14 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
     :session: DB connection session
     :artefact_build: an ArtefactBuild object
     """
+    store = artefact.store
+    assert store is not None, f"Store is not set for the artefact {artefact.id}"
+
     for build in artefact.builds:
         arch = build.architecture
         channel_map = get_channel_map_from_snapcraft(
             arch=arch,
-            snapstore=artefact.store,
+            snapstore=store,
             snap_name=artefact.name,
         )
         track = artefact.track
@@ -171,14 +174,19 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     :session: DB connection session
     :artefact: an Artefact object
     """
+    series = artefact.series
+    repo = artefact.repo
+    assert series is not None, f"Series is not set for the artefact {artefact.id}"
+    assert repo is not None, f"Repo is not set for the artefact {artefact.id}"
+
     for build in artefact.builds:
         arch = build.architecture
         for pocket in POCKET_PROMOTION_MAP:
             with ArchiveManager(
                 arch=arch,
-                series=artefact.series,
+                series=series,
                 pocket=pocket,
-                apt_repo=artefact.repo,
+                apt_repo=repo,
             ) as archivemanager:
                 deb_version = archivemanager.get_deb_version(artefact.name)
                 if deb_version is None:

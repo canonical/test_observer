@@ -2,13 +2,14 @@ import requests
 from fastapi.testclient import TestClient
 
 from test_observer.controllers.test_executions.models import StartTestExecutionRequest
+from test_observer.data_access.models_enums import FamilyName
 
 BASE_URL = "http://localhost:30000/v1"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 
 REQUESTS = [
     StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -19,7 +20,7 @@ REQUESTS = [
         environment="rpi2",
     ),
     StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="docker",
         version="20.10.24",
         revision=1,
@@ -30,7 +31,7 @@ REQUESTS = [
         environment="rpi2",
     ),
     StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="docker",
         version="20.10.24",
         revision=1,
@@ -41,7 +42,7 @@ REQUESTS = [
         environment="rpi2",
     ),
     StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="bluez",
         version="5.64-2",
         revision=1,
@@ -52,7 +53,7 @@ REQUESTS = [
         environment="dawson-i",
     ),
     StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -63,7 +64,7 @@ REQUESTS = [
         environment="cm3",
     ),
     StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="checkbox22",
         version="2.6",
         revision=1,
@@ -74,7 +75,7 @@ REQUESTS = [
         environment="cm3",
     ),
     StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="snapd",
         version="2.59.4",
         revision=1,
@@ -85,7 +86,7 @@ REQUESTS = [
         environment="dragonboard",
     ),
     StartTestExecutionRequest(
-        family="deb",
+        family=FamilyName.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -95,7 +96,7 @@ REQUESTS = [
         environment="rpi400",
     ),
     StartTestExecutionRequest(
-        family="deb",
+        family=FamilyName.DEB,
         name="linux-raspi",
         version="5.15.0.73.70",
         series="jammy",

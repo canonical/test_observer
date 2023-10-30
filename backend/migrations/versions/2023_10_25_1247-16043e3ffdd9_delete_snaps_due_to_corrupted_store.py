@@ -7,7 +7,6 @@ Create Date: 2023-10-25 12:47:01.958805+00:00
 """
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "16043e3ffdd9"
@@ -26,15 +25,15 @@ def upgrade() -> None:
     stage_table = sa.table("stage", sa.column("id"), sa.column("family_id"))
     family_table = sa.table("family", sa.column("id"), sa.column("name"))
 
+    conn = op.get_bind()
+
     delete_stmt = (
         sa.delete(artefact_table)
         .where(artefact_table.c.stage_id == stage_table.c.id)
         .where(stage_table.c.family_id == family_table.c.id)
         .where(family_table.c.name == "snap")
-        .compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True})
     )
 
-    conn = op.get_bind()
     conn.execute(delete_stmt)
 
 
