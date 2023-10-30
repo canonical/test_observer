@@ -17,14 +17,20 @@ depends_on = None
 def upgrade() -> None:
     op.drop_constraint("unique_artefact", "artefact")
     op.create_unique_constraint(
-        "unique_artefact",
+        "unique_snap",
         "artefact",
-        ["name", "version", "track", "series", "repo"],
+        ["name", "version", "track"],
+    )
+    op.create_unique_constraint(
+        "unique_deb",
+        "artefact",
+        ["name", "version", "series", "repo"],
     )
 
 
 def downgrade() -> None:
-    op.drop_constraint("unique_artefact", "artefact")
+    op.drop_constraint("unique_snap", "artefact")
+    op.drop_constraint("unique_deb", "artefact")
     op.create_unique_constraint(
         "unique_artefact",
         "artefact",
