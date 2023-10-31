@@ -1,6 +1,6 @@
 on:
   push:
-    branches: ["main", "fix/ci-missing-docker-buildx 4fd233f"]
+    branches: ["main", "fix-ci-missing-docker-buildx"]
     tags: ["v*.*.*"]
 
 env:
