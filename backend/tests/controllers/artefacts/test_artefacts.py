@@ -42,7 +42,10 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
             "id": relevant_artefact.id,
             "name": relevant_artefact.name,
             "version": relevant_artefact.version,
-            "source": relevant_artefact.source,
+            "track": relevant_artefact.track,
+            "store": relevant_artefact.store,
+            "series": relevant_artefact.series,
+            "repo": relevant_artefact.repo,
             "stage": relevant_artefact.stage.name,
         }
     ]
@@ -59,7 +62,10 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
         "id": artefact.id,
         "name": artefact.name,
         "version": artefact.version,
-        "source": artefact.source,
+        "track": artefact.track,
+        "store": artefact.store,
+        "series": artefact.series,
+        "repo": artefact.repo,
         "stage": artefact.stage.name,
     }
 

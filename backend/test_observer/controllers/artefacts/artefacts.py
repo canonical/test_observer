@@ -20,8 +20,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Artefact, ArtefactBuild, Family, Stage
+from test_observer.data_access.models import Artefact, ArtefactBuild
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
 from .models import ArtefactBuildDTO, ArtefactDTO
@@ -31,13 +32,16 @@ router = APIRouter()
 
 @router.get("", response_model=list[ArtefactDTO])
 def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
-    """Get latest artefacts by family"""
-    query = db.query(Stage)
-    if family:
-        query = query.filter(Stage.family.has(Family.name == family))
-    stages = query.all()
+    """Get latest artefacts optionally by family"""
+    artefacts = []
 
-    return [artefact for stage in stages for artefact in stage.latest_artefacts]
+    if family:
+        artefacts = get_artefacts_by_family(db, family, load_stage=True)
+    else:
+        for family in FamilyName:
+            artefacts += get_artefacts_by_family(db, family, load_stage=True)
+
+    return artefacts
 
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)

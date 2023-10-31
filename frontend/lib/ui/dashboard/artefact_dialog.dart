@@ -98,11 +98,6 @@ class _ArtefactInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final artefactDetails = [
-      'version: ${artefact.version}',
-      ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
-    ];
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,10 +107,10 @@ class _ArtefactInfoSection extends StatelessWidget {
           children: [
             _StagesRow(artefactStage: artefact.stage),
             const SizedBox(height: Spacing.level3),
-            ...artefactDetails
+            ...artefact.details.entries
                 .map<Widget>(
                   (detail) => Text(
-                    detail,
+                    '${detail.key}: ${detail.value}',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 )

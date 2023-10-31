@@ -28,7 +28,10 @@ class ArtefactDTO(BaseModel):
     id: int
     name: str
     version: str
-    source: dict[str, int | str]
+    track: str | None
+    store: str | None
+    series: str | None
+    repo: str | None
     stage: str = Field(validation_alias=AliasPath("stage", "name"))
 
 

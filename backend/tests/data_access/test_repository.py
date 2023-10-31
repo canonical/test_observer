@@ -23,13 +23,13 @@
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
+
 from test_observer.data_access.models import Family
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import (
-    get_artefacts_by_family_name,
+    get_artefacts_by_family,
     get_stage_by_name,
 )
-
 from tests.helpers import create_artefact
 
 
@@ -72,9 +72,7 @@ def test_get_artefacts_by_family_name(db_session: Session):
         create_artefact(db_session, stage, name=name)
 
     # Act
-    artefacts = get_artefacts_by_family_name(
-        db_session, FamilyName.SNAP, latest_only=False
-    )
+    artefacts = get_artefacts_by_family(db_session, FamilyName.SNAP, latest_only=False)
 
     # Assert
     assert len(artefacts) == len(artefact_name_stage_pair)
@@ -104,7 +102,7 @@ def test_get_artefacts_by_family_name_latest(db_session: Session):
         )
 
     # Act
-    artefacts = get_artefacts_by_family_name(db_session, FamilyName.SNAP)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.SNAP)
 
     # Assert
     assert len(artefacts) == len(expected_artefacts)

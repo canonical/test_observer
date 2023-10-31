@@ -47,17 +47,21 @@ def get_stage_by_name(
     return stage
 
 
-def get_artefacts_by_family_name(
-    session: Session, family_name: FamilyName, latest_only: bool = True
+def get_artefacts_by_family(
+    session: Session,
+    family_name: FamilyName,
+    latest_only: bool = True,
+    load_stage: bool = False,
 ) -> list[Artefact]:
     """
-    Get all the artefacts in a family
+    Get all the artefacts
 
     :session: DB session
     :family_name: name of the family
     :latest_only: return only latest artefacts, i.e. for each group of artefacts
                   with the same name and source but different version return
                   the latest one in a stage
+    :load_stage: whether to eagerly load stage object in all artefacts
     :return: list of Artefacts
     """
     if latest_only:
@@ -65,37 +69,58 @@ def get_artefacts_by_family_name(
             session.query(
                 Artefact.stage_id,
                 Artefact.name,
-                Artefact.source,
                 func.max(Artefact.created_at).label("max_created"),
             )
             .join(Stage)
-            .filter(Stage.family.has(Family.name == family_name))
-            .group_by(Artefact.stage_id, Artefact.name, Artefact.source)
-            .subquery()
+            .join(Family)
+            .filter(Family.name == family_name)
+            .group_by(Artefact.stage_id, Artefact.name)
         )
 
-        artefacts = (
-            session.query(Artefact)
-            .join(
+        if family_name == FamilyName.SNAP:
+            subquery = (
+                subquery.add_columns(Artefact.track).group_by(Artefact.track).subquery()
+            )
+
+            query = session.query(Artefact).join(
                 subquery,
                 and_(
                     Artefact.stage_id == subquery.c.stage_id,
                     Artefact.name == subquery.c.name,
-                    Artefact.source == subquery.c.source,
                     Artefact.created_at == subquery.c.max_created,
+                    Artefact.track == subquery.c.track,
                 ),
             )
-            .all()
-        )
+        else:
+            subquery = (
+                subquery.add_columns(Artefact.repo, Artefact.series)
+                .group_by(Artefact.repo, Artefact.series)
+                .subquery()
+            )
+
+            query = session.query(Artefact).join(
+                subquery,
+                and_(
+                    Artefact.stage_id == subquery.c.stage_id,
+                    Artefact.name == subquery.c.name,
+                    Artefact.created_at == subquery.c.max_created,
+                    Artefact.repo == subquery.c.repo,
+                    Artefact.series == subquery.c.series,
+                ),
+            )
+
     else:
-        artefacts = (
+        query = (
             session.query(Artefact)
             .join(Stage)
-            .filter(Stage.family.has(Family.name == family_name))
-            .options(joinedload(Artefact.stage))
-            .all()
+            .join(Family)
+            .filter(Family.name == family_name)
         )
-    return artefacts
+
+    if load_stage:
+        query = query.options(joinedload(Artefact.stage))
+
+    return query.all()
 
 
 def get_or_create(

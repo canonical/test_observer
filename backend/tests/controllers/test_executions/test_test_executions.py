@@ -30,7 +30,7 @@ from test_observer.data_access.models import (
     Stage,
     TestExecution,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):
@@ -41,7 +41,8 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
             "name": "core22",
             "version": "abec123",
             "revision": 123,
-            "source": {"track": "22", "store": "ubuntu"},
+            "track": "22",
+            "store": "ubuntu",
             "arch": "arm64",
             "execution_stage": "beta",
             "environment": "cm3",
@@ -53,7 +54,8 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
         .filter(
             Artefact.name == "core22",
             Artefact.version == "abec123",
-            Artefact.source == {"track": "22", "store": "ubuntu"},
+            Artefact.store == "ubuntu",
+            Artefact.track == "22",
             Artefact.stage.has(name="beta"),
         )
         .one_or_none()
@@ -95,7 +97,7 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
 
 
 def test_invalid_artefact_format(test_client: TestClient):
-    """Artefact with invalid format (no store in snap source) should not be created"""
+    """Artefact with invalid format no store should not be created"""
     response = test_client.put(
         "/v1/test-executions/start-test",
         json={
@@ -103,25 +105,23 @@ def test_invalid_artefact_format(test_client: TestClient):
             "name": "core22",
             "version": "abec123",
             "revision": 123,
-            "source": {"track": "22"},
+            "track": "22",
             "arch": "arm64",
             "execution_stage": "beta",
             "environment": "cm3",
         },
     )
-    assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Snap artefacts should have store key in source"
-    }
+    assert response.status_code == 422
 
 
 def test_uses_existing_models(db_session: Session, test_client: TestClient):
     request = StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="core22",
         version="abec123",
         revision=123,
-        source={"track": "22", "store": "ubuntu"},
+        track="22",
+        store="ubuntu",
         arch="arm64",
         execution_stage="beta",
         environment="cm3",
@@ -132,7 +132,8 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     artefact = Artefact(
         name=request.name,
         version=request.version,
-        source=request.source,
+        track=request.track,
+        store=request.store,
         stage=stage,
     )
     environment = Environment(
@@ -148,27 +149,25 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     db_session.add_all([artefact, environment, artefact_build])
     db_session.commit()
 
-    test_client.put(
+    test_execution_id = test_client.put(
         "/v1/test-executions/start-test",
         json=request.model_dump(),
+    ).json()["id"]
+
+    test_execution = (
+        db_session.query(TestExecution)
+        .where(TestExecution.id == test_execution_id)
+        .one()
     )
 
-    assert (
-        db_session.query(TestExecution)
-        .filter(
-            TestExecution.artefact_build == artefact_build,
-            TestExecution.environment == environment,
-            TestExecution.status == TestExecutionStatus.IN_PROGRESS,
-        )
-        .one_or_none()
-    )
+    assert test_execution.artefact_build_id == artefact_build.id
+    assert test_execution.environment_id == environment.id
+    assert test_execution.status == TestExecutionStatus.IN_PROGRESS
 
 
 def test_updates_test_execution(db_session: Session, test_client: TestClient):
     stage = db_session.query(Stage).filter(Stage.name == "beta").one()
-    artefact = Artefact(
-        name="some artefact", version="1.0.0", source={"store": "ubuntu"}, stage=stage
-    )
+    artefact = Artefact(name="some artefact", version="1.0.0", stage=stage)
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
     test_execution = TestExecution(
