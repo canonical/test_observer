@@ -18,9 +18,9 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from test_observer.data_access.models import Artefact, ArtefactBuild
+from test_observer.data_access.models import Artefact, ArtefactBuild, TestExecution
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
@@ -58,10 +58,17 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
 def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
     """Get latest artefact builds of an artefact together with their test executions"""
-    return (
+    artefacts = (
         db.query(ArtefactBuild)
         .filter(ArtefactBuild.artefact_id == artefact_id)
         .distinct(ArtefactBuild.architecture)
         .order_by(ArtefactBuild.architecture, ArtefactBuild.revision.desc())
+        .options(
+            joinedload(ArtefactBuild.test_executions).joinedload(
+                TestExecution.environment
+            )
+        )
         .all()
     )
+
+    return artefacts
