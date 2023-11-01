@@ -8,7 +8,7 @@ env:
 
 jobs:
   build-and-push-frontend-image:
-    runs-on: [self-hosted, linux, large]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
