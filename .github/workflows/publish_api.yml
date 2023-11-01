@@ -8,7 +8,7 @@ env:
 
 jobs:
   build-and-push-image:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, large]
     permissions:
       contents: read
       packages: write
