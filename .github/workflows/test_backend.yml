@@ -31,12 +31,12 @@ jobs:
         with:
           poetry-version: "1.5.1"
       - run: poetry install
-        env:
-          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
       - run: poetry run black --check test_observer tests migrations scripts
       - run: poetry run ruff test_observer tests migrations scripts
       - run: poetry run mypy --explicit-package-bases test_observer tests migrations scripts
       - run: poetry run pytest
+        env:
+          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
       - run: poetry run alembic upgrade head
         env:
           DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
