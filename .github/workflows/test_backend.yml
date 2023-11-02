@@ -6,8 +6,6 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
-    env:
-      TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
     runs-on: [self-hosted, linux, large]
     defaults:
       run:
@@ -33,12 +31,16 @@ jobs:
         with:
           poetry-version: "1.5.1"
       - run: poetry install
+        env:
+          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
       # - run: poetry run black --check test_observer tests migrations scripts
       # - run: poetry run ruff test_observer tests migrations scripts
       # - run: poetry run mypy --explicit-package-bases test_observer tests migrations scripts
       # - run: poetry run pytest
-      - run: alembic upgrade head
+      - run: poetry run alembic upgrade head
+        env:
+          DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
       - name: Check if alembic migrations are up to date
         run: poetry run alembic check
         env:
-          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
+          DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
