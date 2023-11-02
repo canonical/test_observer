@@ -2,8 +2,6 @@
 
 import logging
 
-from ops import BlockedStatus
-
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseRequires,
     RelationChangedEvent,
@@ -12,7 +10,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer, ExecError
 from requests import get
 
