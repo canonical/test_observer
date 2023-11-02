@@ -40,3 +40,5 @@ jobs:
       - run: poetry run alembic upgrade head
       - name: Check if alembic migrations are up to date
         run: poetry run alembic check
+        env:
+          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
