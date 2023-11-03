@@ -20,9 +20,11 @@
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
+from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
+from test_observer.data_access.models_enums import TestExecutionStatus
 from tests.helpers import create_artefact
 
 
@@ -127,5 +129,52 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
             "revision": artefact_build2.revision,
             "architecture": artefact_build2.architecture,
             "test_executions": [],
+        }
+    ]
+
+
+def test_correct_test_execution_status(
+    db_session: Session, test_client: TestClient, requests_mock: Mocker
+):
+    artefact = create_artefact(db_session, "beta")
+    artefact_build = ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
+    environment = Environment(name="laptop", architecture=artefact_build.architecture)
+    test_execution = TestExecution(
+        artefact_build=artefact_build,
+        environment=environment,
+        c3_link="https://certification.canonical.com/submissions/status/111111",
+    )
+    db_session.add_all([artefact_build, environment, test_execution])
+    db_session.commit()
+
+    requests_mock.get(
+        "https://certification.canonical.com/api/v2/submissions/status/111111/",
+        json={"reportid": "237670"},
+    )
+    requests_mock.get(
+        "https://certification.canonical.com/api/v2/reports/summary/237670/",
+        json={"results": [{"failed_test_count": 0}]},
+    )
+
+    response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": artefact_build.id,
+            "revision": artefact_build.revision,
+            "architecture": artefact_build.architecture,
+            "test_executions": [
+                {
+                    "id": test_execution.id,
+                    "jenkins_link": test_execution.jenkins_link,
+                    "c3_link": test_execution.c3_link,
+                    "status": TestExecutionStatus.PASSED.value,
+                    "environment": {
+                        "id": environment.id,
+                        "name": environment.name,
+                        "architecture": environment.architecture,
+                    },
+                }
+            ],
         }
     ]

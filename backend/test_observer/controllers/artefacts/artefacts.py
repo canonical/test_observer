@@ -17,11 +17,12 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+import requests
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import Artefact, ArtefactBuild, TestExecution
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
@@ -58,7 +59,7 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
 def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
     """Get latest artefact builds of an artefact together with their test executions"""
-    artefacts = (
+    orm_builds = (
         db.query(ArtefactBuild)
         .filter(ArtefactBuild.artefact_id == artefact_id)
         .distinct(ArtefactBuild.architecture)
@@ -71,4 +72,30 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-    return artefacts
+    builds = [ArtefactBuildDTO.model_validate(orm_build) for orm_build in orm_builds]
+
+    for build in builds:
+        for test_execution in build.test_executions:
+            c3_link = test_execution.c3_link
+            if c3_link:
+                tracking_id = c3_link.split("/")[-1]
+                response = requests.get(
+                    f"https://certification.canonical.com/api/v2/submissions/status/{tracking_id}/"
+                )
+                if response.ok:
+                    reportid = response.json().get("reportid")
+                    if reportid:
+                        response = requests.get(
+                            f"https://certification.canonical.com/api/v2/reports/summary/{reportid}/"
+                        )
+                        report = response.json()["results"][0]
+                        if report["failed_test_count"] == 0:
+                            test_execution.status = TestExecutionStatus.PASSED
+                        else:
+                            test_execution.status = TestExecutionStatus.FAILED
+                else:
+                    test_execution.status = TestExecutionStatus.UNKNOWN
+            else:
+                test_execution.status = TestExecutionStatus.NOT_STARTED
+
+    return builds
