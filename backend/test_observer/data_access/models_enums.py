@@ -33,6 +33,7 @@ class TestExecutionStatus(Enum):
     PASSED = "PASSED"
     FAILED = "FAILED"
     NOT_TESTED = "NOT_TESTED"
+    UNKNOWN = "UNKNOWN"
 
 
 class ArtefactStatus(Enum):
