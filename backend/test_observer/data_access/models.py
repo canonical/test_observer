@@ -109,9 +109,8 @@ class Artefact(Base):
     status: Mapped[ArtefactStatus | None]
 
     __table_args__ = (
-        UniqueConstraint(
-            "name", "version", "track", "series", "repo", name="unique_artefact"
-        ),
+        UniqueConstraint("name", "version", "track", name="unique_snap"),
+        UniqueConstraint("name", "version", "series", "repo", name="unique_deb"),
     )
 
     def __repr__(self) -> str:
