@@ -1,4 +1,5 @@
 import base64
+import re
 from typing import TypedDict
 
 import pytest
@@ -6,6 +7,7 @@ from requests_mock import Mocker
 
 from test_observer.external_apis.c3.c3 import C3Api
 from test_observer.external_apis.c3.models import (
+    Report,
     SubmissionProcessingStatus,
     SubmissionStatus,
 )
@@ -30,6 +32,11 @@ def prepare_c3api(requests_mock: Mocker) -> tuple[C3Api, str]:
         request_headers={"Authorization": f"Basic {basic_token}"},
         json={"access_token": bearer_token},
     )
+    requests_mock.get(
+        re.compile("^https://certification.canonical.com/api/v2/.*"),
+        request_headers={"Authorization": "Bearer "},
+        status_code=401,
+    )
     c3 = C3Api(client_id=client_id, client_secret=client_secret)
     return c3, bearer_token
 
@@ -48,12 +55,21 @@ def test_get_submissions_statuses(
         request_headers={"Authorization": f"Bearer {bearer_token}"},
         json={"results": [status]},
     )
-    requests_mock.get(
-        f"https://certification.canonical.com/api/v2/submissions/status/?id__in={status['id']}",
-        request_headers={"Authorization": "Bearer "},
-        status_code=401,
-    )
 
     statuses = c3.get_submissions_statuses([status["id"]])
 
     assert statuses[0] == SubmissionStatus(**status)
+
+
+def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
+    c3, bearer_token = prepare_c3api
+    report = {"id": 237670, "failed_test_count": 0}
+    requests_mock.get(
+        f"https://certification.canonical.com/api/v2/reports/summary/?id__in={report['id']}",
+        request_headers={"Authorization": f"Bearer {bearer_token}"},
+        json={"results": [report]},
+    )
+
+    reports = c3.get_reports([report["id"]])
+
+    assert reports[0] == Report(**report)

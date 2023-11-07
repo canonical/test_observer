@@ -12,3 +12,8 @@ class SubmissionStatus(BaseModel):
     id: int
     status: SubmissionProcessingStatus
     report_id: int | None
+
+
+class Report(BaseModel):
+    id: int
+    failed_test_count: int
