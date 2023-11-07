@@ -22,12 +22,12 @@
 from enum import Enum
 
 
-class FamilyName(Enum):
+class FamilyName(str, Enum):
     SNAP = "snap"
     DEB = "deb"
 
 
-class TestExecutionStatus(Enum):
+class TestExecutionStatus(str, Enum):
     NOT_STARTED = "NOT_STARTED"
     IN_PROGRESS = "IN_PROGRESS"
     PASSED = "PASSED"
@@ -36,6 +36,6 @@ class TestExecutionStatus(Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class ArtefactStatus(Enum):
+class ArtefactStatus(str, Enum):
     APPROVED = "APPROVED"
     MARKED_AS_FAILED = "MARKED_AS_FAILED"
