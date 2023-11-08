@@ -27,15 +27,6 @@ class FamilyName(str, Enum):
     DEB = "deb"
 
 
-class TestExecutionStatus(str, Enum):
-    NOT_STARTED = "NOT_STARTED"
-    IN_PROGRESS = "IN_PROGRESS"
-    PASSED = "PASSED"
-    FAILED = "FAILED"
-    NOT_TESTED = "NOT_TESTED"
-    UNKNOWN = "UNKNOWN"
-
-
 class ArtefactStatus(str, Enum):
     APPROVED = "APPROVED"
     MARKED_AS_FAILED = "MARKED_AS_FAILED"

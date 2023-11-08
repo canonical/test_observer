@@ -3,14 +3,18 @@ from collections.abc import Iterable, Iterator
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import ArtefactBuild, TestExecution
-from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.external_apis.c3.models import (
     Report,
     SubmissionProcessingStatus,
     SubmissionStatus,
 )
 
-from .models import ArtefactBuildDTO
+from .models import (
+    ArtefactBuildDTO,
+    EnvironmentDTO,
+    TestExecutionDTO,
+    TestExecutionStatus,
+)
 
 
 class TestExecutionStatusLogic:
@@ -59,13 +63,30 @@ def construct_dto_builds(
     reports: dict[int, Report],
 ) -> Iterator[ArtefactBuildDTO]:
     for build in builds:
-        dto_build = ArtefactBuildDTO.model_validate(build)
-        for test_execution in dto_build.test_executions:
-            test_execution.status = _derive_test_execution_status(
-                test_execution.c3_link, submissions_statuses, reports
+        test_executions_dto = []
+        for test_execution in build.test_executions:
+            test_executions_dto.append(
+                TestExecutionDTO(
+                    id=test_execution.id,
+                    jenkins_link=test_execution.jenkins_link,
+                    c3_link=test_execution.c3_link,
+                    environment=EnvironmentDTO.model_validate(
+                        test_execution.environment
+                    ),
+                    status=_derive_test_execution_status(
+                        test_execution.c3_link, submissions_statuses, reports
+                    ),
+                )
             )
 
-        yield dto_build
+        build_dto = ArtefactBuildDTO(
+            id=build.id,
+            architecture=build.architecture,
+            revision=build.revision,
+            test_executions=test_executions_dto,
+        )
+
+        yield build_dto
 
 
 def _derive_test_execution_status(

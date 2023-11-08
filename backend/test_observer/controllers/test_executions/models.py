@@ -20,7 +20,7 @@
 
 from pydantic import BaseModel, model_validator
 
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import FamilyName
 
 
 class StartTestExecutionRequest(BaseModel):
@@ -54,4 +54,3 @@ class StartTestExecutionRequest(BaseModel):
 class TestExecutionsPatchRequest(BaseModel):
     c3_link: str
     jenkins_link: str
-    status: TestExecutionStatus

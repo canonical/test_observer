@@ -4,8 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session, joinedload
 
+from test_observer.controllers.artefacts.logic import TestExecutionStatusLogic
 from test_observer.data_access.models import ArtefactBuild, TestExecution
-from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.c3.c3 import C3Api
 from test_observer.external_apis.c3.models import (
@@ -14,20 +14,9 @@ from test_observer.external_apis.c3.models import (
     SubmissionStatus,
 )
 
-from .models import ArtefactBuildDTO
+from .models import ArtefactBuildDTO, TestExecutionStatus
 
 router = APIRouter()
-
-
-class TestExecutionStatusLogic:
-    NO_C3_LINK = TestExecutionStatus.IN_PROGRESS
-    NO_STATUS_ID_IN_C3_LINK = TestExecutionStatus.UNKNOWN
-    SUBMISSION_STATUS_NOT_FOUND = TestExecutionStatus.UNKNOWN
-    SUBMISSION_STATUS_IS_FAIL = TestExecutionStatus.FAILED
-    NO_REPORT_ID_IN_SUBMISSION_STATUS = TestExecutionStatus.UNKNOWN
-    REPORT_NOT_FOUND = TestExecutionStatus.UNKNOWN
-    NO_FAILED_TESTS = TestExecutionStatus.PASSED
-    SOME_FAILED_TESTS = TestExecutionStatus.FAILED
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
@@ -55,7 +44,7 @@ def _construct_dto_builds(
 ) -> Iterator[ArtefactBuildDTO]:
     for build in builds:
         dto_build = ArtefactBuildDTO.model_validate(build)
-        for test_execution in build.test_executions:
+        for test_execution in dto_build.test_executions:
             test_execution.status = _derive_test_execution_status(
                 test_execution.c3_link, submissions_statuses, reports
             )

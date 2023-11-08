@@ -17,9 +17,16 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+from enum import Enum
+
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
-from test_observer.data_access.models_enums import TestExecutionStatus
+
+class TestExecutionStatus(str, Enum):
+    IN_PROGRESS = "IN_PROGRESS"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
 
 
 class ArtefactDTO(BaseModel):

@@ -30,7 +30,7 @@ from test_observer.data_access.models import (
     Stage,
     TestExecution,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import FamilyName
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):
@@ -88,7 +88,6 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
         .filter(
             TestExecution.artefact_build == artefact_build,
             TestExecution.environment == environment,
-            TestExecution.status == TestExecutionStatus.IN_PROGRESS,
         )
         .one_or_none()
     )
@@ -162,7 +161,6 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
 
     assert test_execution.artefact_build_id == artefact_build.id
     assert test_execution.environment_id == environment.id
-    assert test_execution.status == TestExecutionStatus.IN_PROGRESS
 
 
 def test_updates_test_execution(db_session: Session, test_client: TestClient):
@@ -182,11 +180,9 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
         json={
             "jenkins_link": "some jenkins link",
             "c3_link": "some c3 link",
-            "status": TestExecutionStatus.PASSED.name,
         },
     )
 
     db_session.refresh(test_execution)
     assert test_execution.jenkins_link == "some jenkins link"
     assert test_execution.c3_link == "some c3 link"
-    assert test_execution.status == TestExecutionStatus.PASSED

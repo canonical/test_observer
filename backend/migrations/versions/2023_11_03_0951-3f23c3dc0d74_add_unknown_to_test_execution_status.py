@@ -1,4 +1,4 @@
-"""Add unknown to test execution status
+"""Remove test execution status from model
 
 Revision ID: 3f23c3dc0d74
 Revises: 49221114815a
@@ -16,34 +16,28 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE test_status_enum ADD VALUE 'UNKNOWN'")
+    op.drop_column("test_execution", "status")
+    op.execute("DROP TYPE test_status_enum")
 
 
 def downgrade() -> None:
     """This is not reversible, any UNKNOWN status will be converted to NOT_TESTED."""
-    conn = op.get_bind()
-
-    change_existing_unknowns = sa.text(
-        "UPDATE test_execution SET status = 'NOT_STARTED' WHERE status = 'UNKNOWN'"
-    )
-    conn.execute(change_existing_unknowns)
-
-    rename_status_enum = sa.text(
-        "ALTER TYPE test_status_enum RENAME TO test_status_enum_old"
-    )
-    conn.execute(rename_status_enum)
-
-    create_new_status_enum = sa.text(
+    op.execute(
         "CREATE TYPE test_status_enum AS ENUM"
         "('APPROVED', 'NOT_STARTED', 'IN_PROGRESS', 'PASSED', 'FAILED', 'NOT_TESTED')"
     )
-    conn.execute(create_new_status_enum)
-
-    switch_column_type = sa.text(
-        "ALTER TABLE test_execution ALTER COLUMN status TYPE test_status_enum"
-        " USING status::text::test_status_enum"
+    op.add_column(
+        "test_execution",
+        sa.Column(
+            "status",
+            sa.Enum(
+                "Not Started",
+                "In Progress",
+                "Passed",
+                "Failed",
+                "Not Tested",
+                name="test_status_enum",
+            ),
+            nullable=False,
+        ),
     )
-    conn.execute(switch_column_type)
-
-    drop_old_status_enum = sa.text("DROP TYPE test_status_enum_old")
-    conn.execute(drop_old_status_enum)

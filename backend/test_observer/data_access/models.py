@@ -29,10 +29,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import func
 
-from test_observer.data_access.models_enums import (
-    ArtefactStatus,
-    TestExecutionStatus,
-)
+from test_observer.data_access.models_enums import ArtefactStatus
 
 
 class Base(DeclarativeBase):
@@ -209,10 +206,6 @@ class TestExecution(Base):
     )
     environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"))
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
-    # Default fields
-    status: Mapped[TestExecutionStatus] = mapped_column(
-        default=TestExecutionStatus.NOT_STARTED
-    )
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
@@ -221,7 +214,6 @@ class TestExecution(Base):
             self,
             "artefact_build_id",
             "environment_id",
-            "status",
             "jenkins_link",
             "c3_link",
         )

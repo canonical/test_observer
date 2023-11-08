@@ -23,8 +23,8 @@ from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 from sqlalchemy.orm import Session
 
+from test_observer.controllers.artefacts.models import TestExecutionStatus
 from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
-from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.external_apis.c3.c3 import C3Api
 from test_observer.external_apis.c3.models import (
     Report,
