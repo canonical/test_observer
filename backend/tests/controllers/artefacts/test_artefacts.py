@@ -20,11 +20,18 @@
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
-from requests_mock import Mocker
+from pytest import MonkeyPatch
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
 from test_observer.data_access.models_enums import TestExecutionStatus
+from test_observer.external_apis.c3.c3 import C3Api
+from test_observer.external_apis.c3.models import (
+    Report,
+    SubmissionProcessingStatus,
+    SubmissionStatus,
+)
+from test_observer.main import app
 from tests.helpers import create_artefact
 
 
@@ -72,7 +79,9 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
     }
 
 
-def test_get_artefact_builds(db_session: Session, test_client: TestClient):
+def test_get_artefact_builds(
+    db_session: Session, test_client: TestClient, monkeypatch: MonkeyPatch
+):
     artefact = create_artefact(db_session, "beta")
     artefact_build = ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
     environment = Environment(
@@ -83,6 +92,11 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
     )
     db_session.add_all([environment, test_execution, artefact_build])
     db_session.commit()
+
+    c3api_mock = C3Api("foo", "bar")
+    monkeypatch.setattr(c3api_mock, "get_reports", lambda _: {})
+    monkeypatch.setattr(c3api_mock, "get_submissions_statuses", lambda _: {})
+    app.dependency_overrides[C3Api] = c3api_mock
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
 
@@ -97,7 +111,7 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
                     "id": test_execution.id,
                     "jenkins_link": test_execution.jenkins_link,
                     "c3_link": test_execution.c3_link,
-                    "status": test_execution.status.value,
+                    "status": TestExecutionStatus.IN_PROGRESS,
                     "environment": {
                         "id": environment.id,
                         "name": environment.name,
@@ -109,7 +123,9 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
     ]
 
 
-def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestClient):
+def test_get_artefact_builds_only_latest(
+    db_session: Session, test_client: TestClient, monkeypatch: MonkeyPatch
+):
     artefact = create_artefact(db_session, "beta")
     artefact_build1 = ArtefactBuild(
         architecture="amd64", revision="1", artefact=artefact
@@ -119,6 +135,11 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
     )
     db_session.add_all([artefact_build1, artefact_build2])
     db_session.commit()
+
+    c3api_mock = C3Api("foo", "bar")
+    monkeypatch.setattr(c3api_mock, "get_reports", lambda _: {})
+    monkeypatch.setattr(c3api_mock, "get_submissions_statuses", lambda _: {})
+    app.dependency_overrides[C3Api] = c3api_mock
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
 
@@ -134,7 +155,7 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
 
 
 def test_correct_test_execution_status(
-    db_session: Session, test_client: TestClient, requests_mock: Mocker
+    db_session: Session, test_client: TestClient, monkeypatch: MonkeyPatch
 ):
     artefact = create_artefact(db_session, "beta")
     artefact_build = ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
@@ -147,16 +168,23 @@ def test_correct_test_execution_status(
     db_session.add_all([artefact_build, environment, test_execution])
     db_session.commit()
 
-    requests_mock.get(
-        "https://certification.canonical.com/api/v2/submissions/status/111111/",
-        json={"reportid": "237670"},
+    c3api_mock = C3Api("foo", "bar")
+    submission_status = SubmissionStatus(
+        id=111111,
+        status=SubmissionProcessingStatus.PASS,
+        report_id=237670,
     )
-    requests_mock.get(
-        "https://certification.canonical.com/api/v2/reports/summary/237670/",
-        json={"results": [{"failed_test_count": 0}]},
+    monkeypatch.setattr(
+        c3api_mock,
+        "get_submissions_statuses",
+        lambda _: {submission_status.id: submission_status},
     )
+    report = Report(id=237670, failed_test_count=0)
+    monkeypatch.setattr(c3api_mock, "get_reports", lambda _: {report.id: report})
+    app.dependency_overrides[C3Api] = c3api_mock
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
+
     assert response.status_code == 200
     assert response.json() == [
         {

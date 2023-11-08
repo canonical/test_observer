@@ -17,15 +17,24 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-import requests
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
 
-from test_observer.data_access.models import Artefact, ArtefactBuild, TestExecution
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Artefact
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
+from test_observer.external_apis.c3.c3 import C3Api
 
+from .logic import (
+    construct_dto_builds,
+    get_builds_from_db,
+    get_reports_ids,
+    get_statuses_ids,
+)
 from .models import ArtefactBuildDTO, ArtefactDTO
 
 router = APIRouter()
@@ -57,45 +66,18 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
-def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
+def get_artefact_builds(
+    artefact_id: int,
+    c3api: Annotated[C3Api, Depends()],
+    db: Session = Depends(get_db),
+):
     """Get latest artefact builds of an artefact together with their test executions"""
-    orm_builds = (
-        db.query(ArtefactBuild)
-        .filter(ArtefactBuild.artefact_id == artefact_id)
-        .distinct(ArtefactBuild.architecture)
-        .order_by(ArtefactBuild.architecture, ArtefactBuild.revision.desc())
-        .options(
-            joinedload(ArtefactBuild.test_executions).joinedload(
-                TestExecution.environment
-            )
-        )
-        .all()
-    )
+    builds = get_builds_from_db(artefact_id, db)
 
-    builds = [ArtefactBuildDTO.model_validate(orm_build) for orm_build in orm_builds]
+    submissions_statuses = c3api.get_submissions_statuses(get_statuses_ids(builds))
 
-    for build in builds:
-        for test_execution in build.test_executions:
-            c3_link = test_execution.c3_link
-            if c3_link:
-                tracking_id = c3_link.split("/")[-1]
-                response = requests.get(
-                    f"https://certification.canonical.com/api/v2/submissions/status/{tracking_id}/"
-                )
-                if response.ok:
-                    reportid = response.json().get("reportid")
-                    if reportid:
-                        response = requests.get(
-                            f"https://certification.canonical.com/api/v2/reports/summary/{reportid}/"
-                        )
-                        report = response.json()["results"][0]
-                        if report["failed_test_count"] == 0:
-                            test_execution.status = TestExecutionStatus.PASSED
-                        else:
-                            test_execution.status = TestExecutionStatus.FAILED
-                else:
-                    test_execution.status = TestExecutionStatus.UNKNOWN
-            else:
-                test_execution.status = TestExecutionStatus.NOT_STARTED
+    reports = c3api.get_reports(get_reports_ids(submissions_statuses.values()))
 
-    return builds
+    dto_builds = construct_dto_builds(builds, submissions_statuses, reports)
+
+    return list(dto_builds)
