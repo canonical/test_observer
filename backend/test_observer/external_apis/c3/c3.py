@@ -14,12 +14,22 @@ class C3Api:
         if not client_secret:
             client_secret = os.environ["C3_CLIENT_SECRET"]
 
-        self.client_id = client_id
-        self.client_secret = client_secret
+        self._client_id = client_id
+        self._client_secret = client_secret
 
-        self.bearer_token = ""
+        self._bearer_token = ""
 
-    def get_submissions_statuses(self, ids: Iterable[int]) -> list[SubmissionStatus]:
+    def __call__(self):
+        """
+        This is used to stop FastAPI from parameterizing the class init arguments when
+        this class is injected as Dependency. See
+        https://fastapi.tiangolo.com/advanced/advanced-dependencies/#parameterized-dependencies
+        """
+        return self
+
+    def get_submissions_statuses(
+        self, ids: Iterable[int]
+    ) -> dict[int, SubmissionStatus]:
         response = self._authenticate_and_send(
             Request(
                 method="GET",
@@ -29,9 +39,9 @@ class C3Api:
         )
 
         statuses = response.json()["results"]
-        return [SubmissionStatus(**json) for json in statuses]
+        return {json["id"]: SubmissionStatus(**json) for json in statuses}
 
-    def get_reports(self, ids: Iterable[int]) -> list[Report]:
+    def get_reports(self, ids: Iterable[int]) -> dict[int, Report]:
         response = self._authenticate_and_send(
             Request(
                 method="GET",
@@ -41,25 +51,25 @@ class C3Api:
         )
 
         reports = response.json()["results"]
-        return [Report(**json) for json in reports]
+        return {json["id"]: Report(**json) for json in reports}
 
     def _authenticate_and_send(self, request: Request) -> Response:
         prepared_request = request.prepare()
-        prepared_request.headers["Authorization"] = f"Bearer {self.bearer_token}"
+        prepared_request.headers["Authorization"] = f"Bearer {self._bearer_token}"
         session = requests.session()
         response = session.send(prepared_request)
         if response.status_code in (401, 403):
             self._authenticate()
-            prepared_request.headers["Authorization"] = f"Bearer {self.bearer_token}"
+            prepared_request.headers["Authorization"] = f"Bearer {self._bearer_token}"
             response = session.send(prepared_request)
         return response
 
     def _authenticate(self) -> None:
         response = requests.post(
             "https://certification.canonical.com/oauth2/token/",
-            auth=(self.client_id, self.client_secret),
+            auth=(self._client_id, self._client_secret),
             data={"grant_type": "client_credentials"},
         )
 
         if response.ok:
-            self.bearer_token = response.json().get("access_token", "")
+            self._bearer_token = response.json().get("access_token", "")

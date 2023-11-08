@@ -58,7 +58,7 @@ def test_get_submissions_statuses(
 
     statuses = c3.get_submissions_statuses([status["id"]])
 
-    assert statuses[0] == SubmissionStatus(**status)
+    assert statuses == {status["id"]: SubmissionStatus(**status)}
 
 
 def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
@@ -72,4 +72,4 @@ def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
 
     reports = c3.get_reports([report["id"]])
 
-    assert reports[0] == Report(**report)
+    assert reports == {report["id"]: Report(**report)}
