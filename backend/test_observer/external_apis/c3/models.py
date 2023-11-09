@@ -10,7 +10,7 @@ class SubmissionProcessingStatus(str, Enum):
 
 class SubmissionStatus(BaseModel):
     id: int
-    status: SubmissionProcessingStatus
+    status: SubmissionProcessingStatus | None
     report_id: int | None
 
 

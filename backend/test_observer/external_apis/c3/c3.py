@@ -12,12 +12,8 @@ logger = logging.getLogger("test-observer-backend")
 
 class C3Api:
     def __init__(self):
-        client_id = os.environ.get("C3_CLIENT_ID", "")
-        client_secret = os.environ.get("C3_CLIENT_SECRET", "")
-
-        self._client_id = client_id
-        self._client_secret = client_secret
-
+        self._client_id = os.environ.get("C3_CLIENT_ID", "")
+        self._client_secret = os.environ.get("C3_CLIENT_SECRET", "")
         self._bearer_token = ""
 
     def get_submissions_statuses(
