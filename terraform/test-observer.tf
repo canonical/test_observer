@@ -31,6 +31,18 @@ variable "nginx_ingress_integrator_charm_whitelist_source_range" {
   default     = ""
 }
 
+variable "c3_client_id" {
+  description = "C3 client id used for basic auth to c3 api"
+  type        = string
+  default     = ""
+}
+
+variable "c3_client_secret" {
+  description = "C3 client secret used for basic auth to c3 api"
+  type        = string
+  default     = ""
+}
+
 locals {
   sentry_dsn_map = {
     production  = "https://dd931d36e0c24681aaeed6abd312c896@sentry.is.canonical.com//66"
@@ -54,7 +66,7 @@ resource "juju_application" "ingress" {
   }
 
   config = {
-    tls-secret-name = var.tls_secret_name
+    tls-secret-name        = var.tls_secret_name
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
@@ -82,9 +94,11 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname   = var.environment == "staging" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
-    port       = var.environment == "development" ? 30000 : 443
-    sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
+    hostname         = var.environment == "staging" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
+    port             = var.environment == "development" ? 30000 : 443
+    sentry_dsn       = "${local.sentry_dsn_map[var.environment]}"
+    c3_client_id     = var.c3_client_id
+    c3_client_secret = var.c3_client_secret
   }
 
   units = 1
