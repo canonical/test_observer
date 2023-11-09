@@ -93,9 +93,9 @@ def test_get_artefact_builds(
     db_session.add_all([environment, test_execution, artefact_build])
     db_session.commit()
 
-    c3api_mock = C3Api("foo", "bar")
-    monkeypatch.setattr(c3api_mock, "get_reports", lambda _: {})
-    monkeypatch.setattr(c3api_mock, "get_submissions_statuses", lambda _: {})
+    c3api_mock = C3Api
+    monkeypatch.setattr(c3api_mock, "get_reports", lambda *_: {})
+    monkeypatch.setattr(c3api_mock, "get_submissions_statuses", lambda *_: {})
     app.dependency_overrides[C3Api] = c3api_mock
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
@@ -136,9 +136,9 @@ def test_get_artefact_builds_only_latest(
     db_session.add_all([artefact_build1, artefact_build2])
     db_session.commit()
 
-    c3api_mock = C3Api("foo", "bar")
-    monkeypatch.setattr(c3api_mock, "get_reports", lambda _: {})
-    monkeypatch.setattr(c3api_mock, "get_submissions_statuses", lambda _: {})
+    c3api_mock = C3Api
+    monkeypatch.setattr(c3api_mock, "get_reports", lambda *_: {})
+    monkeypatch.setattr(c3api_mock, "get_submissions_statuses", lambda *_: {})
     app.dependency_overrides[C3Api] = c3api_mock
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
@@ -168,7 +168,7 @@ def test_correct_test_execution_status(
     db_session.add_all([artefact_build, environment, test_execution])
     db_session.commit()
 
-    c3api_mock = C3Api("foo", "bar")
+    c3api_mock = C3Api
     submission_status = SubmissionStatus(
         id=111111,
         status=SubmissionProcessingStatus.PASS,
@@ -177,10 +177,10 @@ def test_correct_test_execution_status(
     monkeypatch.setattr(
         c3api_mock,
         "get_submissions_statuses",
-        lambda _: {submission_status.id: submission_status},
+        lambda *_: {submission_status.id: submission_status},
     )
     report = Report(id=237670, failed_test_count=0)
-    monkeypatch.setattr(c3api_mock, "get_reports", lambda _: {report.id: report})
+    monkeypatch.setattr(c3api_mock, "get_reports", lambda *_: {report.id: report})
     app.dependency_overrides[C3Api] = c3api_mock
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")

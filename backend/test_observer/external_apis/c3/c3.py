@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import Iterable
 
@@ -6,26 +7,18 @@ from requests import Request, Response
 
 from .models import Report, SubmissionStatus
 
+logger = logging.getLogger("test-observer-backend")
+
 
 class C3Api:
-    def __init__(self, client_id: str | None = None, client_secret: str | None = None):
-        if not client_id:
-            client_id = os.environ["C3_CLIENT_ID"]
-        if not client_secret:
-            client_secret = os.environ["C3_CLIENT_SECRET"]
+    def __init__(self):
+        client_id = os.environ.get("C3_CLIENT_ID", "")
+        client_secret = os.environ.get("C3_CLIENT_SECRET", "")
 
         self._client_id = client_id
         self._client_secret = client_secret
 
         self._bearer_token = ""
-
-    def __call__(self):
-        """
-        This is used to stop FastAPI from parameterizing the class init arguments when
-        this class is injected as Dependency. See
-        https://fastapi.tiangolo.com/advanced/advanced-dependencies/#parameterized-dependencies
-        """
-        return self
 
     def get_submissions_statuses(
         self, ids: Iterable[int]
@@ -38,8 +31,12 @@ class C3Api:
             )
         )
 
-        statuses = response.json()["results"]
-        return {json["id"]: SubmissionStatus(**json) for json in statuses}
+        if response.ok:
+            statuses = response.json()["results"]
+            return {json["id"]: SubmissionStatus(**json) for json in statuses}
+        else:
+            logger.warning(response.text)
+            return {}
 
     def get_reports(self, ids: Iterable[int]) -> dict[int, Report]:
         response = self._authenticate_and_send(
@@ -50,8 +47,12 @@ class C3Api:
             )
         )
 
-        reports = response.json()["results"]
-        return {json["id"]: Report(**json) for json in reports}
+        if response.ok:
+            reports = response.json()["results"]
+            return {json["id"]: Report(**json) for json in reports}
+        else:
+            logger.warning(response.text)
+            return {}
 
     def _authenticate_and_send(self, request: Request) -> Response:
         prepared_request = request.prepare()

@@ -20,7 +20,9 @@ class StatusDict(TypedDict):
 
 
 @pytest.fixture
-def prepare_c3api(requests_mock: Mocker) -> tuple[C3Api, str]:
+def prepare_c3api(
+    requests_mock: Mocker, monkeypatch: pytest.MonkeyPatch
+) -> tuple[C3Api, str]:
     client_id = "foo"
     client_secret = "bar"
     basic_token = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode(
@@ -37,7 +39,9 @@ def prepare_c3api(requests_mock: Mocker) -> tuple[C3Api, str]:
         request_headers={"Authorization": "Bearer "},
         status_code=401,
     )
-    c3 = C3Api(client_id=client_id, client_secret=client_secret)
+    monkeypatch.setenv("C3_CLIENT_ID", client_id)
+    monkeypatch.setenv("C3_CLIENT_SECRET", client_secret)
+    c3 = C3Api()
     return c3, bearer_token
 
 
