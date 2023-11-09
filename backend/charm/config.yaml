@@ -3,7 +3,6 @@ options:
     default: 30000
     description: The port to listen on for incoming HTTP requests.
     type: int
-
   hostname:
     default: test-observer-api
     description: Public hostname for the service.
@@ -12,3 +11,9 @@ options:
     default: ""
     description: value for SENTRY_DSN that is used to send errors to sentry
     type: string
+  c3_client_id:
+    default: ""
+    description: C3 client id used for basic auth to c3 api
+  c3_client_secret:
+    default: ""
+    description: C3 client secret used for basic auth to c3 api

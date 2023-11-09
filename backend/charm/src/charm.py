@@ -11,7 +11,7 @@ from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import Layer, ExecError
+from ops.pebble import ExecError, Layer
 from requests import get
 
 # Log messages can be retrieved using juju debug-log
@@ -134,10 +134,12 @@ class TestObserverBackendCharm(CharmBase):
 
     @property
     def _app_environment(self):
-        """
-        This creates a dictionary of environment variables needed by the application
-        """
-        env = {"SENTRY_DSN": self.config["sentry_dsn"]}
+        """Creates a dictionary of environment variables needed by the application."""
+        env = {
+            "SENTRY_DSN": self.config["sentry_dsn"],
+            "C3_CLIENT_ID": self.config["c3_client_id"],
+            "C3_CLIENT_SECRET": self.config["c3_client_secret"],
+        }
         env.update(self._postgres_relation_data())
         return env
 
