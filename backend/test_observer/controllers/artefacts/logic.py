@@ -94,7 +94,7 @@ def _derive_test_execution_status(
     submissions_statuses: dict[int, SubmissionStatus],
     reports: dict[int, Report],
 ) -> TestExecutionStatus:
-    if (c3_link := c3_link) is None:
+    if c3_link is None:
         return TestExecutionStatusLogic.NO_C3_LINK
     if (status_id := _parse_status_id_from_c3_link(c3_link)) is None:
         return TestExecutionStatusLogic.NO_STATUS_ID_IN_C3_LINK
