@@ -19,11 +19,12 @@ class C3Api:
     def get_submissions_statuses(
         self, ids: Iterable[int]
     ) -> dict[int, SubmissionStatus]:
+        str_ids = [str(status_id) for status_id in ids]
         response = self._authenticate_and_send(
             Request(
                 method="GET",
                 url="https://certification.canonical.com/api/v2/submissions/status/",
-                params={"id__in": ",".join([str(status_id) for status_id in ids])},
+                params={"id__in": ",".join(str_ids), "limit": len(str_ids)},
             )
         )
 
@@ -35,11 +36,12 @@ class C3Api:
             return {}
 
     def get_reports(self, ids: Iterable[int]) -> dict[int, Report]:
+        str_ids = [str(report_id) for report_id in ids]
         response = self._authenticate_and_send(
             Request(
                 method="GET",
                 url="https://certification.canonical.com/api/v2/reports/summary/",
-                params={"id__in": ",".join([str(report_id) for report_id in ids])},
+                params={"id__in": ",".join(str_ids), "limit": len(str_ids)},
             )
         )
 
