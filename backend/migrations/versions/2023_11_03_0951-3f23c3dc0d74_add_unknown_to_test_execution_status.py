@@ -16,12 +16,13 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """This is irreversible test execution statuses will be deleted
+    albeit they're incorrect"""
     op.drop_column("test_execution", "status")
     op.execute("DROP TYPE test_status_enum")
 
 
 def downgrade() -> None:
-    """This is not reversible, any UNKNOWN status will be converted to NOT_TESTED."""
     op.execute(
         "CREATE TYPE test_status_enum AS ENUM"
         "('APPROVED', 'NOT_STARTED', 'IN_PROGRESS', 'PASSED', 'FAILED', 'NOT_TESTED')"
