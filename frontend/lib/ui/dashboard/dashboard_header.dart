@@ -36,11 +36,6 @@ class DashboardHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: Spacing.level4),
                   _LegendEntry(
-                    icon: TestExecutionStatus.notTested.icon,
-                    text: 'No result',
-                  ),
-                  const SizedBox(width: Spacing.level4),
-                  _LegendEntry(
                     icon: TestExecutionStatus.passed.icon,
                     text: 'Passed',
                   ),

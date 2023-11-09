@@ -25,43 +25,37 @@ class TestExecution with _$TestExecution {
 enum TestExecutionStatus {
   @JsonValue('FAILED')
   failed,
-  @JsonValue('NOT_STARTED')
-  notStarted,
-  @JsonValue('NOT_TESTED')
-  notTested,
   @JsonValue('IN_PROGRESS')
   inProgress,
   @JsonValue('PASSED')
-  passed;
+  passed,
+  @JsonValue('UNKNOWN')
+  unknown;
 
   String get name {
     switch (this) {
-      case notStarted:
-        return 'Not Started';
       case inProgress:
         return 'In Progress';
       case passed:
         return 'Passed';
       case failed:
         return 'Failed';
-      case notTested:
-        return 'Not Tested';
+      case unknown:
+        return 'Unknown';
     }
   }
 
   Icon get icon {
     const size = 20.0;
     switch (this) {
-      case notStarted:
-        return const Icon(YaruIcons.media_play, size: size);
       case inProgress:
         return const Icon(YaruIcons.refresh, size: size);
       case passed:
         return Icon(YaruIcons.ok, color: YaruColors.light.success, size: size);
       case failed:
         return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
-      case notTested:
-        return const Icon(YaruIcons.information, size: size);
+      case unknown:
+        return const Icon(YaruIcons.question, size: size);
     }
   }
 }
