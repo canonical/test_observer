@@ -71,7 +71,7 @@ def test_authenticate_and_send_invalid_token(
         c3._authenticate_and_send(test_request)
 
         # Verify three requests were called: unauthenticated request,
-        # authentication request, repeated request with the correct 
+        # authentication request, repeated request with the correct
         # authentication details
         assert len(requests_mock.request_history) == 3
         # Verify the last request was to the intended URL
