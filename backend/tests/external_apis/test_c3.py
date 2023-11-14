@@ -52,8 +52,8 @@ def test_authenticate_and_send_invalid_token(
 ):
     c3, bearer_token = prepare_c3api
 
-    UNAUTHORIZED_RESPONSE_CODES = [401, 403]
-    for error_code in UNAUTHORIZED_RESPONSE_CODES:
+    unauthorized_response_codes = [401, 403]
+    for error_code in unauthorized_response_codes:
         requests_mock.get(
             re.compile("^https://certification.canonical.com/api/v2/.*"),
             request_headers={"Authorization": f"Bearer {bearer_token}"},
@@ -71,7 +71,8 @@ def test_authenticate_and_send_invalid_token(
         c3._authenticate_and_send(test_request)
 
         # Verify three requests were called: unauthenticated request,
-        # authentication request, repeated request with the correct authentication details
+        # authentication request, repeated request with the correct 
+        # authentication details
         assert len(requests_mock.request_history) == 3
         # Verify the last request was to the intended URL
         assert (
@@ -79,7 +80,8 @@ def test_authenticate_and_send_invalid_token(
             and requests_mock.request_history[-1].url
             == "https://certification.canonical.com/api/v2/submissions/status"
         )
-        # Verify the second to last request was an authentication API call to get the token
+        # Verify the second to last request was an authentication API call
+        # to get the token
         assert (
             requests_mock.request_history[-2].method == "POST"
             and requests_mock.request_history[-2].url
