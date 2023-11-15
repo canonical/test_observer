@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List
 
 from pydantic import BaseModel
 
@@ -28,4 +27,4 @@ class Report(BaseModel):
     id: int
     failed_test_count: int
     test_count: int
-    test_results: List[TestResult]
+    test_results: list[TestResult]
