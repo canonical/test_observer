@@ -13,7 +13,7 @@ class TestResult with _$TestResult {
     required String name,
     required String type,
     required TestResultStatus status,
-    required String io_log,
+    @JsonKey(name: 'io_log') required String ioLog,
     required String comments,
   }) = _TestResult;
 

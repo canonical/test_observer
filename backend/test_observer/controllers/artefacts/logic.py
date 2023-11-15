@@ -80,7 +80,7 @@ def construct_dto_builds(
                     ),
                     test_results=_derive_test_results(
                         test_execution.c3_link, submissions_statuses, reports
-                    )
+                    ),
                 )
             )
 
@@ -107,7 +107,7 @@ def _derive_test_results(
         return None
     if (report_id := submission_status.report_id) is None:
         return None
-    
+
     return reports[report_id].test_results
 
 

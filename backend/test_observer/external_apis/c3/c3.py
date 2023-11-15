@@ -50,20 +50,20 @@ class C3Api:
 
         if response.ok:
             reports = response.json()["results"]
-            return {json["id"]: Report(
-                **json,
-                test_results=test_results[json["id"]]
-            ) for json in reports}
+            return {
+                json["id"]: Report(**json, test_results=test_results[json["id"]])
+                for json in reports
+            }
         else:
             logger.warning(response.text)
             return {}
-        
+
     def _get_test_results(self, str_ids: List[str]) -> Dict[int, List[TestResult]]:
         test_results = {}
         for id in str_ids:
             test_results[int(id)] = self._get_test_results_by_report_id(id)
         return test_results
-        
+
     def _get_test_results_by_report_id(self, report_id: str) -> List[TestResult]:
         # TODO: Once we land PR 151 in C3 we can replace this with only one API call to C3
         response = self._authenticate_and_send(

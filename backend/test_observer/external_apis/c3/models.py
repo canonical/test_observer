@@ -22,7 +22,7 @@ class TestResult(BaseModel):
     status: str
     comments: str
     io_log: str
-    
+
 
 class Report(BaseModel):
     id: int

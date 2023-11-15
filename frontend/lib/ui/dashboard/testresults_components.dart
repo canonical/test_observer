@@ -6,7 +6,7 @@ import '../spacing.dart';
 
 class GroupTestResultView extends StatelessWidget {
   const GroupTestResultView(
-      {super.key, required this.testResultStatus, required this.groupTestResults});
+      {super.key, required this.testResultStatus, required this.groupTestResults,});
 
   final List<TestResult> groupTestResults;
   final TestResultStatus testResultStatus;
@@ -38,7 +38,7 @@ class GroupTestResultView extends StatelessWidget {
                   (testResult) => _TestResultView(testResult: testResult),
                 )
                 .toList(),
-          )),
+          ),),
     );
   }
 }
@@ -80,7 +80,7 @@ class _TestResultView extends StatelessWidget {
                       ],
                     )
                   : const SizedBox.shrink(),
-              testResult.io_log != ''
+              testResult.ioLog != ''
                   ? Wrap(
                       alignment: WrapAlignment.start,
                       children: [
@@ -89,13 +89,13 @@ class _TestResultView extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         Text(
-                          testResult.io_log,
-                        )
+                          testResult.ioLog,
+                        ),
                       ],
                     )
                   : const SizedBox.shrink(),
             ],
           ),
-        ));
+        ),);
   }
 }
