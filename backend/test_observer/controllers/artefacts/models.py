@@ -18,8 +18,11 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from enum import Enum
+from typing import List
 
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
+
+from test_observer.external_apis.c3.models import TestResult
 
 
 class TestExecutionStatus(str, Enum):
@@ -58,6 +61,7 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
+    test_results: List[TestResult] | None
 
 
 class ArtefactBuildDTO(BaseModel):

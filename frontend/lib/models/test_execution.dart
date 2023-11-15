@@ -4,6 +4,7 @@ import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 
 import 'environment.dart';
+import 'test_results.dart';
 
 part 'test_execution.freezed.dart';
 part 'test_execution.g.dart';
@@ -16,6 +17,7 @@ class TestExecution with _$TestExecution {
     @JsonKey(name: 'c3_link') required String? c3Link,
     required TestExecutionStatus status,
     required Environment environment,
+    @JsonKey(name: 'test_results') required List<TestResult>? testResults,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>

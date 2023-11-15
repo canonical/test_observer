@@ -12,11 +12,13 @@ import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
 import '../../models/stage_name.dart';
 import '../../models/test_execution.dart';
+import '../../models/test_results.dart';
 import '../../providers/artefact.dart';
 import '../../providers/artefact_builds.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
+import 'testresults_components.dart';
 
 class ArtefactDialog extends ConsumerWidget {
   const ArtefactDialog({super.key, required this.artefactId});
@@ -274,6 +276,23 @@ class _TestExecutionView extends StatelessWidget {
     final jenkinsLink = testExecution.jenkinsLink;
     final c3Link = testExecution.c3Link;
 
+    // Split the test result in separate categories based on Status (PASS/FAIL/SKIP)
+    final Map<TestResultStatus, List<TestResult>> testResultGroups = {};
+    for (var value in TestResultStatus.values) {
+      final List<TestResult> currentTestCases = testExecution.testResults
+              ?.where(
+                (testResult) => testResult.status == value,
+              )
+              .toList() ??
+          [];
+
+      if (currentTestCases.isEmpty) {
+        continue;
+      }
+
+      testResultGroups[value] = currentTestCases;
+    }
+
     return YaruExpandable(
       header: Row(
         children: [
@@ -302,7 +321,19 @@ class _TestExecutionView extends StatelessWidget {
         ],
       ),
       expandButtonPosition: YaruExpandableButtonPosition.start,
-      child: const SizedBox.shrink(),
+      child: Padding(
+        padding: const EdgeInsets.only(left: Spacing.level4),
+        child: Column(
+          children: testResultGroups.entries
+              .map(
+                (entry) => GroupTestResultView(
+                  testResultStatus: entry.key,
+                  groupTestResults: entry.value,
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }

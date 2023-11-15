@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Iterator
+from typing import List
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -7,6 +8,7 @@ from test_observer.external_apis.c3.models import (
     Report,
     SubmissionProcessingStatus,
     SubmissionStatus,
+    TestResult,
 )
 
 from .models import (
@@ -76,6 +78,9 @@ def construct_dto_builds(
                     status=_derive_test_execution_status(
                         test_execution.c3_link, submissions_statuses, reports
                     ),
+                    test_results=_derive_test_results(
+                        test_execution.c3_link, submissions_statuses, reports
+                    )
                 )
             )
 
@@ -87,6 +92,23 @@ def construct_dto_builds(
         )
 
         yield build_dto
+
+
+def _derive_test_results(
+    c3_link: str | None,
+    submissions_statuses: dict[int, SubmissionStatus],
+    reports: dict[int, Report],
+) -> List[TestResult] | None:
+    if c3_link is None:
+        return None
+    if (status_id := _parse_status_id_from_c3_link(c3_link)) is None:
+        return None
+    if (submission_status := submissions_statuses.get(status_id)) is None:
+        return None
+    if (report_id := submission_status.report_id) is None:
+        return None
+    
+    return reports[report_id].test_results
 
 
 def _derive_test_execution_status(
