@@ -1,5 +1,4 @@
 from collections.abc import Iterable, Iterator
-from typing import List
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -98,7 +97,7 @@ def _derive_test_results(
     c3_link: str | None,
     submissions_statuses: dict[int, SubmissionStatus],
     reports: dict[int, Report],
-) -> List[TestResult] | None:
+) -> list[TestResult] | None:
     if c3_link is None:
         return None
     if (status_id := _parse_status_id_from_c3_link(c3_link)) is None:

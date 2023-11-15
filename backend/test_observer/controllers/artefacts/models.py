@@ -18,7 +18,6 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from enum import Enum
-from typing import List
 
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
@@ -61,7 +60,7 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
-    test_results: List[TestResult] | None
+    test_results: list[TestResult] | None
 
 
 class ArtefactBuildDTO(BaseModel):

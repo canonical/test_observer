@@ -1,7 +1,6 @@
 import logging
 import os
 from collections.abc import Iterable
-from typing import Dict, List
 
 import requests
 from requests import Request, Response
@@ -58,14 +57,14 @@ class C3Api:
             logger.warning(response.text)
             return {}
 
-    def _get_test_results(self, str_ids: List[str]) -> Dict[int, List[TestResult]]:
+    def _get_test_results(self, str_ids: list[str]) -> dict[int, list[TestResult]]:
         test_results = {}
         for id in str_ids:
             test_results[int(id)] = self._get_test_results_by_report_id(id)
         return test_results
 
-    def _get_test_results_by_report_id(self, report_id: str) -> List[TestResult]:
-        # TODO: Once we land PR 151 in C3 we can replace this with only one API call to C3
+    def _get_test_results_by_report_id(self, report_id: str) -> list[TestResult]:
+        # TODO: After PR 151 in C3 we can replace with only one API call to C3
         response = self._authenticate_and_send(
             Request(
                 method="GET",
