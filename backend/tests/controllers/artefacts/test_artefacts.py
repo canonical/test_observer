@@ -179,7 +179,7 @@ def test_correct_test_execution_status(
         "get_submissions_statuses",
         lambda *_: {submission_status.id: submission_status},
     )
-    report = Report(id=237670, failed_test_count=0)
+    report = Report(id=237670, failed_test_count=0, test_count=0, test_results=[])
     monkeypatch.setattr(c3api_mock, "get_reports", lambda *_: {report.id: report})
     app.dependency_overrides[C3Api] = c3api_mock
 

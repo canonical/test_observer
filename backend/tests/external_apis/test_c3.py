@@ -111,7 +111,7 @@ def test_get_submissions_statuses(
 
 def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
     c3, bearer_token = prepare_c3api
-    report = {"id": 237670, "failed_test_count": 0}
+    report = {"id": 237670, "failed_test_count": 0, "test_count": 0, "test_results": []}
     requests_mock.get(
         f"https://certification.canonical.com/api/v2/reports/summary/?id__in={report['id']}&limit=1",
         request_headers={"Authorization": f"Bearer {bearer_token}"},
