@@ -129,12 +129,16 @@ def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
         json={"results": [c3_api_response]},
     )
 
-    reports = c3.get_reports([c3_api_response["id"]])
+    # We ignore this typing error, it happens because of the
+    # "testresult_set" assigned to empty list in the c3_api_response
+    # dict, and the Python Typing system cannot be sure that the "id"
+    # field is int
+    reports = c3.get_reports([c3_api_response["id"]]) # type: ignore
 
-    expected_report = {
-        "id": 237670,
-        "failed_test_count": 0,
-        "test_count": 0,
-        "test_results": [],
-    }
-    assert reports == {expected_report["id"]: Report(**expected_report)}
+    expected_report = Report(
+        id=237670,
+        failed_test_count=0,
+        test_count=0,
+        test_results=[],
+    )
+    assert reports == {expected_report.id: expected_report} 
