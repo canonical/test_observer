@@ -117,6 +117,7 @@ def test_get_artefact_builds(
                         "name": environment.name,
                         "architecture": environment.architecture,
                     },
+                    "test_results": [],
                 }
             ],
         }
@@ -202,6 +203,7 @@ def test_correct_test_execution_status(
                         "name": environment.name,
                         "architecture": environment.architecture,
                     },
+                    "test_results": [],
                 }
             ],
         }

@@ -111,13 +111,30 @@ def test_get_submissions_statuses(
 
 def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
     c3, bearer_token = prepare_c3api
-    report = {"id": 237670, "failed_test_count": 0, "test_count": 0, "test_results": []}
+    c3_api_response = {
+        "id": 237670,
+        "failed_test_count": 0,
+        "test_count": 0,
+        "testresult_set": [],
+    }
     requests_mock.get(
-        f"https://certification.canonical.com/api/v2/reports/summary/?id__in={report['id']}&limit=1",
+        f"https://certification.canonical.com/api/v2/reports/summary/?id__in={c3_api_response['id']}&limit=1",
         request_headers={"Authorization": f"Bearer {bearer_token}"},
-        json={"results": [report]},
+        json={"results": [c3_api_response]},
     )
 
-    reports = c3.get_reports([report["id"]])
+    requests_mock.get(
+        f"https://certification.canonical.com/api/v2/reports/summary/{c3_api_response['id']}/",
+        request_headers={"Authorization": f"Bearer {bearer_token}"},
+        json={"results": [c3_api_response]},
+    )
 
-    assert reports == {report["id"]: Report(**report)}
+    reports = c3.get_reports([c3_api_response["id"]])
+
+    expected_report = {
+        "id": 237670,
+        "failed_test_count": 0,
+        "test_count": 0,
+        "test_results": [],
+    }
+    assert reports == {expected_report["id"]: Report(**expected_report)}

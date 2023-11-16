@@ -99,13 +99,13 @@ def _derive_test_results(
     reports: dict[int, Report],
 ) -> list[TestResult] | None:
     if c3_link is None:
-        return None
+        return []
     if (status_id := _parse_status_id_from_c3_link(c3_link)) is None:
-        return None
+        return []
     if (submission_status := submissions_statuses.get(status_id)) is None:
-        return None
+        return []
     if (report_id := submission_status.report_id) is None:
-        return None
+        return []
 
     return reports[report_id].test_results
 
