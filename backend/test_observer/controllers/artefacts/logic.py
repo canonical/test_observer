@@ -97,7 +97,7 @@ def _derive_test_results(
     c3_link: str | None,
     submissions_statuses: dict[int, SubmissionStatus],
     reports: dict[int, Report],
-) -> list[TestResult] | None:
+) -> list[TestResult]:
     if c3_link is None:
         return []
     if (status_id := _parse_status_id_from_c3_link(c3_link)) is None:

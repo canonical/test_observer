@@ -20,6 +20,11 @@ class C3Api:
         self, ids: Iterable[int]
     ) -> dict[int, SubmissionStatus]:
         str_ids = [str(status_id) for status_id in ids]
+
+        # We don't need to make an API call in case there are 0 submissions
+        if not str_ids:
+            return {}
+
         response = self._authenticate_and_send(
             Request(
                 method="GET",
@@ -37,6 +42,11 @@ class C3Api:
 
     def get_reports(self, ids: Iterable[int]) -> dict[int, Report]:
         str_ids = [str(report_id) for report_id in ids]
+
+        # We don't need to make an API call in case there are 0 reports
+        if not str_ids:
+            return {}
+
         response = self._authenticate_and_send(
             Request(
                 method="GET",
