@@ -133,7 +133,7 @@ def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
     # "testresult_set" assigned to empty list in the c3_api_response
     # dict, and the Python Typing system cannot be sure that the "id"
     # field is int
-    reports = c3.get_reports([c3_api_response["id"]]) # type: ignore
+    reports = c3.get_reports([c3_api_response["id"]])  # type: ignore
 
     expected_report = Report(
         id=237670,
@@ -141,4 +141,4 @@ def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
         test_count=0,
         test_results=[],
     )
-    assert reports == {expected_report.id: expected_report} 
+    assert reports == {expected_report.id: expected_report}
