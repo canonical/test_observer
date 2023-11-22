@@ -135,6 +135,11 @@ def _derive_test_execution_status(
 
 def _parse_status_id_from_c3_link(c3_link: str) -> int | None:
     try:
+        if c3_link.endswith("/"):
+            # In case the link ends with "/" character
+            # We skip the last character
+            c3_link = c3_link[:-1]
+
         return int(c3_link.split("/")[-1])
     except TypeError:
         return None
