@@ -1,6 +1,6 @@
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "publish-images-with-self-hosted-runner"]
     tags: ["v*.*.*"]
 
 env:
@@ -8,7 +8,7 @@ env:
 
 jobs:
   build-and-push-image:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, large]
     permissions:
       contents: read
       packages: write
