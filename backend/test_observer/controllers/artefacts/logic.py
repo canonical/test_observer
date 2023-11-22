@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Iterator
+from sqlalchemy import desc, func
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -46,12 +47,81 @@ def get_builds_from_db(artefact_id: int, db: Session) -> list[ArtefactBuild]:
     return orm_builds
 
 
-def get_statuses_ids(builds: list[ArtefactBuild]) -> Iterator[int]:
+def get_historic_test_executions_from_db(
+    artefact_id, environments: list[int], db: Session
+) -> None:
+    """
+    Fetches the historic test executions. Filters based on:
+    * Artefact ID
+    * C3 Link is not null
+    * For each environment ID there are at most 10 test executions
+    """
+    # TODO: verify this returns latest and at most N
+    subquery = (
+        db.query(
+            TestExecution,
+            func.row_number()
+            .over(
+                partition_by=TestExecution.environment_id,
+                order_by=desc(TestExecution.created_at),
+            )
+            .label("row_number"),
+        )
+        .join(TestExecution.artefact_build)
+        .filter(
+            TestExecution.environment_id.in_(environments),
+            ArtefactBuild.artefact_id == artefact_id,
+            TestExecution.c3_link.is_not(None),
+        )
+        .subquery()
+    )
+
+    test_executions = (
+        db.query(TestExecution)
+        .join(subquery, TestExecution.id == subquery.c.id)
+        .filter(subquery.c.row_number < 11)
+        .all()
+    )
+
+    for i in test_executions:
+        print(i.created_at)
+
+    return test_executions
+
+
+def get_statuses_ids(
+    builds: list[ArtefactBuild], historic_test_executions: list[TestExecution]
+) -> set[int]:
+    status_ids = set()
+    # Get status ids from current builds
     for build in builds:
         for test_execution in build.test_executions:
             c3_link = test_execution.c3_link
             if c3_link and (status_id := _parse_status_id_from_c3_link(c3_link)):
-                yield status_id
+                status_ids.add(status_id)
+
+    # Get status ids from previous test
+    for test_execution in historic_test_executions:
+        c3_link = test_execution.c3_link
+        if c3_link and (status_id := _parse_status_id_from_c3_link(c3_link)):
+            status_ids.add(status_id)
+
+    return status_ids
+
+
+def get_test_execution_by_environment_id_mapping(
+    historic_test_executions: list[TestExecution],
+) -> dict[int, list[TestExecution]]:
+    test_executions_by_env_id = {}
+    for test_execution in historic_test_executions:
+        if test_executions_by_env_id.get(test_execution.environment_id) is None:
+            test_executions_by_env_id[test_execution.environment_id] = [test_execution]
+        else:
+            test_executions_by_env_id[test_execution.environment_id].append(
+                test_execution
+            )
+
+    return test_executions_by_env_id
 
 
 def get_reports_ids(submissions_statuses: Iterable[SubmissionStatus]) -> Iterator[int]:
@@ -62,6 +132,7 @@ def construct_dto_builds(
     builds: list[ArtefactBuild],
     submissions_statuses: dict[int, SubmissionStatus],
     reports: dict[int, Report],
+    historic_test_executions_by_env: dict[int, list[TestExecution]],
 ) -> Iterator[ArtefactBuildDTO]:
     for build in builds:
         test_executions_dto = []
@@ -78,7 +149,10 @@ def construct_dto_builds(
                         test_execution.c3_link, submissions_statuses, reports
                     ),
                     test_results=_derive_test_results(
-                        test_execution.c3_link, submissions_statuses, reports
+                        test_execution,
+                        submissions_statuses,
+                        reports,
+                        historic_test_executions_by_env,
                     ),
                 )
             )
@@ -94,20 +168,35 @@ def construct_dto_builds(
 
 
 def _derive_test_results(
-    c3_link: str | None,
+    test_execution: TestExecution,
     submissions_statuses: dict[int, SubmissionStatus],
     reports: dict[int, Report],
+    historic_test_executions_by_env: dict[int, list[TestExecution]],
 ) -> list[TestResult]:
-    if c3_link is None:
+    if test_execution.c3_link is None:
         return []
-    if (status_id := _parse_status_id_from_c3_link(c3_link)) is None:
+    if (status_id := _parse_status_id_from_c3_link(test_execution.c3_link)) is None:
         return []
     if (submission_status := submissions_statuses.get(status_id)) is None:
         return []
     if (report_id := submission_status.report_id) is None:
         return []
 
-    return reports[report_id].test_results
+    current_report = reports[report_id]
+
+    # TODO: optimize this
+    for test in current_report.test_results:
+        for past_executions in historic_test_executions_by_env[
+            test_execution.environment_id
+        ]:
+            status_id = _parse_status_id_from_c3_link(past_executions.c3_link)
+            report_id = submissions_statuses[status_id].report_id
+            
+            for past_test in reports[report_id].test_results:
+                if test.id == past_test.id:
+                    test.historic_results.append(past_test.status)
+
+    return current_report.test_results
 
 
 def _derive_test_execution_status(

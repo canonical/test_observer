@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-observer-redis
+  labels:
+    app.kubernetes.io/name: test-observer-redis
+    app.kubernetes.io/part-of: test-observer
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-observer-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-observer-redis
+        app.kubernetes.io/part-of: test-observer
+    spec:
+      containers:
+      - name: test-observer-redis
+        image: redis
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-observer-redis
+  labels:
+    app.kubernetes.io/name: test-observer-redis
+    app.kubernetes.io/part-of: test-observer
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: test-observer-redis
+  ports:
+    - port: 6379
+      nodePort: 30001
+

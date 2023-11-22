@@ -15,6 +15,7 @@ class TestResult with _$TestResult {
     required TestResultStatus status,
     @JsonKey(name: 'io_log') required String ioLog,
     required String comments,
+    @JsonKey(name: 'historic_results') required List<TestResultStatus> historicResults,
   }) = _TestResult;
 
   factory TestResult.fromJson(Map<String, Object?> json) =>
@@ -48,6 +49,20 @@ enum TestResultStatus {
         return Icon(YaruIcons.ok, color: YaruColors.light.success, size: size);
       case failed:
         return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
+      case skipped:
+        return const Icon(YaruIcons.question, size: size);
+    }
+  }
+
+  // This should introduce icons with reduced opacity
+  // Refactor to cleaner way
+  Icon get reducedIcon {
+    const size = 20.0;
+    switch (this) {
+      case passed:
+        return const Icon(YaruIcons.ok, color: Color.fromARGB(255, 117, 153, 123), size: size);
+      case failed:
+        return const Icon(YaruIcons.error, color: Color.fromARGB(255, 204, 134, 146), size: size);
       case skipped:
         return const Icon(YaruIcons.question, size: size);
     }

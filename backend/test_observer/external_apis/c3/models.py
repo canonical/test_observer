@@ -21,6 +21,7 @@ class TestResult(BaseModel):
     status: str
     comments: str
     io_log: str
+    historic_results: list[str]
 
 
 class Report(BaseModel):

@@ -26,22 +26,30 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
-from test_observer.data_access.setup import get_db
+from test_observer.data_access.setup import get_db, get_redis
 from test_observer.external_apis.c3.c3 import C3Api
 
 from .logic import (
+    _parse_status_id_from_c3_link,
     construct_dto_builds,
     get_builds_from_db,
+    get_historic_test_executions_from_db,
     get_reports_ids,
     get_statuses_ids,
+    get_test_execution_by_environment_id_mapping,
 )
 from .models import ArtefactBuildDTO, ArtefactDTO
+
+from redis import Redis
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[ArtefactDTO])
-def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
+def get_artefacts(
+    family: FamilyName | None = None,
+    db: Session = Depends(get_db),
+):
     """Get latest artefacts optionally by family"""
     artefacts = []
 
@@ -70,14 +78,34 @@ def get_artefact_builds(
     artefact_id: int,
     c3api: Annotated[C3Api, Depends()],
     db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
 ):
     """Get latest artefact builds of an artefact together with their test executions"""
     builds = get_builds_from_db(artefact_id, db)
 
-    submissions_statuses = c3api.get_submissions_statuses(get_statuses_ids(builds))
+    test_execution_environments = [
+        test_execution.environment_id
+        for build in builds
+        for test_execution in build.test_executions
+        if test_execution.c3_link
+    ]
 
-    reports = c3api.get_reports(get_reports_ids(submissions_statuses.values()))
+    historic_test_executions = get_historic_test_executions_from_db(
+        artefact_id, test_execution_environments, db
+    )
 
-    dto_builds = construct_dto_builds(builds, submissions_statuses, reports)
+    test_executions_by_env_id = get_test_execution_by_environment_id_mapping(
+        historic_test_executions
+    )
+
+    submissions_statuses = c3api.get_submissions_statuses(
+        get_statuses_ids(builds, historic_test_executions)
+    )
+
+    reports = c3api.get_reports(get_reports_ids(submissions_statuses.values()), redis)
+
+    dto_builds = construct_dto_builds(
+        builds, submissions_statuses, reports, test_executions_by_env_id
+    )
 
     return list(dto_builds)
