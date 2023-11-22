@@ -19,7 +19,7 @@ class TestResult(BaseModel):
     name: str
     type: str
     status: str
-    comments: str
+    comment: str
     io_log: str
     historic_results: list[str]
 
