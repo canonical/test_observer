@@ -43,8 +43,3 @@ spec:
           args:
             - "job"
             - "test-observer-migrations"
-        - name: wait-for-redis
-          image: ghcr.io/groundnuty/k8s-wait-for:v2.0
-          args:
-            - "pod"
-            - "-lapp.kubernetes.io/name=test-observer-redis"
