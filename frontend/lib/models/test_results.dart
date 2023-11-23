@@ -14,7 +14,7 @@ class TestResult with _$TestResult {
     required String type,
     required TestResultStatus status,
     @JsonKey(name: 'io_log') required String ioLog,
-    required String comments,
+    required String comment,
     @JsonKey(name: 'historic_results') required List<TestResultStatus> historicResults,
   }) = _TestResult;
 

@@ -81,7 +81,7 @@ class _TestResultView extends StatelessWidget {
         padding: const EdgeInsets.only(left: Spacing.level6),
         child: Wrap(
           children: [
-            testResult.comments != ''
+            testResult.comment != ''
                 ? Wrap(
                     children: [
                       Text(
@@ -89,7 +89,7 @@ class _TestResultView extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(
-                        testResult.comments,
+                        testResult.comment,
                       ),
                     ],
                   )

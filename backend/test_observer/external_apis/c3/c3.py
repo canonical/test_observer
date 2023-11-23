@@ -71,6 +71,7 @@ class C3Api:
                             type=test_result["test"]["type"],
                             io_log=test_result["io_log"],
                             comment=test_result["comment"],
+                            historic_results=[],
                         )
                         for test_result in json["testresult_set"]
                     ],

@@ -189,6 +189,8 @@ def _derive_test_results(
         for past_executions in historic_test_executions_by_env[
             test_execution.environment_id
         ]:
+            # For each test in the current report, we try to find all previous
+            # reports and see if the same test was executed there
             status_id = _parse_status_id_from_c3_link(past_executions.c3_link)
             report_id = submissions_statuses[status_id].report_id
             
