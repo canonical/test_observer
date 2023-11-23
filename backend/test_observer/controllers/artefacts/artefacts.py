@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
-from test_observer.data_access.setup import get_db, get_redis
+from test_observer.data_access.setup import get_db
 from test_observer.external_apis.c3.c3 import C3Api
 
 from .logic import (
