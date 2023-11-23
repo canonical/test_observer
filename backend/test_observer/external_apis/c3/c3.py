@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from collections.abc import Iterable
@@ -7,8 +6,6 @@ import requests
 from requests import Request, Response
 
 from .models import Report, SubmissionStatus, TestResult
-
-from redis import Redis
 
 logger = logging.getLogger("test-observer-backend")
 
@@ -41,7 +38,7 @@ class C3Api:
             logger.warning(response.text)
             return {}
 
-    def get_reports(self, ids: Iterable[int], redis: Redis) -> dict[int, Report]:
+    def get_reports(self, ids: Iterable[int]) -> dict[int, Report]:
         str_ids = [str(report_id) for report_id in ids]
 
         # Edge case: if there are 0 reports, we don't need to make an API call

@@ -40,8 +40,6 @@ from .logic import (
 )
 from .models import ArtefactBuildDTO, ArtefactDTO
 
-from redis import Redis
-
 router = APIRouter()
 
 
@@ -78,7 +76,6 @@ def get_artefact_builds(
     artefact_id: int,
     c3api: Annotated[C3Api, Depends()],
     db: Session = Depends(get_db),
-    redis: Redis = Depends(get_redis),
 ):
     """Get latest artefact builds of an artefact together with their test executions"""
     builds = get_builds_from_db(artefact_id, db)
@@ -102,7 +99,7 @@ def get_artefact_builds(
         get_statuses_ids(builds, historic_test_executions)
     )
 
-    reports = c3api.get_reports(get_reports_ids(submissions_statuses.values()), redis)
+    reports = c3api.get_reports(get_reports_ids(submissions_statuses.values()))
 
     dto_builds = construct_dto_builds(
         builds, submissions_statuses, reports, test_executions_by_env_id
