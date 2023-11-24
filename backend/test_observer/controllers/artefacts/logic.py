@@ -48,7 +48,7 @@ def get_builds_from_db(artefact_id: int, db: Session) -> list[ArtefactBuild]:
 
 
 def get_historic_test_executions_from_db(
-    artefact_id, environments: list[int], db: Session
+    artefact_id: int, environments: list[int], db: Session
 ) -> None:
     """
     Fetches the historic test executions. Filters based on:
@@ -81,9 +81,6 @@ def get_historic_test_executions_from_db(
         .filter(subquery.c.row_number < 11)
         .all()
     )
-
-    for i in test_executions:
-        print(i.created_at)
 
     return test_executions
 
