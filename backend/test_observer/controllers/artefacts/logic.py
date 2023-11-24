@@ -56,7 +56,6 @@ def get_historic_test_executions_from_db(
     * C3 Link is not null
     * For each environment ID there are at most 10 test executions
     """
-    # TODO: verify this returns latest and at most N
     subquery = (
         db.query(
             TestExecution,
@@ -184,7 +183,6 @@ def _derive_test_results(
 
     current_report = reports[report_id]
 
-    # TODO: optimize this
     for test in current_report.test_results:
         for past_executions in historic_test_executions_by_env[
             test_execution.environment_id

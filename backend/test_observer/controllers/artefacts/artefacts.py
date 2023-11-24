@@ -30,7 +30,6 @@ from test_observer.data_access.setup import get_db
 from test_observer.external_apis.c3.c3 import C3Api
 
 from .logic import (
-    _parse_status_id_from_c3_link,
     construct_dto_builds,
     get_builds_from_db,
     get_historic_test_executions_from_db,
@@ -44,10 +43,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[ArtefactDTO])
-def get_artefacts(
-    family: FamilyName | None = None,
-    db: Session = Depends(get_db),
-):
+def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
     artefacts = []
 
@@ -80,6 +76,7 @@ def get_artefact_builds(
     """Get latest artefact builds of an artefact together with their test executions"""
     builds = get_builds_from_db(artefact_id, db)
 
+    # Gets the environment IDs of all test executions in the current builds
     test_execution_environments = [
         test_execution.environment_id
         for build in builds
@@ -87,10 +84,14 @@ def get_artefact_builds(
         if test_execution.c3_link
     ]
 
+    # Uses the previously generated test_execution_environments to fetch 
+    # the last test execution for this environment
     historic_test_executions = get_historic_test_executions_from_db(
         artefact_id, test_execution_environments, db
     )
 
+    # Generates dict[int, list[TestExecution]] to match all test executions
+    # by environment ID
     test_executions_by_env_id = get_test_execution_by_environment_id_mapping(
         historic_test_executions
     )
