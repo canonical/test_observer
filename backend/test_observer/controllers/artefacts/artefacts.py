@@ -91,7 +91,7 @@ def get_artefact_builds(
     )
 
     # Generates dict[int, list[TestExecution]] to match all test executions
-    # by environment ID
+    # by the test excecution environment ID
     test_executions_by_env_id = get_test_execution_by_environment_id_mapping(
         historic_test_executions
     )
