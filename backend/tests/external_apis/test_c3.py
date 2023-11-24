@@ -104,7 +104,7 @@ def test_get_submissions_statuses(
         json={"results": [status]},
     )
 
-    statuses = c3.get_submissions_statuses([status["id"]])
+    statuses = c3.get_submissions_statuses({status["id"]})
 
     assert statuses == {status["id"]: SubmissionStatus(**status)}
 

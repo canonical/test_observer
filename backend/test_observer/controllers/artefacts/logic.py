@@ -49,7 +49,7 @@ def get_builds_from_db(artefact_id: int, db: Session) -> list[ArtefactBuild]:
 
 def get_historic_test_executions_from_db(
     artefact_id: int, environments: list[int], db: Session
-) -> None:
+) -> list[TestExecution]:
     """
     Fetches the historic test executions. Filters based on:
     * Artefact ID
@@ -62,7 +62,7 @@ def get_historic_test_executions_from_db(
             func.row_number()
             .over(
                 partition_by=TestExecution.environment_id,
-                order_by=desc(TestExecution.created_at),
+                order_by=desc(TestExecution.id),
             )
             .label("row_number"),
         )
@@ -108,7 +108,7 @@ def get_statuses_ids(
 def get_test_execution_by_environment_id_mapping(
     historic_test_executions: list[TestExecution],
 ) -> dict[int, list[TestExecution]]:
-    test_executions_by_env_id = {}
+    test_executions_by_env_id: dict[int, list[TestExecution]] = {}
     for test_execution in historic_test_executions:
         if test_executions_by_env_id.get(test_execution.environment_id) is None:
             test_executions_by_env_id[test_execution.environment_id] = [test_execution]
@@ -181,13 +181,21 @@ def _derive_test_results(
     current_report = reports[report_id]
 
     for test in current_report.test_results:
-        for past_executions in historic_test_executions_by_env[
+        for past_execution in historic_test_executions_by_env[
             test_execution.environment_id
         ]:
             # For each test in the current report, we try to find all previous
             # reports and see if the same test was executed there
-            status_id = _parse_status_id_from_c3_link(past_executions.c3_link)
-            report_id = submissions_statuses[status_id].report_id
+
+            # Verify the submission status and the report can be found
+            if (
+                status_id := _parse_status_id_from_c3_link(past_execution.c3_link)
+            ) is None:
+                continue
+            if (submission_status := submissions_statuses.get(status_id)) is None:
+                continue
+            if (report_id := submission_status.report_id) is None:
+                continue
 
             for past_test in reports[report_id].test_results:
                 if test.id == past_test.id:

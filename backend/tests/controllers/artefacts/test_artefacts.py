@@ -24,12 +24,16 @@ from pytest import MonkeyPatch
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.artefacts.models import TestExecutionStatus
+from test_observer.controllers.artefacts.logic import (
+    get_historic_test_executions_from_db,
+)
 from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
 from test_observer.external_apis.c3.c3 import C3Api
 from test_observer.external_apis.c3.models import (
     Report,
     SubmissionProcessingStatus,
     SubmissionStatus,
+    TestResult,
 )
 from test_observer.main import app
 from tests.helpers import create_artefact
@@ -208,3 +212,169 @@ def test_correct_test_execution_status(
             ],
         }
     ]
+
+
+def test_historic_test_executions_fetched(
+    db_session: Session, test_client: TestClient, monkeypatch: MonkeyPatch
+):
+    artefact = create_artefact(db_session, "beta")
+    artefact_build_old = ArtefactBuild(
+        architecture="amd64", artefact=artefact, revision=1
+    )
+    environment = Environment(
+        name="laptop", architecture=artefact_build_old.architecture
+    )
+    test_execution_old = TestExecution(
+        artefact_build=artefact_build_old,
+        environment=environment,
+        c3_link="https://certification.canonical.com/submissions/status/111111",
+    )
+    db_session.add_all([artefact_build_old, environment, test_execution_old])
+    db_session.commit()
+
+    artefact_build_new = ArtefactBuild(
+        architecture="amd64", artefact=artefact, revision=2
+    )
+    test_execution_new = TestExecution(
+        artefact_build=artefact_build_new,
+        environment=environment,
+        c3_link="https://certification.canonical.com/submissions/status/111112",
+    )
+
+    db_session.add_all([artefact_build_new, test_execution_new])
+    db_session.commit()
+
+    c3api_mock = C3Api
+    submission_status_old = SubmissionStatus(
+        id=111111,
+        status=SubmissionProcessingStatus.PASS,
+        report_id=237670,
+    )
+    submission_status_new = SubmissionStatus(
+        id=111112,
+        status=SubmissionProcessingStatus.PASS,
+        report_id=237671,
+    )
+    monkeypatch.setattr(
+        c3api_mock,
+        "get_submissions_statuses",
+        lambda *_: {
+            submission_status_old.id: submission_status_old,
+            submission_status_new.id: submission_status_new,
+        },
+    )
+
+    report_old = Report(
+        id=237670,
+        failed_test_count=1,
+        test_count=1,
+        test_results=[
+            TestResult(
+                id=1,
+                name="camera_test",
+                type="test",
+                status="fail",
+                comment="Camera failed",
+                io_log="",
+                historic_results=[],
+            )
+        ],
+    )
+    report_new = Report(
+        id=237671,
+        failed_test_count=0,
+        test_count=1,
+        test_results=[
+            TestResult(
+                id=1,
+                name="camera_test",
+                type="test",
+                status="pass",
+                comment="Camera worked",
+                io_log="Camera IO Log",
+                historic_results=[],
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        c3api_mock,
+        "get_reports",
+        lambda *_: {
+            report_old.id: report_old,
+            report_new.id: report_new,
+        },
+    )
+    app.dependency_overrides[C3Api] = c3api_mock
+
+    response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": artefact_build_new.id,
+            "architecture": artefact_build_new.architecture,
+            "revision": artefact_build_new.revision,
+            "test_executions": [
+                {
+                    "id": test_execution_new.id,
+                    "jenkins_link": test_execution_new.jenkins_link,
+                    "c3_link": test_execution_new.c3_link,
+                    "status": TestExecutionStatus.PASSED.value,
+                    "environment": {
+                        "id": environment.id,
+                        "name": environment.name,
+                        "architecture": environment.architecture,
+                    },
+                    "test_results": [
+                        {
+                            "id": 1,
+                            "name": "camera_test",
+                            "type": "test",
+                            "status": "pass",
+                            "comment": "Camera worked",
+                            "io_log": "Camera IO Log",
+                            "historic_results": ["pass", "fail"],
+                        },
+                    ],
+                }
+            ],
+        }
+    ]
+
+
+def test_ten_most_recent_test_executions_returned(db_session: Session):
+    # Creates initial environment and artefact data
+    artefact = create_artefact(db_session, "beta")
+    artefact_build_old = ArtefactBuild(
+        architecture="amd64", artefact=artefact, revision=0
+    )
+    environment = Environment(
+        name="laptop", architecture=artefact_build_old.architecture
+    )
+    test_execution_old = TestExecution(
+        artefact_build=artefact_build_old,
+        environment=environment,
+        c3_link="https://certification.canonical.com/submissions/status/0",
+    )
+    db_session.add_all([artefact_build_old, environment, test_execution_old])
+    db_session.commit()
+
+    # Generate 20 test executions
+    for test_execution_id in range(1, 21):
+        artefact_build = ArtefactBuild(
+            architecture="amd64", artefact=artefact, revision=test_execution_id
+        )
+        test_execution = TestExecution(
+            artefact_build=artefact_build,
+            environment=environment,
+            c3_link=f"https://certification.canonical.com/submissions/status/{test_execution_id}",
+        )
+        db_session.add_all([artefact_build, test_execution])
+        db_session.commit()
+
+    historic_test_executions = get_historic_test_executions_from_db(
+        artefact_id=artefact.id, environments=[environment.id], db=db_session
+    )
+
+    # Ensure only 10 test executions are returned
+    assert len(historic_test_executions) == 10
