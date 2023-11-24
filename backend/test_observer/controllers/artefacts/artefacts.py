@@ -84,7 +84,7 @@ def get_artefact_builds(
         if test_execution.c3_link
     ]
 
-    # Uses the previously generated test_execution_environments to fetch 
+    # Uses the previously generated test_execution_environments to fetch
     # the last test execution for this environment
     historic_test_executions = get_historic_test_executions_from_db(
         artefact_id, test_execution_environments, db

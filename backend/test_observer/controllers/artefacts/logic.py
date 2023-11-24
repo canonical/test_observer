@@ -191,7 +191,7 @@ def _derive_test_results(
             # reports and see if the same test was executed there
             status_id = _parse_status_id_from_c3_link(past_executions.c3_link)
             report_id = submissions_statuses[status_id].report_id
-            
+
             for past_test in reports[report_id].test_results:
                 if test.id == past_test.id:
                     test.historic_results.append(past_test.status)
