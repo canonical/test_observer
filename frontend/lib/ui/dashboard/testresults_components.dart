@@ -5,8 +5,11 @@ import '../../models/test_results.dart';
 import '../spacing.dart';
 
 class GroupTestResultView extends StatelessWidget {
-  const GroupTestResultView(
-      {super.key, required this.testResultStatus, required this.groupTestResults,});
+  const GroupTestResultView({
+    super.key,
+    required this.testResultStatus,
+    required this.groupTestResults,
+  });
 
   final List<TestResult> groupTestResults;
   final TestResultStatus testResultStatus;
@@ -31,14 +34,15 @@ class GroupTestResultView extends StatelessWidget {
       ),
       expandButtonPosition: YaruExpandableButtonPosition.start,
       child: Padding(
-          padding: const EdgeInsets.only(left: Spacing.level4),
-          child: Column(
-            children: groupTestResults
-                .map(
-                  (testResult) => _TestResultView(testResult: testResult),
-                )
-                .toList(),
-          ),),
+        padding: const EdgeInsets.only(left: Spacing.level4),
+        child: Column(
+          children: groupTestResults
+              .map(
+                (testResult) => _TestResultView(testResult: testResult),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }
@@ -51,51 +55,52 @@ class _TestResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return YaruExpandable(
-        header: Row(
+      header: Row(
+        children: [
+          testResult.status.icon,
+          const SizedBox(width: Spacing.level4),
+          Text(
+            testResult.name,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(width: Spacing.level4),
+        ],
+      ),
+      expandButtonPosition: YaruExpandableButtonPosition.start,
+      child: Padding(
+        padding: const EdgeInsets.only(left: Spacing.level6),
+        child: Wrap(
           children: [
-            testResult.status.icon,
-            const SizedBox(width: Spacing.level4),
-            Text(
-              testResult.name,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(width: Spacing.level4),
+            testResult.comment != ''
+                ? Wrap(
+                    children: [
+                      Text(
+                        'Test Comment:',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        testResult.comment,
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+            testResult.ioLog != ''
+                ? Wrap(
+                    alignment: WrapAlignment.start,
+                    children: [
+                      Text(
+                        'Test IO Log:',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        testResult.ioLog,
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ],
         ),
-        expandButtonPosition: YaruExpandableButtonPosition.start,
-        child: Padding(
-          padding: const EdgeInsets.only(left: Spacing.level6),
-          child: Wrap(
-            children: [
-              testResult.comment != ''
-                  ? Wrap(
-                      children: [
-                        Text(
-                          'Test Comment:',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text(
-                          testResult.comment,
-                        ),
-                      ],
-                    )
-                  : const SizedBox.shrink(),
-              testResult.ioLog != ''
-                  ? Wrap(
-                      alignment: WrapAlignment.start,
-                      children: [
-                        Text(
-                          'Test IO Log:',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text(
-                          testResult.ioLog,
-                        ),
-                      ],
-                    )
-                  : const SizedBox.shrink(),
-            ],
-          ),
-        ),);
+      ),
+    );
   }
 }
