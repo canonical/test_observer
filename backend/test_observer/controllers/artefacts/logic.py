@@ -141,5 +141,5 @@ def _parse_status_id_from_c3_link(c3_link: str) -> int | None:
             c3_link = c3_link[:-1]
 
         return int(c3_link.split("/")[-1])
-    except TypeError:
+    except ValueError:
         return None
