@@ -19,7 +19,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
-from test_observer.data_access.models_enums import TestExecutionStatus
+from test_observer.data_access.models_enums import ArtefactStatus, TestExecutionStatus
 
 
 class ArtefactDTO(BaseModel):
@@ -60,3 +60,7 @@ class ArtefactBuildDTO(BaseModel):
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionDTO]
+
+
+class ArtefactPatch(BaseModel):
+    status: ArtefactStatus

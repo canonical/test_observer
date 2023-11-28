@@ -25,7 +25,7 @@ from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
-from .models import ArtefactBuildDTO, ArtefactDTO
+from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch
 
 router = APIRouter()
 
@@ -53,6 +53,19 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Artefact not found")
 
     return artefact
+
+
+@router.patch("/{artefact_id}")
+def patch_artefact(
+    artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
+):
+    artefact = db.get(Artefact, artefact_id)
+
+    if artefact is None:
+        raise HTTPException(status_code=404, detail="Artefact not found")
+
+    artefact.status = request.status
+    db.commit()
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
