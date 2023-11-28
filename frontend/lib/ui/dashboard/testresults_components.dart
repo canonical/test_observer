@@ -16,6 +16,8 @@ class GroupTestResultView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final testCountText = '(${groupTestResults.length})';
+
     return YaruExpandable(
       header: Row(
         children: [
@@ -25,9 +27,9 @@ class GroupTestResultView extends StatelessWidget {
             testResultStatus.name,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const Spacer(),
+          const SizedBox(width: Spacing.level2),
           Text(
-            groupTestResults.length.toString(),
+            testCountText,
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ],
