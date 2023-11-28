@@ -17,7 +17,7 @@ class TestExecution with _$TestExecution {
     @JsonKey(name: 'c3_link') required String? c3Link,
     required TestExecutionStatus status,
     required Environment environment,
-    @JsonKey(name: 'test_results') required List<TestResult>? testResults,
+    @JsonKey(name: 'test_results') required List<TestResult> testResults,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>

@@ -12,6 +12,7 @@ from test_observer.external_apis.c3.models import (
     Report,
     SubmissionProcessingStatus,
     SubmissionStatus,
+    TestResultStatus,
 )
 
 
@@ -19,6 +20,25 @@ class StatusDict(TypedDict):
     id: int
     report_id: int | None
     status: SubmissionProcessingStatus
+
+
+class C3TestCaseDict(TypedDict):
+    id: int
+    name: str
+
+
+class C3TestResultDict(TypedDict):
+    id: int
+    comment: str
+    io_log: str
+    test: C3TestCaseDict
+    status: str
+
+
+class C3ReportSummaryAPIResponse(TypedDict):
+    id: int
+    failed_test_count: int
+    testresult_set: list[C3TestResultDict]
 
 
 @pytest.fixture
@@ -111,10 +131,9 @@ def test_get_submissions_statuses(
 
 def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
     c3, bearer_token = prepare_c3api
-    c3_api_response = {
+    c3_api_response: C3ReportSummaryAPIResponse = {
         "id": 237670,
         "failed_test_count": 0,
-        "test_count": 0,
         "testresult_set": [],
     }
     requests_mock.get(
@@ -123,22 +142,68 @@ def test_get_reports(requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]):
         json={"results": [c3_api_response]},
     )
 
+    reports = c3.get_reports([c3_api_response["id"]])
+
+    # The type checker cannot recognize that the testresult_set is an alias
+    # to the test_results field, we ignore the call-arg error because of this
+    expected_report = Report(**c3_api_response)  # type: ignore
+
+    assert reports == {expected_report.id: expected_report}
+
+
+def test_get_reports_with_test_results(
+    requests_mock: Mocker, prepare_c3api: tuple[C3Api, str]
+):
+    c3, bearer_token = prepare_c3api
+    c3_api_response: C3ReportSummaryAPIResponse = {
+        "id": 237670,
+        "failed_test_count": 0,
+        "testresult_set": [
+            {
+                "id": 123123,
+                "comment": "Test comment",
+                "io_log": "IO log of the test run",
+                "status": "pass",
+                "test": {
+                    "id": 12,
+                    "name": "wireless",
+                },
+            },
+            {
+                "id": 123124,
+                "comment": "Test comment",
+                "io_log": "IO log of the test run",
+                "status": "fail",
+                "test": {
+                    "id": 12,
+                    "name": "camera",
+                },
+            },
+        ],
+    }
+
     requests_mock.get(
-        f"https://certification.canonical.com/api/v2/reports/summary/{c3_api_response['id']}/",
+        f"https://certification.canonical.com/api/v2/reports/summary/?id__in={c3_api_response['id']}&limit=1",
         request_headers={"Authorization": f"Bearer {bearer_token}"},
         json={"results": [c3_api_response]},
     )
 
-    # We ignore this typing error, it happens because of the
-    # "testresult_set" assigned to empty list in the c3_api_response
-    # dict, and the Python Typing system cannot be sure that the "id"
-    # field is int
-    reports = c3.get_reports([c3_api_response["id"]])  # type: ignore
+    reports = c3.get_reports([c3_api_response["id"]])
 
-    expected_report = Report(
-        id=237670,
-        failed_test_count=0,
-        test_count=0,
-        test_results=[],
-    )
+    assert len(reports[237670].test_results) == 2
+    
+    count_pass = 0
+    count_fail = 0
+    for test_result in reports[237670].test_results:
+        if test_result.status == TestResultStatus.PASS:
+            count_pass += 1
+        elif test_result.status == TestResultStatus.FAIL:
+            count_fail += 1
+
+    assert count_pass == 1 and count_fail == 1
+
+    # The type checker cannot recognize that the testresult_set is an alias
+    # to the test_results field, we ignore the call-arg error because of this
+    expected_report = Report(**c3_api_response)  # type: ignore
+
     assert reports == {expected_report.id: expected_report}

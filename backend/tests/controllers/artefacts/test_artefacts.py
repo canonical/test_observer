@@ -180,7 +180,10 @@ def test_correct_test_execution_status(
         "get_submissions_statuses",
         lambda *_: {submission_status.id: submission_status},
     )
-    report = Report(id=237670, failed_test_count=0, test_count=0, test_results=[])
+
+    # The type checker cannot recognize that the testresult_set is an alias
+    # to the test_results field, we ignore the call-arg error because of this
+    report = Report(id=237670, failed_test_count=0, testresult_set=[]) # type: ignore
     monkeypatch.setattr(c3api_mock, "get_reports", lambda *_: {report.id: report})
     app.dependency_overrides[C3Api] = c3api_mock
 

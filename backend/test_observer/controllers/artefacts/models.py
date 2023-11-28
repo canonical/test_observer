@@ -60,7 +60,7 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
-    test_results: list[TestResult] | None
+    test_results: list[TestResult]
 
 
 class ArtefactBuildDTO(BaseModel):

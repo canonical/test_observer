@@ -11,7 +11,6 @@ class TestResult with _$TestResult {
   const factory TestResult({
     required int id,
     required String name,
-    required String type,
     required TestResultStatus status,
     @JsonKey(name: 'io_log') required String ioLog,
     required String comment,

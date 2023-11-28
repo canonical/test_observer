@@ -62,6 +62,7 @@ class _TestResultView extends StatelessWidget {
           Text(
             testResult.name,
             style: Theme.of(context).textTheme.titleLarge,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(width: Spacing.level4),
         ],
@@ -69,36 +70,39 @@ class _TestResultView extends StatelessWidget {
       expandButtonPosition: YaruExpandableButtonPosition.start,
       child: Padding(
         padding: const EdgeInsets.only(left: Spacing.level6),
-        child: Wrap(
-          children: [
-            testResult.comment != ''
-                ? Wrap(
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (testResult.comment != '')
+                RichText(
+                  textAlign: TextAlign.left,
+                  text: TextSpan(
                     children: [
-                      Text(
-                        'Test Comment:',
+                      TextSpan(
+                        text: 'Test Comment:',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      Text(
-                        testResult.comment,
-                      ),
+                      TextSpan(text: testResult.comment),
                     ],
-                  )
-                : const SizedBox.shrink(),
-            testResult.ioLog != ''
-                ? Wrap(
-                    alignment: WrapAlignment.start,
+                  ),
+                ),
+              if (testResult.ioLog != '')
+                RichText(
+                  textAlign: TextAlign.left,
+                  text: TextSpan(
                     children: [
-                      Text(
-                        'Test IO Log:',
+                      TextSpan(
+                        text: 'Test IO Log:',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      Text(
-                        testResult.ioLog,
-                      ),
+                      TextSpan(text: testResult.ioLog),
                     ],
-                  )
-                : const SizedBox.shrink(),
-          ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -5,7 +5,7 @@ from collections.abc import Iterable
 import requests
 from requests import Request, Response
 
-from .models import Report, SubmissionStatus, TestResult
+from .models import Report, SubmissionStatus
 
 logger = logging.getLogger("test-observer-backend")
 
@@ -21,7 +21,6 @@ class C3Api:
     ) -> dict[int, SubmissionStatus]:
         str_ids = [str(status_id) for status_id in ids]
 
-        # Edge case: if there are 0 submissions, we don't need to make an API call
         if not str_ids:
             return {}
 
@@ -43,7 +42,6 @@ class C3Api:
     def get_reports(self, ids: Iterable[int]) -> dict[int, Report]:
         str_ids = [str(report_id) for report_id in ids]
 
-        # Edge case: if there are 0 reports, we don't need to make an API call
         if not str_ids:
             return {}
 
@@ -57,25 +55,7 @@ class C3Api:
 
         if response.ok:
             reports = response.json()["results"]
-            return {
-                json["id"]: Report(
-                    id=json["id"],
-                    failed_test_count=json["failed_test_count"],
-                    test_count=json["test_count"],
-                    test_results=[
-                        TestResult(
-                            id=test_result["test"]["id"],
-                            name=test_result["test"]["name"],
-                            status=test_result["status"],
-                            type=test_result["test"]["type"],
-                            io_log=test_result["io_log"],
-                            comment=test_result["comment"],
-                        )
-                        for test_result in json["testresult_set"]
-                    ],
-                )
-                for json in reports
-            }
+            return {json["id"]: Report(**json) for json in reports}
         else:
             logger.warning(response.text)
             return {}

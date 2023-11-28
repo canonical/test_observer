@@ -277,21 +277,8 @@ class _TestExecutionView extends StatelessWidget {
     final c3Link = testExecution.c3Link;
 
     // Split the test result in separate categories based on Status (PASS/FAIL/SKIP)
-    final Map<TestResultStatus, List<TestResult>> testResultGroups = {};
-    for (var value in TestResultStatus.values) {
-      final List<TestResult> currentTestCases = testExecution.testResults
-              ?.where(
-                (testResult) => testResult.status == value,
-              )
-              .toList() ??
-          [];
-
-      if (currentTestCases.isEmpty) {
-        continue;
-      }
-
-      testResultGroups[value] = currentTestCases;
-    }
+    final Map<TestResultStatus, List<TestResult>> testResultGroups =
+        testExecution.testResults.groupBy(((testResult) => testResult.status));
 
     return YaruExpandable(
       header: Row(
