@@ -35,6 +35,6 @@ class TestExecutionStatus(Enum):
     NOT_TESTED = "NOT_TESTED"
 
 
-class ArtefactStatus(Enum):
+class ArtefactStatus(str, Enum):
     APPROVED = "APPROVED"
     MARKED_AS_FAILED = "MARKED_AS_FAILED"

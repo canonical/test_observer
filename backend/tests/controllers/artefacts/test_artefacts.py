@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
+from test_observer.data_access.models_enums import ArtefactStatus
 from tests.helpers import create_artefact
 
 
@@ -129,3 +130,17 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
             "test_executions": [],
         }
     ]
+
+
+def test_artefact_signoff(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "candidate")
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"status": ArtefactStatus.APPROVED},
+    )
+
+    db_session.refresh(artefact)
+
+    assert response.status_code == 200
+    assert artefact.status == ArtefactStatus.APPROVED
