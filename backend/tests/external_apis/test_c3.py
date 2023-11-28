@@ -191,7 +191,7 @@ def test_get_reports_with_test_results(
     reports = c3.get_reports([c3_api_response["id"]])
 
     assert len(reports[237670].test_results) == 2
-    
+
     count_pass = 0
     count_fail = 0
     for test_result in reports[237670].test_results:
