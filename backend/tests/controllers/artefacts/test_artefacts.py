@@ -32,6 +32,7 @@ from test_observer.external_apis.c3.models import (
     SubmissionStatus,
 )
 from test_observer.main import app
+from test_observer.data_access.models_enums import ArtefactStatus
 from tests.helpers import create_artefact
 
 
@@ -211,3 +212,17 @@ def test_correct_test_execution_status(
             ],
         }
     ]
+
+
+def test_artefact_signoff(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "candidate")
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"status": ArtefactStatus.APPROVED},
+    )
+
+    db_session.refresh(artefact)
+
+    assert response.status_code == 200
+    assert artefact.status == ArtefactStatus.APPROVED

@@ -22,7 +22,7 @@ from enum import Enum
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
 from test_observer.external_apis.c3.models import TestResult
-
+from test_observer.data_access.models_enums import ArtefactStatus
 
 class TestExecutionStatus(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
@@ -70,3 +70,7 @@ class ArtefactBuildDTO(BaseModel):
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionDTO]
+
+
+class ArtefactPatch(BaseModel):
+    status: ArtefactStatus
