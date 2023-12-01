@@ -105,8 +105,18 @@ def patch_test_execution(
     request: TestExecutionsPatchRequest,
     db: Session = Depends(get_db),
 ):
-    test_execution = db.query(TestExecution).filter(TestExecution.id == id).one()
-    test_execution.c3_link = request.c3_link
-    test_execution.ci_link = request.ci_link
-    test_execution.status = request.status
+    test_execution = db.get(TestExecution, id)
+
+    if test_execution is None:
+        raise HTTPException(status_code=404, detail="TestExecution not found")
+
+    if request.c3_link is not None:
+        test_execution.c3_link = str(request.c3_link)
+
+    if request.ci_link is not None:
+        test_execution.ci_link = str(request.ci_link)
+
+    if request.status is not None:
+        test_execution.status = request.status
+
     db.commit()

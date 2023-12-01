@@ -154,7 +154,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
 
     test_execution_id = test_client.put(
         "/v1/test-executions/start-test",
-        data=request.model_dump_json(),
+        json=request.model_dump(mode="json"),
     ).json()["id"]
 
     test_execution = (

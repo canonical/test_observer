@@ -120,7 +120,7 @@ REQUESTS = [
 def seed_data(client: TestClient | requests.Session):
     for request in REQUESTS:
         client.put(
-            START_TEST_EXECUTION_URL, data=request.model_dump_json()
+            START_TEST_EXECUTION_URL, json=request.model_dump(mode="json")
         ).raise_for_status()
 
 
