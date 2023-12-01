@@ -91,6 +91,7 @@ def start_test_execution(
             },
             creation_kwargs={
                 "status": TestExecutionStatus.IN_PROGRESS,
+                "ci_link": request.ci_link,
             },
         )
         return {"id": test_execution.id}

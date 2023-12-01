@@ -18,7 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
-from pydantic import BaseModel, field_serializer, model_validator
+from pydantic import BaseModel, HttpUrl, field_serializer, model_validator
 
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 
@@ -35,6 +35,7 @@ class StartTestExecutionRequest(BaseModel):
     arch: str
     execution_stage: str
     environment: str
+    ci_link: HttpUrl
 
     @field_serializer("family")
     def serialize_dt(self, family: FamilyName):

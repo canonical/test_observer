@@ -18,6 +18,7 @@ REQUESTS = [
         arch="armhf",
         execution_stage="beta",
         environment="rpi2",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -29,6 +30,7 @@ REQUESTS = [
         arch="armhf",
         execution_stage="beta",
         environment="rpi2",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -40,6 +42,7 @@ REQUESTS = [
         arch="armhf",
         execution_stage="beta",
         environment="rpi2",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -51,6 +54,7 @@ REQUESTS = [
         arch="amd64",
         execution_stage="edge",
         environment="dawson-i",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -62,6 +66,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="candidate",
         environment="cm3",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -73,6 +78,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="stable",
         environment="cm3",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -84,6 +90,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="stable",
         environment="dragonboard",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.DEB,
@@ -94,6 +101,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="proposed",
         environment="rpi400",
+        ci_link="http://localhost",
     ),
     StartTestExecutionRequest(
         family=FamilyName.DEB,
@@ -104,6 +112,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="updates",
         environment="rpi400",
+        ci_link="http://localhost",
     ),
 ]
 
@@ -111,7 +120,7 @@ REQUESTS = [
 def seed_data(client: TestClient | requests.Session):
     for request in REQUESTS:
         client.put(
-            START_TEST_EXECUTION_URL, json=request.model_dump()
+            START_TEST_EXECUTION_URL, data=request.model_dump_json()
         ).raise_for_status()
 
 
