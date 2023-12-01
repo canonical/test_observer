@@ -73,7 +73,10 @@ def promote_artefacts(db: Session = Depends(get_db)):
                 status_code=500,
                 content={
                     artefact_key: processed_artefacts_error_messages[artefact_key]
-                    for artefact_key, artefact_status in processed_artefacts_status.items()
+                    for (
+                        artefact_key,
+                        artefact_status,
+                    ) in processed_artefacts_status.items()
                     if artefact_status is False
                 },
             )
