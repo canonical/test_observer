@@ -271,7 +271,7 @@ class _TestExecutionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final jenkinsLink = testExecution.jenkinsLink;
+    final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
 
     return YaruExpandable(
@@ -286,10 +286,10 @@ class _TestExecutionView extends StatelessWidget {
           const Spacer(),
           Row(
             children: [
-              if (jenkinsLink != null)
+              if (ciLink != null)
                 InlineUrlText(
-                  url: jenkinsLink,
-                  urlText: 'Jenkins',
+                  url: ciLink,
+                  urlText: 'CI',
                 ),
               const SizedBox(width: Spacing.level3),
               if (c3Link != null)

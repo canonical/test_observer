@@ -12,7 +12,7 @@ part 'test_execution.g.dart';
 class TestExecution with _$TestExecution {
   const factory TestExecution({
     required int id,
-    @JsonKey(name: 'jenkins_link') required String? jenkinsLink,
+    @JsonKey(name: 'ci_link') required String? ciLink,
     @JsonKey(name: 'c3_link') required String? c3Link,
     required TestExecutionStatus status,
     required Environment environment,
