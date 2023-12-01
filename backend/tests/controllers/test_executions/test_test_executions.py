@@ -187,6 +187,6 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     )
 
     db_session.refresh(test_execution)
-    assert test_execution.jenkins_link == "some jenkins link"
+    assert test_execution.ci_link == "some jenkins link"
     assert test_execution.c3_link == "some c3 link"
     assert test_execution.status == TestExecutionStatus.PASSED

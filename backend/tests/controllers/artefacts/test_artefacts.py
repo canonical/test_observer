@@ -94,7 +94,7 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
             "test_executions": [
                 {
                     "id": test_execution.id,
-                    "jenkins_link": test_execution.jenkins_link,
+                    "ci_link": test_execution.ci_link,
                     "c3_link": test_execution.c3_link,
                     "status": test_execution.status.value,
                     "environment": {
