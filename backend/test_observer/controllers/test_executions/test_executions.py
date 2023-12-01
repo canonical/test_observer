@@ -107,6 +107,6 @@ def patch_test_execution(
 ):
     test_execution = db.query(TestExecution).filter(TestExecution.id == id).one()
     test_execution.c3_link = request.c3_link
-    test_execution.ci_link = request.jenkins_link
+    test_execution.ci_link = request.ci_link
     test_execution.status = request.status
     db.commit()

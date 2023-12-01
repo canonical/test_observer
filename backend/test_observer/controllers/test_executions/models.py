@@ -57,6 +57,6 @@ class StartTestExecutionRequest(BaseModel):
 
 
 class TestExecutionsPatchRequest(BaseModel):
-    c3_link: str
-    jenkins_link: str
-    status: TestExecutionStatus
+    c3_link: HttpUrl | None
+    ci_link: HttpUrl | None
+    status: TestExecutionStatus | None
