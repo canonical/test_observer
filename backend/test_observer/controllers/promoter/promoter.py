@@ -63,18 +63,18 @@ def promote_artefacts(db: Session = Depends(get_db)):
     external source
     """
     try:
-        processed_artefacts = promoter_controller(db)
-        logger.info("INFO: Processed artefacts %s", processed_artefacts)
-        if False in processed_artefacts.values():
+        (
+            processed_artefacts_status,
+            processed_artefacts_error_messages,
+        ) = promoter_controller(db)
+        logger.info("INFO: Processed artefacts %s", processed_artefacts_status)
+        if False in processed_artefacts_status.values():
             return JSONResponse(
                 status_code=500,
                 content={
-                    "detail": (
-                        "Got some errors while processing the next artefacts: "
-                        ", ".join(
-                            [k for k, v in processed_artefacts.items() if v is False]
-                        )
-                    )
+                    artefact_key: processed_artefacts_error_messages[artefact_key]
+                    for artefact_key, artefact_status in processed_artefacts_status.items()
+                    if artefact_status is False
                 },
             )
         return JSONResponse(
@@ -85,32 +85,32 @@ def promote_artefacts(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
-def promoter_controller(session: Session) -> dict:
+def promoter_controller(session: Session) -> tuple[dict, dict]:
     """
     Orchestrate the snap promoter job
 
     :session: DB connection session
-    :return: dict with the processed cards and the status of execution
+    :return: tuple of dicts, the first the processed cards and the status of execution
+    the second only for the processed cards with the corresponding error message
     """
     family_mapping = {
         FamilyName.SNAP: run_snap_promoter,
         FamilyName.DEB: run_deb_promoter,
     }
+    processed_artefacts_status = {}
+    processed_artefacts_error_messages = {}
     for family_name, promoter_function in family_mapping.items():
         artefacts = get_artefacts_by_family(session, family_name, load_stage=True)
-        processed_artefacts = {}
         for artefact in artefacts:
+            artefact_key = f"{family_name} - {artefact.name} - {artefact.version}"
             try:
-                processed_artefacts[
-                    f"{family_name} - {artefact.name} - {artefact.version}"
-                ] = True
+                processed_artefacts_status[artefact_key] = True
                 promoter_function(session, artefact)
             except Exception as exc:
-                processed_artefacts[
-                    f"{family_name} - {artefact.name} - {artefact.version}"
-                ] = False
+                processed_artefacts_status[artefact_key] = False
+                processed_artefacts_error_messages[artefact_key] = str(exc)
                 logger.warning("WARNING: %s", str(exc), exc_info=True)
-    return processed_artefacts
+    return processed_artefacts_status, processed_artefacts_error_messages
 
 
 def run_snap_promoter(session: Session, artefact: Artefact) -> None:
