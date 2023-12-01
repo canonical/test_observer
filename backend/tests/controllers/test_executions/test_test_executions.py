@@ -46,6 +46,7 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
             "arch": "arm64",
             "execution_stage": "beta",
             "environment": "cm3",
+            "ci_link": "http://localhost",
         },
     )
 
@@ -109,6 +110,7 @@ def test_invalid_artefact_format(test_client: TestClient):
             "arch": "arm64",
             "execution_stage": "beta",
             "environment": "cm3",
+            "ci_link": "http://localhost",
         },
     )
     assert response.status_code == 422
@@ -125,6 +127,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
         arch="arm64",
         execution_stage="beta",
         environment="cm3",
+        ci_link="http://localhost/",
     )
     stage = (
         db_session.query(Stage).filter(Stage.name == request.execution_stage).first()
@@ -151,7 +154,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
 
     test_execution_id = test_client.put(
         "/v1/test-executions/start-test",
-        json=request.model_dump(),
+        json=request.model_dump(mode="json"),
     ).json()["id"]
 
     test_execution = (
@@ -163,6 +166,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     assert test_execution.artefact_build_id == artefact_build.id
     assert test_execution.environment_id == environment.id
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
+    assert test_execution.ci_link == "http://localhost/"
 
 
 def test_updates_test_execution(db_session: Session, test_client: TestClient):
@@ -180,13 +184,13 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
         json={
-            "jenkins_link": "some jenkins link",
-            "c3_link": "some c3 link",
+            "ci_link": "http://ci_link/",
+            "c3_link": "http://c3_link/",
             "status": TestExecutionStatus.PASSED.name,
         },
     )
 
     db_session.refresh(test_execution)
-    assert test_execution.jenkins_link == "some jenkins link"
-    assert test_execution.c3_link == "some c3 link"
+    assert test_execution.ci_link == "http://ci_link/"
+    assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED

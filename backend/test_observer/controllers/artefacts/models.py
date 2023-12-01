@@ -47,7 +47,7 @@ class TestExecutionDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    jenkins_link: str | None
+    ci_link: str | None
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
