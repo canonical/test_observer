@@ -30,7 +30,6 @@ def get_channel_map_from_snapcraft(arch: str, snapstore: str, snap_name: str):
     json_resp = req.json()
     if not req.ok:
         logger.error(json_resp["error-list"][0]["message"])
-        sys.exit(1)
 
     snap_info = SnapInfo(**rename_keys(json_resp))
     return snap_info.channel_map
