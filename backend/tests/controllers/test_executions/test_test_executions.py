@@ -30,7 +30,11 @@ from test_observer.data_access.models import (
     Stage,
     TestExecution,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionReviewStatus, TestExecutionStatus
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestExecutionReviewStatus,
+    TestExecutionStatus,
+)
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):

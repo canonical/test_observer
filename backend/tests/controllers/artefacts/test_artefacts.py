@@ -42,8 +42,6 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
 
     response = test_client.get("/v1/artefacts", params={"family": "snap"})
 
-    print(response)
-
     assert response.status_code == 200
     assert response.json() == [
         {

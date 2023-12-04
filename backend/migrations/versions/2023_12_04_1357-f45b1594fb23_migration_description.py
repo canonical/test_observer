@@ -19,10 +19,12 @@ depends_on = None
 def upgrade() -> None:
     op.execute(
         "CREATE TYPE test_execution_review_status_enum AS "
-        "ENUM('APPROVED_FLAKY_TESTS', 'APPROVED_PROVISION_ERRORS', 'APPROVED', 'MARKED_AS_FAILED', 'UNDECIDED')"
+        "ENUM('APPROVED_FLAKY_TESTS', 'APPROVED_PROVISION_ERRORS', "
+        "'APPROVED', 'MARKED_AS_FAILED', 'UNDECIDED')"
     )
     op.execute(
-        "ALTER TABLE test_execution ADD COLUMN review_status test_execution_review_status_enum"
+        "ALTER TABLE test_execution ADD COLUMN "
+        "review_status test_execution_review_status_enum"
     )
     op.add_column(
         "test_execution", sa.Column("review_comment", sa.String(), nullable=True)
