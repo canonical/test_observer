@@ -42,6 +42,8 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
 
     response = test_client.get("/v1/artefacts", params={"family": "snap"})
 
+    print(response)
+
     assert response.status_code == 200
     assert response.json() == [
         {
@@ -53,7 +55,7 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
             "series": relevant_artefact.series,
             "repo": relevant_artefact.repo,
             "stage": relevant_artefact.stage.name,
-            "status": relevant_artefact.status,
+            "status": relevant_artefact.status.value,
         }
     ]
 
@@ -74,7 +76,7 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
         "series": artefact.series,
         "repo": artefact.repo,
         "stage": artefact.stage.name,
-        "status": artefact.status,
+        "status": artefact.status.value,
     }
 
 
@@ -104,6 +106,8 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
                     "ci_link": test_execution.ci_link,
                     "c3_link": test_execution.c3_link,
                     "status": test_execution.status.value,
+                    "review_status": test_execution.review_status.value,
+                    "review_comment": test_execution.review_comment,
                     "environment": {
                         "id": environment.id,
                         "name": environment.name,

@@ -22,7 +22,11 @@ from typing import Annotated
 
 from pydantic import BaseModel, HttpUrl, field_serializer, model_validator
 
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestExecutionReviewStatus,
+    TestExecutionStatus,
+)
 
 
 class StartTestExecutionRequest(BaseModel):
@@ -62,3 +66,5 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None
     ci_link: HttpUrl | None
     status: TestExecutionStatus | None
+    review_status: TestExecutionReviewStatus | None
+    review_comment: str | None

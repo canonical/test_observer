@@ -31,6 +31,7 @@ from sqlalchemy.sql import func
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
+    TestExecutionReviewStatus,
     TestExecutionStatus,
 )
 
@@ -213,6 +214,10 @@ class TestExecution(Base):
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
     )
+    review_status: Mapped[TestExecutionReviewStatus] = mapped_column(
+        default=TestExecutionReviewStatus.UNDECIDED
+    )
+    review_comment: Mapped[str | None]
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 

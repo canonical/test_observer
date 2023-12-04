@@ -119,4 +119,10 @@ def patch_test_execution(
     if request.status is not None:
         test_execution.status = request.status
 
+    if request.review_status is not None:
+        test_execution.review_status = request.review_status
+
+    if request.review_comment is not None:
+        test_execution.review_comment = request.review_comment
+
     db.commit()
