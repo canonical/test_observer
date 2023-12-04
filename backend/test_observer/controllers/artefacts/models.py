@@ -33,6 +33,7 @@ class ArtefactDTO(BaseModel):
     series: str | None
     repo: str | None
     stage: str = Field(validation_alias=AliasPath("stage", "name"))
+    status: ArtefactStatus
 
 
 class EnvironmentDTO(BaseModel):

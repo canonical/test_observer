@@ -29,7 +29,12 @@ from tests.helpers import create_artefact
 
 def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestClient):
     """Should only get latest artefacts and only ones that belong to given family"""
-    relevant_artefact = create_artefact(db_session, "edge", version="2")
+    relevant_artefact = create_artefact(
+        db_session,
+        "edge",
+        version="2",
+        status=ArtefactStatus.MARKED_AS_FAILED,
+    )
 
     old_timestamp = relevant_artefact.created_at - timedelta(days=1)
     create_artefact(db_session, "edge", created_at=old_timestamp, version="1")
@@ -48,13 +53,14 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
             "series": relevant_artefact.series,
             "repo": relevant_artefact.repo,
             "stage": relevant_artefact.stage.name,
+            "status": relevant_artefact.status,
         }
     ]
 
 
 def test_get_artefact(db_session: Session, test_client: TestClient):
     """Should be able to fetch an existing artefact"""
-    artefact = create_artefact(db_session, "edge")
+    artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
 
@@ -68,6 +74,7 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
         "series": artefact.series,
         "repo": artefact.repo,
         "stage": artefact.stage.name,
+        "status": artefact.status,
     }
 
 

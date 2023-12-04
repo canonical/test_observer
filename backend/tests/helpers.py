@@ -20,6 +20,7 @@ def create_artefact(db_session: Session, stage_name: str, **kwargs) -> Artefact:
         series=kwargs.get("series", "jammy" if family == FamilyName.DEB else None),
         repo=kwargs.get("repo", "main" if family == FamilyName.DEB else None),
         created_at=kwargs.get("created_at", datetime.utcnow()),
+        status=kwargs.get("status"),
     )
     db_session.add(artefact)
     db_session.commit()
