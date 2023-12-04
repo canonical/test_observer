@@ -106,7 +106,7 @@ class Artefact(Base):
     )
     # Default fields
     due_date: Mapped[date | None]
-    status: Mapped[ArtefactStatus]
+    status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
 
     __table_args__ = (
         UniqueConstraint("name", "version", "track", name="unique_snap"),

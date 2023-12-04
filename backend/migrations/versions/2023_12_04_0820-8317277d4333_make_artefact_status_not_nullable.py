@@ -34,7 +34,7 @@ def downgrade() -> None:
     op.execute(
         "CREATE TYPE artefact_status_enum AS ENUM('APPROVED', 'MARKED_AS_FAILED')"
     )
-    op.execute("ALTER TABLE artefact ALTER COLUMN status SET NULL")
+    op.execute("ALTER TABLE artefact ALTER COLUMN status DROP NOT NULL")
     op.execute("UPDATE artefact SET status = NULL WHERE status = 'UNDECIDED'")
     op.execute(
         "ALTER TABLE artefact ALTER COLUMN status TYPE "
