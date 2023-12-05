@@ -69,6 +69,7 @@ class C3TestResult(BaseModel):
     id: int
     name: str
     status: C3TestResultStatus
+    category: str
     comment: str
     io_log: str
 
