@@ -4,7 +4,6 @@ import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
-import 'package:popover/popover.dart';
 import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 import 'package:yaru_widgets/widgets.dart';
@@ -18,7 +17,7 @@ import '../../providers/artefact_builds.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
-import 'test_execution_review_pop_over.dart';
+import 'review_pop_overs.dart';
 
 class ArtefactDialog extends ConsumerWidget {
   const ArtefactDialog({super.key, required this.artefactId});
@@ -43,7 +42,7 @@ class ArtefactDialog extends ConsumerWidget {
               data: (artefact) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ArtefactHeader(title: artefact.name),
+                  _ArtefactHeader(artefact: artefact),
                   const SizedBox(height: Spacing.level4),
                   _ArtefactInfoSection(artefact: artefact),
                   const SizedBox(height: Spacing.level4),
@@ -63,9 +62,9 @@ class ArtefactDialog extends ConsumerWidget {
 }
 
 class _ArtefactHeader extends StatelessWidget {
-  const _ArtefactHeader({required this.title});
+  const _ArtefactHeader({required this.artefact});
 
-  final String title;
+  final Artefact artefact;
 
   @override
   Widget build(BuildContext context) {
@@ -77,9 +76,16 @@ class _ArtefactHeader extends StatelessWidget {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: Theme.of(context).textTheme.headlineLarge),
+          Row(
+            children: [
+              Text(artefact.name,
+                  style: Theme.of(context).textTheme.headlineLarge),
+              const SizedBox(height: Spacing.level6),
+              ApproveArtefactButton(artefact: artefact),
+            ],
+          ),
+          const Spacer(),
           InkWell(
             child: const Icon(
               YaruIcons.window_close,
