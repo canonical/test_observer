@@ -209,7 +209,6 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
             ],
         },
     )
-    db_session.refresh(artefact)
 
     assert response.status_code == 200
     assert test_execution.status == TestExecutionStatus.PASSED
