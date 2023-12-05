@@ -20,7 +20,7 @@
 from datetime import date, datetime
 from typing import TypeVar
 
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, column
+from sqlalchemy import ForeignKey, Index, MetaData, String, UniqueConstraint, column
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -42,6 +42,18 @@ class Base(DeclarativeBase):
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(), onupdate=func.now()
+    )
+
+    metadata = MetaData(
+        # Use a naming convention so that alembic knows the name of constraints
+        # Use PostgreSQL specific conventions cause we already have keys named this way
+        naming_convention={
+            "ix": "%(table_name)s_%(column_0_N_name)s_ix",
+            "uq": "%(table_name)s_%(column_0_N_name)s_key",
+            "ck": "%(table_name)s_%(column_0_N_name)s_check",
+            "fk": "%(table_name)s_%(column_0_N_name)s_fkey",
+            "pk": "%(table_name)s_pkey",
+        },
     )
 
 
@@ -149,7 +161,7 @@ class ArtefactBuild(Base):
     __table_args__ = (
         # Unique constraint when revision is NULL
         Index(
-            "idx_artefact_id_architecture_null_revision",
+            None,
             "artefact_id",
             "architecture",
             unique=True,
@@ -157,7 +169,7 @@ class ArtefactBuild(Base):
         ),
         # Unique constraint when revision is NOT NULL
         Index(
-            "idx_artefact_id_architecture_revision",
+            None,
             "artefact_id",
             "architecture",
             "revision",
