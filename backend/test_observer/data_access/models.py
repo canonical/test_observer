@@ -210,7 +210,7 @@ class TestExecution(Base):
 
     __tablename__ = "test_execution"
 
-    ci_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    ci_link: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
     c3_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # Relationships
     artefact_build_id: Mapped[int] = mapped_column(

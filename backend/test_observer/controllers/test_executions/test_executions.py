@@ -33,7 +33,12 @@ from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-from .models import StartTestExecutionRequest, TestExecutionsPatchRequest
+from .models import (
+    C3TestResultStatus,
+    EndTestExecutionRequest,
+    StartTestExecutionRequest,
+    TestExecutionsPatchRequest,
+)
 
 router = APIRouter()
 
@@ -97,6 +102,26 @@ def start_test_execution(
         return {"id": test_execution.id}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.put("/end-test")
+def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(get_db)):
+    test_execution = (
+        db.query(TestExecution)
+        .filter(TestExecution.ci_link == request.ci_link)
+        .one_or_none()
+    )
+
+    if test_execution is None:
+        raise HTTPException(status_code=404, detail="Related TestExecution not found")
+
+    failed = any(r.status == C3TestResultStatus.FAIL for r in request.test_results)
+
+    if failed:
+        test_execution.status = TestExecutionStatus.FAILED
+    else:
+        test_execution.status = TestExecutionStatus.PASSED
+    db.commit()
 
 
 @router.patch("/{id}")
