@@ -4,6 +4,7 @@ import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
+import 'package:popover/popover.dart';
 import 'package:yaru/yaru.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 import 'package:yaru_widgets/widgets.dart';
@@ -17,6 +18,7 @@ import '../../providers/artefact_builds.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
+import 'test_execution_review_pop_over.dart';
 
 class ArtefactDialog extends ConsumerWidget {
   const ArtefactDialog({super.key, required this.artefactId});
@@ -286,6 +288,10 @@ class _TestExecutionView extends StatelessWidget {
           const Spacer(),
           Row(
             children: [
+              testExecution.reviewStatus.chip,
+              const SizedBox(width: Spacing.level4),
+              TestExecutionReviewButton(testExecution: testExecution),
+              const SizedBox(width: Spacing.level4),
               if (ciLink != null)
                 InlineUrlText(
                   url: ciLink,

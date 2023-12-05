@@ -16,10 +16,55 @@ class TestExecution with _$TestExecution {
     @JsonKey(name: 'c3_link') required String? c3Link,
     required TestExecutionStatus status,
     required Environment environment,
+    @JsonKey(name: 'review_status')
+    required TestExecutionReviewStatus reviewStatus,
+    @JsonKey(name: 'review_comment') required String? reviewComment,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>
       _$TestExecutionFromJson(json);
+}
+
+enum TestExecutionReviewStatus {
+  @JsonValue('UNDECIDED')
+  undecided,
+  @JsonValue('APPROVED')
+  accepted,
+  @JsonValue('MARKED_AS_FAILED')
+  markedAsFailed;
+
+  String get name {
+    switch (this) {
+      case undecided:
+        return 'Undecided';
+      case accepted:
+        return 'Approved';
+      case markedAsFailed:
+        return 'Marked as Failed';
+    }
+  }
+
+  Chip get chip {
+    switch (this) {
+      case undecided:
+        return const Chip(
+          label: Text('Undecided'),
+          backgroundColor: Color.fromARGB(255, 168, 166, 166),
+          side: BorderSide.none,
+        );
+      case accepted:
+        return const Chip(
+          label: Text('Approved'),
+          backgroundColor: Color.fromARGB(255, 157, 205, 165),
+          side: BorderSide.none,
+        );
+      case markedAsFailed:
+        return const Chip(
+          label: Text('Marked as failed'),
+          backgroundColor: Color.fromARGB(255, 218, 150, 166),
+        );
+    }
+  }
 }
 
 enum TestExecutionStatus {
