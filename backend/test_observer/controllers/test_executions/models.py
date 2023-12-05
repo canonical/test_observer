@@ -18,6 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
+from enum import Enum
 from typing import Annotated
 
 from pydantic import BaseModel, HttpUrl, field_serializer, model_validator
@@ -56,6 +57,26 @@ class StartTestExecutionRequest(BaseModel):
                 raise ValueError(f"{required_field} is required for {family} family")
 
         return self
+
+
+class C3TestResultStatus(str, Enum):
+    PASS = "pass"
+    FAIL = "fail"
+    SKIP = "skip"
+
+
+class C3TestResult(BaseModel):
+    id: int
+    name: str
+    status: C3TestResultStatus
+    comment: str
+    io_log: str
+
+
+class EndTestExecutionRequest(BaseModel):
+    id: int
+    ci_link: Annotated[str, HttpUrl]
+    test_results: list[C3TestResult]
 
 
 class TestExecutionsPatchRequest(BaseModel):

@@ -30,7 +30,11 @@ from test_observer.data_access.models import (
     Stage,
     TestExecution,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestExecutionStatus,
+)
+from tests.helpers import create_artefact
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):
@@ -167,6 +171,46 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     assert test_execution.environment_id == environment.id
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
+
+
+def test_report_test_execution_data(db_session: Session, test_client: TestClient):
+    ci_link = "http://localhost"
+    artefact = create_artefact(db_session, stage_name="beta")
+    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
+    environment = Environment(name="some environment", architecture="some arch")
+    test_execution = TestExecution(
+        environment=environment, artefact_build=artefact_build, ci_link=ci_link
+    )
+    db_session.add_all([artefact_build, environment, test_execution])
+    db_session.commit()
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "id": 1,
+            "ci_link": ci_link,
+            "test_results": [
+                {
+                    "id": 1,
+                    "name": "test-name-1",
+                    "status": "pass",
+                    "comment": "",
+                    "io_log": "",
+                },
+                {
+                    "id": 2,
+                    "name": "test-name-2",
+                    "status": "skip",
+                    "comment": "",
+                    "io_log": "",
+                },
+            ],
+        },
+    )
+    db_session.refresh(artefact)
+
+    assert response.status_code == 200
+    assert test_execution.status == TestExecutionStatus.PASSED
 
 
 def test_updates_test_execution(db_session: Session, test_client: TestClient):
