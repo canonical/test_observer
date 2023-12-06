@@ -173,6 +173,47 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     assert test_execution.ci_link == "http://localhost/"
 
 
+def test_report_test_execution_data(db_session: Session, test_client: TestClient):
+    ci_link = "http://localhost"
+    artefact = create_artefact(db_session, stage_name="beta")
+    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
+    environment = Environment(name="some environment", architecture="some arch")
+    test_execution = TestExecution(
+        environment=environment, artefact_build=artefact_build, ci_link=ci_link
+    )
+    db_session.add_all([artefact_build, environment, test_execution])
+    db_session.commit()
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "id": 1,
+            "ci_link": ci_link,
+            "test_results": [
+                {
+                    "id": 1,
+                    "name": "test-name-1",
+                    "status": "pass",
+                    "category": "",
+                    "comment": "",
+                    "io_log": "",
+                },
+                {
+                    "id": 2,
+                    "name": "test-name-2",
+                    "status": "skip",
+                    "category": "",
+                    "comment": "",
+                    "io_log": "",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert test_execution.status == TestExecutionStatus.PASSED
+
+
 def test_updates_test_execution(db_session: Session, test_client: TestClient):
     stage = db_session.query(Stage).filter(Stage.name == "beta").one()
     artefact = Artefact(name="some artefact", version="1.0.0", stage=stage)

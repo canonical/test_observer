@@ -18,7 +18,7 @@ REQUESTS = [
         arch="armhf",
         execution_stage="beta",
         environment="rpi2",
-        ci_link="http://localhost",
+        ci_link="http://example1",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -30,7 +30,7 @@ REQUESTS = [
         arch="armhf",
         execution_stage="beta",
         environment="rpi2",
-        ci_link="http://localhost",
+        ci_link="http://example2",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -42,7 +42,7 @@ REQUESTS = [
         arch="armhf",
         execution_stage="beta",
         environment="rpi2",
-        ci_link="http://localhost",
+        ci_link="http://example3",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -54,7 +54,7 @@ REQUESTS = [
         arch="amd64",
         execution_stage="edge",
         environment="dawson-i",
-        ci_link="http://localhost",
+        ci_link="http://example4",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -66,7 +66,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="candidate",
         environment="cm3",
-        ci_link="http://localhost",
+        ci_link="http://example5",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -78,7 +78,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="stable",
         environment="cm3",
-        ci_link="http://localhost",
+        ci_link="http://example6",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -90,7 +90,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="stable",
         environment="dragonboard",
-        ci_link="http://localhost",
+        ci_link="http://example7",
     ),
     StartTestExecutionRequest(
         family=FamilyName.DEB,
@@ -101,7 +101,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="proposed",
         environment="rpi400",
-        ci_link="http://localhost",
+        ci_link="http://example8",
     ),
     StartTestExecutionRequest(
         family=FamilyName.DEB,
@@ -112,7 +112,7 @@ REQUESTS = [
         arch="arm64",
         execution_stage="updates",
         environment="rpi400",
-        ci_link="http://localhost",
+        ci_link="http://example9",
     ),
 ]
 
