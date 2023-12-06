@@ -54,7 +54,7 @@ resource "juju_application" "ingress" {
   }
 
   config = {
-    tls-secret-name = var.tls_secret_name
+    tls-secret-name        = var.tls_secret_name
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
@@ -87,7 +87,7 @@ resource "juju_application" "test-observer-api" {
     sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
   }
 
-  units = 1
+  units = 3
 }
 
 resource "juju_application" "test-observer-frontend" {
@@ -105,7 +105,7 @@ resource "juju_application" "test-observer-frontend" {
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
-  units = 1
+  units = 3
 }
 
 resource "juju_integration" "test-observer-api-database-access" {
