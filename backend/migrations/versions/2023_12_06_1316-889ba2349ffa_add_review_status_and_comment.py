@@ -1,8 +1,8 @@
-"""Add test execution review status and comment
+"""Add review status and comment
 
-Revision ID: f45b1594fb23
-Revises: 8317277d4333
-Create Date: 2023-12-04 13:57:23.385250+00:00
+Revision ID: 889ba2349ffa
+Revises: 871eec26dc90
+Create Date: 2023-12-06 13:16:07.171288+00:00
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "f45b1594fb23"
-down_revision = "8317277d4333"
+revision = '889ba2349ffa'
+down_revision = '871eec26dc90'
 branch_labels = None
 depends_on = None
 

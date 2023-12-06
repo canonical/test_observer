@@ -88,5 +88,8 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None
     ci_link: HttpUrl | None
     status: TestExecutionStatus | None
+
+
+class TestExecutionsReviewPatchRequest(BaseModel):
     review_status: TestExecutionReviewStatus | None
     review_comment: str | None
