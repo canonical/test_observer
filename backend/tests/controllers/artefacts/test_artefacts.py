@@ -23,7 +23,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
-from test_observer.data_access.models_enums import ArtefactStatus
+from test_observer.data_access.models_enums import (
+    ArtefactStatus,
+    TestExecutionReviewStatus,
+)
 from tests.helpers import create_artefact
 
 
@@ -109,6 +112,8 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
                         "name": environment.name,
                         "architecture": environment.architecture,
                     },
+                    "review_status": [TestExecutionReviewStatus.UNDECIDED.name],
+                    "review_comment": None,
                 }
             ],
         }

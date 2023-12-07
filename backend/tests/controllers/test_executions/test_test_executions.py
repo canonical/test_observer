@@ -32,6 +32,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
+    TestExecutionReviewStatus,
     TestExecutionStatus,
 )
 from tests.helpers import create_artefact
@@ -214,7 +215,7 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
     assert test_execution.status == TestExecutionStatus.PASSED
 
 
-def test_updates_test_execution(db_session: Session, test_client: TestClient):
+def _prepare_test_execution_object(db_session: Session) -> TestExecution:
     stage = db_session.query(Stage).filter(Stage.name == "beta").one()
     artefact = Artefact(name="some artefact", version="1.0.0", stage=stage)
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
@@ -225,6 +226,12 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     db_session.add_all([artefact, artefact_build, environment, test_execution])
     db_session.commit()
     db_session.refresh(test_execution)
+
+    return test_execution
+
+
+def test_updates_test_execution(db_session: Session, test_client: TestClient):
+    test_execution: TestExecution = _prepare_test_execution_object(db_session)
 
     test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
@@ -239,3 +246,82 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
+
+
+def test_review_test_execution(db_session: Session, test_client: TestClient):
+    test_execution: TestExecution = _prepare_test_execution_object(db_session)
+
+    test_client.patch(
+        f"/v1/test-executions/{test_execution.id}/review",
+        json={
+            "review_status": [
+                TestExecutionReviewStatus.APPROVED_UNSTABLE_PHSYICAL_INFRA.name,
+                TestExecutionReviewStatus.APPROVED_FAULTY_HARDWARE.name,
+            ],
+            "review_comment": "Known issue with our infrastructure",
+        },
+    )
+
+    db_session.refresh(test_execution)
+    assert test_execution.review_comment == "Known issue with our infrastructure"
+    assert test_execution.review_status == [
+        TestExecutionReviewStatus.APPROVED_UNSTABLE_PHSYICAL_INFRA.name,
+        TestExecutionReviewStatus.APPROVED_FAULTY_HARDWARE.name,
+    ]
+
+
+def _execute_review_test_execution_invalid_input(
+    db_session: Session,
+    test_client: TestClient,
+    review_status: list[TestExecutionReviewStatus],
+):
+    test_execution: TestExecution = _prepare_test_execution_object(db_session)
+
+    response = test_client.patch(
+        f"/v1/test-executions/{test_execution.id}/review",
+        json={
+            "review_status": review_status,
+        },
+    )
+
+    db_session.refresh(test_execution)
+    assert response.status_code == 422
+
+
+def test_review_test_execution_fails_if_both_failed_and_approved(
+    db_session: Session, test_client: TestClient
+):
+    _execute_review_test_execution_invalid_input(
+        db_session=db_session,
+        test_client=test_client,
+        review_status=[
+            TestExecutionReviewStatus.MARKED_AS_FAILED.name,
+            TestExecutionReviewStatus.APPROVED_GENERIC.name,
+        ],
+    )
+
+
+def test_review_test_execution_fails_if_both_undecided_and_failed(
+    db_session: Session, test_client: TestClient
+):
+    _execute_review_test_execution_invalid_input(
+        db_session=db_session,
+        test_client=test_client,
+        review_status=[
+            TestExecutionReviewStatus.MARKED_AS_FAILED.name,
+            TestExecutionReviewStatus.UNDECIDED.name,
+        ],
+    )
+
+
+def test_review_test_execution_fails_if_both_undecided_and_approved(
+    db_session: Session, test_client: TestClient
+):
+    _execute_review_test_execution_invalid_input(
+        db_session=db_session,
+        test_client=test_client,
+        review_status=[
+            TestExecutionReviewStatus.APPROVED_GENERIC.name,
+            TestExecutionReviewStatus.UNDECIDED.name,
+        ],
+    )

@@ -38,6 +38,7 @@ from .models import (
     EndTestExecutionRequest,
     StartTestExecutionRequest,
     TestExecutionsPatchRequest,
+    TestExecutionsReviewPatchRequest,
 )
 
 router = APIRouter()
@@ -143,5 +144,25 @@ def patch_test_execution(
 
     if request.status is not None:
         test_execution.status = request.status
+
+    db.commit()
+
+
+@router.patch("/{id}/review")
+def review_test_execution(
+    id: int,
+    request: TestExecutionsReviewPatchRequest,
+    db: Session = Depends(get_db),
+):
+    test_execution = db.get(TestExecution, id)
+
+    if test_execution is None:
+        raise HTTPException(status_code=404, detail="TestExecution not found")
+
+    if request.review_status is not None:
+        test_execution.review_status = request.review_status
+
+    if request.review_comment is not None:
+        test_execution.review_comment = request.review_comment
 
     db.commit()

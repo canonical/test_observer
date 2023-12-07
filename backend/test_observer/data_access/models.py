@@ -20,7 +20,16 @@
 from datetime import date, datetime
 from typing import TypeVar
 
-from sqlalchemy import ForeignKey, Index, MetaData, String, UniqueConstraint, column
+from sqlalchemy import (
+    Enum,
+    ForeignKey,
+    Index,
+    MetaData,
+    String,
+    UniqueConstraint,
+    column,
+)
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -31,6 +40,7 @@ from sqlalchemy.sql import func
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
+    TestExecutionReviewStatus,
     TestExecutionStatus,
 )
 
@@ -225,6 +235,11 @@ class TestExecution(Base):
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
     )
+    review_status: Mapped[list[TestExecutionReviewStatus]] = mapped_column(
+        ARRAY(Enum(TestExecutionReviewStatus)),
+        default=[TestExecutionReviewStatus.UNDECIDED],
+    )
+    review_comment: Mapped[str | None]
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
