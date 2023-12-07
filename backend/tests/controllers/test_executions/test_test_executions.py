@@ -33,6 +33,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import (
     FamilyName,
     TestExecutionStatus,
+    TestResultStatus,
 )
 from tests.helpers import create_artefact
 
@@ -219,6 +220,10 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
 
     assert response.status_code == 200
     assert test_execution.status == TestExecutionStatus.PASSED
+    assert test_execution.test_results[0].name == "test-name-1"
+    assert test_execution.test_results[0].status == TestResultStatus.PASSED
+    assert test_execution.test_results[1].name == "test-name-2"
+    assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
 def test_updates_test_execution(db_session: Session, test_client: TestClient):

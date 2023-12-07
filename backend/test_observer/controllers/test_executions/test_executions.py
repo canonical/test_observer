@@ -22,6 +22,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from test_observer.controllers.test_executions.logic import (
+    compute_test_execution_status,
+    parse_c3_test_results,
+)
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -34,7 +38,6 @@ from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
 from .models import (
-    C3TestResultStatus,
     EndTestExecutionRequest,
     StartTestExecutionRequest,
     TestExecutionsPatchRequest,
@@ -130,12 +133,8 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     if test_execution is None:
         raise HTTPException(status_code=404, detail="Related TestExecution not found")
 
-    failed = any(r.status == C3TestResultStatus.FAIL for r in request.test_results)
-
-    if failed:
-        test_execution.status = TestExecutionStatus.FAILED
-    else:
-        test_execution.status = TestExecutionStatus.PASSED
+    test_execution.test_results = parse_c3_test_results(request.test_results)
+    test_execution.status = compute_test_execution_status(test_execution.test_results)
     db.commit()
 
 

@@ -32,6 +32,7 @@ from sqlalchemy.sql import func
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 
 
@@ -221,6 +222,9 @@ class TestExecution(Base):
     )
     environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"))
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
+    test_results: Mapped[list["TestResult"]] = relationship(
+        back_populates="test_execution", cascade="all, delete"
+    )
     # Default fields
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
@@ -233,7 +237,42 @@ class TestExecution(Base):
             self,
             "artefact_build_id",
             "environment_id",
+            "test_result_id",
             "status",
             "ci_link",
             "c3_link",
+        )
+
+
+class TestResult(Base):
+    """
+    A table to represent individual test results/runs
+    """
+
+    __tablename__ = "test_result"
+
+    c3_id: Mapped[int]
+    name: Mapped[str]
+    status: Mapped[TestResultStatus]
+    category: Mapped[str]
+    comment: Mapped[str]
+    io_log: Mapped[str]
+
+    test_execution_id: Mapped[int] = mapped_column(
+        ForeignKey("test_execution.id", ondelete="CASCADE"), index=True
+    )
+    test_execution: Mapped["TestExecution"] = relationship(
+        back_populates="test_results"
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self,
+            "c3_id",
+            "name",
+            "status",
+            "category",
+            "comment",
+            "io_log",
+            "test_execution_id",
         )
