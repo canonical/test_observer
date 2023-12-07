@@ -97,7 +97,7 @@ class TestExecutionsReviewPatchRequest(BaseModel):
     @model_validator(mode="after")
     def validate_review_status(self) -> "TestExecutionsReviewPatchRequest":
         if len(self.review_status) == 0:
-            raise ValueError(f"At least one review_status is required")
+            raise ValueError("At least one review_status is required")
 
         # All values are allowed when the array has one element
         if len(self.review_status) == 1:
@@ -109,6 +109,6 @@ class TestExecutionsReviewPatchRequest(BaseModel):
                 TestExecutionReviewStatus.MARKED_AS_FAILED,
             ):
                 raise ValueError(
-                    f"Test execution can either be undecided, failed or approved"
+                    "Test execution can either be undecided, failed or approved"
                 )
         return self

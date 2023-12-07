@@ -174,8 +174,7 @@ def review_test_execution(
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
-    if request.review_status is not None:
-        test_execution.review_status = request.review_status
+    test_execution.review_status = request.review_status
 
     if request.review_comment is not None:
         test_execution.review_comment = request.review_comment

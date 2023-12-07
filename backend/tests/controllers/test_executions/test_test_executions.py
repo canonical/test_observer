@@ -280,8 +280,8 @@ def test_review_test_execution(db_session: Session, test_client: TestClient):
 def _execute_review_test_execution_invalid_input(
     db_session: Session,
     test_client: TestClient,
-    review_status: list[TestExecutionReviewStatus],
-):
+    review_status: list[str],
+) -> None:
     test_execution: TestExecution = _prepare_test_execution_object(db_session)
 
     response = test_client.patch(
