@@ -153,8 +153,14 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
         revision=request.revision,
         artefact=artefact,
     )
+    test_execution = TestExecution(
+        environment=environment,
+        artefact_build=artefact_build,
+        ci_link="http://should-be-changed",
+        c3_link="http://should-be-nulled",
+    )
 
-    db_session.add_all([artefact, environment, artefact_build])
+    db_session.add_all([artefact, environment, artefact_build, test_execution])
     db_session.commit()
 
     test_execution_id = test_client.put(
@@ -172,6 +178,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     assert test_execution.environment_id == environment.id
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
+    assert test_execution.c3_link is None
 
 
 def test_report_test_execution_data(db_session: Session, test_client: TestClient):

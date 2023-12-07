@@ -100,9 +100,24 @@ def start_test_execution(
                 "ci_link": request.ci_link,
             },
         )
+
+        if test_execution.ci_link != request.ci_link:
+            reset_test_execution(request, db, test_execution)
+
         return {"id": test_execution.id}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def reset_test_execution(
+    request: StartTestExecutionRequest,
+    db: Session,
+    test_execution: TestExecution,
+):
+    test_execution.status = TestExecutionStatus.IN_PROGRESS
+    test_execution.ci_link = request.ci_link
+    test_execution.c3_link = None
+    db.commit()
 
 
 @router.put("/end-test")
