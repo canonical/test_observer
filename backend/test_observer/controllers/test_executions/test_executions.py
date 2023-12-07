@@ -20,6 +20,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.test_executions.logic import (
@@ -32,6 +33,7 @@ from test_observer.data_access.models import (
     Environment,
     Stage,
     TestExecution,
+    TestResult,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
@@ -119,6 +121,9 @@ def reset_test_execution(
     test_execution.status = TestExecutionStatus.IN_PROGRESS
     test_execution.ci_link = request.ci_link
     test_execution.c3_link = None
+    db.execute(
+        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
+    )
     db.commit()
 
 

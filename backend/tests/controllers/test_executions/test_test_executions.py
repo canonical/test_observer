@@ -29,6 +29,7 @@ from test_observer.data_access.models import (
     Environment,
     Stage,
     TestExecution,
+    TestResult,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -159,8 +160,25 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
         ci_link="http://should-be-changed",
         c3_link="http://should-be-nulled",
     )
+    test_result = TestResult(
+        test_execution=test_execution,
+        c3_id=1,
+        name="to-be-deleted",
+        status=TestResultStatus.PASSED,
+        category="",
+        comment="",
+        io_log="",
+    )
 
-    db_session.add_all([artefact, environment, artefact_build, test_execution])
+    db_session.add_all(
+        [
+            artefact,
+            environment,
+            artefact_build,
+            test_execution,
+            test_result,
+        ]
+    )
     db_session.commit()
 
     test_execution_id = test_client.put(
@@ -179,6 +197,12 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
     assert test_execution.c3_link is None
+    assert (
+        db_session.query(TestResult)
+        .filter(TestResult.name == "to-be-deleted")
+        .one_or_none()
+        is None
+    )
 
 
 def test_report_test_execution_data(db_session: Session, test_client: TestClient):
