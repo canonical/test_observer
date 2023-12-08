@@ -138,8 +138,10 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     if test_execution is None:
         raise HTTPException(status_code=404, detail="Related TestExecution not found")
 
-    test_execution.test_results = parse_c3_test_results(request.test_results)
-    test_execution.status = compute_test_execution_status(test_execution.test_results)
+    test_cases, test_results = parse_c3_test_results(request.test_results)
+    db.add_all(test_cases)
+    test_execution.test_results = test_results
+    test_execution.status = compute_test_execution_status(test_results)
     db.commit()
 
 

@@ -1,4 +1,4 @@
-from test_observer.data_access.models import TestResult
+from test_observer.data_access.models import TestCase, TestResult
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 
 from .models import C3TestResult, C3TestResultStatus
@@ -12,18 +12,24 @@ def compute_test_execution_status(
     return status
 
 
-def parse_c3_test_results(c3_test_results: list[C3TestResult]) -> list[TestResult]:
-    return [
-        TestResult(
-            c3_id=r.id,
-            name=r.name,
+def parse_c3_test_results(
+    c3_test_results: list[C3TestResult],
+) -> tuple[list[TestCase], list[TestResult]]:
+    test_cases: list[TestCase] = []
+    test_results: list[TestResult] = []
+    for r in c3_test_results:
+        test_case = TestCase(name=r.name, category=r.category)
+        test_cases.append(test_case)
+
+        test_result = TestResult(
+            test_case=test_case,
             status=parse_c3_test_result_status(r.status),
-            category=r.category,
             comment=r.comment,
             io_log=r.io_log,
         )
-        for r in c3_test_results
-    ]
+        test_results.append(test_result)
+
+    return test_cases, test_results
 
 
 def parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:

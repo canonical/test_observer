@@ -244,6 +244,20 @@ class TestExecution(Base):
         )
 
 
+class TestCase(Base):
+    """
+    A table to represent test cases (not the runs themselves)
+    """
+
+    __tablename__ = "test_case"
+
+    name: Mapped[str] = mapped_column(unique=True)
+    category: Mapped[str]
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name", "category")
+
+
 class TestResult(Base):
     """
     A table to represent individual test results/runs
@@ -251,10 +265,7 @@ class TestResult(Base):
 
     __tablename__ = "test_result"
 
-    c3_id: Mapped[int]
-    name: Mapped[str]
     status: Mapped[TestResultStatus]
-    category: Mapped[str]
     comment: Mapped[str]
     io_log: Mapped[str]
 
@@ -265,14 +276,17 @@ class TestResult(Base):
         back_populates="test_results"
     )
 
+    test_case_id: Mapped[int] = mapped_column(
+        ForeignKey("test_case.id", ondelete="CASCADE"), index=True
+    )
+    test_case: Mapped["TestCase"] = relationship()
+
     def __repr__(self) -> str:
         return data_model_repr(
             self,
-            "c3_id",
-            "name",
             "status",
-            "category",
             "comment",
             "io_log",
             "test_execution_id",
+            "test_case_id",
         )
