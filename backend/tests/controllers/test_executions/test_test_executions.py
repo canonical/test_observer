@@ -214,7 +214,8 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
     test_execution = TestExecution(
         environment=environment, artefact_build=artefact_build, ci_link=ci_link
     )
-    db_session.add_all([artefact_build, environment, test_execution])
+    test_case = TestCase(name="test-name-1", category="")
+    db_session.add_all([artefact_build, environment, test_execution, test_case])
     db_session.commit()
 
     response = test_client.put(
@@ -225,9 +226,9 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
             "test_results": [
                 {
                     "id": 1,
-                    "name": "test-name-1",
+                    "name": test_case.name,
                     "status": "pass",
-                    "category": "",
+                    "category": test_case.category,
                     "comment": "",
                     "io_log": "",
                 },

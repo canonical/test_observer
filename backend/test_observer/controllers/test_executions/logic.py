@@ -1,5 +1,8 @@
-from test_observer.data_access.models import TestCase, TestResult
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import TestCase, TestExecution, TestResult
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
+from test_observer.data_access.repository import get_or_create
 
 from .models import C3TestResult, C3TestResultStatus
 
@@ -12,24 +15,30 @@ def compute_test_execution_status(
     return status
 
 
-def parse_c3_test_results(
+def store_test_results(
+    db: Session,
     c3_test_results: list[C3TestResult],
-) -> tuple[list[TestCase], list[TestResult]]:
-    test_cases: list[TestCase] = []
-    test_results: list[TestResult] = []
+    test_execution: TestExecution,
+):
     for r in c3_test_results:
-        test_case = TestCase(name=r.name, category=r.category)
-        test_cases.append(test_case)
+        test_case = get_or_create(
+            db,
+            TestCase,
+            filter_kwargs={"name": r.name},
+            creation_kwargs={"category": r.category},
+        )
 
         test_result = TestResult(
             test_case=test_case,
+            test_execution=test_execution,
             status=parse_c3_test_result_status(r.status),
             comment=r.comment,
             io_log=r.io_log,
         )
-        test_results.append(test_result)
 
-    return test_cases, test_results
+        db.add(test_result)
+
+    db.commit()
 
 
 def parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:
