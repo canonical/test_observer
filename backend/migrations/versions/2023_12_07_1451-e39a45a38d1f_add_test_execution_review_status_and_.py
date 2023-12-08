@@ -29,7 +29,7 @@ def upgrade() -> None:
     )
     op.execute(
         "ALTER TABLE test_execution ADD COLUMN "
-        "review_status testexecutionreviewstatus[] "
+        "review_status testexecutionreviewstatus[] NOT NULL "
         "DEFAULT '{UNDECIDED}'::testexecutionreviewstatus[]"
     )
     op.add_column(
