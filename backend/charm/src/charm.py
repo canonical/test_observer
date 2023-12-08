@@ -98,10 +98,11 @@ class TestObserverBackendCharm(CharmBase):
         raise SystemExit(0)
 
     def _on_config_changed(self, event):
-        for relation in self.model.relations["test-observer-rest-api"]:
-            host = self.config["hostname"]
-            port = str(self.config["port"])
-            relation.data[self.app].update({"hostname": host, "port": port})
+        if self.unit.is_leader():
+            for relation in self.model.relations["test-observer-rest-api"]:
+                host = self.config["hostname"]
+                port = str(self.config["port"])
+                relation.data[self.app].update({"hostname": host, "port": port})
 
         self._update_layer_and_restart(event)
 
