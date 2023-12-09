@@ -1,8 +1,11 @@
-name: Run charm tests
+name: Run charm integration tests
 on:
+  pull_request_review:
+    types: [submitted]
   push:
-    branches: ["main", "integration-test-fix*"]
+    branches: ["main"]
     tags: ["v*.*.*"]
+  workflow_dispatch:
 
 jobs:
   integration-test:
