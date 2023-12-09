@@ -20,24 +20,28 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Artefact, ArtefactBuild, Family, Stage
+from test_observer.data_access.models import Artefact, ArtefactBuild
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
-from .models import ArtefactBuildDTO, ArtefactDTO
+from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[ArtefactDTO])
 def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
-    """Get latest artefacts by family"""
-    query = db.query(Stage)
-    if family:
-        query = query.filter(Stage.family.has(Family.name == family))
-    stages = query.all()
+    """Get latest artefacts optionally by family"""
+    artefacts = []
 
-    return [artefact for stage in stages for artefact in stage.latest_artefacts]
+    if family:
+        artefacts = get_artefacts_by_family(db, family, load_stage=True)
+    else:
+        for family in FamilyName:
+            artefacts += get_artefacts_by_family(db, family, load_stage=True)
+
+    return artefacts
 
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
@@ -49,6 +53,19 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Artefact not found")
 
     return artefact
+
+
+@router.patch("/{artefact_id}")
+def patch_artefact(
+    artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
+):
+    artefact = db.get(Artefact, artefact_id)
+
+    if artefact is None:
+        raise HTTPException(status_code=404, detail="Artefact not found")
+
+    artefact.status = request.status
+    db.commit()
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])

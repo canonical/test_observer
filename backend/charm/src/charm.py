@@ -10,8 +10,8 @@ from charms.data_platform_libs.v0.data_interfaces import (
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import Layer
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
+from ops.pebble import Layer, ExecError
 from requests import get
 
 # Log messages can be retrieved using juju debug-log
@@ -80,11 +80,14 @@ class TestObserverBackendCharm(CharmBase):
             environment=self._postgres_relation_data(),
         )
 
-        stdout, _ = process.wait_output()
-
-        logger.info(stdout)
-
-        self.unit.status = ActiveStatus()
+        try:
+            stdout, _ = process.wait_output()
+            logger.info(stdout)
+            self.unit.status = ActiveStatus()
+        except ExecError as e:
+            logger.error(e.stdout)
+            logger.error(e.stderr)
+            self.unit.status = BlockedStatus("Database migration failed")
 
     def _on_database_changed(self, event):
         self._migrate_database()
@@ -95,10 +98,11 @@ class TestObserverBackendCharm(CharmBase):
         raise SystemExit(0)
 
     def _on_config_changed(self, event):
-        for relation in self.model.relations["test-observer-rest-api"]:
-            host = self.config["hostname"]
-            port = str(self.config["port"])
-            relation.data[self.app].update({"hostname": host, "port": port})
+        if self.unit.is_leader():
+            for relation in self.model.relations["test-observer-rest-api"]:
+                host = self.config["hostname"]
+                port = str(self.config["port"])
+                relation.data[self.app].update({"hostname": host, "port": port})
 
         self._update_layer_and_restart(event)
 
@@ -134,9 +138,7 @@ class TestObserverBackendCharm(CharmBase):
         """
         This creates a dictionary of environment variables needed by the application
         """
-        env = {
-            "SENTRY_DSN": self.config["sentry_dsn"]
-        }
+        env = {"SENTRY_DSN": self.config["sentry_dsn"]}
         env.update(self._postgres_relation_data())
         return env
 

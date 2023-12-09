@@ -28,9 +28,16 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     Environment,
     Stage,
+    TestCase,
     TestExecution,
+    TestResult,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestExecutionStatus,
+    TestResultStatus,
+)
+from tests.helpers import create_artefact
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):
@@ -41,10 +48,12 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
             "name": "core22",
             "version": "abec123",
             "revision": 123,
-            "source": {"track": "22", "store": "ubuntu"},
+            "track": "22",
+            "store": "ubuntu",
             "arch": "arm64",
             "execution_stage": "beta",
             "environment": "cm3",
+            "ci_link": "http://localhost",
         },
     )
 
@@ -53,7 +62,8 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
         .filter(
             Artefact.name == "core22",
             Artefact.version == "abec123",
-            Artefact.source == {"track": "22", "store": "ubuntu"},
+            Artefact.store == "ubuntu",
+            Artefact.track == "22",
             Artefact.stage.has(name="beta"),
         )
         .one_or_none()
@@ -95,7 +105,7 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
 
 
 def test_invalid_artefact_format(test_client: TestClient):
-    """Artefact with invalid format (no store in snap source) should not be created"""
+    """Artefact with invalid format no store should not be created"""
     response = test_client.put(
         "/v1/test-executions/start-test",
         json={
@@ -103,28 +113,28 @@ def test_invalid_artefact_format(test_client: TestClient):
             "name": "core22",
             "version": "abec123",
             "revision": 123,
-            "source": {"track": "22"},
+            "track": "22",
             "arch": "arm64",
             "execution_stage": "beta",
             "environment": "cm3",
+            "ci_link": "http://localhost",
         },
     )
-    assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Snap artefacts should have store key in source"
-    }
+    assert response.status_code == 422
 
 
 def test_uses_existing_models(db_session: Session, test_client: TestClient):
     request = StartTestExecutionRequest(
-        family="snap",
+        family=FamilyName.SNAP,
         name="core22",
         version="abec123",
         revision=123,
-        source={"track": "22", "store": "ubuntu"},
+        track="22",
+        store="ubuntu",
         arch="arm64",
         execution_stage="beta",
         environment="cm3",
+        ci_link="http://localhost/",
     )
     stage = (
         db_session.query(Stage).filter(Stage.name == request.execution_stage).first()
@@ -132,7 +142,8 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     artefact = Artefact(
         name=request.name,
         version=request.version,
-        source=request.source,
+        track=request.track,
+        store=request.store,
         stage=stage,
     )
     environment = Environment(
@@ -144,31 +155,106 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
         revision=request.revision,
         artefact=artefact,
     )
+    test_execution = TestExecution(
+        environment=environment,
+        artefact_build=artefact_build,
+        ci_link="http://should-be-changed",
+        c3_link="http://should-be-nulled",
+    )
+    test_case = TestCase(name="some-test", category="")
+    test_result = TestResult(
+        test_case=test_case,
+        test_execution=test_execution,
+        status=TestResultStatus.PASSED,
+        comment="",
+        io_log="",
+    )
 
-    db_session.add_all([artefact, environment, artefact_build])
+    db_session.add_all(
+        [
+            artefact,
+            environment,
+            artefact_build,
+            test_execution,
+            test_case,
+            test_result,
+        ]
+    )
     db_session.commit()
 
-    test_client.put(
+    test_execution_id = test_client.put(
         "/v1/test-executions/start-test",
-        json=request.model_dump(),
+        json=request.model_dump(mode="json"),
+    ).json()["id"]
+
+    test_execution = (
+        db_session.query(TestExecution)
+        .where(TestExecution.id == test_execution_id)
+        .one()
     )
 
+    assert test_execution.artefact_build_id == artefact_build.id
+    assert test_execution.environment_id == environment.id
+    assert test_execution.status == TestExecutionStatus.IN_PROGRESS
+    assert test_execution.ci_link == "http://localhost/"
+    assert test_execution.c3_link is None
     assert (
-        db_session.query(TestExecution)
-        .filter(
-            TestExecution.artefact_build == artefact_build,
-            TestExecution.environment == environment,
-            TestExecution.status == TestExecutionStatus.IN_PROGRESS,
-        )
+        db_session.query(TestResult)
+        .filter(TestResult.test_case_id == test_case.id)
         .one_or_none()
+        is None
     )
+
+
+def test_report_test_execution_data(db_session: Session, test_client: TestClient):
+    ci_link = "http://localhost"
+    artefact = create_artefact(db_session, stage_name="beta")
+    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
+    environment = Environment(name="some environment", architecture="some arch")
+    test_execution = TestExecution(
+        environment=environment, artefact_build=artefact_build, ci_link=ci_link
+    )
+    test_case = TestCase(name="test-name-1", category="")
+    db_session.add_all([artefact_build, environment, test_execution, test_case])
+    db_session.commit()
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "id": 1,
+            "ci_link": ci_link,
+            "test_results": [
+                {
+                    "id": 1,
+                    "name": test_case.name,
+                    "status": "pass",
+                    "category": test_case.category,
+                    "comment": "",
+                    "io_log": "",
+                },
+                {
+                    "id": 2,
+                    "name": "test-name-2",
+                    "status": "skip",
+                    "category": "",
+                    "comment": "",
+                    "io_log": "",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert test_execution.status == TestExecutionStatus.PASSED
+    assert test_execution.test_results[0].test_case.name == "test-name-1"
+    assert test_execution.test_results[0].status == TestResultStatus.PASSED
+    assert test_execution.test_results[1].test_case.name == "test-name-2"
+    assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
 def test_updates_test_execution(db_session: Session, test_client: TestClient):
     stage = db_session.query(Stage).filter(Stage.name == "beta").one()
-    artefact = Artefact(
-        name="some artefact", version="1.0.0", source={"store": "ubuntu"}, stage=stage
-    )
+    artefact = Artefact(name="some artefact", version="1.0.0", stage=stage)
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
     test_execution = TestExecution(
@@ -181,13 +267,13 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
         json={
-            "jenkins_link": "some jenkins link",
-            "c3_link": "some c3 link",
+            "ci_link": "http://ci_link/",
+            "c3_link": "http://c3_link/",
             "status": TestExecutionStatus.PASSED.name,
         },
     )
 
     db_session.refresh(test_execution)
-    assert test_execution.jenkins_link == "some jenkins link"
-    assert test_execution.c3_link == "some c3 link"
+    assert test_execution.ci_link == "http://ci_link/"
+    assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED

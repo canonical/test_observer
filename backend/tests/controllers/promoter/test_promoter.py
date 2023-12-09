@@ -25,8 +25,8 @@ from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import ArtefactBuild
 
+from test_observer.data_access.models import ArtefactBuild
 from tests.helpers import create_artefact
 
 
@@ -43,7 +43,7 @@ def test_run_to_move_artefact_snap(
         "edge",
         name="core20",
         version="1.1.1",
-        source={"store": "ubuntu"},
+        store="ubuntu",
         created_at=datetime.utcnow(),
     )
     create_artefact(
@@ -51,7 +51,7 @@ def test_run_to_move_artefact_snap(
         "edge",
         name="core20",
         version="1.1.0",
-        source={"store": "ubuntu"},
+        store="ubuntu",
         created_at=datetime.utcnow() - timedelta(days=1),
     )
     db_session.add_all(
@@ -112,7 +112,8 @@ def test_run_to_move_artefact_deb(
         "proposed",
         name="linux-generic",
         version="5.19.0.43.39",
-        source={"series": "kinetic", "repo": "main"},
+        series="kinetic",
+        repo="main",
         created_at=datetime.utcnow(),
     )
     create_artefact(
@@ -120,7 +121,8 @@ def test_run_to_move_artefact_deb(
         "proposed",
         name="linux-generic",
         version="5.19.0.43.38",
-        source={"series": "kinetic", "repo": "main"},
+        series="kinetic",
+        repo="main",
         created_at=datetime.utcnow() - timedelta(days=1),
     )
     db_session.add(ArtefactBuild(architecture="amd64", artefact=artefact))

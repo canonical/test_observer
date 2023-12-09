@@ -18,12 +18,9 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 from datetime import date, datetime
-from itertools import groupby
-from operator import attrgetter
 from typing import TypeVar
 
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, column
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import ForeignKey, Index, MetaData, String, UniqueConstraint, column
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -35,6 +32,7 @@ from sqlalchemy.sql import func
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 
 
@@ -45,6 +43,18 @@ class Base(DeclarativeBase):
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(), onupdate=func.now()
+    )
+
+    metadata = MetaData(
+        # Use a naming convention so that alembic knows the name of constraints
+        # Use PostgreSQL specific conventions cause we already have keys named this way
+        naming_convention={
+            "ix": "%(table_name)s_%(column_0_N_name)s_ix",
+            "uq": "%(table_name)s_%(column_0_N_name)s_key",
+            "ck": "%(table_name)s_%(column_0_N_name)s_check",
+            "fk": "%(table_name)s_%(column_0_N_name)s_fkey",
+            "pk": "%(table_name)s_pkey",
+        },
     )
 
 
@@ -65,7 +75,7 @@ class Family(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     # Relationships
     stages: Mapped[list["Stage"]] = relationship(
-        back_populates="family", cascade="all, delete-orphan", order_by="Stage.position"
+        back_populates="family", cascade="all, delete", order_by="Stage.position"
     )
 
     def __repr__(self) -> str:
@@ -80,20 +90,11 @@ class Stage(Base):
     name: Mapped[str] = mapped_column(String(100), index=True)
     position: Mapped[int] = mapped_column()
     # Relationships
-    family_id: Mapped[int] = mapped_column(ForeignKey("family.id"))
+    family_id: Mapped[int] = mapped_column(ForeignKey("family.id", ondelete="CASCADE"))
     family: Mapped[Family] = relationship(back_populates="stages")
     artefacts: Mapped[list["Artefact"]] = relationship(
-        back_populates="stage", cascade="all, delete-orphan"
+        back_populates="stage", cascade="all, delete"
     )
-
-    @property
-    def latest_artefacts(self) -> list["Artefact"]:
-        artefact_groups = groupby(self.artefacts, attrgetter("name", "source"))
-
-        return [
-            max(artefacts, key=attrgetter("created_at"))
-            for _, artefacts in artefact_groups
-        ]
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name", "position", "family_id")
@@ -106,24 +107,37 @@ class Artefact(Base):
 
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
-    source: Mapped[dict] = mapped_column(JSONB)
+    track: Mapped[str | None]
+    store: Mapped[str | None]
+    series: Mapped[str | None]
+    repo: Mapped[str | None]
     # Relationships
-    stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id"))
+    stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id", ondelete="CASCADE"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
     builds: Mapped[list["ArtefactBuild"]] = relationship(
-        back_populates="artefact", cascade="all, delete-orphan"
+        back_populates="artefact", cascade="all, delete"
     )
     # Default fields
     due_date: Mapped[date | None]
-    status: Mapped[ArtefactStatus | None]
+    status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
 
     __table_args__ = (
-        UniqueConstraint("name", "version", "source", name="unique_artefact"),
+        UniqueConstraint("name", "version", "track", name="unique_snap"),
+        UniqueConstraint("name", "version", "series", "repo", name="unique_deb"),
     )
 
     def __repr__(self) -> str:
         return data_model_repr(
-            self, "name", "version", "source", "stage_id", "due_date", "status"
+            self,
+            "name",
+            "version",
+            "track",
+            "store",
+            "series",
+            "repo",
+            "stage_id",
+            "due_date",
+            "status",
         )
 
 
@@ -135,18 +149,20 @@ class ArtefactBuild(Base):
     architecture: Mapped[str] = mapped_column(String(100), index=True)
     revision: Mapped[int | None]
     # Relationships
-    artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id"))
+    artefact_id: Mapped[int] = mapped_column(
+        ForeignKey("artefact.id", ondelete="CASCADE")
+    )
     artefact: Mapped[Artefact] = relationship(
         back_populates="builds", foreign_keys=[artefact_id]
     )
     test_executions: Mapped[list["TestExecution"]] = relationship(
-        back_populates="artefact_build", cascade="all, delete-orphan"
+        back_populates="artefact_build", cascade="all, delete"
     )
 
     __table_args__ = (
         # Unique constraint when revision is NULL
         Index(
-            "idx_artefact_id_architecture_null_revision",
+            None,
             "artefact_id",
             "architecture",
             unique=True,
@@ -154,7 +170,7 @@ class ArtefactBuild(Base):
         ),
         # Unique constraint when revision is NOT NULL
         Index(
-            "idx_artefact_id_architecture_revision",
+            None,
             "artefact_id",
             "architecture",
             "revision",
@@ -195,15 +211,20 @@ class TestExecution(Base):
 
     __tablename__ = "test_execution"
 
-    jenkins_link: Mapped[str] = mapped_column(String(200), nullable=True)
-    c3_link: Mapped[str] = mapped_column(String(200), nullable=True)
+    ci_link: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
+    c3_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # Relationships
-    artefact_build_id: Mapped[int] = mapped_column(ForeignKey("artefact_build.id"))
+    artefact_build_id: Mapped[int] = mapped_column(
+        ForeignKey("artefact_build.id", ondelete="CASCADE")
+    )
     artefact_build: Mapped["ArtefactBuild"] = relationship(
         back_populates="test_executions"
     )
     environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"))
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
+    test_results: Mapped[list["TestResult"]] = relationship(
+        back_populates="test_execution", cascade="all, delete"
+    )
     # Default fields
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
@@ -216,7 +237,56 @@ class TestExecution(Base):
             self,
             "artefact_build_id",
             "environment_id",
+            "test_result_id",
             "status",
-            "jenkins_link",
+            "ci_link",
             "c3_link",
+        )
+
+
+class TestCase(Base):
+    """
+    A table to represent test cases (not the runs themselves)
+    """
+
+    __tablename__ = "test_case"
+
+    name: Mapped[str] = mapped_column(unique=True)
+    category: Mapped[str]
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name", "category")
+
+
+class TestResult(Base):
+    """
+    A table to represent individual test results/runs
+    """
+
+    __tablename__ = "test_result"
+
+    status: Mapped[TestResultStatus]
+    comment: Mapped[str]
+    io_log: Mapped[str]
+
+    test_execution_id: Mapped[int] = mapped_column(
+        ForeignKey("test_execution.id", ondelete="CASCADE"), index=True
+    )
+    test_execution: Mapped["TestExecution"] = relationship(
+        back_populates="test_results"
+    )
+
+    test_case_id: Mapped[int] = mapped_column(
+        ForeignKey("test_case.id", ondelete="CASCADE"), index=True
+    )
+    test_case: Mapped["TestCase"] = relationship()
+
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self,
+            "status",
+            "comment",
+            "io_log",
+            "test_execution_id",
+            "test_case_id",
         )

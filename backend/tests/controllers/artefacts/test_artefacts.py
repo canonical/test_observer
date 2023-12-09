@@ -23,12 +23,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
+from test_observer.data_access.models_enums import ArtefactStatus
 from tests.helpers import create_artefact
 
 
 def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestClient):
     """Should only get latest artefacts and only ones that belong to given family"""
-    relevant_artefact = create_artefact(db_session, "edge", version="2")
+    relevant_artefact = create_artefact(
+        db_session,
+        "edge",
+        version="2",
+        status=ArtefactStatus.MARKED_AS_FAILED,
+    )
 
     old_timestamp = relevant_artefact.created_at - timedelta(days=1)
     create_artefact(db_session, "edge", created_at=old_timestamp, version="1")
@@ -42,15 +48,19 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
             "id": relevant_artefact.id,
             "name": relevant_artefact.name,
             "version": relevant_artefact.version,
-            "source": relevant_artefact.source,
+            "track": relevant_artefact.track,
+            "store": relevant_artefact.store,
+            "series": relevant_artefact.series,
+            "repo": relevant_artefact.repo,
             "stage": relevant_artefact.stage.name,
+            "status": relevant_artefact.status,
         }
     ]
 
 
 def test_get_artefact(db_session: Session, test_client: TestClient):
     """Should be able to fetch an existing artefact"""
-    artefact = create_artefact(db_session, "edge")
+    artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
 
@@ -59,8 +69,12 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
         "id": artefact.id,
         "name": artefact.name,
         "version": artefact.version,
-        "source": artefact.source,
+        "track": artefact.track,
+        "store": artefact.store,
+        "series": artefact.series,
+        "repo": artefact.repo,
         "stage": artefact.stage.name,
+        "status": artefact.status,
     }
 
 
@@ -87,7 +101,7 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
             "test_executions": [
                 {
                     "id": test_execution.id,
-                    "jenkins_link": test_execution.jenkins_link,
+                    "ci_link": test_execution.ci_link,
                     "c3_link": test_execution.c3_link,
                     "status": test_execution.status.value,
                     "environment": {
@@ -123,3 +137,17 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
             "test_executions": [],
         }
     ]
+
+
+def test_artefact_signoff(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "candidate")
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"status": ArtefactStatus.APPROVED},
+    )
+
+    db_session.refresh(artefact)
+
+    assert response.status_code == 200
+    assert artefact.status == ArtefactStatus.APPROVED

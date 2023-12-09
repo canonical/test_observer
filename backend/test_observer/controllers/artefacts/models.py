@@ -19,7 +19,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
-from test_observer.data_access.models_enums import TestExecutionStatus
+from test_observer.data_access.models_enums import ArtefactStatus, TestExecutionStatus
 
 
 class ArtefactDTO(BaseModel):
@@ -28,8 +28,12 @@ class ArtefactDTO(BaseModel):
     id: int
     name: str
     version: str
-    source: dict[str, int | str]
+    track: str | None
+    store: str | None
+    series: str | None
+    repo: str | None
     stage: str = Field(validation_alias=AliasPath("stage", "name"))
+    status: ArtefactStatus
 
 
 class EnvironmentDTO(BaseModel):
@@ -44,7 +48,7 @@ class TestExecutionDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    jenkins_link: str | None
+    ci_link: str | None
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
@@ -57,3 +61,7 @@ class ArtefactBuildDTO(BaseModel):
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionDTO]
+
+
+class ArtefactPatch(BaseModel):
+    status: ArtefactStatus

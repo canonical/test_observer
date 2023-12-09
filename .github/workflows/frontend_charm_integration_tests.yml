@@ -24,4 +24,3 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend/charm
-

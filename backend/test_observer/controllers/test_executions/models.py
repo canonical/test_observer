@@ -18,23 +18,69 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
-from pydantic import BaseModel
+from enum import Enum
+from typing import Annotated
 
-from test_observer.data_access.models_enums import TestExecutionStatus
+from pydantic import BaseModel, HttpUrl, field_serializer, model_validator
+
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 
 
 class StartTestExecutionRequest(BaseModel):
-    family: str
+    family: FamilyName
     name: str
     version: str
     revision: int | None = None
-    source: dict
+    track: str | None = None
+    store: str | None = None
+    series: str | None = None
+    repo: str | None = None
     arch: str
     execution_stage: str
     environment: str
+    ci_link: Annotated[str, HttpUrl]
+
+    @field_serializer("family")
+    def serialize_dt(self, family: FamilyName):
+        return family.value
+
+    @model_validator(mode="after")
+    def validate_required_fields(self) -> "StartTestExecutionRequest":
+        required_fields = {
+            FamilyName.SNAP: ("store", "track", "revision"),
+            FamilyName.DEB: ("series", "repo"),
+        }
+        family = self.family
+
+        for required_field in required_fields[family]:
+            if getattr(self, required_field) is None:
+                raise ValueError(f"{required_field} is required for {family} family")
+
+        return self
+
+
+class C3TestResultStatus(str, Enum):
+    PASS = "pass"
+    FAIL = "fail"
+    SKIP = "skip"
+
+
+class C3TestResult(BaseModel):
+    id: int
+    name: str
+    status: C3TestResultStatus
+    category: str
+    comment: str
+    io_log: str
+
+
+class EndTestExecutionRequest(BaseModel):
+    id: int
+    ci_link: Annotated[str, HttpUrl]
+    test_results: list[C3TestResult]
 
 
 class TestExecutionsPatchRequest(BaseModel):
-    c3_link: str
-    jenkins_link: str
-    status: TestExecutionStatus
+    c3_link: HttpUrl | None = None
+    ci_link: HttpUrl | None = None
+    status: TestExecutionStatus | None = None

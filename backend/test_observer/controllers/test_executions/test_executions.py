@@ -20,20 +20,30 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
+from test_observer.controllers.test_executions.logic import (
+    compute_test_execution_status,
+    store_test_results,
+)
 from test_observer.data_access.models import (
-    TestExecution,
-    Stage,
     Artefact,
     ArtefactBuild,
     Environment,
+    Stage,
+    TestExecution,
+    TestResult,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-from .models import TestExecutionsPatchRequest, StartTestExecutionRequest
+from .models import (
+    EndTestExecutionRequest,
+    StartTestExecutionRequest,
+    TestExecutionsPatchRequest,
+)
 
 router = APIRouter()
 
@@ -58,7 +68,10 @@ def start_test_execution(
             filter_kwargs={
                 "name": request.name,
                 "version": request.version,
-                "source": request.source,
+                "track": request.track,
+                "store": request.store,
+                "series": request.series,
+                "repo": request.repo,
             },
             creation_kwargs={"stage_id": stage.id},
         )
@@ -88,11 +101,46 @@ def start_test_execution(
             },
             creation_kwargs={
                 "status": TestExecutionStatus.IN_PROGRESS,
+                "ci_link": request.ci_link,
             },
         )
+
+        if test_execution.ci_link != request.ci_link:
+            reset_test_execution(request, db, test_execution)
+
         return {"id": test_execution.id}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def reset_test_execution(
+    request: StartTestExecutionRequest,
+    db: Session,
+    test_execution: TestExecution,
+):
+    test_execution.status = TestExecutionStatus.IN_PROGRESS
+    test_execution.ci_link = request.ci_link
+    test_execution.c3_link = None
+    db.execute(
+        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
+    )
+    db.commit()
+
+
+@router.put("/end-test")
+def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(get_db)):
+    test_execution = (
+        db.query(TestExecution)
+        .filter(TestExecution.ci_link == request.ci_link)
+        .one_or_none()
+    )
+
+    if test_execution is None:
+        raise HTTPException(status_code=404, detail="Related TestExecution not found")
+
+    store_test_results(db, request.test_results, test_execution)
+    test_execution.status = compute_test_execution_status(test_execution.test_results)
+    db.commit()
 
 
 @router.patch("/{id}")
@@ -101,8 +149,18 @@ def patch_test_execution(
     request: TestExecutionsPatchRequest,
     db: Session = Depends(get_db),
 ):
-    test_execution = db.query(TestExecution).filter(TestExecution.id == id).one()
-    test_execution.c3_link = request.c3_link
-    test_execution.jenkins_link = request.jenkins_link
-    test_execution.status = request.status
+    test_execution = db.get(TestExecution, id)
+
+    if test_execution is None:
+        raise HTTPException(status_code=404, detail="TestExecution not found")
+
+    if request.c3_link is not None:
+        test_execution.c3_link = str(request.c3_link)
+
+    if request.ci_link is not None:
+        test_execution.ci_link = str(request.ci_link)
+
+    if request.status is not None:
+        test_execution.status = request.status
+
     db.commit()

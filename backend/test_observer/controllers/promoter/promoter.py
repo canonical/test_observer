@@ -20,21 +20,22 @@
 
 
 import logging
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.repository import (
-    get_stage_by_name,
-    get_artefacts_by_family_name,
-)
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.repository import (
+    get_artefacts_by_family,
+    get_stage_by_name,
+)
 from test_observer.data_access.setup import get_db
+from test_observer.external_apis.archive import ArchiveManager
 from test_observer.external_apis.snapcraft import (
     get_channel_map_from_snapcraft,
 )
-from test_observer.external_apis.archive import ArchiveManager
 
 router = APIRouter()
 
@@ -48,8 +49,8 @@ CHANNEL_PROMOTION_MAP = {
     "stable": "stable",
 }
 
-REPOSITORY_PROMOTION_MAP = {
-    # repository -> next-repository
+POCKET_PROMOTION_MAP = {
+    # pocket -> next-pocket
     "proposed": "updates",
     "updates": "updates",
 }
@@ -62,18 +63,21 @@ def promote_artefacts(db: Session = Depends(get_db)):
     external source
     """
     try:
-        processed_artefacts = promoter_controller(db)
-        logger.info("INFO: Processed artefacts %s", processed_artefacts)
-        if False in processed_artefacts.values():
+        (
+            processed_artefacts_status,
+            processed_artefacts_error_messages,
+        ) = promoter_controller(db)
+        logger.info("INFO: Processed artefacts %s", processed_artefacts_status)
+        if False in processed_artefacts_status.values():
             return JSONResponse(
                 status_code=500,
                 content={
-                    "detail": (
-                        "Got some errors while processing the next artefacts: "
-                        ", ".join(
-                            [k for k, v in processed_artefacts.items() if v is False]
-                        )
-                    )
+                    artefact_key: processed_artefacts_error_messages[artefact_key]
+                    for (
+                        artefact_key,
+                        artefact_status,
+                    ) in processed_artefacts_status.items()
+                    if artefact_status is False
                 },
             )
         return JSONResponse(
@@ -84,32 +88,32 @@ def promote_artefacts(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
-def promoter_controller(session: Session) -> dict:
+def promoter_controller(session: Session) -> tuple[dict, dict]:
     """
     Orchestrate the snap promoter job
 
     :session: DB connection session
-    :return: dict with the processed cards and the status of execution
+    :return: tuple of dicts, the first the processed cards and the status of execution
+    the second only for the processed cards with the corresponding error message
     """
     family_mapping = {
         FamilyName.SNAP: run_snap_promoter,
         FamilyName.DEB: run_deb_promoter,
     }
+    processed_artefacts_status = {}
+    processed_artefacts_error_messages = {}
     for family_name, promoter_function in family_mapping.items():
-        artefacts = get_artefacts_by_family_name(session, family_name)
-        processed_artefacts = {}
+        artefacts = get_artefacts_by_family(session, family_name, load_stage=True)
         for artefact in artefacts:
+            artefact_key = f"{family_name} - {artefact.name} - {artefact.version}"
             try:
-                processed_artefacts[
-                    f"{family_name} - {artefact.name} - {artefact.version}"
-                ] = True
+                processed_artefacts_status[artefact_key] = True
                 promoter_function(session, artefact)
             except Exception as exc:
-                processed_artefacts[
-                    f"{family_name} - {artefact.name} - {artefact.version}"
-                ] = False
+                processed_artefacts_status[artefact_key] = False
+                processed_artefacts_error_messages[artefact_key] = str(exc)
                 logger.warning("WARNING: %s", str(exc), exc_info=True)
-    return processed_artefacts
+    return processed_artefacts_status, processed_artefacts_error_messages
 
 
 def run_snap_promoter(session: Session, artefact: Artefact) -> None:
@@ -119,14 +123,17 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
     :session: DB connection session
     :artefact_build: an ArtefactBuild object
     """
+    store = artefact.store
+    assert store is not None, f"Store is not set for the artefact {artefact.id}"
+
     for build in artefact.builds:
         arch = build.architecture
         channel_map = get_channel_map_from_snapcraft(
             arch=arch,
-            snapstore=artefact.source["store"],
+            snapstore=store,
             snap_name=artefact.name,
         )
-        track = artefact.source.get("track", "latest")
+        track = artefact.track
 
         for channel_info in channel_map:
             if not (
@@ -170,14 +177,19 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     :session: DB connection session
     :artefact: an Artefact object
     """
+    series = artefact.series
+    repo = artefact.repo
+    assert series is not None, f"Series is not set for the artefact {artefact.id}"
+    assert repo is not None, f"Repo is not set for the artefact {artefact.id}"
+
     for build in artefact.builds:
         arch = build.architecture
-        for repo in REPOSITORY_PROMOTION_MAP:
+        for pocket in POCKET_PROMOTION_MAP:
             with ArchiveManager(
                 arch=arch,
-                series=artefact.source["series"],
-                pocket=repo,
-                apt_repo=artefact.source["repo"],
+                series=series,
+                pocket=pocket,
+                apt_repo=repo,
             ) as archivemanager:
                 deb_version = archivemanager.get_deb_version(artefact.name)
                 if deb_version is None:
@@ -186,17 +198,19 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                         artefact.name,
                     )
                     continue
-            next_repo = REPOSITORY_PROMOTION_MAP.get(artefact.stage.name)
+            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage.name)
             logger.debug(
                 "Artefact version: %s, deb version: %s", artefact.version, deb_version
             )
             if (
-                repo == next_repo != artefact.stage.name
+                pocket == next_pocket != artefact.stage.name
                 and deb_version == artefact.version
             ):
-                logger.info("Move artefact '%s' to the '%s' stage", artefact, next_repo)
+                logger.info(
+                    "Move artefact '%s' to the '%s' stage", artefact, next_pocket
+                )
                 stage = get_stage_by_name(
-                    session, stage_name=next_repo, family=artefact.stage.family
+                    session, stage_name=next_pocket, family=artefact.stage.family
                 )
                 if stage:
                     artefact.stage = stage

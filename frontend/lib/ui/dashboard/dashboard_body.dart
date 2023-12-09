@@ -77,11 +77,6 @@ class _ArtefactCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactDetails = [
-      'version: ${artefact.version}',
-      ...artefact.source.entries.map((entry) => '${entry.key}: ${entry.value}'),
-    ];
-
     return GestureDetector(
       onTap: () {
         final currentRoute = GoRouterState.of(context).fullPath;
@@ -106,8 +101,10 @@ class _ArtefactCard extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: Spacing.level2),
-              ...artefactDetails
-                  .map<Widget>((detail) => Text(detail))
+              ...artefact.details.entries
+                  .map<Widget>(
+                    (detail) => Text('${detail.key}: ${detail.value}'),
+                  )
                   .intersperse(const SizedBox(height: Spacing.level2)),
             ],
           ),
