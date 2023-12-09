@@ -2,6 +2,11 @@ name: Run charm integration tests
 on:
   pull_request_review:
     types: [submitted]
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'frontend/charm/**'
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
