@@ -11,62 +11,16 @@ jobs:
       packages: read
 
     name: Integration tests
-    runs-on: [self-hosted, linux, large]
+    runs-on: [self-hosted, jammy, xlarge]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup LXD
-        uses: canonical/setup-lxd@main
-        with:
-          channel: 5.19/stable
-      - name: Setup operator environment
-        uses: mz2/actions-operator@4fcb55b99e2a0f69a5910870d3639d203aeb87aa
-        with:
-          channel: 1.28/stable # 1.26.4
-          provider: microk8s
-          juju-channel: 3.2/stable
-          juju-classic-confinement: "false"
-          microk8s-classic-confinement: "false"
-          charmcraft-channel: 2.x/stable
-          lxd-channel: 5.19/stable
-      - name: Adjust containerd template to accept ghcr.io images
-        run: |
-          sudo mkdir -p /var/snap/microk8s/current/args &&
-          echo "" | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
-          echo '[plugins."io.containerd.grpc.v1.cri".registry.configs."ghcr.io".auth]' | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
-          echo '  username = "$GHCR_PACKAGE_API_USER"' | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
-          echo '  password = "$GHCR_PACKAGE_API_TOKEN"' | sudo tee -a /var/snap/microk8s/current/args/containerd-template.toml &&
-          sudo systemctl restart snap.microk8s.daemon-containerd.service && 
-          sudo microk8s.stop &&
-          sleep 10 &&
-          sudo microk8s.start &&
-          sleep 10 &&
-          sudo microk8s status --wait-ready &&
-          sleep 30
-        env:
-          GHCR_PACKAGE_API_USER: ${{ secrets.GHCR_PACKAGE_API_USER }}
-          GHCR_PACKAGE_API_TOKEN: ${{ secrets.GHCR_PACKAGE_API_TOKEN }}
+        uses: actions/checkout@v4
+      - name: Set up microk8s
+        uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@microk8s-setup-action
       - name: Run integration tests
         run: tox -e integration
-      - name: Archive Tested Charm
-        uses: actions/upload-artifact@v3
-        if: ${{ github.ref_name == 'main' }}
-        with:
-          name: tested-charm
-          path: .tox/**/test-observer-frontend_ubuntu-22.04-amd64.charm
-          retention-days: 5
-      - name: Archive charmcraft logs
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: charmcraft-logs
-          path: /home/runner/.local/state/charmcraft/log/*.log
-      - name: Archive juju crashdump
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: juju-crashdump
-          path: juju-crashdump-*.tar.xz
+      - name: Archive charm testing outputs
+        uses: canonical/certification-github-workflows/.github/actions/archive-charm-testing-artifacts@microk8s-setup-action
     defaults:
       run:
         working-directory: ./frontend/charm

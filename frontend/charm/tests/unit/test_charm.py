@@ -33,7 +33,9 @@ class TestCharm(unittest.TestCase):
         harness.update_config({"test-observer-api-scheme": "https://"})
         harness.begin()
         rel_id = harness.add_relation("test-observer-rest-api", "backend")
-        harness.update_relation_data(rel_id, "backend", {"hostname": "teh-backend", "port": "443"})
+        harness.update_relation_data(
+            rel_id, "backend", {"hostname": "teh-backend", "port": "443"}
+        )
 
         service = harness.model.unit.get_container("frontend").get_service(
             "test-observer-frontend"

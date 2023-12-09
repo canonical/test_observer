@@ -4,7 +4,7 @@ Observe the status and state of certification tests for various artefacts
 
 ## Prerequisites for deploying locally
 
-- `juju` 3.2 or later (`sudo snap install juju --channel=3.2/stable`)
+- `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
 - `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`) + [permission setup steps after install](https://juju.is/docs/sdk/set-up-your-development-environment#heading--install-microk8s)
 - `terraform` 1.4.6 or later (`sudo snap install terraform --classic`)
 - `lxd` 5.19 or later (`sudo snap install lxd --channel=5.19/stable` or `sudo snap refresh lxd --channel=5.19/stable` if already installed) + `lxd init --auto` after install.
