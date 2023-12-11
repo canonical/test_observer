@@ -1,13 +1,19 @@
 import requests
 from fastapi.testclient import TestClient
 
-from test_observer.controllers.test_executions.models import StartTestExecutionRequest
+from test_observer.controllers.test_executions.models import (
+    C3TestResult,
+    C3TestResultStatus,
+    EndTestExecutionRequest,
+    StartTestExecutionRequest,
+)
 from test_observer.data_access.models_enums import FamilyName
 
 BASE_URL = "http://localhost:30000/v1"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
+END_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/end-test"
 
-REQUESTS = [
+START_REQUESTS = [
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
@@ -19,6 +25,42 @@ REQUESTS = [
         execution_stage="beta",
         environment="rpi2",
         ci_link="http://example1",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.SNAP,
+        name="core22",
+        version="20230531",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage="beta",
+        environment="rpi4",
+        ci_link="http://example10",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.SNAP,
+        name="core22",
+        version="20230531",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage="beta",
+        environment="rpi3aplus",
+        ci_link="http://example11",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.SNAP,
+        name="core22",
+        version="20230531",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage="beta",
+        environment="rp3bplus",
+        ci_link="http://example12",
     ),
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
@@ -116,11 +158,95 @@ REQUESTS = [
     ),
 ]
 
+END_REQUESTS = [
+    EndTestExecutionRequest(
+        id=1,
+        ci_link="http://example1",
+        test_results=[
+            C3TestResult(
+                id=1,
+                name="test1",
+                status=C3TestResultStatus.FAIL,
+                category="",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                id=2,
+                name="test2",
+                status=C3TestResultStatus.PASS,
+                category="",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                id=3,
+                name="test3",
+                status=C3TestResultStatus.SKIP,
+                category="",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                id=4,
+                name="test4",
+                status=C3TestResultStatus.FAIL,
+                category="",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                id=5,
+                name="test5",
+                status=C3TestResultStatus.PASS,
+                category="",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                id=6,
+                name="test6",
+                status=C3TestResultStatus.SKIP,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        id=2,
+        ci_link="http://example2",
+        test_results=[
+            C3TestResult(
+                id=7,
+                name="test7",
+                status=C3TestResultStatus.PASS,
+                category="",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                id=8,
+                name="test8",
+                status=C3TestResultStatus.SKIP,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+]
+
 
 def seed_data(client: TestClient | requests.Session):
-    for request in REQUESTS:
+    for start_request in START_REQUESTS:
         client.put(
-            START_TEST_EXECUTION_URL, json=request.model_dump(mode="json")
+            START_TEST_EXECUTION_URL, json=start_request.model_dump(mode="json")
+        ).raise_for_status()
+
+    for end_request in END_REQUESTS:
+        client.put(
+            END_TEST_EXECUTION_URL, json=end_request.model_dump(mode="json")
         ).raise_for_status()
 
 
