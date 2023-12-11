@@ -1,7 +1,9 @@
 name: Run charm integration tests
 on:
   pull_request_review:
-    types: [submitted]
+    on:
+      pull_request_review:
+        types: [submitted]
   pull_request:
     branches:
       - '**'
@@ -20,6 +22,7 @@ jobs:
 
     name: Integration tests
     runs-on: [self-hosted, jammy, xlarge]
+    if: github.event.review.state == 'APPROVED'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
