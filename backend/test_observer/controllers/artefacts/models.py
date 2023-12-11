@@ -57,7 +57,7 @@ class TestExecutionDTO(BaseModel):
     environment: EnvironmentDTO
     status: TestExecutionStatus
     review_status: list[TestExecutionReviewStatus]
-    review_comment: str | None
+    review_comment: str
 
 
 class ArtefactBuildDTO(BaseModel):
