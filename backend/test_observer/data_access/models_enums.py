@@ -48,3 +48,9 @@ class ArtefactStatus(str, Enum):
     APPROVED = "APPROVED"
     MARKED_AS_FAILED = "MARKED_AS_FAILED"
     UNDECIDED = "UNDECIDED"
+
+
+class TestResultStatus(str, Enum):
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"

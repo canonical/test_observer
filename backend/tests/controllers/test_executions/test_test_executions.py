@@ -28,12 +28,15 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     Environment,
     Stage,
+    TestCase,
     TestExecution,
+    TestResult,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
     TestExecutionReviewStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 from tests.helpers import create_artefact
 
@@ -159,8 +162,25 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
         ci_link="http://should-be-changed",
         c3_link="http://should-be-nulled",
     )
+    test_case = TestCase(name="some-test", category="")
+    test_result = TestResult(
+        test_case=test_case,
+        test_execution=test_execution,
+        status=TestResultStatus.PASSED,
+        comment="",
+        io_log="",
+    )
 
-    db_session.add_all([artefact, environment, artefact_build, test_execution])
+    db_session.add_all(
+        [
+            artefact,
+            environment,
+            artefact_build,
+            test_execution,
+            test_case,
+            test_result,
+        ]
+    )
     db_session.commit()
 
     test_execution_id = test_client.put(
@@ -179,6 +199,12 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
     assert test_execution.c3_link is None
+    assert (
+        db_session.query(TestResult)
+        .filter(TestResult.test_case_id == test_case.id)
+        .one_or_none()
+        is None
+    )
 
 
 def test_report_test_execution_data(db_session: Session, test_client: TestClient):
@@ -189,7 +215,8 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
     test_execution = TestExecution(
         environment=environment, artefact_build=artefact_build, ci_link=ci_link
     )
-    db_session.add_all([artefact_build, environment, test_execution])
+    test_case = TestCase(name="test-name-1", category="")
+    db_session.add_all([artefact_build, environment, test_execution, test_case])
     db_session.commit()
 
     response = test_client.put(
@@ -200,9 +227,9 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
             "test_results": [
                 {
                     "id": 1,
-                    "name": "test-name-1",
+                    "name": test_case.name,
                     "status": "pass",
-                    "category": "",
+                    "category": test_case.category,
                     "comment": "",
                     "io_log": "",
                 },
@@ -220,6 +247,10 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
 
     assert response.status_code == 200
     assert test_execution.status == TestExecutionStatus.PASSED
+    assert test_execution.test_results[0].test_case.name == "test-name-1"
+    assert test_execution.test_results[0].status == TestResultStatus.PASSED
+    assert test_execution.test_results[1].test_case.name == "test-name-2"
+    assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
 def _prepare_test_execution_object(db_session: Session) -> TestExecution:
