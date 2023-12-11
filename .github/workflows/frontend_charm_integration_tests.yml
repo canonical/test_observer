@@ -27,11 +27,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up microk8s
-        uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@microk8s-setup-action
+        uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
       - name: Run integration tests
         run: tox -e integration
       - name: Archive charm testing outputs
-        uses: canonical/certification-github-workflows/.github/actions/archive-charm-testing-artifacts@microk8s-setup-action
+        uses: canonical/certification-github-workflows/.github/actions/archive-charm-testing-artifacts@main
     defaults:
       run:
         working-directory: ./frontend/charm
