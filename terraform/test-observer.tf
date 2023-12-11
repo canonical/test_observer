@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     juju = {
-      version = "~> 0.7.0"
+      version = "~> 0.10.0"
       source  = "juju/juju"
     }
   }
@@ -67,7 +67,6 @@ resource "juju_application" "pg" {
   charm {
     name    = "postgresql-k8s"
     channel = "14/stable"
-    series  = "jammy"
   }
 }
 
@@ -78,7 +77,6 @@ resource "juju_application" "test-observer-api" {
   charm {
     name    = "test-observer-api"
     channel = "latest/edge"
-    series  = "jammy"
   }
 
   config = {
@@ -97,7 +95,6 @@ resource "juju_application" "test-observer-frontend" {
   charm {
     name    = "test-observer-frontend"
     channel = "latest/edge"
-    series  = "jammy"
   }
 
   config = {
