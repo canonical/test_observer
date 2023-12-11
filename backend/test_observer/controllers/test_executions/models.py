@@ -88,27 +88,18 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | None = None
-
-
-class TestExecutionsReviewPatchRequest(BaseModel):
-    review_status: list[TestExecutionReviewStatus]
+    review_status: list[TestExecutionReviewStatus] | None = None
     review_comment: str | None = None
 
     @model_validator(mode="after")
-    def validate_review_status(self) -> "TestExecutionsReviewPatchRequest":
-        if len(self.review_status) == 0:
-            raise ValueError("At least one review_status is required")
+    def validate_review_status(self) -> "TestExecutionsPatchRequest":
+        if self.review_status is None:
+            return self
 
-        # All values are allowed when the array has one element
-        if len(self.review_status) == 1:
+        if len(self.review_status) <= 1:
             return self
 
         for review_status in self.review_status:
-            if review_status in (
-                TestExecutionReviewStatus.UNDECIDED,
-                TestExecutionReviewStatus.MARKED_AS_FAILED,
-            ):
-                raise ValueError(
-                    "Test execution can either be undecided, failed or approved"
-                )
+            if review_status in (TestExecutionReviewStatus.REJECTED,):
+                raise ValueError("Test execution can either be rejected or approved")
         return self

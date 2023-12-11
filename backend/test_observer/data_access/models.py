@@ -241,9 +241,9 @@ class TestExecution(Base):
     )
     review_status: Mapped[list[TestExecutionReviewStatus]] = mapped_column(
         ARRAY(Enum(TestExecutionReviewStatus)),
-        default=[TestExecutionReviewStatus.UNDECIDED],
+        default=[],
     )
-    review_comment: Mapped[str | None]
+    review_comment: Mapped[str | None] = mapped_column(nullable=False, default="")
 
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 

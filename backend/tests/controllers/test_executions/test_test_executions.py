@@ -277,6 +277,11 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
             "ci_link": "http://ci_link/",
             "c3_link": "http://c3_link/",
             "status": TestExecutionStatus.PASSED.name,
+            "review_status": [
+                TestExecutionReviewStatus.APPROVED_FAULTY_HARDWARE.name,
+                TestExecutionReviewStatus.APPROVED_INCONSISTENT_TEST.name,
+            ],
+            "review_comment": "Tests fail because of broken keyboard",
         },
     )
 
@@ -284,82 +289,27 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
-
-
-def test_review_test_execution(db_session: Session, test_client: TestClient):
-    test_execution: TestExecution = _prepare_test_execution_object(db_session)
-
-    test_client.patch(
-        f"/v1/test-executions/{test_execution.id}/review",
-        json={
-            "review_status": [
-                TestExecutionReviewStatus.APPROVED_UNSTABLE_PHSYICAL_INFRA.name,
-                TestExecutionReviewStatus.APPROVED_FAULTY_HARDWARE.name,
-            ],
-            "review_comment": "Known issue with our infrastructure",
-        },
-    )
-
-    db_session.refresh(test_execution)
-    assert test_execution.review_comment == "Known issue with our infrastructure"
     assert test_execution.review_status == [
-        TestExecutionReviewStatus.APPROVED_UNSTABLE_PHSYICAL_INFRA.name,
         TestExecutionReviewStatus.APPROVED_FAULTY_HARDWARE.name,
+        TestExecutionReviewStatus.APPROVED_INCONSISTENT_TEST.name,
     ]
-
-
-def _execute_review_test_execution_invalid_input(
-    db_session: Session,
-    test_client: TestClient,
-    review_status: list[str],
-) -> None:
-    test_execution: TestExecution = _prepare_test_execution_object(db_session)
-
-    response = test_client.patch(
-        f"/v1/test-executions/{test_execution.id}/review",
-        json={
-            "review_status": review_status,
-        },
-    )
-
-    db_session.refresh(test_execution)
-    assert response.status_code == 422
+    assert test_execution.review_comment == "Tests fail because of broken keyboard"
 
 
 def test_review_test_execution_fails_if_both_failed_and_approved(
     db_session: Session, test_client: TestClient
 ):
-    _execute_review_test_execution_invalid_input(
-        db_session=db_session,
-        test_client=test_client,
-        review_status=[
-            TestExecutionReviewStatus.MARKED_AS_FAILED.name,
-            TestExecutionReviewStatus.APPROVED_GENERIC.name,
-        ],
+    test_execution: TestExecution = _prepare_test_execution_object(db_session)
+
+    response = test_client.patch(
+        f"/v1/test-executions/{test_execution.id}",
+        json={
+            "review_status": [
+                TestExecutionReviewStatus.REJECTED.name,
+                TestExecutionReviewStatus.APPROVED_INCONSISTENT_TEST.name,
+            ],
+        },
     )
 
-
-def test_review_test_execution_fails_if_both_undecided_and_failed(
-    db_session: Session, test_client: TestClient
-):
-    _execute_review_test_execution_invalid_input(
-        db_session=db_session,
-        test_client=test_client,
-        review_status=[
-            TestExecutionReviewStatus.MARKED_AS_FAILED.name,
-            TestExecutionReviewStatus.UNDECIDED.name,
-        ],
-    )
-
-
-def test_review_test_execution_fails_if_both_undecided_and_approved(
-    db_session: Session, test_client: TestClient
-):
-    _execute_review_test_execution_invalid_input(
-        db_session=db_session,
-        test_client=test_client,
-        review_status=[
-            TestExecutionReviewStatus.APPROVED_GENERIC.name,
-            TestExecutionReviewStatus.UNDECIDED.name,
-        ],
-    )
+    db_session.refresh(test_execution)
+    assert response.status_code == 422
