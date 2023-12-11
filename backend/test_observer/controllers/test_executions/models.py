@@ -52,7 +52,7 @@ class StartTestExecutionRequest(BaseModel):
 
     @field_validator("version")
     @classmethod
-    def validate_version(cls, version: str) -> str:
+    def validate_version(cls: type["StartTestExecutionRequest"], version: str) -> str:
         if version in ("", "null"):
             raise ValueError(f"Invalid version value '{version}'")
         return version
