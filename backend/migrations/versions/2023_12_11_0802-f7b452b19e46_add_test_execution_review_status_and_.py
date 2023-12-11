@@ -23,6 +23,7 @@ def upgrade() -> None:
         "'APPROVED_INCONSISTENT_TEST', "
         "'APPROVED_UNSTABLE_PHYSICAL_INFRA', "
         "'APPROVED_FAULTY_HARDWARE', "
+        "'APPROVED_CUSTOMER_PREREQUISITE_FAIL', "
         "'APPROVED_ALL_TESTS_PASS' "
         ")"
     )
