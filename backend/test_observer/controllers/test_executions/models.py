@@ -85,9 +85,9 @@ class EndTestExecutionRequest(BaseModel):
 
 
 class TestExecutionsPatchRequest(BaseModel):
-    c3_link: HttpUrl | None
-    ci_link: HttpUrl | None
-    status: TestExecutionStatus | None
+    c3_link: HttpUrl | None = None
+    ci_link: HttpUrl | None = None
+    status: TestExecutionStatus | None = None
 
 
 class TestExecutionsReviewPatchRequest(BaseModel):
