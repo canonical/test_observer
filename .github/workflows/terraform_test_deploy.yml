@@ -1,28 +1,29 @@
 name: Terraform deploy to a fresh microk8s model
 on:
-  push:
-    branches: ["*"]
-    tags:
-      - "v*.*.*"
   pull_request:
     branches:
       - '**'
     paths:
       - 'frontend/charm/**'
       - 'backend/charm/**'
-#  pull_request_review:
-#    on:
-#      pull_request_review:
-#        types:
-#          - submitted
-#    paths:
-#      - 'frontend/charm/**'
-#      - 'backend/charm/**'
-#      - 'terraform/**'
+  pull_request_review:
+    on:
+      pull_request_review:
+        types:
+          - submitted
+      paths:
+        - 'frontend/charm/**'
+        - 'backend/charm/**'
+        - 'terraform/**'
+  push:
+    branches: ["main"]
+    tags: ["v*.*.*"]
   workflow_dispatch:
 
 jobs:
   deploy:
+    name: terraform deploy + upgrade charms
+    if: github.event.review.state == 'APPROVED'
     runs-on: [self-hosted, jammy, xlarge]
 
     defaults:
