@@ -277,3 +277,38 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
+
+
+def test_fetch_test_results(db_session: Session, test_client: TestClient):
+    ci_link = "http://cilink"
+    artefact = create_artefact(db_session, stage_name="beta")
+    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
+    environment = Environment(name="some environment", architecture="some arch")
+    test_execution = TestExecution(
+        environment=environment,
+        artefact_build=artefact_build,
+        ci_link=ci_link,
+        status=TestExecutionStatus.PASSED,
+    )
+    test_case = TestCase(name="test-name-1", category="")
+    test_result = TestResult(
+        test_case=test_case,
+        test_execution=test_execution,
+        status=TestResultStatus.PASSED,
+        comment="",
+        io_log="",
+    )
+    db_session.add_all(
+        [artefact_build, environment, test_execution, test_case, test_result]
+    )
+    db_session.commit()
+
+    response = test_client.get(f"/v1/test-executions/{test_execution.id}/test-results")
+
+    assert response.status_code == 200
+    json = response.json()
+    assert json[0]["name"] == test_case.name
+    assert json[0]["category"] == test_case.category
+    assert json[0]["status"] == test_result.status.name
+    assert json[0]["comment"] == test_result.comment
+    assert json[0]["io_log"] == test_result.io_log
