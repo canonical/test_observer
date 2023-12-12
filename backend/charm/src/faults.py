@@ -1,7 +1,10 @@
+from typing import Optional
+
+
 class UnitReadinessFault:
     """A ReadinessFault describes the reason for a unit not to be ready."""
 
-    def __init__(self, reason: str, parent=None):
+    def __init__(self, reason: str, parent: "Optional[UnitReadinessFault]" = None):
         self.reason = reason
         self.parent = parent
 

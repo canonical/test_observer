@@ -47,10 +47,14 @@ jobs:
       - name: Set up microk8s
         uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
       
+      # TODO: Separate this build step to its own action once custom VM images are available
+      # (when there is a charmcraft + LXD capable image available)
       - name: Build API charm
         run: charmcraft pack
         working-directory: ./backend/charm
   
+      # TODO: Separate this build step to its own action once custom VM images are available
+      # (when there is a charmcraft + LXD capable image available)
       - name: Build frontend charm
         run: charmcraft pack
         working-directory: ./frontend/charm
