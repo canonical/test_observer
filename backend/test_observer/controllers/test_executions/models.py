@@ -22,14 +22,20 @@ from enum import Enum
 from typing import Annotated
 
 from pydantic import (
+    AliasPath,
     BaseModel,
+    Field,
     HttpUrl,
     field_serializer,
     field_validator,
     model_validator,
 )
 
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestExecutionStatus,
+    TestResultStatus,
+)
 
 
 class StartTestExecutionRequest(BaseModel):
@@ -97,3 +103,12 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | None = None
+
+
+class TestResultDTO(BaseModel):
+    id: int
+    name: str = Field(validation_alias=AliasPath("test_case", "name"))
+    category: str = Field(validation_alias=AliasPath("test_case", "category"))
+    status: TestResultStatus
+    comment: str
+    io_log: str
