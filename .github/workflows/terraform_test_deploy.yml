@@ -64,6 +64,10 @@ jobs:
           TF_VAR_environment=development \
           TF_VAR_nginx_ingress_integrator_charm_whitelist_source_range="" \
           terraform apply -auto-approve
+      
+      - name: Switch model to test-observer-development
+        run: |
+          juju switch test-observer-development
     
       - name: Replace the API charm with the locally built one
         run: |
