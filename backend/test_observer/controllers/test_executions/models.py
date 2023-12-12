@@ -106,6 +106,7 @@ class TestExecutionsPatchRequest(BaseModel):
 
 
 class TestResultDTO(BaseModel):
+    id: int
     name: str = Field(validation_alias=AliasPath("test_case", "name"))
     category: str = Field(validation_alias=AliasPath("test_case", "category"))
     status: TestResultStatus
