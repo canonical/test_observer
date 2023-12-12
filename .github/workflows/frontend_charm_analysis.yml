@@ -37,7 +37,7 @@ jobs:
         working-directory: ./frontend/charm
 
   unit-tests-with-coverage:
-    name: Unit tests
+    name: Frontend charm unit tests
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v3
