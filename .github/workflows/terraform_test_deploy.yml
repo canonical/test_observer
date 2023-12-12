@@ -23,7 +23,6 @@ on:
 
 jobs:
   deploy:
-    needs: build-api-charm
     runs-on: [self-hosted, jammy, xlarge]
 
     defaults:
