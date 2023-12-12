@@ -1,9 +1,21 @@
-name: Terraform Deploy
-
+name: Terraform deploy to a fresh microk8s model
 on:
-  push:
+  pull_request_review:
+    on:
+      pull_request_review:
+        types:
+          - submitted
+  pull_request:
     branches:
-      - main
+      - '**'
+    paths:
+      - 'frontend/charm/**'
+      - 'backend/charm/**'
+      - 'terraform/**'
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
 
 jobs:
   deploy:
