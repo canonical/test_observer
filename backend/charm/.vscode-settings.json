@@ -1,0 +1,14 @@
+{
+  "python.autoComplete.extraPaths": [
+    "./lib"
+  ],
+  "python.analysis.extraPaths": [
+    "./lib"
+  ],
+  "yaml.schemas": {
+    "https://json.schemastore.org/yamllint.json": [
+      "./metadata.yaml"
+    ]
+  },
+  "ansible.python.interpreterPath": "./venv/bin/python3"
+}

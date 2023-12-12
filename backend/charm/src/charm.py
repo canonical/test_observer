@@ -2,16 +2,14 @@
 
 import logging
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    DatabaseRequires,
-    RelationChangedEvent,
-    RelationJoinedEvent,
-)
-from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+from data_platform_libs.v0.data_interfaces import DatabaseRequires
+from faults import UnitReadinessFault
+from nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+from ops import RelationChangedEvent, RelationJoinedEvent
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import Layer, ExecError
+from ops.pebble import ExecError, Layer
 from requests import get
 
 # Log messages can be retrieved using juju debug-log
@@ -63,38 +61,52 @@ class TestObserverBackendCharm(CharmBase):
     def _on_upgrade_charm(self, event):
         self._migrate_database()
 
-    def _migrate_database(self):
-        # only leader runs database migrations
+    def _attempt_database_migration(self) -> bool | UnitReadinessFault:
+        """Return true if migrations were attempted, false if not attempted (if unit is not the leader).
+
+        If unit is not ready for migrations, return UnitReadinessFault.
+        """
         if not self.unit.is_leader():
-            raise SystemExit(0)
+            return False
 
         if not self.container.can_connect():
-            self.unit.status = WaitingStatus("Waiting for Pebble for API")
-            raise SystemExit(0)
+            return UnitReadinessFault("Waiting for Pebble for API")
+
+        pg_data = self._postgres_relation_data()
+
+        if isinstance(pg_data, UnitReadinessFault):
+            return pg_data
 
         self.unit.status = MaintenanceStatus("Migrating database")
 
         process = self.container.exec(
             ["alembic", "upgrade", "head"],
             working_dir="/home/app",
-            environment=self._postgres_relation_data(),
+            environment=pg_data,
         )
 
         try:
             stdout, _ = process.wait_output()
             logger.info(stdout)
             self.unit.status = ActiveStatus()
+
+            return True
+
         except ExecError as e:
             logger.error(e.stdout)
             logger.error(e.stderr)
             self.unit.status = BlockedStatus("Database migration failed")
 
+        return True
+
     def _on_database_changed(self, event):
-        self._migrate_database()
+        if not self._attempt_database_migration():
+            self.unit.status = WaitingStatus("Waiting for database relation")
+
         self._update_layer_and_restart(None)
 
     def _on_database_relation_broken(self, event):
-        self.unit.status = WaitingStatus("Waiting for database relation")
+        self.unit.status = WaitingStatus("Waiting for database relation after breaking relation")
         raise SystemExit(0)
 
     def _on_config_changed(self, event):
@@ -110,18 +122,28 @@ class TestObserverBackendCharm(CharmBase):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         if self.container.can_connect():
-            self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
+            layer = self._pebble_layer
+
+            if isinstance(layer, UnitReadinessFault):
+                self.unit.status = layer.__str__()
+                return
+
+            self.container.add_layer(self.pebble_service_name, layer, combine=True)
             self.container.restart(self.pebble_service_name)
+
             version = self.version
             if version:
                 self.unit.set_workload_version(self.version)
+
             self.unit.status = ActiveStatus()
+
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
 
-    def _postgres_relation_data(self) -> dict:
+    def _postgres_relation_data(self) -> dict | UnitReadinessFault:
         data = self.database.fetch_relation_data()
         logger.debug("Got following database relation data: %s", data)
+
         for key, val in data.items():
             if not val:
                 continue
@@ -130,16 +152,19 @@ class TestObserverBackendCharm(CharmBase):
             db_url = f"postgresql+pg8000://{val['username']}:{val['password']}@{host}:{port}/test_observer_db"
             return {"DB_URL": db_url}
 
-        self.unit.status = WaitingStatus("Waiting for database relation")
-        raise SystemExit(0)
+        return UnitReadinessFault("No database relation data")
 
     @property
-    def _app_environment(self):
-        """
-        This creates a dictionary of environment variables needed by the application
-        """
+    def _app_environment(self) -> dict | UnitReadinessFault:
+        """Environment variables needed by the application."""
         env = {"SENTRY_DSN": self.config["sentry_dsn"]}
-        env.update(self._postgres_relation_data())
+
+        db_data = self._postgres_relation_data()
+
+        if not isinstance(db_data, dict):
+            return UnitReadinessFault("App environment not ready", parent=db_data)
+
+        env.update(db_data)
         return env
 
     def _test_observer_rest_api_client_joined(self, event: RelationJoinedEvent) -> None:
@@ -168,7 +193,12 @@ class TestObserverBackendCharm(CharmBase):
         return None
 
     @property
-    def _pebble_layer(self) -> Layer:
+    def _pebble_layer(self) -> Layer | UnitReadinessFault:
+        env = self._app_environment
+
+        if isinstance(env, UnitReadinessFault):
+            return UnitReadinessFault("Pebble layer not ready", parent=env)
+
         return Layer(
             {
                 "summary": "test observer",
@@ -187,7 +217,16 @@ class TestObserverBackendCharm(CharmBase):
                             ]
                         ),
                         "startup": "enabled",
-                        "environment": self._app_environment,
+                        "environment": env,
+                    }
+                },
+                "checks": {
+                    "online": {
+                        "exec": {
+                            "command": "curl --fail --silent --head http://0.0.0.0:8000/v1/version",
+                        },
+                        "timeout": "5s",
+                        "period": "5s",
                     }
                 },
             }
