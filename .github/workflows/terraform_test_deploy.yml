@@ -1,0 +1,45 @@
+name: Terraform Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, jammy, xlarge]
+
+    defaults:
+      run:
+        working-directory: ./terraform
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up microk8s
+        uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
+      
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Create juju model to deploy to
+        run: juju add-model test-observer-development
+
+      - name: Terraform Apply
+        run: |
+          TF_VAR_environment=development \
+          TF_VAR_nginx_ingress_integrator_charm_whitelist_source_range="" \
+          terraform apply -auto-approve
+    
+      - name: Wait for deployment to complete
+        run: |
+          juju wait-for model test-observer-development \
+          --timeout=1min \
+          --query='life=="alive" && status=="available" && forEach(applications, app => app.status == "active")'
+
+
+              
