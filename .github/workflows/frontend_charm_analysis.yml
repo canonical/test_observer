@@ -2,7 +2,9 @@ name: Run charm tests
 on:
   pull_request:
     branches:
-      - main
+      - '**'
+    paths:
+      - 'frontend/charm/**'
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
