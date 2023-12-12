@@ -29,15 +29,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up microk8s
-        uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
-      
+      - name: Set up Terraform dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install unzip
+
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
 
       - name: Terraform Init
         run: terraform init
 
+      - name: Set up microk8s
+        uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
+      
       - name: Create juju model to deploy to
         run: juju add-model test-observer-development
 
