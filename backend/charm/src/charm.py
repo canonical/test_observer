@@ -2,9 +2,9 @@
 
 import logging
 
-from data_platform_libs.v0.data_interfaces import DatabaseRequires
+from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from faults import UnitReadinessFault
-from nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops import RelationChangedEvent, RelationJoinedEvent
 from ops.charm import CharmBase
 from ops.main import main
@@ -59,7 +59,7 @@ class TestObserverBackendCharm(CharmBase):
         )
 
     def _on_upgrade_charm(self, event):
-        self._migrate_database()
+        self._attempt_database_migration()
 
     def _attempt_database_migration(self) -> bool | UnitReadinessFault:
         """Return true if migrations were attempted, false if not attempted (if unit is not the leader).
@@ -226,7 +226,8 @@ class TestObserverBackendCharm(CharmBase):
                             "command": "curl --fail --silent --head http://0.0.0.0:8000/v1/version",
                         },
                         "timeout": "5s",
-                        "period": "5s",
+                        "period": "15s",
+                        "override": "replace",
                     }
                 },
             }

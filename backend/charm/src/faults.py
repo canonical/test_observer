@@ -1,8 +1,9 @@
 class UnitReadinessFault:
     """A ReadinessFault describes the reason for a unit not to be ready."""
 
-    def __init__(self, reason: str, parent: "UnitReadinessFault" | None = None):
+    def __init__(self, reason: str, parent=None):
         self.reason = reason
+        self.parent = parent
 
     def __str__(self):
         """Build a representation by recursively traversing the fault hierarchy in reverse order."""
