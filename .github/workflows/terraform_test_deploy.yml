@@ -34,19 +34,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install unzip
 
-      - name: Set up Terraform
+      - name: Set up terraform
         uses: hashicorp/setup-terraform@v1
 
-      - name: Terraform Init
+      - name: Terraform init
         run: terraform init
 
       - name: Set up microk8s
         uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
       
-      - name: Create juju model to deploy to
-        run: juju add-model test-observer-development
-
-      - name: Terraform Apply
+      - name: Terraform apply
         run: |
           TF_VAR_environment=development \
           TF_VAR_nginx_ingress_integrator_charm_whitelist_source_range="" \
