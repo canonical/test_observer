@@ -6,6 +6,7 @@ on:
     paths:
       - 'frontend/charm/**'
       - 'backend/charm/**'
+      - 'terraform/**'
   pull_request_review:
     on:
       pull_request_review:
