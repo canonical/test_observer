@@ -19,6 +19,7 @@ on:
 
 jobs:
   deploy:
+    needs: build-api-charm
     runs-on: [self-hosted, jammy, xlarge]
 
     defaults:
@@ -43,12 +44,20 @@ jobs:
       - name: Set up microk8s
         uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
       
+      - name: Build charm
+        run: charmcraft pack
+        working-directory: ./backend/charm
+
       - name: Terraform apply
         run: |
           TF_VAR_environment=development \
           TF_VAR_nginx_ingress_integrator_charm_whitelist_source_range="" \
           terraform apply -auto-approve
     
+      - name: Replace the API charm with the locally built one
+        run: |
+          juju refresh api --path ../backend/charm/test-observer-api_ubuntu-22.04-amd64.charm
+
       - name: Wait for deployment to complete
         run: |
           juju wait-for model test-observer-development \
