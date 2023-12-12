@@ -70,6 +70,7 @@ jobs:
       - name: Switch model to test-observer-development
         run: |
           juju switch test-observer-development
+          sleep 10 # hack hack, the below wait-for condition is not actually correct, so let's wait a bit
     
       - name: Replace the API charm with the locally built one
         run: |
@@ -86,6 +87,17 @@ jobs:
           juju wait-for model test-observer-development \
           --timeout=10m \
           --query='life=="alive" && status=="available" && forEach(applications, app => app.status == "active")'
+
+      - name: Echo juju status on failure
+        if: failure()
+        run: |
+          juju status --color
+
+      - name: Run juju crashdump on failure
+        if: failure()
+        run: |
+          sudo juju crashdump -o ./ -m test-observer-development --as-root -a juju-show-unit -a juju-show-status-log -a juju-show-machine -a config
+          sudo chown $USER ./**/juju-crashdump-*.tar.xz
 
       - name: Archive juju crashdump on failure
         if: failure()
