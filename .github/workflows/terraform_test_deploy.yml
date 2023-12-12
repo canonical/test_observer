@@ -1,17 +1,17 @@
 name: Terraform deploy to a fresh microk8s model
 on:
-  pull_request_review:
-    on:
-      pull_request_review:
-        types:
-          - submitted
+#  pull_request_review:
+#    on:
+#      pull_request_review:
+#        types:
+#          - submitted
   pull_request:
     branches:
       - '**'
-    paths:
-      - 'frontend/charm/**'
-      - 'backend/charm/**'
-      - 'terraform/**'
+#    paths:
+#      - 'frontend/charm/**'
+#      - 'backend/charm/**'
+#      - 'terraform/**'
   push:
     tags:
       - "v*.*.*"
