@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./backend/charm/lib"
+    ],
+    "cmake.sourceDirectory": "/home/mz2/Developer/test_observer/frontend/linux"
+}
