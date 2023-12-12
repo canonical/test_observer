@@ -76,7 +76,7 @@ jobs:
 
       - name: Replace the frontend charm with the locally built one
         run: |
-          juju refresh api --path ../frontend/charm/*.charm
+          juju refresh frontend --path ../frontend/charm/*.charm
 
       - name: Wait for deployment to complete
         run: |
