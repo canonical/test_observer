@@ -23,7 +23,7 @@ on:
 jobs:
   deploy:
     name: terraform deploy + upgrade charms
-    if: github.event.review.state == 'APPROVED'
+    # if: github.event.review.state == 'APPROVED'
     runs-on: [self-hosted, jammy, xlarge]
 
     defaults:
