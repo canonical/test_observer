@@ -56,7 +56,9 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
-    review_status: list[TestExecutionReviewDecision]
+    # Since in a test execution there might be tests that fail for different
+    # reasons, we allow multiple reasons to be picked for the approval
+    review_status: set[TestExecutionReviewDecision]
     review_comment: str
 
 

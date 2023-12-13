@@ -18,6 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
+import pytest
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -39,6 +40,22 @@ from test_observer.data_access.models_enums import (
     TestResultStatus,
 )
 from tests.helpers import create_artefact
+
+
+@pytest.fixture
+def test_execution(db_session: Session) -> TestExecution:
+    stage = db_session.query(Stage).filter(Stage.name == "beta").one()
+    artefact = Artefact(name="some artefact", version="1.0.0", stage=stage)
+    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
+    environment = Environment(name="some environment", architecture="some arch")
+    test_execution = TestExecution(
+        environment=environment, artefact_build=artefact_build
+    )
+    db_session.add_all([artefact, artefact_build, environment, test_execution])
+    db_session.commit()
+    db_session.refresh(test_execution)
+
+    return test_execution
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):
@@ -253,24 +270,9 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
-def _prepare_test_execution_object(db_session: Session) -> TestExecution:
-    stage = db_session.query(Stage).filter(Stage.name == "beta").one()
-    artefact = Artefact(name="some artefact", version="1.0.0", stage=stage)
-    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
-    environment = Environment(name="some environment", architecture="some arch")
-    test_execution = TestExecution(
-        environment=environment, artefact_build=artefact_build
-    )
-    db_session.add_all([artefact, artefact_build, environment, test_execution])
-    db_session.commit()
-    db_session.refresh(test_execution)
-
-    return test_execution
-
-
-def test_updates_test_execution(db_session: Session, test_client: TestClient):
-    test_execution: TestExecution = _prepare_test_execution_object(db_session)
-
+def test_updates_test_execution(
+    db_session: Session, test_client: TestClient, test_execution: TestExecution
+):
     test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
         json={
@@ -297,10 +299,8 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
 
 
 def test_review_test_execution_fails_if_both_failed_and_approved(
-    db_session: Session, test_client: TestClient
+    db_session: Session, test_client: TestClient, test_execution: TestExecution
 ):
-    test_execution: TestExecution = _prepare_test_execution_object(db_session)
-
     response = test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
         json={
