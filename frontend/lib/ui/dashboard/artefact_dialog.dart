@@ -310,7 +310,7 @@ class _TestExecutionView extends StatelessWidget {
           children: TestResultStatus.values
               .map(
                 (status) => _TestResultsFilter(
-                  status: status,
+                  statusToFilterBy: status,
                   testExecutionId: testExecution.id,
                 ),
               )
@@ -323,11 +323,11 @@ class _TestExecutionView extends StatelessWidget {
 
 class _TestResultsFilter extends ConsumerWidget {
   const _TestResultsFilter({
-    required this.status,
+    required this.statusToFilterBy,
     required this.testExecutionId,
   });
 
-  final TestResultStatus status;
+  final TestResultStatus statusToFilterBy;
   final int testExecutionId;
 
   @override
@@ -335,9 +335,9 @@ class _TestResultsFilter extends ConsumerWidget {
     final testResults = ref.watch(testResultsProvider(testExecutionId));
 
     Color? fontColor;
-    if (status == TestResultStatus.failed) {
+    if (statusToFilterBy == TestResultStatus.failed) {
       fontColor = YaruColors.red;
-    } else if (status == TestResultStatus.passed) {
+    } else if (statusToFilterBy == TestResultStatus.passed) {
       fontColor = YaruColors.light.success;
     }
 
@@ -349,17 +349,25 @@ class _TestResultsFilter extends ConsumerWidget {
       error: (error, stackTrace) => Center(child: Text('Error: $error')),
       data: (testResults) {
         final filteredTestResults = testResults
-            .filter((testResult) => testResult.status == status)
+            .filter((testResult) => testResult.status == statusToFilterBy)
             .toList();
 
         return YaruExpandable(
           header: Text(
-            '${status.name} ${filteredTestResults.length}',
+            '${statusToFilterBy.name} ${filteredTestResults.length}',
             style: headerStyle,
           ),
           expandButtonPosition: YaruExpandableButtonPosition.start,
-          child: const Column(
-            children: [],
+          child: Padding(
+            padding: const EdgeInsets.only(left: Spacing.level4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: filteredTestResults
+                  .map(
+                    (testResult) => YaruTile(title: Text(testResult.name)),
+                  )
+                  .toList(),
+            ),
           ),
         );
       },
