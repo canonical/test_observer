@@ -1,3 +1,5 @@
+# ruff: noqa: E501 Line too long
+
 import requests
 from fastapi.testclient import TestClient
 
