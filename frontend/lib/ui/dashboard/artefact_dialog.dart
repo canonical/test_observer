@@ -12,8 +12,10 @@ import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
 import '../../models/stage_name.dart';
 import '../../models/test_execution.dart';
+import '../../models/test_result.dart';
 import '../../providers/artefact.dart';
 import '../../providers/artefact_builds.dart';
+import '../../providers/test_results.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
@@ -302,7 +304,65 @@ class _TestExecutionView extends StatelessWidget {
         ],
       ),
       expandButtonPosition: YaruExpandableButtonPosition.start,
-      child: const SizedBox.shrink(),
+      child: Padding(
+        padding: const EdgeInsets.only(left: Spacing.level4),
+        child: Column(
+          children: TestResultStatus.values
+              .map(
+                (status) => _TestResultsFilter(
+                  status: status,
+                  testExecutionId: testExecution.id,
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _TestResultsFilter extends ConsumerWidget {
+  const _TestResultsFilter({
+    required this.status,
+    required this.testExecutionId,
+  });
+
+  final TestResultStatus status;
+  final int testExecutionId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final testResults = ref.watch(testResultsProvider(testExecutionId));
+
+    Color? fontColor;
+    if (status == TestResultStatus.failed) {
+      fontColor = YaruColors.red;
+    } else if (status == TestResultStatus.passed) {
+      fontColor = YaruColors.light.success;
+    }
+
+    final headerStyle =
+        Theme.of(context).textTheme.titleMedium?.apply(color: fontColor);
+
+    return testResults.when(
+      loading: () => const Center(child: YaruCircularProgressIndicator()),
+      error: (error, stackTrace) => Center(child: Text('Error: $error')),
+      data: (testResults) {
+        final filteredTestResults = testResults
+            .filter((testResult) => testResult.status == status)
+            .toList();
+
+        return YaruExpandable(
+          header: Text(
+            '${status.name} ${filteredTestResults.length}',
+            style: headerStyle,
+          ),
+          expandButtonPosition: YaruExpandableButtonPosition.start,
+          child: const Column(
+            children: [],
+          ),
+        );
+      },
     );
   }
 }
