@@ -1,1 +1,2 @@
-ops >= 2.2.0
+ops >= 2.8.0
+macaroonbakery==1.3.2 # workaround to failures such as https://github.com/canonical/test_observer/actions/runs/7142353669/job/19451476954

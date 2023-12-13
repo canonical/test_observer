@@ -21,7 +21,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from test_observer.controllers.test_executions.logic import (
     compute_test_execution_status,
@@ -43,6 +43,7 @@ from .models import (
     EndTestExecutionRequest,
     StartTestExecutionRequest,
     TestExecutionsPatchRequest,
+    TestResultDTO,
 )
 
 router = APIRouter()
@@ -170,3 +171,19 @@ def patch_test_execution(
         test_execution.review_comment = request.review_comment
 
     db.commit()
+
+
+@router.get("/{id}/test-results", response_model=list[TestResultDTO])
+def get_test_results(id: int, db: Session = Depends(get_db)):
+    test_execution = db.get(
+        TestExecution,
+        id,
+        options=[
+            joinedload(TestExecution.test_results).joinedload(TestResult.test_case),
+        ],
+    )
+
+    if test_execution is None:
+        raise HTTPException(status_code=404, detail="TestExecution not found")
+
+    return test_execution.test_results

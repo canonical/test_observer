@@ -10,7 +10,7 @@ from .models import C3TestResult, C3TestResultStatus
 def compute_test_execution_status(
     test_results: list[TestResult],
 ) -> TestExecutionStatus:
-    failed = any(r.status == C3TestResultStatus.FAIL for r in test_results)
+    failed = any(r.status == TestResultStatus.FAILED for r in test_results)
     status = TestExecutionStatus.FAILED if failed else TestExecutionStatus.PASSED
     return status
 

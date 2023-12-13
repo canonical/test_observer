@@ -1,45 +1,37 @@
-name: Run charm tests
+name: Run charm integration tests
 on:
+  pull_request_review:
+    on:
+      pull_request_review:
+        types: [submitted]
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'frontend/charm/**'
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
+  workflow_dispatch:
 
 jobs:
   integration-test:
+    permissions:
+      contents: read
+      packages: read
+
     name: Integration tests
-    runs-on: [self-hosted, linux, large]
+    runs-on: [self-hosted, jammy, xlarge]
+    if: github.event.review.state == 'APPROVED'
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup LXD
-        uses: canonical/setup-lxd@main
-        with:
-          channel: 5.13/stable
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: microk8s
+        uses: actions/checkout@v4
+      - name: Set up microk8s
+        uses: canonical/certification-github-workflows/.github/actions/microk8s-setup@main
       - name: Run integration tests
         run: tox -e integration
-      - name: Archive Tested Charm
-        uses: actions/upload-artifact@v3
-        if: ${{ github.ref_name == 'main' }}
-        with:
-          name: tested-charm
-          path: .tox/**/test-observer-frontend_ubuntu-22.04-amd64.charm
-          retention-days: 5
-      - name: Archive charmcraft logs
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: charmcraft-logs
-          path: /home/runner/.local/state/charmcraft/log/*.log
-      - name: Archive juju crashdump
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: juju-crashdump
-          path: juju-crashdump-*.tar.xz
+      - name: Archive charm testing outputs
+        uses: canonical/certification-github-workflows/.github/actions/archive-charm-testing-artifacts@main
     defaults:
       run:
         working-directory: ./frontend/charm

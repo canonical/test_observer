@@ -21,12 +21,21 @@
 from enum import Enum
 from typing import Annotated
 
-from pydantic import BaseModel, HttpUrl, field_serializer, model_validator
+from pydantic import (
+    AliasPath,
+    BaseModel,
+    Field,
+    HttpUrl,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from test_observer.data_access.models_enums import (
     FamilyName,
     TestExecutionReviewStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 
 
@@ -47,6 +56,13 @@ class StartTestExecutionRequest(BaseModel):
     @field_serializer("family")
     def serialize_dt(self, family: FamilyName):
         return family.value
+
+    @field_validator("version")
+    @classmethod
+    def validate_version(cls: type["StartTestExecutionRequest"], version: str) -> str:
+        if version in ("", "null"):
+            raise ValueError(f"Invalid version value '{version}'")
+        return version
 
     @model_validator(mode="after")
     def validate_required_fields(self) -> "StartTestExecutionRequest":
@@ -103,3 +119,12 @@ class TestExecutionsPatchRequest(BaseModel):
             if review_status in (TestExecutionReviewStatus.REJECTED,):
                 raise ValueError("Test execution can either be rejected or approved")
         return self
+
+
+class TestResultDTO(BaseModel):
+    id: int
+    name: str = Field(validation_alias=AliasPath("test_case", "name"))
+    category: str = Field(validation_alias=AliasPath("test_case", "category"))
+    status: TestResultStatus
+    comment: str
+    io_log: str
