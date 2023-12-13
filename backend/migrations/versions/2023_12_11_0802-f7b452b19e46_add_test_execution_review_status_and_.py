@@ -17,7 +17,7 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute(
-        "CREATE TYPE testexecutionreviewstatus AS "
+        "CREATE TYPE testexecutionreviewdecision AS "
         "ENUM( "
         "'REJECTED', "
         "'APPROVED_INCONSISTENT_TEST', "
@@ -29,8 +29,8 @@ def upgrade() -> None:
     )
     op.execute(
         "ALTER TABLE test_execution ADD COLUMN "
-        "review_status testexecutionreviewstatus[] NOT NULL "
-        "DEFAULT '{}'::testexecutionreviewstatus[]"
+        "review_status testexecutionreviewdecision[] NOT NULL "
+        "DEFAULT '{}'::testexecutionreviewdecision[]"
     )
     op.add_column(
         "test_execution",
@@ -41,4 +41,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_column("test_execution", "review_comment")
     op.drop_column("test_execution", "review_status")
-    op.execute("DROP TYPE testexecutionreviewstatus")
+    op.execute("DROP TYPE testexecutionreviewdecision")

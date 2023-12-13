@@ -35,7 +35,7 @@ class TestExecutionStatus(Enum):
     NOT_TESTED = "NOT_TESTED"
 
 
-class TestExecutionReviewStatus(str, Enum):
+class TestExecutionReviewDecision(str, Enum):
     REJECTED = "REJECTED"
     APPROVED_INCONSISTENT_TEST = "APPROVED_INCONSISTENT_TEST"
     APPROVED_UNSTABLE_PHYSICAL_INFRA = "APPROVED_UNSTABLE_PHYSICAL_INFRA"

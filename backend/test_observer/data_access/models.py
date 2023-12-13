@@ -40,7 +40,7 @@ from sqlalchemy.sql import func
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
-    TestExecutionReviewStatus,
+    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -239,8 +239,8 @@ class TestExecution(Base):
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
     )
-    review_status: Mapped[list[TestExecutionReviewStatus]] = mapped_column(
-        ARRAY(Enum(TestExecutionReviewStatus)),
+    review_status: Mapped[list[TestExecutionReviewDecision]] = mapped_column(
+        ARRAY(Enum(TestExecutionReviewDecision)),
         default=[],
     )
     review_comment: Mapped[str | None] = mapped_column(nullable=False, default="")

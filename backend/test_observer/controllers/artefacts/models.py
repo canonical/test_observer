@@ -21,7 +21,7 @@ from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
-    TestExecutionReviewStatus,
+    TestExecutionReviewDecision,
     TestExecutionStatus,
 )
 
@@ -56,7 +56,7 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
-    review_status: list[TestExecutionReviewStatus]
+    review_status: list[TestExecutionReviewDecision]
     review_comment: str
 
 

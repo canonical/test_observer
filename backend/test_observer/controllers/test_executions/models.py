@@ -33,7 +33,7 @@ from pydantic import (
 
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestExecutionReviewStatus,
+    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -104,7 +104,7 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | None = None
-    review_status: list[TestExecutionReviewStatus] | None = None
+    review_status: list[TestExecutionReviewDecision] | None = None
     review_comment: str | None = None
 
     @model_validator(mode="after")
@@ -116,7 +116,7 @@ class TestExecutionsPatchRequest(BaseModel):
             return self
 
         for review_status in self.review_status:
-            if review_status in (TestExecutionReviewStatus.REJECTED,):
+            if review_status in (TestExecutionReviewDecision.REJECTED,):
                 raise ValueError("Test execution can either be rejected or approved")
         return self
 

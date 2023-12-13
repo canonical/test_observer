@@ -34,7 +34,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestExecutionReviewStatus,
+    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -278,8 +278,8 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
             "c3_link": "http://c3_link/",
             "status": TestExecutionStatus.PASSED.name,
             "review_status": [
-                TestExecutionReviewStatus.APPROVED_FAULTY_HARDWARE.name,
-                TestExecutionReviewStatus.APPROVED_INCONSISTENT_TEST.name,
+                TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
+                TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
             ],
             "review_comment": "Tests fail because of broken keyboard",
         },
@@ -290,8 +290,8 @@ def test_updates_test_execution(db_session: Session, test_client: TestClient):
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
     assert test_execution.review_status == [
-        TestExecutionReviewStatus.APPROVED_FAULTY_HARDWARE.name,
-        TestExecutionReviewStatus.APPROVED_INCONSISTENT_TEST.name,
+        TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
+        TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
     ]
     assert test_execution.review_comment == "Tests fail because of broken keyboard"
 
@@ -305,8 +305,8 @@ def test_review_test_execution_fails_if_both_failed_and_approved(
         f"/v1/test-executions/{test_execution.id}",
         json={
             "review_status": [
-                TestExecutionReviewStatus.REJECTED.name,
-                TestExecutionReviewStatus.APPROVED_INCONSISTENT_TEST.name,
+                TestExecutionReviewDecision.REJECTED.name,
+                TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
             ],
         },
     )
