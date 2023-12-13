@@ -165,51 +165,89 @@ END_REQUESTS = [
         test_results=[
             C3TestResult(
                 id=1,
-                name="test1",
-                status=C3TestResultStatus.FAIL,
-                category="",
+                name="docker/compose-and-basic_armhf",
+                status=C3TestResultStatus.PASS,
+                category="Docker containers",
                 comment="",
-                io_log="",
+                io_log="""
+test Pulling 
+ test Pulled 
+ Network 4506_default  Creating
+ Network 4506_default  Created
+ Container 4506-test-1  Creating
+ Container 4506-test-1  Created
+ Container 4506-test-1  Starting
+ Container 4506-test-1  Started
+ Container 4506-test-1  Stopping
+ Container 4506-test-1  Stopped
+ Container 4506-test-3  Creating
+ Container 4506-test-2  Creating
+ Container 4506-test-1  Recreate
+ Container 4506-test-3  Created
+ Container 4506-test-2  Created
+ Container 4506-test-1  Recreated
+ Container 4506-test-1  Starting
+ Container 4506-test-1  Started
+ Container 4506-test-2  Starting
+ Container 4506-test-2  Started
+ Container 4506-test-3  Starting
+ Container 4506-test-3  Started
+3
+ Container 4506-test-1  Running
+ Container 4506-test-1  Stopping
+ Container 4506-test-1  Stopping
+ Container 4506-test-1  Stopped
+ Container 4506-test-1  Removing
+ Container 4506-test-1  Removed
+ Network 4506_default  Removing
+ Network 4506_default  Removed
+""",
             ),
             C3TestResult(
                 id=2,
-                name="test2",
-                status=C3TestResultStatus.PASS,
-                category="",
-                comment="",
+                name="after-suspend-audio/alsa-loopback-automated",
+                status=C3TestResultStatus.SKIP,
+                category="Audio tests",
+                comment="""
+job cannot be started: resource expression "manifest.has_audio_loopback_connector == 'True'" evaluates to false, required dependency 'com.canonical.certification::audio/alsa-loopback-automated' has failed, required dependency 'com.canonical.certification::audio/detect-capture-devices' has failed, required dependency 'com.canonical.certification::audio/detect-playback-devices' has failed, required dependency 'com.canonical.certification::suspend/suspend_advanced_auto' has failed
+""",
                 io_log="",
             ),
             C3TestResult(
                 id=3,
-                name="test3",
-                status=C3TestResultStatus.SKIP,
-                category="",
-                comment="",
-                io_log="",
-            ),
-            C3TestResult(
-                id=4,
-                name="test4",
+                name="bluetooth4/beacon_eddystone_url_hci0",
                 status=C3TestResultStatus.FAIL,
-                category="",
+                category="Bluetooth tests",
                 comment="",
-                io_log="",
-            ),
-            C3TestResult(
-                id=5,
-                name="test5",
-                status=C3TestResultStatus.PASS,
-                category="",
-                comment="",
-                io_log="",
-            ),
-            C3TestResult(
-                id=6,
-                name="test6",
-                status=C3TestResultStatus.SKIP,
-                category="",
-                comment="",
-                io_log="",
+                io_log="""
+Exception in thread Thread-1:
+Traceback (most recent call last):
+  File "/snap/checkbox/4506/checkbox-runtime/usr/lib/python3.10/threading.py", line 1016, in _bootstrap_inner
+    self.run()
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/vendor/beacontools/scanner.py", line 147, in run
+    self.hci_version = self.get_hci_version()
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/vendor/beacontools/scanner.py", line 172, in get_hci_version
+    resp = self.backend.send_req(self.socket, OGF_INFO_PARAM, OCF_READ_LOCAL_VERSION,
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/vendor/beacontools/backend/linux.py", line 23, in send_req
+    return bluez.hci_send_req(socket, group_field, command_field, event, rlen, params, timeout)
+_bluetooth.error: (100, 'Network is down')
+Traceback (most recent call last):
+  File "/snap/checkbox/4506/checkbox-runtime/bin/checkbox-support-eddystone_scanner", line 8, in <module>
+    sys.exit(main())
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/scripts/eddystone_scanner.py", line 91, in main
+    rc = beacon_scan(hci_device)
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/scripts/eddystone_scanner.py", line 60, in beacon_scan
+    scanner.stop()
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/vendor/beacontools/scanner.py", line 95, in stop
+    self._mon.terminate()
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/vendor/beacontools/scanner.py", line 340, in terminate
+    self.toggle_scan(False)
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/vendor/beacontools/scanner.py", line 261, in toggle_scan
+    self.backend.send_cmd(self.socket, OGF_LE_CTL, command_field, command)
+  File "/snap/checkbox/4506/checkbox-runtime/lib/python3.10/site-packages/checkbox_support/vendor/beacontools/backend/linux.py", line 19, in send_cmd
+    return bluez.hci_send_cmd(socket, group_field, command_field, data)
+_bluetooth.error: (100, 'Network is down')
+""",
             ),
         ],
     ),
@@ -218,7 +256,7 @@ END_REQUESTS = [
         ci_link="http://example2",
         test_results=[
             C3TestResult(
-                id=7,
+                id=4,
                 name="test7",
                 status=C3TestResultStatus.PASS,
                 category="",
@@ -226,7 +264,7 @@ END_REQUESTS = [
                 io_log="",
             ),
             C3TestResult(
-                id=8,
+                id=5,
                 name="test8",
                 status=C3TestResultStatus.SKIP,
                 category="",
