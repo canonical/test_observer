@@ -359,7 +359,7 @@ class _TestResultsFilter extends ConsumerWidget {
           ),
           expandButtonPosition: YaruExpandableButtonPosition.start,
           child: Padding(
-            padding: const EdgeInsets.only(left: Spacing.level4),
+            padding: const EdgeInsets.only(left: Spacing.level5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: filteredTestResults
