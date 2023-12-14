@@ -58,7 +58,7 @@ class TestExecutionDTO(BaseModel):
     status: TestExecutionStatus
     # Since in a test execution there might be tests that fail for different
     # reasons, we allow multiple reasons to be picked for the approval
-    review_status: set[TestExecutionReviewDecision]
+    review_decision: set[TestExecutionReviewDecision]
     review_comment: str
 
 

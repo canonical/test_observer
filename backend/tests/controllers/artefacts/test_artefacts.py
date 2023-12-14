@@ -111,7 +111,7 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
                         "name": environment.name,
                         "architecture": environment.architecture,
                     },
-                    "review_status": [],
+                    "review_decision": [],
                     "review_comment": "",
                 }
             ],

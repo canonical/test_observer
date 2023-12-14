@@ -279,7 +279,7 @@ def test_updates_test_execution(
             "ci_link": "http://ci_link/",
             "c3_link": "http://c3_link/",
             "status": TestExecutionStatus.PASSED.name,
-            "review_status": [
+            "review_decision": [
                 TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
                 TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
             ],
@@ -291,7 +291,7 @@ def test_updates_test_execution(
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
-    assert test_execution.review_status == [
+    assert test_execution.review_decision == [
         TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
         TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
     ]
@@ -304,7 +304,7 @@ def test_review_test_execution_fails_if_both_failed_and_approved(
     response = test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
         json={
-            "review_status": [
+            "review_decision": [
                 TestExecutionReviewDecision.REJECTED.name,
                 TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
             ],

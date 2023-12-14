@@ -104,24 +104,24 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | None = None
-    review_status: set[TestExecutionReviewDecision] | None = None
+    review_decision: set[TestExecutionReviewDecision] | None = None
     review_comment: str | None = None
 
-    @field_validator("review_status")
+    @field_validator("review_decision")
     @classmethod
-    def validate_review_status(
+    def validate_review_decision(
         cls: type["TestExecutionsPatchRequest"],
-        review_status: set[TestExecutionReviewDecision] | None,
+        review_decision: set[TestExecutionReviewDecision] | None,
     ) -> set[TestExecutionReviewDecision] | None:
-        if review_status is None:
-            return review_status
+        if review_decision is None:
+            return review_decision
 
-        if len(review_status) <= 1:
-            return review_status
+        if len(review_decision) <= 1:
+            return review_decision
 
-        if TestExecutionReviewDecision.REJECTED in review_status:
+        if TestExecutionReviewDecision.REJECTED in review_decision:
             raise ValueError("Test execution can either be rejected or approved")
-        return review_status
+        return review_decision
 
 
 class TestResultDTO(BaseModel):

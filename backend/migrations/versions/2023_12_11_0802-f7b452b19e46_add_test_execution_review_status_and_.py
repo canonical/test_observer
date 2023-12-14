@@ -1,4 +1,4 @@
-"""Add test execution review status and comment
+"""Add test execution review decision and comment
 
 Revision ID: f7b452b19e46
 Revises: b8e8c3053273
@@ -29,7 +29,7 @@ def upgrade() -> None:
     )
     op.execute(
         "ALTER TABLE test_execution ADD COLUMN "
-        "review_status testexecutionreviewdecision[] NOT NULL "
+        "review_decision testexecutionreviewdecision[] NOT NULL "
         "DEFAULT '{}'::testexecutionreviewdecision[]"
     )
     op.add_column(
@@ -40,5 +40,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_column("test_execution", "review_comment")
-    op.drop_column("test_execution", "review_status")
+    op.drop_column("test_execution", "review_decision")
     op.execute("DROP TYPE testexecutionreviewdecision")
