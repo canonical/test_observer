@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'models/family_name.dart';
-import 'ui/dashboard/artefact_dialog.dart';
+import 'ui/artefact_dialog/artefact_dialog.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/dialog_page.dart';
 import 'ui/skeleton.dart';
