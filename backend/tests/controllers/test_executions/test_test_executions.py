@@ -291,7 +291,7 @@ def test_updates_test_execution(
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
-    assert test_execution.review_decision == set(new_review_decision)
+    assert set(test_execution.review_decision) == set(new_review_decision)
     assert test_execution.review_comment == "Tests fail because of broken keyboard"
 
 
