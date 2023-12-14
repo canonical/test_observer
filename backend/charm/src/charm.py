@@ -107,7 +107,6 @@ class TestObserverBackendCharm(CharmBase):
 
     def _on_database_relation_broken(self, event):
         self.unit.status = WaitingStatus("Waiting for database relation after breaking relation")
-        raise SystemExit(0)
 
     def _on_config_changed(self, event):
         if self.unit.is_leader():
