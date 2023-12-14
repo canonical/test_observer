@@ -283,7 +283,7 @@ def test_updates_test_execution(
             "ci_link": "http://ci_link/",
             "c3_link": "http://c3_link/",
             "status": TestExecutionStatus.PASSED.name,
-            "review_decision": list(new_review_decision),
+            "review_decision": new_review_decision,
             "review_comment": "Tests fail because of broken keyboard",
         },
     )
