@@ -19,7 +19,11 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
-from test_observer.data_access.models_enums import ArtefactStatus, TestExecutionStatus
+from test_observer.data_access.models_enums import (
+    ArtefactStatus,
+    TestExecutionReviewDecision,
+    TestExecutionStatus,
+)
 
 
 class ArtefactDTO(BaseModel):
@@ -52,6 +56,10 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
+    # Since in a test execution there might be tests that fail for different
+    # reasons, we allow multiple reasons to be picked for the approval
+    review_decision: set[TestExecutionReviewDecision]
+    review_comment: str
 
 
 class ArtefactBuildDTO(BaseModel):
