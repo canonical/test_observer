@@ -122,7 +122,7 @@ def reset_test_execution(
     test_execution.status = TestExecutionStatus.IN_PROGRESS
     test_execution.ci_link = request.ci_link
     test_execution.c3_link = None
-    test_execution.review_decision = set()
+    test_execution.review_decision = []
     test_execution.review_comment = ""
     db.execute(
         delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
@@ -167,7 +167,7 @@ def patch_test_execution(
         test_execution.status = request.status
 
     if request.review_decision is not None:
-        test_execution.review_decision = request.review_decision
+        test_execution.review_decision = list(request.review_decision)
 
     if request.review_comment is not None:
         test_execution.review_comment = request.review_comment

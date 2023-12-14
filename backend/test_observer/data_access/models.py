@@ -239,7 +239,7 @@ class TestExecution(Base):
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
     )
-    review_decision: Mapped[set[TestExecutionReviewDecision]] = mapped_column(
+    review_decision: Mapped[list[TestExecutionReviewDecision]] = mapped_column(
         ARRAY(Enum(TestExecutionReviewDecision)),
         default=[],
     )
