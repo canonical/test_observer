@@ -6,7 +6,6 @@ Create Date: 2023-12-11 08:02:27.583110+00:00
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "f7b452b19e46"
@@ -32,9 +31,9 @@ def upgrade() -> None:
         "review_decision testexecutionreviewdecision[] NOT NULL "
         "DEFAULT '{}'::testexecutionreviewdecision[]"
     )
-    op.add_column(
-        "test_execution",
-        sa.Column("review_comment", sa.String(), nullable=False, default=""),
+    op.execute(
+        "ALTER TABLE test_execution ADD COLUMN "
+        "review_comment VARCHAR NOT NULL DEFAULT ''"
     )
 
 
