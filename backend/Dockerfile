@@ -4,6 +4,9 @@ EXPOSE 30000
 
 WORKDIR /home/app
 
+ENV C3_CLIENT_ID=BuoR2ztGalNUbpo3qtLKtz8BpiryhGKxaEOWBMFu
+ENV C3_CLIENT_SECRET=zYXw8xGgigJNhFdjAR6wkv69v9WQWVr3fCt1T8JSLFzusxqRjvizRzXIWjJM7zfYy2StwlHvgnsbGQTa6B2HeEKb24CiNPLpR0HYWSdPE1HEtvWuFPA2b5QmflvZhTVr
+
 COPY poetry.lock .
 
 COPY pyproject.toml .

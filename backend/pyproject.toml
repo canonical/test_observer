@@ -14,6 +14,8 @@ alembic = "^1.10.3"
 poetry-dynamic-versioning = {extras = ["plugin"], version = "^0.22.0"}
 requests = "^2.31.0"
 sentry-sdk = "0.10.2"
+redis = "^5.0.1"
+fastapi-cache2 = "^0.2.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
