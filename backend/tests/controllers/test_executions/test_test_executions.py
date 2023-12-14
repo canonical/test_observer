@@ -273,30 +273,27 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
 def test_updates_test_execution(
     db_session: Session, test_client: TestClient, test_execution: TestExecution
 ):
+    new_review_decision = set(
+        [
+            TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
+            TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
+        ]
+    )
     test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
         json={
             "ci_link": "http://ci_link/",
             "c3_link": "http://c3_link/",
             "status": TestExecutionStatus.PASSED.name,
-            "review_decision": [
-                TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
-                TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
-            ],
+            "review_decision": list(new_review_decision),
             "review_comment": "Tests fail because of broken keyboard",
         },
     )
-
     db_session.refresh(test_execution)
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
-    assert len(test_execution.review_decision) == 2
-    for review_decision in [
-        TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
-        TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
-    ]:
-        assert review_decision in test_execution.review_decision
+    assert set(test_execution.review_decision) == new_review_decision
     assert test_execution.review_comment == "Tests fail because of broken keyboard"
 
 
