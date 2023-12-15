@@ -7,7 +7,7 @@ import 'package:yaru_widgets/widgets.dart';
 import '../../providers/artefact.dart';
 import '../spacing.dart';
 import 'artefact_dialog_body.dart';
-import 'artefact_dialog_headert.dart';
+import 'artefact_dialog_header.dart';
 import 'artefact_dialog_info_section.dart';
 
 class ArtefactDialog extends ConsumerWidget {
@@ -33,7 +33,7 @@ class ArtefactDialog extends ConsumerWidget {
               data: (artefact) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ArtefactDialogHeader(title: artefact.name),
+                  ArtefactDialogHeader(artefact: artefact),
                   const SizedBox(height: Spacing.level4),
                   ArtefactDialogInfoSection(artefact: artefact),
                   const SizedBox(height: Spacing.level4),
