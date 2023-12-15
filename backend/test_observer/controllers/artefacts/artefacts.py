@@ -34,12 +34,23 @@ router = APIRouter()
 def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
     artefacts = []
+    order_by = (Artefact.name, Artefact.created_at)
 
     if family:
-        artefacts = get_artefacts_by_family(db, family, load_stage=True)
+        artefacts = get_artefacts_by_family(
+            db,
+            family,
+            load_stage=True,
+            order_by_columns=order_by,
+        )
     else:
         for family in FamilyName:
-            artefacts += get_artefacts_by_family(db, family, load_stage=True)
+            artefacts += get_artefacts_by_family(
+                db,
+                family,
+                load_stage=True,
+                order_by_columns=order_by,
+            )
 
     return artefacts
 
@@ -55,7 +66,7 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
     return artefact
 
 
-@router.patch("/{artefact_id}")
+@router.patch("/{artefact_id}", response_model=ArtefactDTO)
 def patch_artefact(
     artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
 ):
@@ -66,6 +77,8 @@ def patch_artefact(
 
     artefact.status = request.status
     db.commit()
+
+    return artefact
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])

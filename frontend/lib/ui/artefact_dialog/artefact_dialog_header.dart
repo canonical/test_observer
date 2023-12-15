@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:yaru_icons/yaru_icons.dart';
 
+import '../../models/artefact.dart';
 import '../spacing.dart';
+import 'artefact_signoff_button.dart';
 
 class ArtefactDialogHeader extends StatelessWidget {
-  const ArtefactDialogHeader({super.key, required this.title});
+  const ArtefactDialogHeader({super.key, required this.artefact});
 
-  final String title;
+  final Artefact artefact;
 
   @override
   Widget build(BuildContext context) {
@@ -18,9 +20,11 @@ class ArtefactDialogHeader extends StatelessWidget {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: Theme.of(context).textTheme.headlineLarge),
+          Text(artefact.name, style: Theme.of(context).textTheme.headlineLarge),
+          const SizedBox(width: Spacing.level4),
+          ArtefactSignoffButton(artefact: artefact),
+          const Spacer(),
           InkWell(
             child: const Icon(
               YaruIcons.window_close,

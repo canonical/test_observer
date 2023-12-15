@@ -155,3 +155,14 @@ def test_artefact_signoff(db_session: Session, test_client: TestClient):
 
     assert response.status_code == 200
     assert artefact.status == ArtefactStatus.APPROVED
+    assert response.json() == {
+        "id": artefact.id,
+        "name": artefact.name,
+        "version": artefact.version,
+        "track": artefact.track,
+        "store": artefact.store,
+        "series": artefact.series,
+        "repo": artefact.repo,
+        "stage": artefact.stage.name,
+        "status": artefact.status,
+    }
