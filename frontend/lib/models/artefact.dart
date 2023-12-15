@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:yaru/yaru.dart';
 
 import 'stage_name.dart';
 
@@ -17,6 +19,7 @@ class Artefact with _$Artefact {
     @Default(null) String? store,
     @Default(null) String? series,
     @Default(null) String? repo,
+    required ArtefactStatus status,
     required StageName stage,
   }) = _Artefact;
 
@@ -30,4 +33,35 @@ class Artefact with _$Artefact {
         if (series != null) 'series': series!,
         if (repo != null) 'repo': repo!,
       };
+}
+
+enum ArtefactStatus {
+  @JsonValue('APPROVED')
+  approved,
+  @JsonValue('MARKED_AS_FAILED')
+  rejected,
+  @JsonValue('UNDECIDED')
+  undecided;
+
+  String get name {
+    switch (this) {
+      case approved:
+        return 'Approved';
+      case rejected:
+        return 'Rejected';
+      case undecided:
+        return 'Undecided';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case approved:
+        return YaruColors.light.success;
+      case rejected:
+        return YaruColors.red;
+      case undecided:
+        return YaruColors.textGrey;
+    }
+  }
 }
