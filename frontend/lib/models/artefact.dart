@@ -64,4 +64,15 @@ enum ArtefactStatus {
         return YaruColors.textGrey;
     }
   }
+
+  String toJson() {
+    switch (this) {
+      case approved:
+        return 'APPROVED';
+      case rejected:
+        return 'MARKED_AS_FAILED';
+      case undecided:
+        return 'UNDECIDED';
+    }
+  }
 }

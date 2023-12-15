@@ -21,7 +21,7 @@ class ArtefactNotifier extends _$ArtefactNotifier {
 
     final response = await dio.patch(
       '/v1/artefacts/$artefactId',
-      data: {'status': newStatus.toString()},
+      data: {'status': newStatus.toJson()},
     );
 
     state = AsyncData(Artefact.fromJson(response.data));
