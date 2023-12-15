@@ -5,6 +5,7 @@ import 'package:intersperse/intersperse.dart';
 
 import '../../models/artefact.dart';
 import '../spacing.dart';
+import 'artefact_status_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
   const ArtefactCard({Key? key, required this.artefact}) : super(key: key);
@@ -28,7 +29,7 @@ class ArtefactCard extends ConsumerWidget {
         ),
         child: Container(
           width: width,
-          height: 156,
+          height: 180,
           padding: const EdgeInsets.all(Spacing.level4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,6 +44,8 @@ class ArtefactCard extends ConsumerWidget {
                     (detail) => Text('${detail.key}: ${detail.value}'),
                   )
                   .intersperse(const SizedBox(height: Spacing.level2)),
+              const Spacer(),
+              ArtefactStatusChip(status: artefact.status),
             ],
           ),
         ),
