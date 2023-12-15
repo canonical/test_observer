@@ -20,6 +20,9 @@
 """Services for working with objects from DB"""
 
 
+from collections.abc import Iterable
+from typing import Any
+
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
@@ -52,6 +55,7 @@ def get_artefacts_by_family(
     family_name: FamilyName,
     latest_only: bool = True,
     load_stage: bool = False,
+    order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
     Get all the artefacts
@@ -119,6 +123,9 @@ def get_artefacts_by_family(
 
     if load_stage:
         query = query.options(joinedload(Artefact.stage))
+
+    if order_by_columns:
+        query = query.order_by(*order_by_columns)
 
     return query.all()
 

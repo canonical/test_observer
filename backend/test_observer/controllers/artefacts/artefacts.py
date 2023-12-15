@@ -34,12 +34,23 @@ router = APIRouter()
 def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
     artefacts = []
+    order_by = (Artefact.name, Artefact.created_at)
 
     if family:
-        artefacts = get_artefacts_by_family(db, family, load_stage=True)
+        artefacts = get_artefacts_by_family(
+            db,
+            family,
+            load_stage=True,
+            order_by_columns=order_by,
+        )
     else:
         for family in FamilyName:
-            artefacts += get_artefacts_by_family(db, family, load_stage=True)
+            artefacts += get_artefacts_by_family(
+                db,
+                family,
+                load_stage=True,
+                order_by_columns=order_by,
+            )
 
     return artefacts
 
