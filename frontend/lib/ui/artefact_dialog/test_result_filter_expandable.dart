@@ -7,6 +7,7 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 import '../../models/test_result.dart';
 import '../../providers/test_results.dart';
 import '../spacing.dart';
+import 'test_result_expandable.dart';
 
 class TestResultsFilterExpandable extends ConsumerWidget {
   const TestResultsFilterExpandable({
@@ -47,12 +48,13 @@ class TestResultsFilterExpandable extends ConsumerWidget {
           ),
           expandButtonPosition: YaruExpandableButtonPosition.start,
           child: Padding(
-            padding: const EdgeInsets.only(left: Spacing.level5),
+            padding: const EdgeInsets.only(left: Spacing.level4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: filteredTestResults
                   .map(
-                    (testResult) => YaruTile(title: Text(testResult.name)),
+                    (testResult) =>
+                        TestResultExpandable(testResult: testResult),
                   )
                   .toList(),
             ),

@@ -4,6 +4,7 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
 import '../../providers/artefact_builds.dart';
+import '../spacing.dart';
 import 'artefact_build_expandable.dart';
 
 class ArtefactDialogBody extends ConsumerWidget {
@@ -23,8 +24,12 @@ class ArtefactDialogBody extends ConsumerWidget {
           Expanded(
             child: ListView.builder(
               itemCount: artefactBuilds.length,
-              itemBuilder: (_, i) =>
-                  ArtefactBuildExpandable(artefactBuild: artefactBuilds[i]),
+              itemBuilder: (_, i) => Padding(
+                // Padding is to avoid scroll bar covering trailing buttons
+                padding: const EdgeInsets.only(right: Spacing.level3),
+                child:
+                    ArtefactBuildExpandable(artefactBuild: artefactBuilds[i]),
+              ),
             ),
           ),
         ],

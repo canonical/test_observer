@@ -5,9 +5,14 @@ part 'test_result.g.dart';
 
 @freezed
 class TestResult with _$TestResult {
+  const TestResult._();
+
   const factory TestResult({
     required String name,
     required TestResultStatus status,
+    @Default('') String category,
+    @Default('') String comment,
+    @JsonKey(name: 'io_log') @Default('') String ioLog,
   }) = _TestResult;
 
   factory TestResult.fromJson(Map<String, Object?> json) =>
