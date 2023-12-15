@@ -55,7 +55,7 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
     return artefact
 
 
-@router.patch("/{artefact_id}")
+@router.patch("/{artefact_id}", response_model=ArtefactDTO)
 def patch_artefact(
     artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
 ):
@@ -66,6 +66,8 @@ def patch_artefact(
 
     artefact.status = request.status
     db.commit()
+
+    return artefact
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
