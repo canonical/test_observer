@@ -28,7 +28,7 @@ final appRouter = GoRouter(
               path: ':artefactId',
               pageBuilder: (context, state) => DialogPage(
                 builder: (_) => ArtefactDialog(
-                  artefactId: state.pathParameters['artefactId']!,
+                  artefactId: int.parse(state.pathParameters['artefactId']!),
                 ),
               ),
             ),
@@ -44,7 +44,7 @@ final appRouter = GoRouter(
               path: ':artefactId',
               pageBuilder: (context, state) => DialogPage(
                 builder: (_) => ArtefactDialog(
-                  artefactId: state.pathParameters['artefactId']!,
+                  artefactId: int.parse(state.pathParameters['artefactId']!),
                 ),
               ),
             ),

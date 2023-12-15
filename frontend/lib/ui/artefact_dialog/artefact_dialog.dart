@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/widgets.dart';
 
-import '../../providers/artefact.dart';
+import '../../providers/artefact_notifier.dart';
 import '../spacing.dart';
 import 'artefact_dialog_body.dart';
 import 'artefact_dialog_header.dart';
@@ -13,11 +13,11 @@ import 'artefact_dialog_info_section.dart';
 class ArtefactDialog extends ConsumerWidget {
   const ArtefactDialog({super.key, required this.artefactId});
 
-  final String artefactId;
+  final int artefactId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefact = ref.watch(artefactProvider(artefactId));
+    final artefact = ref.watch(artefactNotifierProvider(artefactId));
 
     return SelectionArea(
       child: Dialog(

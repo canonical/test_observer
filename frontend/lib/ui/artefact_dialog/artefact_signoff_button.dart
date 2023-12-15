@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
+import '../../providers/artefact_notifier.dart';
 
-class ArtefactSignoffButton extends StatelessWidget {
+class ArtefactSignoffButton extends ConsumerWidget {
   const ArtefactSignoffButton({super.key, required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final fontStyle = Theme.of(context).textTheme.titleMedium;
 
     return YaruPopupMenuButton(
@@ -21,6 +23,9 @@ class ArtefactSignoffButton extends StatelessWidget {
           .map(
             (status) => PopupMenuItem(
               value: status,
+              onTap: () => ref
+                  .read(artefactNotifierProvider(artefact.id).notifier)
+                  .changeStatus(status),
               child: Text(
                 status.name,
                 style: fontStyle?.apply(color: status.color),
