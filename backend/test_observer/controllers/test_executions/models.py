@@ -73,7 +73,7 @@ class StartTestExecutionRequest(BaseModel):
         family = self.family
 
         for required_field in required_fields[family]:
-            if getattr(self, required_field) is None:
+            if not getattr(self, required_field):
                 raise ValueError(f"{required_field} is required for {family} family")
 
         return self
