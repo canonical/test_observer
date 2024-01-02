@@ -7,6 +7,7 @@ environment:
 dependencies:
   dartx: ^1.1.0
   dio: ^5.1.2
+  dio_smart_retry: ^6.0.0
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.3.6
