@@ -14,7 +14,7 @@ class ArtefactDialogBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactBuilds = ref.watch(artefactBuildsProvider(artefact.id));
+    final artefactBuilds = ref.watch(ArtefactBuildsProvider(artefact.id));
 
     return artefactBuilds.when(
       data: (artefactBuilds) => Column(
@@ -27,8 +27,10 @@ class ArtefactDialogBody extends ConsumerWidget {
               itemBuilder: (_, i) => Padding(
                 // Padding is to avoid scroll bar covering trailing buttons
                 padding: const EdgeInsets.only(right: Spacing.level3),
-                child:
-                    ArtefactBuildExpandable(artefactBuild: artefactBuilds[i]),
+                child: ArtefactBuildExpandable(
+                  artefactBuild: artefactBuilds[i],
+                  artefactId: artefact.id,
+                ),
               ),
             ),
           ),
