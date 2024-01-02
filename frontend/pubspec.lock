@@ -524,10 +524,10 @@ packages:
     dependency: "direct main"
     description:
       name: popover
-      sha256: "6a0928ccdcf12d46b407372b644a0d94400b316d0ee072a19dcef03c2bb88c3f"
+      sha256: "29b40c4297f5192d4fd4263a2996598eb7b62105437a00d68cf9561311f9cf5f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.9"
+    version: "0.2.8"
   pub_semver:
     dependency: transitive
     description:
