@@ -6,20 +6,6 @@ import 'dio.dart';
 
 part 'artefact_builds.g.dart';
 
-// @riverpod
-// Future<List<ArtefactBuild>> artefactBuilds(
-//   ArtefactBuildsRef ref,
-//   int artefactId,
-// ) async {
-//   final dio = ref.watch(dioProvider);
-
-//   final response = await dio.get('/v1/artefacts/$artefactId/builds');
-//   final List artefactBuildsJson = response.data;
-//   final artefactBuilds =
-//       artefactBuildsJson.map((json) => ArtefactBuild.fromJson(json)).toList();
-//   return artefactBuilds;
-// }
-
 @riverpod
 class ArtefactBuilds extends _$ArtefactBuilds {
   @override
@@ -40,17 +26,13 @@ class ArtefactBuilds extends _$ArtefactBuilds {
   ) async {
     final dio = ref.watch(dioProvider);
 
-    print(reviewDecision.map((e) => e.toJson()).toList());
-
-    final response = await dio.patch(
+    await dio.patch(
       '/v1/test-executions/$testExecutionId',
       data: {
         'review_decision': reviewDecision.map((e) => e.toJson()).toList(),
         'review_comment': reviewComment,
       },
     );
-
-    print(response.statusCode);
 
     final updatedState = await build(artefactId);
     state = AsyncData(updatedState);
