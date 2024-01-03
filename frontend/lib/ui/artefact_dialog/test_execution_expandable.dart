@@ -34,15 +34,13 @@ class TestExecutionExpandable extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const Spacer(),
-          Padding(
-            padding: const EdgeInsets.only(top: 8, right: 12),
-            child: TestExecutionReviewButton(
-              testExecution: testExecution,
-              artefactId: artefactId,
-            ),
-          ),
           Row(
             children: [
+              TestExecutionReviewButton(
+                testExecution: testExecution,
+                artefactId: artefactId,
+              ),
+              const SizedBox(width: Spacing.level4),
               if (ciLink != null)
                 InlineUrlText(
                   url: ciLink,
