@@ -3,17 +3,16 @@ import 'package:yaru/yaru.dart';
 import 'package:popover/popover.dart';
 
 import '../../models/test_execution.dart';
+import '../../routing.dart';
 import 'test_execution_pop_over.dart';
 
 class TestExecutionReviewButton extends StatelessWidget {
   const TestExecutionReviewButton({
     super.key,
     required this.testExecution,
-    required this.artefactId,
   });
 
   final TestExecution testExecution;
-  final int artefactId;
 
   Text _getReviewDecisionText(BuildContext context) {
     final fontStyle = Theme.of(context).textTheme.labelMedium;
@@ -38,6 +37,7 @@ class TestExecutionReviewButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final artefactId = AppRoutes.artefactIdFromContext(context);
     return GestureDetector(
       onTap: () {
         showPopover(

@@ -13,11 +13,9 @@ class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({
     super.key,
     required this.testExecution,
-    required this.artefactId,
   });
 
   final TestExecution testExecution;
-  final int artefactId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,7 +36,6 @@ class TestExecutionExpandable extends ConsumerWidget {
             children: [
               TestExecutionReviewButton(
                 testExecution: testExecution,
-                artefactId: artefactId,
               ),
               const SizedBox(width: Spacing.level4),
               if (ciLink != null)

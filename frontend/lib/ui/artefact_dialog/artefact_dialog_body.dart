@@ -29,7 +29,6 @@ class ArtefactDialogBody extends ConsumerWidget {
                 padding: const EdgeInsets.only(right: Spacing.level3),
                 child: ArtefactBuildExpandable(
                   artefactBuild: artefactBuilds[i],
-                  artefactId: artefact.id,
                 ),
               ),
             ),

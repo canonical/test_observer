@@ -10,11 +10,9 @@ class ArtefactBuildExpandable extends StatelessWidget {
   const ArtefactBuildExpandable({
     super.key,
     required this.artefactBuild,
-    required this.artefactId,
   });
 
   final ArtefactBuild artefactBuild;
-  final int artefactId;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +52,6 @@ class ArtefactBuildExpandable extends StatelessWidget {
               .map(
                 (testExecution) => TestExecutionExpandable(
                   testExecution: testExecution,
-                  artefactId: artefactId,
                 ),
               )
               .toList(),

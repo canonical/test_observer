@@ -70,4 +70,13 @@ class AppRoutes {
       throw Exception('Unknown route: $route');
     }
   }
+
+  static int artefactIdFromContext(BuildContext context) {
+    final Map<String, String> route = GoRouterState.of(context).pathParameters;
+
+    if (!route.containsKey('artefactId')) {
+      throw Exception('Artefact ID not found in path');
+    }
+    return int.parse(route['artefactId']!);
+  }
 }
