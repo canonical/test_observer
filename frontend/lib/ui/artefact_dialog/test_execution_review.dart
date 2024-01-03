@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yaru/yaru.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 import 'package:popover/popover.dart';
 
@@ -16,27 +17,54 @@ class TestExecutionReviewButton extends StatelessWidget {
   final TestExecution testExecution;
   final int artefactId;
 
+  Chip getStatusChip(BuildContext context) {
+    final fontStyle = Theme.of(context).textTheme.labelMedium;
+    if (testExecution.reviewDecision.isEmpty) {
+      return Chip(
+        label: Text(
+          'Undecided',
+          style: fontStyle?.apply(color: YaruColors.textGrey),
+        ),
+        shape: const StadiumBorder(),
+      );
+    } else if (testExecution.reviewDecision
+        .contains(TestExecutionReviewDecision.rejected)) {
+      return Chip(
+        label: Text(
+          'Rejected',
+          style: fontStyle?.apply(color: YaruColors.red),
+        ),
+        shape: const StadiumBorder(),
+      );
+    } else {
+      return Chip(
+        label: Text(
+          'Approved',
+          style: fontStyle?.apply(color: YaruColors.light.success),
+        ),
+        shape: const StadiumBorder(),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(4),
-      child: TextButton(
-        onPressed: () {
-          showPopover(
-            context: context,
-            bodyBuilder: (context) => TestExecutionPopOver(
-              testExecution: testExecution,
-              artefactId: artefactId,
-            ),
-            direction: PopoverDirection.bottom,
-            width: 500,
-            height: 500,
-            arrowHeight: 15,
-            arrowWidth: 30,
-          );
-        },
-        child: const Text('Review'),
-      ),
+    return GestureDetector(
+      onTap: () {
+        showPopover(
+          context: context,
+          bodyBuilder: (context) => TestExecutionPopOver(
+            testExecution: testExecution,
+            artefactId: artefactId,
+          ),
+          direction: PopoverDirection.bottom,
+          width: 500,
+          height: 500,
+          arrowHeight: 15,
+          arrowWidth: 30,
+        );
+      },
+      child: getStatusChip(context),
     );
   }
 }

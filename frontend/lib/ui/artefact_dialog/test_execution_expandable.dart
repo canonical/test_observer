@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru/yaru.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/test_execution.dart';
@@ -20,36 +19,6 @@ class TestExecutionExpandable extends ConsumerWidget {
   final TestExecution testExecution;
   final int artefactId;
 
-  Chip getStatusChip(BuildContext context) {
-    final fontStyle = Theme.of(context).textTheme.labelMedium;
-    if (testExecution.reviewDecision.isEmpty) {
-      return Chip(
-        label: Text(
-          'Undecided',
-          style: fontStyle?.apply(color: YaruColors.textGrey),
-        ),
-        shape: const StadiumBorder(),
-      );
-    } else if (testExecution.reviewDecision
-        .contains(TestExecutionReviewDecision.rejected)) {
-      return Chip(
-        label: Text(
-          'Rejected',
-          style: fontStyle?.apply(color: YaruColors.red),
-        ),
-        shape: const StadiumBorder(),
-      );
-    } else {
-      return Chip(
-        label: Text(
-          'Approved',
-          style: fontStyle?.apply(color: YaruColors.light.success),
-        ),
-        shape: const StadiumBorder(),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ciLink = testExecution.ciLink;
@@ -65,10 +34,12 @@ class TestExecutionExpandable extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const Spacer(),
-          getStatusChip(context),
-          TestExecutionReviewButton(
-            testExecution: testExecution,
-            artefactId: artefactId,
+          Padding(
+            padding: const EdgeInsets.only(top: 8, right: 12),
+            child: TestExecutionReviewButton(
+              testExecution: testExecution,
+              artefactId: artefactId,
+            ),
           ),
           Row(
             children: [
