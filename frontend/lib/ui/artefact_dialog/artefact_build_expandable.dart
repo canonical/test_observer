@@ -7,10 +7,7 @@ import '../spacing.dart';
 import 'test_execution_expandable.dart';
 
 class ArtefactBuildExpandable extends StatelessWidget {
-  const ArtefactBuildExpandable({
-    super.key,
-    required this.artefactBuild,
-  });
+  const ArtefactBuildExpandable({super.key, required this.artefactBuild});
 
   final ArtefactBuild artefactBuild;
 
@@ -50,9 +47,8 @@ class ArtefactBuildExpandable extends StatelessWidget {
         child: Column(
           children: artefactBuild.testExecutions
               .map(
-                (testExecution) => TestExecutionExpandable(
-                  testExecution: testExecution,
-                ),
+                (testExecution) =>
+                    TestExecutionExpandable(testExecution: testExecution),
               )
               .toList(),
         ),

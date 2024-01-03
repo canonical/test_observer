@@ -10,10 +10,7 @@ import 'test_execution_review.dart';
 import 'test_result_filter_expandable.dart';
 
 class TestExecutionExpandable extends ConsumerWidget {
-  const TestExecutionExpandable({
-    super.key,
-    required this.testExecution,
-  });
+  const TestExecutionExpandable({super.key, required this.testExecution});
 
   final TestExecution testExecution;
 
@@ -34,9 +31,7 @@ class TestExecutionExpandable extends ConsumerWidget {
           const Spacer(),
           Row(
             children: [
-              TestExecutionReviewButton(
-                testExecution: testExecution,
-              ),
+              TestExecutionReviewButton(testExecution: testExecution),
               const SizedBox(width: Spacing.level4),
               if (ciLink != null)
                 InlineUrlText(

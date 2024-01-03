@@ -27,9 +27,8 @@ class ArtefactDialogBody extends ConsumerWidget {
               itemBuilder: (_, i) => Padding(
                 // Padding is to avoid scroll bar covering trailing buttons
                 padding: const EdgeInsets.only(right: Spacing.level3),
-                child: ArtefactBuildExpandable(
-                  artefactBuild: artefactBuilds[i],
-                ),
+                child:
+                    ArtefactBuildExpandable(artefactBuild: artefactBuilds[i]),
               ),
             ),
           ),
