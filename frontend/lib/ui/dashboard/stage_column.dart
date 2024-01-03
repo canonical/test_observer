@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/stage_name.dart';
-import '../../providers/stage_artefacts.dart';
+import '../../providers/artefacts.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import 'artefact_card.dart';
@@ -16,8 +16,11 @@ class StageColumn extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final family = AppRoutes.familyFromContext(context);
-    final artefacts =
-        ref.watch(stageArtefactsProvider(family, stage)).requireValue;
+    final artefacts = [
+      for (final artefact
+          in ref.watch(artefactsProvider(family)).requireValue.values)
+        if (artefact.stage == stage) artefact,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

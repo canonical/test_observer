@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/artefact.dart';
+import '../../providers/artefacts.dart';
 import '../../routing.dart';
 import '../dialog_header.dart';
 import '../spacing.dart';
@@ -20,7 +20,7 @@ class ArtefactDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final family = AppRoutes.familyFromContext(context);
     final artefact =
-        ref.watch(artefactProvider(family, artefactId)).requireValue;
+        ref.watch(artefactsProvider(family)).requireValue[artefactId];
 
     return SelectionArea(
       child: Dialog(
