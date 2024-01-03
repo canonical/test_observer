@@ -22,19 +22,18 @@ class ArtefactBuilds extends _$ArtefactBuilds {
   Future<void> changeReviewDecision(
     int testExecutionId,
     String reviewComment,
-    List<TestExecutionReviewDecision> reviewDecision,
+    List<TestExecutionReviewDecision> reviewDecisions,
   ) async {
     final dio = ref.watch(dioProvider);
 
     await dio.patch(
       '/v1/test-executions/$testExecutionId',
       data: {
-        'review_decision': reviewDecision.map((e) => e.toJson()).toList(),
+        'review_decision': reviewDecisions.map((e) => e.toJson()).toList(),
         'review_comment': reviewComment,
       },
     );
 
-    final updatedState = await build(artefactId);
-    state = AsyncData(updatedState);
+    ref.invalidateSelf();
   }
 }
