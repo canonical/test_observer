@@ -16,7 +16,7 @@ class DashboardBody extends ConsumerWidget {
     final family = AppRoutes.familyFromContext(context);
     final stages = familyStages(family);
 
-    final artefacts = ref.watch(artefactsProvider);
+    final artefacts = ref.watch(artefactsProvider(family));
 
     return artefacts.when(
       data: (_) => ListView.separated(

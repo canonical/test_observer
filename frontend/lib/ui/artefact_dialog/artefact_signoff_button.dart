@@ -4,6 +4,7 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
 import '../../providers/artefacts.dart';
+import '../../routing.dart';
 
 class ArtefactSignoffButton extends ConsumerWidget {
   const ArtefactSignoffButton({super.key, required this.artefact});
@@ -13,6 +14,7 @@ class ArtefactSignoffButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fontStyle = Theme.of(context).textTheme.titleMedium;
+    final family = AppRoutes.familyFromContext(context);
 
     return YaruPopupMenuButton(
       child: Text(
@@ -24,7 +26,7 @@ class ArtefactSignoffButton extends ConsumerWidget {
             (status) => PopupMenuItem(
               value: status,
               onTap: () => ref
-                  .read(artefactsProvider.notifier)
+                  .read(artefactsProvider(family).notifier)
                   .changeArtefactStatus(artefact.id, status),
               child: Text(
                 status.name,

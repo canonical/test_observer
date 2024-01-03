@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/widgets.dart';
 
 import '../../providers/artefacts.dart';
+import '../../routing.dart';
 import '../dialog_header.dart';
 import '../spacing.dart';
 import 'artefact_dialog_body.dart';
@@ -18,7 +19,8 @@ class ArtefactDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefacts = ref.watch(artefactsProvider);
+    final artefacts =
+        ref.watch(artefactsProvider(AppRoutes.familyFromContext(context)));
 
     return SelectionArea(
       child: Dialog(
