@@ -8,11 +8,11 @@ import 'environment.dart';
 part 'test_execution.freezed.dart';
 part 'test_execution.g.dart';
 
+const String reviewCommentJsonKey = 'review_comment';
+const String reviewDecisionJsonKey = 'review_decision';
+
 @freezed
 class TestExecution with _$TestExecution {
-  static const String reviewCommentJsonKey = 'review_comment';
-  static const String reviewDecisionJsonKey = 'review_decision';
-
   const factory TestExecution({
     required int id,
     @JsonKey(name: 'ci_link') required String? ciLink,
