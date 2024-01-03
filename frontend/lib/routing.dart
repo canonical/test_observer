@@ -72,11 +72,12 @@ class AppRoutes {
   }
 
   static int artefactIdFromContext(BuildContext context) {
-    final Map<String, String> route = GoRouterState.of(context).pathParameters;
+    final Map<String, String> pathParameters =
+        GoRouterState.of(context).pathParameters;
 
-    if (!route.containsKey('artefactId')) {
+    if (!pathParameters.containsKey('artefactId')) {
       throw Exception('Artefact ID not found in path');
     }
-    return int.parse(route['artefactId']!);
+    return int.parse(pathParameters['artefactId']!);
   }
 }
