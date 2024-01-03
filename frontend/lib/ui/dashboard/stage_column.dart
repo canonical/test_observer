@@ -5,7 +5,6 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/stage_name.dart';
 import '../../providers/stage_artefacts.dart';
-import '../../routing.dart';
 import '../spacing.dart';
 import 'artefact_card.dart';
 
@@ -16,8 +15,7 @@ class StageColumn extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromContext(context);
-    final artefacts = ref.watch(stageArtefactsProvider(family, stage));
+    final artefacts = ref.watch(stageArtefactsProvider(stage));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
