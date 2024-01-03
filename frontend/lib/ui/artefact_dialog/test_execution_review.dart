@@ -38,13 +38,6 @@ class TestExecutionReviewButton extends StatelessWidget {
     }
   }
 
-  Chip getStatusChip(BuildContext context) {
-    return Chip(
-      label: _getReviewDecisionText(context),
-      shape: const StadiumBorder(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -62,7 +55,10 @@ class TestExecutionReviewButton extends StatelessWidget {
           arrowWidth: 30,
         );
       },
-      child: getStatusChip(context),
+      child: Chip(
+        label: _getReviewDecisionText(context),
+        shape: const StadiumBorder(),
+      ),
     );
   }
 }
