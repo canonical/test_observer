@@ -83,20 +83,16 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
   String reviewComment = '';
   List<TestExecutionReviewDecision> selectedDecision = [];
   Map<TestExecutionReviewDecision, bool> reviewDecisions = {};
-  bool rejected = false;
 
-  bool enableRejected = true;
-  bool enableApproved = true;
+  bool _enableApprovedOptions() {
+    return !(reviewDecisions[TestExecutionReviewDecision.rejected] ?? false);
+  }
 
-  void updateCheckboxEnabledStatus() {
-    enableApproved = enableRejected = true;
-    for (final value in selectedDecision) {
-      if (value == TestExecutionReviewDecision.rejected) {
-        enableApproved = false;
-      } else {
-        enableRejected = false;
-      }
-    }
+  bool _enableRejectedOptions() {
+    return !TestExecutionReviewDecision.values.any(
+      (element) => (element != TestExecutionReviewDecision.rejected &&
+          (reviewDecisions[element] ?? false)),
+    );
   }
 
   @override
@@ -116,7 +112,6 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
 
   @override
   Widget build(BuildContext context) {
-    updateCheckboxEnabledStatus();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView(
@@ -135,9 +130,9 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
                   (e) => YaruCheckboxListTile(
                     value: reviewDecisions[e],
                     onChanged: ((e == TestExecutionReviewDecision.rejected &&
-                                (enableRejected)) ||
+                                (_enableRejectedOptions())) ||
                             (e != TestExecutionReviewDecision.rejected &&
-                                enableApproved))
+                                _enableApprovedOptions()))
                         ? (bool? value) {
                             setState(() {
                               reviewDecisions[e] = value!;
@@ -148,8 +143,6 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
                                 selectedDecision.add(e);
                               }
                             });
-
-                            updateCheckboxEnabledStatus();
                           }
                         : null,
                     title: Text(e.name),
