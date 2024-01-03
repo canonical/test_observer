@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
-import '../../models/artefact.dart';
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
 import '../spacing.dart';
