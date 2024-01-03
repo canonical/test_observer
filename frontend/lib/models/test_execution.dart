@@ -10,19 +10,32 @@ part 'test_execution.g.dart';
 
 @freezed
 class TestExecution with _$TestExecution {
+  static const String reviewCommentJsonKey = 'review_comment';
+  static const String reviewDecisionJsonKey = 'review_decision';
+
   const factory TestExecution({
     required int id,
     @JsonKey(name: 'ci_link') required String? ciLink,
     @JsonKey(name: 'c3_link') required String? c3Link,
     required TestExecutionStatus status,
     required Environment environment,
-    @JsonKey(name: 'review_comment') required String reviewComment,
-    @JsonKey(name: 'review_decision')
+    @JsonKey(name: reviewCommentJsonKey) required String reviewComment,
+    @JsonKey(name: reviewDecisionJsonKey)
     required List<TestExecutionReviewDecision> reviewDecision,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>
       _$TestExecutionFromJson(json);
+
+  static Object updateReviewDecisionRequestData(
+    String reviewComment,
+    List<TestExecutionReviewDecision> reviewDecision,
+  ) {
+    return {
+      reviewCommentJsonKey: reviewComment,
+      reviewDecisionJsonKey: reviewDecision,
+    };
+  }
 }
 
 enum TestExecutionStatus {
