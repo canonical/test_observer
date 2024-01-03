@@ -11,8 +11,8 @@ class Artefacts extends _$Artefacts {
   @override
   Future<Map<int, Artefact>> build(FamilyName family) async {
     final dio = ref.watch(dioProvider);
-    final response =
-        await dio.get('/v1/artefacts', queryParameters: {'family': family});
+    final response = await dio
+        .get('/v1/artefacts', queryParameters: {'family': family.name});
     final artefacts = {
       for (final json in response.data)
         json['id'] as int: Artefact.fromJson(json),
