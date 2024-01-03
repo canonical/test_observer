@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
-import '../../providers/artefacts.dart';
+import '../../providers/family_artefacts.dart';
 import '../../routing.dart';
 
 class ArtefactSignoffButton extends ConsumerWidget {
@@ -26,7 +26,7 @@ class ArtefactSignoffButton extends ConsumerWidget {
             (status) => PopupMenuItem(
               value: status,
               onTap: () => ref
-                  .read(artefactsProvider(family).notifier)
+                  .read(familyArtefactsProvider(family).notifier)
                   .changeArtefactStatus(artefact.id, status),
               child: Text(
                 status.name,

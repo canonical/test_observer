@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/stage_name.dart';
-import '../../providers/artefacts.dart';
+import '../../providers/family_artefacts.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import 'stage_column.dart';
@@ -16,7 +16,7 @@ class DashboardBody extends ConsumerWidget {
     final family = AppRoutes.familyFromContext(context);
     final stages = familyStages(family);
 
-    final artefacts = ref.watch(artefactsProvider(family));
+    final artefacts = ref.watch(familyArtefactsProvider(family));
 
     return artefacts.when(
       data: (_) => ListView.separated(
