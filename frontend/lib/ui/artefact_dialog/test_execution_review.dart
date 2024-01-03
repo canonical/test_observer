@@ -17,34 +17,32 @@ class TestExecutionReviewButton extends StatelessWidget {
   final TestExecution testExecution;
   final int artefactId;
 
-  Chip getStatusChip(BuildContext context) {
+  Text _getReviewDecisionText(BuildContext context) {
     final fontStyle = Theme.of(context).textTheme.labelMedium;
     if (testExecution.reviewDecision.isEmpty) {
-      return Chip(
-        label: Text(
-          'Undecided',
-          style: fontStyle?.apply(color: YaruColors.textGrey),
-        ),
-        shape: const StadiumBorder(),
+      return Text(
+        'Undecided',
+        style: fontStyle?.apply(color: YaruColors.textGrey),
       );
     } else if (testExecution.reviewDecision
         .contains(TestExecutionReviewDecision.rejected)) {
-      return Chip(
-        label: Text(
-          'Rejected',
-          style: fontStyle?.apply(color: YaruColors.red),
-        ),
-        shape: const StadiumBorder(),
+      return Text(
+        'Rejected',
+        style: fontStyle?.apply(color: YaruColors.red),
       );
     } else {
-      return Chip(
-        label: Text(
-          'Approved',
-          style: fontStyle?.apply(color: YaruColors.light.success),
-        ),
-        shape: const StadiumBorder(),
+      return Text(
+        'Approved',
+        style: fontStyle?.apply(color: YaruColors.light.success),
       );
     }
+  }
+
+  Chip getStatusChip(BuildContext context) {
+    return Chip(
+      label: _getReviewDecisionText(context),
+      shape: const StadiumBorder(),
+    );
   }
 
   @override
