@@ -2,9 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru_widgets/widgets.dart';
 
-import '../../providers/artefacts.dart';
+import '../../providers/artefact.dart';
 import '../../routing.dart';
 import '../dialog_header.dart';
 import '../spacing.dart';
@@ -19,8 +18,9 @@ class ArtefactDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefacts =
-        ref.watch(artefactsProvider(AppRoutes.familyFromContext(context)));
+    final family = AppRoutes.familyFromContext(context);
+    final artefact =
+        ref.watch(artefactProvider(family, artefactId)).requireValue;
 
     return SelectionArea(
       child: Dialog(
@@ -32,12 +32,8 @@ class ArtefactDialog extends ConsumerWidget {
               horizontal: Spacing.level5,
               vertical: Spacing.level3,
             ),
-            child: artefacts.when(
-              data: (artefacts) {
-                final artefact = artefacts[artefactId];
-
-                if (artefact == null) {
-                  return const Column(
+            child: (artefact == null)
+                ? const Column(
                     children: [
                       DialogHeader(),
                       Expanded(
@@ -47,25 +43,17 @@ class ArtefactDialog extends ConsumerWidget {
                         ),
                       ),
                     ],
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ArtefactDialogHeader(artefact: artefact),
-                    const SizedBox(height: Spacing.level4),
-                    ArtefactDialogInfoSection(artefact: artefact),
-                    const SizedBox(height: Spacing.level4),
-                    Expanded(child: ArtefactDialogBody(artefact: artefact)),
-                  ],
-                );
-              },
-              loading: () =>
-                  const Center(child: YaruCircularProgressIndicator()),
-              error: (error, stackTrace) =>
-                  Text('Failed to fetch artefact $artefactId $error'),
-            ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ArtefactDialogHeader(artefact: artefact),
+                      const SizedBox(height: Spacing.level4),
+                      ArtefactDialogInfoSection(artefact: artefact),
+                      const SizedBox(height: Spacing.level4),
+                      Expanded(child: ArtefactDialogBody(artefact: artefact)),
+                    ],
+                  ),
           ),
         ),
       ),
