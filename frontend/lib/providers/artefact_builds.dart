@@ -19,32 +19,6 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     return artefactBuilds;
   }
 
-  void _updateStateNewTestExecution(
-    int testExecutionId,
-    Map<String, Object?> responseData,
-  ) {
-    final List<ArtefactBuild> newStateData = [
-      for (final artefactBuild in state.value ?? [])
-        ArtefactBuild(
-          id: artefactBuild.id,
-          architecture: artefactBuild.architecture,
-          revision: artefactBuild.revision,
-          testExecutions: List.from(
-            artefactBuild.testExecutions.map(
-              (e) {
-                if (e.id == testExecutionId) {
-                  return TestExecution.fromJson(responseData);
-                }
-                return e;
-              },
-            ),
-          ),
-        ),
-    ];
-
-    state = AsyncData(newStateData);
-  }
-
   Future<void> changeReviewDecision(
     int testExecutionId,
     String reviewComment,
@@ -52,7 +26,7 @@ class ArtefactBuilds extends _$ArtefactBuilds {
   ) async {
     final dio = ref.watch(dioProvider);
 
-    final response = await dio.patch(
+    await dio.patch(
       '/v1/test-executions/$testExecutionId',
       data: TestExecution.updateReviewDecisionRequestData(
         reviewComment,
@@ -60,6 +34,6 @@ class ArtefactBuilds extends _$ArtefactBuilds {
       ),
     );
 
-    _updateStateNewTestExecution(testExecutionId, response.data);
+    ref.invalidateSelf();
   }
 }

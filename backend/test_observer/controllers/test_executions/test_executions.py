@@ -23,7 +23,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete
 from sqlalchemy.orm import Session, joinedload
 
-from test_observer.controllers.artefacts.models import TestExecutionDTO
 from test_observer.controllers.test_executions.logic import (
     compute_test_execution_status,
     store_test_results,
@@ -147,7 +146,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     db.commit()
 
 
-@router.patch("/{id}", response_model=TestExecutionDTO)
+@router.patch("/{id}")
 def patch_test_execution(
     id: int,
     request: TestExecutionsPatchRequest,
@@ -174,7 +173,6 @@ def patch_test_execution(
         test_execution.review_comment = request.review_comment
 
     db.commit()
-    return test_execution
 
 
 @router.get("/{id}/test-results", response_model=list[TestResultDTO])

@@ -166,9 +166,7 @@ class ArtefactBuild(Base):
         back_populates="builds", foreign_keys=[artefact_id]
     )
     test_executions: Mapped[list["TestExecution"]] = relationship(
-        back_populates="artefact_build",
-        cascade="all, delete",
-        order_by="TestExecution.environment_id",
+        back_populates="artefact_build", cascade="all, delete"
     )
 
     __table_args__ = (

@@ -4,6 +4,7 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
+import '../../routing.dart';
 import '../spacing.dart';
 
 class TestExecutionPopOver extends ConsumerStatefulWidget {

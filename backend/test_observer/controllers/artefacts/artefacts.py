@@ -84,10 +84,17 @@ def patch_artefact(
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
 def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
     """Get latest artefact builds of an artefact together with their test executions"""
-    return (
+    artefact_builds = (
         db.query(ArtefactBuild)
         .filter(ArtefactBuild.artefact_id == artefact_id)
         .distinct(ArtefactBuild.architecture)
         .order_by(ArtefactBuild.architecture, ArtefactBuild.revision.desc())
         .all()
     )
+
+    for artefact_build in artefact_builds:
+        artefact_build.test_executions.sort(
+            key=lambda test_execution: test_execution.id
+        )
+
+    return artefact_builds
