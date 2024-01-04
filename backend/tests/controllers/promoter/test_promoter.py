@@ -107,7 +107,7 @@ def test_run_to_move_artefact_deb(
     deb archive, the artefact is moved to the next stage
     """
     # Arrange
-    artefact = create_artefact(
+    artefact1 = create_artefact(
         db_session,
         "proposed",
         name="linux-generic",
@@ -116,16 +116,21 @@ def test_run_to_move_artefact_deb(
         repo="main",
         created_at=datetime.utcnow(),
     )
-    create_artefact(
+    artefact2 = create_artefact(
         db_session,
         "proposed",
-        name="linux-generic",
-        version="5.19.0.43.38",
+        name="linux-oem-22_04a",
+        version="6.1.0.1028.29",
         series="kinetic",
         repo="main",
         created_at=datetime.utcnow() - timedelta(days=1),
     )
-    db_session.add(ArtefactBuild(architecture="amd64", artefact=artefact))
+    db_session.add_all(
+        [
+            ArtefactBuild(architecture="amd64", artefact=artefact1),
+            ArtefactBuild(architecture="amd64", artefact=artefact2),
+        ]
+    )
     db_session.commit()
 
     with open("tests/test_data/Packages-proposed.gz", "rb") as f:
@@ -133,22 +138,22 @@ def test_run_to_move_artefact_deb(
     with open("tests/test_data/Packages-updates.gz", "rb") as f:
         updates_content = f.read()
 
-    for build in artefact.builds:
-        requests_mock.get(
-            "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
-            f"binary-{build.architecture}/Packages.gz",
-            content=proposed_content,
-        )
-        requests_mock.get(
-            "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/"
-            f"binary-{build.architecture}/Packages.gz",
-            content=updates_content,
-        )
+    requests_mock.get(
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
+        "binary-amd64/Packages.gz",
+        content=proposed_content,
+    )
+    requests_mock.get(
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/"
+        "binary-amd64/Packages.gz",
+        content=updates_content,
+    )
 
     # Act
     test_client.put("/v0/artefacts/promote")
 
-    db_session.refresh(artefact)
+    db_session.refresh(artefact1)
 
     # Assert
-    assert artefact.stage.name == "updates"
+    assert artefact1.stage.name == "updates"
+    assert artefact2.stage.name == "updates"
