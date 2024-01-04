@@ -47,7 +47,8 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
   }
 
   Function(bool?)? getOnChangedCheckboxListTileFunction(
-      TestExecutionReviewDecision testExecutionReviewDecision) {
+    TestExecutionReviewDecision testExecutionReviewDecision,
+  ) {
     if ((testExecutionReviewDecision == TestExecutionReviewDecision.rejected &&
             (_canReject)) ||
         (testExecutionReviewDecision != TestExecutionReviewDecision.rejected &&
