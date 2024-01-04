@@ -20,16 +20,16 @@
 """Functions for managing data from archive"""
 
 
-import os
-import re
 import gzip
+import logging
+import os
 import random
+import re
 import string
 import tempfile
-import logging
 from types import TracebackType
-import requests
 
+import requests
 
 logger = logging.getLogger("test-observer-backend")
 
@@ -71,27 +71,27 @@ class ArchiveManager:
 
     def get_deb_version(self, debname: str) -> str | None:
         """
-        Convert Packages file from archive to json and get version from it
-        This function corresponds the method used by jenkins from the
-        hwcert-jenkins-tools
-        See https://git.launchpad.net/hwcert-jenkins-tools/tree/convert-packages-json
+        Retrieve deb package version via the name
 
-        :debname: name of the deb package
+        :debname: name of the deb package (assumes that any '_' could be a '.')
         :return: deb version
         """
-        json_data = {}
-
         with open(self.decompressed_filepath, encoding="utf-8") as p_file:
             pkg_data = p_file.read()
+
+        # Names of deb packages could have swapped '.' with '_'
+        # So this regex is to allow such scenarios
+        name_regex = f"^{debname}$".replace("_", "[_\.]")
 
         pkg_list = pkg_data.split("\n\n")
         for pkg in pkg_list:
             pkg_name = re.search("Package: (.+)", pkg)
             pkg_ver = re.search("Version: (.+)", pkg)
-            if pkg_name and pkg_ver:
-                # Periods in json keys are bad, convert them to _
-                json_data[pkg_name.group(1)] = pkg_ver.group(1)
-        return json_data.get(debname)
+
+            if pkg_name and pkg_ver and re.match(name_regex, pkg_name.group(1)):
+                return pkg_ver.group(1)
+
+        return None
 
     def _create_download_and_extract_filepaths(self) -> None:
         """
