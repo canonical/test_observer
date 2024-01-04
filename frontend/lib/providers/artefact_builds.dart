@@ -1,3 +1,4 @@
+import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact_build.dart';
@@ -19,6 +20,47 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     return artefactBuilds;
   }
 
+  ArtefactBuild _getUpdatedArtefactBuild(
+    ArtefactBuild artefactBuild,
+    int testExecutionId,
+    Map<String, Object?> responseData,
+  ) {
+    if (artefactBuild.testExecutions.none(
+      (element) => element.id == testExecutionId,
+    )) {
+      return artefactBuild;
+    }
+
+    final updatedTestExecutions = artefactBuild.testExecutions.map(
+      ((element) {
+        if (element.id == testExecutionId) {
+          return TestExecution.fromJson(responseData);
+        }
+        return element;
+      }),
+    ).toList();
+
+    return artefactBuild.copyWith(testExecutions: updatedTestExecutions);
+  }
+
+  Future<void> _updateStateReviewDecision(
+    int testExecutionId,
+    Map<String, Object?> responseData,
+  ) async {
+    final previousState = await future;
+
+    state = AsyncData(
+      [
+        for (final artefactBuild in previousState)
+          _getUpdatedArtefactBuild(
+            artefactBuild,
+            testExecutionId,
+            responseData,
+          ),
+      ],
+    );
+  }
+
   Future<void> changeReviewDecision(
     int testExecutionId,
     String reviewComment,
@@ -26,7 +68,7 @@ class ArtefactBuilds extends _$ArtefactBuilds {
   ) async {
     final dio = ref.watch(dioProvider);
 
-    await dio.patch(
+    final response = await dio.patch(
       '/v1/test-executions/$testExecutionId',
       data: TestExecution.updateReviewDecisionRequestData(
         reviewComment,
@@ -34,6 +76,6 @@ class ArtefactBuilds extends _$ArtefactBuilds {
       ),
     );
 
-    ref.invalidateSelf();
+    await _updateStateReviewDecision(testExecutionId, response.data);
   }
 }
