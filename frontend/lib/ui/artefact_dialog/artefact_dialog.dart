@@ -2,9 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru_widgets/widgets.dart';
 
-import '../../providers/artefact_notifier.dart';
+import '../../providers/family_artefacts.dart';
+import '../../routing.dart';
+import '../dialog_header.dart';
 import '../spacing.dart';
 import 'artefact_dialog_body.dart';
 import 'artefact_dialog_header.dart';
@@ -17,7 +18,9 @@ class ArtefactDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefact = ref.watch(artefactNotifierProvider(artefactId));
+    final family = AppRoutes.familyFromContext(context);
+    final artefact =
+        ref.watch(familyArtefactsProvider(family)).requireValue[artefactId];
 
     return SelectionArea(
       child: Dialog(
@@ -29,22 +32,28 @@ class ArtefactDialog extends ConsumerWidget {
               horizontal: Spacing.level5,
               vertical: Spacing.level3,
             ),
-            child: artefact.when(
-              data: (artefact) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ArtefactDialogHeader(artefact: artefact),
-                  const SizedBox(height: Spacing.level4),
-                  ArtefactDialogInfoSection(artefact: artefact),
-                  const SizedBox(height: Spacing.level4),
-                  Expanded(child: ArtefactDialogBody(artefact: artefact)),
-                ],
-              ),
-              loading: () =>
-                  const Center(child: YaruCircularProgressIndicator()),
-              error: (error, stackTrace) =>
-                  Text('Failed to fetch artefact $artefactId $error'),
-            ),
+            child: (artefact == null)
+                ? const Column(
+                    children: [
+                      DialogHeader(),
+                      Expanded(
+                        child: Center(
+                          child: Text('Artefact not found. It may be that a'
+                              ' newer version has been released already'),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ArtefactDialogHeader(artefact: artefact),
+                      const SizedBox(height: Spacing.level4),
+                      ArtefactDialogInfoSection(artefact: artefact),
+                      const SizedBox(height: Spacing.level4),
+                      Expanded(child: ArtefactDialogBody(artefact: artefact)),
+                    ],
+                  ),
           ),
         ),
       ),
