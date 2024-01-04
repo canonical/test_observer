@@ -33,19 +33,6 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
         reviewDecisions.contains(TestExecutionReviewDecision.rejected);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    reviewCommentController.text = widget.testExecution.reviewComment;
-    reviewDecisions = List.from(widget.testExecution.reviewDecision);
-  }
-
-  @override
-  void dispose() {
-    reviewCommentController.dispose();
-    super.dispose();
-  }
-
   Function(bool?)? getOnChangedCheckboxListTileFunction(
     TestExecutionReviewDecision testExecutionReviewDecision,
   ) {
@@ -64,6 +51,19 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
       };
     }
     return null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    reviewCommentController.text = widget.testExecution.reviewComment;
+    reviewDecisions = List.from(widget.testExecution.reviewDecision);
+  }
+
+  @override
+  void dispose() {
+    reviewCommentController.dispose();
+    super.dispose();
   }
 
   @override
