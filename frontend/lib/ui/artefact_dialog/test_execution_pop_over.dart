@@ -46,6 +46,25 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
     super.dispose();
   }
 
+  Function(bool?)? getOnChangedCheckboxListTileFunction(
+      TestExecutionReviewDecision testExecutionReviewDecision) {
+    if ((testExecutionReviewDecision == TestExecutionReviewDecision.rejected &&
+            (_canReject)) ||
+        (testExecutionReviewDecision != TestExecutionReviewDecision.rejected &&
+            _canApprove)) {
+      return (bool? value) {
+        setState(() {
+          if (reviewDecisions.contains(testExecutionReviewDecision)) {
+            reviewDecisions.remove(testExecutionReviewDecision);
+          } else {
+            reviewDecisions.add(testExecutionReviewDecision);
+          }
+        });
+      };
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -61,20 +80,7 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
               .map(
                 (e) => YaruCheckboxListTile(
                   value: reviewDecisions.contains(e),
-                  onChanged: ((e == TestExecutionReviewDecision.rejected &&
-                              (_canReject)) ||
-                          (e != TestExecutionReviewDecision.rejected &&
-                              _canApprove))
-                      ? (bool? value) {
-                          setState(() {
-                            if (reviewDecisions.contains(e)) {
-                              reviewDecisions.remove(e);
-                            } else {
-                              reviewDecisions.add(e);
-                            }
-                          });
-                        }
-                      : null,
+                  onChanged: getOnChangedCheckboxListTileFunction(e),
                   title: Text(e.name),
                 ),
               )
