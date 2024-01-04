@@ -125,10 +125,20 @@ def test_run_to_move_artefact_deb(
         repo="main",
         created_at=datetime.utcnow() - timedelta(days=1),
     )
+    artefact3 = create_artefact(
+        db_session,
+        "proposed",
+        name="linux-cloud-tools-5_15.0-86",
+        version="5.15.0-86.96",
+        series="kinetic",
+        repo="main",
+        created_at=datetime.utcnow() - timedelta(days=1),
+    )
     db_session.add_all(
         [
             ArtefactBuild(architecture="amd64", artefact=artefact1),
             ArtefactBuild(architecture="amd64", artefact=artefact2),
+            ArtefactBuild(architecture="amd64", artefact=artefact3),
         ]
     )
     db_session.commit()
@@ -157,3 +167,4 @@ def test_run_to_move_artefact_deb(
     # Assert
     assert artefact1.stage.name == "updates"
     assert artefact2.stage.name == "updates"
+    assert artefact3.stage.name == "updates"
