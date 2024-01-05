@@ -39,7 +39,8 @@ class TestExecutionExpandable extends ConsumerWidget {
                   urlText: 'CI',
                 ),
               const SizedBox(width: Spacing.level3),
-              if (c3Link != null)
+              if (c3Link != null &&
+                  c3Link != 'Failed to find C3 submission link')
                 InlineUrlText(
                   url: c3Link,
                   urlText: 'C3',
