@@ -295,7 +295,6 @@ class TestResult(Base):
     )
     test_case: Mapped["TestCase"] = relationship()
 
-    # Default field that stores calculated historic results
     historic_results: list[TestResultStatus] = []
 
     def __repr__(self) -> str:
