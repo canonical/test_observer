@@ -14,7 +14,7 @@ class ArtefactDialogBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactBuilds = ref.watch(artefactBuildsProvider(artefact.id));
+    final artefactBuilds = ref.watch(ArtefactBuildsProvider(artefact.id));
 
     return artefactBuilds.when(
       data: (artefactBuilds) => Column(

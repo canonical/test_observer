@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/test_execution.dart';
 import '../../models/test_result.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
+import 'test_execution_review.dart';
 import 'test_result_filter_expandable.dart';
 
-class TestExecutionExpandable extends StatelessWidget {
+class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({super.key, required this.testExecution});
 
   final TestExecution testExecution;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
 
@@ -29,6 +31,8 @@ class TestExecutionExpandable extends StatelessWidget {
           const Spacer(),
           Row(
             children: [
+              TestExecutionReviewButton(testExecution: testExecution),
+              const SizedBox(width: Spacing.level4),
               if (ciLink != null)
                 InlineUrlText(
                   url: ciLink,
