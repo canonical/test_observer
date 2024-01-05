@@ -124,6 +124,11 @@ class TestExecutionsPatchRequest(BaseModel):
         return review_decision
 
 
+class HistoricTestResult(BaseModel):
+    status: TestResultStatus
+    version: str
+
+
 class TestResultDTO(BaseModel):
     id: int
     name: str = Field(validation_alias=AliasPath("test_case", "name"))
@@ -131,4 +136,4 @@ class TestResultDTO(BaseModel):
     status: TestResultStatus
     comment: str
     io_log: str
-    historic_results: list[TestResultStatus] = []
+    historic_results: list[HistoricTestResult] = []

@@ -24,6 +24,9 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.controllers.artefacts.models import TestExecutionDTO
+from test_observer.controllers.test_executions.helpers import (
+    get_historic_test_result_mapping,
+)
 from test_observer.controllers.test_executions.logic import (
     compute_test_execution_status,
     store_test_results,
@@ -38,7 +41,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import (
-    get_historic_test_results,
+    get_historic_test_executions,
     get_or_create,
 )
 from test_observer.data_access.setup import get_db
@@ -193,10 +196,14 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
-    historic_test_results = get_historic_test_results(db, test_execution)
+    historic_test_executions = get_historic_test_executions(db, test_execution)
+    historic_test_result_mapping = get_historic_test_result_mapping(
+        historic_test_executions
+    )
+
     for test_result in test_execution.test_results:
-        test_result.historic_results = historic_test_results.get(
-            test_result.test_case_id, []
-        )
+        test_result.historic_results = historic_test_result_mapping[
+            test_result.test_case_id
+        ]
 
     return test_execution.test_results

@@ -24,20 +24,18 @@ from collections.abc import Iterable
 from typing import Any
 
 from sqlalchemy import and_, func
-from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, contains_eager, joinedload
 
-from .helpers import _get_historic_test_executions_ids
 from .models import (
     Artefact,
+    ArtefactBuild,
     DataModel,
     Family,
     Stage,
     TestExecution,
-    TestResult,
 )
-from .models_enums import FamilyName, TestResultStatus
+from .models_enums import FamilyName
 
 
 def get_stage_by_name(
@@ -139,25 +137,33 @@ def get_artefacts_by_family(
     return query.all()
 
 
-def get_historic_test_results(
+def get_historic_test_executions(
     session: Session,
     test_execution: TestExecution,
-) -> dict[int, list[TestResultStatus]]:
-    historic_test_execution_ids = _get_historic_test_executions_ids(
-        session, test_execution
-    )
-
-    test_results = (
-        session.query(
-            TestResult.test_case_id,
-            func.array_agg(aggregate_order_by(TestResult.status, TestResult.id.desc())),
+) -> list[TestExecution]:
+    current_artefact = test_execution.artefact_build.artefact
+    return (
+        session.query(TestExecution)
+        .join(TestExecution.artefact_build)
+        .join(ArtefactBuild.artefact)
+        .options(
+            contains_eager(TestExecution.artefact_build).contains_eager(
+                ArtefactBuild.artefact
+            )
         )
-        .filter(TestResult.test_execution_id.in_(historic_test_execution_ids))
-        .group_by(TestResult.test_case_id)
+        .filter(
+            Artefact.name == current_artefact.name,
+            Artefact.store == current_artefact.store,
+            Artefact.repo == current_artefact.repo,
+            Artefact.series == current_artefact.series,
+            TestExecution.environment_id == test_execution.environment_id,
+            TestExecution.id < test_execution.id,
+        )
+        .options(joinedload(TestExecution.test_results, innerjoin=True))
+        .order_by(TestExecution.created_at.desc())
+        .limit(10)
         .all()
     )
-
-    return {test_result[0]: test_result[1] for test_result in test_results}
 
 
 def get_or_create(
