@@ -27,6 +27,8 @@ from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, contains_eager, joinedload
 
+from test_observer.common.constants import HISTORIC_TEST_RESULT_COUNT
+
 from .models import (
     Artefact,
     ArtefactBuild,
@@ -161,7 +163,7 @@ def get_historic_test_executions(
         )
         .options(joinedload(TestExecution.test_results, innerjoin=True))
         .order_by(TestExecution.created_at.desc())
-        .limit(10)
+        .limit(HISTORIC_TEST_RESULT_COUNT)
         .all()
     )
 

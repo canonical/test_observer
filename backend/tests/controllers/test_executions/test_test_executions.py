@@ -376,4 +376,9 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
     assert json[0]["status"] == test_result_second.status.name
     assert json[0]["comment"] == test_result_second.comment
     assert json[0]["io_log"] == test_result_second.io_log
-    assert json[0]["historic_results"] == [test_result_first.status.name]
+    assert json[0]["historic_results"] == [
+        {
+            "status": test_result_first.status,
+            "version": artefact_first.version,
+        }
+    ]
