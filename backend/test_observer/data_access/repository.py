@@ -31,7 +31,6 @@ from sqlalchemy.orm import Session, joinedload
 from .helpers import _get_historic_test_executions_ids
 from .models import (
     Artefact,
-    ArtefactBuild,
     DataModel,
     Family,
     Stage,
