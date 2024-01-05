@@ -131,3 +131,4 @@ class TestResultDTO(BaseModel):
     status: TestResultStatus
     comment: str
     io_log: str
+    historic_results: list[TestResultStatus] = []

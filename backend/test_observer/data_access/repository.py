@@ -24,11 +24,21 @@ from collections.abc import Iterable
 from typing import Any
 
 from sqlalchemy import and_, func
+from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Artefact, DataModel, Family, Stage
-from .models_enums import FamilyName
+from .helpers import _get_historic_test_executions_ids
+from .models import (
+    Artefact,
+    ArtefactBuild,
+    DataModel,
+    Family,
+    Stage,
+    TestExecution,
+    TestResult,
+)
+from .models_enums import FamilyName, TestResultStatus
 
 
 def get_stage_by_name(
@@ -128,6 +138,27 @@ def get_artefacts_by_family(
         query = query.order_by(*order_by_columns)
 
     return query.all()
+
+
+def get_historic_test_results(
+    session: Session,
+    test_execution: TestExecution,
+) -> dict[int, list[TestResultStatus]]:
+    historic_test_execution_ids = _get_historic_test_executions_ids(
+        session, test_execution
+    )
+
+    test_results = (
+        session.query(
+            TestResult.test_case_id,
+            func.array_agg(aggregate_order_by(TestResult.status, TestResult.id.desc())),
+        )
+        .filter(TestResult.test_execution_id.in_(historic_test_execution_ids))
+        .group_by(TestResult.test_case_id)
+        .all()
+    )
+
+    return {test_result[0]: test_result[1] for test_result in test_results}
 
 
 def get_or_create(

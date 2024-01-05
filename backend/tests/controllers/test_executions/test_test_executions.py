@@ -313,35 +313,67 @@ def test_review_test_execution_fails_if_both_failed_and_approved(
 
 
 def test_fetch_test_results(db_session: Session, test_client: TestClient):
-    ci_link = "http://cilink"
-    artefact = create_artefact(db_session, stage_name="beta")
-    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
+    artefact_first = create_artefact(db_session, stage_name="beta", version="1.1.1")
+    artefact_build_first = ArtefactBuild(
+        architecture="some arch", artefact=artefact_first
+    )
     environment = Environment(name="some environment", architecture="some arch")
-    test_execution = TestExecution(
+    test_execution_first = TestExecution(
         environment=environment,
-        artefact_build=artefact_build,
-        ci_link=ci_link,
+        artefact_build=artefact_build_first,
+        ci_link="http://cilink1",
         status=TestExecutionStatus.PASSED,
     )
     test_case = TestCase(name="test-name-1", category="")
-    test_result = TestResult(
+    test_result_first = TestResult(
         test_case=test_case,
-        test_execution=test_execution,
+        test_execution=test_execution_first,
+        status=TestResultStatus.FAILED,
+        comment="",
+        io_log="",
+    )
+    db_session.add_all(
+        [
+            artefact_build_first,
+            environment,
+            test_execution_first,
+            test_case,
+            test_result_first,
+        ]
+    )
+    db_session.commit()
+
+    artefact_second = create_artefact(db_session, stage_name="beta", version="1.1.2")
+    artefact_build_second = ArtefactBuild(
+        architecture="some arch", artefact=artefact_second
+    )
+    test_execution_second = TestExecution(
+        environment=environment,
+        artefact_build=artefact_build_second,
+        ci_link="http://cilink2",
+        status=TestExecutionStatus.PASSED,
+    )
+    test_result_second = TestResult(
+        test_case=test_case,
+        test_execution=test_execution_second,
         status=TestResultStatus.PASSED,
         comment="",
         io_log="",
     )
     db_session.add_all(
-        [artefact_build, environment, test_execution, test_case, test_result]
+        [artefact_build_second, test_execution_second, test_result_second]
     )
     db_session.commit()
 
-    response = test_client.get(f"/v1/test-executions/{test_execution.id}/test-results")
+    response = test_client.get(
+        f"/v1/test-executions/{test_execution_second.id}/test-results"
+    )
 
     assert response.status_code == 200
     json = response.json()
     assert json[0]["name"] == test_case.name
     assert json[0]["category"] == test_case.category
-    assert json[0]["status"] == test_result.status.name
-    assert json[0]["comment"] == test_result.comment
-    assert json[0]["io_log"] == test_result.io_log
+    assert json[0]["status"] == test_result_second.status.name
+    assert json[0]["comment"] == test_result_second.comment
+    assert json[0]["io_log"] == test_result_second.io_log
+    assert json[0]["historic_results"] == [test_result_first.status.name]

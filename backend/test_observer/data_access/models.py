@@ -252,7 +252,6 @@ class TestExecution(Base):
             self,
             "artefact_build_id",
             "environment_id",
-            "test_result_id",
             "status",
             "ci_link",
             "c3_link",

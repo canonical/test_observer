@@ -37,7 +37,10 @@ from test_observer.data_access.models import (
     TestResult,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
-from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.repository import (
+    get_historic_test_results,
+    get_or_create,
+)
 from test_observer.data_access.setup import get_db
 
 from .models import (
@@ -189,5 +192,11 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
 
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
+
+    historic_test_results = get_historic_test_results(db, test_execution)
+    for test_result in test_execution.test_results:
+        test_result.historic_results = historic_test_results.get(
+            test_result.test_case_id, []
+        )
 
     return test_execution.test_results
