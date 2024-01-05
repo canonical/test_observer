@@ -2,7 +2,9 @@ name: Run charm tests
 on:
   pull_request:
     branches:
-      - main
+      - '**'
+    paths:
+      - 'frontend/charm/**'
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
@@ -35,7 +37,7 @@ jobs:
         working-directory: ./frontend/charm
 
   unit-tests-with-coverage:
-    name: Unit tests
+    name: Frontend charm unit tests
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v3
