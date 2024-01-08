@@ -22,7 +22,12 @@ from datetime import timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
+from test_observer.data_access.models import (
+    ArtefactBuild,
+    Environment,
+    TestExecution,
+    User,
+)
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
 )
@@ -56,6 +61,7 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
             "repo": relevant_artefact.repo,
             "stage": relevant_artefact.stage.name,
             "status": relevant_artefact.status,
+            "assignee": None,
         }
     ]
 
@@ -63,6 +69,8 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
 def test_get_artefact(db_session: Session, test_client: TestClient):
     """Should be able to fetch an existing artefact"""
     artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
+    artefact.assignee = User(launchpad_handle="someuser")
+    db_session.commit()
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
 
@@ -77,6 +85,10 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
         "repo": artefact.repo,
         "stage": artefact.stage.name,
         "status": artefact.status,
+        "assignee": {
+            "id": artefact.assignee.id,
+            "launchpad_handle": "someuser",
+        },
     }
 
 
@@ -165,4 +177,5 @@ def test_artefact_signoff(db_session: Session, test_client: TestClient):
         "repo": artefact.repo,
         "stage": artefact.stage.name,
         "status": artefact.status,
+        "assignee": None,
     }

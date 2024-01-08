@@ -26,6 +26,13 @@ from test_observer.data_access.models_enums import (
 )
 
 
+class UserDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    launchpad_handle: str
+
+
 class ArtefactDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -38,6 +45,7 @@ class ArtefactDTO(BaseModel):
     repo: str | None
     stage: str = Field(validation_alias=AliasPath("stage", "name"))
     status: ArtefactStatus
+    assignee: UserDTO | None
 
 
 class EnvironmentDTO(BaseModel):
