@@ -1,10 +1,7 @@
-from sqlalchemy import ScalarSelect, desc, func
-from sqlalchemy.dialects.postgresql import aggregate_order_by
-from sqlalchemy.orm import Session
+from sqlalchemy import desc
+from sqlalchemy.orm import Session, joinedload
+
 from test_observer.common.constants import HISTORIC_TEST_RESULT_COUNT
-from test_observer.controllers.test_executions.helpers import (
-    parse_historic_test_results,
-)
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -15,7 +12,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.repository import get_or_create
 
-from .models import C3TestResult, C3TestResultStatus, HistoricTestResult
+from .models import C3TestResult, C3TestResultStatus
 
 
 def compute_test_execution_status(
@@ -62,51 +59,74 @@ def parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:
             return TestResultStatus.SKIPPED
 
 
-def _get_matching_test_executions_subquery(
+def get_matching_artefact_build_ids(
     session: Session,
-    test_execution: TestExecution,
-) -> ScalarSelect:
-    current_artefact = test_execution.artefact_build.artefact
-    return (
-        session.query(TestExecution.id)
-        .join(TestExecution.artefact_build)
+    artefact: Artefact,
+    architecture: str,
+) -> list[int]:
+    artefact_build_ids = (
+        session.query(ArtefactBuild.id)
         .join(ArtefactBuild.artefact)
         .filter(
-            Artefact.name == current_artefact.name,
-            Artefact.track == current_artefact.track,
-            Artefact.repo == current_artefact.repo,
-            Artefact.series == current_artefact.series,
+            Artefact.name == artefact.name,
+            Artefact.track == artefact.track,
+            Artefact.repo == artefact.repo,
+            Artefact.series == artefact.series,
+            ArtefactBuild.architecture == architecture,
+        )
+        .order_by(desc(ArtefactBuild.id))
+        .all()
+    )
+    return [id[0] for id in artefact_build_ids]
+
+
+def get_matching_test_execution_ids(
+    session: Session,
+    test_execution: TestExecution,
+    matched_artefact_build_ids: list[int],
+) -> list[int]:
+    test_execution_ids = (
+        session.query(TestExecution.id)
+        .filter(
+            TestExecution.artefact_build_id.in_(matched_artefact_build_ids),
             TestExecution.environment_id == test_execution.environment_id,
             TestExecution.id < test_execution.id,
         )
         .order_by(desc(TestExecution.id))
         .limit(HISTORIC_TEST_RESULT_COUNT)
-        .subquery()
-        .as_scalar()
+        .all()
     )
+
+    return [id[0] for id in test_execution_ids]
 
 
 def get_historic_test_results(
     session: Session,
     test_execution: TestExecution,
-) -> dict[int, list[HistoricTestResult]]:
-    historic_test_execution_subquery = _get_matching_test_executions_subquery(
+) -> list[TestResult]:
+    matched_artefact_build_ids = get_matching_artefact_build_ids(
+        session=session,
+        artefact=test_execution.artefact_build.artefact,
+        architecture=test_execution.artefact_build.architecture,
+    )
+    matched_test_execution_ids = get_matching_test_execution_ids(
         session=session,
         test_execution=test_execution,
+        matched_artefact_build_ids=matched_artefact_build_ids,
     )
 
-    historic_test_results = (
-        session.query(
-            TestResult.test_case_id,
-            func.array_agg(aggregate_order_by(TestResult.status, TestResult.id.desc())),
-            func.array_agg(aggregate_order_by(Artefact.version, TestResult.id.desc())),
+    # It is important to have the order_by(TestResult.test_case_id) in this query
+    # This is because we use the output of this function with itertools.groupby
+    # which merges consecutive items by key, and needs the items sorted to group
+    # everything correctly
+    return (
+        session.query(TestResult)
+        .options(
+            joinedload(TestResult.test_execution)
+            .joinedload(TestExecution.artefact_build)
+            .joinedload(ArtefactBuild.artefact)
         )
-        .join(TestResult.test_execution)
-        .join(TestExecution.artefact_build)
-        .join(ArtefactBuild.artefact)
-        .filter(TestResult.test_execution_id.in_(historic_test_execution_subquery))
-        .group_by(TestResult.test_case_id)
+        .filter(TestResult.test_execution_id.in_(matched_test_execution_ids))
+        .order_by(TestResult.test_case_id, desc(TestResult.id))
         .all()
     )
-
-    return parse_historic_test_results(historic_test_results)

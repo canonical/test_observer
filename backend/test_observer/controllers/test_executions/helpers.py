@@ -1,18 +1,22 @@
+from itertools import groupby
 from .models import HistoricTestResult
-from test_observer.data_access.models_enums import TestResultStatus
+from test_observer.data_access.models import TestResult
 
 
 def parse_historic_test_results(
-    historic_test_results: list[tuple[int, list[TestResultStatus], list[str]]],
+    historic_test_results: list[TestResult],
 ) -> dict[int, list[HistoricTestResult]]:
-    historic_test_result_mapping: dict[int, list[HistoricTestResult]] = {}
-    for test_case_id, statuses, versions in historic_test_results:
-        historic_test_result_mapping[test_case_id] = [
-            HistoricTestResult(
-                status=statuses[i],
-                version=versions[i],
-            )
-            for i in range(len(statuses))
-        ]
+    grouped_test_cases = groupby(
+        historic_test_results, lambda test_result: test_result.test_case_id
+    )
 
-    return historic_test_result_mapping
+    return {
+        test_case_id: [
+            HistoricTestResult(
+                status=test_result.status,
+                version=test_result.test_execution.artefact_build.artefact.version,
+            )
+            for test_result in test_results
+        ]
+        for test_case_id, test_results in grouped_test_cases
+    }
