@@ -16,7 +16,7 @@ COPY . /app
 
 RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
-RUN flutter build web --release
+RUN flutter build web --release --web-renderer html
 
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
