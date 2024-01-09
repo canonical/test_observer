@@ -84,7 +84,7 @@ class User(Base):
 
     __tablename__ = "user"
 
-    launchpad_handle: Mapped[str]
+    launchpad_handle: Mapped[str] = mapped_column(unique=True)
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
 

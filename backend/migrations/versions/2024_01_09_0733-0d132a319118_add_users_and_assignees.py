@@ -1,15 +1,15 @@
-"""Add users and artefact assignments
+"""Add users and assignees
 
-Revision ID: 57644d35699a
+Revision ID: 0d132a319118
 Revises: f7b452b19e46
-Create Date: 2024-01-08 11:43:04.888342+00:00
+Create Date: 2024-01-09 07:33:48.475046+00:00
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "57644d35699a"
+revision = "0d132a319118"
 down_revision = "f7b452b19e46"
 branch_labels = None
 depends_on = None
@@ -23,6 +23,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("user_pkey")),
+        sa.UniqueConstraint("launchpad_handle", name=op.f("user_launchpad_handle_key")),
     )
     op.add_column("artefact", sa.Column("assignee_id", sa.Integer(), nullable=True))
     op.create_foreign_key(
