@@ -15,7 +15,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.repository import get_or_create
 
-from .models import C3TestResult, C3TestResultStatus
+from .models import C3TestResult, C3TestResultStatus, HistoricTestResult
 
 
 def compute_test_execution_status(
@@ -88,7 +88,7 @@ def _get_matching_test_executions_subquery(
 def get_historic_test_results(
     session: Session,
     test_execution: TestExecution,
-) -> list[tuple[int, list[TestResultStatus], list[str]]]:
+) -> dict[int, list[HistoricTestResult]]:
     historic_test_execution_subquery = _get_matching_test_executions_subquery(
         session=session,
         test_execution=test_execution,
