@@ -24,6 +24,7 @@ from typing import Annotated
 from pydantic import (
     AliasPath,
     BaseModel,
+    ConfigDict,
     Field,
     HttpUrl,
     field_serializer,
@@ -130,6 +131,8 @@ class HistoricTestResult(BaseModel):
 
 
 class TestResultDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str = Field(validation_alias=AliasPath("test_case", "name"))
     category: str = Field(validation_alias=AliasPath("test_case", "category"))

@@ -1,4 +1,4 @@
-from sqlalchemy import ScalarSelect, func
+from sqlalchemy import ScalarSelect, desc, func
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm import Session
 from test_observer.common.constants import HISTORIC_TEST_RESULT_COUNT
@@ -79,6 +79,7 @@ def _get_matching_test_executions_subquery(
             TestExecution.environment_id == test_execution.environment_id,
             TestExecution.id < test_execution.id,
         )
+        .order_by(desc(TestExecution.id))
         .limit(HISTORIC_TEST_RESULT_COUNT)
         .subquery()
         .as_scalar()

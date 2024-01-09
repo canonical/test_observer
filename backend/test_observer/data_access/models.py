@@ -295,8 +295,6 @@ class TestResult(Base):
     )
     test_case: Mapped["TestCase"] = relationship()
 
-    historic_results: list = []
-
     def __repr__(self) -> str:
         return data_model_repr(
             self,

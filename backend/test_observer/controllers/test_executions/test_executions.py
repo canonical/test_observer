@@ -194,9 +194,13 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
     historic_test_results = get_historic_test_results(db, test_execution)
+
+    test_results: list[TestResultDTO] = []
     for test_result in test_execution.test_results:
-        test_result.historic_results = historic_test_results.get(
+        parsed_test_result = TestResultDTO.model_validate(test_result)
+        parsed_test_result.historic_results = historic_test_results.get(
             test_result.test_case_id, []
         )
+        test_results.append(parsed_test_result)
 
-    return test_execution.test_results
+    return test_results
