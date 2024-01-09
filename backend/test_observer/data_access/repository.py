@@ -25,17 +25,13 @@ from typing import Any
 
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, contains_eager, joinedload
-
-from test_observer.common.constants import HISTORIC_TEST_RESULT_COUNT
+from sqlalchemy.orm import Session, joinedload
 
 from .models import (
     Artefact,
-    ArtefactBuild,
     DataModel,
     Family,
     Stage,
-    TestExecution,
 )
 from .models_enums import FamilyName
 
@@ -137,35 +133,6 @@ def get_artefacts_by_family(
         query = query.order_by(*order_by_columns)
 
     return query.all()
-
-
-def get_historic_test_executions(
-    session: Session,
-    test_execution: TestExecution,
-) -> list[TestExecution]:
-    current_artefact = test_execution.artefact_build.artefact
-    return (
-        session.query(TestExecution)
-        .join(TestExecution.artefact_build)
-        .join(ArtefactBuild.artefact)
-        .options(
-            contains_eager(TestExecution.artefact_build).contains_eager(
-                ArtefactBuild.artefact
-            )
-        )
-        .filter(
-            Artefact.name == current_artefact.name,
-            Artefact.store == current_artefact.store,
-            Artefact.repo == current_artefact.repo,
-            Artefact.series == current_artefact.series,
-            TestExecution.environment_id == test_execution.environment_id,
-            TestExecution.id < test_execution.id,
-        )
-        .options(joinedload(TestExecution.test_results, innerjoin=True))
-        .order_by(TestExecution.created_at.desc())
-        .limit(HISTORIC_TEST_RESULT_COUNT)
-        .all()
-    )
 
 
 def get_or_create(

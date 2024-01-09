@@ -136,4 +136,11 @@ class TestResultDTO(BaseModel):
     status: TestResultStatus
     comment: str
     io_log: str
-    historic_results: list[HistoricTestResult] = []
+    historic_results: list[HistoricTestResult] = Field(
+        default=[],
+        description=(
+            "The last 10 test results matched with the current test execution. "
+            "The items are sorted in descending order, the first historic test "
+            "result is the most recent, while the last one is the oldest one."
+        ),
+    )

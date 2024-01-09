@@ -1,21 +1,18 @@
 from .models import HistoricTestResult
-from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models_enums import TestResultStatus
 
 
-def get_historic_test_result_mapping(
-    historic_test_executions: list[TestExecution],
+def parse_historic_test_results(
+    historic_test_results: list[tuple[int, list[TestResultStatus], list[str]]],
 ) -> dict[int, list[HistoricTestResult]]:
     historic_test_result_mapping: dict[int, list[HistoricTestResult]] = {}
-    for current_test_execution in historic_test_executions:
-        for test_result in current_test_execution.test_results:
-            historic_test_result_mapping[
-                test_result.test_case_id
-            ] = historic_test_result_mapping.get(test_result.test_case_id, [])
-
-            historic_test_result_mapping[test_result.test_case_id].append(
-                HistoricTestResult(
-                    status=test_result.status,
-                    version=current_test_execution.artefact_build.artefact.version,
-                )
+    for test_case_id, statuses, versions in historic_test_results:
+        historic_test_result_mapping[test_case_id] = [
+            HistoricTestResult(
+                status=statuses[i],
+                version=versions[i],
             )
+            for i in range(len(statuses))
+        ]
+
     return historic_test_result_mapping
