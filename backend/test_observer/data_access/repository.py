@@ -27,12 +27,7 @@ from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import (
-    Artefact,
-    DataModel,
-    Family,
-    Stage,
-)
+from .models import Artefact, DataModel, Family, Stage
 from .models_enums import FamilyName
 
 
