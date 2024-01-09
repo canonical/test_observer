@@ -179,3 +179,20 @@ def test_artefact_signoff(db_session: Session, test_client: TestClient):
         "status": artefact.status,
         "assignee": None,
     }
+
+
+def test_change_assignee(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "candidate")
+
+    handle = "someuser"
+    user = User(launchpad_handle=handle)
+    db_session.add(user)
+    db_session.commit()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}/assignee",
+        json={"assignee_id": user.id},
+    )
+
+    assert response.status_code == 200
+    assert artefact.assignee.launchpad_handle == handle
