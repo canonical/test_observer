@@ -106,7 +106,7 @@ def patch_assignee(
     artefact_id: int, request: AssigneePatch, db: Session = Depends(get_db)
 ):
     artefact = db.get(Artefact, artefact_id)
-    user = db.get(User, request.assignee_id)
+    user = db.get(User, request.id)
 
     if artefact is None:
         raise HTTPException(status_code=404, detail="Artefact not found")

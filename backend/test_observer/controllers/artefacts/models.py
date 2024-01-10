@@ -84,4 +84,4 @@ class ArtefactPatch(BaseModel):
 
 
 class AssigneePatch(BaseModel):
-    assignee_id: int
+    id: int

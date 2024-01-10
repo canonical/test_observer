@@ -193,7 +193,7 @@ def test_change_assignee(
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}/assignee",
-        json={"assignee_id": user.id},
+        json={"id": user.id},
     )
 
     assert response.status_code == 200
