@@ -1,9 +1,8 @@
 from datetime import datetime
 
-import pytest
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Artefact, Stage, User
+from test_observer.data_access.models import Artefact, Stage
 from test_observer.data_access.models_enums import FamilyName
 
 

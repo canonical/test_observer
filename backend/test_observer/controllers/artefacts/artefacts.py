@@ -25,7 +25,7 @@ from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
-from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch, AssigneePatch, UserDTO
+from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch, AssigneePatch
 
 router = APIRouter()
 
