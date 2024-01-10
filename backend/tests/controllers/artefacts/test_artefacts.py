@@ -17,6 +17,7 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+from collections.abc import Callable
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
@@ -66,10 +67,12 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
     ]
 
 
-def test_get_artefact(db_session: Session, test_client: TestClient):
+def test_get_artefact(
+    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+):
     """Should be able to fetch an existing artefact"""
     artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
-    artefact.assignee = User(launchpad_handle="someuser")
+    artefact.assignee: User = create_user()
     db_session.commit()
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
@@ -87,7 +90,7 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
         "status": artefact.status,
         "assignee": {
             "id": artefact.assignee.id,
-            "launchpad_handle": "someuser",
+            "launchpad_handle": artefact.assignee.launchpad_handle,
         },
     }
 
@@ -181,13 +184,12 @@ def test_artefact_signoff(db_session: Session, test_client: TestClient):
     }
 
 
-def test_change_assignee(db_session: Session, test_client: TestClient):
+def test_change_assignee(
+    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+):
     artefact = create_artefact(db_session, "candidate")
 
-    handle = "someuser"
-    user = User(launchpad_handle=handle)
-    db_session.add(user)
-    db_session.commit()
+    user: User = create_user()
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}/assignee",
@@ -195,4 +197,4 @@ def test_change_assignee(db_session: Session, test_client: TestClient):
     )
 
     assert response.status_code == 200
-    assert artefact.assignee.launchpad_handle == handle
+    assert artefact.assignee.launchpad_handle == user.launchpad_handle

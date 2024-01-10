@@ -6,14 +6,17 @@ from test_observer.data_access.models import User
 
 
 def test_create_user(db_session: Session, test_client: TestClient):
-    handle = "someuser"
-    response = test_client.post("/v1/users/", json={"launchpad_handle": handle})
+    email = "omar.selo@canonical.com"
+    response = test_client.post("/v1/users/", json={"launchpad_email": email})
 
     assert response.status_code == 200
-    assert response.json()["launchpad_handle"] == handle
     assert (
         db_session.execute(
-            select(User).where(User.launchpad_handle == handle)
+            select(User).where(
+                User.launchpad_email == email,
+                User.launchpad_handle == "omar-selo",
+                User.name == "Omar Abou Selo",
+            )
         ).scalar_one_or_none()
         is not None
     )

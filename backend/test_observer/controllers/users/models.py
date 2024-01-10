@@ -1,17 +1,12 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, EmailStr
 
 
 class CreateUserRequest(BaseModel):
-    launchpad_handle: str
-
-    @field_validator("launchpad_handle")
-    @classmethod
-    def validate_handle(cls: type["CreateUserRequest"], launchpad_handle: str) -> str:
-        if not launchpad_handle:
-            raise ValueError("Must pass launchpad_handle")
-        return launchpad_handle
+    launchpad_email: EmailStr
 
 
 class UserDTO(BaseModel):
     id: int
     launchpad_handle: str
+    launchpad_email: str
+    name: str

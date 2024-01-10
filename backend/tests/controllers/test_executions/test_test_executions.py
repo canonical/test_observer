@@ -18,6 +18,8 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
+from collections.abc import Callable
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -348,11 +350,9 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
-    db_session: Session, test_client: TestClient
+    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
 ):
-    user = User(launchpad_handle="someuser")
-    db_session.add(user)
-    db_session.commit()
+    user: User = create_user()
 
     test_client.put(
         "/v1/test-executions/start-test",
@@ -372,4 +372,4 @@ def test_new_artefacts_get_assigned_a_reviewer(
 
     artefact = db_session.query(Artefact).filter(Artefact.name == "core22").one()
     assert artefact.assignee is not None
-    assert artefact.assignee.launchpad_handle == "someuser"
+    assert artefact.assignee.launchpad_handle == user.launchpad_handle
