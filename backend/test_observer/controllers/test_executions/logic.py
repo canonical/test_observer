@@ -1,5 +1,6 @@
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm.query import RowReturningQuery
 
 from test_observer.common.constants import HISTORIC_TEST_RESULT_COUNT
 from test_observer.data_access.models import (
@@ -59,13 +60,30 @@ def parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:
             return TestResultStatus.SKIPPED
 
 
-def get_matching_artefact_build_ids(
+def get_historic_artefact_builds_query(
     session: Session,
     artefact: Artefact,
     architecture: str,
-) -> list[int]:
-    artefact_build_ids = (
+) -> RowReturningQuery:
+    """
+    Helper method to get a query that fetches the latest Artefact Build IDs
+    for given Artefact object identifiers (name, track, repo, store) and architecture.
+
+    The query only returns the latest revision build for each Artefact, in case there
+    are multiple revision of the same artefact version.
+
+    Parameters:
+        session (Session): Database session object used to generate the query for
+        artefact (Artefact): Artefact objects used to take the identifiers from
+        architecture (str): Architecture name to filter the results returned
+
+    Returns:
+        Prepared query object that can be executed as a query itself using .all()
+        or a subquery using .subquery()
+    """
+    return (
         session.query(ArtefactBuild.id)
+        .distinct(ArtefactBuild.artefact_id)
         .join(ArtefactBuild.artefact)
         .filter(
             Artefact.name == artefact.name,
@@ -74,45 +92,73 @@ def get_matching_artefact_build_ids(
             Artefact.series == artefact.series,
             ArtefactBuild.architecture == architecture,
         )
-        .order_by(desc(ArtefactBuild.id))
-        .all()
+        .order_by(
+            desc(ArtefactBuild.artefact_id),
+            desc(ArtefactBuild.revision),
+        )
     )
-    return [id[0] for id in artefact_build_ids]
 
 
-def get_matching_test_execution_ids(
+def get_historic_test_executions_query(
     session: Session,
     test_execution: TestExecution,
-    matched_artefact_build_ids: list[int],
-) -> list[int]:
-    test_execution_ids = (
+    artefact_build_query: RowReturningQuery,
+) -> RowReturningQuery:
+    """
+    Helper method to get a query that fetches the latest Test Execution IDs
+    for all test executions that come from the artefact_build_ids subquery.
+
+    The query returns only the test executions that belong to the same environment
+    as the given input test execution
+
+    Parameters:
+        session (Session): Database session object used to generate the query for
+        test_execution (TestExecution): TestExecution object to filter based on
+        artefact_build_query (RowReturningQuery): Query to fetch the artefact builds
+
+    Returns:
+        Prepared query object that can be executed as a query itself using .all()
+        or a subquery using .subquery()
+    """
+
+    return (
         session.query(TestExecution.id)
         .filter(
-            TestExecution.artefact_build_id.in_(matched_artefact_build_ids),
+            TestExecution.artefact_build_id.in_(artefact_build_query.scalar_subquery()),
             TestExecution.environment_id == test_execution.environment_id,
             TestExecution.id < test_execution.id,
         )
         .order_by(desc(TestExecution.id))
         .limit(HISTORIC_TEST_RESULT_COUNT)
-        .all()
     )
-
-    return [id[0] for id in test_execution_ids]
 
 
 def get_historic_test_results(
     session: Session,
     test_execution: TestExecution,
 ) -> list[TestResult]:
-    matched_artefact_build_ids = get_matching_artefact_build_ids(
+    """
+    Helper method to get the historic test results (10 latest) for
+    a given Test Execution object
+
+    Parameters:
+        session (Session): Database session object used to generate the query for
+        test_execution (TestExecution): TestExecution object to filter based on
+
+    Returns:
+        List of Test Result objects that match the test execution objects
+        received as input
+    """
+
+    artefact_builds_query = get_historic_artefact_builds_query(
         session=session,
         artefact=test_execution.artefact_build.artefact,
         architecture=test_execution.artefact_build.architecture,
     )
-    matched_test_execution_ids = get_matching_test_execution_ids(
+    test_executions_query = get_historic_test_executions_query(
         session=session,
         test_execution=test_execution,
-        matched_artefact_build_ids=matched_artefact_build_ids,
+        artefact_build_query=artefact_builds_query,
     )
 
     # It is important to have the order_by(TestResult.test_case_id) in this query
@@ -126,7 +172,9 @@ def get_historic_test_results(
             .joinedload(TestExecution.artefact_build)
             .joinedload(ArtefactBuild.artefact)
         )
-        .filter(TestResult.test_execution_id.in_(matched_test_execution_ids))
+        .filter(
+            TestResult.test_execution_id.in_(test_executions_query.scalar_subquery())
+        )
         .order_by(TestResult.test_case_id, desc(TestResult.id))
         .all()
     )
