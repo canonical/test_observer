@@ -352,7 +352,7 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
 def test_new_artefacts_get_assigned_a_reviewer(
     db_session: Session, test_client: TestClient, create_user: Callable[..., User]
 ):
-    user: User = create_user()
+    user = create_user()
 
     test_client.put(
         "/v1/test-executions/start-test",

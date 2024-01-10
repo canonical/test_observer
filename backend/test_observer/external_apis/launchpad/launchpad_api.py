@@ -1,4 +1,4 @@
-from launchpadlib.launchpad import Launchpad
+from launchpadlib.launchpad import Launchpad  # type: ignore
 from pydantic import EmailStr
 
 from .models import LaunchpadUser

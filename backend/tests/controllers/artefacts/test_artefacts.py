@@ -72,7 +72,7 @@ def test_get_artefact(
 ):
     """Should be able to fetch an existing artefact"""
     artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
-    artefact.assignee: User = create_user()
+    artefact.assignee = create_user()
     db_session.commit()
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
@@ -189,7 +189,7 @@ def test_change_assignee(
 ):
     artefact = create_artefact(db_session, "candidate")
 
-    user: User = create_user()
+    user = create_user()
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}/assignee",
@@ -197,4 +197,5 @@ def test_change_assignee(
     )
 
     assert response.status_code == 200
+    assert artefact.assignee is not None
     assert artefact.assignee.launchpad_handle == user.launchpad_handle
