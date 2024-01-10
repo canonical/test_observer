@@ -81,6 +81,7 @@ def get_historic_artefact_builds_query(
         Prepared query object that can be executed as a query itself using .all()
         or a subquery using .subquery()
     """
+
     return (
         session.query(ArtefactBuild.id)
         .distinct(ArtefactBuild.artefact_id)
