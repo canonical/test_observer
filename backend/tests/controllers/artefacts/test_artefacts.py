@@ -91,6 +91,8 @@ def test_get_artefact(
         "assignee": {
             "id": artefact.assignee.id,
             "launchpad_handle": artefact.assignee.launchpad_handle,
+            "launchpad_email": artefact.assignee.launchpad_email,
+            "name": artefact.assignee.name,
         },
     }
 
