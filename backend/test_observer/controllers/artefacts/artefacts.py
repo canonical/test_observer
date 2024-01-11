@@ -20,12 +20,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Artefact, ArtefactBuild
+from test_observer.data_access.models import Artefact, ArtefactBuild, User
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
-from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch
+from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch, AssigneePatch
 
 router = APIRouter()
 
@@ -98,3 +98,23 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
         )
 
     return artefact_builds
+
+
+# include_in_schema=False to hide this endpoints from docs as its internal use
+@router.patch("/{artefact_id}/assignee", include_in_schema=False)
+def patch_assignee(
+    artefact_id: int, request: AssigneePatch, db: Session = Depends(get_db)
+):
+    artefact = db.get(Artefact, artefact_id)
+    user = db.get(User, request.id)
+
+    if artefact is None:
+        raise HTTPException(status_code=404, detail="Artefact not found")
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User/assignee not found")
+
+    artefact.assignee = user
+    db.commit()
+
+    return artefact

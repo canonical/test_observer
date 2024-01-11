@@ -17,12 +17,18 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+from collections.abc import Callable
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import ArtefactBuild, Environment, TestExecution
+from test_observer.data_access.models import (
+    ArtefactBuild,
+    Environment,
+    TestExecution,
+    User,
+)
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
 )
@@ -56,13 +62,18 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
             "repo": relevant_artefact.repo,
             "stage": relevant_artefact.stage.name,
             "status": relevant_artefact.status,
+            "assignee": None,
         }
     ]
 
 
-def test_get_artefact(db_session: Session, test_client: TestClient):
+def test_get_artefact(
+    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+):
     """Should be able to fetch an existing artefact"""
     artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
+    artefact.assignee = create_user()
+    db_session.commit()
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
 
@@ -77,6 +88,12 @@ def test_get_artefact(db_session: Session, test_client: TestClient):
         "repo": artefact.repo,
         "stage": artefact.stage.name,
         "status": artefact.status,
+        "assignee": {
+            "id": artefact.assignee.id,
+            "launchpad_handle": artefact.assignee.launchpad_handle,
+            "launchpad_email": artefact.assignee.launchpad_email,
+            "name": artefact.assignee.name,
+        },
     }
 
 
@@ -165,4 +182,22 @@ def test_artefact_signoff(db_session: Session, test_client: TestClient):
         "repo": artefact.repo,
         "stage": artefact.stage.name,
         "status": artefact.status,
+        "assignee": None,
     }
+
+
+def test_change_assignee(
+    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+):
+    artefact = create_artefact(db_session, "candidate")
+
+    user = create_user()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}/assignee",
+        json={"id": user.id},
+    )
+
+    assert response.status_code == 200
+    assert artefact.assignee is not None
+    assert artefact.assignee.launchpad_handle == user.launchpad_handle

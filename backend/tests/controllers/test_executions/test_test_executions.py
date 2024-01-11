@@ -18,8 +18,9 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
-import pytest
+from collections.abc import Callable
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,7 @@ from test_observer.data_access.models import (
     TestCase,
     TestExecution,
     TestResult,
+    User,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -345,3 +347,29 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
     assert json[0]["status"] == test_result.status.name
     assert json[0]["comment"] == test_result.comment
     assert json[0]["io_log"] == test_result.io_log
+
+
+def test_new_artefacts_get_assigned_a_reviewer(
+    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+):
+    user = create_user()
+
+    test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": "snap",
+            "name": "core22",
+            "version": "abec123",
+            "revision": 123,
+            "track": "22",
+            "store": "ubuntu",
+            "arch": "arm64",
+            "execution_stage": "beta",
+            "environment": "cm3",
+            "ci_link": "http://localhost",
+        },
+    )
+
+    artefact = db_session.query(Artefact).filter(Artefact.name == "core22").one()
+    assert artefact.assignee is not None
+    assert artefact.assignee.launchpad_handle == user.launchpad_handle

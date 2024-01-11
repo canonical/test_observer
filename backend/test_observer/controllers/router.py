@@ -27,12 +27,14 @@ from .application import version
 from .artefacts import artefacts
 from .promoter import promoter
 from .test_executions import test_executions
+from .users import users
 
 router = APIRouter()
 router.include_router(promoter.router)
 router.include_router(version.router, prefix="/v1/version")
 router.include_router(test_executions.router, prefix="/v1/test-executions")
 router.include_router(artefacts.router, prefix="/v1/artefacts")
+router.include_router(users.router, prefix="/v1/users")
 
 
 @router.get("/")
