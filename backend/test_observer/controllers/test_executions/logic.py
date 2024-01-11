@@ -2,7 +2,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.query import RowReturningQuery
 
-from test_observer.common.constants import HISTORIC_TEST_RESULT_COUNT
+from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -60,13 +60,13 @@ def parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:
             return TestResultStatus.SKIPPED
 
 
-def get_historic_artefact_builds_query(
+def get_previous_artefact_builds_query(
     session: Session,
     artefact: Artefact,
     architecture: str,
 ) -> RowReturningQuery:
     """
-    Helper method to get a query that fetches the latest Artefact Build IDs
+    Helper method to get a query that fetches the previous Artefact Build IDs
     for given Artefact object identifiers (name, track, repo, store) and architecture.
 
     The query only returns the latest revision build for each Artefact, in case there
@@ -100,13 +100,13 @@ def get_historic_artefact_builds_query(
     )
 
 
-def get_historic_test_executions_query(
+def get_previous_test_executions_query(
     session: Session,
     test_execution: TestExecution,
     artefact_build_query: RowReturningQuery,
 ) -> RowReturningQuery:
     """
-    Helper method to get a query that fetches the latest Test Execution IDs
+    Helper method to get a query that fetches the previous Test Execution IDs
     for all test executions that come from the artefact_build_ids subquery.
 
     The query returns only the test executions that belong to the same environment
@@ -130,16 +130,16 @@ def get_historic_test_executions_query(
             TestExecution.id < test_execution.id,
         )
         .order_by(desc(TestExecution.id))
-        .limit(HISTORIC_TEST_RESULT_COUNT)
+        .limit(PREVIOUS_TEST_RESULT_COUNT)
     )
 
 
-def get_historic_test_results(
+def get_previous_test_results(
     session: Session,
     test_execution: TestExecution,
 ) -> list[TestResult]:
     """
-    Helper method to get the historic test results (10 latest) for
+    Helper method to get the previous test results (10 latest) for
     a given Test Execution object
 
     Parameters:
@@ -151,12 +151,12 @@ def get_historic_test_results(
         received as input
     """
 
-    artefact_builds_query = get_historic_artefact_builds_query(
+    artefact_builds_query = get_previous_artefact_builds_query(
         session=session,
         artefact=test_execution.artefact_build.artefact,
         architecture=test_execution.artefact_build.architecture,
     )
-    test_executions_query = get_historic_test_executions_query(
+    test_executions_query = get_previous_test_executions_query(
         session=session,
         test_execution=test_execution,
         artefact_build_query=artefact_builds_query,

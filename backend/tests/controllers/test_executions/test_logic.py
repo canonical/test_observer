@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.test_executions.logic import (
-    get_historic_artefact_builds_query,
-    get_historic_test_executions_query,
+    get_previous_artefact_builds_query,
+    get_previous_test_executions_query,
 )
 from test_observer.data_access.models import (
     Artefact,
@@ -31,7 +31,7 @@ def _get_test_execution(
     return test_execution
 
 
-def test_get_historic_artefact_builds_query(db_session: Session):
+def test_get_previous_artefact_builds_query(db_session: Session):
     stage = db_session.query(Stage).filter(Stage.name == "beta").first()
 
     artefact_one = Artefact(name="some artefact", version="1.0.0", stage=stage)
@@ -49,7 +49,7 @@ def test_get_historic_artefact_builds_query(db_session: Session):
     db_session.add_all([artefact_two, artefact_build_two, artefact_build_three])
     db_session.commit()
 
-    artefact_builds_query = get_historic_artefact_builds_query(
+    artefact_builds_query = get_previous_artefact_builds_query(
         session=db_session,
         artefact=artefact_one,
         architecture=artefact_build_two.architecture,
@@ -61,7 +61,7 @@ def test_get_historic_artefact_builds_query(db_session: Session):
     ]
 
 
-def test_get_historic_artefact_builds_query_returns_latest_revision_build(
+def test_get_previous_artefact_builds_query_returns_latest_revision_build(
     db_session: Session,
 ):
     stage = db_session.query(Stage).filter(Stage.name == "beta").first()
@@ -82,7 +82,7 @@ def test_get_historic_artefact_builds_query_returns_latest_revision_build(
     )
     db_session.commit()
 
-    artefact_builds_query = get_historic_artefact_builds_query(
+    artefact_builds_query = get_previous_artefact_builds_query(
         session=db_session,
         artefact=artefact_one,
         architecture=artefact_build_two.architecture,
@@ -93,7 +93,7 @@ def test_get_historic_artefact_builds_query_returns_latest_revision_build(
     ]
 
 
-def test_get_historic_test_executions_query(db_session: Session):
+def test_get_previous_test_executions_query(db_session: Session):
     environment_one = Environment(name="some environment", architecture="some arch")
     db_session.add(environment_one)
     db_session.commit()
@@ -114,7 +114,7 @@ def test_get_historic_test_executions_query(db_session: Session):
         db_session, environment_one, "https://example3"
     )
 
-    artefact_build_query = get_historic_artefact_builds_query(
+    artefact_build_query = get_previous_artefact_builds_query(
         session=db_session,
         artefact=test_execution_one.artefact_build.artefact,
         architecture=test_execution_one.artefact_build.architecture,
@@ -126,7 +126,7 @@ def test_get_historic_test_executions_query(db_session: Session):
         test_execution_one.artefact_build_id,
     ]
 
-    test_execution_ids = get_historic_test_executions_query(
+    test_execution_ids = get_previous_test_executions_query(
         session=db_session,
         test_execution=test_execution_three,
         artefact_build_query=artefact_build_query,

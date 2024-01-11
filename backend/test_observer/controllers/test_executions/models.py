@@ -32,6 +32,7 @@ from pydantic import (
     model_validator,
 )
 
+from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import (
     FamilyName,
     TestExecutionReviewDecision,
@@ -125,7 +126,7 @@ class TestExecutionsPatchRequest(BaseModel):
         return review_decision
 
 
-class HistoricTestResult(BaseModel):
+class PreviousTestResult(BaseModel):
     status: TestResultStatus
     version: str
 
@@ -139,11 +140,12 @@ class TestResultDTO(BaseModel):
     status: TestResultStatus
     comment: str
     io_log: str
-    historic_results: list[HistoricTestResult] = Field(
+    previous_results: list[PreviousTestResult] = Field(
         default=[],
         description=(
-            "The last 10 test results matched with the current test execution. "
-            "The items are sorted in descending order, the first historic test "
-            "result is the most recent, while the last one is the oldest one."
+            f"The last {PREVIOUS_TEST_RESULT_COUNT} test results matched with "
+            "the current test execution. The items are sorted in descending order, "
+            "the first test result is the most recent, while "
+            "the last one is the oldest one."
         ),
     )
