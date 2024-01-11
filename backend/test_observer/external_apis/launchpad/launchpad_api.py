@@ -10,6 +10,8 @@ class LaunchpadAPI:
             "test-observer", "production", version="devel"
         )
 
-    def get_user_by_email(self, email: EmailStr) -> LaunchpadUser:
+    def get_user_by_email(self, email: EmailStr) -> LaunchpadUser | None:
         user = self.launchpad.people.getByEmail(email=email)
-        return LaunchpadUser(handle=user.name, email=email, name=user.display_name)
+        if user:
+            return LaunchpadUser(handle=user.name, email=email, name=user.display_name)
+        return None

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import User
@@ -18,6 +18,9 @@ def add_user(
     launchpad_api: LaunchpadAPI = Depends(LaunchpadAPI),
 ):
     launchpad_user = launchpad_api.get_user_by_email(request.launchpad_email)
+
+    if not launchpad_user:
+        raise HTTPException(status_code=422, detail="Email not registered in launchpad")
 
     user = User(
         launchpad_handle=launchpad_user.handle,

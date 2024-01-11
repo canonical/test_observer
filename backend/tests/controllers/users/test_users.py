@@ -20,3 +20,11 @@ def test_create_user(db_session: Session, test_client: TestClient):
         ).scalar_one_or_none()
         is not None
     )
+
+
+def test_email_not_in_launchpad(test_client: TestClient):
+    email = "john@doe.com"
+    response = test_client.post("/v1/users/", json={"launchpad_email": email})
+
+    assert response.status_code == 422
+    assert response.content == "Email not registered in launchpad"
