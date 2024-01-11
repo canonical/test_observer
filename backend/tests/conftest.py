@@ -21,6 +21,7 @@
 
 
 from os import environ
+
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -31,6 +32,8 @@ from sqlalchemy_utils import (  # type: ignore
     create_database,
     drop_database,
 )
+
+from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
 
@@ -86,3 +89,21 @@ def test_client(db_session: Session) -> TestClient:
     """Create a test http client"""
     app.dependency_overrides[get_db] = lambda: db_session
     return TestClient(app)
+
+
+@pytest.fixture
+def create_user(db_session: Session):
+    def _create_user(**kwargs) -> User:
+        user = User(
+            **{
+                "name": "John Doe",
+                "launchpad_handle": "jd",
+                "launchpad_email": "john@doe.com",
+                **kwargs,
+            }
+        )
+        db_session.add(user)
+        db_session.commit()
+        return user
+
+    return _create_user

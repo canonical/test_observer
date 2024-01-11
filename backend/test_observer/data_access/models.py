@@ -77,6 +77,23 @@ def data_model_repr(obj: DataModel, *keys: str) -> str:
     return f"{type(obj).__name__}({', '.join(kwargs)})"
 
 
+class User(Base):
+    """
+    ORM representing users that can be assigned to review artefacts
+    """
+
+    __tablename__ = "user"
+
+    launchpad_email: Mapped[str] = mapped_column(unique=True)
+    launchpad_handle: Mapped[str]
+    name: Mapped[str]
+
+    assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "launchpad_handle")
+
+
 class Family(Base):
     """A model to represent artefact family object"""
 
@@ -127,6 +144,8 @@ class Artefact(Base):
     builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete"
     )
+    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("user.id"))
+    assignee: Mapped[User | None] = relationship(back_populates="assignments")
     # Default fields
     due_date: Mapped[date | None]
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)

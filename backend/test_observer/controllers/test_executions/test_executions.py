@@ -19,6 +19,8 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
 
+import random
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete
 from sqlalchemy.orm import Session, joinedload
@@ -39,6 +41,7 @@ from test_observer.data_access.models import (
     Stage,
     TestExecution,
     TestResult,
+    User,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
@@ -113,6 +116,9 @@ def start_test_execution(
 
         if test_execution.ci_link != request.ci_link:
             reset_test_execution(request, db, test_execution)
+
+        if artefact.assignee_id is None and (users := db.query(User).all()):
+            artefact.assignee = random.choice(users)
 
         return {"id": test_execution.id}
     except ValueError as exc:

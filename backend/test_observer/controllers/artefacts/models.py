@@ -19,6 +19,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
+from test_observer.controllers.users.models import UserDTO
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionReviewDecision,
@@ -38,6 +39,7 @@ class ArtefactDTO(BaseModel):
     repo: str | None
     stage: str = Field(validation_alias=AliasPath("stage", "name"))
     status: ArtefactStatus
+    assignee: UserDTO | None
 
 
 class EnvironmentDTO(BaseModel):
@@ -73,3 +75,7 @@ class ArtefactBuildDTO(BaseModel):
 
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus
+
+
+class AssigneePatch(BaseModel):
+    id: int
