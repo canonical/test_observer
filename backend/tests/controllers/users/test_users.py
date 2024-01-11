@@ -27,4 +27,4 @@ def test_email_not_in_launchpad(test_client: TestClient):
     response = test_client.post("/v1/users/", json={"launchpad_email": email})
 
     assert response.status_code == 422
-    assert response.content == "Email not registered in launchpad"
+    assert response.json()["detail"] == "Email not registered in launchpad"
