@@ -13,7 +13,15 @@ class TestResultExpandable extends StatelessWidget {
   Widget build(BuildContext context) {
     return YaruExpandable(
       expandButtonPosition: YaruExpandableButtonPosition.start,
-      header: Text(testResult.name),
+      header: Row(
+        children: [
+          Text(testResult.name),
+          const Spacer(),
+          PreviousTestResultsWidget(
+            previousResults: testResult.previousResults,
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.only(left: Spacing.level5),
         child: Column(
@@ -36,6 +44,26 @@ class TestResultExpandable extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class PreviousTestResultsWidget extends StatelessWidget {
+  const PreviousTestResultsWidget({super.key, required this.previousResults});
+
+  final List<PreviousTestResult> previousResults;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: previousResults
+          .map(
+            (e) => Tooltip(
+              message: 'Version: ${e.version}',
+              child: e.status.icon,
+            ),
+          )
+          .toList(),
     );
   }
 }

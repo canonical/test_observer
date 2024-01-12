@@ -1,7 +1,23 @@
+import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:yaru/yaru.dart';
+import 'package:yaru_icons/yaru_icons.dart';
 
 part 'test_result.freezed.dart';
 part 'test_result.g.dart';
+
+@freezed
+class PreviousTestResult with _$PreviousTestResult {
+  const PreviousTestResult._();
+
+  const factory PreviousTestResult({
+    required TestResultStatus status,
+    required String version,
+  }) = _PreviousTestResult;
+
+  factory PreviousTestResult.fromJson(Map<String, Object?> json) =>
+      _$PreviousTestResultFromJson(json);
+}
 
 @freezed
 class TestResult with _$TestResult {
@@ -13,6 +29,9 @@ class TestResult with _$TestResult {
     @Default('') String category,
     @Default('') String comment,
     @JsonKey(name: 'io_log') @Default('') String ioLog,
+    @JsonKey(name: 'previous_results')
+    @Default([])
+    List<PreviousTestResult> previousResults,
   }) = _TestResult;
 
   factory TestResult.fromJson(Map<String, Object?> json) =>
@@ -35,6 +54,22 @@ enum TestResultStatus {
         return 'Passed';
       case skipped:
         return 'Skipped';
+    }
+  }
+
+  Icon get icon {
+    const size = 15.0;
+    switch (this) {
+      case passed:
+        return Icon(YaruIcons.ok, color: YaruColors.light.success, size: size);
+      case failed:
+        return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
+      case skipped:
+        return const Icon(
+          YaruIcons.error,
+          color: YaruColors.coolGrey,
+          size: size,
+        );
     }
   }
 }
