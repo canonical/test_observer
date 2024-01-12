@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 # include_in_schema=False to hide this endpoints from docs as its internal use
-@router.post("/", response_model=UserDTO, include_in_schema=False)
+@router.post("", response_model=UserDTO, include_in_schema=False)
 def add_user(
     request: CreateUserRequest,
     db: Session = Depends(get_db),
