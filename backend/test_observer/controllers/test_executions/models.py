@@ -24,6 +24,7 @@ from typing import Annotated
 from pydantic import (
     AliasPath,
     BaseModel,
+    ConfigDict,
     Field,
     HttpUrl,
     field_serializer,
@@ -31,6 +32,7 @@ from pydantic import (
     model_validator,
 )
 
+from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import (
     FamilyName,
     TestExecutionReviewDecision,
@@ -124,10 +126,26 @@ class TestExecutionsPatchRequest(BaseModel):
         return review_decision
 
 
+class PreviousTestResult(BaseModel):
+    status: TestResultStatus
+    version: str
+
+
 class TestResultDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str = Field(validation_alias=AliasPath("test_case", "name"))
     category: str = Field(validation_alias=AliasPath("test_case", "category"))
     status: TestResultStatus
     comment: str
     io_log: str
+    previous_results: list[PreviousTestResult] = Field(
+        default=[],
+        description=(
+            f"The last {PREVIOUS_TEST_RESULT_COUNT} test results matched with "
+            "the current test execution. The items are sorted in descending order, "
+            "the first test result is the most recent, while "
+            "the last one is the oldest one."
+        ),
+    )
