@@ -115,6 +115,7 @@ def start_test_execution(
 
         if artefact.assignee_id is None and (users := db.query(User).all()):
             artefact.assignee = random.choice(users)
+            db.commit()
 
         return {"id": test_execution.id}
     except ValueError as exc:
