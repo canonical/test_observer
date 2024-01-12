@@ -7,7 +7,7 @@ from test_observer.data_access.models import User
 
 def test_create_user(db_session: Session, test_client: TestClient):
     email = "omar.selo@canonical.com"
-    response = test_client.post("/v1/users/", json={"launchpad_email": email})
+    response = test_client.post("/v1/users", json={"launchpad_email": email})
 
     assert response.status_code == 200
     assert (
@@ -24,7 +24,7 @@ def test_create_user(db_session: Session, test_client: TestClient):
 
 def test_email_not_in_launchpad(test_client: TestClient):
     email = "john@doe.com"
-    response = test_client.post("/v1/users/", json={"launchpad_email": email})
+    response = test_client.post("/v1/users", json={"launchpad_email": email})
 
     assert response.status_code == 422
     assert response.json()["detail"] == "Email not registered in launchpad"

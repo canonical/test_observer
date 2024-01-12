@@ -11,13 +11,21 @@ from test_observer.controllers.test_executions.models import (
     EndTestExecutionRequest,
     StartTestExecutionRequest,
 )
+from test_observer.controllers.users.models import CreateUserRequest
 from test_observer.data_access.models_enums import FamilyName
 
 BASE_URL = "http://localhost:30000/v1"
+CREATE_USER_URL = f"{BASE_URL}/users"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 END_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/end-test"
 
-START_REQUESTS = [
+CREATE_USER_REQUESTS = [
+    CreateUserRequest(launchpad_email="omar.selo@canonical.com"),
+    CreateUserRequest(launchpad_email="nadzeya.hutsko@canonical.com"),
+    CreateUserRequest(launchpad_email="andrej.velichkovski@canonical.com"),
+]
+
+START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
@@ -162,7 +170,7 @@ START_REQUESTS = [
     ),
 ]
 
-END_REQUESTS = [
+END_TEST_EXECUTION_REQUESTS = [
     EndTestExecutionRequest(
         id=1,
         ci_link="http://example1",
@@ -283,12 +291,17 @@ END_REQUESTS = [
 
 
 def seed_data(client: TestClient | requests.Session):
-    for start_request in START_REQUESTS:
+    for create_user in CREATE_USER_REQUESTS:
+        client.post(
+            CREATE_USER_URL, json=create_user.model_dump(mode="json")
+        ).raise_for_status()
+
+    for start_request in START_TEST_EXECUTION_REQUESTS:
         client.put(
             START_TEST_EXECUTION_URL, json=start_request.model_dump(mode="json")
         ).raise_for_status()
 
-    for end_request in END_REQUESTS:
+    for end_request in END_TEST_EXECUTION_REQUESTS:
         client.put(
             END_TEST_EXECUTION_URL, json=end_request.model_dump(mode="json")
         ).raise_for_status()
