@@ -82,7 +82,8 @@ class User(Base):
     ORM representing users that can be assigned to review artefacts
     """
 
-    __tablename__ = "user"
+    # user is a reserved name in PostgreSQL
+    __tablename__ = "app_user"
 
     launchpad_email: Mapped[str] = mapped_column(unique=True)
     launchpad_handle: Mapped[str]
@@ -144,7 +145,7 @@ class Artefact(Base):
     builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete"
     )
-    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("user.id"))
+    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
     assignee: Mapped[User | None] = relationship(back_populates="assignments")
     # Default fields
     due_date: Mapped[date | None]
