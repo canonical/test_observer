@@ -1,4 +1,4 @@
-"""empty message
+"""Rename user table to app_user
 
 Revision ID: bb2a51214402
 Revises: c9851b127edc
