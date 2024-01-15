@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../models/user.dart';
 
+const possibleColors = [
+  Colors.redAccent,
+  Colors.yellowAccent,
+  Colors.blueAccent,
+  Colors.orangeAccent,
+  Colors.greenAccent,
+  Colors.purpleAccent,
+];
+
 Color userIdToColor(int userId) {
-  const colorGroups = Colors.accents;
-  return colorGroups[userId % colorGroups.length];
+  return possibleColors[userId % possibleColors.length];
 }
 
 class UserAvatar extends StatelessWidget {
