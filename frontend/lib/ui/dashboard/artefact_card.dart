@@ -15,6 +15,8 @@ class ArtefactCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final assignee = artefact.assignee;
+
     return GestureDetector(
       onTap: () {
         final currentRoute = GoRouterState.of(context).fullPath;
@@ -45,7 +47,27 @@ class ArtefactCard extends ConsumerWidget {
                   )
                   .intersperse(const SizedBox(height: Spacing.level2)),
               const Spacer(),
-              ArtefactStatusChip(status: artefact.status),
+              Row(
+                children: [
+                  ArtefactStatusChip(status: artefact.status),
+                  const Spacer(),
+                  if (assignee != null)
+                    CircleAvatar(
+                      backgroundColor: assignee.color,
+                      child: Tooltip(
+                        message:
+                            '${assignee.name}\n${assignee.launchpadEmail}\n${assignee.launchpadHandle}',
+                        child: Text(
+                          assignee.initials,
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.apply(fontWeightDelta: 4),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ),
