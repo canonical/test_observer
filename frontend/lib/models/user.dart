@@ -22,7 +22,7 @@ class User with _$User {
     final numOfNames = names.length;
     switch (numOfNames) {
       case 0:
-        return 'NA';
+        return 'N/A';
       case 1:
         return names[0][0].capitalize();
       default:

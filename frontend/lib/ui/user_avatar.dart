@@ -18,7 +18,7 @@ class UserAvatar extends StatelessWidget {
       backgroundColor: userIdToColor(user.id),
       child: Tooltip(
         message:
-            '${user.name}\n${user.launchpadEmail}\n${user.launchpadHandle}',
+            '${user.name}\n${user.launchpadHandle}\n${user.launchpadEmail}',
         child: Text(
           user.initials,
           style:
