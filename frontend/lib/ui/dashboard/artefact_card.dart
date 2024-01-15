@@ -5,6 +5,7 @@ import 'package:intersperse/intersperse.dart';
 
 import '../../models/artefact.dart';
 import '../spacing.dart';
+import '../user_avatar.dart';
 import 'artefact_status_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
@@ -51,21 +52,7 @@ class ArtefactCard extends ConsumerWidget {
                 children: [
                   ArtefactStatusChip(status: artefact.status),
                   const Spacer(),
-                  if (assignee != null)
-                    CircleAvatar(
-                      backgroundColor: assignee.color,
-                      child: Tooltip(
-                        message:
-                            '${assignee.name}\n${assignee.launchpadEmail}\n${assignee.launchpadHandle}',
-                        child: Text(
-                          assignee.initials,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelLarge
-                              ?.apply(fontWeightDelta: 4),
-                        ),
-                      ),
-                    ),
+                  if (assignee != null) UserAvatar(user: assignee),
                 ],
               ),
             ],
