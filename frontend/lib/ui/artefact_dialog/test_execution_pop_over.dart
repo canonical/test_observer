@@ -104,13 +104,16 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
         ),
         const SizedBox(height: Spacing.level3),
         ElevatedButton(
-          onPressed: () => ref
-              .read(ArtefactBuildsProvider(widget.artefactId).notifier)
-              .changeReviewDecision(
-                widget.testExecution.id,
-                reviewCommentController.text,
-                reviewDecisions,
-              ),
+          onPressed: () {
+            ref
+                .read(ArtefactBuildsProvider(widget.artefactId).notifier)
+                .changeReviewDecision(
+                  widget.testExecution.id,
+                  reviewCommentController.text,
+                  reviewDecisions,
+                );
+            Navigator.pop(context);
+          },
           child: const Text('Submit Review'),
         ),
       ],
