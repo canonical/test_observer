@@ -5,6 +5,7 @@ import 'package:intersperse/intersperse.dart';
 
 import '../../models/artefact.dart';
 import '../spacing.dart';
+import '../user_avatar.dart';
 import 'artefact_status_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
@@ -15,6 +16,8 @@ class ArtefactCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final assignee = artefact.assignee;
+
     return GestureDetector(
       onTap: () {
         final currentRoute = GoRouterState.of(context).fullPath;
@@ -45,7 +48,13 @@ class ArtefactCard extends ConsumerWidget {
                   )
                   .intersperse(const SizedBox(height: Spacing.level2)),
               const Spacer(),
-              ArtefactStatusChip(status: artefact.status),
+              Row(
+                children: [
+                  ArtefactStatusChip(status: artefact.status),
+                  const Spacer(),
+                  if (assignee != null) UserAvatar(user: assignee),
+                ],
+              ),
             ],
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:yaru/yaru.dart';
 
 import 'stage_name.dart';
+import 'user.dart';
 
 part 'artefact.freezed.dart';
 part 'artefact.g.dart';
@@ -21,6 +22,7 @@ class Artefact with _$Artefact {
     @Default(null) String? repo,
     required ArtefactStatus status,
     required StageName stage,
+    required User? assignee,
   }) = _Artefact;
 
   factory Artefact.fromJson(Map<String, Object?> json) =>
