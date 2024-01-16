@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/test_execution.dart';
 import '../../models/test_result.dart';
@@ -19,8 +18,11 @@ class TestExecutionExpandable extends ConsumerWidget {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
 
-    return YaruExpandable(
-      header: Row(
+    return ExpansionTile(
+      controlAffinity: ListTileControlAffinity.leading,
+      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+      shape: const Border(),
+      title: Row(
         children: [
           testExecution.status.icon,
           const SizedBox(width: Spacing.level4),
@@ -48,20 +50,14 @@ class TestExecutionExpandable extends ConsumerWidget {
           ),
         ],
       ),
-      expandButtonPosition: YaruExpandableButtonPosition.start,
-      child: Padding(
-        padding: const EdgeInsets.only(left: Spacing.level4),
-        child: Column(
-          children: TestResultStatus.values
-              .map(
-                (status) => TestResultsFilterExpandable(
-                  statusToFilterBy: status,
-                  testExecutionId: testExecution.id,
-                ),
-              )
-              .toList(),
-        ),
-      ),
+      children: TestResultStatus.values
+          .map(
+            (status) => TestResultsFilterExpandable(
+              statusToFilterBy: status,
+              testExecutionId: testExecution.id,
+            ),
+          )
+          .toList(),
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intersperse/intersperse.dart';
-import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact_build.dart';
 import '../spacing.dart';
@@ -16,10 +15,12 @@ class ArtefactBuildExpandable extends StatelessWidget {
     final revisionText =
         artefactBuild.revision == null ? '' : ' (${artefactBuild.revision})';
 
-    return YaruExpandable(
-      expandButtonPosition: YaruExpandableButtonPosition.start,
-      isExpanded: true,
-      header: Row(
+    return ExpansionTile(
+      initiallyExpanded: true,
+      controlAffinity: ListTileControlAffinity.leading,
+      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+      shape: const Border(),
+      title: Row(
         children: [
           Text(
             artefactBuild.architecture + revisionText,
@@ -42,17 +43,12 @@ class ArtefactBuildExpandable extends StatelessWidget {
               .intersperse(const SizedBox(width: Spacing.level4)),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.only(left: Spacing.level4),
-        child: Column(
-          children: artefactBuild.testExecutions
-              .map(
-                (testExecution) =>
-                    TestExecutionExpandable(testExecution: testExecution),
-              )
-              .toList(),
-        ),
-      ),
+      children: artefactBuild.testExecutions
+          .map(
+            (testExecution) =>
+                TestExecutionExpandable(testExecution: testExecution),
+          )
+          .toList(),
     );
   }
 }

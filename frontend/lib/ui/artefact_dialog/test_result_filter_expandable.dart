@@ -41,24 +41,19 @@ class TestResultsFilterExpandable extends ConsumerWidget {
             .filter((testResult) => testResult.status == statusToFilterBy)
             .toList();
 
-        return YaruExpandable(
-          header: Text(
+        return ExpansionTile(
+          controlAffinity: ListTileControlAffinity.leading,
+          childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+          shape: const Border(),
+          title: Text(
             '${statusToFilterBy.name} ${filteredTestResults.length}',
             style: headerStyle,
           ),
-          expandButtonPosition: YaruExpandableButtonPosition.start,
-          child: Padding(
-            padding: const EdgeInsets.only(left: Spacing.level4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: filteredTestResults
-                  .map(
-                    (testResult) =>
-                        TestResultExpandable(testResult: testResult),
-                  )
-                  .toList(),
-            ),
-          ),
+          children: filteredTestResults
+              .map(
+                (testResult) => TestResultExpandable(testResult: testResult),
+              )
+              .toList(),
         );
       },
     );
