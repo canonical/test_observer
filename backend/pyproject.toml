@@ -16,6 +16,7 @@ requests = "^2.31.0"
 sentry-sdk = "0.10.2"
 launchpadlib = "^1.11.0"
 email-validator = "^2.1.0.post1"
+celery = {extras = ["redis"], version = "^5.3.6"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"

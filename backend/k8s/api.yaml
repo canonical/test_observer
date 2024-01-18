@@ -37,6 +37,10 @@ spec:
           image: localhost:32000/test-observer-api
           ports:
             - containerPort: 30000
+        - name: test-observer-celery
+          image: localhost:32000/test-observer-api
+          command: ["celery"]
+          args: ["-A", "test_observer.tasks.celery", "worker", "-c", "1"]
       initContainers:
         - name: wait-for-db-migrations
           image: ghcr.io/groundnuty/k8s-wait-for:v2.0
