@@ -10,7 +10,7 @@ terraform {
 provider "juju" {}
 
 variable "environment" {
-  description = "The environment to deploy to (development, staging, production)"
+  description = "The environment to deploy to (development, stg, production)"
 }
 
 variable "tls_secret_name" {
@@ -34,7 +34,7 @@ variable "nginx_ingress_integrator_charm_whitelist_source_range" {
 locals {
   sentry_dsn_map = {
     production  = "https://dd931d36e0c24681aaeed6abd312c896@sentry.is.canonical.com//66"
-    staging     = "https://84a48d05b2444e47a7fa176b577bf85a@sentry.is.canonical.com//68",
+    stg     = "https://84a48d05b2444e47a7fa176b577bf85a@sentry.is.canonical.com//68",
     development = ""
   }
 }
@@ -80,7 +80,7 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname   = var.environment == "staging" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
+    hostname   = var.environment == "stg" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
     port       = var.environment == "development" ? 30000 : 443
     sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
   }
@@ -98,7 +98,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname                 = var.environment == "staging" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
+    hostname                 = var.environment == "stg" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
