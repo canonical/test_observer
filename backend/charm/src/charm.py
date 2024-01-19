@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
-from collections import ChainMap
 import logging
 import sys
-
-from ops import StoredState
+from collections import ChainMap
 
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseRequires,
@@ -13,10 +11,11 @@ from charms.data_platform_libs.v0.data_interfaces import (
 )
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
+from ops import StoredState
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import Layer, ExecError
+from ops.pebble import ExecError, Layer
 from requests import get
 
 # Log messages can be retrieved using juju debug-log
@@ -243,7 +242,7 @@ class TestObserverBackendCharm(CharmBase):
                     self.celery_pebble_service_name: {
                         "override": "replace",
                         "summary": "celery worker",
-                        "command": "celery -A test_observer.tasks.celery worker -c 1",
+                        "command": "celery -A tasks.celery worker -c 1",
                         "startup": "enabled",
                         "environment": self._app_environment,
                     }
