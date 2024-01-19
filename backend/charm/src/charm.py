@@ -113,6 +113,7 @@ class TestObserverBackendCharm(CharmBase):
     def _on_database_changed(self, event):
         self._migrate_database()
         self._update_api_layer(None)
+        self._update_celery_layer(None)
 
     def _on_database_relation_broken(self, event):
         self.unit.status = WaitingStatus("Waiting for database relation")
