@@ -7,15 +7,16 @@ authors = []
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = "^0.101.1"
-uvicorn = {extras = ["standard"], version = "^0.21.1"}
+uvicorn = { extras = ["standard"], version = "^0.21.1" }
 sqlalchemy = "^2.0.16"
 pg8000 = "^1.29.4"
 alembic = "^1.10.3"
-poetry-dynamic-versioning = {extras = ["plugin"], version = "^0.22.0"}
+poetry-dynamic-versioning = { extras = ["plugin"], version = "^0.22.0" }
 requests = "^2.31.0"
 sentry-sdk = "0.10.2"
 launchpadlib = "^1.11.0"
 email-validator = "^2.1.0.post1"
+celery = { extras = ["redis"], version = "^5.3.6" }
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
@@ -37,11 +38,30 @@ metadata = "true"
 tagged-metadata = "true"
 
 [tool.ruff]
-select = ["E", "F", "B", "N", "UP", "ANN", "C4", "T20", "SIM", "ARG", "ERA", "PLE", "TID252"]
+select = [
+    "E",
+    "F",
+    "B",
+    "N",
+    "UP",
+    "ANN",
+    "C4",
+    "T20",
+    "SIM",
+    "ARG",
+    "ERA",
+    "PLE",
+    "TID252",
+]
 ignore = ["ANN201", "ANN003", "N999", "ANN101", "ANN204"]
 
 [tool.ruff.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query"]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.params.Depends",
+    "fastapi.Query",
+    "fastapi.params.Query",
+]
 
 [build-system]
 requires = ["poetry-core", "poetry-dynamic-versioning"]

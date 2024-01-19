@@ -67,6 +67,7 @@ resource "juju_application" "pg" {
   charm {
     name    = "postgresql-k8s"
     channel = "14/stable"
+    series  = "jammy"
   }
 }
 
@@ -77,6 +78,7 @@ resource "juju_application" "test-observer-api" {
   charm {
     name    = "test-observer-api"
     channel = "latest/edge"
+    series  = "jammy"
   }
 
   config = {
@@ -95,6 +97,7 @@ resource "juju_application" "test-observer-frontend" {
   charm {
     name    = "test-observer-frontend"
     channel = "latest/edge"
+    series  = "jammy"
   }
 
   config = {
@@ -103,6 +106,16 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   units = 3
+}
+
+resource "juju_application" "redis" {
+  name  = "redis"
+  model = juju_model.test-observer.name
+
+  charm {
+    name    = "redis-k8s"
+    channel = "latest/edge"
+  }
 }
 
 resource "juju_integration" "test-observer-api-database-access" {
@@ -151,5 +164,18 @@ resource "juju_integration" "test-observer-api-ingress" {
 
   application {
     name = juju_application.ingress.name
+  }
+}
+
+
+resource "juju_integration" "test-observer-redis-access" {
+  model = juju_model.test-observer.name
+
+  application {
+    name = juju_application.test-observer-api.name
+  }
+
+  application {
+    name = juju_application.redis.name
   }
 }
