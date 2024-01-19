@@ -1,4 +1,5 @@
 from os import environ
+
 from celery import Celery
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"

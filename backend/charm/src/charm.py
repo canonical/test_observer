@@ -234,6 +234,11 @@ class TestObserverBackendCharm(CharmBase):
 
     @property
     def _celery_pebble_layer(self) -> Layer:
+        celery_command = "celery -A tasks.celery worker -c 1"
+        if self.unit.is_leader():
+            # Add celery beat to leader unit
+            celery_command += " -B"
+
         return Layer(
             {
                 "summary": "celery worker",
@@ -242,7 +247,7 @@ class TestObserverBackendCharm(CharmBase):
                     self.celery_pebble_service_name: {
                         "override": "replace",
                         "summary": "celery worker",
-                        "command": "celery -A tasks.celery worker -c 1",
+                        "command": celery_command,
                         "startup": "enabled",
                         "environment": self._app_environment,
                     }
