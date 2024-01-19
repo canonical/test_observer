@@ -11,12 +11,16 @@ assumes:
 containers:
   api:
     resource: api-image
+  celery:
+    resource: api-image
 requires:
   database:
     interface: postgresql_client
     limit: 1
   nginx-route:
     interface: nginx-route
+  redis:
+    interface: redis
 provides:
   test-observer-rest-api:
     interface: http
