@@ -7,14 +7,14 @@ from test_observer.data_access.setup import SessionLocal
 
 
 def delete_artefact(artefact_id: int, session: Session | None = None):
-    if session:
-        _delete(artefact_id, session)
-    else:
+    if session is None:
+        session = SessionLocal()
         try:
-            session = SessionLocal()
             _delete(artefact_id, session)
         finally:
             session.close()
+    else:
+        _delete(artefact_id, session)
 
 
 def _delete(artefact_id: int, session: Session) -> None:
