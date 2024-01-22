@@ -65,6 +65,8 @@ class TestObserverBackendCharm(CharmBase):
 
         self._setup_redis()
 
+        self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
+
     def _setup_nginx(self):
         require_nginx_route(
             charm=self,
@@ -98,7 +100,7 @@ class TestObserverBackendCharm(CharmBase):
         process = self.api_container.exec(
             ["alembic", "upgrade", "head"],
             working_dir="/home/app",
-            environment=self._postgres_relation_data(),
+            environment=self._app_environment,
         )
 
         try:
@@ -274,6 +276,15 @@ class TestObserverBackendCharm(CharmBase):
             sys.exit()
 
         return f"redis://{redis_host}:{redis_port}"
+
+    def _on_delete_artefact_action(self, event) -> None:
+        artefact_id = event.params["artefact-id"]
+        self.api_container.exec(
+            command=["python", "scripts/delete_artefact.py", str(artefact_id)],
+            working_dir="/home/app",
+            environment=self._app_environment,
+        )
+        event.set_results({"result": "Deleted successfuly"})
 
 
 if __name__ == "__main__":  # pragma: nocover

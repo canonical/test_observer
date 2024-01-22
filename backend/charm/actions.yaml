@@ -1,0 +1,7 @@
+delete-artefact:
+  description: Deletes an Artefact together with it's builds, test executions and test results
+  params:
+    artefact-id:
+      description: "The id of the artefact to be deleted"
+      type: integer
+  required: [artefact-id]
