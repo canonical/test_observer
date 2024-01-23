@@ -66,6 +66,7 @@ class TestObserverBackendCharm(CharmBase):
         self._setup_redis()
 
         self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
+        self.framework.observe(self.on.add_user_action, self._on_add_user_action)
 
     def _setup_nginx(self):
         require_nginx_route(
@@ -279,12 +280,29 @@ class TestObserverBackendCharm(CharmBase):
 
     def _on_delete_artefact_action(self, event) -> None:
         artefact_id = event.params["artefact-id"]
-        self.api_container.exec(
+        process = self.api_container.exec(
             command=["python", "scripts/delete_artefact.py", str(artefact_id)],
             working_dir="/home/app",
             environment=self._app_environment,
         )
-        event.set_results({"result": "Deleted successfuly"})
+        try:
+            process.wait_output()
+            event.set_results({"result": "Deleted successfuly"})
+        except ExecError as e:
+            event.fail(e.stderr)
+
+    def _on_add_user_action(self, event) -> None:
+        launchpad_email = event.params["launchpad-email"]
+        process = self.api_container.exec(
+            command=["python", "scripts/add_user.py", launchpad_email],
+            working_dir="/home/app",
+            environment=self._app_environment,
+        )
+        try:
+            process.wait_output()
+            event.set_results({"result": "Added successfuly"})
+        except ExecError as e:
+            event.fail(e.stderr)
 
 
 if __name__ == "__main__":  # pragma: nocover

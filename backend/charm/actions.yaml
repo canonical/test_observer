@@ -5,3 +5,11 @@ delete-artefact:
       description: "The id of the artefact to be deleted"
       type: integer
   required: [artefact-id]
+
+add-user:
+  description: Adds a launchpad user to the group of users that can review artefacts
+  params:
+    launchpad-email:
+      description: "An email address registered in launchpad"
+      type: string
+  required: [launchpad-email]
