@@ -5,6 +5,7 @@ on:
       - 'main'
     paths:
       - 'backend/**'
+      - '.github/workflows/test_backend.yml'
 # Cancel inprogress runs if new commit pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
