@@ -3,9 +3,13 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+        - 'frontend/charm/**'
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
+    paths:
+      - 'frontend/charm/**'
 
 jobs:
   lint-report:

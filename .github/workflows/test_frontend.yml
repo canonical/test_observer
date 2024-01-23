@@ -1,5 +1,10 @@
 name: Test Frontend
-on: [push]
+on:
+  push:
+    branches-ignore:
+      - 'main'
+    paths:
+      - 'frontend/**'
 # Cancel inprogress runs if new commit pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
