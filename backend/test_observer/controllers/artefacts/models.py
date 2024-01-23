@@ -81,7 +81,3 @@ class ArtefactBuildDTO(BaseModel):
 
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus
-
-
-class AssigneePatch(BaseModel):
-    id: int
