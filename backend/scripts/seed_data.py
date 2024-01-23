@@ -4,6 +4,7 @@ from textwrap import dedent
 
 import requests
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from test_observer.controllers.test_executions.models import (
     C3TestResult,
@@ -284,13 +285,13 @@ END_TEST_EXECUTION_REQUESTS = [
 ]
 
 
-def seed_data(client: TestClient | requests.Session):
+def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     for email in (
         "omar.selo@canonical.com",
         "nadzeya.hutsko@canonical.com",
         "andrej.velichkovski@canonical.com",
     ):
-        add_user(email)
+        add_user(email, session)
 
     for start_request in START_TEST_EXECUTION_REQUESTS:
         client.put(
