@@ -18,7 +18,6 @@ from test_observer.data_access.models_enums import FamilyName
 from test_observer.users.add_user import add_user
 
 BASE_URL = "http://localhost:30000/v1"
-CREATE_USER_URL = f"{BASE_URL}/users"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 END_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/end-test"
 
