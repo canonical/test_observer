@@ -67,6 +67,7 @@ class TestObserverBackendCharm(CharmBase):
 
         self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
         self.framework.observe(self.on.add_user_action, self._on_add_user_action)
+        self.framework.observe(self.on.change_assignee_action, self._on_change_assignee_action)
 
     def _setup_nginx(self):
         require_nginx_route(
@@ -301,6 +302,20 @@ class TestObserverBackendCharm(CharmBase):
         try:
             process.wait_output()
             event.set_results({"result": "Added successfuly"})
+        except ExecError as e:
+            event.fail(e.stderr)
+
+    def _on_change_assignee_action(self, event) -> None:
+        artefact_id = event.params["artefact-id"]
+        user_id = event.params["user-id"]
+        process = self.api_container.exec(
+            command=["python", "scripts/change_assignee.py", str(artefact_id), str(user_id)],
+            working_dir="/home/app",
+            environment=self._app_environment,
+        )
+        try:
+            process.wait_output()
+            event.set_results({"result": "Changed successfuly"})
         except ExecError as e:
             event.fail(e.stderr)
 

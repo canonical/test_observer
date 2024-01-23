@@ -13,3 +13,14 @@ add-user:
       description: "An email address registered in launchpad"
       type: string
   required: [launchpad-email]
+
+change-assignee:
+  description: Changes the user assigned to review a particular artefact
+  params:
+    artefact-id:
+      description: "The id of the artefact whose assignee should be changed"
+      type: integer
+    user-id:
+      description: "The id of the user that should be assigned to review this artefact"
+      type: integer
+  required: [artefact-id, user-id]
