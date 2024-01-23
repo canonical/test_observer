@@ -4,6 +4,7 @@ on:
     tags: ["v*.*.*"]
     paths:
       - 'backend/**'
+      - '.github/workflows/publish_api.yml'
 
 env:
   REGISTRY: ghcr.io

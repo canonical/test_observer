@@ -4,6 +4,7 @@ on:
     tags: ["v*.*.*"]
     paths:
       - 'frontend/**'
+      - '.github/workflows/publish_frontend.yml'
 
 env:
   REGISTRY: ghcr.io
