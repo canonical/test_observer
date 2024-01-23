@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # ruff: noqa: E501 Line too long
 
 from textwrap import dedent

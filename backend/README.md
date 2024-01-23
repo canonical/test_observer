@@ -31,7 +31,9 @@ Assuming that your microk8s cluster is running, you can start the development en
 
 ### 5. [Optional] seed the database
 
-Run `scripts/seed_data.py` script to seed the database with some dummy data. This can be useful when working with front-end.
+Run `scripts/seed_data.py` script to seed the database with some dummy data. This can be useful when working with front-end. Note that this needs to run within the container.
+
+`$ kubectl exec -it service/test-observer-api -- python scripts/seed_data.py`
 
 ## Dependency Management
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from argparse import ArgumentParser
 
 from test_observer.users.change_assignee import change_assignee
