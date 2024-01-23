@@ -65,6 +65,10 @@ class TestObserverBackendCharm(CharmBase):
 
         self._setup_redis()
 
+        self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
+        self.framework.observe(self.on.add_user_action, self._on_add_user_action)
+        self.framework.observe(self.on.change_assignee_action, self._on_change_assignee_action)
+
     def _setup_nginx(self):
         require_nginx_route(
             charm=self,
@@ -98,7 +102,7 @@ class TestObserverBackendCharm(CharmBase):
         process = self.api_container.exec(
             ["alembic", "upgrade", "head"],
             working_dir="/home/app",
-            environment=self._postgres_relation_data(),
+            environment=self._app_environment,
         )
 
         try:
@@ -274,6 +278,46 @@ class TestObserverBackendCharm(CharmBase):
             sys.exit()
 
         return f"redis://{redis_host}:{redis_port}"
+
+    def _on_delete_artefact_action(self, event) -> None:
+        artefact_id = event.params["artefact-id"]
+        process = self.api_container.exec(
+            command=["python", "scripts/delete_artefact.py", str(artefact_id)],
+            working_dir="/home/app",
+            environment=self._app_environment,
+        )
+        try:
+            process.wait_output()
+            event.set_results({"result": "Deleted successfuly"})
+        except ExecError as e:
+            event.fail(e.stderr)
+
+    def _on_add_user_action(self, event) -> None:
+        launchpad_email = event.params["launchpad-email"]
+        process = self.api_container.exec(
+            command=["python", "scripts/add_user.py", launchpad_email],
+            working_dir="/home/app",
+            environment=self._app_environment,
+        )
+        try:
+            process.wait_output()
+            event.set_results({"result": "Added successfuly"})
+        except ExecError as e:
+            event.fail(e.stderr)
+
+    def _on_change_assignee_action(self, event) -> None:
+        artefact_id = event.params["artefact-id"]
+        user_id = event.params["user-id"]
+        process = self.api_container.exec(
+            command=["python", "scripts/change_assignee.py", str(artefact_id), str(user_id)],
+            working_dir="/home/app",
+            environment=self._app_environment,
+        )
+        try:
+            process.wait_output()
+            event.set_results({"result": "Changed successfuly"})
+        except ExecError as e:
+            event.fail(e.stderr)
 
 
 if __name__ == "__main__":  # pragma: nocover

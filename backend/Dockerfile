@@ -4,6 +4,9 @@ EXPOSE 30000
 
 WORKDIR /home/app
 
+# This is needed for scripts to be able to import from test_observer directory
+ENV PYTHONPATH=/home/app
+
 COPY poetry.lock .
 
 COPY pyproject.toml .

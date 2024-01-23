@@ -19,12 +19,18 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
-from test_observer.controllers.users.models import UserDTO
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionReviewDecision,
     TestExecutionStatus,
 )
+
+
+class UserDTO(BaseModel):
+    id: int
+    launchpad_handle: str
+    launchpad_email: str
+    name: str
 
 
 class ArtefactDTO(BaseModel):
@@ -75,7 +81,3 @@ class ArtefactBuildDTO(BaseModel):
 
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus
-
-
-class AssigneePatch(BaseModel):
-    id: int

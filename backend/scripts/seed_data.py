@@ -1,9 +1,12 @@
+#!/usr/bin/env python
+
 # ruff: noqa: E501 Line too long
 
 from textwrap import dedent
 
 import requests
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from test_observer.controllers.test_executions.models import (
     C3TestResult,
@@ -11,19 +14,12 @@ from test_observer.controllers.test_executions.models import (
     EndTestExecutionRequest,
     StartTestExecutionRequest,
 )
-from test_observer.controllers.users.models import CreateUserRequest
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.users.add_user import add_user
 
 BASE_URL = "http://localhost:30000/v1"
-CREATE_USER_URL = f"{BASE_URL}/users"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 END_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/end-test"
-
-CREATE_USER_REQUESTS = [
-    CreateUserRequest(launchpad_email="omar.selo@canonical.com"),
-    CreateUserRequest(launchpad_email="nadzeya.hutsko@canonical.com"),
-    CreateUserRequest(launchpad_email="andrej.velichkovski@canonical.com"),
-]
 
 START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
@@ -290,11 +286,13 @@ END_TEST_EXECUTION_REQUESTS = [
 ]
 
 
-def seed_data(client: TestClient | requests.Session):
-    for create_user in CREATE_USER_REQUESTS:
-        client.post(
-            CREATE_USER_URL, json=create_user.model_dump(mode="json")
-        ).raise_for_status()
+def seed_data(client: TestClient | requests.Session, session: Session | None = None):
+    for email in (
+        "omar.selo@canonical.com",
+        "nadzeya.hutsko@canonical.com",
+        "andrej.velichkovski@canonical.com",
+    ):
+        add_user(email, session)
 
     for start_request in START_TEST_EXECUTION_REQUESTS:
         client.put(

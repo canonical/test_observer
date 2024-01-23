@@ -20,6 +20,7 @@
 """Fixtures for testing"""
 
 
+from collections.abc import Callable
 from os import environ
 
 import pytest
@@ -92,7 +93,7 @@ def test_client(db_session: Session) -> TestClient:
 
 
 @pytest.fixture
-def create_user(db_session: Session):
+def create_user(db_session: Session) -> Callable[..., User]:
     def _create_user(**kwargs) -> User:
         user = User(
             **{

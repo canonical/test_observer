@@ -63,6 +63,10 @@ extend-immutable-calls = [
     "fastapi.params.Query",
 ]
 
+[[tool.mypy.overrides]]
+module = "celery.*"
+ignore_missing_imports = true
+
 [build-system]
 requires = ["poetry-core", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
