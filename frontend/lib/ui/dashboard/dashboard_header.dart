@@ -12,8 +12,6 @@ class DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-        left: Spacing.pageHorizontalPadding,
-        right: Spacing.pageHorizontalPadding,
         top: Spacing.level6,
         bottom: Spacing.level4,
       ),

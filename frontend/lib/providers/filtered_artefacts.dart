@@ -14,7 +14,7 @@ Future<Map<int, Artefact>> filteredArtefacts(
   FamilyName family,
 ) async {
   final artefacts = await ref.watch(familyArtefactsProvider(family).future);
-  final filters = ref.watch(filtersProvider);
+  final filters = await ref.watch(filtersProvider(family).future);
   final filteredArtefacts = artefacts.filterValues(
     (artefact) => filters.all((filter) => filter.shouldInclude(artefact)),
   );
