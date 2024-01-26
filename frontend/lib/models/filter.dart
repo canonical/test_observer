@@ -1,13 +1,14 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import 'artefact.dart';
 
-class Filter {
-  final String name;
-  final bool Function(Artefact) shouldInclude;
-  final List<String> options;
+part 'filter.freezed.dart';
 
-  const Filter({
-    required this.name,
-    required this.shouldInclude,
-    required this.options,
-  });
+@freezed
+class Filter with _$Filter {
+  const factory Filter({
+    required String name,
+    required Function(Artefact) retrieveArtefactOption,
+    required List<({String name, bool value})> options,
+  }) = _Filter;
 }

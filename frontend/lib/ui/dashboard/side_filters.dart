@@ -26,13 +26,15 @@ class SideFilters extends ConsumerWidget {
   }
 }
 
-class _SideFilter extends StatelessWidget {
+class _SideFilter extends ConsumerWidget {
   const _SideFilter({required this.filter});
 
   final Filter filter;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final family = AppRoutes.familyFromContext(context);
+
     return ExpansionTile(
       initiallyExpanded: true,
       controlAffinity: ListTileControlAffinity.leading,
@@ -42,10 +44,23 @@ class _SideFilter extends StatelessWidget {
         for (final option in filter.options)
           Row(
             children: [
-              YaruCheckbox(value: false, onChanged: (_) {}),
-              Text(option),
+              YaruCheckbox(
+                value: option.value,
+                onChanged: (newValue) {
+                  if (newValue != null) {
+                    ref
+                        .read(filtersProvider(family).notifier)
+                        .handleFilterOptionChange(
+                          filter.name,
+                          option.name,
+                          newValue,
+                        );
+                  }
+                },
+              ),
+              Text(option.name),
             ],
-          )
+          ),
       ],
     );
   }
