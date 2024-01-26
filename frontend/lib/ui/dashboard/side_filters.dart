@@ -13,10 +13,10 @@ class SideFilters extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final family = AppRoutes.familyFromContext(context);
-    final filters = ref.watch(filtersProvider(family)).requireValue;
+    final filters = ref.watch(filtersProvider(family));
 
     return SizedBox(
-      width: 400,
+      width: 350,
       child: ListView.separated(
         itemBuilder: (_, i) => _SideFilter(filter: filters[i]),
         separatorBuilder: (_, __) => const SizedBox(height: Spacing.level4),
@@ -38,8 +38,13 @@ class _SideFilter extends ConsumerWidget {
     return ExpansionTile(
       initiallyExpanded: true,
       controlAffinity: ListTileControlAffinity.leading,
-      childrenPadding: const EdgeInsets.only(left: Spacing.level3),
-      title: Text(filter.name),
+      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+      shape: const Border(),
+      collapsedShape: const Border(),
+      title: Text(
+        filter.name,
+        style: Theme.of(context).textTheme.headlineSmall,
+      ),
       children: [
         for (final option in filter.options)
           Row(

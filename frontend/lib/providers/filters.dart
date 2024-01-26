@@ -10,8 +10,8 @@ part 'filters.g.dart';
 @riverpod
 class Filters extends _$Filters {
   @override
-  Future<List<Filter>> build(FamilyName family) async {
-    final artefacts = await ref.watch(familyArtefactsProvider(family).future);
+  List<Filter> build(FamilyName family) {
+    final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
 
     return [
       Filter(
@@ -33,12 +33,12 @@ class Filters extends _$Filters {
     return [for (final name in assigneeNames) (name: name, value: false)];
   }
 
-  Future<void> handleFilterOptionChange(
+  void handleFilterOptionChange(
     String filterName,
     String optionName,
     bool optionValue,
-  ) async {
-    final filters = await future;
+  ) {
+    final filters = state;
     final newFilters = [
       for (final filter in filters)
         if (filter.name == filterName)
@@ -46,7 +46,7 @@ class Filters extends _$Filters {
         else
           filter,
     ];
-    state = AsyncData(newFilters);
+    state = newFilters;
   }
 
   Filter _createNewFilter(

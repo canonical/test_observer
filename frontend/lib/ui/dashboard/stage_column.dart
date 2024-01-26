@@ -18,7 +18,7 @@ class StageColumn extends ConsumerWidget {
     final family = AppRoutes.familyFromContext(context);
     final artefacts = [
       for (final artefact
-          in ref.watch(filteredArtefactsProvider(family)).requireValue.values)
+          in ref.watch(filteredArtefactsProvider(family)).values)
         if (artefact.stage == stage) artefact,
     ];
 

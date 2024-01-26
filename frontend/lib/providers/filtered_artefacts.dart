@@ -10,12 +10,12 @@ import 'filters.dart';
 part 'filtered_artefacts.g.dart';
 
 @riverpod
-Future<Map<int, Artefact>> filteredArtefacts(
+Map<int, Artefact> filteredArtefacts(
   FilteredArtefactsRef ref,
   FamilyName family,
-) async {
-  final artefacts = await ref.watch(familyArtefactsProvider(family).future);
-  final filters = await ref.watch(filtersProvider(family).future);
+) {
+  final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
+  final filters = ref.watch(filtersProvider(family));
   return artefacts.filterValues(
     (artefact) =>
         filters.all((filter) => _artefactPassesFilter(artefact, filter)),
