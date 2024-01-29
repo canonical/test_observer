@@ -19,6 +19,11 @@ class Filters extends _$Filters {
         retrieveArtefactOption: (artefact) => artefact.assignee?.name,
         options: extractAssigneeOptions(artefacts),
       ),
+      Filter(
+        name: 'Status',
+        retrieveArtefactOption: (artefact) => artefact.status.name,
+        options: extractStatusOptions(artefacts),
+      ),
     ];
   }
 
@@ -29,6 +34,15 @@ class Filters extends _$Filters {
       for (final a in artefacts.values)
         if (a.assignee != null) a.assignee!.name,
     }.toList();
+    assigneeNames.sort();
+    return [for (final name in assigneeNames) (name: name, value: false)];
+  }
+
+  List<({String name, bool value})> extractStatusOptions(
+    Map<int, Artefact> artefacts,
+  ) {
+    final assigneeNames =
+        {for (final a in artefacts.values) a.status.name}.toList();
     assigneeNames.sort();
     return [for (final name in assigneeNames) (name: name, value: false)];
   }
