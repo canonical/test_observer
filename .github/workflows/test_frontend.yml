@@ -25,5 +25,5 @@ jobs:
       - run: flutter pub get
       - run: flutter pub run build_runner build
       - run: flutter analyze
-      - run: flutter test
+      - run: flutter test --platform chrome
       - run: flutter build web
