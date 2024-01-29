@@ -17,34 +17,14 @@ class Filters extends _$Filters {
       Filter(
         name: 'Assignee',
         retrieveArtefactOption: (artefact) => artefact.assignee?.name,
-        options: extractAssigneeOptions(artefacts),
+        options: _extractAssigneeOptions(artefacts),
       ),
       Filter(
         name: 'Status',
         retrieveArtefactOption: (artefact) => artefact.status.name,
-        options: extractStatusOptions(artefacts),
+        options: _extractStatusOptions(artefacts),
       ),
     ];
-  }
-
-  List<({String name, bool value})> extractAssigneeOptions(
-    Map<int, Artefact> artefacts,
-  ) {
-    final assigneeNames = {
-      for (final a in artefacts.values)
-        if (a.assignee != null) a.assignee!.name,
-    }.toList();
-    assigneeNames.sort();
-    return [for (final name in assigneeNames) (name: name, value: false)];
-  }
-
-  List<({String name, bool value})> extractStatusOptions(
-    Map<int, Artefact> artefacts,
-  ) {
-    final assigneeNames =
-        {for (final a in artefacts.values) a.status.name}.toList();
-    assigneeNames.sort();
-    return [for (final name in assigneeNames) (name: name, value: false)];
   }
 
   void handleFilterOptionChange(
@@ -61,6 +41,26 @@ class Filters extends _$Filters {
           filter,
     ];
     state = newFilters;
+  }
+
+  List<({String name, bool value})> _extractAssigneeOptions(
+    Map<int, Artefact> artefacts,
+  ) {
+    final assigneeNames = {
+      for (final a in artefacts.values)
+        if (a.assignee != null) a.assignee!.name,
+    }.toList();
+    assigneeNames.sort();
+    return [for (final name in assigneeNames) (name: name, value: false)];
+  }
+
+  List<({String name, bool value})> _extractStatusOptions(
+    Map<int, Artefact> artefacts,
+  ) {
+    final assigneeNames =
+        {for (final a in artefacts.values) a.status.name}.toList();
+    assigneeNames.sort();
+    return [for (final name in assigneeNames) (name: name, value: false)];
   }
 
   Filter _createNewFilter(
