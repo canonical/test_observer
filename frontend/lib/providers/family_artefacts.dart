@@ -2,7 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
 import '../models/family_name.dart';
-import 'dio.dart';
+import 'api.dart';
 
 part 'family_artefacts.g.dart';
 
@@ -10,29 +10,18 @@ part 'family_artefacts.g.dart';
 class FamilyArtefacts extends _$FamilyArtefacts {
   @override
   Future<Map<int, Artefact>> build(FamilyName family) async {
-    final dio = ref.watch(dioProvider);
-    final response = await dio
-        .get('/v1/artefacts', queryParameters: {'family': family.name});
-    final artefacts = {
-      for (final json in response.data)
-        json['id'] as int: Artefact.fromJson(json),
-    };
-    return artefacts;
+    final api = ref.watch(apiProvider);
+    return api.getFamilyArtefacts(family);
   }
 
   Future<void> changeArtefactStatus(
     int artefactId,
     ArtefactStatus newStatus,
   ) async {
-    final dio = ref.watch(dioProvider);
-
-    final response = await dio.patch(
-      '/v1/artefacts/$artefactId',
-      data: {'status': newStatus.toJson()},
-    );
+    final api = ref.read(apiProvider);
+    final artefact = await api.changeArtefactStatus(artefactId, newStatus);
 
     final previousState = await future;
-    final artefact = Artefact.fromJson(response.data);
     state = AsyncData({...previousState, artefact.id: artefact});
   }
 }
