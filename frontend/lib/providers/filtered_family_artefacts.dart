@@ -7,11 +7,11 @@ import '../models/filter.dart';
 import 'family_artefacts.dart';
 import 'filters.dart';
 
-part 'filtered_artefacts.g.dart';
+part 'filtered_family_artefacts.g.dart';
 
 @riverpod
-Map<int, Artefact> filteredArtefacts(
-  FilteredArtefactsRef ref,
+Map<int, Artefact> filteredFamilyArtefacts(
+  FilteredFamilyArtefactsRef ref,
   FamilyName family,
 ) {
   final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
