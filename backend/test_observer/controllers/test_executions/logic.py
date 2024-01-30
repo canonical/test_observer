@@ -26,10 +26,9 @@ def reset_test_execution(
     test_execution.c3_link = None
     test_execution.review_decision = []
     test_execution.review_comment = ""
-    db.execute(
-        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
-    )
     db.commit()
+
+    delete_previous_results(db, test_execution)
 
 
 def compute_test_execution_status(
