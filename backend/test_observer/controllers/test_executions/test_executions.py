@@ -22,17 +22,11 @@
 import random
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import delete
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.controllers.artefacts.models import TestExecutionDTO
 from test_observer.controllers.test_executions.helpers import (
     parse_previous_test_results,
-)
-from test_observer.controllers.test_executions.logic import (
-    compute_test_execution_status,
-    store_test_results,
-    get_previous_test_results,
 )
 from test_observer.data_access.models import (
     Artefact,
@@ -47,6 +41,13 @@ from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
+from .logic import (
+    compute_test_execution_status,
+    delete_previous_results,
+    get_previous_test_results,
+    reset_test_execution,
+    store_test_results,
+)
 from .models import (
     EndTestExecutionRequest,
     StartTestExecutionRequest,
@@ -126,22 +127,6 @@ def start_test_execution(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def reset_test_execution(
-    request: StartTestExecutionRequest,
-    db: Session,
-    test_execution: TestExecution,
-):
-    test_execution.status = TestExecutionStatus.IN_PROGRESS
-    test_execution.ci_link = request.ci_link
-    test_execution.c3_link = None
-    test_execution.review_decision = []
-    test_execution.review_comment = ""
-    db.execute(
-        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
-    )
-    db.commit()
-
-
 @router.put("/end-test")
 def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(get_db)):
     test_execution = (
@@ -153,6 +138,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     if test_execution is None:
         raise HTTPException(status_code=404, detail="Related TestExecution not found")
 
+    delete_previous_results(db, test_execution)
     store_test_results(db, request.test_results, test_execution)
     test_execution.status = compute_test_execution_status(test_execution.test_results)
     db.commit()

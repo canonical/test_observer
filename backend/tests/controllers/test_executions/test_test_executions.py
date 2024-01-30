@@ -272,6 +272,48 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
+def test_end_test_is_idempotent(db_session: Session, test_client: TestClient):
+    ci_link = "http://localhost"
+    artefact = create_artefact(db_session, stage_name="beta")
+    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
+    environment = Environment(name="some environment", architecture="some arch")
+    test_execution = TestExecution(
+        environment=environment, artefact_build=artefact_build, ci_link=ci_link
+    )
+    test_case = TestCase(name="test-name-1", category="")
+    db_session.add_all([artefact_build, environment, test_execution, test_case])
+    db_session.commit()
+
+    for _ in range(2):
+        test_client.put(
+            "/v1/test-executions/end-test",
+            json={
+                "id": 1,
+                "ci_link": ci_link,
+                "test_results": [
+                    {
+                        "id": 1,
+                        "name": test_case.name,
+                        "status": "pass",
+                        "category": test_case.category,
+                        "comment": "",
+                        "io_log": "",
+                    },
+                    {
+                        "id": 2,
+                        "name": "test-name-2",
+                        "status": "skip",
+                        "category": "",
+                        "comment": "",
+                        "io_log": "",
+                    },
+                ],
+            },
+        )
+
+    assert len(test_execution.test_results) == 2
+
+
 def test_updates_test_execution(
     db_session: Session, test_client: TestClient, test_execution: TestExecution
 ):

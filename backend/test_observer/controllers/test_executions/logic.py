@@ -1,4 +1,4 @@
-from sqlalchemy import desc
+from sqlalchemy import delete, desc
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.query import RowReturningQuery
 
@@ -13,7 +13,23 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.repository import get_or_create
 
-from .models import C3TestResult, C3TestResultStatus
+from .models import C3TestResult, C3TestResultStatus, StartTestExecutionRequest
+
+
+def reset_test_execution(
+    request: StartTestExecutionRequest,
+    db: Session,
+    test_execution: TestExecution,
+):
+    test_execution.status = TestExecutionStatus.IN_PROGRESS
+    test_execution.ci_link = request.ci_link
+    test_execution.c3_link = None
+    test_execution.review_decision = []
+    test_execution.review_comment = ""
+    db.execute(
+        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
+    )
+    db.commit()
 
 
 def compute_test_execution_status(
@@ -22,6 +38,16 @@ def compute_test_execution_status(
     failed = any(r.status == TestResultStatus.FAILED for r in test_results)
     status = TestExecutionStatus.FAILED if failed else TestExecutionStatus.PASSED
     return status
+
+
+def delete_previous_results(
+    db: Session,
+    test_execution: TestExecution,
+):
+    db.execute(
+        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
+    )
+    db.commit()
 
 
 def store_test_results(
