@@ -1,6 +1,6 @@
 # Test Observer Frontend
 
-The frontend of TO developed in Flutter but meant to be a web application.
+The frontend of Test Observer is a web application developed in Flutter.
 
 ## Setup
 
