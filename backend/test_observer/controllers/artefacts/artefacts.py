@@ -58,7 +58,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
 def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
     """Get an artefact by id"""
-    artefact = db.query(Artefact).get(artefact_id)
+    artefact = db.get(Artefact, artefact_id)
 
     if artefact is None:
         raise HTTPException(status_code=404, detail="Artefact not found")
