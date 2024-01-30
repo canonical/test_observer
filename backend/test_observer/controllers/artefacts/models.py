@@ -57,6 +57,8 @@ class EnvironmentDTO(BaseModel):
 
 
 class TestExecutionDTO(BaseModel):
+    __test__ = False
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int

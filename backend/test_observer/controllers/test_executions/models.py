@@ -103,6 +103,8 @@ class EndTestExecutionRequest(BaseModel):
 
 
 class TestExecutionsPatchRequest(BaseModel):
+    __test__ = False
+
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | None = None
@@ -132,6 +134,8 @@ class PreviousTestResult(BaseModel):
 
 
 class TestResultDTO(BaseModel):
+    __test__ = False
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
