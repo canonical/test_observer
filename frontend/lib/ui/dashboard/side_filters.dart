@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
-import '../../models/filter.dart';
-import '../../providers/filters.dart';
+import '../../models/artefact_filter.dart';
+import '../../providers/artefact_filters.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 
@@ -13,7 +13,7 @@ class SideFilters extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final family = AppRoutes.familyFromContext(context);
-    final filters = ref.watch(filtersProvider(family));
+    final filters = ref.watch(artefactFiltersProvider(family));
 
     return SizedBox(
       width: 350,
@@ -29,7 +29,7 @@ class SideFilters extends ConsumerWidget {
 class _SideFilter extends ConsumerWidget {
   const _SideFilter({required this.filter});
 
-  final Filter filter;
+  final ArtefactFilter filter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,7 +54,7 @@ class _SideFilter extends ConsumerWidget {
                 onChanged: (newValue) {
                   if (newValue != null) {
                     ref
-                        .read(filtersProvider(family).notifier)
+                        .read(artefactFiltersProvider(family).notifier)
                         .handleFilterOptionChange(
                           filter.name,
                           option.name,

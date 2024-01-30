@@ -2,24 +2,24 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
 import '../models/family_name.dart';
-import '../models/filter.dart';
+import '../models/artefact_filter.dart';
 import 'family_artefacts.dart';
 
-part 'filters.g.dart';
+part 'artefact_filters.g.dart';
 
 @riverpod
-class Filters extends _$Filters {
+class ArtefactFilters extends _$ArtefactFilters {
   @override
-  List<Filter> build(FamilyName family) {
+  List<ArtefactFilter> build(FamilyName family) {
     final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
 
     return [
-      Filter(
+      ArtefactFilter(
         name: 'Assignee',
         retrieveArtefactOption: (artefact) => artefact.assignee?.name,
         options: _extractAssigneeOptions(artefacts),
       ),
-      Filter(
+      ArtefactFilter(
         name: 'Status',
         retrieveArtefactOption: (artefact) => artefact.status.name,
         options: _extractStatusOptions(artefacts),
@@ -63,8 +63,8 @@ class Filters extends _$Filters {
     return [for (final name in assigneeNames) (name: name, value: false)];
   }
 
-  Filter _createNewFilter(
-    Filter filter,
+  ArtefactFilter _createNewFilter(
+    ArtefactFilter filter,
     String optionName,
     bool optionValue,
   ) {

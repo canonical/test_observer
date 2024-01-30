@@ -5,7 +5,7 @@ import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/family_artefacts.dart';
 import 'package:testcase_dashboard/providers/filtered_family_artefacts.dart';
-import 'package:testcase_dashboard/providers/filters.dart';
+import 'package:testcase_dashboard/providers/artefact_filters.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 
 import '../dummy_data.dart';
@@ -42,7 +42,9 @@ void main() {
     final firstArtefact =
         (await apiMock.getFamilyArtefacts(family)).values.first;
 
-    container.read(filtersProvider(family).notifier).handleFilterOptionChange(
+    container
+        .read(artefactFiltersProvider(family).notifier)
+        .handleFilterOptionChange(
           'Assignee',
           firstArtefact.assignee!.name,
           true,
@@ -66,7 +68,9 @@ void main() {
     final firstArtefact =
         (await apiMock.getFamilyArtefacts(family)).values.first;
 
-    container.read(filtersProvider(family).notifier).handleFilterOptionChange(
+    container
+        .read(artefactFiltersProvider(family).notifier)
+        .handleFilterOptionChange(
           'Status',
           firstArtefact.status.name,
           true,

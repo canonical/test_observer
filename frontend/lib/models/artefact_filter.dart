@@ -2,13 +2,13 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'artefact.dart';
 
-part 'filter.freezed.dart';
+part 'artefact_filter.freezed.dart';
 
 @freezed
-class Filter with _$Filter {
-  const factory Filter({
+class ArtefactFilter with _$ArtefactFilter {
+  const factory ArtefactFilter({
     required String name,
     required Function(Artefact) retrieveArtefactOption,
     required List<({String name, bool value})> options,
-  }) = _Filter;
+  }) = _ArtefactFilter;
 }

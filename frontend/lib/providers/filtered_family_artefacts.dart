@@ -3,9 +3,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
 import '../models/family_name.dart';
-import '../models/filter.dart';
+import '../models/artefact_filter.dart';
 import 'family_artefacts.dart';
-import 'filters.dart';
+import 'artefact_filters.dart';
 
 part 'filtered_family_artefacts.g.dart';
 
@@ -15,14 +15,14 @@ Map<int, Artefact> filteredFamilyArtefacts(
   FamilyName family,
 ) {
   final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
-  final filters = ref.watch(filtersProvider(family));
+  final filters = ref.watch(artefactFiltersProvider(family));
   return artefacts.filterValues(
     (artefact) =>
         filters.all((filter) => _artefactPassesFilter(artefact, filter)),
   );
 }
 
-bool _artefactPassesFilter(Artefact artefact, Filter filter) {
+bool _artefactPassesFilter(Artefact artefact, ArtefactFilter filter) {
   final noOptionsSelected = filter.options.none((option) => option.value);
   if (noOptionsSelected) return true;
   final selectedOptions = {
