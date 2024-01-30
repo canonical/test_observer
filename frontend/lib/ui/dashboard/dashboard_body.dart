@@ -9,11 +9,18 @@ import '../spacing.dart';
 import 'side_filters.dart';
 import 'stage_column.dart';
 
-class DashboardBody extends ConsumerWidget {
+class DashboardBody extends ConsumerStatefulWidget {
   const DashboardBody({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardBody> createState() => _DashboardBodyState();
+}
+
+class _DashboardBodyState extends ConsumerState<DashboardBody> {
+  bool showFilters = false;
+
+  @override
+  Widget build(BuildContext context) {
     final family = AppRoutes.familyFromContext(context);
     final stages = familyStages(family);
 
@@ -21,8 +28,15 @@ class DashboardBody extends ConsumerWidget {
 
     return artefacts.when(
       data: (_) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SideFilters(),
+          YaruOptionButton(
+            child: const Icon(Icons.filter_alt),
+            onPressed: () => setState(() {
+              showFilters = !showFilters;
+            }),
+          ),
+          if (showFilters) const SideFilters(),
           const SizedBox(width: Spacing.level5),
           Expanded(
             child: ListView.separated(

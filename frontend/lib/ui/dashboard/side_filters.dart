@@ -16,7 +16,7 @@ class SideFilters extends ConsumerWidget {
     final filters = ref.watch(artefactFiltersProvider(family));
 
     return SizedBox(
-      width: 350,
+      width: 300,
       child: ListView.separated(
         itemBuilder: (_, i) => _SideFilter(filter: filters[i]),
         separatorBuilder: (_, __) => const SizedBox(height: Spacing.level4),
