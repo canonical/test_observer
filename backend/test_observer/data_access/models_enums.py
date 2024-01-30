@@ -28,6 +28,8 @@ class FamilyName(Enum):
 
 
 class TestExecutionStatus(Enum):
+    __test__ = False
+
     NOT_STARTED = "NOT_STARTED"
     IN_PROGRESS = "IN_PROGRESS"
     PASSED = "PASSED"
@@ -36,6 +38,8 @@ class TestExecutionStatus(Enum):
 
 
 class TestExecutionReviewDecision(str, Enum):
+    __test__ = False
+
     REJECTED = "REJECTED"
     APPROVED_INCONSISTENT_TEST = "APPROVED_INCONSISTENT_TEST"
     APPROVED_UNSTABLE_PHYSICAL_INFRA = "APPROVED_UNSTABLE_PHYSICAL_INFRA"
@@ -51,6 +55,8 @@ class ArtefactStatus(str, Enum):
 
 
 class TestResultStatus(str, Enum):
+    __test__ = False
+
     PASSED = "PASSED"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"

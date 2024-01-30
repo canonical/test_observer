@@ -239,6 +239,7 @@ class TestExecution(Base):
     It's the M2M relationship between Artefact and Environment tables
     """
 
+    __test__ = False
     __tablename__ = "test_execution"
 
     ci_link: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
@@ -283,6 +284,7 @@ class TestCase(Base):
     A table to represent test cases (not the runs themselves)
     """
 
+    __test__ = False
     __tablename__ = "test_case"
 
     name: Mapped[str] = mapped_column(unique=True)
@@ -297,6 +299,7 @@ class TestResult(Base):
     A table to represent individual test results/runs
     """
 
+    __test__ = False
     __tablename__ = "test_result"
 
     status: Mapped[TestResultStatus]
