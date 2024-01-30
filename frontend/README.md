@@ -41,4 +41,4 @@ $ flutter test --platform chrome # requires chrome
 
 ## Connect to backend
 
-By default TO frontend will use `http://localhost:30000/` to communicate with backend. To use a different address you can modify `window.testObserverAPIBaseURI` attribute in `web/index.html`.
+By default the Test Observer frontend will use `http://localhost:30000/` to communicate with the backend. To use a different address you can modify `window.testObserverAPIBaseURI` attribute in `web/index.html`.
