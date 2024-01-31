@@ -7,12 +7,14 @@ import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'dio.g.dart';
+import '../repositories/api_repository.dart';
+
+part 'api.g.dart';
 
 @riverpod
-Dio dio(DioRef ref) {
+ApiRepository api(ApiRef ref) {
   final baseUrl = js_util.getProperty<String>(window, 'testObserverAPIBaseURI');
   final dio = Dio(BaseOptions(baseUrl: baseUrl));
   dio.interceptors.add(RetryInterceptor(dio: dio));
-  return dio;
+  return ApiRepository(dio: dio);
 }

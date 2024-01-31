@@ -25,5 +25,10 @@ jobs:
       - run: flutter pub get
       - run: flutter pub run build_runner build
       - run: flutter analyze
-      - run: flutter test
+      - name: Install Google Chrome
+        run: |
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt update -y
+          sudo apt install ./google-chrome-stable_current_amd64.deb -y
+      - run: flutter test --platform chrome
       - run: flutter build web

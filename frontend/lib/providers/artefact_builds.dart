@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact_build.dart';
 import '../models/test_execution.dart';
-import 'dio.dart';
+import 'api.dart';
 
 part 'artefact_builds.g.dart';
 
@@ -11,19 +11,14 @@ part 'artefact_builds.g.dart';
 class ArtefactBuilds extends _$ArtefactBuilds {
   @override
   Future<List<ArtefactBuild>> build(int artefactId) async {
-    final dio = ref.watch(dioProvider);
-
-    final response = await dio.get('/v1/artefacts/$artefactId/builds');
-    final List artefactBuildsJson = response.data;
-    final artefactBuilds =
-        artefactBuildsJson.map((json) => ArtefactBuild.fromJson(json)).toList();
-    return artefactBuilds;
+    final api = ref.watch(apiProvider);
+    return await api.getArtefactBuilds(artefactId);
   }
 
   ArtefactBuild _getUpdatedArtefactBuild(
     ArtefactBuild artefactBuild,
     int testExecutionId,
-    Map<String, Object?> responseData,
+    TestExecution updatedTestExecution,
   ) {
     if (artefactBuild.testExecutions.none(
       (element) => element.id == testExecutionId,
@@ -34,7 +29,7 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     final updatedTestExecutions = artefactBuild.testExecutions.map(
       ((element) {
         if (element.id == testExecutionId) {
-          return TestExecution.fromJson(responseData);
+          return updatedTestExecution;
         }
         return element;
       }),
@@ -45,7 +40,7 @@ class ArtefactBuilds extends _$ArtefactBuilds {
 
   Future<void> _updateStateReviewDecision(
     int testExecutionId,
-    Map<String, Object?> responseData,
+    TestExecution updatedTestExecution,
   ) async {
     final previousState = await future;
 
@@ -55,7 +50,7 @@ class ArtefactBuilds extends _$ArtefactBuilds {
           _getUpdatedArtefactBuild(
             artefactBuild,
             testExecutionId,
-            responseData,
+            updatedTestExecution,
           ),
       ],
     );
@@ -66,16 +61,13 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     String reviewComment,
     List<TestExecutionReviewDecision> reviewDecision,
   ) async {
-    final dio = ref.watch(dioProvider);
-
-    final response = await dio.patch(
-      '/v1/test-executions/$testExecutionId',
-      data: TestExecution.updateReviewDecisionRequestData(
-        reviewComment,
-        reviewDecision,
-      ),
+    final api = ref.read(apiProvider);
+    final testExecution = await api.changeTestExecutionReview(
+      testExecutionId,
+      reviewDecision,
+      reviewComment,
     );
 
-    await _updateStateReviewDecision(testExecutionId, response.data);
+    await _updateStateReviewDecision(testExecutionId, testExecution);
   }
 }
