@@ -20,6 +20,7 @@ class Dashboard extends ConsumerWidget {
         right: Spacing.pageHorizontalPadding,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DashboardHeader(
             title: '${family.name.capitalize()} Update Verification',
