@@ -27,7 +27,6 @@ class _DashboardState extends State<Dashboard> {
     return Padding(
       padding: const EdgeInsets.only(
         left: Spacing.pageHorizontalPadding,
-        right: Spacing.pageHorizontalPadding,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
