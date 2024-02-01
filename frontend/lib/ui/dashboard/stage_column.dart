@@ -12,7 +12,6 @@ class StageColumn extends ConsumerWidget {
   const StageColumn({Key? key, required this.stage}) : super(key: key);
 
   final StageName stage;
-  static const double width = ArtefactCard.width;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

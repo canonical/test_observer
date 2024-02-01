@@ -22,12 +22,8 @@ class Dashboard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            // Stretch header to be same size as body
-            width: DashboardBody.getWidthForFamily(family),
-            child: DashboardHeader(
-              title: '${family.name.capitalize()} Update Verification',
-            ),
+          DashboardHeader(
+            title: '${family.name.capitalize()} Update Verification',
           ),
           const Expanded(child: DashboardBody()),
         ],

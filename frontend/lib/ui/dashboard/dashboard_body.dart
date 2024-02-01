@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
-import '../../models/family_name.dart';
 import '../../models/stage_name.dart';
 import '../../providers/family_artefacts.dart';
 import '../../routing.dart';
@@ -15,14 +14,6 @@ class DashboardBody extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<DashboardBody> createState() => _DashboardBodyState();
-
-  static const double columnSeparatorSpacing = Spacing.level5;
-
-  static double getWidthForFamily(FamilyName family) {
-    final numOfColumns = (family == FamilyName.snap) ? 4 : 2;
-    return StageColumn.width * numOfColumns +
-        columnSeparatorSpacing * (numOfColumns - 1);
-  }
 }
 
 class _DashboardBodyState extends ConsumerState<DashboardBody> {
@@ -49,10 +40,13 @@ class _DashboardBodyState extends ConsumerState<DashboardBody> {
           const SizedBox(width: Spacing.level5),
           Expanded(
             child: ListView.separated(
+              padding: const EdgeInsets.only(
+                right: Spacing.pageHorizontalPadding,
+              ),
               scrollDirection: Axis.horizontal,
               itemBuilder: (_, i) => StageColumn(stage: stages[i]),
               separatorBuilder: (_, __) =>
-                  const SizedBox(width: DashboardBody.columnSeparatorSpacing),
+                  const SizedBox(width: Spacing.level5),
               itemCount: stages.length,
             ),
           ),
