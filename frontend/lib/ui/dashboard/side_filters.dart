@@ -6,7 +6,7 @@ import '../../models/artefact_filter.dart';
 import '../../providers/artefact_filters.dart';
 import '../../routing.dart';
 import '../spacing.dart';
-import 'search_field.dart';
+import 'artefact_search_bar.dart';
 
 class SideFilters extends ConsumerWidget {
   const SideFilters({super.key});
@@ -20,7 +20,7 @@ class SideFilters extends ConsumerWidget {
       width: 300,
       child: ListView.separated(
         itemBuilder: (_, i) => (i == 0)
-            ? const SearchField()
+            ? const ArtefactSearchBar()
             : _SideFilter(filter: filters[i - 1]),
         separatorBuilder: (_, __) => const SizedBox(height: Spacing.level4),
         itemCount: filters.length + 1,

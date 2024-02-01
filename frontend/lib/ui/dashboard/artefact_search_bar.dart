@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/search_value.dart';
+import '../vanilla/vanilla_search_bar.dart';
 
-class SearchField extends ConsumerWidget {
-  const SearchField({super.key});
+class ArtefactSearchBar extends ConsumerWidget {
+  const ArtefactSearchBar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return _SearchNotifierListener(
-      child: SearchBar(
+      child: VanillaSearchBar(
         onChanged: ref.read(searchValueProvider.notifier).onChanged,
+        hintText: 'Search by name',
       ),
     );
   }
