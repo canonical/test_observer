@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../spacing.dart';
-import 'search_field.dart';
 
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({Key? key, required this.title}) : super(key: key);
@@ -15,17 +14,7 @@ class DashboardHeader extends StatelessWidget {
         top: Spacing.level5,
         bottom: Spacing.level4,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          const SizedBox(height: Spacing.level4),
-          const SearchField(),
-        ],
-      ),
+      child: Text(title, style: Theme.of(context).textTheme.headlineLarge),
     );
   }
 }
