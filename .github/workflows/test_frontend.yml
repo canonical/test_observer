@@ -32,5 +32,7 @@ jobs:
           sudo apt install ./google-chrome-stable_current_amd64.deb -y
           sudo apt install chromium-chromedriver -y
       - run: flutter test --platform chrome
+      - run: chromedriver --port 4444 &
       - run: ./run_integration_tests.sh
+      - run: pkill chromedriver
       - run: flutter build web
