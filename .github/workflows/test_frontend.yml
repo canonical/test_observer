@@ -30,7 +30,7 @@ jobs:
       #     wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
       #     sudo apt update -y
       #     sudo apt install ./google-chrome-stable_current_amd64.deb -y
-      - run: sudo apt update -y && sudo apt install chromium-chromedriver
+      - run: sudo apt update -y && sudo apt install chromium-chromedriver -y
       - run: flutter test --platform chrome
       - run: chromedriver --port 4444 &
       - run: ./run_integration_tests.sh
