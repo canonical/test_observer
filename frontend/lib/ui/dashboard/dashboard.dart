@@ -4,24 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../providers/family_artefacts.dart';
+import '../../providers/side_filters_visibility.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import 'dashboard_body.dart';
 import 'dashboard_header.dart';
 import 'side_filters.dart';
 
-class Dashboard extends StatefulWidget {
+class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
 
   @override
-  State<Dashboard> createState() => _DashboardState();
-}
-
-class _DashboardState extends State<Dashboard> {
-  bool showFilters = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showFilters = ref.watch(sideFiltersVisibilityProvider);
     final family = AppRoutes.familyFromContext(context);
 
     return Padding(
@@ -41,11 +36,15 @@ class _DashboardState extends State<Dashboard> {
                 children: [
                   YaruOptionButton(
                     child: const Icon(Icons.filter_alt),
-                    onPressed: () => setState(() {
-                      showFilters = !showFilters;
-                    }),
+                    onPressed: () => ref
+                        .read(sideFiltersVisibilityProvider.notifier)
+                        .set(!showFilters),
                   ),
-                  if (showFilters) const SideFilters(),
+                  Visibility(
+                    visible: showFilters,
+                    maintainState: true,
+                    child: const SideFilters(),
+                  ),
                   const SizedBox(width: Spacing.level5),
                   const Expanded(child: DashboardBody()),
                 ],
