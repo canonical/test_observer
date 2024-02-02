@@ -17,7 +17,12 @@ class FindShortcut extends ConsumerWidget {
     return Shortcuts(
       shortcuts: {shortcut: FindIntent()},
       child: Actions(
-        actions: {FindIntent: FindAction(ref: ref)},
+        actions: {
+          FindIntent: FindAction(
+            setFiltersVisibility:
+                ref.read(sideFiltersVisibilityProvider.notifier).set,
+          ),
+        },
         child: child,
       ),
     );
@@ -27,13 +32,13 @@ class FindShortcut extends ConsumerWidget {
 class FindIntent extends Intent {}
 
 class FindAction extends Action<FindIntent> {
-  FindAction({required this.ref});
+  FindAction({required this.setFiltersVisibility});
 
-  final WidgetRef ref;
+  final void Function(bool) setFiltersVisibility;
 
   @override
   void invoke(FindIntent intent) {
-    ref.read(sideFiltersVisibilityProvider.notifier).set(true);
+    setFiltersVisibility(true);
     artefactSearchBarKey.currentState?.focusNode.requestFocus();
   }
 }
