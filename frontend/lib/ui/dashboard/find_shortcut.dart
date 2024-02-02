@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/side_filters_visibility.dart';
+import '../../routing.dart';
 import 'artefact_search_bar.dart';
 
 class FindShortcut extends ConsumerWidget {
@@ -12,20 +13,25 @@ class FindShortcut extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final shouldActivateShortcut = AppRoutes.isAtDashboardPage(context);
     const shortcut = SingleActivator(LogicalKeyboardKey.keyF, control: true);
 
-    return Shortcuts(
-      shortcuts: {shortcut: FindIntent()},
-      child: Actions(
-        actions: {
-          FindIntent: FindAction(
-            setFiltersVisibility:
-                ref.read(sideFiltersVisibilityProvider.notifier).set,
-          ),
-        },
-        child: child,
-      ),
-    );
+    if (shouldActivateShortcut) {
+      return Shortcuts(
+        shortcuts: {shortcut: FindIntent()},
+        child: Actions(
+          actions: {
+            FindIntent: FindAction(
+              setFiltersVisibility:
+                  ref.read(sideFiltersVisibilityProvider.notifier).set,
+            ),
+          },
+          child: child,
+        ),
+      );
+    } else {
+      return child;
+    }
   }
 }
 

@@ -80,4 +80,9 @@ class AppRoutes {
     }
     return int.parse(pathParameters['artefactId']!);
   }
+
+  static bool isAtDashboardPage(BuildContext context) {
+    final route = GoRouterState.of(context).fullPath!;
+    return {snaps, debs}.contains(route);
+  }
 }
