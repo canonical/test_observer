@@ -20,7 +20,7 @@ class SideFilters extends ConsumerWidget {
       width: 300,
       child: ListView.separated(
         itemBuilder: (_, i) => (i == 0)
-            ? const ArtefactSearchBar()
+            ? ArtefactSearchBar()
             : _SideFilter(filter: filters[i - 1]),
         separatorBuilder: (_, __) => const SizedBox(height: Spacing.level4),
         itemCount: filters.length + 1,
