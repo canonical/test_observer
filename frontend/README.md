@@ -33,10 +33,34 @@ $ flutter run -d chrome
 $ flutter analyze
 ```
 
-### Run tests
+### Unit tests
 
 ```bash
 $ flutter test --platform chrome # requires chrome
+```
+
+### Integration tests
+
+To run integration tests you first need to install chromedriver.
+
+Then you can run it via:
+```bash
+$ chromedriver --port=4444
+```
+
+While it's running you can launch a single integration test via:
+```bash
+$ flutter drive --driver=test_driver/integration_test.dart --target=integration_test/<integration-test-file> -d chrome
+```
+
+You can even run it in headless mode via:
+```bash
+$ flutter drive --driver=test_driver/integration_test.dart --target=integration_test/<integration-test-file> -d web-server
+```
+
+And you can run all integration tests via the bash script:
+```bash
+$ ./run_integration_tests.sh
 ```
 
 ## Connect to backend
