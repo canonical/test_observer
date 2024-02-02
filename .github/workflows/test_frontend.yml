@@ -24,14 +24,14 @@ jobs:
           channel: 'stable'
       - run: flutter pub get
       - run: flutter pub run build_runner build
-      - run: flutter analyze
-      - name: Install Google Chrome
-        run: |
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt update -y
-          sudo apt install ./google-chrome-stable_current_amd64.deb -y
+      # - run: flutter analyze
+      # - name: Install Google Chrome
+      #   run: |
+      #     wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+      #     sudo apt update -y
+      #     sudo apt install ./google-chrome-stable_current_amd64.deb -y
+      - uses: sudo apt update -y && sudo apt install chromium-chromedriver
       - run: flutter test --platform chrome
-      - uses: nanasess/setup-chromedriver@v2
       - run: chromedriver --port 4444 &
       - run: ./run_integration_tests.sh
       - run: flutter build web
