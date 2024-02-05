@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:testcase_dashboard/app.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/family_name.dart';
+import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 import 'package:testcase_dashboard/ui/dashboard/artefact_search_bar.dart';
 
@@ -14,7 +15,14 @@ void main() {
 
   testWidgets('Ctrl+F opens side filters and focuses on artefact search bar',
       (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: App()));
+    final apiMock = ApiRepositoryMock();
+    await tester.pumpWidget(
+      ProviderScope(
+        // ignore: scoped_providers_should_specify_dependencies
+        overrides: [apiProvider.overrideWithValue(apiMock)],
+        child: const App(),
+      ),
+    );
 
     await tester.pumpAndSettle();
 
