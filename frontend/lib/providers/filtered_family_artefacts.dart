@@ -6,6 +6,7 @@ import '../models/family_name.dart';
 import '../models/artefact_filter.dart';
 import 'family_artefacts.dart';
 import 'artefact_filters.dart';
+import 'search_value.dart';
 
 part 'filtered_family_artefacts.g.dart';
 
@@ -16,8 +17,11 @@ Map<int, Artefact> filteredFamilyArtefacts(
 ) {
   final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
   final filters = ref.watch(artefactFiltersProvider(family));
+  final searchValue = ref.watch(searchValueProvider);
+
   return artefacts.filterValues(
     (artefact) =>
+        _artefactPassesSearch(artefact, searchValue) &&
         filters.all((filter) => _artefactPassesFilter(artefact, filter)),
   );
 }
@@ -30,4 +34,8 @@ bool _artefactPassesFilter(Artefact artefact, ArtefactFilter filter) {
       if (option.value) option.name,
   };
   return selectedOptions.contains(filter.retrieveArtefactOption(artefact));
+}
+
+bool _artefactPassesSearch(Artefact artefact, String searchValue) {
+  return artefact.name.toLowerCase().contains(searchValue.toLowerCase());
 }

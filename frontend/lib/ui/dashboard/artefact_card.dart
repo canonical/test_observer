@@ -32,9 +32,9 @@ class ArtefactCard extends ConsumerWidget {
         ),
         child: Container(
           width: width,
-          height: 180,
           padding: const EdgeInsets.all(Spacing.level4),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -47,7 +47,7 @@ class ArtefactCard extends ConsumerWidget {
                     (detail) => Text('${detail.key}: ${detail.value}'),
                   )
                   .intersperse(const SizedBox(height: Spacing.level2)),
-              const Spacer(),
+              const SizedBox(height: Spacing.level2),
               Row(
                 children: [
                   ArtefactStatusChip(status: artefact.status),

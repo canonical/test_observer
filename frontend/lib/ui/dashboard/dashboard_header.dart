@@ -11,23 +11,10 @@ class DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-        top: Spacing.level6,
+        top: Spacing.level5,
         bottom: Spacing.level4,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-            ],
-          ),
-        ],
-      ),
+      child: Text(title, style: Theme.of(context).textTheme.headlineLarge),
     );
   }
 }
