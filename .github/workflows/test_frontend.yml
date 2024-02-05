@@ -32,10 +32,6 @@ jobs:
           sudo apt install /tmp/google-chrome-stable_current_amd64.deb -y
       - uses: nanasess/setup-chromedriver@v2
       - run: flutter test --platform chrome
-      - name: Run Chrome Driver
-        run: |
-          export DISPLAY=:99
-          chromedriver --port=4444 &
-          sudo Xvfb -ac :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+      - run: chromedriver --port=4444 &
       - run: ./run_integration_tests.sh
       - run: flutter build web
