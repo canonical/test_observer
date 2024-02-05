@@ -25,10 +25,18 @@ jobs:
       - run: flutter pub get
       - run: flutter pub run build_runner build
       - run: flutter analyze
-      - name: Install Google Chrome
-        run: |
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt update -y
-          sudo apt install ./google-chrome-stable_current_amd64.deb -y
-      - run: flutter test --platform chrome
+
+      # - name: Install Google Chrome and ChromeDriver
+      #   run: |
+      #     sudo apt update -y
+      #     sudo apt install unzip -y
+      #     wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -P /tmp
+      #     sudo apt install /tmp/google-chrome-stable_current_amd64.deb -y
+      #     CHROMEDRIVER_VERSION=$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
+      #     wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip -P /tmp
+      #     unzip /tmp/chromedriver_linux64.zip -d /tmp
+      # - run: flutter test --platform chrome
+      - uses: nanasess/setup-chromedriver@v2
+      - run: chromedriver --port=4444 &
+      - run: ./run_integration_tests.sh
       - run: flutter build web
