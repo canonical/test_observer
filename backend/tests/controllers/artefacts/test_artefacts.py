@@ -23,6 +23,7 @@ from datetime import timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from test_observer.common.constants import APIErrors
 from test_observer.data_access.models import (
     ArtefactBuild,
     Environment,
@@ -160,7 +161,7 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
     ]
 
 
-def test_artefact_signoff(db_session: Session, test_client: TestClient):
+def test_artefact_signoff_approve(db_session: Session, test_client: TestClient):
     artefact = create_artefact(db_session, "candidate")
 
     response = test_client.patch(
@@ -184,3 +185,45 @@ def test_artefact_signoff(db_session: Session, test_client: TestClient):
         "status": artefact.status,
         "assignee": None,
     }
+
+
+def test_artefact_signoff_disallow_approve(
+    db_session: Session, test_client: TestClient
+):
+    artefact = create_artefact(db_session, "candidate")
+    build = ArtefactBuild(architecture="amd64", artefact=artefact)
+    environment = Environment(name="laptop", architecture="amd64")
+    test_execution = TestExecution(artefact_build=build, environment=environment)
+    db_session.add_all([build, environment, test_execution])
+    db_session.commit()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"status": ArtefactStatus.APPROVED},
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json().get("detail").get("error")
+        == APIErrors.ARTEFACT_APPROVAL_REQUIRES_ALL_TESTEXECUTION_APPROVED
+    )
+
+
+def test_artefact_signoff_disallow_reject(db_session: Session, test_client: TestClient):
+    artefact = create_artefact(db_session, "candidate")
+    build = ArtefactBuild(architecture="amd64", artefact=artefact)
+    environment = Environment(name="laptop", architecture="amd64")
+    test_execution = TestExecution(artefact_build=build, environment=environment)
+    db_session.add_all([build, environment, test_execution])
+    db_session.commit()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json().get("detail").get("error")
+        == APIErrors.ARTEFACT_REJECTION_REQUIRES_ONE_TESTEXECUTION_REJECTION
+    )

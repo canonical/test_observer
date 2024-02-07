@@ -20,11 +20,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from test_observer.common.constants import APIErrors
 from test_observer.data_access.models import Artefact, ArtefactBuild
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
+from .logic import (
+    are_all_test_executions_approved,
+    is_there_a_rejected_test_execution,
+)
 from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch
 
 router = APIRouter()
@@ -75,9 +80,32 @@ def patch_artefact(
     if artefact is None:
         raise HTTPException(status_code=404, detail="Artefact not found")
 
+    if (
+        request.status == ArtefactStatus.APPROVED
+        and not are_all_test_executions_approved(artefact)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "All test executions need to be approved",
+                "error": APIErrors.ARTEFACT_APPROVAL_REQUIRES_ALL_TESTEXECUTION_APPROVED,
+            },
+        )
+
+    if (
+        request.status == ArtefactStatus.MARKED_AS_FAILED
+        and not is_there_a_rejected_test_execution(artefact)
+    ):
+        raise HTTPException(
+            400,
+            detail={
+                "message": "At least one test execution needs to be rejected",
+                "error": APIErrors.ARTEFACT_REJECTION_REQUIRES_ONE_TESTEXECUTION_REJECTION,
+            },
+        )
+
     artefact.status = request.status
     db.commit()
-
     return artefact
 
 
