@@ -75,10 +75,11 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
 def patch_artefact(
     artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
 ):
+    query_options = ()
     if request.status in {ArtefactStatus.APPROVED, ArtefactStatus.MARKED_AS_FAILED}:
         # Load test executions as we need to check them
-        query_options = joinedload(Artefact.builds).joinedload(
-            ArtefactBuild.test_executions
+        query_options = (
+            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions),
         )
     artefact = db.get(Artefact, artefact_id, options=query_options)
     if artefact is None:
