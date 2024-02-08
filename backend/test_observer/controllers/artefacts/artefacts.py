@@ -18,7 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from test_observer.common.constants import APIErrors
 from test_observer.data_access.models import Artefact, ArtefactBuild
@@ -75,8 +75,12 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
 def patch_artefact(
     artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
 ):
-    artefact = db.get(Artefact, artefact_id)
-
+    if request.status in {ArtefactStatus.APPROVED, ArtefactStatus.MARKED_AS_FAILED}:
+        # Load test executions as we need to check them
+        query_options = joinedload(Artefact.builds).joinedload(
+            ArtefactBuild.test_executions
+        )
+    artefact = db.get(Artefact, artefact_id, options=query_options)
     if artefact is None:
         raise HTTPException(status_code=404, detail="Artefact not found")
 
