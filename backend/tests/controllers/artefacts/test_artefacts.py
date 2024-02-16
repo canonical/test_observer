@@ -23,7 +23,6 @@ from datetime import timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from test_observer.common.constants import APIErrors
 from test_observer.data_access.models import (
     ArtefactBuild,
     Environment,
@@ -203,10 +202,6 @@ def test_artefact_signoff_disallow_approve(
     )
 
     assert response.status_code == 400
-    assert (
-        response.json().get("detail").get("error")
-        == APIErrors.ARTEFACT_APPROVAL_REQUIRES_ALL_TESTEXECUTION_APPROVED
-    )
 
 
 def test_artefact_signoff_disallow_reject(db_session: Session, test_client: TestClient):
@@ -223,7 +218,3 @@ def test_artefact_signoff_disallow_reject(db_session: Session, test_client: Test
     )
 
     assert response.status_code == 400
-    assert (
-        response.json().get("detail").get("error")
-        == APIErrors.ARTEFACT_REJECTION_REQUIRES_ONE_TESTEXECUTION_REJECTION
-    )

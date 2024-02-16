@@ -20,7 +20,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
-from test_observer.common.constants import APIErrors
 from test_observer.data_access.models import Artefact, ArtefactBuild
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
@@ -91,10 +90,7 @@ def patch_artefact(
     ):
         raise HTTPException(
             status_code=400,
-            detail={
-                "message": "All test executions need to be approved",
-                "error": APIErrors.ARTEFACT_APPROVAL_REQUIRES_ALL_TESTEXECUTION_APPROVED,
-            },
+            detail="All test executions need to be approved",
         )
 
     if (
@@ -103,10 +99,7 @@ def patch_artefact(
     ):
         raise HTTPException(
             400,
-            detail={
-                "message": "At least one test execution needs to be rejected",
-                "error": APIErrors.ARTEFACT_REJECTION_REQUIRES_ONE_TESTEXECUTION_REJECTION,
-            },
+            detail="At least one test execution needs to be rejected",
         )
 
     artefact.status = request.status
