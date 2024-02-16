@@ -84,7 +84,7 @@ def patch_artefact(
     if artefact is None:
         raise HTTPException(status_code=404, detail="Artefact not found")
 
-    _validate_artefact_status(artefact, request)
+    _validate_artefact_status(artefact, request.status)
 
     artefact.status = request.status
     db.commit()
