@@ -84,9 +84,16 @@ def patch_artefact(
     if artefact is None:
         raise HTTPException(status_code=404, detail="Artefact not found")
 
-    if (
-        request.status == ArtefactStatus.APPROVED
-        and not are_all_test_executions_approved(artefact)
+    _validate_artefact_status(request, artefact)
+
+    artefact.status = request.status
+    db.commit()
+    return artefact
+
+
+def _validate_artefact_status(artefact: Artefact, status: ArtefactStatus) -> None:
+    if status == ArtefactStatus.APPROVED and not are_all_test_executions_approved(
+        artefact
     ):
         raise HTTPException(
             status_code=400,
@@ -94,17 +101,13 @@ def patch_artefact(
         )
 
     if (
-        request.status == ArtefactStatus.MARKED_AS_FAILED
+        status == ArtefactStatus.MARKED_AS_FAILED
         and not is_there_a_rejected_test_execution(artefact)
     ):
         raise HTTPException(
             400,
             detail="At least one test execution needs to be rejected",
         )
-
-    artefact.status = request.status
-    db.commit()
-    return artefact
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
