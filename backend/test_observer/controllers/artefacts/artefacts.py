@@ -19,7 +19,6 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.orm.interfaces import ORMOption
 
 from test_observer.data_access.models import Artefact, ArtefactBuild
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
