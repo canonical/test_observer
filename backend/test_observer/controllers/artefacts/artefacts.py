@@ -18,13 +18,17 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import Artefact, ArtefactBuild
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
+from .logic import (
+    are_all_test_executions_approved,
+    is_there_a_rejected_test_execution,
+)
 from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch
 
 router = APIRouter()
@@ -70,15 +74,40 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
 def patch_artefact(
     artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
 ):
-    artefact = db.get(Artefact, artefact_id)
-
+    query_options = []
+    if request.status in {ArtefactStatus.APPROVED, ArtefactStatus.MARKED_AS_FAILED}:
+        # Load test executions as we need to check them
+        query_options.append(
+            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions),
+        )
+    artefact = db.get(Artefact, artefact_id, options=query_options)
     if artefact is None:
         raise HTTPException(status_code=404, detail="Artefact not found")
 
+    _validate_artefact_status(artefact, request.status)
+
     artefact.status = request.status
     db.commit()
-
     return artefact
+
+
+def _validate_artefact_status(artefact: Artefact, status: ArtefactStatus) -> None:
+    if status == ArtefactStatus.APPROVED and not are_all_test_executions_approved(
+        artefact
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="All test executions need to be approved",
+        )
+
+    if (
+        status == ArtefactStatus.MARKED_AS_FAILED
+        and not is_there_a_rejected_test_execution(artefact)
+    ):
+        raise HTTPException(
+            400,
+            detail="At least one test execution needs to be rejected",
+        )
 
 
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
