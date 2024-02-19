@@ -141,6 +141,10 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     delete_previous_results(db, test_execution)
     store_test_results(db, request.test_results, test_execution)
     test_execution.status = compute_test_execution_status(test_execution.test_results)
+
+    if request.c3_link is not None:
+        test_execution.c3_link = request.c3_link
+
     db.commit()
 
 

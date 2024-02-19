@@ -228,6 +228,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
 
 def test_report_test_execution_data(db_session: Session, test_client: TestClient):
     ci_link = "http://localhost"
+    c3_link = "http://c3.localhost"
     artefact = create_artefact(db_session, stage_name="beta")
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
@@ -243,6 +244,7 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
         json={
             "id": 1,
             "ci_link": ci_link,
+            "c3_link": c3_link,
             "test_results": [
                 {
                     "id": 1,
@@ -266,6 +268,7 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
 
     assert response.status_code == 200
     assert test_execution.status == TestExecutionStatus.PASSED
+    assert test_execution.c3_link == c3_link
     assert test_execution.test_results[0].test_case.name == "test-name-1"
     assert test_execution.test_results[0].status == TestResultStatus.PASSED
     assert test_execution.test_results[1].test_case.name == "test-name-2"
