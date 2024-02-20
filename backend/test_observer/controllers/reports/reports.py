@@ -53,12 +53,19 @@ def get_testresults_report(
     if end_date is None:
         end_date = datetime.now()
 
+    latest_builds = (
+        select(ArtefactBuild)
+        .distinct(ArtefactBuild.artefact_id, ArtefactBuild.architecture)
+        .order_by(ArtefactBuild.artefact_id, ArtefactBuild.architecture)
+        .subquery()
+    )
+
     cursor = db.execute(
         select(*TESTRESULTS_REPORT_COLUMNS)
         .join_from(Family, Stage)
         .join_from(Stage, Artefact)
-        .join_from(Artefact, ArtefactBuild)
-        .join_from(ArtefactBuild, TestExecution)
+        .join_from(Artefact, latest_builds)
+        .join_from(latest_builds, TestExecution)
         .join_from(TestExecution, Environment)
         .join_from(TestExecution, TestResult)
         .join_from(TestResult, TestCase)
