@@ -18,7 +18,6 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
-from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
@@ -33,7 +32,6 @@ from test_observer.data_access.models import (
     TestCase,
     TestExecution,
     TestResult,
-    User,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -41,6 +39,7 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
+from tests.data_generator import DataGenerator
 from tests.helpers import create_artefact
 
 
@@ -429,9 +428,9 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
-    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+    db_session: Session, test_client: TestClient, generator: DataGenerator
 ):
-    user = create_user()
+    user = generator.gen_user()
 
     test_client.put(
         "/v1/test-executions/start-test",

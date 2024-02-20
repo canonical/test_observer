@@ -17,7 +17,6 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-from collections.abc import Callable
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
@@ -27,11 +26,11 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     Environment,
     TestExecution,
-    User,
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
 )
+from tests.data_generator import DataGenerator
 from tests.helpers import create_artefact
 
 
@@ -68,11 +67,11 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
 
 
 def test_get_artefact(
-    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+    db_session: Session, test_client: TestClient, generator: DataGenerator
 ):
     """Should be able to fetch an existing artefact"""
     artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
-    artefact.assignee = create_user()
+    artefact.assignee = generator.gen_user()
     db_session.commit()
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")

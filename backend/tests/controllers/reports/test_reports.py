@@ -8,31 +8,21 @@ from sqlalchemy.orm import Session
 
 from test_observer.controllers.reports.reports import TESTRESULTS_REPORT_COLUMNS
 from test_observer.data_access.models import TestResult
+from tests.data_generator import DataGenerator
 from tests.helpers import create_artefact
-from tests.types import (
-    ArtefactBuildCreator,
-    EnvironmentCreator,
-    TestCaseCreator,
-    TestExecutionCreator,
-    TestResultCreator,
-)
 
 
 def test_get_testresults_report_in_range(
     db_session: Session,
     test_client: TestClient,
-    create_artefact_build: ArtefactBuildCreator,
-    create_environment: EnvironmentCreator,
-    create_test_execution: TestExecutionCreator,
-    create_test_case: TestCaseCreator,
-    create_test_result: TestResultCreator,
+    generator: DataGenerator,
 ):
     artefact = create_artefact(db_session, "beta")
-    artefact_build = create_artefact_build(artefact)
-    environment = create_environment()
-    test_execution = create_test_execution(artefact_build, environment)
-    test_case = create_test_case()
-    test_result = create_test_result(test_case, test_execution)
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(artefact_build, environment)
+    test_case = generator.gen_test_case()
+    test_result = generator.gen_test_result(test_case, test_execution)
 
     response = test_client.get(
         "/v1/reports/testresults",
