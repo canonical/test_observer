@@ -30,7 +30,7 @@ from test_observer.data_access.repository import (
     get_artefacts_by_family,
     get_stage_by_name,
 )
-from tests.helpers import create_artefact
+from tests.data_generator import DataGenerator
 
 
 def test_get_stage_by_name(db_session: Session):
@@ -59,7 +59,7 @@ def test_get_stage_by_name_no_such_stage(db_session: Session):
     assert stage is None
 
 
-def test_get_artefacts_by_family_name(db_session: Session):
+def test_get_artefacts_by_family_name(db_session: Session, generator: DataGenerator):
     """We should get a valid list of all artefacts"""
     # Arrange
     artefact_name_stage_pair = {
@@ -69,7 +69,7 @@ def test_get_artefacts_by_family_name(db_session: Session):
     }
 
     for name, stage in artefact_name_stage_pair:
-        create_artefact(db_session, stage, name=name)
+        generator.gen_artefact(stage, name=name)
 
     # Act
     artefacts = get_artefacts_by_family(db_session, FamilyName.SNAP, latest_only=False)
@@ -81,7 +81,9 @@ def test_get_artefacts_by_family_name(db_session: Session):
     } == artefact_name_stage_pair
 
 
-def test_get_artefacts_by_family_name_latest(db_session: Session):
+def test_get_artefacts_by_family_name_latest(
+    db_session: Session, generator: DataGenerator
+):
     """We should get a only latest artefacts in each stage for the specified family"""
     # Arrange
     artefact_tuple = [
@@ -93,8 +95,7 @@ def test_get_artefacts_by_family_name_latest(db_session: Session):
     expected_artefacts = {artefact_tuple[0], artefact_tuple[-1]}
 
     for name, stage, created_at, version in artefact_tuple:
-        create_artefact(
-            db_session,
+        generator.gen_artefact(
             stage,
             name=name,
             created_at=created_at,

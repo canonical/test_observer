@@ -27,27 +27,28 @@ from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild
-from tests.helpers import create_artefact
+from tests.data_generator import DataGenerator
 
 
 def test_run_to_move_artefact_snap(
-    db_session: Session, test_client: TestClient, requests_mock: Mocker
+    db_session: Session,
+    test_client: TestClient,
+    requests_mock: Mocker,
+    generator: DataGenerator,
 ):
     """
     If artefact's current stage name is different to its stage name on
     snapcraft, the artefact is moved to the next stage
     """
     # Arrange
-    artefact = create_artefact(
-        db_session,
+    artefact = generator.gen_artefact(
         "edge",
         name="core20",
         version="1.1.1",
         store="ubuntu",
         created_at=datetime.utcnow(),
     )
-    create_artefact(
-        db_session,
+    generator.gen_artefact(
         "edge",
         name="core20",
         version="1.1.0",
@@ -100,15 +101,17 @@ def test_run_to_move_artefact_snap(
 
 
 def test_run_to_move_artefact_deb(
-    db_session: Session, test_client: TestClient, requests_mock: Mocker
+    db_session: Session,
+    test_client: TestClient,
+    requests_mock: Mocker,
+    generator: DataGenerator,
 ):
     """
     If artefact's current stage name is different to its stage name on
     deb archive, the artefact is moved to the next stage
     """
     # Arrange
-    artefact1 = create_artefact(
-        db_session,
+    artefact1 = generator.gen_artefact(
         "proposed",
         name="linux-generic",
         version="5.19.0.43.39",
@@ -116,8 +119,7 @@ def test_run_to_move_artefact_deb(
         repo="main",
         created_at=datetime.utcnow(),
     )
-    artefact2 = create_artefact(
-        db_session,
+    artefact2 = generator.gen_artefact(
         "proposed",
         name="linux-oem-22_04a",
         version="6.1.0.1028.29",
@@ -125,8 +127,7 @@ def test_run_to_move_artefact_deb(
         repo="main",
         created_at=datetime.utcnow() - timedelta(days=1),
     )
-    artefact3 = create_artefact(
-        db_session,
+    artefact3 = generator.gen_artefact(
         "proposed",
         name="linux-cloud-tools-5_15.0-86",
         version="5.15.0-86.96",

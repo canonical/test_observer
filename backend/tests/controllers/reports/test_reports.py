@@ -4,20 +4,17 @@ from io import StringIO
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from test_observer.controllers.reports.reports import TESTRESULTS_REPORT_COLUMNS
 from test_observer.data_access.models import TestResult
 from tests.data_generator import DataGenerator
-from tests.helpers import create_artefact
 
 
 def test_get_testresults_report_in_range(
-    db_session: Session,
     test_client: TestClient,
     generator: DataGenerator,
 ):
-    artefact = create_artefact(db_session, "beta")
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build, environment)

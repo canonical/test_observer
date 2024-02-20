@@ -40,7 +40,6 @@ from test_observer.data_access.models_enums import (
     TestResultStatus,
 )
 from tests.data_generator import DataGenerator
-from tests.helpers import create_artefact
 
 
 @pytest.fixture
@@ -225,9 +224,11 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     )
 
 
-def test_report_test_execution_data(db_session: Session, test_client: TestClient):
+def test_report_test_execution_data(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
     ci_link = "http://localhost"
-    artefact = create_artefact(db_session, stage_name="beta")
+    artefact = generator.gen_artefact(stage_name="beta")
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
     test_execution = TestExecution(
@@ -271,9 +272,11 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
-def test_end_test_is_idempotent(db_session: Session, test_client: TestClient):
+def test_end_test_is_idempotent(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
     ci_link = "http://localhost"
-    artefact = create_artefact(db_session, stage_name="beta")
+    artefact = generator.gen_artefact(stage_name="beta")
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
     test_execution = TestExecution(
@@ -355,8 +358,10 @@ def test_review_test_execution_fails_if_both_failed_and_approved(
     assert response.status_code == 422
 
 
-def test_fetch_test_results(db_session: Session, test_client: TestClient):
-    artefact_first = create_artefact(db_session, stage_name="beta", version="1.1.1")
+def test_fetch_test_results(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
+    artefact_first = generator.gen_artefact(stage_name="beta", version="1.1.1")
     artefact_build_first = ArtefactBuild(
         architecture="some arch", artefact=artefact_first
     )
@@ -386,7 +391,7 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
     )
     db_session.commit()
 
-    artefact_second = create_artefact(db_session, stage_name="beta", version="1.1.2")
+    artefact_second = generator.gen_artefact(stage_name="beta", version="1.1.2")
     artefact_build_second = ArtefactBuild(
         architecture="some arch", artefact=artefact_second
     )

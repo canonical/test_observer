@@ -1,15 +1,19 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
+    Stage,
     TestCase,
     TestExecution,
     TestResult,
     User,
 )
 from test_observer.data_access.models_enums import (
+    ArtefactStatus,
     FamilyName,
     TestExecutionReviewDecision,
     TestExecutionStatus,
@@ -37,6 +41,46 @@ class DataGenerator:
         self.db_session.add(user)
         self.db_session.commit()
         return user
+
+    def gen_artefact(
+        self,
+        stage_name: str,
+        name: str = "core",
+        version: str = "1.1.1",
+        track: str = "",
+        store: str = "",
+        series: str = "",
+        repo: str = "",
+        created_at: datetime | None = None,
+        status: ArtefactStatus = ArtefactStatus.UNDECIDED,
+    ) -> Artefact:
+        stage = self.db_session.query(Stage).filter(Stage.name == stage_name).one()
+        family = FamilyName(stage.family.name)
+
+        if family == FamilyName.SNAP:
+            track = track or "latest"
+            store = store or "ubuntu"
+
+        if family == FamilyName.DEB:
+            series = series or "jammy"
+            repo = repo or "main"
+
+        created_at = created_at or datetime.utcnow()
+
+        artefact = Artefact(
+            name=name,
+            stage=stage,
+            version=version,
+            track=track,
+            store=store,
+            series=series,
+            repo=repo,
+            created_at=created_at,
+            status=status,
+        )
+        self.db_session.add(artefact)
+        self.db_session.commit()
+        return artefact
 
     def gen_artefact_build(
         self,

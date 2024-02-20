@@ -2,11 +2,10 @@ from sqlalchemy.orm import Session
 
 from test_observer.users.change_assignee import change_assignee
 from tests.data_generator import DataGenerator
-from tests.helpers import create_artefact
 
 
 def test_change_assignee(db_session: Session, generator: DataGenerator):
-    artefact = create_artefact(db_session, "beta")
+    artefact = generator.gen_artefact("beta")
     user1 = generator.gen_user(
         launchpad_email="user1@email.com",
         launchpad_handle="user1",
