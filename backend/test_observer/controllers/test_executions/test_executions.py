@@ -78,10 +78,10 @@ def start_test_execution(
             filter_kwargs={
                 "name": request.name,
                 "version": request.version,
-                "track": request.track,
-                "store": request.store,
-                "series": request.series,
-                "repo": request.repo,
+                "track": request.track if request.track is not None else "",
+                "store": request.store if request.store is not None else "",
+                "series": request.series if request.series is not None else "",
+                "repo": request.repo if request.repo is not None else "",
             },
             creation_kwargs={"stage_id": stage.id},
         )
