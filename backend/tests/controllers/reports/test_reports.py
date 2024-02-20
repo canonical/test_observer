@@ -8,29 +8,37 @@ from sqlalchemy.orm import Session
 
 from test_observer.controllers.reports.reports import TESTRESULTS_REPORT_COLUMNS
 from test_observer.data_access.models import TestResult
-from tests.helpers import (
-    create_artefact,
-    create_artefact_build,
-    create_environment,
-    create_test_case,
-    create_test_execution,
-    create_test_result,
+from tests.helpers import create_artefact
+from tests.types import (
+    ArtefactBuildCreator,
+    EnvironmentCreator,
+    TestCaseCreator,
+    TestExecutionCreator,
+    TestResultCreator,
 )
 
 
-def test_get_testresults_report_in_range(db_session: Session, test_client: TestClient):
+def test_get_testresults_report_in_range(
+    db_session: Session,
+    test_client: TestClient,
+    create_artefact_build: ArtefactBuildCreator,
+    create_environment: EnvironmentCreator,
+    create_test_execution: TestExecutionCreator,
+    create_test_case: TestCaseCreator,
+    create_test_result: TestResultCreator,
+):
     artefact = create_artefact(db_session, "beta")
-    artefact_build = create_artefact_build(db_session, artefact)
-    environment = create_environment(db_session)
-    test_execution = create_test_execution(db_session, artefact_build, environment)
-    test_case = create_test_case(db_session)
-    test_result = create_test_result(db_session, test_case, test_execution)
+    artefact_build = create_artefact_build(artefact)
+    environment = create_environment()
+    test_execution = create_test_execution(artefact_build, environment)
+    test_case = create_test_case()
+    test_result = create_test_result(test_case, test_execution)
 
     response = test_client.get(
         "/v1/reports/testresults",
         params={
-            "start_date": datetime.now() - timedelta(days=1),
-            "end_date": datetime.now(),
+            "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
+            "end_date": datetime.now().isoformat(),
         },
     )
     content = response.content.decode()

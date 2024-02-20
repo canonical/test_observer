@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from test_observer.data_access.models import (
     Artefact,
@@ -20,7 +21,7 @@ from test_observer.data_access.setup import get_db
 
 router = APIRouter()
 
-TESTRESULTS_REPORT_COLUMNS = [
+TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     Family.name,
     Artefact.name,
     Artefact.version,
