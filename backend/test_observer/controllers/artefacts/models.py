@@ -39,10 +39,10 @@ class ArtefactDTO(BaseModel):
     id: int
     name: str
     version: str
-    track: str | None
-    store: str | None
-    series: str | None
-    repo: str | None
+    track: str
+    store: str
+    series: str
+    repo: str
     stage: str = Field(validation_alias=AliasPath("stage", "name"))
     status: ArtefactStatus
     assignee: UserDTO | None
