@@ -34,10 +34,10 @@ def upgrade() -> None:
         postgresql_where=sa.text("track != ''"),
     )
 
-    op.execute("UPDATE artefact SET track = NULL WHERE track = ''")
-    op.execute("UPDATE artefact SET store = NULL WHERE store = ''")
-    op.execute("UPDATE artefact SET series = NULL WHERE series = ''")
-    op.execute("UPDATE artefact SET repo = NULL WHERE repo = ''")
+    op.execute("UPDATE artefact SET track = '' WHERE track is NULL")
+    op.execute("UPDATE artefact SET store = '' WHERE store is NULL")
+    op.execute("UPDATE artefact SET series = '' WHERE series is NULL")
+    op.execute("UPDATE artefact SET repo = '' WHERE repo is NULL")
 
     op.alter_column("artefact", "track", existing_type=sa.VARCHAR(), nullable=False)
     op.alter_column("artefact", "store", existing_type=sa.VARCHAR(), nullable=False)
