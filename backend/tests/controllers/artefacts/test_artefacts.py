@@ -17,7 +17,6 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-from collections.abc import Callable
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
@@ -27,26 +26,26 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     Environment,
     TestExecution,
-    User,
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
 )
-from tests.helpers import create_artefact
+from tests.data_generator import DataGenerator
 
 
-def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestClient):
+def test_get_latest_artefacts_by_family(
+    generator: DataGenerator, test_client: TestClient
+):
     """Should only get latest artefacts and only ones that belong to given family"""
-    relevant_artefact = create_artefact(
-        db_session,
+    relevant_artefact = generator.gen_artefact(
         "edge",
         version="2",
         status=ArtefactStatus.MARKED_AS_FAILED,
     )
 
     old_timestamp = relevant_artefact.created_at - timedelta(days=1)
-    create_artefact(db_session, "edge", created_at=old_timestamp, version="1")
-    create_artefact(db_session, "proposed")
+    generator.gen_artefact("edge", created_at=old_timestamp, version="1")
+    generator.gen_artefact("proposed")
 
     response = test_client.get("/v1/artefacts", params={"family": "snap"})
 
@@ -68,11 +67,11 @@ def test_get_latest_artefacts_by_family(db_session: Session, test_client: TestCl
 
 
 def test_get_artefact(
-    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+    db_session: Session, test_client: TestClient, generator: DataGenerator
 ):
     """Should be able to fetch an existing artefact"""
-    artefact = create_artefact(db_session, "edge", status=ArtefactStatus.APPROVED)
-    artefact.assignee = create_user()
+    artefact = generator.gen_artefact("edge", status=ArtefactStatus.APPROVED)
+    artefact.assignee = generator.gen_user()
     db_session.commit()
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
@@ -97,8 +96,10 @@ def test_get_artefact(
     }
 
 
-def test_get_artefact_builds(db_session: Session, test_client: TestClient):
-    artefact = create_artefact(db_session, "beta")
+def test_get_artefact_builds(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("beta")
     artefact_build = ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
     environment = Environment(
         name="some-environment", architecture=artefact_build.architecture
@@ -136,8 +137,10 @@ def test_get_artefact_builds(db_session: Session, test_client: TestClient):
     ]
 
 
-def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestClient):
-    artefact = create_artefact(db_session, "beta")
+def test_get_artefact_builds_only_latest(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("beta")
     artefact_build1 = ArtefactBuild(
         architecture="amd64", revision="1", artefact=artefact
     )
@@ -160,8 +163,10 @@ def test_get_artefact_builds_only_latest(db_session: Session, test_client: TestC
     ]
 
 
-def test_artefact_signoff_approve(db_session: Session, test_client: TestClient):
-    artefact = create_artefact(db_session, "candidate")
+def test_artefact_signoff_approve(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("candidate")
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}",
@@ -187,9 +192,9 @@ def test_artefact_signoff_approve(db_session: Session, test_client: TestClient):
 
 
 def test_artefact_signoff_disallow_approve(
-    db_session: Session, test_client: TestClient
+    db_session: Session, test_client: TestClient, generator: DataGenerator
 ):
-    artefact = create_artefact(db_session, "candidate")
+    artefact = generator.gen_artefact("candidate")
     build = ArtefactBuild(architecture="amd64", artefact=artefact)
     environment = Environment(name="laptop", architecture="amd64")
     test_execution = TestExecution(artefact_build=build, environment=environment)
@@ -204,8 +209,10 @@ def test_artefact_signoff_disallow_approve(
     assert response.status_code == 400
 
 
-def test_artefact_signoff_disallow_reject(db_session: Session, test_client: TestClient):
-    artefact = create_artefact(db_session, "candidate")
+def test_artefact_signoff_disallow_reject(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("candidate")
     build = ArtefactBuild(architecture="amd64", artefact=artefact)
     environment = Environment(name="laptop", architecture="amd64")
     test_execution = TestExecution(artefact_build=build, environment=environment)

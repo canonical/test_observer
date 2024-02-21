@@ -22,12 +22,12 @@
 from enum import Enum
 
 
-class FamilyName(Enum):
+class FamilyName(str, Enum):
     SNAP = "snap"
     DEB = "deb"
 
 
-class TestExecutionStatus(Enum):
+class TestExecutionStatus(str, Enum):
     __test__ = False
 
     NOT_STARTED = "NOT_STARTED"

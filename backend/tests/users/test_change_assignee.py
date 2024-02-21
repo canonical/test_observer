@@ -1,20 +1,17 @@
-from collections.abc import Callable
-
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import User
 from test_observer.users.change_assignee import change_assignee
-from tests.helpers import create_artefact
+from tests.data_generator import DataGenerator
 
 
-def test_change_assignee(db_session: Session, create_user: Callable[..., User]):
-    artefact = create_artefact(db_session, "beta")
-    user1 = create_user(
+def test_change_assignee(db_session: Session, generator: DataGenerator):
+    artefact = generator.gen_artefact("beta")
+    user1 = generator.gen_user(
         launchpad_email="user1@email.com",
         launchpad_handle="user1",
         name="User 1",
     )
-    user2 = create_user(
+    user2 = generator.gen_user(
         launchpad_email="user2@email.com",
         launchpad_handle="user2",
         name="User 2",

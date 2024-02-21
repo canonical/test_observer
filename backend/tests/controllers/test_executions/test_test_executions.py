@@ -18,7 +18,6 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 
-from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
@@ -33,7 +32,6 @@ from test_observer.data_access.models import (
     TestCase,
     TestExecution,
     TestResult,
-    User,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -41,7 +39,7 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
-from tests.helpers import create_artefact
+from tests.data_generator import DataGenerator
 
 
 @pytest.fixture
@@ -226,10 +224,12 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     )
 
 
-def test_report_test_execution_data(db_session: Session, test_client: TestClient):
+def test_report_test_execution_data(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
     ci_link = "http://localhost"
     c3_link = "http://c3.localhost"
-    artefact = create_artefact(db_session, stage_name="beta")
+    artefact = generator.gen_artefact(stage_name="beta")
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
     test_execution = TestExecution(
@@ -275,9 +275,11 @@ def test_report_test_execution_data(db_session: Session, test_client: TestClient
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
-def test_end_test_is_idempotent(db_session: Session, test_client: TestClient):
+def test_end_test_is_idempotent(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
     ci_link = "http://localhost"
-    artefact = create_artefact(db_session, stage_name="beta")
+    artefact = generator.gen_artefact(stage_name="beta")
     artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
     environment = Environment(name="some environment", architecture="some arch")
     test_execution = TestExecution(
@@ -359,8 +361,10 @@ def test_review_test_execution_fails_if_both_failed_and_approved(
     assert response.status_code == 422
 
 
-def test_fetch_test_results(db_session: Session, test_client: TestClient):
-    artefact_first = create_artefact(db_session, stage_name="beta", version="1.1.1")
+def test_fetch_test_results(
+    db_session: Session, test_client: TestClient, generator: DataGenerator
+):
+    artefact_first = generator.gen_artefact(stage_name="beta", version="1.1.1")
     artefact_build_first = ArtefactBuild(
         architecture="some arch", artefact=artefact_first
     )
@@ -390,7 +394,7 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
     )
     db_session.commit()
 
-    artefact_second = create_artefact(db_session, stage_name="beta", version="1.1.2")
+    artefact_second = generator.gen_artefact(stage_name="beta", version="1.1.2")
     artefact_build_second = ArtefactBuild(
         architecture="some arch", artefact=artefact_second
     )
@@ -432,9 +436,9 @@ def test_fetch_test_results(db_session: Session, test_client: TestClient):
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
-    db_session: Session, test_client: TestClient, create_user: Callable[..., User]
+    db_session: Session, test_client: TestClient, generator: DataGenerator
 ):
-    user = create_user()
+    user = generator.gen_user()
 
     test_client.put(
         "/v1/test-executions/start-test",

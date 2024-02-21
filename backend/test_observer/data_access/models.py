@@ -135,10 +135,10 @@ class Artefact(Base):
 
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
-    track: Mapped[str | None]
-    store: Mapped[str | None]
-    series: Mapped[str | None]
-    repo: Mapped[str | None]
+    track: Mapped[str] = mapped_column(default="")
+    store: Mapped[str] = mapped_column(default="")
+    series: Mapped[str] = mapped_column(default="")
+    repo: Mapped[str] = mapped_column(default="")
     # Relationships
     stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id", ondelete="CASCADE"))
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
@@ -152,8 +152,23 @@ class Artefact(Base):
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
 
     __table_args__ = (
-        UniqueConstraint("name", "version", "track", name="unique_snap"),
-        UniqueConstraint("name", "version", "series", "repo", name="unique_deb"),
+        Index(
+            "unique_snap",
+            "name",
+            "version",
+            "track",
+            postgresql_where=column("track") != "",
+            unique=True,
+        ),
+        Index(
+            "unique_deb",
+            "name",
+            "version",
+            "series",
+            "repo",
+            postgresql_where=(column("series") != "") & (column("repo") != ""),
+            unique=True,
+        ),
     )
 
     def __repr__(self) -> str:

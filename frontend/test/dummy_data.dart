@@ -15,6 +15,8 @@ const dummyArtefact = Artefact(
   version: '16-2.61',
   track: 'latest',
   store: 'ubuntu',
+  series: '',
+  repo: '',
   status: ArtefactStatus.undecided,
   stage: StageName.beta,
   assignee: dummyUser,

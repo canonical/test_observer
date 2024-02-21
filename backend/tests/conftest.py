@@ -20,7 +20,6 @@
 """Fixtures for testing"""
 
 
-from collections.abc import Callable
 from os import environ
 
 import pytest
@@ -34,9 +33,9 @@ from sqlalchemy_utils import (  # type: ignore
     drop_database,
 )
 
-from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
+from tests.data_generator import DataGenerator
 
 
 @pytest.fixture(scope="session")
@@ -93,18 +92,5 @@ def test_client(db_session: Session) -> TestClient:
 
 
 @pytest.fixture
-def create_user(db_session: Session) -> Callable[..., User]:
-    def _create_user(**kwargs) -> User:
-        user = User(
-            **{
-                "name": "John Doe",
-                "launchpad_handle": "jd",
-                "launchpad_email": "john@doe.com",
-                **kwargs,
-            }
-        )
-        db_session.add(user)
-        db_session.commit()
-        return user
-
-    return _create_user
+def generator(db_session: Session) -> DataGenerator:
+    return DataGenerator(db_session)
