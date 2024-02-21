@@ -29,6 +29,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
+    TestExecutionReviewDecision,
 )
 from tests.data_generator import DataGenerator
 
@@ -218,6 +219,49 @@ def test_artefact_signoff_disallow_reject(
     test_execution = TestExecution(artefact_build=build, environment=environment)
     db_session.add_all([build, environment, test_execution])
     db_session.commit()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    )
+
+    assert response.status_code == 400
+
+
+def test_artefact_signoff_ignore_old_build_on_approve(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("candidate")
+    build_1 = generator.gen_artefact_build(artefact, revision=1)
+    build_2 = generator.gen_artefact_build(artefact, revision=2)
+    environment = generator.gen_environment()
+    generator.gen_test_execution(build_1, environment)
+    generator.gen_test_execution(
+        build_2,
+        environment,
+        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"status": ArtefactStatus.APPROVED},
+    )
+
+    assert response.status_code == 200
+    assert artefact.status == ArtefactStatus.APPROVED
+
+
+def test_artefact_signoff_ignore_old_build_on_reject(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("candidate")
+    build_1 = generator.gen_artefact_build(artefact, revision=1)
+    build_2 = generator.gen_artefact_build(artefact, revision=2)
+    environment = generator.gen_environment()
+    generator.gen_test_execution(
+        build_1, environment, review_decision=[TestExecutionReviewDecision.REJECTED]
+    )
+    generator.gen_test_execution(build_2, environment)
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}",
