@@ -20,6 +20,8 @@ class InlineUrlText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fontStyle = this.fontStyle ?? DefaultTextStyle.of(context).style;
+
     return RichText(
       text: TextSpan(
         style: fontStyle,
@@ -27,7 +29,7 @@ class InlineUrlText extends StatelessWidget {
           if (leadingText != null) TextSpan(text: leadingText),
           TextSpan(
             text: urlText ?? url,
-            style: fontStyle?.apply(
+            style: fontStyle.apply(
               decoration: TextDecoration.underline,
               color: Colors.blue,
             ),

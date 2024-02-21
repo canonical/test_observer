@@ -33,13 +33,9 @@ class Footer extends StatelessWidget {
             leadingText: 'Powered by ',
           ),
           const SizedBox(height: Spacing.level3),
-          GestureDetector(
-            onTap: () =>
-                launchUrlString('https://github.com/canonical/test_observer'),
-            child: Text(
-              'Project source code',
-              style: fontStyle,
-            ),
+          const InlineUrlText(
+            url: 'https://github.com/canonical/test_observer',
+            urlText: 'Project source code',
           ),
         ],
       ),
