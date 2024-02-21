@@ -16,10 +16,10 @@ class Artefact with _$Artefact {
     required int id,
     required String name,
     required String version,
-    @Default(null) String? track,
-    @Default(null) String? store,
-    @Default(null) String? series,
-    @Default(null) String? repo,
+    required String track,
+    required String store,
+    required String series,
+    required String repo,
     required ArtefactStatus status,
     required StageName stage,
     required User? assignee,
@@ -30,10 +30,10 @@ class Artefact with _$Artefact {
 
   Map<String, String> get details => {
         'version': version,
-        if (track != null) 'track': track!,
-        if (store != null) 'store': store!,
-        if (series != null) 'series': series!,
-        if (repo != null) 'repo': repo!,
+        if (track != '') 'track': track,
+        if (store != '') 'store': store,
+        if (series != '') 'series': series,
+        if (repo != '') 'repo': repo,
       };
 }
 
