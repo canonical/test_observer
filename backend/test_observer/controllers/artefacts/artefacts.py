@@ -18,6 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access import queries
@@ -85,7 +86,7 @@ def patch_artefact(
             queries.latest_artefact_builds.where(
                 ArtefactBuild.artefact_id == artefact_id
             ).options(joinedload(ArtefactBuild.test_executions))
-        )
+        ).unique()
     )
 
     _validate_artefact_status(latest_builds, request.status)
@@ -124,7 +125,7 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
             queries.latest_artefact_builds.where(
                 ArtefactBuild.artefact_id == artefact_id
             ).options(joinedload(ArtefactBuild.test_executions))
-        )
+        ).unique()
     )
 
     for artefact_build in latest_builds:
