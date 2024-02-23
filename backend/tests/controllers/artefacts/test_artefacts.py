@@ -139,17 +139,11 @@ def test_get_artefact_builds(
 
 
 def test_get_artefact_builds_only_latest(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
+    test_client: TestClient, generator: DataGenerator
 ):
     artefact = generator.gen_artefact("beta")
-    artefact_build1 = ArtefactBuild(
-        architecture="amd64", revision="1", artefact=artefact
-    )
-    artefact_build2 = ArtefactBuild(
-        architecture="amd64", revision="2", artefact=artefact
-    )
-    db_session.add_all([artefact_build1, artefact_build2])
-    db_session.commit()
+    generator.gen_artefact_build(artefact=artefact, revision=1)
+    artefact_build2 = generator.gen_artefact_build(artefact=artefact, revision=2)
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
 
@@ -232,12 +226,18 @@ def test_artefact_signoff_ignore_old_build_on_approve(
     test_client: TestClient, generator: DataGenerator
 ):
     artefact = generator.gen_artefact("candidate")
-    build_1 = generator.gen_artefact_build(artefact, revision=1)
-    build_2 = generator.gen_artefact_build(artefact, revision=2)
+    build1 = generator.gen_artefact_build(artefact, revision=1)
+    build2 = generator.gen_artefact_build(artefact, revision=1, architecture="arm64")
+    build3 = generator.gen_artefact_build(artefact, revision=2)
     environment = generator.gen_environment()
-    generator.gen_test_execution(build_1, environment)
+    generator.gen_test_execution(build1, environment)
     generator.gen_test_execution(
-        build_2,
+        build2,
+        environment,
+        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+    generator.gen_test_execution(
+        build3,
         environment,
         review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
     )
