@@ -7,9 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
+from test_observer.data_access import queries
 from test_observer.data_access.models import (
     Artefact,
-    ArtefactBuild,
     Environment,
     Family,
     Stage,
@@ -53,12 +53,7 @@ def get_testresults_report(
     if end_date is None:
         end_date = datetime.now()
 
-    latest_builds = (
-        select(ArtefactBuild)
-        .distinct(ArtefactBuild.artefact_id, ArtefactBuild.architecture)
-        .order_by(ArtefactBuild.artefact_id, ArtefactBuild.architecture)
-        .subquery()
-    )
+    latest_builds = queries.latest_artefact_builds.subquery()
 
     cursor = db.execute(
         select(*TESTRESULTS_REPORT_COLUMNS)

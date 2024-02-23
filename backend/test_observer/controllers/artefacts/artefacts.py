@@ -20,6 +20,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
+from test_observer.data_access import queries
 from test_observer.data_access.models import Artefact, ArtefactBuild
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
@@ -74,26 +75,31 @@ def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
 def patch_artefact(
     artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
 ):
-    query_options = []
-    if request.status in {ArtefactStatus.APPROVED, ArtefactStatus.MARKED_AS_FAILED}:
-        # Load test executions as we need to check them
-        query_options.append(
-            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions),
-        )
-    artefact = db.get(Artefact, artefact_id, options=query_options)
-    if artefact is None:
+    artefact = db.get(Artefact, artefact_id)
+
+    if not artefact:
         raise HTTPException(status_code=404, detail="Artefact not found")
 
-    _validate_artefact_status(artefact, request.status)
+    latest_builds = list(
+        db.scalars(
+            queries.latest_artefact_builds.where(
+                ArtefactBuild.artefact_id == artefact_id
+            ).options(joinedload(ArtefactBuild.test_executions))
+        ).unique()
+    )
+
+    _validate_artefact_status(latest_builds, request.status)
 
     artefact.status = request.status
     db.commit()
     return artefact
 
 
-def _validate_artefact_status(artefact: Artefact, status: ArtefactStatus) -> None:
+def _validate_artefact_status(
+    builds: list[ArtefactBuild], status: ArtefactStatus
+) -> None:
     if status == ArtefactStatus.APPROVED and not are_all_test_executions_approved(
-        artefact
+        builds
     ):
         raise HTTPException(
             status_code=400,
@@ -102,7 +108,7 @@ def _validate_artefact_status(artefact: Artefact, status: ArtefactStatus) -> Non
 
     if (
         status == ArtefactStatus.MARKED_AS_FAILED
-        and not is_there_a_rejected_test_execution(artefact)
+        and not is_there_a_rejected_test_execution(builds)
     ):
         raise HTTPException(
             400,
@@ -113,17 +119,17 @@ def _validate_artefact_status(artefact: Artefact, status: ArtefactStatus) -> Non
 @router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
 def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
     """Get latest artefact builds of an artefact together with their test executions"""
-    artefact_builds = (
-        db.query(ArtefactBuild)
-        .filter(ArtefactBuild.artefact_id == artefact_id)
-        .distinct(ArtefactBuild.architecture)
-        .order_by(ArtefactBuild.architecture, ArtefactBuild.revision.desc())
-        .all()
+    latest_builds = list(
+        db.scalars(
+            queries.latest_artefact_builds.where(
+                ArtefactBuild.artefact_id == artefact_id
+            ).options(joinedload(ArtefactBuild.test_executions))
+        ).unique()
     )
 
-    for artefact_build in artefact_builds:
+    for artefact_build in latest_builds:
         artefact_build.test_executions.sort(
             key=lambda test_execution: test_execution.id
         )
 
-    return artefact_builds
+    return latest_builds

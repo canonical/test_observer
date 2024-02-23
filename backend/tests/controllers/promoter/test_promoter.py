@@ -83,7 +83,7 @@ def test_run_to_move_artefact_snap(
                         "size": 130830336,
                         "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
                     },
-                    "revision": artefact.builds[0].revision,
+                    "revision": artefact.builds[1].revision,
                     "type": "app",
                     "version": "1.1.1",
                 },
