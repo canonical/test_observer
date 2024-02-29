@@ -36,7 +36,7 @@ def _extract_artefact_bug_info_from_swm(json: dict) -> dict[int, ArtefactTracker
 def _is_tracker_open(tracker: dict) -> bool:
     closed_statuses = ("Fix Committed", "Fix Released")
     status = tracker.get("task", {}).get("kernel-sru-workflow", {}).get("status")
-    return status not in closed_statuses
+    return status and status not in closed_statuses
 
 
 def _extract_artefact_id(tracker: dict) -> int | None:
