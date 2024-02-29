@@ -16,7 +16,12 @@ def test_get_artefacts_swm_info(requests_mock: Mocker):
                     "test-observer": {
                         "beta": artefact_id,
                         "due-date": "2024-02-28",
-                    }
+                    },
+                    "task": {
+                        "kernel-sru-workflow": {
+                            "status": "In Progress",
+                        }
+                    },
                 }
             }
         },
