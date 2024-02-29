@@ -17,6 +17,8 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
+from datetime import date
+
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
 from test_observer.data_access.models_enums import (
@@ -46,6 +48,8 @@ class ArtefactDTO(BaseModel):
     stage: str = Field(validation_alias=AliasPath("stage", "name"))
     status: ArtefactStatus
     assignee: UserDTO | None
+    due_date: date | None
+    bug_link: str
 
 
 class EnvironmentDTO(BaseModel):

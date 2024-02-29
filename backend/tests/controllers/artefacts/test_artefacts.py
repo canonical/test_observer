@@ -17,7 +17,7 @@
 # Written by:
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -63,6 +63,8 @@ def test_get_latest_artefacts_by_family(
             "stage": relevant_artefact.stage.name,
             "status": relevant_artefact.status,
             "assignee": None,
+            "due_date": None,
+            "bug_link": "",
         }
     ]
 
@@ -73,6 +75,8 @@ def test_get_artefact(
     """Should be able to fetch an existing artefact"""
     artefact = generator.gen_artefact("edge", status=ArtefactStatus.APPROVED)
     artefact.assignee = generator.gen_user()
+    artefact.bug_link = "localhost/bug"
+    artefact.due_date = date(2024, 12, 24)
     db_session.commit()
 
     response = test_client.get(f"/v1/artefacts/{artefact.id}")
@@ -94,6 +98,8 @@ def test_get_artefact(
             "launchpad_email": artefact.assignee.launchpad_email,
             "name": artefact.assignee.name,
         },
+        "due_date": "2024-12-24",
+        "bug_link": artefact.bug_link,
     }
 
 
@@ -183,6 +189,8 @@ def test_artefact_signoff_approve(
         "stage": artefact.stage.name,
         "status": artefact.status,
         "assignee": None,
+        "due_date": None,
+        "bug_link": "",
     }
 
 
