@@ -150,6 +150,7 @@ class Artefact(Base):
     # Default fields
     due_date: Mapped[date | None]
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
+    bug_link: Mapped[str] = mapped_column(default="")
 
     __table_args__ = (
         Index(
