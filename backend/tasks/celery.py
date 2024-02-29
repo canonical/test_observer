@@ -24,8 +24,9 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 
 @app.task
 def integrate_with_kernel_swm():
-    swm_info = get_artefacts_swm_info()
-    update_artefacts_with_tracker_info(SessionLocal(), swm_info)
+    db = SessionLocal()
+    swm_info = get_artefacts_swm_info(db)
+    update_artefacts_with_tracker_info(db, swm_info)
 
 
 if __name__ == "__main__":
