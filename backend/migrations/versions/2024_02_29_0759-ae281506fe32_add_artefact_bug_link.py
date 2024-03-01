@@ -17,7 +17,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("artefact", sa.Column("bug_link", sa.String(), nullable=False))
+    op.add_column(
+        "artefact",
+        sa.Column("bug_link", sa.String(), nullable=False, server_default=""),
+    )
 
 
 def downgrade() -> None:
