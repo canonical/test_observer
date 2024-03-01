@@ -7,7 +7,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../spacing.dart';
 import '../user_avatar.dart';
-import 'artefact_status_chip.dart';
+import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
   const ArtefactCard({Key? key, required this.artefact}) : super(key: key);
@@ -52,15 +52,15 @@ class ArtefactCard extends ConsumerWidget {
               const SizedBox(height: Spacing.level2),
               Row(
                 children: [
-                  ArtefactStatusChip(status: artefact.status),
+                  VanillaChip(
+                    text: artefact.status.name,
+                    fontColor: artefact.status.color,
+                  ),
                   const Spacer(),
                   if (dueDate != null)
-                    Text(
-                      'Due $dueDate',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelLarge
-                          ?.apply(color: YaruColors.red),
+                    VanillaChip(
+                      text: 'Due $dueDate',
+                      fontColor: YaruColors.red,
                     ),
                   const Spacer(),
                   if (assignee != null) UserAvatar(user: assignee),

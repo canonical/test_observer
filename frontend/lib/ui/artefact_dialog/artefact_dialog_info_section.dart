@@ -39,7 +39,7 @@ class ArtefactDialogInfoSection extends StatelessWidget {
             const SizedBox(height: Spacing.level3),
             if (bugLink.isNotBlank)
               InlineUrlText(
-                leadingText: 'Bug link: ',
+                leadingText: 'bug link: ',
                 url: bugLink,
                 urlText: bugLink,
                 fontStyle: Theme.of(context).textTheme.bodyLarge,
