@@ -22,7 +22,9 @@ class Artefact with _$Artefact {
     required String repo,
     required ArtefactStatus status,
     required StageName stage,
-    required User? assignee,
+    User? assignee,
+    @JsonKey(name: 'bug_link') required String bugLink,
+    @JsonKey(name: 'due_date') DateTime? dueDate,
   }) = _Artefact;
 
   factory Artefact.fromJson(Map<String, Object?> json) =>
@@ -35,7 +37,31 @@ class Artefact with _$Artefact {
         if (series != '') 'series': series,
         if (repo != '') 'repo': repo,
       };
+
+  String? get dueDateString {
+    final month = dueDate?.month;
+    final day = dueDate?.day;
+    if (month != null && day != null) {
+      return '${monthNames[month - 1]} $day';
+    }
+    return null;
+  }
 }
+
+const List<String> monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 enum ArtefactStatus {
   @JsonValue('APPROVED')

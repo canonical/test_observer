@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
 import '../spacing.dart';
 import '../user_avatar.dart';
-import 'artefact_status_chip.dart';
+import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
   const ArtefactCard({Key? key, required this.artefact}) : super(key: key);
@@ -17,6 +18,7 @@ class ArtefactCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assignee = artefact.assignee;
+    final dueDate = artefact.dueDateString;
 
     return GestureDetector(
       onTap: () {
@@ -50,7 +52,16 @@ class ArtefactCard extends ConsumerWidget {
               const SizedBox(height: Spacing.level2),
               Row(
                 children: [
-                  ArtefactStatusChip(status: artefact.status),
+                  VanillaChip(
+                    text: artefact.status.name,
+                    fontColor: artefact.status.color,
+                  ),
+                  const Spacer(),
+                  if (dueDate != null)
+                    VanillaChip(
+                      text: 'Due $dueDate',
+                      fontColor: YaruColors.red,
+                    ),
                   const Spacer(),
                   if (assignee != null) UserAvatar(user: assignee),
                 ],

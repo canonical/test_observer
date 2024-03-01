@@ -8,6 +8,7 @@ import '../../models/artefact.dart';
 import '../../models/stage_name.dart';
 import '../../models/test_execution.dart';
 import '../../routing.dart';
+import '../inline_url_text.dart';
 import '../spacing.dart';
 
 class ArtefactDialogInfoSection extends StatelessWidget {
@@ -17,6 +18,7 @@ class ArtefactDialogInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bugLink = artefact.bugLink;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,6 +36,14 @@ class ArtefactDialogInfoSection extends StatelessWidget {
                   ),
                 )
                 .intersperse(const SizedBox(height: Spacing.level3)),
+            const SizedBox(height: Spacing.level3),
+            if (bugLink.isNotBlank)
+              InlineUrlText(
+                leadingText: 'bug link: ',
+                url: bugLink,
+                urlText: bugLink,
+                fontStyle: Theme.of(context).textTheme.bodyLarge,
+              ),
           ],
         ),
         Column(
