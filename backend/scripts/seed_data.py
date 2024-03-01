@@ -2,10 +2,12 @@
 
 # ruff: noqa: E501 Line too long
 
+from datetime import date, timedelta
 from textwrap import dedent
 
 import requests
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.test_executions.models import (
@@ -14,7 +16,9 @@ from test_observer.controllers.test_executions.models import (
     EndTestExecutionRequest,
     StartTestExecutionRequest,
 )
+from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
 
 BASE_URL = "http://localhost:30000/v1"
@@ -287,6 +291,8 @@ END_TEST_EXECUTION_REQUESTS = [
 
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
+    session = session or SessionLocal()
+
     for email in (
         "omar.selo@canonical.com",
         "nadzeya.hutsko@canonical.com",
@@ -303,6 +309,19 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
         client.put(
             END_TEST_EXECUTION_URL, json=end_request.model_dump(mode="json")
         ).raise_for_status()
+
+    _add_bugurl_and_duedate(session)
+
+
+def _add_bugurl_and_duedate(session: Session) -> None:
+    artefact = session.scalar(select(Artefact).limit(1))
+
+    if artefact:
+        artefact.bug_link = (
+            "https://bugs.launchpad.net/kernel-sru-workflow/+bug/2052031"
+        )
+        artefact.due_date = date.today() + timedelta(days=7)
+        session.commit()
 
 
 if __name__ == "__main__":
