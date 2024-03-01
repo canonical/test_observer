@@ -20,4 +20,5 @@ const dummyArtefact = Artefact(
   status: ArtefactStatus.undecided,
   stage: StageName.beta,
   assignee: dummyUser,
+  bugLink: '',
 );
