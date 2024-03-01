@@ -19,8 +19,7 @@ class ArtefactDialogHeader extends StatelessWidget {
     return DialogHeader(
       heading: Row(
         children: [
-          Text('bosch-bt-s6lm-kernel',
-              style: Theme.of(context).textTheme.headlineLarge),
+          Text(artefact.name, style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(width: Spacing.level4),
           ArtefactSignoffButton(artefact: artefact),
           const SizedBox(width: Spacing.level4),
