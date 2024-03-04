@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'models/family_name.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
-import 'ui/dialog_page.dart';
 import 'ui/skeleton.dart';
 
 final appRouter = GoRouter(
@@ -40,8 +39,8 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '${AppRoutes.debs}/:artefactId',
-          pageBuilder: (context, state) => DialogPage(
-            builder: (_) => ArtefactPage(
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: ArtefactPage(
               artefactId: int.parse(state.pathParameters['artefactId']!),
             ),
           ),
