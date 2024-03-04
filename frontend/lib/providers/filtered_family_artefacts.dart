@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
 import '../models/family_name.dart';
-import '../models/artefact_filter.dart';
+import '../models/filter.dart';
 import 'family_artefacts.dart';
 import 'artefact_filters.dart';
 import 'search_value.dart';
@@ -26,14 +26,14 @@ Map<int, Artefact> filteredFamilyArtefacts(
   );
 }
 
-bool _artefactPassesFilter(Artefact artefact, ArtefactFilter filter) {
+bool _artefactPassesFilter(Artefact artefact, Filter filter) {
   final noOptionsSelected = filter.options.none((option) => option.value);
   if (noOptionsSelected) return true;
   final selectedOptions = {
     for (final option in filter.options)
       if (option.value) option.name,
   };
-  return selectedOptions.contains(filter.retrieveArtefactOption(artefact));
+  return selectedOptions.contains(filter.retrieveOption(artefact));
 }
 
 bool _artefactPassesSearch(Artefact artefact, String searchValue) {

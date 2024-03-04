@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
-import '../../models/artefact_filter.dart';
+import '../../models/filter.dart';
 import '../../providers/artefact_filters.dart';
 import '../../routing.dart';
 import '../spacing.dart';
@@ -32,7 +32,7 @@ class SideFilters extends ConsumerWidget {
 class _SideFilter extends ConsumerWidget {
   const _SideFilter({required this.filter});
 
-  final ArtefactFilter filter;
+  final Filter filter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
