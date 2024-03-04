@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'models/family_name.dart';
-import 'ui/artefact_dialog/artefact_dialog.dart';
+import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/dialog_page.dart';
 import 'ui/skeleton.dart';
@@ -23,32 +23,28 @@ final appRouter = GoRouter(
           pageBuilder: (_, __) => const NoTransitionPage(
             child: Dashboard(),
           ),
-          routes: [
-            GoRoute(
-              path: ':artefactId',
-              pageBuilder: (context, state) => DialogPage(
-                builder: (_) => ArtefactDialog(
-                  artefactId: int.parse(state.pathParameters['artefactId']!),
-                ),
-              ),
+        ),
+        GoRoute(
+          path: '${AppRoutes.snaps}/:artefactId',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: ArtefactPage(
+              artefactId: int.parse(state.pathParameters['artefactId']!),
             ),
-          ],
+          ),
         ),
         GoRoute(
           path: AppRoutes.debs,
           pageBuilder: (_, __) => const NoTransitionPage(
             child: Dashboard(),
           ),
-          routes: [
-            GoRoute(
-              path: ':artefactId',
-              pageBuilder: (context, state) => DialogPage(
-                builder: (_) => ArtefactDialog(
-                  artefactId: int.parse(state.pathParameters['artefactId']!),
-                ),
-              ),
+        ),
+        GoRoute(
+          path: '${AppRoutes.debs}/:artefactId',
+          pageBuilder: (context, state) => DialogPage(
+            builder: (_) => ArtefactPage(
+              artefactId: int.parse(state.pathParameters['artefactId']!),
             ),
-          ],
+          ),
         ),
       ],
     ),
