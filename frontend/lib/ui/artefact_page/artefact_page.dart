@@ -8,7 +8,7 @@ import '../dialog_header.dart';
 import '../spacing.dart';
 import 'artefact_page_body.dart';
 import 'artefact_page_header.dart';
-import 'artefact_dialog_info_section.dart';
+import 'artefact_page_info_section.dart';
 
 class ArtefactPage extends ConsumerWidget {
   const ArtefactPage({super.key, required this.artefactId});
@@ -48,10 +48,10 @@ class ArtefactPage extends ConsumerWidget {
             children: [
               ArtefactPageHeader(artefact: artefact),
               const SizedBox(height: Spacing.level4),
-              ArtefactDialogInfoSection(artefact: artefact),
+              ArtefactPageInfoSection(artefact: artefact),
               const SizedBox(height: Spacing.level4),
               Expanded(
-                child: ArtefactDialogBody(artefact: artefact),
+                child: ArtefactPageBody(artefact: artefact),
               ),
             ],
           );

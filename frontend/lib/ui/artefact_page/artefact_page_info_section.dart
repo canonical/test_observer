@@ -11,8 +11,8 @@ import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
 
-class ArtefactDialogInfoSection extends StatelessWidget {
-  const ArtefactDialogInfoSection({super.key, required this.artefact});
+class ArtefactPageInfoSection extends StatelessWidget {
+  const ArtefactPageInfoSection({super.key, required this.artefact});
 
   final Artefact artefact;
 
