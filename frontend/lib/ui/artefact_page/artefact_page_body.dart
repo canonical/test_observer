@@ -7,8 +7,8 @@ import '../../providers/artefact_builds.dart';
 import '../spacing.dart';
 import 'artefact_build_expandable.dart';
 
-class ArtefactDialogBody extends ConsumerWidget {
-  const ArtefactDialogBody({super.key, required this.artefact});
+class ArtefactPageBody extends ConsumerWidget {
+  const ArtefactPageBody({super.key, required this.artefact});
 
   final Artefact artefact;
 
