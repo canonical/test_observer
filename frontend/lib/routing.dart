@@ -40,8 +40,8 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '${AppRoutes.debs}/:artefactId',
-          pageBuilder: (context, state) => DialogPage(
-            builder: (_) => ArtefactPage(
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: ArtefactPage(
               artefactId: int.parse(state.pathParameters['artefactId']!),
             ),
           ),
