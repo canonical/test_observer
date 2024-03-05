@@ -19,12 +19,12 @@ class ArtefactFilters extends _$ArtefactFilters {
       filters: [
         Filter<Artefact>.fromObjects(
           name: 'Assignee',
-          extractOption: _extractAssigneeName,
+          extractOption: (artefact) => artefact.assignee?.name,
           objects: artefacts,
         ),
         Filter<Artefact>.fromObjects(
           name: 'Status',
-          extractOption: _extractStatusName,
+          extractOption: (artefact) => artefact.status.name,
           objects: artefacts,
         ),
       ],
@@ -42,7 +42,4 @@ class ArtefactFilters extends _$ArtefactFilters {
       optionValue,
     );
   }
-
-  String? _extractAssigneeName(Artefact artefact) => artefact.assignee?.name;
-  String _extractStatusName(Artefact artefact) => artefact.status.name;
 }

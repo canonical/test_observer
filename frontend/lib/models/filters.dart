@@ -1,3 +1,4 @@
+import 'package:dartx/dartx.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'filter.dart';
@@ -27,4 +28,7 @@ class Filters<T> with _$Filters<T> {
       ],
     );
   }
+
+  bool doesObjectPassFilters(T object) =>
+      filters.all((filter) => filter.doesObjectPassFilter(object));
 }

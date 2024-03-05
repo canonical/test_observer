@@ -31,6 +31,16 @@ class Filter<T> with _$Filter<T> {
     return Filter(name: name, extractOption: extractOption, options: options);
   }
 
+  bool doesObjectPassFilter(T object) {
+    final noOptionsSelected = options.none((option) => option.value);
+    if (noOptionsSelected) return true;
+    final selectedOptions = {
+      for (final option in options)
+        if (option.value) option.name,
+    };
+    return selectedOptions.contains(extractOption(object));
+  }
+
   Filter<T> copyWithOptionValue(String optionName, bool optionValue) {
     return copyWith(
       options: [
