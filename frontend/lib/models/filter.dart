@@ -1,3 +1,4 @@
+import 'package:dartx/dartx.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'filter.freezed.dart';
@@ -8,9 +9,27 @@ class Filter<T> with _$Filter<T> {
 
   const factory Filter({
     required String name,
-    required String? Function(T) retrieveOption,
+    required String? Function(T) extractOption,
     required List<({String name, bool value})> options,
   }) = _Filter<T>;
+
+  factory Filter.fromObjects({
+    required String name,
+    required String? Function(T) extractOption,
+    required List<T> objects,
+  }) {
+    final names = <String>{};
+    for (final artefact in objects) {
+      final name = extractOption(artefact);
+      if (name != null) names.add(name);
+    }
+
+    final options = [
+      for (final name in names.toList().sorted()) (name: name, value: false),
+    ];
+
+    return Filter(name: name, extractOption: extractOption, options: options);
+  }
 
   Filter<T> copyWithOptionValue(String optionName, bool optionValue) {
     return copyWith(

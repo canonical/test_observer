@@ -33,7 +33,7 @@ bool _artefactPassesFilter(Artefact artefact, Filter<Artefact> filter) {
     for (final option in filter.options)
       if (option.value) option.name,
   };
-  return selectedOptions.contains(filter.retrieveOption(artefact));
+  return selectedOptions.contains(filter.extractOption(artefact));
 }
 
 bool _artefactPassesSearch(Artefact artefact, String searchValue) {

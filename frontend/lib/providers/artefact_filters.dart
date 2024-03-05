@@ -1,4 +1,3 @@
-import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
@@ -13,19 +12,20 @@ part 'artefact_filters.g.dart';
 class ArtefactFilters extends _$ArtefactFilters {
   @override
   Filters<Artefact> build(FamilyName family) {
-    final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
+    final artefacts =
+        ref.watch(familyArtefactsProvider(family)).requireValue.values.toList();
 
     return Filters<Artefact>(
       filters: [
-        Filter<Artefact>(
+        Filter<Artefact>.fromObjects(
           name: 'Assignee',
-          retrieveOption: _extractAssigneeName,
-          options: _extractOptions(artefacts, _extractAssigneeName),
+          extractOption: _extractAssigneeName,
+          objects: artefacts,
         ),
-        Filter<Artefact>(
+        Filter<Artefact>.fromObjects(
           name: 'Status',
-          retrieveOption: _extractStatusName,
-          options: _extractOptions(artefacts, _extractStatusName),
+          extractOption: _extractStatusName,
+          objects: artefacts,
         ),
       ],
     );
@@ -45,19 +45,4 @@ class ArtefactFilters extends _$ArtefactFilters {
 
   String? _extractAssigneeName(Artefact artefact) => artefact.assignee?.name;
   String _extractStatusName(Artefact artefact) => artefact.status.name;
-
-  List<({String name, bool value})> _extractOptions(
-    Map<int, Artefact> artefacts,
-    String? Function(Artefact) extractor,
-  ) {
-    final names = <dynamic>{};
-    for (final artefact in artefacts.values) {
-      final name = extractor(artefact);
-      if (name != null) names.add(name);
-    }
-
-    return [
-      for (final name in names.toList().sorted()) (name: name, value: false),
-    ];
-  }
 }
