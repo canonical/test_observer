@@ -16,7 +16,7 @@ Map<int, Artefact> filteredFamilyArtefacts(
   FamilyName family,
 ) {
   final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
-  final filters = ref.watch(artefactFiltersProvider(family));
+  final filters = ref.watch(artefactFiltersProvider(family)).filters;
   final searchValue = ref.watch(searchValueProvider);
 
   return artefacts.filterValues(
@@ -26,7 +26,7 @@ Map<int, Artefact> filteredFamilyArtefacts(
   );
 }
 
-bool _artefactPassesFilter(Artefact artefact, Filter filter) {
+bool _artefactPassesFilter(Artefact artefact, Filter<Artefact> filter) {
   final noOptionsSelected = filter.options.none((option) => option.value);
   if (noOptionsSelected) return true;
   final selectedOptions = {

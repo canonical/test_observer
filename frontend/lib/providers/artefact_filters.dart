@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/artefact.dart';
 import '../models/family_name.dart';
 import '../models/filter.dart';
+import '../models/filters.dart';
 import 'family_artefacts.dart';
 
 part 'artefact_filters.g.dart';
@@ -11,21 +12,23 @@ part 'artefact_filters.g.dart';
 @riverpod
 class ArtefactFilters extends _$ArtefactFilters {
   @override
-  List<Filter<Artefact>> build(FamilyName family) {
+  Filters<Artefact> build(FamilyName family) {
     final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
 
-    return [
-      Filter<Artefact>(
-        name: 'Assignee',
-        retrieveOption: _extractAssigneeName,
-        options: _extractOptions(artefacts, _extractAssigneeName),
-      ),
-      Filter<Artefact>(
-        name: 'Status',
-        retrieveOption: _extractStatusName,
-        options: _extractOptions(artefacts, _extractStatusName),
-      ),
-    ];
+    return Filters<Artefact>(
+      filters: [
+        Filter<Artefact>(
+          name: 'Assignee',
+          retrieveOption: _extractAssigneeName,
+          options: _extractOptions(artefacts, _extractAssigneeName),
+        ),
+        Filter<Artefact>(
+          name: 'Status',
+          retrieveOption: _extractStatusName,
+          options: _extractOptions(artefacts, _extractStatusName),
+        ),
+      ],
+    );
   }
 
   void handleFilterOptionChange(
@@ -33,15 +36,11 @@ class ArtefactFilters extends _$ArtefactFilters {
     String optionName,
     bool optionValue,
   ) {
-    final filters = state;
-    final newFilters = [
-      for (final filter in filters)
-        if (filter.name == filterName)
-          filter.copyWithOptionValue(optionName, optionValue)
-        else
-          filter,
-    ];
-    state = newFilters;
+    state = state.copyWithFilterOptionValue(
+      filterName,
+      optionName,
+      optionValue,
+    );
   }
 
   String? _extractAssigneeName(Artefact artefact) => artefact.assignee?.name;

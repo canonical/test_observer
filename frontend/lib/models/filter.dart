@@ -8,9 +8,9 @@ class Filter<T> with _$Filter<T> {
 
   const factory Filter({
     required String name,
-    required Function(T) retrieveOption,
+    required String? Function(T) retrieveOption,
     required List<({String name, bool value})> options,
-  }) = _Filter;
+  }) = _Filter<T>;
 
   Filter<T> copyWithOptionValue(String optionName, bool optionValue) {
     return copyWith(

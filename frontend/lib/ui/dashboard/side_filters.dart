@@ -14,7 +14,7 @@ class SideFilters extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final family = AppRoutes.familyFromContext(context);
-    final filters = ref.watch(artefactFiltersProvider(family));
+    final filters = ref.watch(artefactFiltersProvider(family)).filters;
 
     return SizedBox(
       width: 300,
