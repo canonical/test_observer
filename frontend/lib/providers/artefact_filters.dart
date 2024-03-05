@@ -1,3 +1,4 @@
+import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
@@ -16,13 +17,13 @@ class ArtefactFilters extends _$ArtefactFilters {
     return [
       Filter<Artefact>(
         name: 'Assignee',
-        retrieveOption: (artefact) => artefact.assignee?.name,
-        options: _extractAssigneeOptions(artefacts),
+        retrieveOption: _extractAssigneeName,
+        options: _extractOptions(artefacts, _extractAssigneeName),
       ),
       Filter<Artefact>(
         name: 'Status',
-        retrieveOption: (artefact) => artefact.status.name,
-        options: _extractStatusOptions(artefacts),
+        retrieveOption: _extractStatusName,
+        options: _extractOptions(artefacts, _extractStatusName),
       ),
     ];
   }
@@ -43,23 +44,21 @@ class ArtefactFilters extends _$ArtefactFilters {
     state = newFilters;
   }
 
-  List<({String name, bool value})> _extractAssigneeOptions(
-    Map<int, Artefact> artefacts,
-  ) {
-    final assigneeNames = {
-      for (final a in artefacts.values)
-        if (a.assignee != null) a.assignee!.name,
-    }.toList();
-    assigneeNames.sort();
-    return [for (final name in assigneeNames) (name: name, value: false)];
-  }
+  String? _extractAssigneeName(Artefact artefact) => artefact.assignee?.name;
+  String _extractStatusName(Artefact artefact) => artefact.status.name;
 
-  List<({String name, bool value})> _extractStatusOptions(
+  List<({String name, bool value})> _extractOptions(
     Map<int, Artefact> artefacts,
+    String? Function(Artefact) extractor,
   ) {
-    final assigneeNames =
-        {for (final a in artefacts.values) a.status.name}.toList();
-    assigneeNames.sort();
-    return [for (final name in assigneeNames) (name: name, value: false)];
+    final names = <dynamic>{};
+    for (final artefact in artefacts.values) {
+      final name = extractor(artefact);
+      if (name != null) names.add(name);
+    }
+
+    return [
+      for (final name in names.toList().sorted()) (name: name, value: false),
+    ];
   }
 }
