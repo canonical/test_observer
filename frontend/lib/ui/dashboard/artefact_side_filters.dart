@@ -22,13 +22,9 @@ class ArtefactSideFilters extends ConsumerWidget {
           const SizedBox(height: SideFilters.spacingBetweenFilters),
           SideFilters(
             filters: filters,
-            onOptionChanged: (filterName, optionName, value) => ref
+            onOptionChanged: ref
                 .read(artefactFiltersProvider(family).notifier)
-                .handleFilterOptionChange(
-                  filterName,
-                  optionName,
-                  value,
-                ),
+                .handleFilterOptionChange,
           ),
         ],
       ),

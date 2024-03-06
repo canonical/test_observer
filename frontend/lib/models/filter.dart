@@ -19,8 +19,8 @@ class Filter<T> with _$Filter<T> {
     required List<T> objects,
   }) {
     final names = <String>{};
-    for (final artefact in objects) {
-      final name = extractOption(artefact);
+    for (final object in objects) {
+      final name = extractOption(object);
       if (name != null) names.add(name);
     }
 
