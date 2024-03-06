@@ -51,6 +51,18 @@ enum TestExecutionStatus {
   @JsonValue('PASSED')
   passed;
 
+  bool get isCompleted {
+    switch (this) {
+      case notStarted:
+      case inProgress:
+      case notTested:
+        return false;
+      case passed:
+      case failed:
+        return true;
+    }
+  }
+
   String get name {
     switch (this) {
       case notStarted:

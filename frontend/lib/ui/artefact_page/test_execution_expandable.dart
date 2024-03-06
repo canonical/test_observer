@@ -50,14 +50,27 @@ class TestExecutionExpandable extends ConsumerWidget {
           ),
         ],
       ),
-      children: TestResultStatus.values
-          .map(
-            (status) => TestResultsFilterExpandable(
-              statusToFilterBy: status,
-              testExecutionId: testExecution.id,
-            ),
-          )
-          .toList(),
+      children: (!testExecution.status.isCompleted)
+          ? [
+              Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    'This test execution is not completed. No test results are available yet.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+              ),
+            ]
+          : TestResultStatus.values
+              .map(
+                (status) => TestResultsFilterExpandable(
+                  statusToFilterBy: status,
+                  testExecutionId: testExecution.id,
+                ),
+              )
+              .toList(),
     );
   }
 }
