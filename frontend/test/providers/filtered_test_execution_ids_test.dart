@@ -51,6 +51,25 @@ void main() {
 
     expect(filteredTestExecutionIds, {1});
   });
+
+  test('it filters test executions by test execution status', () async {
+    final apiMock = ApiRepositoryMock();
+    final container = createContainer(
+      overrides: [apiProvider.overrideWith((ref) => apiMock)],
+    );
+    const artefactId = 1;
+
+    // Wait on artefact builds to load cause test execution filters uses requireValue
+    await container.read(artefactBuildsProvider(artefactId).future);
+
+    container
+        .read(testExecutionFiltersProvider(artefactId).notifier)
+        .handleFilterOptionChange('Execution status', 'Failed', true);
+    final filteredTestExecutionIds =
+        container.read(filteredTestExecutionIdsProvider(artefactId));
+
+    expect(filteredTestExecutionIds, {1});
+  });
 }
 
 class ApiRepositoryMock extends Mock implements ApiRepository {
@@ -59,12 +78,17 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     return [
       dummyArtefactBuild.copyWith(
         testExecutions: [
-          dummyTestExecution.copyWith(id: 1, reviewDecision: []),
+          dummyTestExecution.copyWith(
+            id: 1,
+            reviewDecision: [],
+            status: TestExecutionStatus.failed,
+          ),
           dummyTestExecution.copyWith(
             id: 2,
             reviewDecision: [
               TestExecutionReviewDecision.approvedAllTestsPass,
             ],
+            status: TestExecutionStatus.passed,
           ),
         ],
       ),

@@ -25,6 +25,11 @@ class TestExecutionFilters extends _$TestExecutionFilters {
               te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
           objects: testExecutions,
         ),
+        Filter<TestExecution>.fromObjects(
+          name: 'Execution status',
+          extractOption: (te) => te.status.name,
+          objects: testExecutions,
+        ),
       ],
     );
   }
