@@ -8,8 +8,11 @@ import '../spacing.dart';
 import 'test_execution_expandable.dart';
 
 class ArtefactBuildExpandable extends ConsumerWidget {
-  const ArtefactBuildExpandable(
-      {super.key, required this.artefactBuild, required this.artefactId});
+  const ArtefactBuildExpandable({
+    super.key,
+    required this.artefactBuild,
+    required this.artefactId,
+  });
 
   final ArtefactBuild artefactBuild;
   final int artefactId;
