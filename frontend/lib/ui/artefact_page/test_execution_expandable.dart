@@ -13,7 +13,7 @@ class TestExecutionExpandable extends ConsumerWidget {
 
   final TestExecution testExecution;
 
-  Row getTestExecutionTitle(BuildContext context) {
+  Row getTestExecutionTileTitle(BuildContext context) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
 
@@ -54,7 +54,7 @@ class TestExecutionExpandable extends ConsumerWidget {
       return ListTile(
         onTap: () {},
         shape: const Border(),
-        title: getTestExecutionTitle(context),
+        title: getTestExecutionTileTitle(context),
       );
     }
 
@@ -62,7 +62,7 @@ class TestExecutionExpandable extends ConsumerWidget {
       controlAffinity: ListTileControlAffinity.leading,
       childrenPadding: const EdgeInsets.only(left: Spacing.level4),
       shape: const Border(),
-      title: getTestExecutionTitle(context),
+      title: getTestExecutionTileTitle(context),
       children: TestResultStatus.values
           .map(
             (status) => TestResultsFilterExpandable(
