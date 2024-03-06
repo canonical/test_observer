@@ -8,12 +8,13 @@ import '../spacing.dart';
 import 'test_execution_review.dart';
 import 'test_result_filter_expandable.dart';
 
-class TestExecutionExpandable extends ConsumerWidget {
-  const TestExecutionExpandable({super.key, required this.testExecution});
+class _TestExecutionTileTitle extends StatelessWidget {
+  const _TestExecutionTileTitle({required this.testExecution});
 
   final TestExecution testExecution;
 
-  Row getTestExecutionTileTitle(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
 
@@ -27,26 +28,28 @@ class TestExecutionExpandable extends ConsumerWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const Spacer(),
-        Row(
-          children: [
-            TestExecutionReviewButton(testExecution: testExecution),
-            const SizedBox(width: Spacing.level4),
-            if (ciLink != null)
-              InlineUrlText(
-                url: ciLink,
-                urlText: 'CI',
-              ),
-            const SizedBox(width: Spacing.level3),
-            if (c3Link != null)
-              InlineUrlText(
-                url: c3Link,
-                urlText: 'C3',
-              ),
-          ],
-        ),
+        TestExecutionReviewButton(testExecution: testExecution),
+        const SizedBox(width: Spacing.level4),
+        if (ciLink != null)
+          InlineUrlText(
+            url: ciLink,
+            urlText: 'CI',
+          ),
+        const SizedBox(width: Spacing.level3),
+        if (c3Link != null)
+          InlineUrlText(
+            url: c3Link,
+            urlText: 'C3',
+          ),
       ],
     );
   }
+}
+
+class TestExecutionExpandable extends ConsumerWidget {
+  const TestExecutionExpandable({super.key, required this.testExecution});
+
+  final TestExecution testExecution;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,7 +57,7 @@ class TestExecutionExpandable extends ConsumerWidget {
       return ListTile(
         onTap: () {},
         shape: const Border(),
-        title: getTestExecutionTileTitle(context),
+        title: _TestExecutionTileTitle(testExecution: testExecution),
       );
     }
 
@@ -62,7 +65,7 @@ class TestExecutionExpandable extends ConsumerWidget {
       controlAffinity: ListTileControlAffinity.leading,
       childrenPadding: const EdgeInsets.only(left: Spacing.level4),
       shape: const Border(),
-      title: getTestExecutionTileTitle(context),
+      title: _TestExecutionTileTitle(testExecution: testExecution),
       children: TestResultStatus.values
           .map(
             (status) => TestResultsFilterExpandable(
