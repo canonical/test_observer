@@ -13,64 +13,64 @@ class TestExecutionExpandable extends ConsumerWidget {
 
   final TestExecution testExecution;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Row getTestExecutionTitle(BuildContext context) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
+
+    return Row(
+      children: [
+        if (!testExecution.status.isCompleted) const SizedBox(width: 36.0),
+        testExecution.status.icon,
+        const SizedBox(width: Spacing.level4),
+        Text(
+          testExecution.environment.name,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const Spacer(),
+        Row(
+          children: [
+            TestExecutionReviewButton(testExecution: testExecution),
+            const SizedBox(width: Spacing.level4),
+            if (ciLink != null)
+              InlineUrlText(
+                url: ciLink,
+                urlText: 'CI',
+              ),
+            const SizedBox(width: Spacing.level3),
+            if (c3Link != null)
+              InlineUrlText(
+                url: c3Link,
+                urlText: 'C3',
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!testExecution.status.isCompleted) {
+      return ListTile(
+        onTap: () {},
+        shape: const Border(),
+        title: getTestExecutionTitle(context),
+      );
+    }
 
     return ExpansionTile(
       controlAffinity: ListTileControlAffinity.leading,
       childrenPadding: const EdgeInsets.only(left: Spacing.level4),
       shape: const Border(),
-      title: Row(
-        children: [
-          testExecution.status.icon,
-          const SizedBox(width: Spacing.level4),
-          Text(
-            testExecution.environment.name,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              TestExecutionReviewButton(testExecution: testExecution),
-              const SizedBox(width: Spacing.level4),
-              if (ciLink != null)
-                InlineUrlText(
-                  url: ciLink,
-                  urlText: 'CI',
-                ),
-              const SizedBox(width: Spacing.level3),
-              if (c3Link != null)
-                InlineUrlText(
-                  url: c3Link,
-                  urlText: 'C3',
-                ),
-            ],
-          ),
-        ],
-      ),
-      children: (testExecution.status.isCompleted)
-          ? TestResultStatus.values
-              .map(
-                (status) => TestResultsFilterExpandable(
-                  statusToFilterBy: status,
-                  testExecutionId: testExecution.id,
-                ),
-              )
-              .toList()
-          : [
-              Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    'This test execution is not completed. No test results are available yet.',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-              ),
-            ],
+      title: getTestExecutionTitle(context),
+      children: TestResultStatus.values
+          .map(
+            (status) => TestResultsFilterExpandable(
+              statusToFilterBy: status,
+              testExecutionId: testExecution.id,
+            ),
+          )
+          .toList(),
     );
   }
 }
