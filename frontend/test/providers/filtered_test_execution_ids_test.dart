@@ -4,7 +4,7 @@ import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/test_execution.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/artefact_builds.dart';
-import 'package:testcase_dashboard/providers/filtered_test_executions.dart';
+import 'package:testcase_dashboard/providers/filtered_test_execution_ids.dart';
 import 'package:testcase_dashboard/providers/test_execution_filters.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 
@@ -22,15 +22,15 @@ void main() {
     // Wait on artefact builds to load cause test execution filters uses requireValue
     await container.read(artefactBuildsProvider(artefactId).future);
 
-    final filteredTestExecutions =
-        container.read(filteredTestExecutionsProvider(artefactId));
+    final filteredTestExecutionIds =
+        container.read(filteredTestExecutionIdsProvider(artefactId));
     final builds = await apiMock.getArtefactBuilds(artefactId);
-    final allTestExecutions = [
+    final allTestExecutionIds = {
       for (final build in builds)
-        for (final testExecution in build.testExecutions) testExecution,
-    ];
+        for (final testExecution in build.testExecutions) testExecution.id,
+    };
 
-    expect(filteredTestExecutions, allTestExecutions);
+    expect(filteredTestExecutionIds, allTestExecutionIds);
   });
 
   test('it filters test executions by review status', () async {
@@ -46,13 +46,10 @@ void main() {
     container
         .read(testExecutionFiltersProvider(artefactId).notifier)
         .handleFilterOptionChange('Review status', 'Undecided', true);
-    final filteredTestExecutions =
-        container.read(filteredTestExecutionsProvider(artefactId));
+    final filteredTestExecutionIds =
+        container.read(filteredTestExecutionIdsProvider(artefactId));
 
-    expect(
-      filteredTestExecutions,
-      [dummyTestExecution.copyWith(reviewDecision: [])],
-    );
+    expect(filteredTestExecutionIds, {1});
   });
 }
 
@@ -62,7 +59,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     return [
       dummyArtefactBuild.copyWith(
         testExecutions: [
-          dummyTestExecution.copyWith(reviewDecision: []),
+          dummyTestExecution.copyWith(id: 1, reviewDecision: []),
           dummyTestExecution.copyWith(
             id: 2,
             reviewDecision: [

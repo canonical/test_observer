@@ -1,15 +1,14 @@
 import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/test_execution.dart';
 import 'artefact_builds.dart';
 import 'test_execution_filters.dart';
 
-part 'filtered_test_executions.g.dart';
+part 'filtered_test_execution_ids.g.dart';
 
 @riverpod
-List<TestExecution> filteredTestExecutions(
-  FilteredTestExecutionsRef ref,
+Set<int> filteredTestExecutionIds(
+  FilteredTestExecutionIdsRef ref,
   int artefactId,
 ) {
   final builds = ref.watch(artefactBuildsProvider(artefactId)).requireValue;
@@ -21,5 +20,6 @@ List<TestExecution> filteredTestExecutions(
 
   return testExecutions
       .filter((testExecution) => filters.doesObjectPassFilters(testExecution))
-      .toList();
+      .map((te) => te.id)
+      .toSet();
 }
