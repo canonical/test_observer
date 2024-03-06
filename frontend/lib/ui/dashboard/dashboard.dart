@@ -4,19 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../providers/family_artefacts.dart';
-import '../../providers/side_filters_visibility.dart';
+import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import 'dashboard_body.dart';
 import 'dashboard_header.dart';
-import 'side_filters.dart';
+import 'artefact_side_filters.dart';
 
 class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final showFilters = ref.watch(sideFiltersVisibilityProvider);
+    final showFilters = ref.watch(artefactSideFiltersVisibilityProvider);
     final family = AppRoutes.familyFromContext(context);
 
     return Padding(
@@ -37,13 +37,13 @@ class Dashboard extends ConsumerWidget {
                   YaruOptionButton(
                     child: const Icon(Icons.filter_alt),
                     onPressed: () => ref
-                        .read(sideFiltersVisibilityProvider.notifier)
+                        .read(artefactSideFiltersVisibilityProvider.notifier)
                         .set(!showFilters),
                   ),
                   Visibility(
                     visible: showFilters,
                     maintainState: true,
-                    child: const SideFilters(),
+                    child: const ArtefactSideFilters(),
                   ),
                   const SizedBox(width: Spacing.level5),
                   const Expanded(child: DashboardBody()),

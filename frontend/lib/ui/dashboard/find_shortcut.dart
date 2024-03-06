@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/side_filters_visibility.dart';
+import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
 import 'artefact_search_bar.dart';
 
@@ -23,7 +23,7 @@ class FindShortcut extends ConsumerWidget {
           actions: {
             FindIntent: FindAction(
               setFiltersVisibility:
-                  ref.read(sideFiltersVisibilityProvider.notifier).set,
+                  ref.read(artefactSideFiltersVisibilityProvider.notifier).set,
             ),
           },
           child: child,

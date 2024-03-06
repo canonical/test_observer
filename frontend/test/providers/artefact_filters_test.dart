@@ -20,7 +20,7 @@ void main() {
     // Wait on artefacts to load cause artefactFiltersProvider uses requireValue
     await container.read(familyArtefactsProvider(family).future);
 
-    final filters = container.read(artefactFiltersProvider(family));
+    final filters = container.read(artefactFiltersProvider(family)).filters;
 
     expect(filters[0].name, 'Assignee');
     expect(

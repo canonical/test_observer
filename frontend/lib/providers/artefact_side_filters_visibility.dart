@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'side_filters_visibility.g.dart';
+part 'artefact_side_filters_visibility.g.dart';
 
 @riverpod
-class SideFiltersVisibility extends _$SideFiltersVisibility {
+class ArtefactSideFiltersVisibility extends _$ArtefactSideFiltersVisibility {
   @override
   bool build() {
     return false;
