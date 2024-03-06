@@ -50,8 +50,16 @@ class TestExecutionExpandable extends ConsumerWidget {
           ),
         ],
       ),
-      children: (!testExecution.status.isCompleted)
-          ? [
+      children: (testExecution.status.isCompleted)
+          ? TestResultStatus.values
+              .map(
+                (status) => TestResultsFilterExpandable(
+                  statusToFilterBy: status,
+                  testExecutionId: testExecution.id,
+                ),
+              )
+              .toList()
+          : [
               Align(
                 alignment: Alignment.topLeft,
                 child: Padding(
@@ -62,15 +70,7 @@ class TestExecutionExpandable extends ConsumerWidget {
                   ),
                 ),
               ),
-            ]
-          : TestResultStatus.values
-              .map(
-                (status) => TestResultsFilterExpandable(
-                  statusToFilterBy: status,
-                  testExecutionId: testExecution.id,
-                ),
-              )
-              .toList(),
+            ],
     );
   }
 }
