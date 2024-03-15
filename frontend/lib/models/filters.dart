@@ -23,7 +23,15 @@ class Filters<T> with _$Filters<T> {
       filters: [
         for (final filter in filters)
           if (filter.name == filterName)
-            filter.copyWithOptionValue(optionName, optionValue)
+            if (optionValue)
+              filter.copyWith(
+                selectedOptions: filter.selectedOptions.union({optionName}),
+              )
+            else
+              filter.copyWith(
+                selectedOptions:
+                    filter.selectedOptions.difference({optionName}),
+              )
           else
             filter,
       ],
@@ -44,7 +52,7 @@ class Filters<T> with _$Filters<T> {
     final newFilters = filters.map((filter) {
       final values = filterValues[filter.name];
       if (values == null) return filter;
-      return filter.copyWithOptionValues(values);
+      return filter.copyWith(selectedOptions: values);
     });
 
     return copyWith(filters: newFilters.toList());
@@ -53,11 +61,9 @@ class Filters<T> with _$Filters<T> {
   Map<String, List<String>> toQueryParams() {
     final queryParams = <String, List<String>>{};
     for (final filter in filters) {
-      final selectedOptions =
-          filter.options.filter((option) => option.value).toList();
-      if (selectedOptions.isNotEmpty) {
+      if (filter.selectedOptions.isNotEmpty) {
         queryParams[filter.name.urlEncode] =
-            selectedOptions.map((option) => option.name.urlEncode).toList();
+            filter.selectedOptions.map((option) => option.urlEncode).toList();
       }
     }
     return queryParams;
@@ -67,17 +73,28 @@ class Filters<T> with _$Filters<T> {
 Filters<Artefact> getArtefactFilters(
   List<Artefact> artefactsToFillOptionsWith,
 ) {
+  assigneeExtractor(Artefact artefact) => artefact.assignee?.name;
+  statusExtractor(Artefact artefact) => artefact.status.name;
+
+  final assigneeOptions = <String>{};
+  final statusOptions = <String>{};
+  for (final artefact in artefactsToFillOptionsWith) {
+    final assignee = assigneeExtractor(artefact);
+    if (assignee != null) assigneeOptions.add(assignee);
+    statusOptions.add(statusExtractor(artefact));
+  }
+
   return Filters<Artefact>(
     filters: [
-      Filter<Artefact>.fromObjects(
+      Filter<Artefact>(
         name: 'Assignee',
-        extractOption: (artefact) => artefact.assignee?.name,
-        objects: artefactsToFillOptionsWith,
+        extractOption: assigneeExtractor,
+        availableOptions: assigneeOptions.toList()..sort(),
       ),
-      Filter<Artefact>.fromObjects(
+      Filter<Artefact>(
         name: 'Status',
-        extractOption: (artefact) => artefact.status.name,
-        objects: artefactsToFillOptionsWith,
+        extractOption: statusExtractor,
+        availableOptions: statusOptions.toList()..sort(),
       ),
     ],
   );

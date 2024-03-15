@@ -17,18 +17,28 @@ class TestExecutionFilters extends _$TestExecutionFilters {
         for (final testExecution in build.testExecutions) testExecution,
     ];
 
+    decisionExtractor(TestExecution te) =>
+        te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed';
+    statusExtractor(TestExecution te) => te.status.name;
+
+    final decisionOptions = <String>{};
+    final statusOptions = <String>{};
+    for (final te in testExecutions) {
+      decisionOptions.add(decisionExtractor(te));
+      statusOptions.add(statusExtractor(te));
+    }
+
     return Filters<TestExecution>(
       filters: [
-        Filter<TestExecution>.fromObjects(
+        Filter<TestExecution>(
           name: 'Review status',
-          extractOption: (te) =>
-              te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
-          objects: testExecutions,
+          extractOption: decisionExtractor,
+          availableOptions: decisionOptions.toList()..sort(),
         ),
-        Filter<TestExecution>.fromObjects(
+        Filter<TestExecution>(
           name: 'Execution status',
-          extractOption: (te) => te.status.name,
-          objects: testExecutions,
+          extractOption: statusExtractor,
+          availableOptions: statusOptions.toList()..sort(),
         ),
       ],
     );
