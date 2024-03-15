@@ -55,14 +55,18 @@ class AppRoutes {
   static const debs = '/debs';
 
   static FamilyName familyFromContext(BuildContext context) {
-    final route = GoRouterState.of(context).fullPath!;
+    return familyFromUri(GoRouterState.of(context).uri);
+  }
 
-    if (route.startsWith(snaps)) {
+  static FamilyName familyFromUri(Uri uri) {
+    final path = uri.path;
+
+    if (path.startsWith(snaps)) {
       return FamilyName.snap;
-    } else if (route.startsWith(debs)) {
+    } else if (path.startsWith(debs)) {
       return FamilyName.deb;
     } else {
-      throw Exception('Unknown route: $route');
+      throw Exception('Unknown route: $path');
     }
   }
 
