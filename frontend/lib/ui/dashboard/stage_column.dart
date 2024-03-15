@@ -1,10 +1,10 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/stage_name.dart';
 import '../../providers/filtered_family_artefacts.dart';
-import '../../routing.dart';
 import '../spacing.dart';
 import 'artefact_card.dart';
 
@@ -15,10 +15,10 @@ class StageColumn extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromContext(context);
+    final pageUri = GoRouterState.of(context).uri;
     final artefacts = [
       for (final artefact
-          in ref.watch(filteredFamilyArtefactsProvider(family)).values)
+          in ref.watch(filteredFamilyArtefactsProvider(pageUri)).values)
         if (artefact.stage == stage) artefact,
     ];
 

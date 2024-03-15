@@ -52,4 +52,13 @@ class Filter<T> with _$Filter<T> {
       ],
     );
   }
+
+  Filter<T> copyWithOptionValues(Set<String> values) {
+    return copyWith(
+      options: [
+        for (final option in options)
+          (name: option.name, value: values.contains(option.name)),
+      ],
+    );
+  }
 }
