@@ -2,8 +2,8 @@ import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
-import '../models/family_name.dart';
 import '../models/filters.dart';
+import '../routing.dart';
 import 'family_artefacts.dart';
 
 part 'filtered_family_artefacts.g.dart';
@@ -13,8 +13,8 @@ Map<int, Artefact> filteredFamilyArtefacts(
   FilteredFamilyArtefactsRef ref,
   Uri pageUri,
 ) {
-  final artefacts =
-      ref.watch(familyArtefactsProvider(FamilyName.snap)).requireValue;
+  final family = AppRoutes.familyFromUri(pageUri);
+  final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
   final filters =
       emptyArtefactFilters.copyWithQueryParams(pageUri.queryParametersAll);
   final searchValue = pageUri.queryParameters['q'] ?? '';
