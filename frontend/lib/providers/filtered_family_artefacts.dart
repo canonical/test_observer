@@ -15,8 +15,8 @@ Map<int, Artefact> filteredFamilyArtefacts(
 ) {
   final artefacts =
       ref.watch(familyArtefactsProvider(FamilyName.snap)).requireValue;
-  final filters = getArtefactFilters(artefacts.values.toList())
-      .copyWithQueryParams(pageUri.queryParametersAll);
+  final filters =
+      emptyArtefactFilters.copyWithQueryParams(pageUri.queryParametersAll);
   final searchValue = pageUri.queryParameters['q'] ?? '';
 
   return artefacts.filterValues(

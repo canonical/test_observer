@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'artefact.dart';
 import 'filter.dart';
+import 'test_execution.dart';
 
 part 'filters.freezed.dart';
 
@@ -68,34 +69,45 @@ class Filters<T> with _$Filters<T> {
     }
     return queryParams;
   }
-}
 
-Filters<Artefact> getArtefactFilters(
-  List<Artefact> artefactsToFillOptionsWith,
-) {
-  assigneeExtractor(Artefact artefact) => artefact.assignee?.name;
-  statusExtractor(Artefact artefact) => artefact.status.name;
-
-  final assigneeOptions = <String>{};
-  final statusOptions = <String>{};
-  for (final artefact in artefactsToFillOptionsWith) {
-    final assignee = assigneeExtractor(artefact);
-    if (assignee != null) assigneeOptions.add(assignee);
-    statusOptions.add(statusExtractor(artefact));
+  Filters<T> copyWithOptionsExtracted(List<T> objects) {
+    final newFilters = <Filter<T>>[];
+    for (final filter in filters) {
+      final options = <String>{};
+      for (final object in objects) {
+        final option = filter.extractOption(object);
+        if (option != null) options.add(option);
+      }
+      newFilters
+          .add(filter.copyWith(availableOptions: options.toList()..sort()));
+    }
+    return copyWith(filters: newFilters);
   }
-
-  return Filters<Artefact>(
-    filters: [
-      Filter<Artefact>(
-        name: 'Assignee',
-        extractOption: assigneeExtractor,
-        availableOptions: assigneeOptions.toList()..sort(),
-      ),
-      Filter<Artefact>(
-        name: 'Status',
-        extractOption: statusExtractor,
-        availableOptions: statusOptions.toList()..sort(),
-      ),
-    ],
-  );
 }
+
+final emptyArtefactFilters = Filters<Artefact>(
+  filters: [
+    Filter<Artefact>(
+      name: 'Assignee',
+      extractOption: (artefact) => artefact.assignee?.name,
+    ),
+    Filter<Artefact>(
+      name: 'Status',
+      extractOption: (artefact) => artefact.status.name,
+    ),
+  ],
+);
+
+final emptyTestExecutionFilters = Filters<TestExecution>(
+  filters: [
+    Filter<TestExecution>(
+      name: 'Review status',
+      extractOption: (te) =>
+          te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
+    ),
+    Filter<TestExecution>(
+      name: 'Execution status',
+      extractOption: (te) => te.status.name,
+    ),
+  ],
+);

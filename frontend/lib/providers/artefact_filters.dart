@@ -19,9 +19,9 @@ class ArtefactFilters extends _$ArtefactFilters {
     final artefacts =
         ref.watch(familyArtefactsProvider(family)).requireValue.values.toList();
 
-    final emptyFilters = getArtefactFilters(artefacts);
-
-    return emptyFilters.copyWithQueryParams(pageUri.queryParametersAll);
+    return emptyArtefactFilters
+        .copyWithOptionsExtracted(artefacts)
+        .copyWithQueryParams(pageUri.queryParametersAll);
   }
 
   void handleFilterOptionChange(
