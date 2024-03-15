@@ -43,17 +43,14 @@ class Filters<T> with _$Filters<T> {
       filters.all((filter) => filter.doesObjectPassFilter(object));
 
   Filters<T> copyWithQueryParams(Map<String, List<String>> queryParams) {
-    final filterValues = queryParams.map(
-      (filterName, filterValues) => MapEntry(
-        filterName.urlDecode,
-        filterValues.map((value) => value.urlDecode).toSet(),
-      ),
-    );
-
     final newFilters = filters.map((filter) {
-      final values = filterValues[filter.name];
-      if (values == null) return filter;
-      return filter.copyWith(selectedOptions: values);
+      final values = queryParams[filter.name]?.toSet();
+      if (values == null || values.isEmpty) return filter;
+      return filter.copyWith(
+        selectedOptions: values.toSet(),
+        availableOptions: filter.availableOptions.toSet().union(values).toList()
+          ..sort(),
+      );
     });
 
     return copyWith(filters: newFilters.toList());
@@ -63,8 +60,7 @@ class Filters<T> with _$Filters<T> {
     final queryParams = <String, List<String>>{};
     for (final filter in filters) {
       if (filter.selectedOptions.isNotEmpty) {
-        queryParams[filter.name.urlEncode] =
-            filter.selectedOptions.map((option) => option.urlEncode).toList();
+        queryParams[filter.name] = filter.selectedOptions.toList();
       }
     }
     return queryParams;
