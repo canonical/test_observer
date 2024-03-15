@@ -32,9 +32,10 @@ class ArtefactSideFilters extends ConsumerWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
+                final searchValue = ref.read(searchValueProvider);
                 final queryParams = {
+                  if (searchValue.isNotEmpty) 'q': searchValue,
                   ...ref.read(artefactFiltersProvider(pageUri)).toQueryParams(),
-                  'q': ref.read(searchValueProvider),
                 };
                 context.go(
                   pageUri.replace(queryParameters: queryParams).toString(),
