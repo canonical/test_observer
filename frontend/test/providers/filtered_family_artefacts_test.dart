@@ -5,9 +5,8 @@ import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/family_artefacts.dart';
 import 'package:testcase_dashboard/providers/filtered_family_artefacts.dart';
-import 'package:testcase_dashboard/providers/artefact_filters.dart';
-import 'package:testcase_dashboard/providers/search_value.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
+import 'package:testcase_dashboard/routing.dart';
 
 import '../dummy_data.dart';
 import '../utilities.dart';
@@ -24,8 +23,8 @@ void main() {
     await container.read(familyArtefactsProvider(family).future);
 
     final allArtefacts = await apiMock.getFamilyArtefacts(family);
-    final filteredArtefacts =
-        container.read(filteredFamilyArtefactsProvider(family));
+    final filteredArtefacts = container
+        .read(filteredFamilyArtefactsProvider(Uri(path: AppRoutes.snaps)));
 
     expect(filteredArtefacts, allArtefacts);
   });
@@ -43,15 +42,14 @@ void main() {
     final firstArtefact =
         (await apiMock.getFamilyArtefacts(family)).values.first;
 
-    container
-        .read(artefactFiltersProvider(family).notifier)
-        .handleFilterOptionChange(
-          'Assignee',
-          firstArtefact.assignee!.name,
-          true,
-        );
-    final filteredArtefacts =
-        container.read(filteredFamilyArtefactsProvider(family));
+    final filteredArtefacts = container.read(
+      filteredFamilyArtefactsProvider(
+        Uri(
+          path: AppRoutes.snaps,
+          queryParameters: {'Assignee': firstArtefact.assignee!.name},
+        ),
+      ),
+    );
 
     expect(filteredArtefacts, {firstArtefact.id: firstArtefact});
   });
@@ -69,15 +67,14 @@ void main() {
     final firstArtefact =
         (await apiMock.getFamilyArtefacts(family)).values.first;
 
-    container
-        .read(artefactFiltersProvider(family).notifier)
-        .handleFilterOptionChange(
-          'Status',
-          firstArtefact.status.name,
-          true,
-        );
-    final filteredArtefacts =
-        container.read(filteredFamilyArtefactsProvider(family));
+    final filteredArtefacts = container.read(
+      filteredFamilyArtefactsProvider(
+        Uri(
+          path: AppRoutes.snaps,
+          queryParameters: {'Status': firstArtefact.status.name},
+        ),
+      ),
+    );
 
     expect(filteredArtefacts, {firstArtefact.id: firstArtefact});
   });
@@ -95,10 +92,14 @@ void main() {
     final firstArtefact =
         (await apiMock.getFamilyArtefacts(family)).values.first;
 
-    container.read(searchValueProvider.notifier).onChanged(firstArtefact.name);
-
-    final filteredArtefacts =
-        container.read(filteredFamilyArtefactsProvider(family));
+    final filteredArtefacts = container.read(
+      filteredFamilyArtefactsProvider(
+        Uri(
+          path: AppRoutes.snaps,
+          queryParameters: {'q': firstArtefact.name},
+        ),
+      ),
+    );
 
     expect(filteredArtefacts, {firstArtefact.id: firstArtefact});
   });

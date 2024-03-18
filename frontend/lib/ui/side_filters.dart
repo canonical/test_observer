@@ -55,18 +55,18 @@ class _SideFilter extends StatelessWidget {
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       children: [
-        for (final option in filter.options)
+        for (final option in filter.detectedOptions)
           Row(
             children: [
               YaruCheckbox(
-                value: option.value,
+                value: filter.selectedOptions.contains(option),
                 onChanged: (newValue) {
                   if (newValue != null) {
-                    onOptionChanged(filter.name, option.name, newValue);
+                    onOptionChanged(filter.name, option, newValue);
                   }
                 },
               ),
-              Text(option.name),
+              Text(option),
             ],
           ),
       ],

@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/filter.dart';
 import '../models/filters.dart';
 import '../models/test_execution.dart';
 import 'artefact_builds.dart';
@@ -17,21 +16,7 @@ class TestExecutionFilters extends _$TestExecutionFilters {
         for (final testExecution in build.testExecutions) testExecution,
     ];
 
-    return Filters<TestExecution>(
-      filters: [
-        Filter<TestExecution>.fromObjects(
-          name: 'Review status',
-          extractOption: (te) =>
-              te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
-          objects: testExecutions,
-        ),
-        Filter<TestExecution>.fromObjects(
-          name: 'Execution status',
-          extractOption: (te) => te.status.name,
-          objects: testExecutions,
-        ),
-      ],
-    );
+    return emptyTestExecutionFilters.copyWithOptionsExtracted(testExecutions);
   }
 
   void handleFilterOptionChange(
