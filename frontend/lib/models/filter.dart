@@ -10,7 +10,7 @@ class Filter<T> with _$Filter<T> {
     required String name,
     required String? Function(T) extractOption,
     @Default(<String>{}) Set<String> selectedOptions,
-    @Default(<String>[]) List<String> availableOptions,
+    @Default(<String>[]) List<String> detectedOptions,
   }) = _Filter<T>;
 
   bool doesObjectPassFilter(T object) {

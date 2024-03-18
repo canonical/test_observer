@@ -23,7 +23,7 @@ void main() {
         container.read(testExecutionFiltersProvider(artefactId)).filters;
 
     expect(filters[0].name, 'Review status');
-    expect(filters[0].availableOptions, {'Undecided'});
+    expect(filters[0].detectedOptions, {'Undecided'});
   });
 }
 

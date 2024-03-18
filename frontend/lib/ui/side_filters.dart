@@ -55,7 +55,7 @@ class _SideFilter extends StatelessWidget {
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       children: [
-        for (final option in filter.availableOptions)
+        for (final option in filter.detectedOptions)
           Row(
             children: [
               YaruCheckbox(

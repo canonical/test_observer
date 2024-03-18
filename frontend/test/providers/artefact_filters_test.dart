@@ -26,9 +26,9 @@ void main() {
         .filters;
 
     expect(filters[0].name, 'Assignee');
-    expect(filters[0].availableOptions, {dummyArtefact.assignee?.name});
+    expect(filters[0].detectedOptions, {dummyArtefact.assignee?.name});
     expect(filters[1].name, 'Status');
-    expect(filters[1].availableOptions, {dummyArtefact.status.name});
+    expect(filters[1].detectedOptions, {dummyArtefact.status.name});
   });
 }
 

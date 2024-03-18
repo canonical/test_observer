@@ -48,7 +48,7 @@ class Filters<T> with _$Filters<T> {
       if (values == null || values.isEmpty) return filter;
       return filter.copyWith(
         selectedOptions: values.toSet(),
-        availableOptions: filter.availableOptions.toSet().union(values).toList()
+        detectedOptions: filter.detectedOptions.toSet().union(values).toList()
           ..sort(),
       );
     });
@@ -75,7 +75,7 @@ class Filters<T> with _$Filters<T> {
         if (option != null) options.add(option);
       }
       newFilters
-          .add(filter.copyWith(availableOptions: options.toList()..sort()));
+          .add(filter.copyWith(detectedOptions: options.toList()..sort()));
     }
     return copyWith(filters: newFilters);
   }
