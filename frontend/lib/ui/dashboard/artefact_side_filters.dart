@@ -26,23 +26,16 @@ class ArtefactSideFilters extends ConsumerWidget {
             onOptionChanged: ref
                 .read(artefactFiltersProvider(pageUri).notifier)
                 .handleFilterOptionChange,
-          ),
-          const SizedBox(height: SideFilters.spacingBetweenFilters),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                final searchValue = ref.read(searchValueProvider).trim();
-                final queryParams = {
-                  if (searchValue.isNotEmpty) 'q': searchValue,
-                  ...ref.read(artefactFiltersProvider(pageUri)).toQueryParams(),
-                };
-                context.go(
-                  pageUri.replace(queryParameters: queryParams).toString(),
-                );
-              },
-              child: const Text('Apply'),
-            ),
+            onSubmit: () {
+              final searchValue = ref.read(searchValueProvider).trim();
+              final queryParams = {
+                if (searchValue.isNotEmpty) 'q': searchValue,
+                ...ref.read(artefactFiltersProvider(pageUri)).toQueryParams(),
+              };
+              context.go(
+                pageUri.replace(queryParameters: queryParams).toString(),
+              );
+            },
           ),
         ],
       ),

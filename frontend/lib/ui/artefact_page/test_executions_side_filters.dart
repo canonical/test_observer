@@ -18,6 +18,7 @@ class TestExecutionsSideFilters extends ConsumerWidget {
       onOptionChanged: ref
           .read(testExecutionFiltersProvider(artefactId).notifier)
           .handleFilterOptionChange,
+      onSubmit: () {},
     );
   }
 }

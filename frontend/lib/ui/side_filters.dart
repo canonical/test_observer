@@ -10,10 +10,12 @@ class SideFilters extends StatelessWidget {
     super.key,
     required this.filters,
     required this.onOptionChanged,
+    required this.onSubmit,
   });
 
   final Filters filters;
   final Function(String, String, bool) onOptionChanged;
+  final Function() onSubmit;
 
   static const width = 300.0;
   static const spacingBetweenFilters = Spacing.level4;
@@ -24,13 +26,24 @@ class SideFilters extends StatelessWidget {
       width: width,
       child: ListView.separated(
         shrinkWrap: true,
-        itemBuilder: (_, i) => _SideFilter(
-          filter: filters.filters[i],
-          onOptionChanged: onOptionChanged,
-        ),
+        itemBuilder: (_, i) {
+          if (i == filters.filters.length) {
+            return SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onSubmit,
+                child: const Text('Apply'),
+              ),
+            );
+          }
+          return _SideFilter(
+            filter: filters.filters[i],
+            onOptionChanged: onOptionChanged,
+          );
+        },
         separatorBuilder: (_, __) =>
             const SizedBox(height: spacingBetweenFilters),
-        itemCount: filters.filters.length,
+        itemCount: filters.filters.length + 1,
       ),
     );
   }
