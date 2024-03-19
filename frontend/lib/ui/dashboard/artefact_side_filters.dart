@@ -19,7 +19,7 @@ class ArtefactSideFilters extends ConsumerWidget {
       width: SideFilters.width,
       child: Column(
         children: [
-          ArtefactSearchBar(),
+          const ArtefactSearchBar(),
           const SizedBox(height: SideFilters.spacingBetweenFilters),
           SideFilters(
             filters: filters,

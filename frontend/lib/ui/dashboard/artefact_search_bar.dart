@@ -2,37 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/search_value.dart';
-import '../vanilla/vanilla_search_bar.dart';
+import '../focusable_search_bar.dart';
 
-final artefactSearchBarKey = GlobalKey<_ArtefactSearchBarState>();
-
-class ArtefactSearchBar extends ConsumerStatefulWidget {
-  ArtefactSearchBar() : super(key: artefactSearchBarKey);
+class ArtefactSearchBar extends ConsumerWidget {
+  const ArtefactSearchBar({super.key});
 
   @override
-  ConsumerState<ArtefactSearchBar> createState() => _ArtefactSearchBarState();
-}
-
-class _ArtefactSearchBarState extends ConsumerState<ArtefactSearchBar> {
-  late FocusNode focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    focusNode = FocusNode();
-  }
-
-  @override
-  void dispose() {
-    focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return _SearchNotifierListener(
-      child: VanillaSearchBar(
-        focusNode: focusNode,
+      child: FocusableSearchBar(
         onChanged: ref.read(searchValueProvider.notifier).onChanged,
         hintText: 'Search by name',
       ),
