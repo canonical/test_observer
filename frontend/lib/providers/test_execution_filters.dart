@@ -9,14 +9,16 @@ part 'test_execution_filters.g.dart';
 @riverpod
 class TestExecutionFilters extends _$TestExecutionFilters {
   @override
-  Filters<TestExecution> build(int artefactId) {
+  Filters<TestExecution> build(int artefactId, Uri pageUri) {
     final builds = ref.watch(artefactBuildsProvider(artefactId)).requireValue;
     final testExecutions = [
       for (final build in builds)
         for (final testExecution in build.testExecutions) testExecution,
     ];
 
-    return emptyTestExecutionFilters.copyWithOptionsExtracted(testExecutions);
+    return emptyTestExecutionFilters
+        .copyWithOptionsExtracted(testExecutions)
+        .copyWithQueryParams(pageUri.queryParametersAll);
   }
 
   void handleFilterOptionChange(

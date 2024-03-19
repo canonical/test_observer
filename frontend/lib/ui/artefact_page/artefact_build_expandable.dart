@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
 
 import '../../models/artefact_build.dart';
@@ -19,10 +20,11 @@ class ArtefactBuildExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pageUri = GoRouterState.of(context).uri;
     final revisionText =
         artefactBuild.revision == null ? '' : ' (${artefactBuild.revision})';
     final filteredTestExecutionIds =
-        ref.watch(filteredTestExecutionIdsProvider(artefactId));
+        ref.watch(filteredTestExecutionIdsProvider(artefactId, pageUri));
     final filteredTestExecutions = [
       for (final te in artefactBuild.testExecutions)
         if (filteredTestExecutionIds.contains(te.id)) te,

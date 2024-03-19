@@ -20,7 +20,7 @@ void main() {
     await container.read(artefactBuildsProvider(artefactId).future);
 
     final filters =
-        container.read(testExecutionFiltersProvider(artefactId)).filters;
+        container.read(testExecutionFiltersProvider(artefactId, Uri())).filters;
 
     expect(filters[0].name, 'Review status');
     expect(filters[0].detectedOptions, {'Undecided'});
