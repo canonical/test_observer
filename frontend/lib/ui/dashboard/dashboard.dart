@@ -6,10 +6,10 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 import '../../providers/family_artefacts.dart';
 import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
+import '../side_filters.dart';
 import '../spacing.dart';
 import 'dashboard_body.dart';
 import 'dashboard_header.dart';
-import 'artefact_side_filters.dart';
 
 class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
@@ -43,7 +43,7 @@ class Dashboard extends ConsumerWidget {
                   Visibility(
                     visible: showFilters,
                     maintainState: true,
-                    child: const ArtefactSideFilters(),
+                    child: const SideFilters(searchHint: 'Search by name'),
                   ),
                   const SizedBox(width: Spacing.level5),
                   const Expanded(child: DashboardBody()),

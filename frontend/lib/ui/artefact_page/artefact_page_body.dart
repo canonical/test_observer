@@ -4,9 +4,9 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
 import '../../providers/artefact_builds.dart';
+import '../side_filters.dart';
 import '../spacing.dart';
 import 'artefact_build_expandable.dart';
-import 'test_executions_side_filters.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -21,7 +21,7 @@ class ArtefactPageBody extends ConsumerWidget {
       data: (artefactBuilds) => Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TestExecutionsSideFilters(artefactId: artefact.id),
+          const SideFilters(searchHint: 'Search by environment name'),
           const SizedBox(width: Spacing.level5),
           Expanded(
             child: Column(
