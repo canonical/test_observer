@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
-import '../models/filter.dart';
-import '../providers/page_filters.dart';
-import '../providers/search_value.dart';
-import '../routing.dart';
+import '../../models/filter.dart';
+import '../../providers/page_filters.dart';
+import '../../providers/search_value.dart';
+import '../../routing.dart';
 import 'page_search_bar.dart';
-import 'spacing.dart';
+import '../spacing.dart';
 
-class SideFilters extends ConsumerWidget {
-  const SideFilters({super.key, this.searchHint});
+class PageFiltersView extends ConsumerWidget {
+  const PageFiltersView({super.key, this.searchHint});
 
   final String? searchHint;
 

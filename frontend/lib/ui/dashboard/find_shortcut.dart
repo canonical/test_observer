@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
-import '../page_search_bar.dart';
+import '../page_filters/page_search_bar.dart';
 
 class FindShortcut extends ConsumerWidget {
   const FindShortcut({super.key, required this.child});

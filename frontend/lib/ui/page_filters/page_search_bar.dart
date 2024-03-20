@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../providers/search_value.dart';
-import 'vanilla/vanilla_search_bar.dart';
+import '../../providers/search_value.dart';
+import '../vanilla/vanilla_search_bar.dart';
 
 final pageSearchBarKey = GlobalKey<_PageSearchBarState>();
 

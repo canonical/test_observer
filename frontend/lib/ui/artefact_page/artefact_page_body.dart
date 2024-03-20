@@ -4,7 +4,7 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
 import '../../providers/artefact_builds.dart';
-import '../side_filters.dart';
+import '../page_filters/page_filters.dart';
 import '../spacing.dart';
 import 'artefact_build_expandable.dart';
 
@@ -21,7 +21,7 @@ class ArtefactPageBody extends ConsumerWidget {
       data: (artefactBuilds) => Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SideFilters(searchHint: 'Search by environment name'),
+          const PageFiltersView(searchHint: 'Search by environment name'),
           const SizedBox(width: Spacing.level5),
           Expanded(
             child: Column(
