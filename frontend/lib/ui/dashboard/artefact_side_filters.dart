@@ -13,6 +13,7 @@ class ArtefactSideFilters extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = GoRouterState.of(context).uri;
+    final searchQuery = pageUri.queryParameters['q'];
     final filters = ref.watch(artefactFiltersProvider(pageUri));
 
     return SizedBox(
@@ -27,7 +28,8 @@ class ArtefactSideFilters extends ConsumerWidget {
                 .read(artefactFiltersProvider(pageUri).notifier)
                 .handleFilterOptionChange,
             onSubmit: () {
-              final searchValue = ref.read(searchValueProvider).trim();
+              final searchValue =
+                  ref.read(searchValueProvider(searchQuery)).trim();
               final queryParams = {
                 if (searchValue.isNotEmpty) 'q': searchValue,
                 ...ref.read(artefactFiltersProvider(pageUri)).toQueryParams(),
