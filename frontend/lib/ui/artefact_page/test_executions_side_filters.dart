@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../providers/search_value.dart';
 import '../../providers/test_execution_filters.dart';
+import '../page_search_bar.dart';
 import '../side_filters.dart';
 
 class TestExecutionsSideFilters extends ConsumerWidget {
@@ -13,24 +15,38 @@ class TestExecutionsSideFilters extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = GoRouterState.of(context).uri;
+    final searchQuery = pageUri.queryParameters['q'];
     final filters =
         ref.watch(testExecutionFiltersProvider(artefactId, pageUri));
 
-    return SideFilters(
-      filters: filters,
-      onOptionChanged: ref
-          .read(testExecutionFiltersProvider(artefactId, pageUri).notifier)
-          .handleFilterOptionChange,
-      onSubmit: () {
-        final newQueryParams = {
-          ...ref
-              .read(testExecutionFiltersProvider(artefactId, pageUri))
-              .toQueryParams(),
-        };
-        context.go(
-          pageUri.replace(queryParameters: newQueryParams).toString(),
-        );
-      },
+    return SizedBox(
+      width: SideFilters.width,
+      child: Column(
+        children: [
+          PageSearchBar(hintText: 'Search by environment name'),
+          const SizedBox(height: SideFilters.spacingBetweenFilters),
+          SideFilters(
+            filters: filters,
+            onOptionChanged: ref
+                .read(
+                    testExecutionFiltersProvider(artefactId, pageUri).notifier)
+                .handleFilterOptionChange,
+            onSubmit: () {
+              final searchValue =
+                  ref.read(searchValueProvider(searchQuery)).trim();
+              final queryParams = {
+                if (searchValue.isNotEmpty) 'q': searchValue,
+                ...ref
+                    .read(testExecutionFiltersProvider(artefactId, pageUri))
+                    .toQueryParams(),
+              };
+              context.go(
+                pageUri.replace(queryParameters: queryParams).toString(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
