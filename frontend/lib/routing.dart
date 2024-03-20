@@ -1,3 +1,4 @@
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -54,9 +55,8 @@ class AppRoutes {
   static const snaps = '/snaps';
   static const debs = '/debs';
 
-  static FamilyName familyFromContext(BuildContext context) {
-    return familyFromUri(GoRouterState.of(context).uri);
-  }
+  static Uri uriFromContext(BuildContext context) =>
+      GoRouterState.of(context).uri;
 
   static FamilyName familyFromUri(Uri uri) {
     final path = uri.path;
@@ -70,14 +70,14 @@ class AppRoutes {
     }
   }
 
-  static int artefactIdFromContext(BuildContext context) {
-    final Map<String, String> pathParameters =
-        GoRouterState.of(context).pathParameters;
-
-    if (!pathParameters.containsKey('artefactId')) {
-      throw Exception('Artefact ID not found in path');
+  static int artefactIdFromUri(Uri uri) {
+    final pathStartsWithFamily = uri.path.contains(AppRoutes.snaps) ||
+        uri.path.contains(AppRoutes.snaps);
+    if (pathStartsWithFamily && uri.pathSegments.length >= 2) {
+      return uri.pathSegments[1].toInt();
+    } else {
+      throw Exception('No artefact id in route $uri');
     }
-    return int.parse(pathParameters['artefactId']!);
   }
 
   static bool isAtDashboardPage(BuildContext context) {

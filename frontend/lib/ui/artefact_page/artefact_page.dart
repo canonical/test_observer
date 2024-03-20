@@ -31,7 +31,7 @@ class ArtefactPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromContext(context);
+    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
     final artefacts = ref.watch(familyArtefactsProvider(family));
     return Padding(
       padding: const EdgeInsets.only(

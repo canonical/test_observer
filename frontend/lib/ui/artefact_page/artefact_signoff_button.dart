@@ -14,7 +14,7 @@ class ArtefactSignoffButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fontStyle = Theme.of(context).textTheme.titleMedium;
-    final family = AppRoutes.familyFromContext(context);
+    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
 
     return YaruPopupMenuButton(
       child: Text(

@@ -29,7 +29,8 @@ class TestExecutionsSideFilters extends ConsumerWidget {
             filters: filters,
             onOptionChanged: ref
                 .read(
-                    testExecutionFiltersProvider(artefactId, pageUri).notifier)
+                  testExecutionFiltersProvider(artefactId, pageUri).notifier,
+                )
                 .handleFilterOptionChange,
             onSubmit: () {
               final searchValue =
