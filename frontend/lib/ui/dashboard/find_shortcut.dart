@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
-import '../focusable_search_bar.dart';
+import '../page_search_bar.dart';
 
 class FindShortcut extends ConsumerWidget {
   const FindShortcut({super.key, required this.child});
@@ -44,6 +44,6 @@ class FindAction extends Action<FindIntent> {
   @override
   void invoke(FindIntent intent) {
     makeFiltersVisibile();
-    focusableSearchBarKey.currentState?.focusNode.requestFocus();
+    pageSearchBarKey.currentState?.focusNode.requestFocus();
   }
 }

@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/artefact_filters.dart';
 import '../../providers/search_value.dart';
+import '../page_search_bar.dart';
 import '../side_filters.dart';
-import 'artefact_search_bar.dart';
 
 class ArtefactSideFilters extends ConsumerWidget {
   const ArtefactSideFilters({super.key});
@@ -20,7 +20,7 @@ class ArtefactSideFilters extends ConsumerWidget {
       width: SideFilters.width,
       child: Column(
         children: [
-          const ArtefactSearchBar(),
+          PageSearchBar(hintText: 'Search by name'),
           const SizedBox(height: SideFilters.spacingBetweenFilters),
           SideFilters(
             filters: filters,

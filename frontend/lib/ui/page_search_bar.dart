@@ -2,22 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../providers/search_value.dart';
-import '../focusable_search_bar.dart';
+import '../providers/search_value.dart';
+import 'vanilla/vanilla_search_bar.dart';
 
-class ArtefactSearchBar extends ConsumerWidget {
-  const ArtefactSearchBar({super.key});
+final pageSearchBarKey = GlobalKey<_PageSearchBarState>();
+
+class PageSearchBar extends ConsumerStatefulWidget {
+  PageSearchBar({this.hintText}) : super(key: pageSearchBarKey);
+
+  final String? hintText;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PageSearchBar> createState() => _PageSearchBarState();
+}
+
+class _PageSearchBarState extends ConsumerState<PageSearchBar> {
+  late FocusNode focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final searchQuery = GoRouterState.of(context).uri.queryParameters['q'];
 
     return _SearchNotifierListener(
       searchQuery: searchQuery,
-      child: FocusableSearchBar(
+      child: VanillaSearchBar(
+        focusNode: focusNode,
         onChanged:
             ref.read(searchValueProvider(searchQuery).notifier).onChanged,
-        hintText: 'Search by name',
+        hintText: widget.hintText,
         initialText: searchQuery,
       ),
     );
