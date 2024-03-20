@@ -71,17 +71,17 @@ class AppRoutes {
   }
 
   static int artefactIdFromUri(Uri uri) {
-    final pathStartsWithFamily = uri.path.contains(AppRoutes.snaps) ||
-        uri.path.contains(AppRoutes.snaps);
-    if (pathStartsWithFamily && uri.pathSegments.length >= 2) {
+    if (isArtefactPage(uri)) {
       return uri.pathSegments[1].toInt();
     } else {
-      throw Exception('No artefact id in route $uri');
+      throw Exception('$uri isn\'t an artefact page');
     }
   }
 
-  static bool isAtDashboardPage(BuildContext context) {
-    final route = GoRouterState.of(context).fullPath!;
-    return {snaps, debs}.contains(route);
-  }
+  static bool isDashboardPage(Uri uri) => {snaps, debs}.contains(uri.path);
+
+  static bool isArtefactPage(Uri uri) =>
+      (uri.path.contains(AppRoutes.snaps) ||
+          uri.path.contains(AppRoutes.debs)) &&
+      uri.pathSegments.length == 2;
 }

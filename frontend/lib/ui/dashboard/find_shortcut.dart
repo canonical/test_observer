@@ -13,7 +13,8 @@ class FindShortcut extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final shouldMakeFiltersVisible = AppRoutes.isAtDashboardPage(context);
+    final shouldMakeFiltersVisible =
+        AppRoutes.isDashboardPage(AppRoutes.uriFromContext(context));
     const shortcut = SingleActivator(LogicalKeyboardKey.keyF, control: true);
 
     return Shortcuts(
