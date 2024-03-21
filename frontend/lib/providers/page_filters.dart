@@ -22,7 +22,9 @@ class PageFilters extends _$PageFilters {
       return emptyArtefactFilters
           .copyWithOptionsExtracted(artefacts)
           .copyWithQueryParams(pageUri.queryParametersAll);
-    } else if (AppRoutes.isArtefactPage(pageUri)) {
+    }
+
+    if (AppRoutes.isArtefactPage(pageUri)) {
       final artefactId = AppRoutes.artefactIdFromUri(pageUri);
       final builds = ref.watch(artefactBuildsProvider(artefactId)).requireValue;
       final testExecutions = [
@@ -33,9 +35,9 @@ class PageFilters extends _$PageFilters {
       return emptyTestExecutionFilters
           .copyWithOptionsExtracted(testExecutions)
           .copyWithQueryParams(pageUri.queryParametersAll);
-    } else {
-      throw Exception('Called pageFiltersProvider in unknown page $pageUri');
     }
+
+    throw Exception('Called pageFiltersProvider in unknown page $pageUri');
   }
 
   void handleFilterOptionChange(

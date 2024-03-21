@@ -61,21 +61,16 @@ class AppRoutes {
   static FamilyName familyFromUri(Uri uri) {
     final path = uri.path;
 
-    if (path.startsWith(snaps)) {
-      return FamilyName.snap;
-    } else if (path.startsWith(debs)) {
-      return FamilyName.deb;
-    } else {
-      throw Exception('Unknown route: $path');
-    }
+    if (path.startsWith(snaps)) return FamilyName.snap;
+    if (path.startsWith(debs)) return FamilyName.deb;
+
+    throw Exception('Unknown route: $path');
   }
 
   static int artefactIdFromUri(Uri uri) {
-    if (isArtefactPage(uri)) {
-      return uri.pathSegments[1].toInt();
-    } else {
-      throw Exception('$uri isn\'t an artefact page');
-    }
+    if (isArtefactPage(uri)) return uri.pathSegments[1].toInt();
+
+    throw Exception('$uri isn\'t an artefact page');
   }
 
   static bool isDashboardPage(Uri uri) => {snaps, debs}.contains(uri.path);
