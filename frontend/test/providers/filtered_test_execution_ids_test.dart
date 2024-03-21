@@ -5,7 +5,6 @@ import 'package:testcase_dashboard/models/test_execution.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/artefact_builds.dart';
 import 'package:testcase_dashboard/providers/filtered_test_execution_ids.dart';
-import 'package:testcase_dashboard/providers/test_execution_filters.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 
 import '../dummy_data.dart';
@@ -23,7 +22,7 @@ void main() {
     await container.read(artefactBuildsProvider(artefactId).future);
 
     final filteredTestExecutionIds =
-        container.read(filteredTestExecutionIdsProvider(artefactId));
+        container.read(filteredTestExecutionIdsProvider(artefactId, Uri()));
     final builds = await apiMock.getArtefactBuilds(artefactId);
     final allTestExecutionIds = {
       for (final build in builds)
@@ -43,11 +42,16 @@ void main() {
     // Wait on artefact builds to load cause test execution filters uses requireValue
     await container.read(artefactBuildsProvider(artefactId).future);
 
-    container
-        .read(testExecutionFiltersProvider(artefactId).notifier)
-        .handleFilterOptionChange('Review status', 'Undecided', true);
-    final filteredTestExecutionIds =
-        container.read(filteredTestExecutionIdsProvider(artefactId));
+    final filteredTestExecutionIds = container.read(
+      filteredTestExecutionIdsProvider(
+        artefactId,
+        Uri(
+          queryParameters: {
+            'Review status': 'Undecided',
+          },
+        ),
+      ),
+    );
 
     expect(filteredTestExecutionIds, {1});
   });
@@ -62,11 +66,16 @@ void main() {
     // Wait on artefact builds to load cause test execution filters uses requireValue
     await container.read(artefactBuildsProvider(artefactId).future);
 
-    container
-        .read(testExecutionFiltersProvider(artefactId).notifier)
-        .handleFilterOptionChange('Execution status', 'Failed', true);
-    final filteredTestExecutionIds =
-        container.read(filteredTestExecutionIdsProvider(artefactId));
+    final filteredTestExecutionIds = container.read(
+      filteredTestExecutionIdsProvider(
+        artefactId,
+        Uri(
+          queryParameters: {
+            'Execution status': 'Failed',
+          },
+        ),
+      ),
+    );
 
     expect(filteredTestExecutionIds, {1});
   });

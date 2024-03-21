@@ -1,3 +1,4 @@
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -54,34 +55,28 @@ class AppRoutes {
   static const snaps = '/snaps';
   static const debs = '/debs';
 
-  static FamilyName familyFromContext(BuildContext context) {
-    return familyFromUri(GoRouterState.of(context).uri);
-  }
+  static Uri uriFromContext(BuildContext context) =>
+      GoRouterState.of(context).uri;
 
   static FamilyName familyFromUri(Uri uri) {
     final path = uri.path;
 
-    if (path.startsWith(snaps)) {
-      return FamilyName.snap;
-    } else if (path.startsWith(debs)) {
-      return FamilyName.deb;
-    } else {
-      throw Exception('Unknown route: $path');
-    }
+    if (path.startsWith(snaps)) return FamilyName.snap;
+    if (path.startsWith(debs)) return FamilyName.deb;
+
+    throw Exception('Unknown route: $path');
   }
 
-  static int artefactIdFromContext(BuildContext context) {
-    final Map<String, String> pathParameters =
-        GoRouterState.of(context).pathParameters;
+  static int artefactIdFromUri(Uri uri) {
+    if (isArtefactPage(uri)) return uri.pathSegments[1].toInt();
 
-    if (!pathParameters.containsKey('artefactId')) {
-      throw Exception('Artefact ID not found in path');
-    }
-    return int.parse(pathParameters['artefactId']!);
+    throw Exception('$uri isn\'t an artefact page');
   }
 
-  static bool isAtDashboardPage(BuildContext context) {
-    final route = GoRouterState.of(context).fullPath!;
-    return {snaps, debs}.contains(route);
-  }
+  static bool isDashboardPage(Uri uri) => {snaps, debs}.contains(uri.path);
+
+  static bool isArtefactPage(Uri uri) =>
+      (uri.path.contains(AppRoutes.snaps) ||
+          uri.path.contains(AppRoutes.debs)) &&
+      uri.pathSegments.length == 2;
 }

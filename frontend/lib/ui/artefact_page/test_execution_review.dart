@@ -37,7 +37,8 @@ class TestExecutionReviewButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final artefactId = AppRoutes.artefactIdFromContext(context);
+    final artefactId =
+        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
     return GestureDetector(
       onTap: () {
         showPopover(

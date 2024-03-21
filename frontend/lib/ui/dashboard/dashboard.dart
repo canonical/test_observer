@@ -6,10 +6,10 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 import '../../providers/family_artefacts.dart';
 import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
+import '../page_filters/page_filters.dart';
 import '../spacing.dart';
 import 'dashboard_body.dart';
 import 'dashboard_header.dart';
-import 'artefact_side_filters.dart';
 
 class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
@@ -17,7 +17,7 @@ class Dashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final showFilters = ref.watch(artefactSideFiltersVisibilityProvider);
-    final family = AppRoutes.familyFromContext(context);
+    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
 
     return Padding(
       padding: const EdgeInsets.only(
@@ -43,7 +43,7 @@ class Dashboard extends ConsumerWidget {
                   Visibility(
                     visible: showFilters,
                     maintainState: true,
-                    child: const ArtefactSideFilters(),
+                    child: const PageFiltersView(searchHint: 'Search by name'),
                   ),
                   const SizedBox(width: Spacing.level5),
                   const Expanded(child: DashboardBody()),
@@ -64,7 +64,7 @@ class _ArtefactsLoader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromContext(context);
+    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
     final artefacts = ref.watch(familyArtefactsProvider(family));
 
     return artefacts.when(

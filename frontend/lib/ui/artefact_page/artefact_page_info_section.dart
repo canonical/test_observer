@@ -79,7 +79,7 @@ class _StagesRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromContext(context);
+    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
     final stages = familyStages(family);
 
     final stageNamesWidgets = <Widget>[];

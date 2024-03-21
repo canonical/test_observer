@@ -8,7 +8,7 @@ import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
-import 'package:testcase_dashboard/ui/dashboard/artefact_search_bar.dart';
+import 'package:testcase_dashboard/ui/page_filters/page_search_bar.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -31,8 +31,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.byKey(artefactSearchBarKey), findsOneWidget);
-    expect(artefactSearchBarKey.currentState?.focusNode.hasFocus, isTrue);
+    expect(find.byKey(pageSearchBarKey), findsOneWidget);
+    expect(pageSearchBarKey.currentState?.focusNode.hasFocus, isTrue);
   });
 }
 
