@@ -129,7 +129,7 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
 
     for artefact_build in latest_builds:
         artefact_build.test_executions.sort(
-            key=lambda test_execution: test_execution.id
+            key=lambda test_execution: test_execution.environment.name
         )
 
     return latest_builds
