@@ -20,13 +20,7 @@
 from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import (
-    ArtefactBuild,
-    Environment,
-    TestExecution,
-)
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionReviewDecision,
