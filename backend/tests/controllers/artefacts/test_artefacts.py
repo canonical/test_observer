@@ -69,72 +69,65 @@ def test_get_latest_artefacts_by_family(
     ]
 
 
-def test_get_artefact(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
-):
+def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     """Should be able to fetch an existing artefact"""
-    artefact = generator.gen_artefact("edge", status=ArtefactStatus.APPROVED)
-    artefact.assignee = generator.gen_user()
-    artefact.bug_link = "localhost/bug"
-    artefact.due_date = date(2024, 12, 24)
-    db_session.commit()
+    u = generator.gen_user()
+    a = generator.gen_artefact(
+        "edge",
+        status=ArtefactStatus.APPROVED,
+        bug_link="localhost/bug",
+        due_date=date(2024, 12, 24),
+        assignee_id=u.id,
+    )
 
-    response = test_client.get(f"/v1/artefacts/{artefact.id}")
+    response = test_client.get(f"/v1/artefacts/{a.id}")
 
     assert response.status_code == 200
     assert response.json() == {
-        "id": artefact.id,
-        "name": artefact.name,
-        "version": artefact.version,
-        "track": artefact.track,
-        "store": artefact.store,
-        "series": artefact.series,
-        "repo": artefact.repo,
-        "stage": artefact.stage.name,
-        "status": artefact.status,
+        "id": a.id,
+        "name": a.name,
+        "version": a.version,
+        "track": a.track,
+        "store": a.store,
+        "series": a.series,
+        "repo": a.repo,
+        "stage": a.stage.name,
+        "status": a.status,
         "assignee": {
-            "id": artefact.assignee.id,
-            "launchpad_handle": artefact.assignee.launchpad_handle,
-            "launchpad_email": artefact.assignee.launchpad_email,
-            "name": artefact.assignee.name,
+            "id": u.id,
+            "launchpad_handle": u.launchpad_handle,
+            "launchpad_email": u.launchpad_email,
+            "name": u.name,
         },
         "due_date": "2024-12-24",
-        "bug_link": artefact.bug_link,
+        "bug_link": a.bug_link,
     }
 
 
-def test_get_artefact_builds(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
-):
-    artefact = generator.gen_artefact("beta")
-    artefact_build = ArtefactBuild(architecture="amd64", artefact=artefact, revision=1)
-    environment = Environment(
-        name="some-environment", architecture=artefact_build.architecture
-    )
-    test_execution = TestExecution(
-        artefact_build=artefact_build, environment=environment
-    )
-    db_session.add_all([environment, test_execution, artefact_build])
-    db_session.commit()
+def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e)
 
-    response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
+    response = test_client.get(f"/v1/artefacts/{a.id}/builds")
 
     assert response.status_code == 200
     assert response.json() == [
         {
-            "id": artefact_build.id,
-            "revision": artefact_build.revision,
-            "architecture": artefact_build.architecture,
+            "id": ab.id,
+            "revision": ab.revision,
+            "architecture": ab.architecture,
             "test_executions": [
                 {
-                    "id": test_execution.id,
-                    "ci_link": test_execution.ci_link,
-                    "c3_link": test_execution.c3_link,
-                    "status": test_execution.status.value,
+                    "id": te.id,
+                    "ci_link": te.ci_link,
+                    "c3_link": te.c3_link,
+                    "status": te.status.value,
                     "environment": {
-                        "id": environment.id,
-                        "name": environment.name,
-                        "architecture": environment.architecture,
+                        "id": e.id,
+                        "name": e.name,
+                        "architecture": e.architecture,
                     },
                     "review_decision": [],
                     "review_comment": "",
@@ -211,17 +204,13 @@ def test_get_artefact_builds_only_latest(
     ]
 
 
-def test_artefact_signoff_approve(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
-):
+def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact("candidate")
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}",
         json={"status": ArtefactStatus.APPROVED},
     )
-
-    db_session.refresh(artefact)
 
     assert response.status_code == 200
     assert artefact.status == ArtefactStatus.APPROVED
@@ -242,17 +231,15 @@ def test_artefact_signoff_approve(
 
 
 def test_artefact_signoff_disallow_approve(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
+    test_client: TestClient, generator: DataGenerator
 ):
-    artefact = generator.gen_artefact("candidate")
-    build = ArtefactBuild(architecture="amd64", artefact=artefact)
-    environment = Environment(name="laptop", architecture="amd64")
-    test_execution = TestExecution(artefact_build=build, environment=environment)
-    db_session.add_all([build, environment, test_execution])
-    db_session.commit()
+    a = generator.gen_artefact("candidate")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    generator.gen_test_execution(ab, e)
 
     response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
+        f"/v1/artefacts/{a.id}",
         json={"status": ArtefactStatus.APPROVED},
     )
 
@@ -260,17 +247,15 @@ def test_artefact_signoff_disallow_approve(
 
 
 def test_artefact_signoff_disallow_reject(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
+    test_client: TestClient, generator: DataGenerator
 ):
-    artefact = generator.gen_artefact("candidate")
-    build = ArtefactBuild(architecture="amd64", artefact=artefact)
-    environment = Environment(name="laptop", architecture="amd64")
-    test_execution = TestExecution(artefact_build=build, environment=environment)
-    db_session.add_all([build, environment, test_execution])
-    db_session.commit()
+    a = generator.gen_artefact("candidate")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    generator.gen_test_execution(ab, e)
 
     response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
+        f"/v1/artefacts/{a.id}",
         json={"status": ArtefactStatus.MARKED_AS_FAILED},
     )
 

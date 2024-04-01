@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
@@ -53,6 +53,9 @@ class DataGenerator:
         repo: str = "",
         created_at: datetime | None = None,
         status: ArtefactStatus = ArtefactStatus.UNDECIDED,
+        bug_link: str = "",
+        due_date: date | None = None,
+        assignee_id: int | None = None,
     ) -> Artefact:
         stage = self.db_session.query(Stage).filter(Stage.name == stage_name).one()
         family = FamilyName(stage.family.name)
@@ -77,6 +80,9 @@ class DataGenerator:
             repo=repo,
             created_at=created_at,
             status=status,
+            bug_link=bug_link,
+            due_date=due_date,
+            assignee_id=assignee_id,
         )
         self.db_session.add(artefact)
         self.db_session.commit()
