@@ -8,12 +8,14 @@ class VanillaSearchBar extends StatefulWidget {
     this.hintText,
     this.focusNode,
     this.initialText,
+    this.onSubmitted,
   });
 
   final String? hintText;
   final FocusNode? focusNode;
   final void Function(String)? onChanged;
   final String? initialText;
+  final void Function(String)? onSubmitted;
 
   @override
   State<VanillaSearchBar> createState() => _VanillaSearchBarState();
@@ -62,6 +64,7 @@ class _VanillaSearchBarState extends State<VanillaSearchBar> {
         shape: MaterialStatePropertyAll(LinearBorder.bottom()),
         side: const MaterialStatePropertyAll(BorderSide()),
         onChanged: widget.onChanged,
+        onSubmitted: widget.onSubmitted,
       ),
     );
   }
