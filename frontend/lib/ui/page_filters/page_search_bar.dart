@@ -8,9 +8,11 @@ import '../vanilla/vanilla_search_bar.dart';
 final pageSearchBarKey = GlobalKey<_PageSearchBarState>();
 
 class PageSearchBar extends ConsumerStatefulWidget {
-  PageSearchBar({this.hintText}) : super(key: pageSearchBarKey);
+  PageSearchBar({this.hintText, this.onSubmitted})
+      : super(key: pageSearchBarKey);
 
   final String? hintText;
+  final void Function(String)? onSubmitted;
 
   @override
   ConsumerState<PageSearchBar> createState() => _PageSearchBarState();
@@ -43,6 +45,7 @@ class _PageSearchBarState extends ConsumerState<PageSearchBar> {
             ref.read(searchValueProvider(searchQuery).notifier).onChanged,
         hintText: widget.hintText,
         initialText: searchQuery,
+        onSubmitted: widget.onSubmitted,
       ),
     );
   }

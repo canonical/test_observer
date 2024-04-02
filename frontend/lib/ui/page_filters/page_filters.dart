@@ -29,23 +29,20 @@ class PageFiltersView extends ConsumerWidget {
       child: ListView.separated(
         shrinkWrap: true,
         itemBuilder: (_, i) {
-          if (i == 0) return PageSearchBar(hintText: searchHint);
+          if (i == 0) {
+            return PageSearchBar(
+              hintText: searchHint,
+              onSubmitted: (searchQuery) =>
+                  submitFilters(ref, searchQuery, pageUri, context),
+            );
+          }
 
           if (i == filters.filters.length + 1) {
             return SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  final searchValue =
-                      ref.read(searchValueProvider(searchQuery)).trim();
-                  final queryParams = {
-                    if (searchValue.isNotEmpty) 'q': searchValue,
-                    ...ref.read(pageFiltersProvider(pageUri)).toQueryParams(),
-                  };
-                  context.go(
-                    pageUri.replace(queryParameters: queryParams).toString(),
-                  );
-                },
+                onPressed: () =>
+                    submitFilters(ref, searchQuery, pageUri, context),
                 child: const Text('Apply'),
               ),
             );
@@ -62,6 +59,22 @@ class PageFiltersView extends ConsumerWidget {
             const SizedBox(height: spacingBetweenFilters),
         itemCount: filters.filters.length + 2,
       ),
+    );
+  }
+
+  void submitFilters(
+    WidgetRef ref,
+    String? searchQuery,
+    Uri pageUri,
+    BuildContext context,
+  ) {
+    final searchValue = ref.read(searchValueProvider(searchQuery)).trim();
+    final queryParams = {
+      if (searchValue.isNotEmpty) 'q': searchValue,
+      ...ref.read(pageFiltersProvider(pageUri)).toQueryParams(),
+    };
+    context.go(
+      pageUri.replace(queryParameters: queryParams).toString(),
     );
   }
 }
