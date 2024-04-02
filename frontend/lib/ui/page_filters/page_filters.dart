@@ -32,7 +32,7 @@ class PageFiltersView extends ConsumerWidget {
           if (i == 0) {
             return PageSearchBar(
               hintText: searchHint,
-              onSubmitted: (searchQuery) =>
+              onSubmitted: (_) =>
                   submitFilters(ref, searchQuery, pageUri, context),
             );
           }
