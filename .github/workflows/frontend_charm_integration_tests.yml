@@ -21,7 +21,7 @@ jobs:
       packages: read
 
     name: Integration tests
-    runs-on: [self-hosted, jammy, xlarge]
+    runs-on: [self-hosted, jammy, x64, xlarge]
     if: github.event.review.state == 'APPROVED'
     steps:
       - name: Checkout

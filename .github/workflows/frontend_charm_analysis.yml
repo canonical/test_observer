@@ -14,7 +14,7 @@ on:
 jobs:
   lint-report:
     name: Lint and format report
-    runs-on: [self-hosted, linux, large]
+    runs-on: [self-hosted, linux, large, jammy, x64]
     steps:
       - uses: actions/checkout@v3
       - name: Install tox
@@ -27,7 +27,7 @@ jobs:
 
   static-analysis:
     name: Static analysis
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, jammy, x64]
     steps:
       - uses: actions/checkout@v3
       - name: Install tox
@@ -40,7 +40,7 @@ jobs:
 
   unit-tests-with-coverage:
     name: Unit tests
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, jammy, x64]
     steps:
       - uses: actions/checkout@v3
       - name: Install tox
