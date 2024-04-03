@@ -94,7 +94,7 @@ class DataGenerator:
         architecture: str = DEFAULT_ARCHITECTURE,
         revision: int | None = None,
     ) -> ArtefactBuild:
-        if artefact.stage.family == FamilyName.SNAP:
+        if artefact.stage.family.name == FamilyName.SNAP:
             revision = 1
 
         build = ArtefactBuild(

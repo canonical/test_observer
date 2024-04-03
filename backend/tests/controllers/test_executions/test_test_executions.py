@@ -43,19 +43,13 @@ from tests.data_generator import DataGenerator
 
 
 @pytest.fixture
-def test_execution(db_session: Session) -> TestExecution:
-    stage = db_session.query(Stage).filter(Stage.name == "beta").one()
-    artefact = Artefact(name="some artefact", version="1.0.0", stage=stage)
-    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
-    environment = Environment(name="some environment", architecture="some arch")
-    test_execution = TestExecution(
-        environment=environment, artefact_build=artefact_build
-    )
-    db_session.add_all([artefact, artefact_build, environment, test_execution])
-    db_session.commit()
-    db_session.refresh(test_execution)
+def test_execution(generator: DataGenerator) -> TestExecution:
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e)
 
-    return test_execution
+    return te
 
 
 def test_creates_all_data_models(db_session: Session, test_client: TestClient):
@@ -141,64 +135,35 @@ def test_invalid_artefact_format(test_client: TestClient):
     assert response.status_code == 422
 
 
-def test_uses_existing_models(db_session: Session, test_client: TestClient):
-    request = StartTestExecutionRequest(
-        family=FamilyName.SNAP,
-        name="core22",
-        version="abec123",
-        revision=123,
-        track="22",
-        store="ubuntu",
-        arch="arm64",
-        execution_stage="beta",
-        environment="cm3",
-        ci_link="http://localhost/",
-    )
-    stage = (
-        db_session.query(Stage).filter(Stage.name == request.execution_stage).first()
-    )
-    artefact = Artefact(
-        name=request.name,
-        version=request.version,
-        track=request.track,
-        store=request.store,
-        stage=stage,
-    )
-    environment = Environment(
-        name=request.environment,
-        architecture=request.arch,
-    )
-    artefact_build = ArtefactBuild(
-        architecture=request.arch,
-        revision=request.revision,
-        artefact=artefact,
-    )
-    test_execution = TestExecution(
-        environment=environment,
-        artefact_build=artefact_build,
+def test_uses_existing_models(
+    db_session: Session,
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact("beta")
+    environment = generator.gen_environment()
+    artefact_build = generator.gen_artefact_build(artefact)
+    test_execution = generator.gen_test_execution(
+        artefact_build,
+        environment,
         ci_link="http://should-be-changed",
         c3_link="http://should-be-nulled",
     )
-    test_case = TestCase(name="some-test", category="")
-    test_result = TestResult(
-        test_case=test_case,
-        test_execution=test_execution,
-        status=TestResultStatus.PASSED,
-        comment="",
-        io_log="",
-    )
+    test_case = generator.gen_test_case()
+    generator.gen_test_result(test_case, test_execution)
 
-    db_session.add_all(
-        [
-            artefact,
-            environment,
-            artefact_build,
-            test_execution,
-            test_case,
-            test_result,
-        ]
+    request = StartTestExecutionRequest(
+        family=FamilyName(artefact.stage.family.name),
+        name=artefact.name,
+        version=artefact.version,
+        revision=artefact_build.revision,
+        track=artefact.track,
+        store=artefact.store,
+        arch=artefact_build.architecture,
+        execution_stage=artefact.stage.name,
+        environment=environment.name,
+        ci_link="http://localhost/",
     )
-    db_session.commit()
 
     test_execution_id = test_client.put(
         "/v1/test-executions/start-test",
@@ -216,6 +181,7 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
     assert test_execution.c3_link is None
+    # deleted existing test results
     assert (
         db_session.query(TestResult)
         .filter(TestResult.test_case_id == test_case.id)
@@ -224,26 +190,21 @@ def test_uses_existing_models(db_session: Session, test_client: TestClient):
     )
 
 
-def test_report_test_execution_data(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
-):
-    ci_link = "http://localhost"
+def test_report_test_execution_data(test_client: TestClient, generator: DataGenerator):
     c3_link = "http://c3.localhost"
-    artefact = generator.gen_artefact(stage_name="beta")
-    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
-    environment = Environment(name="some environment", architecture="some arch")
-    test_execution = TestExecution(
-        environment=environment, artefact_build=artefact_build, ci_link=ci_link
+    artefact = generator.gen_artefact("beta")
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build, environment, ci_link="http://localhost"
     )
-    test_case = TestCase(name="test-name-1", category="")
-    db_session.add_all([artefact_build, environment, test_execution, test_case])
-    db_session.commit()
+    test_case = generator.gen_test_case()
 
     response = test_client.put(
         "/v1/test-executions/end-test",
         json={
             "id": 1,
-            "ci_link": ci_link,
+            "ci_link": test_execution.ci_link,
             "c3_link": c3_link,
             "test_results": [
                 {
@@ -269,59 +230,43 @@ def test_report_test_execution_data(
     assert response.status_code == 200
     assert test_execution.status == TestExecutionStatus.PASSED
     assert test_execution.c3_link == c3_link
-    assert test_execution.test_results[0].test_case.name == "test-name-1"
+    assert test_execution.test_results[0].test_case.name == test_case.name
     assert test_execution.test_results[0].status == TestResultStatus.PASSED
     assert test_execution.test_results[1].test_case.name == "test-name-2"
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
 
 
-def test_end_test_is_idempotent(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
-):
-    ci_link = "http://localhost"
-    artefact = generator.gen_artefact(stage_name="beta")
-    artefact_build = ArtefactBuild(architecture="some arch", artefact=artefact)
-    environment = Environment(name="some environment", architecture="some arch")
-    test_execution = TestExecution(
-        environment=environment, artefact_build=artefact_build, ci_link=ci_link
+def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact("beta")
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build, environment, ci_link="http://localhost"
     )
-    test_case = TestCase(name="test-name-1", category="")
-    db_session.add_all([artefact_build, environment, test_execution, test_case])
-    db_session.commit()
 
     for _ in range(2):
         test_client.put(
             "/v1/test-executions/end-test",
             json={
                 "id": 1,
-                "ci_link": ci_link,
+                "ci_link": test_execution.ci_link,
                 "test_results": [
                     {
                         "id": 1,
-                        "name": test_case.name,
+                        "name": "test name",
                         "status": "pass",
-                        "category": test_case.category,
+                        "category": "test category",
                         "comment": "",
                         "io_log": "",
-                    },
-                    {
-                        "id": 2,
-                        "name": "test-name-2",
-                        "status": "skip",
-                        "category": "",
-                        "comment": "",
-                        "io_log": "",
-                    },
+                    }
                 ],
             },
         )
 
-    assert len(test_execution.test_results) == 2
+    assert len(test_execution.test_results) == 1
 
 
-def test_updates_test_execution(
-    db_session: Session, test_client: TestClient, test_execution: TestExecution
-):
+def test_updates_test_execution(test_client: TestClient, test_execution: TestExecution):
     new_review_decision = [
         TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE.name,
         TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
@@ -336,7 +281,6 @@ def test_updates_test_execution(
             "review_comment": "Tests fail because of broken keyboard",
         },
     )
-    db_session.refresh(test_execution)
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
@@ -345,7 +289,7 @@ def test_updates_test_execution(
 
 
 def test_review_test_execution_fails_if_both_failed_and_approved(
-    db_session: Session, test_client: TestClient, test_execution: TestExecution
+    test_client: TestClient, test_execution: TestExecution
 ):
     response = test_client.patch(
         f"/v1/test-executions/{test_execution.id}",
@@ -357,64 +301,36 @@ def test_review_test_execution_fails_if_both_failed_and_approved(
         },
     )
 
-    db_session.refresh(test_execution)
     assert response.status_code == 422
 
 
-def test_fetch_test_results(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
-):
-    artefact_first = generator.gen_artefact(stage_name="beta", version="1.1.1")
-    artefact_build_first = ArtefactBuild(
-        architecture="some arch", artefact=artefact_first
-    )
-    environment = Environment(name="some environment", architecture="some arch")
-    test_execution_first = TestExecution(
-        environment=environment,
-        artefact_build=artefact_build_first,
-        ci_link="http://cilink1",
-        status=TestExecutionStatus.PASSED,
-    )
-    test_case = TestCase(name="test-name-1", category="")
-    test_result_first = TestResult(
-        test_case=test_case,
-        test_execution=test_execution_first,
-        status=TestResultStatus.FAILED,
-        comment="",
-        io_log="",
-    )
-    db_session.add_all(
-        [
-            artefact_build_first,
-            environment,
-            test_execution_first,
-            test_case,
-            test_result_first,
-        ]
-    )
-    db_session.commit()
+def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
+    environment = generator.gen_environment()
+    test_case = generator.gen_test_case()
 
-    artefact_second = generator.gen_artefact(stage_name="beta", version="1.1.2")
-    artefact_build_second = ArtefactBuild(
-        architecture="some arch", artefact=artefact_second
+    artefact_first = generator.gen_artefact("beta", version="1.1.1")
+    artefact_build_first = generator.gen_artefact_build(artefact_first)
+    test_execution_first = generator.gen_test_execution(
+        artefact_build_first,
+        environment,
+        ci_link="http://cilink1",
     )
-    test_execution_second = TestExecution(
-        environment=environment,
-        artefact_build=artefact_build_second,
+    test_result_first = generator.gen_test_result(
+        test_case,
+        test_execution_first,
+    )
+
+    artefact_second = generator.gen_artefact("beta", version="1.1.2")
+    artefact_build_second = generator.gen_artefact_build(artefact_second)
+    test_execution_second = generator.gen_test_execution(
+        artefact_build_second,
+        environment,
         ci_link="http://cilink2",
-        status=TestExecutionStatus.PASSED,
     )
-    test_result_second = TestResult(
-        test_case=test_case,
-        test_execution=test_execution_second,
-        status=TestResultStatus.PASSED,
-        comment="",
-        io_log="",
+    test_result_second = generator.gen_test_result(
+        test_case,
+        test_execution_second,
     )
-    db_session.add_all(
-        [artefact_build_second, test_execution_second, test_result_second]
-    )
-    db_session.commit()
 
     response = test_client.get(
         f"/v1/test-executions/{test_execution_second.id}/test-results"
