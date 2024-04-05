@@ -1,35 +1,179 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
 
-from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models import (
+    Artefact,
+    ArtefactBuild,
+    Stage,
+    TestCase,
+    TestExecution,
+    TestResult,
+)
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestExecutionReviewDecision,
+    TestExecutionStatus,
+    TestResultStatus,
+)
+from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-from .logic import (
-    compute_test_execution_status,
-    delete_previous_results,
-    store_test_results,
-)
-from .models import EndTestExecutionRequest
+from .logic import delete_previous_results
+from .models import C3TestResult, C3TestResultStatus, EndTestExecutionRequest
 
 router = APIRouter()
 
 
 @router.put("/end-test")
 def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(get_db)):
-    test_execution = (
-        db.query(TestExecution)
-        .filter(TestExecution.ci_link == request.ci_link)
-        .one_or_none()
-    )
+    test_execution = _find_related_test_execution(request, db)
 
     if test_execution is None:
         raise HTTPException(status_code=404, detail="Related TestExecution not found")
 
     delete_previous_results(db, test_execution)
-    store_test_results(db, request.test_results, test_execution)
-    test_execution.status = compute_test_execution_status(test_execution.test_results)
+    _store_test_results(db, request.test_results, test_execution)
+
+    has_failures = test_execution.has_failures
+
+    test_execution.status = (
+        TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
+    )
+
+    prev_test_execution = _get_previous_test_execution(db, test_execution)
+
+    if (
+        prev_test_execution
+        and not has_failures
+        and prev_test_execution.is_approved
+        and _ran_all_previously_run_cases(prev_test_execution, test_execution)
+    ):
+        test_execution.review_decision = [
+            TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
+        ]
 
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
 
     db.commit()
+
+
+def _ran_all_previously_run_cases(
+    prev_test_execution: TestExecution, test_execution: TestExecution
+) -> bool:
+    prev_test_cases = {
+        tr.test_case.name
+        for tr in prev_test_execution.test_results
+        if tr.status != TestResultStatus.SKIPPED
+    }
+
+    test_cases = {
+        tr.test_case.name
+        for tr in test_execution.test_results
+        if tr.status != TestResultStatus.SKIPPED
+    }
+
+    return prev_test_cases.issubset(test_cases)
+
+
+def _get_previous_test_execution(
+    db: Session, test_execution: TestExecution
+) -> TestExecution | None:
+    artefact = test_execution.artefact_build.artefact
+    prev_artefact = _get_previous_artefact(db, artefact)
+
+    if prev_artefact is None:
+        return None
+
+    query = (
+        select(TestExecution)
+        .join(ArtefactBuild)
+        .where(
+            ArtefactBuild.artefact_id == prev_artefact.id,
+            TestExecution.environment_id == test_execution.environment_id,
+        )
+        .options(
+            joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
+        )
+    )
+
+    return db.execute(query).unique().scalar_one_or_none()
+
+
+def _get_previous_artefact(db: Session, artefact: Artefact) -> Artefact | None:
+    family = artefact.stage.family
+
+    query = select(Artefact).where(
+        Artefact.name == artefact.name, Artefact.id != artefact.id
+    )
+
+    if family.name == FamilyName.SNAP.value:
+        query = query.where(Artefact.track == artefact.track)
+
+    if family.name == FamilyName.DEB.value:
+        query = query.where(
+            Artefact.series == artefact.series, Artefact.repo == artefact.repo
+        )
+
+    query = query.order_by(Artefact.id.desc()).limit(1)
+
+    return db.execute(query).scalar_one_or_none()
+
+
+def _find_related_test_execution(
+    request: EndTestExecutionRequest, db: Session
+) -> TestExecution | None:
+    return (
+        db.execute(
+            select(TestExecution)
+            .where(TestExecution.ci_link == request.ci_link)
+            .options(
+                joinedload(TestExecution.artefact_build)
+                .joinedload(ArtefactBuild.artefact)
+                .joinedload(Artefact.stage)
+                .joinedload(Stage.family)
+            )
+            .options(
+                joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
+            )
+        )
+        .unique()
+        .scalar_one_or_none()
+    )
+
+
+def _store_test_results(
+    db: Session,
+    c3_test_results: list[C3TestResult],
+    test_execution: TestExecution,
+) -> None:
+    for r in c3_test_results:
+        test_case = get_or_create(
+            db,
+            TestCase,
+            filter_kwargs={"name": r.name},
+            creation_kwargs={"category": r.category},
+        )
+
+        test_result = TestResult(
+            test_case=test_case,
+            test_execution=test_execution,
+            status=_parse_c3_test_result_status(r.status),
+            comment=r.comment,
+            io_log=r.io_log,
+        )
+
+        db.add(test_result)
+
+    db.commit()
+
+
+def _parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:
+    match status:
+        case C3TestResultStatus.PASS:
+            return TestResultStatus.PASSED
+        case C3TestResultStatus.FAIL:
+            return TestResultStatus.FAILED
+        case C3TestResultStatus.SKIP:
+            return TestResultStatus.SKIPPED

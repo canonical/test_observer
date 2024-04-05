@@ -88,7 +88,6 @@ class C3TestResultStatus(str, Enum):
 
 
 class C3TestResult(BaseModel):
-    id: int
     name: str
     status: C3TestResultStatus
     category: str
@@ -97,7 +96,6 @@ class C3TestResult(BaseModel):
 
 
 class EndTestExecutionRequest(BaseModel):
-    id: int
     ci_link: Annotated[str, HttpUrl]
     c3_link: Annotated[str, HttpUrl] | None = None
     test_results: list[C3TestResult]
