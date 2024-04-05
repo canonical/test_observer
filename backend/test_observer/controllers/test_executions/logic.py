@@ -9,7 +9,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
+from test_observer.data_access.models_enums import TestExecutionStatus
 
 from .models import StartTestExecutionRequest
 
