@@ -208,3 +208,39 @@ def test_end_test_does_not_approve_if_missing_test_cases(
     )
 
     assert curr_test_execution.review_decision == []
+
+
+def test_end_test_uses_test_execution_of_latest_build(
+    test_client: TestClient, generator: DataGenerator
+):
+    environment = generator.gen_environment()
+
+    prev_artefact = generator.gen_artefact("beta", version="1")
+    prev_artefact_build1 = generator.gen_artefact_build(prev_artefact, revision=1)
+    prev_artefact_build2 = generator.gen_artefact_build(prev_artefact, revision=2)
+    generator.gen_test_execution(
+        prev_artefact_build1,
+        environment,
+        ci_link="http://cilink1",
+    )
+    generator.gen_test_execution(
+        prev_artefact_build2,
+        environment,
+        ci_link="http://cilink2",
+        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+
+    curr_artefact = generator.gen_artefact("beta", version="2")
+    curr_artefact_build = generator.gen_artefact_build(curr_artefact)
+    curr_test_execution = generator.gen_test_execution(
+        curr_artefact_build, environment, ci_link="http://cilink3"
+    )
+
+    test_client.put(
+        "/v1/test-executions/end-test",
+        json={"ci_link": curr_test_execution.ci_link, "test_results": []},
+    )
+
+    assert curr_test_execution.review_decision == [
+        TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
+    ]

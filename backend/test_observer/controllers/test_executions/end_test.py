@@ -93,6 +93,8 @@ def _get_previous_test_execution(
             ArtefactBuild.artefact_id == prev_artefact.id,
             TestExecution.environment_id == test_execution.environment_id,
         )
+        .order_by(ArtefactBuild.revision.desc())
+        .limit(1)
         .options(
             joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
         )
