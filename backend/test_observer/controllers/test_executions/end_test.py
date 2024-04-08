@@ -5,13 +5,11 @@ from sqlalchemy.orm import Session, joinedload
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
-    Stage,
     TestCase,
     TestExecution,
     TestResult,
 )
 from test_observer.data_access.models_enums import (
-    FamilyName,
     TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
@@ -104,21 +102,18 @@ def _get_previous_test_execution(
 
 
 def _get_previous_artefact(db: Session, artefact: Artefact) -> Artefact | None:
-    family = artefact.stage.family
-
-    query = select(Artefact).where(
-        Artefact.name == artefact.name, Artefact.id != artefact.id
-    )
-
-    if family.name == FamilyName.SNAP.value:
-        query = query.where(Artefact.track == artefact.track)
-
-    if family.name == FamilyName.DEB.value:
-        query = query.where(
-            Artefact.series == artefact.series, Artefact.repo == artefact.repo
+    query = (
+        select(Artefact)
+        .where(
+            Artefact.id < artefact.id,
+            Artefact.name == artefact.name,
+            Artefact.track == artefact.track,
+            Artefact.series == artefact.series,
+            Artefact.repo == artefact.repo,
         )
-
-    query = query.order_by(Artefact.id.desc()).limit(1)
+        .order_by(Artefact.id.desc())
+        .limit(1)
+    )
 
     return db.execute(query).scalar_one_or_none()
 
@@ -131,10 +126,9 @@ def _find_related_test_execution(
             select(TestExecution)
             .where(TestExecution.ci_link == request.ci_link)
             .options(
-                joinedload(TestExecution.artefact_build)
-                .joinedload(ArtefactBuild.artefact)
-                .joinedload(Artefact.stage)
-                .joinedload(Stage.family)
+                joinedload(TestExecution.artefact_build).joinedload(
+                    ArtefactBuild.artefact
+                )
             )
             .options(
                 joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
