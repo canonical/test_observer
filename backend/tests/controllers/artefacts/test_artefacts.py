@@ -57,7 +57,11 @@ def test_get_latest_artefacts_by_family(
             "stage": relevant_artefact.stage.name,
             "status": relevant_artefact.status,
             "assignee": None,
-            "due_date": None,
+            "due_date": (
+                relevant_artefact.due_date.strftime("%Y-%m-%d")
+                if relevant_artefact.due_date
+                else None
+            ),
             "bug_link": "",
         }
     ]
@@ -219,7 +223,9 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
         "stage": artefact.stage.name,
         "status": artefact.status,
         "assignee": None,
-        "due_date": None,
+        "due_date": (
+            artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
+        ),
         "bug_link": "",
     }
 
