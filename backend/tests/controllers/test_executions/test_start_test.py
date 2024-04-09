@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from datetime import date, timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -194,3 +196,110 @@ def test_new_artefacts_get_assigned_a_reviewer(
     artefact = db_session.query(Artefact).filter(Artefact.name == "core22").one()
     assert artefact.assignee is not None
     assert artefact.assignee.launchpad_handle == user.launchpad_handle
+
+
+def test_non_kernel_artefact_due_date(db_session: Session, test_client: TestClient):
+    """
+    For non-kernel snaps, the default due date should be set to now + 10 days
+    """
+    test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": FamilyName.SNAP,
+            "name": "core22",
+            "version": "abec123",
+            "revision": 123,
+            "track": "22",
+            "store": "ubuntu",
+            "arch": "arm64",
+            "execution_stage": "beta",
+            "environment": "cm3",
+            "ci_link": "http://localhost",
+        },
+    )
+
+    artefact = (
+        db_session.query(Artefact)
+        .filter(
+            Artefact.name == "core22",
+            Artefact.version == "abec123",
+            Artefact.store == "ubuntu",
+            Artefact.track == "22",
+            Artefact.stage.has(name="beta"),
+        )
+        .one_or_none()
+    )
+
+    assert artefact is not None
+    assert artefact.due_date == date.today() + timedelta(10)
+
+
+def test_kernel_snap_due_date(db_session: Session, test_client: TestClient):
+    """
+    For kernel snaps, due date shouldn't be set to default
+    """
+    test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": FamilyName.SNAP,
+            "name": "pi-kernel",
+            "version": "abec123",
+            "revision": 123,
+            "track": "22",
+            "store": "ubuntu",
+            "arch": "arm64",
+            "execution_stage": "beta",
+            "environment": "cm3",
+            "ci_link": "http://localhost",
+        },
+    )
+
+    artefact = (
+        db_session.query(Artefact)
+        .filter(
+            Artefact.name == "pi-kernel",
+            Artefact.version == "abec123",
+            Artefact.store == "ubuntu",
+            Artefact.track == "22",
+            Artefact.stage.has(name="beta"),
+        )
+        .one_or_none()
+    )
+
+    assert artefact is not None
+    assert artefact.due_date is None
+
+
+def test_deb_family_artefact_due_date(db_session: Session, test_client: TestClient):
+    """
+    Due date shouldn't be set to default for DEB artefacts
+    """
+    test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": FamilyName.DEB,
+            "name": "linux-raspi",
+            "version": "5.15.0.73.71",
+            "series": "jammy",
+            "repo": "main",
+            "arch": "arm64",
+            "execution_stage": "proposed",
+            "environment": "rpi400",
+            "ci_link": "http://localhost",
+        },
+    )
+
+    artefact = (
+        db_session.query(Artefact)
+        .filter(
+            Artefact.name == "linux-raspi",
+            Artefact.version == "5.15.0.73.71",
+            Artefact.series == "jammy",
+            Artefact.repo == "main",
+            Artefact.stage.has(name="proposed"),
+        )
+        .one_or_none()
+    )
+
+    assert artefact is not None
+    assert artefact.due_date is None

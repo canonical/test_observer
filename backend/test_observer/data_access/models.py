@@ -18,7 +18,6 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 
-
 from datetime import date, datetime
 from typing import TypeVar
 
