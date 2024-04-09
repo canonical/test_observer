@@ -102,12 +102,15 @@ def _expected_report_row(test_result: TestResult) -> list:
     family = artefact.stage.family
     return [
         family.name,
+        str(artefact.id),
         artefact.name,
         artefact.version,
         artefact.status.name,
         artefact.track,
         artefact.series,
         artefact.repo,
+        str(artefact.created_at),
+        str(test_execution.id),
         test_execution.status.name,
         str(test_execution.review_decision),
         test_execution.review_comment,
@@ -116,4 +119,5 @@ def _expected_report_row(test_result: TestResult) -> list:
         test_case.name,
         test_case.category,
         test_result.status.name,
+        str(test_result.created_at),
     ]

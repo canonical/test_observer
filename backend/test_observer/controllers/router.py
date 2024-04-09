@@ -23,11 +23,11 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access.setup import get_db
 
+from . import test_executions
 from .application import version
 from .artefacts import artefacts
 from .promoter import promoter
 from .reports import reports
-from .test_executions import test_executions
 
 router = APIRouter()
 router.include_router(promoter.router)

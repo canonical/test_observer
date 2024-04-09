@@ -282,6 +282,16 @@ class TestExecution(Base):
     )
     review_comment: Mapped[str] = mapped_column(default="")
 
+    @property
+    def is_approved(self) -> bool:
+        return (len(self.review_decision) > 0) and (
+            TestExecutionReviewDecision.REJECTED not in self.review_decision
+        )
+
+    @property
+    def has_failures(self) -> bool:
+        return any(tr.status == TestResultStatus.FAILED for tr in self.test_results)
+
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
     def __repr__(self) -> str:

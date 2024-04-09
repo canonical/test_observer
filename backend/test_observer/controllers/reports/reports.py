@@ -23,12 +23,15 @@ router = APIRouter()
 
 TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     Family.name,
+    Artefact.id,
     Artefact.name,
     Artefact.version,
     Artefact.status,
     Artefact.track,
     Artefact.series,
     Artefact.repo,
+    Artefact.created_at,
+    TestExecution.id,
     TestExecution.status,
     TestExecution.review_decision,
     TestExecution.review_comment,
@@ -37,6 +40,7 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     TestCase.name,
     TestCase.category,
     TestResult.status,
+    TestResult.created_at,
 ]
 
 

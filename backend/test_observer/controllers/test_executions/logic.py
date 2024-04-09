@@ -1,3 +1,19 @@
+# Copyright 2024 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 from sqlalchemy import delete, desc
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.query import RowReturningQuery
@@ -6,14 +22,12 @@ from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
-    TestCase,
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
-from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.models_enums import TestExecutionStatus
 
-from .models import C3TestResult, C3TestResultStatus, StartTestExecutionRequest
+from .models import StartTestExecutionRequest
 
 
 def reset_test_execution(
@@ -31,14 +45,6 @@ def reset_test_execution(
     delete_previous_results(db, test_execution)
 
 
-def compute_test_execution_status(
-    test_results: list[TestResult],
-) -> TestExecutionStatus:
-    failed = any(r.status == TestResultStatus.FAILED for r in test_results)
-    status = TestExecutionStatus.FAILED if failed else TestExecutionStatus.PASSED
-    return status
-
-
 def delete_previous_results(
     db: Session,
     test_execution: TestExecution,
@@ -47,42 +53,6 @@ def delete_previous_results(
         delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
     )
     db.commit()
-
-
-def store_test_results(
-    db: Session,
-    c3_test_results: list[C3TestResult],
-    test_execution: TestExecution,
-):
-    for r in c3_test_results:
-        test_case = get_or_create(
-            db,
-            TestCase,
-            filter_kwargs={"name": r.name},
-            creation_kwargs={"category": r.category},
-        )
-
-        test_result = TestResult(
-            test_case=test_case,
-            test_execution=test_execution,
-            status=parse_c3_test_result_status(r.status),
-            comment=r.comment,
-            io_log=r.io_log,
-        )
-
-        db.add(test_result)
-
-    db.commit()
-
-
-def parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:
-    match status:
-        case C3TestResultStatus.PASS:
-            return TestResultStatus.PASSED
-        case C3TestResultStatus.FAIL:
-            return TestResultStatus.FAILED
-        case C3TestResultStatus.SKIP:
-            return TestResultStatus.SKIPPED
 
 
 def get_previous_artefact_builds_query(

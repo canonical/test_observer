@@ -172,11 +172,9 @@ START_TEST_EXECUTION_REQUESTS = [
 
 END_TEST_EXECUTION_REQUESTS = [
     EndTestExecutionRequest(
-        id=1,
         ci_link="http://example1",
         test_results=[
             C3TestResult(
-                id=1,
                 name="docker/compose-and-basic_armhf",
                 status=C3TestResultStatus.PASS,
                 category="Docker containers",
@@ -218,7 +216,6 @@ END_TEST_EXECUTION_REQUESTS = [
                 ),
             ),
             C3TestResult(
-                id=2,
                 name="after-suspend-audio/alsa-loopback-automated",
                 status=C3TestResultStatus.SKIP,
                 category="Audio tests",
@@ -226,7 +223,6 @@ END_TEST_EXECUTION_REQUESTS = [
                 io_log="",
             ),
             C3TestResult(
-                id=3,
                 name="bluetooth4/beacon_eddystone_url_hci0",
                 status=C3TestResultStatus.FAIL,
                 category="Bluetooth tests",
@@ -266,11 +262,9 @@ END_TEST_EXECUTION_REQUESTS = [
         ],
     ),
     EndTestExecutionRequest(
-        id=2,
         ci_link="http://example2",
         test_results=[
             C3TestResult(
-                id=4,
                 name="test7",
                 status=C3TestResultStatus.PASS,
                 category="",
@@ -278,7 +272,6 @@ END_TEST_EXECUTION_REQUESTS = [
                 io_log="",
             ),
             C3TestResult(
-                id=5,
                 name="test8",
                 status=C3TestResultStatus.SKIP,
                 category="",
