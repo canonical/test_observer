@@ -18,7 +18,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import TypeVar
 
 from sqlalchemy import (
@@ -30,6 +30,7 @@ from sqlalchemy import (
     UniqueConstraint,
     column,
 )
+from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -38,6 +39,7 @@ from sqlalchemy.orm import (
     relationship,
 )
 from sqlalchemy.sql import func
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -76,6 +78,15 @@ def data_model_repr(obj: DataModel, *keys: str) -> str:
     all_keys = ("id", "created_at", "updated_at") + keys
     kwargs = [f"{key}={getattr(obj, key)!r}" for key in all_keys]
     return f"{type(obj).__name__}({', '.join(kwargs)})"
+
+
+def determine_due_date(context: DefaultExecutionContext):
+    name = context.get_current_parameters()["name"]
+    is_kernel = name.startswith("linux-") or name.endswith("-kernel")
+    if not is_kernel:
+        # If not a kernel, return a date 10 days from now
+        return date.today() + timedelta(days=10)
+    return None
 
 
 class User(Base):
@@ -149,7 +160,7 @@ class Artefact(Base):
     assignee_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
     assignee: Mapped[User | None] = relationship(back_populates="assignments")
     # Default fields
-    due_date: Mapped[date | None]
+    due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     bug_link: Mapped[str] = mapped_column(default="")
 
@@ -186,6 +197,11 @@ class Artefact(Base):
             "due_date",
             "status",
         )
+
+    @hybrid_property
+    def is_kernel(self) -> bool:
+        """Kernel artefacts start with 'linix-' or end with '-kernel'"""
+        return self.name.startswith("linux-") or self.name.endswith("-kernel")
 
 
 class ArtefactBuild(Base):

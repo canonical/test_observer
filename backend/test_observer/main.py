@@ -25,7 +25,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from test_observer.controllers.router import router
-from test_observer.data_access import event_listeners  # noqa
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
