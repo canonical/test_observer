@@ -258,3 +258,36 @@ def test_end_test_uses_test_execution_of_latest_build(
     assert curr_test_execution.review_decision == [
         TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
     ]
+
+
+def test_end_test_updates_template_id(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("beta")
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build, environment, ci_link="http://localhost"
+    )
+    test_case = generator.gen_test_case(template_id="")
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "ci_link": test_execution.ci_link,
+            "c3_link": "",
+            "test_results": [
+                {
+                    "name": test_case.name,
+                    "status": "pass",
+                    "category": test_case.category,
+                    "template_id": "some template id",
+                    "comment": "",
+                    "io_log": "",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert test_execution.test_results[0].test_case.template_id == "some template id"
