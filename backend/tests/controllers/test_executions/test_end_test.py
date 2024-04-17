@@ -49,7 +49,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
                 },
                 {
                     "name": "disk/stats_nvme0n1",
-                    "template_id": "disk/stats_{name}",
+                    "template_id": "disk/stats_name",
                     "status": "skip",
                     "category": "",
                     "comment": "",
@@ -67,7 +67,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.test_results[0].test_case.template_id == test_case.template_id
     assert test_execution.test_results[1].test_case.name == "disk/stats_nvme0n1"
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
-    assert test_execution.test_results[1].test_case.template_id == "disk/stats_{name}"
+    assert test_execution.test_results[1].test_case.template_id == "disk/stats_name"
 
 
 def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator):
