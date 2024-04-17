@@ -37,12 +37,10 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     response = test_client.put(
         "/v1/test-executions/end-test",
         json={
-            "id": 1,
             "ci_link": test_execution.ci_link,
             "c3_link": c3_link,
             "test_results": [
                 {
-                    "id": 1,
                     "name": test_case.name,
                     "status": "pass",
                     "category": test_case.category,
@@ -50,8 +48,8 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
                     "io_log": "",
                 },
                 {
-                    "id": 2,
-                    "name": "test-name-2",
+                    "name": "disk/stats_nvme0n1",
+                    "template_id": "disk/stats_name",
                     "status": "skip",
                     "category": "",
                     "comment": "",
@@ -66,8 +64,10 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.c3_link == c3_link
     assert test_execution.test_results[0].test_case.name == test_case.name
     assert test_execution.test_results[0].status == TestResultStatus.PASSED
-    assert test_execution.test_results[1].test_case.name == "test-name-2"
+    assert test_execution.test_results[0].test_case.template_id == test_case.template_id
+    assert test_execution.test_results[1].test_case.name == "disk/stats_nvme0n1"
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
+    assert test_execution.test_results[1].test_case.template_id == "disk/stats_name"
 
 
 def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator):
@@ -82,11 +82,9 @@ def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerato
         test_client.put(
             "/v1/test-executions/end-test",
             json={
-                "id": 1,
                 "ci_link": test_execution.ci_link,
                 "test_results": [
                     {
-                        "id": 1,
                         "name": "test name",
                         "status": "pass",
                         "category": "test category",
@@ -260,3 +258,36 @@ def test_end_test_uses_test_execution_of_latest_build(
     assert curr_test_execution.review_decision == [
         TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
     ]
+
+
+def test_end_test_updates_template_id(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("beta")
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build, environment, ci_link="http://localhost"
+    )
+    test_case = generator.gen_test_case(template_id="")
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "ci_link": test_execution.ci_link,
+            "c3_link": "",
+            "test_results": [
+                {
+                    "name": test_case.name,
+                    "status": "pass",
+                    "category": test_case.category,
+                    "template_id": "some template id",
+                    "comment": "",
+                    "io_log": "",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert test_execution.test_results[0].test_case.template_id == "some template id"

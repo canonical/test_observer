@@ -146,8 +146,13 @@ class DataGenerator:
         self,
         name: str = "camera/detect",
         category: str = "camera",
+        template_id: str = "",
     ) -> TestCase:
-        test_case = TestCase(name=name, category=category)
+        test_case = TestCase(
+            name=name,
+            category=category,
+            template_id=template_id,
+        )
         self.db_session.add(test_case)
         self.db_session.commit()
         return test_case
