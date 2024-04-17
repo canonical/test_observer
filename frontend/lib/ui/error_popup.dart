@@ -14,11 +14,9 @@ class ErrorPopup extends ConsumerWidget {
       if (next.isNotEmpty) {
         showDialog(
           context: context,
-          builder: (context) => WillPopScope(
-            onWillPop: () {
-              ref.read(globalErrorMessageProvider.notifier).set('');
-              return Future.value(true);
-            },
+          builder: (context) => PopScope(
+            onPopInvoked: (_) =>
+                ref.read(globalErrorMessageProvider.notifier).set(''),
             child: SimpleDialog(
               title: const Text('Error'),
               // match default padding of title
