@@ -165,7 +165,10 @@ def _store_test_results(
             db,
             TestCase,
             filter_kwargs={"name": r.name},
-            creation_kwargs={"category": r.category},
+            creation_kwargs={
+                "category": r.category,
+                "template_id": r.template_id or "",
+            },
         )
 
         test_result = TestResult(

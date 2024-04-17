@@ -89,6 +89,7 @@ class C3TestResultStatus(str, Enum):
 
 class C3TestResult(BaseModel):
     name: str
+    template_id: str | None = None
     status: C3TestResultStatus
     category: str
     comment: str
