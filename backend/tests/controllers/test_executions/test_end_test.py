@@ -37,12 +37,10 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     response = test_client.put(
         "/v1/test-executions/end-test",
         json={
-            "id": 1,
             "ci_link": test_execution.ci_link,
             "c3_link": c3_link,
             "test_results": [
                 {
-                    "id": 1,
                     "name": test_case.name,
                     "status": "pass",
                     "category": test_case.category,
@@ -50,7 +48,6 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
                     "io_log": "",
                 },
                 {
-                    "id": 2,
                     "name": "test-name-2",
                     "status": "skip",
                     "category": "",
@@ -82,11 +79,9 @@ def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerato
         test_client.put(
             "/v1/test-executions/end-test",
             json={
-                "id": 1,
                 "ci_link": test_execution.ci_link,
                 "test_results": [
                     {
-                        "id": 1,
                         "name": "test name",
                         "status": "pass",
                         "category": "test category",
