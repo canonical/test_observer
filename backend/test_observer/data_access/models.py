@@ -30,8 +30,9 @@ from sqlalchemy import (
     UniqueConstraint,
     column,
 )
-from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.engine.default import DefaultExecutionContext
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -39,7 +40,6 @@ from sqlalchemy.orm import (
     relationship,
 )
 from sqlalchemy.sql import func
-from sqlalchemy.ext.hybrid import hybrid_property
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -332,6 +332,7 @@ class TestCase(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     category: Mapped[str]
+    template_id: Mapped[str] = mapped_column(default="")
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name", "category")

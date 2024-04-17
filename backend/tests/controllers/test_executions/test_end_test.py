@@ -65,6 +65,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.test_results[0].status == TestResultStatus.PASSED
     assert test_execution.test_results[1].test_case.name == "test-name-2"
     assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
+    assert test_execution.test_results[1].test_case.template_id == ""
 
 
 def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator):
