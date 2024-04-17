@@ -168,7 +168,8 @@ def _store_test_results(
             creation_kwargs={"category": r.category},
         )
 
-        test_case.template_id = r.template_id or ""
+        if r.template_id:
+            test_case.template_id = r.template_id
 
         test_result = TestResult(
             test_case=test_case,
