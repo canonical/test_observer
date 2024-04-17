@@ -37,6 +37,7 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     TestExecution.review_comment,
     Environment.name,
     Environment.architecture,
+    TestCase.template_id,
     TestCase.name,
     TestCase.category,
     TestResult.status,

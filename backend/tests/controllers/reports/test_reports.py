@@ -116,6 +116,7 @@ def _expected_report_row(test_result: TestResult) -> list:
         test_execution.review_comment,
         environment.name,
         environment.architecture,
+        test_case.template_id,
         test_case.name,
         test_case.category,
         test_result.status.name,
