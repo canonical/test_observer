@@ -113,6 +113,7 @@ class TestObserverBackendCharm(CharmBase):
             logger.error(e.stdout)
             logger.error(e.stderr)
             self.unit.status = BlockedStatus("Database migration failed")
+            raise SystemExit(0)
 
     def _on_database_changed(self, event):
         self._migrate_database()
