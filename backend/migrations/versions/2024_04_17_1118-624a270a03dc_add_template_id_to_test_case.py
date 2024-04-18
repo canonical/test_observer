@@ -17,7 +17,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("test_case", sa.Column("template_id", sa.String(), nullable=False))
+    op.add_column(
+        "test_case",
+        sa.Column("template_id", sa.String(), nullable=False, server_default=""),
+    )
 
 
 def downgrade() -> None:
