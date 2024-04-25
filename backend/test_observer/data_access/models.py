@@ -299,6 +299,10 @@ class TestExecution(Base):
     )
     review_comment: Mapped[str] = mapped_column(default="")
 
+    checkbox_version: Mapped[str] = mapped_column(
+        String(200), nullable=True, default=None
+    )
+
     @property
     def is_approved(self) -> bool:
         return (len(self.review_decision) > 0) and (

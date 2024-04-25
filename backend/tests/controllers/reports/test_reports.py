@@ -114,6 +114,8 @@ def _expected_report_row(test_result: TestResult) -> list:
         test_execution.status.name,
         str(test_execution.review_decision),
         test_execution.review_comment,
+        test_execution.c3_link,
+        test_execution.checkbox_version,
         environment.name,
         environment.architecture,
         test_case.template_id,

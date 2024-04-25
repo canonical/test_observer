@@ -125,6 +125,7 @@ class DataGenerator:
         status: TestExecutionStatus = TestExecutionStatus.NOT_STARTED,
         review_decision: list[TestExecutionReviewDecision] | None = None,
         review_comment: str = "",
+        checkbox_version: str | None = None,
     ) -> TestExecution:
         if review_decision is None:
             review_decision = []
@@ -137,6 +138,7 @@ class DataGenerator:
             status=status,
             review_decision=review_decision,
             review_comment=review_comment,
+            checkbox_version=checkbox_version,
         )
         self.db_session.add(test_execution)
         self.db_session.commit()

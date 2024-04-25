@@ -70,6 +70,8 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
 
+    test_execution.checkbox_version = request.checkbox_version
+
     db.commit()
 
 
