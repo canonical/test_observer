@@ -299,7 +299,7 @@ class TestExecution(Base):
     )
     review_comment: Mapped[str] = mapped_column(default="")
 
-    checkbox_version: Mapped[str] = mapped_column(
+    checkbox_version: Mapped[str | None] = mapped_column(
         String(200), nullable=True, default=None
     )
 
