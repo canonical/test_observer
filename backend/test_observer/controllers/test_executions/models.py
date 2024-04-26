@@ -99,6 +99,7 @@ class C3TestResult(BaseModel):
 class EndTestExecutionRequest(BaseModel):
     ci_link: Annotated[str, HttpUrl]
     c3_link: Annotated[str, HttpUrl] | None = None
+    checkbox_version: str | None = None
     test_results: list[C3TestResult]
 
 
