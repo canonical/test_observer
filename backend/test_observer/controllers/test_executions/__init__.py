@@ -16,10 +16,11 @@
 
 from fastapi import APIRouter
 
-from . import end_test, get_test_results, patch, start_test
+from . import end_test, get_test_results, patch, restart, start_test
 
 router = APIRouter(tags=["test-executions"])
 router.include_router(start_test.router)
 router.include_router(get_test_results.router)
 router.include_router(end_test.router)
 router.include_router(patch.router)
+router.include_router(restart.router)
