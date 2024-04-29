@@ -1,6 +1,5 @@
 from fastapi.testclient import TestClient
 
-from test_observer.controllers.artefacts.models import TestExecutionDTO
 from tests.data_generator import DataGenerator
 
 restart_url = "/v1/test-executions/restart"
