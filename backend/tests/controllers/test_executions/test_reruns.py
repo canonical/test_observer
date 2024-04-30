@@ -61,25 +61,41 @@ def test_get_returns_200_with_empty_list(get: Get):
 
 
 def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution):
-    ci_link = "ci.link"
-    test_execution.ci_link = ci_link
+    test_execution.ci_link = "ci.link"
 
     post({"test_execution_id": test_execution.id})
 
     assert get().json() == [
-        {"test_execution_id": test_execution.id, "ci_link": ci_link}
+        {"test_execution_id": test_execution.id, "ci_link": test_execution.ci_link}
     ]
 
 
 def test_get_after_two_identical_posts(
     get: Get, post: Post, test_execution: TestExecution
 ):
-    ci_link = "ci.link"
-    test_execution.ci_link = ci_link
+    test_execution.ci_link = "ci.link"
 
     post({"test_execution_id": test_execution.id})
     post({"test_execution_id": test_execution.id})
 
     assert get().json() == [
-        {"test_execution_id": test_execution.id, "ci_link": ci_link}
+        {"test_execution_id": test_execution.id, "ci_link": test_execution.ci_link}
+    ]
+
+
+def test_get_after_two_different_posts(
+    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
+):
+    te1 = test_execution
+    te1.ci_link = "ci1.link"
+
+    e2 = generator.gen_environment("desktop")
+    te2 = generator.gen_test_execution(te1.artefact_build, e2, ci_link="ci2.link")
+
+    post({"test_execution_id": te1.id})
+    post({"test_execution_id": te2.id})
+
+    assert get().json() == [
+        {"test_execution_id": te1.id, "ci_link": te1.ci_link},
+        {"test_execution_id": te2.id, "ci_link": te2.ci_link},
     ]
