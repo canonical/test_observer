@@ -1,16 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
 
-from test_observer.controllers.artefacts.models import TestExecutionDTO
-from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models import TestExecution, TestExecutionRerunRequest
+from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
+from .models import PendingRerun, RerunRequest
+
 router = APIRouter()
-
-
-class RerunRequest(BaseModel):
-    test_execution_id: int
 
 
 @router.post("/reruns")
@@ -20,7 +18,13 @@ def create_a_rerun_request(request: RerunRequest, db: Session = Depends(get_db))
         msg = f"No test execution with id {request.test_execution_id} found"
         raise HTTPException(status_code=404, detail=msg)
 
+    get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
 
-@router.get("/reruns", response_model=list[TestExecutionDTO])
-def get_rerun_requests():
-    return []
+
+@router.get("/reruns", response_model=list[PendingRerun])
+def get_rerun_requests(db: Session = Depends(get_db)):
+    return db.scalars(
+        select(TestExecutionRerunRequest).options(
+            joinedload(TestExecutionRerunRequest.test_execution)
+        )
+    )

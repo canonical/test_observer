@@ -266,6 +266,26 @@ class Environment(Base):
         return data_model_repr(self, "name", "architecture")
 
 
+class TestExecutionRerunRequest(Base):
+    """
+    Stores requests to rerun test executions.
+
+    Reason for this being a separate table is to make fetching all such
+    requests fast. Had we stored this as a column in TestExecution table then
+    we'd need to scan all test executions to get this list.
+    """
+
+    __test__ = False
+    __tablename__ = "test_execution_rerun_request"
+
+    test_execution_id: Mapped[int] = mapped_column(
+        ForeignKey("test_execution.id"), unique=True
+    )
+    test_execution: Mapped["TestExecution"] = relationship(
+        back_populates="rerun_request"
+    )
+
+
 class TestExecution(Base):
     """
     A table to represent the result of test execution.
@@ -287,6 +307,9 @@ class TestExecution(Base):
     environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"))
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
     test_results: Mapped[list["TestResult"]] = relationship(
+        back_populates="test_execution", cascade="all, delete"
+    )
+    rerun_request: Mapped[TestExecutionRerunRequest | None] = relationship(
         back_populates="test_execution", cascade="all, delete"
     )
     # Default fields
