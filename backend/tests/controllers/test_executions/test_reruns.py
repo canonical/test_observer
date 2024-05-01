@@ -66,7 +66,11 @@ def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution)
     post({"test_execution_id": test_execution.id})
 
     assert get().json() == [
-        {"test_execution_id": test_execution.id, "ci_link": test_execution.ci_link}
+        {
+            "test_execution_id": test_execution.id,
+            "ci_link": test_execution.ci_link,
+            "family": test_execution.artefact_build.artefact.stage.family.name,
+        }
     ]
 
 
@@ -79,7 +83,11 @@ def test_get_after_two_identical_posts(
     post({"test_execution_id": test_execution.id})
 
     assert get().json() == [
-        {"test_execution_id": test_execution.id, "ci_link": test_execution.ci_link}
+        {
+            "test_execution_id": test_execution.id,
+            "ci_link": test_execution.ci_link,
+            "family": test_execution.artefact_build.artefact.stage.family.name,
+        }
     ]
 
 
@@ -96,6 +104,14 @@ def test_get_after_two_different_posts(
     post({"test_execution_id": te2.id})
 
     assert get().json() == [
-        {"test_execution_id": te1.id, "ci_link": te1.ci_link},
-        {"test_execution_id": te2.id, "ci_link": te2.ci_link},
+        {
+            "test_execution_id": te1.id,
+            "ci_link": te1.ci_link,
+            "family": te1.artefact_build.artefact.stage.family.name,
+        },
+        {
+            "test_execution_id": te2.id,
+            "ci_link": te2.ci_link,
+            "family": te2.artefact_build.artefact.stage.family.name,
+        },
     ]

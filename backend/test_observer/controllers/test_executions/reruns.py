@@ -2,7 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from test_observer.data_access.models import TestExecution, TestExecutionRerunRequest
+from test_observer.data_access.models import (
+    Artefact,
+    ArtefactBuild,
+    Stage,
+    TestExecution,
+    TestExecutionRerunRequest,
+)
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
@@ -26,5 +32,9 @@ def get_rerun_requests(db: Session = Depends(get_db)):
     return db.scalars(
         select(TestExecutionRerunRequest).options(
             joinedload(TestExecutionRerunRequest.test_execution)
+            .joinedload(TestExecution.artefact_build)
+            .joinedload(ArtefactBuild.artefact)
+            .joinedload(Artefact.stage)
+            .joinedload(Stage.family)
         )
     )
