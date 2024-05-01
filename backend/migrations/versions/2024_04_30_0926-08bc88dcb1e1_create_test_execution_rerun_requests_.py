@@ -1,7 +1,7 @@
 """Create test execution rerun requests table
 
 Revision ID: 08bc88dcb1e1
-Revises: 624a270a03dc
+Revises: 5d36de5a8a48
 Create Date: 2024-04-30 09:26:48.766175+00:00
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "08bc88dcb1e1"
-down_revision = "624a270a03dc"
+down_revision = "5d36de5a8a48"
 branch_labels = None
 depends_on = None
 
