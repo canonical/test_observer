@@ -70,4 +70,25 @@ class ArtefactBuilds extends _$ArtefactBuilds {
 
     await _updateStateReviewDecision(testExecutionId, testExecution);
   }
+
+  Future<void> rerunTestExecution(int testExecutionId) async {
+    final api = ref.read(apiProvider);
+    await api.rerunTestExecution(testExecutionId);
+
+    final artefactBuilds = await future;
+    final newArtefactBuilds = <ArtefactBuild>[];
+    for (final ab in artefactBuilds) {
+      final newTestExecutions = [
+        for (final te in ab.testExecutions)
+          if (te.id == testExecutionId)
+            te.copyWith(isRerunRequested: true)
+          else
+            te,
+      ];
+
+      newArtefactBuilds.add(ab.copyWith(testExecutions: newTestExecutions));
+    }
+
+    state = AsyncData(newArtefactBuilds);
+  }
 }

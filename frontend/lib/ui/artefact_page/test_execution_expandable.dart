@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/test_execution.dart';
 import '../../models/test_result.dart';
+import '../../providers/artefact_builds.dart';
+import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
 import 'test_execution_review.dart';
@@ -22,7 +24,9 @@ class _TestExecutionTileTitle extends StatelessWidget {
       children: [
         if (!testExecution.status.isCompleted) const SizedBox(width: 36.0),
         testExecution.status.icon,
-        const SizedBox(width: Spacing.level4),
+        const SizedBox(width: Spacing.level2),
+        _RerunButton(testExecution: testExecution),
+        const SizedBox(width: Spacing.level2),
         Text(
           testExecution.environment.name,
           style: Theme.of(context).textTheme.titleLarge,
@@ -42,6 +46,32 @@ class _TestExecutionTileTitle extends StatelessWidget {
             urlText: 'C3',
           ),
       ],
+    );
+  }
+}
+
+class _RerunButton extends ConsumerWidget {
+  const _RerunButton({required this.testExecution});
+
+  final TestExecution testExecution;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final artefactId =
+        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
+
+    final handlePress = testExecution.isRerunRequested
+        ? null
+        : () => ref
+            .read(artefactBuildsProvider(artefactId).notifier)
+            .rerunTestExecution(testExecution.id);
+
+    return Tooltip(
+      message: testExecution.isRerunRequested ? 'Already requested' : '',
+      child: TextButton(
+        onPressed: handlePress,
+        child: const Text('rerun'),
+      ),
     );
   }
 }
