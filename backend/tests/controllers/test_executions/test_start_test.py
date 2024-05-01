@@ -268,3 +268,63 @@ def test_kernel_artefact_due_date(db_session: Session, test_client: TestClient):
 
     assert artefact is not None
     assert artefact.due_date is None
+
+
+def test_deletes_rerun_request_if_different_ci_link(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e, ci_link="ci.link")
+    generator.gen_rerun_request(te)
+
+    assert te.rerun_request
+
+    test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": a.stage.family.name,
+            "name": a.name,
+            "version": a.version,
+            "revision": ab.revision,
+            "track": a.track,
+            "store": a.store,
+            "arch": ab.architecture,
+            "execution_stage": a.stage.name,
+            "environment": e.name,
+            "ci_link": "different-ci.link",
+        },
+    )
+
+    assert not te.rerun_request
+
+
+def test_keep_rerun_request_if_same_ci_link(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e, ci_link="ci.link")
+    generator.gen_rerun_request(te)
+
+    assert te.rerun_request
+
+    test_client.put(
+        "/v1/test-executions/start-test",
+        json={
+            "family": a.stage.family.name,
+            "name": a.name,
+            "version": a.version,
+            "revision": ab.revision,
+            "track": a.track,
+            "store": a.store,
+            "arch": ab.architecture,
+            "execution_stage": a.stage.name,
+            "environment": e.name,
+            "ci_link": "ci.link",
+        },
+    )
+
+    assert te.rerun_request
