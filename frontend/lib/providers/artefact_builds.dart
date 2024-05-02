@@ -1,4 +1,3 @@
-import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact_build.dart';
@@ -15,47 +14,6 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     return await api.getArtefactBuilds(artefactId);
   }
 
-  ArtefactBuild _getUpdatedArtefactBuild(
-    ArtefactBuild artefactBuild,
-    int testExecutionId,
-    TestExecution updatedTestExecution,
-  ) {
-    if (artefactBuild.testExecutions.none(
-      (element) => element.id == testExecutionId,
-    )) {
-      return artefactBuild;
-    }
-
-    final updatedTestExecutions = artefactBuild.testExecutions.map(
-      ((element) {
-        if (element.id == testExecutionId) {
-          return updatedTestExecution;
-        }
-        return element;
-      }),
-    ).toList();
-
-    return artefactBuild.copyWith(testExecutions: updatedTestExecutions);
-  }
-
-  Future<void> _updateStateReviewDecision(
-    int testExecutionId,
-    TestExecution updatedTestExecution,
-  ) async {
-    final previousState = await future;
-
-    state = AsyncData(
-      [
-        for (final artefactBuild in previousState)
-          _getUpdatedArtefactBuild(
-            artefactBuild,
-            testExecutionId,
-            updatedTestExecution,
-          ),
-      ],
-    );
-  }
-
   Future<void> changeReviewDecision(
     int testExecutionId,
     String reviewComment,
@@ -68,22 +26,29 @@ class ArtefactBuilds extends _$ArtefactBuilds {
       reviewComment,
     );
 
-    await _updateStateReviewDecision(testExecutionId, testExecution);
+    await _updateTestExecution(testExecutionId, (_) => testExecution);
   }
 
   Future<void> rerunTestExecution(int testExecutionId) async {
     final api = ref.read(apiProvider);
     await api.rerunTestExecution(testExecutionId);
 
+    await _updateTestExecution(
+      testExecutionId,
+      (te) => te.copyWith(isRerunRequested: true),
+    );
+  }
+
+  Future<void> _updateTestExecution(
+    int testExecutionId,
+    TestExecution Function(TestExecution) update,
+  ) async {
     final artefactBuilds = await future;
     final newArtefactBuilds = <ArtefactBuild>[];
     for (final ab in artefactBuilds) {
       final newTestExecutions = [
         for (final te in ab.testExecutions)
-          if (te.id == testExecutionId)
-            te.copyWith(isRerunRequested: true)
-          else
-            te,
+          if (te.id == testExecutionId) update(te) else te,
       ];
 
       newArtefactBuilds.add(ab.copyWith(testExecutions: newTestExecutions));
