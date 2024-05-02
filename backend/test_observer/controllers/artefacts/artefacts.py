@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access import queries
-from test_observer.data_access.models import Artefact, ArtefactBuild
+from test_observer.data_access.models import Artefact, ArtefactBuild, TestExecution
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
@@ -123,7 +123,11 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
         db.scalars(
             queries.latest_artefact_builds.where(
                 ArtefactBuild.artefact_id == artefact_id
-            ).options(joinedload(ArtefactBuild.test_executions))
+            ).options(
+                joinedload(ArtefactBuild.test_executions).joinedload(
+                    TestExecution.rerun_request
+                )
+            )
         ).unique()
     )
 

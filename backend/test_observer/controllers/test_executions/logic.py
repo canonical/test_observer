@@ -40,6 +40,8 @@ def reset_test_execution(
     test_execution.c3_link = None
     test_execution.review_decision = []
     test_execution.review_comment = ""
+    if test_execution.rerun_request:
+        db.delete(test_execution.rerun_request)
     db.commit()
 
     delete_previous_results(db, test_execution)

@@ -9,6 +9,7 @@ from test_observer.data_access.models import (
     Stage,
     TestCase,
     TestExecution,
+    TestExecutionRerunRequest,
     TestResult,
     User,
 )
@@ -177,3 +178,11 @@ class DataGenerator:
         self.db_session.add(test_result)
         self.db_session.commit()
         return test_result
+
+    def gen_rerun_request(
+        self, test_execution: TestExecution
+    ) -> TestExecutionRerunRequest:
+        rerun = TestExecutionRerunRequest(test_execution=test_execution)
+        self.db_session.add(rerun)
+        self.db_session.commit()
+        return rerun

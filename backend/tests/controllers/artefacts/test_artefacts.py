@@ -129,6 +129,7 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
                     },
                     "review_decision": [],
                     "review_comment": "",
+                    "is_rerun_requested": False,
                 }
             ],
         }
@@ -163,6 +164,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     },
                     "review_decision": [],
                     "review_comment": "",
+                    "is_rerun_requested": False,
                 },
                 {
                     "id": te2.id,
@@ -176,6 +178,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     },
                     "review_decision": [],
                     "review_comment": "",
+                    "is_rerun_requested": False,
                 },
             ],
         }
@@ -198,6 +201,43 @@ def test_get_artefact_builds_only_latest(
             "revision": artefact_build2.revision,
             "architecture": artefact_build2.architecture,
             "test_executions": [],
+        }
+    ]
+
+
+def test_get_artefact_builds_with_rerun_requested(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e)
+    generator.gen_rerun_request(te)
+
+    response = test_client.get(f"/v1/artefacts/{a.id}/builds")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": ab.id,
+            "revision": ab.revision,
+            "architecture": ab.architecture,
+            "test_executions": [
+                {
+                    "id": te.id,
+                    "ci_link": te.ci_link,
+                    "c3_link": te.c3_link,
+                    "status": te.status.value,
+                    "environment": {
+                        "id": e.id,
+                        "name": e.name,
+                        "architecture": e.architecture,
+                    },
+                    "review_decision": [],
+                    "review_comment": "",
+                    "is_rerun_requested": True,
+                }
+            ],
         }
     ]
 

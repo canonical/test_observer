@@ -24,6 +24,7 @@ from test_observer.users.add_user import add_user
 BASE_URL = "http://localhost:30000/v1"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 END_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/end-test"
+RERUN_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/reruns"
 
 START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
@@ -293,17 +294,32 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     ):
         add_user(email, session)
 
+    test_executions = []
     for start_request in START_TEST_EXECUTION_REQUESTS:
-        client.put(
+        response = client.put(
             START_TEST_EXECUTION_URL, json=start_request.model_dump(mode="json")
-        ).raise_for_status()
+        )
+        response.raise_for_status()
+        test_executions.append(response.json())
 
     for end_request in END_TEST_EXECUTION_REQUESTS:
         client.put(
             END_TEST_EXECUTION_URL, json=end_request.model_dump(mode="json")
         ).raise_for_status()
 
+    _rerun_some_test_executions(client, test_executions)
+
     _add_bugurl_and_duedate(session)
+
+
+def _rerun_some_test_executions(
+    client: TestClient | requests.Session, test_executions: list[dict]
+) -> None:
+    for te in test_executions[::2]:
+        client.post(
+            RERUN_TEST_EXECUTION_URL,
+            json={"test_execution_id": te["id"]},
+        ).raise_for_status()
 
 
 def _add_bugurl_and_duedate(session: Session) -> None:

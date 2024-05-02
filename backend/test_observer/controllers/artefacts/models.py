@@ -18,8 +18,9 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from datetime import date
+from typing import Any
 
-from pydantic import AliasPath, BaseModel, ConfigDict, Field
+from pydantic import AliasPath, BaseModel, ConfigDict, Field, computed_field
 
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -74,6 +75,11 @@ class TestExecutionDTO(BaseModel):
     # reasons, we allow multiple reasons to be picked for the approval
     review_decision: set[TestExecutionReviewDecision]
     review_comment: str
+    rerun_request: Any = Field(exclude=True)
+
+    @computed_field
+    def is_rerun_requested(self) -> bool:
+        return bool(self.rerun_request)
 
 
 class ArtefactBuildDTO(BaseModel):

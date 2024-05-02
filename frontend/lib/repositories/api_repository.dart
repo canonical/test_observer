@@ -64,4 +64,11 @@ class ApiRepository {
         testResultsJson.map((json) => TestResult.fromJson(json)).toList();
     return testResults;
   }
+
+  Future<void> rerunTestExecution(int testExecutionId) async {
+    await dio.post(
+      '/v1/test-executions/reruns',
+      data: {'test_execution_id': testExecutionId},
+    );
+  }
 }

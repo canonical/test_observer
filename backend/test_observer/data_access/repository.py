@@ -69,7 +69,7 @@ def get_artefacts_by_family(
     :return: list of Artefacts
     """
     if latest_only:
-        subquery = (
+        base_query = (
             session.query(
                 Artefact.stage_id,
                 Artefact.name,
@@ -83,7 +83,9 @@ def get_artefacts_by_family(
 
         if family_name == FamilyName.SNAP:
             subquery = (
-                subquery.add_columns(Artefact.track).group_by(Artefact.track).subquery()
+                base_query.add_columns(Artefact.track)
+                .group_by(Artefact.track)
+                .subquery()
             )
 
             query = session.query(Artefact).join(
@@ -97,7 +99,7 @@ def get_artefacts_by_family(
             )
         else:
             subquery = (
-                subquery.add_columns(Artefact.repo, Artefact.series)
+                base_query.add_columns(Artefact.repo, Artefact.series)
                 .group_by(Artefact.repo, Artefact.series)
                 .subquery()
             )

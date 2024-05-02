@@ -23,6 +23,7 @@ class TestExecution with _$TestExecution {
     required String reviewComment,
     @JsonKey(name: TestExecution.reviewDecisionJsonKey)
     required List<TestExecutionReviewDecision> reviewDecision,
+    @Default(false) @JsonKey(name: 'is_rerun_requested') bool isRerunRequested,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>
