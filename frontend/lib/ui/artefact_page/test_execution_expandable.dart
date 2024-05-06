@@ -103,6 +103,7 @@ class _RerunButton extends ConsumerWidget {
                 ),
                 actions: [
                   TextButton(
+                    autofocus: true,
                     onPressed: () {
                       ref
                           .read(artefactBuildsProvider(artefactId).notifier)
