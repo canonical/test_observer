@@ -14,9 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from collections.abc import Callable
 from datetime import date, timedelta
+from typing import Any, TypeAlias
 
+import pytest
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.test_executions.models import StartTestExecutionRequest
@@ -34,11 +38,20 @@ from test_observer.data_access.models_enums import (
 )
 from tests.data_generator import DataGenerator
 
+Execute: TypeAlias = Callable[[dict[str, Any]], Response]
 
-def test_creates_all_data_models(db_session: Session, test_client: TestClient):
-    response = test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+
+@pytest.fixture
+def execute(test_client: TestClient) -> Execute:
+    def execute_helper(data: dict[str, Any]) -> Response:
+        return test_client.put("/v1/test-executions/start-test", json=data)
+
+    return execute_helper
+
+
+def test_creates_all_data_models(db_session: Session, execute: Execute):
+    response = execute(
+        {
             "family": "snap",
             "name": "core22",
             "version": "abec123",
@@ -49,7 +62,7 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
             "execution_stage": "beta",
             "environment": "cm3",
             "ci_link": "http://localhost",
-        },
+        }
     )
 
     artefact = (
@@ -99,11 +112,10 @@ def test_creates_all_data_models(db_session: Session, test_client: TestClient):
     assert response.json() == {"id": test_execution.id}
 
 
-def test_invalid_artefact_format(test_client: TestClient):
+def test_invalid_artefact_format(execute: Execute):
     """Artefact with invalid format no store should not be created"""
-    response = test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+    response = execute(
+        {
             "family": "snap",
             "name": "core22",
             "version": "abec123",
@@ -120,7 +132,7 @@ def test_invalid_artefact_format(test_client: TestClient):
 
 def test_uses_existing_models(
     db_session: Session,
-    test_client: TestClient,
+    execute: Execute,
     generator: DataGenerator,
 ):
     artefact = generator.gen_artefact("beta")
@@ -148,9 +160,8 @@ def test_uses_existing_models(
         ci_link="http://localhost/",
     )
 
-    test_execution_id = test_client.put(
-        "/v1/test-executions/start-test",
-        json=request.model_dump(mode="json"),
+    test_execution_id = execute(
+        request.model_dump(mode="json"),
     ).json()["id"]
 
     test_execution = (
@@ -174,13 +185,12 @@ def test_uses_existing_models(
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
-    db_session: Session, test_client: TestClient, generator: DataGenerator
+    db_session: Session, execute: Execute, generator: DataGenerator
 ):
     user = generator.gen_user()
 
-    test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+    execute(
+        {
             "family": "snap",
             "name": "core22",
             "version": "abec123",
@@ -199,13 +209,12 @@ def test_new_artefacts_get_assigned_a_reviewer(
     assert artefact.assignee.launchpad_handle == user.launchpad_handle
 
 
-def test_non_kernel_artefact_due_date(db_session: Session, test_client: TestClient):
+def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+    execute(
+        {
             "family": FamilyName.SNAP,
             "name": "core22",
             "version": "abec123",
@@ -235,13 +244,12 @@ def test_non_kernel_artefact_due_date(db_session: Session, test_client: TestClie
     assert artefact.due_date == date.today() + timedelta(10)
 
 
-def test_kernel_artefact_due_date(db_session: Session, test_client: TestClient):
+def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
     """
     For kernel artefacts, due date shouldn't be set to default
     """
-    test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+    execute(
+        {
             "family": FamilyName.SNAP,
             "name": "pi-kernel",
             "version": "abec123",
@@ -272,7 +280,7 @@ def test_kernel_artefact_due_date(db_session: Session, test_client: TestClient):
 
 
 def test_deletes_rerun_request_if_different_ci_link(
-    test_client: TestClient, generator: DataGenerator
+    execute: Execute, generator: DataGenerator
 ):
     a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
@@ -282,9 +290,8 @@ def test_deletes_rerun_request_if_different_ci_link(
 
     assert te.rerun_request
 
-    test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+    execute(
+        {
             "family": a.stage.family.name,
             "name": a.name,
             "version": a.version,
@@ -301,9 +308,7 @@ def test_deletes_rerun_request_if_different_ci_link(
     assert not te.rerun_request
 
 
-def test_keep_rerun_request_if_same_ci_link(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_keep_rerun_request_if_same_ci_link(execute: Execute, generator: DataGenerator):
     a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
@@ -312,9 +317,8 @@ def test_keep_rerun_request_if_same_ci_link(
 
     assert te.rerun_request
 
-    test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+    execute(
+        {
             "family": a.stage.family.name,
             "name": a.name,
             "version": a.version,
@@ -331,7 +335,7 @@ def test_keep_rerun_request_if_same_ci_link(
     assert te.rerun_request
 
 
-def test_rerun_keeps_review_as_is(test_client: TestClient, generator: DataGenerator):
+def test_rerun_keeps_review_as_is(execute: Execute, generator: DataGenerator):
     review_comment = "review comment"
     review_decision = [TestExecutionReviewDecision.REJECTED]
     a = generator.gen_artefact("beta")
@@ -345,9 +349,8 @@ def test_rerun_keeps_review_as_is(test_client: TestClient, generator: DataGenera
         review_decision=review_decision,
     )
 
-    test_client.put(
-        "/v1/test-executions/start-test",
-        json={
+    execute(
+        {
             "family": a.stage.family.name,
             "name": a.name,
             "version": a.version,
