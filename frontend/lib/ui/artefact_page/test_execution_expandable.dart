@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/test_execution.dart';
 import '../../models/test_result.dart';
@@ -9,6 +10,38 @@ import '../inline_url_text.dart';
 import '../spacing.dart';
 import 'test_execution_review.dart';
 import 'test_result_filter_expandable.dart';
+
+class TestExecutionExpandable extends ConsumerWidget {
+  const TestExecutionExpandable({super.key, required this.testExecution});
+
+  final TestExecution testExecution;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!testExecution.status.isCompleted) {
+      return ListTile(
+        onTap: () {},
+        shape: const Border(),
+        title: _TestExecutionTileTitle(testExecution: testExecution),
+      );
+    }
+
+    return ExpansionTile(
+      controlAffinity: ListTileControlAffinity.leading,
+      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+      shape: const Border(),
+      title: _TestExecutionTileTitle(testExecution: testExecution),
+      children: TestResultStatus.values
+          .map(
+            (status) => TestResultsFilterExpandable(
+              statusToFilterBy: status,
+              testExecutionId: testExecution.id,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
 
 class _TestExecutionTileTitle extends StatelessWidget {
   const _TestExecutionTileTitle({required this.testExecution});
@@ -62,9 +95,30 @@ class _RerunButton extends ConsumerWidget {
 
     final handlePress = testExecution.isRerunRequested
         ? null
-        : () => ref
-            .read(artefactBuildsProvider(artefactId).notifier)
-            .rerunTestExecution(testExecution.id);
+        : () => showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text(
+                  'Are you sure you want to rerun this test execution?',
+                ),
+                actions: [
+                  TextButton(
+                    autofocus: true,
+                    onPressed: () {
+                      ref
+                          .read(artefactBuildsProvider(artefactId).notifier)
+                          .rerunTestExecution(testExecution.id);
+                      context.pop();
+                    },
+                    child: const Text('yes'),
+                  ),
+                  TextButton(
+                    onPressed: () => context.pop(),
+                    child: const Text('no'),
+                  ),
+                ],
+              ),
+            );
 
     return Tooltip(
       message: testExecution.isRerunRequested ? 'Already requested' : '',
@@ -72,38 +126,6 @@ class _RerunButton extends ConsumerWidget {
         onPressed: handlePress,
         child: const Text('rerun'),
       ),
-    );
-  }
-}
-
-class TestExecutionExpandable extends ConsumerWidget {
-  const TestExecutionExpandable({super.key, required this.testExecution});
-
-  final TestExecution testExecution;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!testExecution.status.isCompleted) {
-      return ListTile(
-        onTap: () {},
-        shape: const Border(),
-        title: _TestExecutionTileTitle(testExecution: testExecution),
-      );
-    }
-
-    return ExpansionTile(
-      controlAffinity: ListTileControlAffinity.leading,
-      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
-      shape: const Border(),
-      title: _TestExecutionTileTitle(testExecution: testExecution),
-      children: TestResultStatus.values
-          .map(
-            (status) => TestResultsFilterExpandable(
-              statusToFilterBy: status,
-              testExecutionId: testExecution.id,
-            ),
-          )
-          .toList(),
     );
   }
 }
