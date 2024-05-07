@@ -12,15 +12,6 @@ reruns_url = "/v1/test-executions/reruns"
 
 
 @pytest.fixture
-def test_execution(generator: DataGenerator) -> TestExecution:
-    a = generator.gen_artefact("beta")
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    te = generator.gen_test_execution(ab, e)
-    return te
-
-
-@pytest.fixture
 def post(test_client: TestClient):
     def post_helper(data: Any) -> Response:  # noqa: ANN401
         return test_client.post(reruns_url, json=data)
