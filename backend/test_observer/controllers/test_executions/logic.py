@@ -38,8 +38,6 @@ def reset_test_execution(
     test_execution.status = TestExecutionStatus.IN_PROGRESS
     test_execution.ci_link = request.ci_link
     test_execution.c3_link = None
-    test_execution.review_decision = []
-    test_execution.review_comment = ""
     if test_execution.rerun_request:
         db.delete(test_execution.rerun_request)
     db.commit()
