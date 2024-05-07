@@ -164,6 +164,10 @@ class Artefact(Base):
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     bug_link: Mapped[str] = mapped_column(default="")
 
+    @property
+    def architectures(self) -> set[str]:
+        return {ab.architecture for ab in self.builds}
+
     __table_args__ = (
         Index(
             "unique_snap",
