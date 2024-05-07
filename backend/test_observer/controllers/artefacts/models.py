@@ -93,3 +93,8 @@ class ArtefactBuildDTO(BaseModel):
 
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus
+
+
+class RerunArtefactTestExecutionsRequest(BaseModel):
+    test_execution_status: TestExecutionStatus | None = None
+    test_execution_review_decision: list[TestExecutionReviewDecision] | None = None

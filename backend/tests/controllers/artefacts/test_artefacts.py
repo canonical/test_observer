@@ -25,6 +25,7 @@ from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionReviewDecision,
+    TestExecutionStatus,
 )
 from tests.data_generator import DataGenerator
 
@@ -366,6 +367,48 @@ def test_rerun_skips_test_executions_of_old_builds(
     te2 = generator.gen_test_execution(ab2, e)
 
     response = test_client.post(f"/v1/artefacts/{a.id}/reruns")
+
+    assert response.status_code == 200
+    assert te1.rerun_request is None
+    assert te2.rerun_request
+
+
+def test_rerun_failed_artefact_test_executions(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("candidate")
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment(name="laptop")
+    e2 = generator.gen_environment(name="server")
+    te1 = generator.gen_test_execution(ab, e1)
+    te2 = generator.gen_test_execution(ab, e2, status=TestExecutionStatus.FAILED)
+
+    response = test_client.post(
+        f"/v1/artefacts/{a.id}/reruns",
+        json={"test_execution_status": TestExecutionStatus.FAILED},
+    )
+
+    assert response.status_code == 200
+    assert te1.rerun_request is None
+    assert te2.rerun_request
+
+
+def test_rerun_undecided_artefact_test_executions(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("candidate")
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment(name="laptop")
+    e2 = generator.gen_environment(name="server")
+    te1 = generator.gen_test_execution(
+        ab, e1, review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS]
+    )
+    te2 = generator.gen_test_execution(ab, e2, review_decision=[])
+
+    response = test_client.post(
+        f"/v1/artefacts/{a.id}/reruns",
+        json={"test_execution_review_decision": []},
+    )
 
     assert response.status_code == 200
     assert te1.rerun_request is None
