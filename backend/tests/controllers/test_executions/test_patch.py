@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.data_access.models import (
@@ -24,17 +23,6 @@ from test_observer.data_access.models_enums import (
     TestExecutionReviewDecision,
     TestExecutionStatus,
 )
-from tests.data_generator import DataGenerator
-
-
-@pytest.fixture
-def test_execution(generator: DataGenerator) -> TestExecution:
-    a = generator.gen_artefact("beta")
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    te = generator.gen_test_execution(ab, e, ci_link="http://cilink")
-
-    return te
 
 
 def test_updates_test_execution(test_client: TestClient, test_execution: TestExecution):

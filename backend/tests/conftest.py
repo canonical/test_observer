@@ -33,6 +33,7 @@ from sqlalchemy_utils import (  # type: ignore
     drop_database,
 )
 
+from test_observer.data_access.models import TestExecution
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
 from tests.data_generator import DataGenerator
@@ -94,3 +95,12 @@ def test_client(db_session: Session) -> TestClient:
 @pytest.fixture
 def generator(db_session: Session) -> DataGenerator:
     return DataGenerator(db_session)
+
+
+@pytest.fixture
+def test_execution(generator: DataGenerator) -> TestExecution:
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e)
+    return te
