@@ -413,3 +413,25 @@ def test_rerun_undecided_artefact_test_executions(
     assert response.status_code == 200
     assert te1.rerun_request is None
     assert te2.rerun_request
+
+
+def test_rerun_filters_ignore_review_decisions_order(
+    test_client: TestClient, test_execution: TestExecution
+):
+    test_execution.review_decision = [
+        TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST,
+        TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE,
+    ]
+
+    response = test_client.post(
+        f"/v1/artefacts/{test_execution.artefact_build.artefact_id}/reruns",
+        json={
+            "test_execution_review_decision": [
+                TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE,
+                TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST,
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    assert test_execution.rerun_request

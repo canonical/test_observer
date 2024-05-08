@@ -164,7 +164,7 @@ def rerun_artefact_test_executions(
             test_executions = (te for te in test_executions if te.status == status)
         if (decision := request.test_execution_review_decision) is not None:
             test_executions = (
-                te for te in test_executions if te.review_decision == decision
+                te for te in test_executions if set(te.review_decision) == decision
             )
 
     for te in test_executions:
