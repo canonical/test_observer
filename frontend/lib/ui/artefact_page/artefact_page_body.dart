@@ -7,6 +7,7 @@ import '../../providers/artefact_builds.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
 import 'artefact_build_expandable.dart';
+import 'rerun_filtered_environments_button.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -28,9 +29,17 @@ class ArtefactPageBody extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: Spacing.level3),
-                Text(
-                  'Environments',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      'Environments',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const Spacer(),
+                    const RerunFilteredEnvironmentsButton(),
+                  ],
                 ),
                 Expanded(
                   child: ListView.builder(
@@ -40,7 +49,6 @@ class ArtefactPageBody extends ConsumerWidget {
                       padding: const EdgeInsets.only(right: Spacing.level3),
                       child: ArtefactBuildExpandable(
                         artefactBuild: artefactBuilds[i],
-                        artefactId: artefact.id,
                       ),
                     ),
                   ),
