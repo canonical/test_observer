@@ -57,15 +57,14 @@ class _TestExecutionTileTitle extends StatelessWidget {
       children: [
         if (!testExecution.status.isCompleted) const SizedBox(width: 36.0),
         testExecution.status.icon,
-        const SizedBox(width: Spacing.level2),
-        const SizedBox(width: Spacing.level2),
+        const SizedBox(width: Spacing.level4),
         Text(
           testExecution.environment.name,
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const Spacer(),
         _RerunButton(testExecution: testExecution),
-        const SizedBox(width: Spacing.level4),
+        const SizedBox(width: Spacing.level3),
         TestExecutionReviewButton(testExecution: testExecution),
         const SizedBox(width: Spacing.level4),
         if (ciLink != null)
