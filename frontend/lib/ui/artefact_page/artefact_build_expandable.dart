@@ -9,14 +9,9 @@ import '../spacing.dart';
 import 'test_execution_expandable.dart';
 
 class ArtefactBuildExpandable extends ConsumerWidget {
-  const ArtefactBuildExpandable({
-    super.key,
-    required this.artefactBuild,
-    required this.artefactId,
-  });
+  const ArtefactBuildExpandable({super.key, required this.artefactBuild});
 
   final ArtefactBuild artefactBuild;
-  final int artefactId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,7 +19,7 @@ class ArtefactBuildExpandable extends ConsumerWidget {
     final revisionText =
         artefactBuild.revision == null ? '' : ' (${artefactBuild.revision})';
     final filteredTestExecutionIds =
-        ref.watch(filteredTestExecutionIdsProvider(artefactId, pageUri));
+        ref.watch(filteredTestExecutionIdsProvider(pageUri));
     final filteredTestExecutions = [
       for (final te in artefactBuild.testExecutions)
         if (filteredTestExecutionIds.contains(te.id)) te,

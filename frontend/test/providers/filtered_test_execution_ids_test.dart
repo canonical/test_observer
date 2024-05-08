@@ -22,7 +22,7 @@ void main() {
     await container.read(artefactBuildsProvider(artefactId).future);
 
     final filteredTestExecutionIds =
-        container.read(filteredTestExecutionIdsProvider(artefactId, Uri()));
+        container.read(filteredTestExecutionIdsProvider(Uri()));
     final builds = await apiMock.getArtefactBuilds(artefactId);
     final allTestExecutionIds = {
       for (final build in builds)
@@ -44,7 +44,6 @@ void main() {
 
     final filteredTestExecutionIds = container.read(
       filteredTestExecutionIdsProvider(
-        artefactId,
         Uri(
           queryParameters: {
             'Review status': 'Undecided',
@@ -68,7 +67,6 @@ void main() {
 
     final filteredTestExecutionIds = container.read(
       filteredTestExecutionIdsProvider(
-        artefactId,
         Uri(
           queryParameters: {
             'Execution status': 'Failed',

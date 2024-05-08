@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/filters.dart';
 import '../models/test_execution.dart';
+import '../routing.dart';
 import 'artefact_builds.dart';
 
 part 'filtered_test_execution_ids.g.dart';
@@ -10,9 +11,9 @@ part 'filtered_test_execution_ids.g.dart';
 @riverpod
 Set<int> filteredTestExecutionIds(
   FilteredTestExecutionIdsRef ref,
-  int artefactId,
   Uri pageUri,
 ) {
+  final artefactId = AppRoutes.artefactIdFromUri(pageUri);
   final builds = ref.watch(artefactBuildsProvider(artefactId)).requireValue;
   final testExecutions = [
     for (final build in builds)
