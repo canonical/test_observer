@@ -21,9 +21,11 @@ from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
 
+from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionReviewDecision,
+    TestExecutionStatus,
 )
 from tests.data_generator import DataGenerator
 
@@ -271,15 +273,11 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
 
 
 def test_artefact_signoff_disallow_approve(
-    test_client: TestClient, generator: DataGenerator
+    test_client: TestClient, test_execution: TestExecution
 ):
-    a = generator.gen_artefact("candidate")
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    generator.gen_test_execution(ab, e)
-
+    artefact_id = test_execution.artefact_build.artefact_id
     response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
+        f"/v1/artefacts/{artefact_id}",
         json={"status": ArtefactStatus.APPROVED},
     )
 
@@ -287,15 +285,11 @@ def test_artefact_signoff_disallow_approve(
 
 
 def test_artefact_signoff_disallow_reject(
-    test_client: TestClient, generator: DataGenerator
+    test_client: TestClient, test_execution: TestExecution
 ):
-    a = generator.gen_artefact("candidate")
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    generator.gen_test_execution(ab, e)
-
+    artefact_id = test_execution.artefact_build.artefact_id
     response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
+        f"/v1/artefacts/{artefact_id}",
         json={"status": ArtefactStatus.MARKED_AS_FAILED},
     )
 
@@ -349,3 +343,95 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     )
 
     assert response.status_code == 400
+
+
+def test_rerun_all_artefact_test_executions(
+    test_client: TestClient, test_execution: TestExecution
+):
+    artefact_id = test_execution.artefact_build.artefact_id
+
+    response = test_client.post(f"/v1/artefacts/{artefact_id}/reruns")
+
+    assert response.status_code == 200
+    assert test_execution.rerun_request
+
+
+def test_rerun_skips_test_executions_of_old_builds(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("candidate")
+    ab1 = generator.gen_artefact_build(a, revision=1)
+    ab2 = generator.gen_artefact_build(a, revision=2)
+    e = generator.gen_environment()
+    te1 = generator.gen_test_execution(ab1, e)
+    te2 = generator.gen_test_execution(ab2, e)
+
+    response = test_client.post(f"/v1/artefacts/{a.id}/reruns")
+
+    assert response.status_code == 200
+    assert te1.rerun_request is None
+    assert te2.rerun_request
+
+
+def test_rerun_failed_artefact_test_executions(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("candidate")
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment(name="laptop")
+    e2 = generator.gen_environment(name="server")
+    te1 = generator.gen_test_execution(ab, e1)
+    te2 = generator.gen_test_execution(ab, e2, status=TestExecutionStatus.FAILED)
+
+    response = test_client.post(
+        f"/v1/artefacts/{a.id}/reruns",
+        json={"test_execution_status": TestExecutionStatus.FAILED},
+    )
+
+    assert response.status_code == 200
+    assert te1.rerun_request is None
+    assert te2.rerun_request
+
+
+def test_rerun_undecided_artefact_test_executions(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("candidate")
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment(name="laptop")
+    e2 = generator.gen_environment(name="server")
+    te1 = generator.gen_test_execution(
+        ab, e1, review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS]
+    )
+    te2 = generator.gen_test_execution(ab, e2, review_decision=[])
+
+    response = test_client.post(
+        f"/v1/artefacts/{a.id}/reruns",
+        json={"test_execution_review_decision": []},
+    )
+
+    assert response.status_code == 200
+    assert te1.rerun_request is None
+    assert te2.rerun_request
+
+
+def test_rerun_filters_ignore_review_decisions_order(
+    test_client: TestClient, test_execution: TestExecution
+):
+    test_execution.review_decision = [
+        TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST,
+        TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE,
+    ]
+
+    response = test_client.post(
+        f"/v1/artefacts/{test_execution.artefact_build.artefact_id}/reruns",
+        json={
+            "test_execution_review_decision": [
+                TestExecutionReviewDecision.APPROVED_FAULTY_HARDWARE,
+                TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST,
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    assert test_execution.rerun_request

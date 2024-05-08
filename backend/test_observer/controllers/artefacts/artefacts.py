@@ -21,18 +21,36 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access import queries
-from test_observer.data_access.models import Artefact, ArtefactBuild, TestExecution
+from test_observer.data_access.models import (
+    Artefact,
+    ArtefactBuild,
+    TestExecution,
+    TestExecutionRerunRequest,
+)
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
-from test_observer.data_access.repository import get_artefacts_by_family
+from test_observer.data_access.repository import get_artefacts_by_family, get_or_create
 from test_observer.data_access.setup import get_db
 
 from .logic import (
     are_all_test_executions_approved,
     is_there_a_rejected_test_execution,
 )
-from .models import ArtefactBuildDTO, ArtefactDTO, ArtefactPatch
+from .models import (
+    ArtefactBuildDTO,
+    ArtefactDTO,
+    ArtefactPatch,
+    RerunArtefactTestExecutionsRequest,
+)
 
-router = APIRouter()
+router = APIRouter(tags=["artefacts"])
+
+
+def _get_artefact_from_db(artefact_id: int, db: Session = Depends(get_db)) -> Artefact:
+    a = db.get(Artefact, artefact_id)
+    if a is None:
+        msg = f"Artefact with id {artefact_id} not found"
+        raise HTTPException(status_code=404, detail=msg)
+    return a
 
 
 @router.get("", response_model=list[ArtefactDTO])
@@ -61,29 +79,20 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
 
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
-def get_artefact(artefact_id: int, db: Session = Depends(get_db)):
-    """Get an artefact by id"""
-    artefact = db.get(Artefact, artefact_id)
-
-    if artefact is None:
-        raise HTTPException(status_code=404, detail="Artefact not found")
-
+def get_artefact(artefact: Artefact = Depends(_get_artefact_from_db)):
     return artefact
 
 
 @router.patch("/{artefact_id}", response_model=ArtefactDTO)
 def patch_artefact(
-    artefact_id: int, request: ArtefactPatch, db: Session = Depends(get_db)
+    request: ArtefactPatch,
+    db: Session = Depends(get_db),
+    artefact: Artefact = Depends(_get_artefact_from_db),
 ):
-    artefact = db.get(Artefact, artefact_id)
-
-    if not artefact:
-        raise HTTPException(status_code=404, detail="Artefact not found")
-
     latest_builds = list(
         db.scalars(
             queries.latest_artefact_builds.where(
-                ArtefactBuild.artefact_id == artefact_id
+                ArtefactBuild.artefact_id == artefact.id
             ).options(joinedload(ArtefactBuild.test_executions))
         ).unique()
     )
@@ -137,3 +146,26 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
         )
 
     return latest_builds
+
+
+@router.post("/{artefact_id}/reruns")
+def rerun_artefact_test_executions(
+    request: RerunArtefactTestExecutionsRequest | None = None,
+    artefact: Artefact = Depends(_get_artefact_from_db),
+    db: Session = Depends(get_db),
+):
+    latest_builds = db.scalars(
+        queries.latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact.id)
+    )
+    test_executions = (te for ab in latest_builds for te in ab.test_executions)
+
+    if request:
+        if status := request.test_execution_status:
+            test_executions = (te for te in test_executions if te.status == status)
+        if (decision := request.test_execution_review_decision) is not None:
+            test_executions = (
+                te for te in test_executions if set(te.review_decision) == decision
+            )
+
+    for te in test_executions:
+        get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
