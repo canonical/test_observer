@@ -166,6 +166,10 @@ def rerun_artefact_test_executions(
             test_executions = (
                 te for te in test_executions if set(te.review_decision) == decision
             )
+        if environment := request.test_execution_environment_contains:
+            test_executions = (
+                te for te in test_executions if environment in te.environment.name
+            )
 
     for te in test_executions:
         get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
