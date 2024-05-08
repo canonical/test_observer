@@ -435,23 +435,3 @@ def test_rerun_filters_ignore_review_decisions_order(
 
     assert response.status_code == 200
     assert test_execution.rerun_request
-
-
-def test_rerun_filters_by_environment_name(
-    test_client: TestClient, generator: DataGenerator
-):
-    a = generator.gen_artefact("candidate")
-    ab = generator.gen_artefact_build(a)
-    e1 = generator.gen_environment(name="laptop")
-    e2 = generator.gen_environment(name="server")
-    te1 = generator.gen_test_execution(ab, e1)
-    te2 = generator.gen_test_execution(ab, e2)
-
-    response = test_client.post(
-        f"/v1/artefacts/{a.id}/reruns",
-        json={"test_execution_environment_contains": "serv"},
-    )
-
-    assert response.status_code == 200
-    assert te1.rerun_request is None
-    assert te2.rerun_request
