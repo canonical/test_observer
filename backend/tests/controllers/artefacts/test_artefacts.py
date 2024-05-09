@@ -25,7 +25,6 @@ from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
     TestExecutionReviewDecision,
-    TestExecutionStatus,
 )
 from tests.data_generator import DataGenerator
 

@@ -25,10 +25,9 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     TestExecution,
-    TestExecutionRerunRequest,
 )
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
-from test_observer.data_access.repository import get_artefacts_by_family, get_or_create
+from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
 from .logic import (
@@ -39,7 +38,6 @@ from .models import (
     ArtefactBuildDTO,
     ArtefactDTO,
     ArtefactPatch,
-    RerunArtefactTestExecutionsRequest,
 )
 
 router = APIRouter(tags=["artefacts"])
