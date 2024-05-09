@@ -114,8 +114,10 @@ class _RerunButton extends ConsumerWidget {
 }
 
 class _RerunConfirmationDialog extends ConsumerWidget {
-  const _RerunConfirmationDialog(
-      {required this.artefactId, required this.testExecutionId});
+  const _RerunConfirmationDialog({
+    required this.artefactId,
+    required this.testExecutionId,
+  });
 
   final int artefactId;
   final int testExecutionId;
