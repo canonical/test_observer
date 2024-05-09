@@ -21,8 +21,9 @@ void main() {
     // Wait on artefact builds to load cause test execution filters uses requireValue
     await container.read(artefactBuildsProvider(artefactId).future);
 
-    final filteredTestExecutionIds =
-        container.read(filteredTestExecutionIdsProvider(Uri()));
+    final filteredTestExecutionIds = container.read(
+      filteredTestExecutionIdsProvider(Uri.parse('/snaps/$artefactId')),
+    );
     final builds = await apiMock.getArtefactBuilds(artefactId);
     final allTestExecutionIds = {
       for (final build in builds)
@@ -44,11 +45,7 @@ void main() {
 
     final filteredTestExecutionIds = container.read(
       filteredTestExecutionIdsProvider(
-        Uri(
-          queryParameters: {
-            'Review status': 'Undecided',
-          },
-        ),
+        Uri.parse('/snaps/$artefactId?Review+status=Undecided'),
       ),
     );
 
@@ -67,11 +64,7 @@ void main() {
 
     final filteredTestExecutionIds = container.read(
       filteredTestExecutionIdsProvider(
-        Uri(
-          queryParameters: {
-            'Execution status': 'Failed',
-          },
-        ),
+        Uri.parse('/snaps/$artefactId?Execution+status=Failed'),
       ),
     );
 
