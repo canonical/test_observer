@@ -22,17 +22,16 @@
 
 from datetime import datetime, timedelta
 
-from fastapi.testclient import TestClient
 from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild
+from test_observer.promotion.promoter import promote_artefacts
 from tests.data_generator import DataGenerator
 
 
 def test_run_to_move_artefact_snap(
     db_session: Session,
-    test_client: TestClient,
     requests_mock: Mocker,
     generator: DataGenerator,
 ):
@@ -92,7 +91,7 @@ def test_run_to_move_artefact_snap(
     )
 
     # Act
-    test_client.put("/v0/artefacts/promote")
+    promote_artefacts(db_session)
 
     db_session.refresh(artefact)
 
@@ -102,7 +101,6 @@ def test_run_to_move_artefact_snap(
 
 def test_run_to_move_artefact_deb(
     db_session: Session,
-    test_client: TestClient,
     requests_mock: Mocker,
     generator: DataGenerator,
 ):
@@ -161,7 +159,7 @@ def test_run_to_move_artefact_deb(
     )
 
     # Act
-    test_client.put("/v0/artefacts/promote")
+    promote_artefacts(db_session)
 
     db_session.refresh(artefact1)
 
