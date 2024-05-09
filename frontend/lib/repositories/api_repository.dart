@@ -65,10 +65,10 @@ class ApiRepository {
     return testResults;
   }
 
-  Future<void> rerunTestExecution(int testExecutionId) async {
+  Future<void> rerunTestExecutions(Set<int> testExecutionIds) async {
     await dio.post(
       '/v1/test-executions/reruns',
-      data: {'test_execution_id': testExecutionId},
+      data: {'test_execution_ids': testExecutionIds.toList()},
     );
   }
 }

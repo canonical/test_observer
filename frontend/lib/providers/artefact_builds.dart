@@ -26,21 +26,21 @@ class ArtefactBuilds extends _$ArtefactBuilds {
       reviewComment,
     );
 
-    await _updateTestExecution(testExecutionId, (_) => testExecution);
+    await _updateTestExecutions({testExecutionId}, (_) => testExecution);
   }
 
-  Future<void> rerunTestExecution(int testExecutionId) async {
+  Future<void> rerunTestExecutions(Set<int> testExecutionIds) async {
     final api = ref.read(apiProvider);
-    await api.rerunTestExecution(testExecutionId);
+    await api.rerunTestExecutions(testExecutionIds);
 
-    await _updateTestExecution(
-      testExecutionId,
+    await _updateTestExecutions(
+      testExecutionIds,
       (te) => te.copyWith(isRerunRequested: true),
     );
   }
 
-  Future<void> _updateTestExecution(
-    int testExecutionId,
+  Future<void> _updateTestExecutions(
+    Set<int> testExecutionIds,
     TestExecution Function(TestExecution) update,
   ) async {
     final artefactBuilds = await future;
@@ -48,7 +48,7 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     for (final ab in artefactBuilds) {
       final newTestExecutions = [
         for (final te in ab.testExecutions)
-          if (te.id == testExecutionId) update(te) else te,
+          if (testExecutionIds.contains(te.id)) update(te) else te,
       ];
 
       newArtefactBuilds.add(ab.copyWith(testExecutions: newTestExecutions));

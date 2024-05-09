@@ -107,7 +107,7 @@ class _RerunButton extends ConsumerWidget {
                     onPressed: () {
                       ref
                           .read(artefactBuildsProvider(artefactId).notifier)
-                          .rerunTestExecution(testExecution.id);
+                          .rerunTestExecutions({testExecution.id});
                       context.pop();
                     },
                     child: const Text('yes'),
