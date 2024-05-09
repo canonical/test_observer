@@ -16,10 +16,15 @@ class ArtefactBuildExpandable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = GoRouterState.of(context).uri;
+
     final revisionText =
         artefactBuild.revision == null ? '' : ' (${artefactBuild.revision})';
+
     final filteredTestExecutions =
-        ref.watch(filteredTestExecutionsProvider(pageUri));
+        ref.watch(filteredTestExecutionsProvider(pageUri)).toSet();
+    final artefactBuildTestExecutions = artefactBuild.testExecutions.toSet();
+    final relevantTestExecutions =
+        filteredTestExecutions.intersection(artefactBuildTestExecutions);
 
     return ExpansionTile(
       initiallyExpanded: true,
@@ -49,7 +54,7 @@ class ArtefactBuildExpandable extends ConsumerWidget {
               .intersperse(const SizedBox(width: Spacing.level4)),
         ],
       ),
-      children: filteredTestExecutions
+      children: relevantTestExecutions
           .map((te) => TestExecutionExpandable(testExecution: te))
           .toList(),
     );
