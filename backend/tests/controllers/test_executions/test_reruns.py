@@ -45,13 +45,13 @@ def test_post_no_data_returns_422(post: Post):
 
 
 def test_post_invalid_id_returns_404_with_message(post: Post):
-    response = post({"test_execution_id": 1})
+    response = post({"test_execution_ids": [1]})
     assert response.status_code == 404
     assert response.json()["detail"] == "No test execution with id 1 found"
 
 
 def test_valid_post_returns_200(post: Post, test_execution: TestExecution):
-    assert post({"test_execution_id": test_execution.id}).status_code == 200
+    assert post({"test_execution_ids": [test_execution.id]}).status_code == 200
 
 
 def test_get_returns_200_with_empty_list(get: Get):
@@ -63,7 +63,7 @@ def test_get_returns_200_with_empty_list(get: Get):
 def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
 
-    post({"test_execution_id": test_execution.id})
+    post({"test_execution_ids": [test_execution.id]})
 
     assert get().json() == [
         {
@@ -79,8 +79,8 @@ def test_get_after_two_identical_posts(
 ):
     test_execution.ci_link = "ci.link"
 
-    post({"test_execution_id": test_execution.id})
-    post({"test_execution_id": test_execution.id})
+    post({"test_execution_ids": [test_execution.id]})
+    post({"test_execution_ids": [test_execution.id]})
 
     assert get().json() == [
         {
@@ -100,8 +100,34 @@ def test_get_after_two_different_posts(
     e2 = generator.gen_environment("desktop")
     te2 = generator.gen_test_execution(te1.artefact_build, e2, ci_link="ci2.link")
 
-    post({"test_execution_id": te1.id})
-    post({"test_execution_id": te2.id})
+    post({"test_execution_ids": [te1.id]})
+    post({"test_execution_ids": [te2.id]})
+
+    assert get().json() == [
+        {
+            "test_execution_id": te1.id,
+            "ci_link": te1.ci_link,
+            "family": te1.artefact_build.artefact.stage.family.name,
+        },
+        {
+            "test_execution_id": te2.id,
+            "ci_link": te2.ci_link,
+            "family": te2.artefact_build.artefact.stage.family.name,
+        },
+    ]
+
+
+def test_get_after_post_with_two_test_execution_ids(
+    get: Get, post: Post, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("e1")
+    e2 = generator.gen_environment("e2")
+    te1 = generator.gen_test_execution(ab, e1, ci_link="ci1.link")
+    te2 = generator.gen_test_execution(ab, e2, ci_link="ci2.link")
+
+    post({"test_execution_ids": [te1.id, te2.id]})
 
     assert get().json() == [
         {

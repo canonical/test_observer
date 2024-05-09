@@ -18,10 +18,15 @@ router = APIRouter()
 
 
 @router.post("/reruns")
-def create_a_rerun_request(request: RerunRequest, db: Session = Depends(get_db)):
-    te = db.get(TestExecution, request.test_execution_id)
+def create_rerun_requests(request: RerunRequest, db: Session = Depends(get_db)):
+    for test_execution_id in request.test_execution_ids:
+        _create_rerun_request(test_execution_id, db)
+
+
+def _create_rerun_request(test_execution_id: int, db: Session) -> None:
+    te = db.get(TestExecution, test_execution_id)
     if not te:
-        msg = f"No test execution with id {request.test_execution_id} found"
+        msg = f"No test execution with id {test_execution_id} found"
         raise HTTPException(status_code=404, detail=msg)
 
     get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
