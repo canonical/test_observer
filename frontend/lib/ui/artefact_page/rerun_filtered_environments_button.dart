@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
 
+import '../../providers/artefact_builds.dart';
 import '../../providers/filtered_test_executions.dart';
+import '../../routing.dart';
 import '../spacing.dart';
 
 class RerunFilteredEnvironmentsButton extends ConsumerWidget {
@@ -12,6 +14,7 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = GoRouterState.of(context).uri;
+    final artefactId = AppRoutes.artefactIdFromUri(pageUri);
 
     final filteredTestExecutions = ref
         .watch(
@@ -37,6 +40,12 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () {
+                  final testExecutionIds = {
+                    for (final te in filteredTestExecutions) te.id,
+                  };
+                  ref
+                      .read(artefactBuildsProvider(artefactId).notifier)
+                      .rerunTestExecutions(testExecutionIds);
                   context.pop();
                 },
                 child: const Text('yes'),
