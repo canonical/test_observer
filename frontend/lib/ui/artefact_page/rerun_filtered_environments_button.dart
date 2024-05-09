@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intersperse/intersperse.dart';
 
-import '../../providers/filtered_test_execution_ids.dart';
+import '../../providers/filtered_test_executions.dart';
+import '../spacing.dart';
 
 class RerunFilteredEnvironmentsButton extends ConsumerWidget {
   const RerunFilteredEnvironmentsButton({super.key});
@@ -11,14 +13,46 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = GoRouterState.of(context).uri;
 
-    final filteredTestExecutionCount = ref.watch(
-      filteredTestExecutionIdsProvider(pageUri).select((ids) => ids.length),
-    );
+    final filteredTestExecutions = ref
+        .watch(
+          filteredTestExecutionsProvider(pageUri),
+        )
+        .toList();
+
+    handlePress() => showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            scrollable: true,
+            title: Text(
+              'Are you sure you want to rerun the following'
+              ' ${filteredTestExecutions.length} environments?',
+            ),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: filteredTestExecutions
+                  .map<Widget>((te) => Text(te.environment.name))
+                  .intersperse(const SizedBox(height: Spacing.level2))
+                  .toList(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  context.pop();
+                },
+                child: const Text('yes'),
+              ),
+              TextButton(
+                onPressed: () => context.pop(),
+                child: const Text('no'),
+              ),
+            ],
+          ),
+        );
 
     return TextButton(
-      onPressed: () {},
+      onPressed: handlePress,
       child: Text(
-        'Rerun $filteredTestExecutionCount Filtered Environments',
+        'Rerun ${filteredTestExecutions.length} Filtered Environments',
         textScaler: const TextScaler.linear(1.2),
       ),
     );
