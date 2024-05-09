@@ -146,30 +146,3 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
         )
 
     return latest_builds
-
-
-@router.post("/{artefact_id}/reruns")
-def rerun_artefact_test_executions(
-    request: RerunArtefactTestExecutionsRequest | None = None,
-    artefact: Artefact = Depends(_get_artefact_from_db),
-    db: Session = Depends(get_db),
-):
-    latest_builds = db.scalars(
-        queries.latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact.id)
-    )
-    test_executions = (te for ab in latest_builds for te in ab.test_executions)
-
-    if request:
-        if status := request.test_execution_status:
-            test_executions = (te for te in test_executions if te.status == status)
-        if (decision := request.test_execution_review_decision) is not None:
-            test_executions = (
-                te for te in test_executions if set(te.review_decision) == decision
-            )
-        if environment := request.test_execution_environment_contains:
-            test_executions = (
-                te for te in test_executions if environment in te.environment.name
-            )
-
-    for te in test_executions:
-        get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
