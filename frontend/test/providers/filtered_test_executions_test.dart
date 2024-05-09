@@ -4,7 +4,7 @@ import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/test_execution.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/artefact_builds.dart';
-import 'package:testcase_dashboard/providers/filtered_test_execution_ids.dart';
+import 'package:testcase_dashboard/providers/filtered_test_executions.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 
 import '../dummy_data.dart';
@@ -21,16 +21,16 @@ void main() {
     // Wait on artefact builds to load cause test execution filters uses requireValue
     await container.read(artefactBuildsProvider(artefactId).future);
 
-    final filteredTestExecutionIds = container.read(
-      filteredTestExecutionIdsProvider(Uri.parse('/snaps/$artefactId')),
+    final filteredTestExecutions = container.read(
+      filteredTestExecutionsProvider(Uri.parse('/snaps/$artefactId')),
     );
     final builds = await apiMock.getArtefactBuilds(artefactId);
-    final allTestExecutionIds = {
+    final allTestExecutions = {
       for (final build in builds)
-        for (final testExecution in build.testExecutions) testExecution.id,
+        for (final testExecution in build.testExecutions) testExecution,
     };
 
-    expect(filteredTestExecutionIds, allTestExecutionIds);
+    expect(filteredTestExecutions, allTestExecutions);
   });
 
   test('it filters test executions by review status', () async {
@@ -43,13 +43,19 @@ void main() {
     // Wait on artefact builds to load cause test execution filters uses requireValue
     await container.read(artefactBuildsProvider(artefactId).future);
 
-    final filteredTestExecutionIds = container.read(
-      filteredTestExecutionIdsProvider(
+    final filteredTestExecutions = container.read(
+      filteredTestExecutionsProvider(
         Uri.parse('/snaps/$artefactId?Review+status=Undecided'),
       ),
     );
 
-    expect(filteredTestExecutionIds, {1});
+    expect(filteredTestExecutions, {
+      dummyTestExecution.copyWith(
+        id: 1,
+        reviewDecision: [],
+        status: TestExecutionStatus.failed,
+      ),
+    });
   });
 
   test('it filters test executions by test execution status', () async {
@@ -62,13 +68,19 @@ void main() {
     // Wait on artefact builds to load cause test execution filters uses requireValue
     await container.read(artefactBuildsProvider(artefactId).future);
 
-    final filteredTestExecutionIds = container.read(
-      filteredTestExecutionIdsProvider(
+    final filteredTestExecutions = container.read(
+      filteredTestExecutionsProvider(
         Uri.parse('/snaps/$artefactId?Execution+status=Failed'),
       ),
     );
 
-    expect(filteredTestExecutionIds, {1});
+    expect(filteredTestExecutions, {
+      dummyTestExecution.copyWith(
+        id: 1,
+        reviewDecision: [],
+        status: TestExecutionStatus.failed,
+      ),
+    });
   });
 }
 

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
 
 import '../../models/artefact_build.dart';
-import '../../providers/filtered_test_execution_ids.dart';
+import '../../providers/filtered_test_executions.dart';
 import '../spacing.dart';
 import 'test_execution_expandable.dart';
 
@@ -18,12 +18,8 @@ class ArtefactBuildExpandable extends ConsumerWidget {
     final pageUri = GoRouterState.of(context).uri;
     final revisionText =
         artefactBuild.revision == null ? '' : ' (${artefactBuild.revision})';
-    final filteredTestExecutionIds =
-        ref.watch(filteredTestExecutionIdsProvider(pageUri));
-    final filteredTestExecutions = [
-      for (final te in artefactBuild.testExecutions)
-        if (filteredTestExecutionIds.contains(te.id)) te,
-    ];
+    final filteredTestExecutions =
+        ref.watch(filteredTestExecutionsProvider(pageUri));
 
     return ExpansionTile(
       initiallyExpanded: true,
