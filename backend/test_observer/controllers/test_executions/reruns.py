@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+import contextlib
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -17,19 +19,35 @@ from .models import DeleteReruns, PendingRerun, RerunRequest
 router = APIRouter()
 
 
-@router.post("/reruns")
-def create_rerun_requests(request: RerunRequest, db: Session = Depends(get_db)):
+@router.post("/reruns", response_model=list[PendingRerun])
+def create_rerun_requests(
+    request: RerunRequest, response: Response, db: Session = Depends(get_db)
+):
+    rerun_requests = []
     for test_execution_id in request.test_execution_ids:
-        _create_rerun_request(test_execution_id, db)
+        with contextlib.suppress(_TestExecutionNotFound):
+            rerun_requests.append(_create_rerun_request(test_execution_id, db))
+
+    if not rerun_requests:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Didn't find test executions with provided ids",
+        )
+
+    if len(rerun_requests) != len(request.test_execution_ids):
+        response.status_code = status.HTTP_207_MULTI_STATUS
+
+    return rerun_requests
 
 
-def _create_rerun_request(test_execution_id: int, db: Session) -> None:
+def _create_rerun_request(
+    test_execution_id: int, db: Session
+) -> TestExecutionRerunRequest:
     te = db.get(TestExecution, test_execution_id)
     if not te:
-        msg = f"No test execution with id {test_execution_id} found"
-        raise HTTPException(status_code=404, detail=msg)
+        raise _TestExecutionNotFound
 
-    get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
+    return get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
 
 
 @router.get("/reruns", response_model=list[PendingRerun])
@@ -52,3 +70,6 @@ def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
             TestExecutionRerunRequest.test_execution_id.in_(request.test_execution_ids)
         )
     )
+
+
+class _TestExecutionNotFound(ValueError): ...

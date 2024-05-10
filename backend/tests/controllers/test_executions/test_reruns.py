@@ -47,11 +47,27 @@ def test_post_no_data_returns_422(post: Post):
 def test_post_invalid_id_returns_404_with_message(post: Post):
     response = post({"test_execution_ids": [1]})
     assert response.status_code == 404
-    assert response.json()["detail"] == "No test execution with id 1 found"
+    assert response.json()["detail"] == "Didn't find test executions with provided ids"
 
 
-def test_valid_post_returns_200(post: Post, test_execution: TestExecution):
-    assert post({"test_execution_ids": [test_execution.id]}).status_code == 200
+def test_valid_post(post: Post, test_execution: TestExecution):
+    test_execution.ci_link = "ci.link"
+    response = post({"test_execution_ids": [test_execution.id]})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "test_execution_id": test_execution.id,
+            "ci_link": test_execution.ci_link,
+            "family": test_execution.artefact_build.artefact.stage.family.name,
+        }
+    ]
+
+
+def test_post_with_valid_and_invalid_ids(post: Post, test_execution: TestExecution):
+    test_execution.ci_link = "ci.link"
+    response = post({"test_execution_ids": [test_execution.id, test_execution.id + 1]})
+    assert response.status_code == 207
 
 
 def test_get_returns_200_with_empty_list(get: Get):
