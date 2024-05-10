@@ -168,3 +168,7 @@ class PendingRerun(BaseModel):
             "test_execution", "artefact_build", "artefact", "stage", "family", "name"
         )
     )
+
+
+class DeleteReruns(BaseModel):
+    test_execution_ids: set[int]
