@@ -126,7 +126,7 @@ class _RerunConfirmationDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return AlertDialog(
       title: const Text(
-        'Are you sure you want to rerun this test execution?',
+        'Are you sure you want to rerun this environment?',
       ),
       actions: [
         TextButton(
