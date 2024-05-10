@@ -31,10 +31,10 @@ class ArtefactBuilds extends _$ArtefactBuilds {
 
   Future<void> rerunTestExecutions(Set<int> testExecutionIds) async {
     final api = ref.read(apiProvider);
-    await api.rerunTestExecutions(testExecutionIds);
+    final rerunRequests = await api.rerunTestExecutions(testExecutionIds);
 
     await _updateTestExecutions(
-      testExecutionIds,
+      rerunRequests.map((rr) => rr.testExecutionId).toSet(),
       (te) => te.copyWith(isRerunRequested: true),
     );
   }
