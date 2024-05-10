@@ -4,6 +4,7 @@ import '../models/artefact.dart';
 
 import '../models/artefact_build.dart';
 import '../models/family_name.dart';
+import '../models/rerun_request.dart';
 import '../models/test_execution.dart';
 import '../models/test_result.dart';
 
@@ -65,10 +66,16 @@ class ApiRepository {
     return testResults;
   }
 
-  Future<void> rerunTestExecution(int testExecutionId) async {
-    await dio.post(
+  Future<List<RerunRequest>> rerunTestExecutions(
+    Set<int> testExecutionIds,
+  ) async {
+    final response = await dio.post(
       '/v1/test-executions/reruns',
-      data: {'test_execution_id': testExecutionId},
+      data: {'test_execution_ids': testExecutionIds.toList()},
     );
+    final List rerunsJson = response.data;
+    final reruns =
+        rerunsJson.map((json) => RerunRequest.fromJson(json)).toList();
+    return reruns;
   }
 }

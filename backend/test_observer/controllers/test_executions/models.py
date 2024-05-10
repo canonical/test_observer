@@ -157,7 +157,7 @@ class TestResultDTO(BaseModel):
 
 
 class RerunRequest(BaseModel):
-    test_execution_id: int
+    test_execution_ids: set[int]
 
 
 class PendingRerun(BaseModel):

@@ -97,26 +97,9 @@ class _RerunButton extends ConsumerWidget {
         ? null
         : () => showDialog(
               context: context,
-              builder: (_) => AlertDialog(
-                title: const Text(
-                  'Are you sure you want to rerun this test execution?',
-                ),
-                actions: [
-                  TextButton(
-                    autofocus: true,
-                    onPressed: () {
-                      ref
-                          .read(artefactBuildsProvider(artefactId).notifier)
-                          .rerunTestExecution(testExecution.id);
-                      context.pop();
-                    },
-                    child: const Text('yes'),
-                  ),
-                  TextButton(
-                    onPressed: () => context.pop(),
-                    child: const Text('no'),
-                  ),
-                ],
+              builder: (_) => _RerunConfirmationDialog(
+                artefactId: artefactId,
+                testExecutionId: testExecution.id,
               ),
             );
 
@@ -126,6 +109,41 @@ class _RerunButton extends ConsumerWidget {
         onPressed: handlePress,
         child: const Text('rerun'),
       ),
+    );
+  }
+}
+
+class _RerunConfirmationDialog extends ConsumerWidget {
+  const _RerunConfirmationDialog({
+    required this.artefactId,
+    required this.testExecutionId,
+  });
+
+  final int artefactId;
+  final int testExecutionId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AlertDialog(
+      title: const Text(
+        'Are you sure you want to rerun this environment?',
+      ),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () {
+            ref
+                .read(artefactBuildsProvider(artefactId).notifier)
+                .rerunTestExecutions({testExecutionId});
+            context.pop();
+          },
+          child: const Text('yes'),
+        ),
+        TextButton(
+          onPressed: () => context.pop(),
+          child: const Text('no'),
+        ),
+      ],
     );
   }
 }
