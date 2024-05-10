@@ -147,7 +147,7 @@ def test_post_delete_get(
     get: Get, post: Post, delete: Delete, test_execution: TestExecution
 ):
     test_execution.ci_link = "ci.link"
-    post({"test_execution_id": test_execution.id})
+    post({"test_execution_ids": [test_execution.id]})
     response = delete({"test_execution_ids": [test_execution.id]})
 
     assert response.status_code == 200
