@@ -72,4 +72,5 @@ def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
     )
 
 
-class _TestExecutionNotFound(ValueError): ...
+class _TestExecutionNotFound(ValueError):
+    ...
