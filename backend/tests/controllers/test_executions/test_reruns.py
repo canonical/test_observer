@@ -27,8 +27,17 @@ def get(test_client: TestClient):
     return get_helper
 
 
+@pytest.fixture
+def delete(test_client: TestClient):
+    def delete_helper(data: Any) -> Response:  # noqa: ANN401
+        return test_client.request("DELETE", reruns_url, json=data)
+
+    return delete_helper
+
+
 Post: TypeAlias = Callable[[Any], Response]
 Get: TypeAlias = Callable[[], Response]
+Delete: TypeAlias = Callable[[Any], Response]
 
 
 def test_post_no_data_returns_422(post: Post):
@@ -106,3 +115,14 @@ def test_get_after_two_different_posts(
             "family": te2.artefact_build.artefact.stage.family.name,
         },
     ]
+
+
+def test_post_delete_get(
+    get: Get, post: Post, delete: Delete, test_execution: TestExecution
+):
+    test_execution.ci_link = "ci.link"
+    post({"test_execution_id": test_execution.id})
+    response = delete({"test_execution_ids": [test_execution.id]})
+
+    assert response.status_code == 200
+    assert get().json() == []
