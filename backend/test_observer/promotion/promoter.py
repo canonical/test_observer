@@ -21,8 +21,6 @@
 
 import logging
 
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from test_observer.data_access import queries
@@ -32,13 +30,10 @@ from test_observer.data_access.repository import (
     get_artefacts_by_family,
     get_stage_by_name,
 )
-from test_observer.data_access.setup import get_db
 from test_observer.external_apis.archive import ArchiveManager
 from test_observer.external_apis.snapcraft import (
     get_channel_map_from_snapcraft,
 )
-
-router = APIRouter()
 
 logger = logging.getLogger("test-observer-backend")
 
@@ -57,8 +52,7 @@ POCKET_PROMOTION_MAP = {
 }
 
 
-@router.put("/v0/artefacts/promote")
-def promote_artefacts(db: Session = Depends(get_db)):
+def promote_artefacts(db: Session):
     """
     Promote all the artefacts in all the families if it has been updated on the
     external source
@@ -70,23 +64,21 @@ def promote_artefacts(db: Session = Depends(get_db)):
         ) = promoter_controller(db)
         logger.info("INFO: Processed artefacts %s", processed_artefacts_status)
         if False in processed_artefacts_status.values():
-            return JSONResponse(
-                status_code=500,
-                content={
+            logger.error(
+                {
                     artefact_key: processed_artefacts_error_messages[artefact_key]
                     for (
                         artefact_key,
                         artefact_status,
                     ) in processed_artefacts_status.items()
                     if artefact_status is False
-                },
+                }
             )
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "All the artefacts have been processed successfully"},
+        return logger.info(
+            {"detail": "All the artefacts have been processed successfully"}
         )
     except Exception as exc:
-        return JSONResponse(status_code=500, content={"detail": str(exc)})
+        return logger.error({"detail": str(exc)})
 
 
 def promoter_controller(session: Session) -> tuple[dict, dict]:
