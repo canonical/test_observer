@@ -54,7 +54,7 @@ select = [
     "PLE",
     "TID252",
 ]
-ignore = ["ANN201", "ANN003", "N999", "ANN101", "ANN204"]
+ignore = ["ANN201", "ANN003", "N999", "ANN101", "ANN204", "N818"]
 
 [tool.ruff.flake8-bugbear]
 extend-immutable-calls = [
