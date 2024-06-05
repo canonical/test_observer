@@ -65,11 +65,12 @@ def get_rerun_requests(db: Session = Depends(get_db)):
 
 @router.delete("/reruns")
 def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
-    return db.execute(
+    db.execute(
         delete(TestExecutionRerunRequest).where(
             TestExecutionRerunRequest.test_execution_id.in_(request.test_execution_ids)
         )
     )
+    db.commit()
 
 
 class _TestExecutionNotFound(ValueError):
