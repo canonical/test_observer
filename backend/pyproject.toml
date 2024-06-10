@@ -28,7 +28,7 @@ types-requests = "^2.31.0.1"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"
 requests-mock = "^1.10.0"
-python-multipart = "^0.0.6"
+python-multipart = "^0.0.9"
 httpx = "^0.24.0"
 sqlalchemy-utils = "^0.41.1"
 
