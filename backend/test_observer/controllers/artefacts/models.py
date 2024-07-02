@@ -51,6 +51,7 @@ class ArtefactDTO(BaseModel):
     assignee: UserDTO | None
     due_date: date | None
     bug_link: str
+    ratio_completed: float = 0
 
 
 class EnvironmentDTO(BaseModel):

@@ -22,6 +22,7 @@ class Artefact with _$Artefact {
     required String repo,
     required ArtefactStatus status,
     required StageName stage,
+    @JsonKey(name: 'ratio_completed') required double ratioCompleted,
     User? assignee,
     @JsonKey(name: 'bug_link') required String bugLink,
     @JsonKey(name: 'due_date') DateTime? dueDate,

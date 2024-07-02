@@ -18,6 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access import queries
@@ -72,6 +73,63 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 load_stage=True,
                 order_by_columns=order_by,
             )
+
+    # Define subquery to count all TestExecutions for each Artefact
+    all_tests = (
+        db.query(
+            ArtefactBuild.artefact_id,
+            func.count(TestExecution.id).label("total"),
+        )
+        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
+        .group_by(ArtefactBuild.artefact_id)
+        .subquery()
+    )
+
+    # Define subquery to count completed TestExecutions for each Artefact
+    completed_tests = (
+        db.query(
+            ArtefactBuild.artefact_id,
+            func.count(TestExecution.id).label("completed"),
+        )
+        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
+        .filter(func.array_length(TestExecution.review_decision, 1) > 0)
+        .group_by(ArtefactBuild.artefact_id)
+    )
+    # print(completed_tests.all())
+
+    completed_tests = completed_tests.subquery()
+
+    # Define subquery to calculate the ratio of completed TestExecutions to all TestExecutions
+    ratio_completed = (
+        db.query(
+            all_tests.c.artefact_id,
+            func.coalesce((completed_tests.c.completed / all_tests.c.total), 0).label(
+                "ratio_completed"
+            ),
+        )
+        .outerjoin(
+            completed_tests, all_tests.c.artefact_id == completed_tests.c.artefact_id
+        )
+        .subquery()
+    )
+
+    # Execute the query and fetch all results
+    results = (
+        db.query(Artefact.id, ratio_completed.c.ratio_completed)
+        .outerjoin(ratio_completed, Artefact.id == ratio_completed.c.artefact_id)
+        .all()
+    )
+
+    # Convert the results to a dictionary
+    ratio_completed_dict = {
+        artefact_id: ratio_completed for artefact_id, ratio_completed in results
+    }
+
+    print(ratio_completed_dict)
+
+    # Add the ratio_completed to the artefacts
+    for artefact in artefacts:
+        artefact.ratio_completed = ratio_completed_dict.get(artefact.id, 0)
 
     return artefacts
 

@@ -63,7 +63,11 @@ class ArtefactCard extends ConsumerWidget {
                       fontColor: YaruColors.red,
                     ),
                   const Spacer(),
-                  if (assignee != null) UserAvatar(user: assignee),
+                  if (assignee != null)
+                    UserAvatar(
+                      user: assignee,
+                      ratioCompleted: artefact.ratioCompleted,
+                    ),
                 ],
               ),
             ],

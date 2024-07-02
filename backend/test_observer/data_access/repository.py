@@ -23,11 +23,11 @@
 from collections.abc import Iterable
 from typing import Any
 
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, case
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Artefact, DataModel, Family, Stage
+from .models import Artefact, ArtefactBuild, DataModel, Family, Stage, TestExecution
 from .models_enums import FamilyName
 
 

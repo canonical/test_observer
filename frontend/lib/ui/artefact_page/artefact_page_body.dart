@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
+import '../../models/artefact_build.dart';
 import '../../providers/artefact_builds.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
@@ -13,6 +14,30 @@ class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
 
   final Artefact artefact;
+
+  int _getCompletedTestExecutionCount(List<ArtefactBuild> artefactBuilds) {
+    int completedCount = 0;
+    for (final artefactBuild in artefactBuilds) {
+      for (final testExecution in artefactBuild.testExecutions) {
+        if (testExecution.reviewDecision.isNotEmpty) completedCount++;
+      }
+    }
+    return completedCount;
+  }
+
+  int _getTotalTestExecutionCount(List<ArtefactBuild> artefactBuilds) {
+    int totalCount = 0;
+    for (final artefactBuild in artefactBuilds) {
+      totalCount += artefactBuild.testExecutions.length;
+    }
+    return totalCount;
+  }
+
+  double _getPercentage(List<ArtefactBuild> artefactBuilds) {
+    final completedCount = _getCompletedTestExecutionCount(artefactBuilds);
+    final totalCount = _getTotalTestExecutionCount(artefactBuilds);
+    return (completedCount / totalCount);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,17 +55,30 @@ class ArtefactPageBody extends ConsumerWidget {
               children: [
                 const SizedBox(height: Spacing.level3),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
                       'Environments',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
+                    const SizedBox(width: Spacing.level4),
+                    SizedBox(
+                      width: 25.0, // specify the width
+                      height: 25.0, // specify the height
+                      child: CircularProgressIndicator(
+                        value: _getPercentage(artefactBuilds),
+                        semanticsLabel: 'Circular progress indicator',
+                      ),
+                    ),
                     const Spacer(),
                     const RerunFilteredEnvironmentsButton(),
                   ],
                 ),
+                // LinearProgressIndicator(
+                //   value: _getPercentage(artefactBuilds),
+                //   semanticsLabel: 'Linear progress indicator',
+                // ),
                 Expanded(
                   child: ListView.builder(
                     itemCount: artefactBuilds.length,
