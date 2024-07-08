@@ -132,10 +132,7 @@ enum TestExecutionReviewDecision {
       case approvedFaultyHardware:
       case approvedUnstablePhysicalInfra:
         return true;
-      case rejected:
-      case approvedInconsistentTest:
-      case approvedCustomerPrerequisiteFail:
-      case approvedAllTestsPass:
+      default:
         return false;
     }
   }
