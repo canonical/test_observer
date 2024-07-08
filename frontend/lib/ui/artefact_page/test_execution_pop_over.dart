@@ -36,10 +36,12 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
   Function(bool?)? getOnChangedCheckboxListTileFunction(
     TestExecutionReviewDecision testExecutionReviewDecision,
   ) {
-    if ((testExecutionReviewDecision == TestExecutionReviewDecision.rejected &&
-            (_canReject)) ||
-        (testExecutionReviewDecision != TestExecutionReviewDecision.rejected &&
-            _canApprove)) {
+    if (!testExecutionReviewDecision.isDeprecated &&
+        ((testExecutionReviewDecision == TestExecutionReviewDecision.rejected &&
+                _canReject) ||
+            (testExecutionReviewDecision !=
+                    TestExecutionReviewDecision.rejected &&
+                _canApprove))) {
       return (bool? value) {
         setState(() {
           if (reviewDecisions.contains(testExecutionReviewDecision)) {
@@ -51,6 +53,11 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
       };
     }
     return null;
+  }
+
+  bool shouldDisplayDecision(TestExecutionReviewDecision decision) {
+    return !decision.isDeprecated ||
+        (decision.isDeprecated && reviewDecisions.contains(decision));
   }
 
   @override
@@ -79,12 +86,15 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
         Column(
           children: TestExecutionReviewDecision.values
               .map(
-                (e) => YaruCheckboxListTile(
-                  value: reviewDecisions.contains(e),
-                  onChanged: getOnChangedCheckboxListTileFunction(e),
-                  title: Text(e.name),
-                ),
+                (e) => shouldDisplayDecision(e)
+                    ? YaruCheckboxListTile(
+                        value: reviewDecisions.contains(e),
+                        onChanged: getOnChangedCheckboxListTileFunction(e),
+                        title: Text(e.name),
+                      )
+                    : null,
               )
+              .whereType<YaruCheckboxListTile>()
               .toList(),
         ),
         const SizedBox(height: Spacing.level4),

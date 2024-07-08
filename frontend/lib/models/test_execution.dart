@@ -127,6 +127,19 @@ enum TestExecutionReviewDecision {
     }
   }
 
+  bool get isDeprecated {
+    switch (this) {
+      case approvedFaultyHardware:
+      case approvedUnstablePhysicalInfra:
+        return true;
+      case rejected:
+      case approvedInconsistentTest:
+      case approvedCustomerPrerequisiteFail:
+      case approvedAllTestsPass:
+        return false;
+    }
+  }
+
   String toJson() {
     switch (this) {
       case rejected:
