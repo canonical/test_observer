@@ -18,9 +18,8 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
+from sqlalchemy import Subquery, func
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.orm.query import RowReturningQuery
 
 
 from test_observer.data_access import queries
@@ -46,7 +45,7 @@ from .models import (
 router = APIRouter(tags=["artefacts"])
 
 
-def _get_test_execution_counts_subquery(db: Session) -> RowReturningQuery:
+def _get_test_execution_counts_subquery(db: Session) -> Subquery:
     # Define subquery to count all TestExecutions for each Artefact
     all_tests = (
         db.query(
@@ -140,14 +139,19 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
     }
 
     # Add the ratio_completed to the artefacts
+    parsed_artefacts: list[ArtefactDTO] = []
     for artefact in artefacts:
+        parsed_artefact = ArtefactDTO.model_validate(artefact)
         if counts_dict.get(artefact.id):
-            artefact.all_test_executions_count = counts_dict[artefact.id]["total"]
-            artefact.completed_test_executions_count = counts_dict[artefact.id][
+            parsed_artefact.all_test_executions_count = counts_dict[artefact.id][
+                "total"
+            ]
+            parsed_artefact.completed_test_executions_count = counts_dict[artefact.id][
                 "completed"
             ]
+        parsed_artefacts.append(parsed_artefact)
 
-    return artefacts
+    return parsed_artefacts
 
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
