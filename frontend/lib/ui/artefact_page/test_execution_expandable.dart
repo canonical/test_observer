@@ -10,6 +10,7 @@ import '../inline_url_text.dart';
 import '../spacing.dart';
 import 'test_execution_review.dart';
 import 'test_result_filter_expandable.dart';
+import 'test_event_log_expandable.dart';
 
 class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({super.key, required this.testExecution});
@@ -19,10 +20,14 @@ class TestExecutionExpandable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!testExecution.status.isCompleted) {
-      return ListTile(
-        onTap: () {},
+      return ExpansionTile(
+        controlAffinity: ListTileControlAffinity.leading,
+        childrenPadding: const EdgeInsets.only(left: Spacing.level4),
         shape: const Border(),
         title: _TestExecutionTileTitle(testExecution: testExecution),
+        children: <Widget>[
+          TestEventLogExpandable(testExecutionId: testExecution.id, initiallyExpanded: true),          
+        ],
       );
     }
 
@@ -31,7 +36,15 @@ class TestExecutionExpandable extends ConsumerWidget {
       childrenPadding: const EdgeInsets.only(left: Spacing.level4),
       shape: const Border(),
       title: _TestExecutionTileTitle(testExecution: testExecution),
-      children: TestResultStatus.values
+      children: <Widget>[
+        TestEventLogExpandable(testExecutionId: testExecution.id, initiallyExpanded: false),
+        ExpansionTile(
+          controlAffinity: ListTileControlAffinity.leading,
+          childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+          shape: const Border(),
+          title: const Text('Test Results'),
+          initiallyExpanded: true,
+          children: TestResultStatus.values
           .map(
             (status) => TestResultsFilterExpandable(
               statusToFilterBy: status,
@@ -39,6 +52,8 @@ class TestExecutionExpandable extends ConsumerWidget {
             ),
           )
           .toList(),
+        ),
+      ],
     );
   }
 }

@@ -155,7 +155,7 @@ class TestResultDTO(BaseModel):
             "the last one is the oldest one."
         ),
     )
-    
+
 
 class RerunRequest(BaseModel):
     test_execution_ids: set[int]

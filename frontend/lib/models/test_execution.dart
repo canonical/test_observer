@@ -50,13 +50,16 @@ enum TestExecutionStatus {
   @JsonValue('IN_PROGRESS')
   inProgress,
   @JsonValue('PASSED')
-  passed;
+  passed,
+  @JsonValue('ENDED')
+  ended;
 
   bool get isCompleted {
     switch (this) {
       case notStarted:
       case inProgress:
       case notTested:
+      case ended:
         return false;
       case passed:
       case failed:
@@ -76,6 +79,8 @@ enum TestExecutionStatus {
         return 'Failed';
       case notTested:
         return 'Not Tested';
+      case ended:
+        return 'Ended';
     }
   }
 
@@ -92,6 +97,8 @@ enum TestExecutionStatus {
         return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
       case notTested:
         return const Icon(YaruIcons.information, size: size);
+      case ended:
+        return const Icon(YaruIcons.junk_filled, size: size);
     }
   }
 }

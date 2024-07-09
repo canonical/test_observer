@@ -49,7 +49,7 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
                     "event_name": "job_end",
                     "timestamp": "2015-03-21T11:08:15.859831",
                     "detail": "my_detail_three",
-                }
+                },
             ],
         },
     )
@@ -65,6 +65,7 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
     )
     assert test_execution.test_events[1].detail == "my_detail_two"
     assert test_execution.status == "ENDED"
+
 
 def test_status_updates_is_idempotent(
     test_client: TestClient, generator: DataGenerator
@@ -98,6 +99,7 @@ def test_status_updates_is_idempotent(
         )
     assert len(test_execution.test_events) == 2
 
+
 def test_get_status_update(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
@@ -106,7 +108,7 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
         artefact_build, environment, ci_link="http://localhost"
     )
 
-    response = test_client.put(
+    test_client.put(
         f"/v1/test-executions/{test_execution.id}/status_update",
         json={
             "agent_id": "test_agent",
@@ -126,12 +128,14 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
                     "event_name": "job_end",
                     "timestamp": "2015-03-21T11:08:15.859831",
                     "detail": "my_detail_three",
-                }
+                },
             ],
         },
     )
-    get_response = test_client.get(f"/v1/test-executions/{test_execution.id}/status_update")
-    
+    get_response = test_client.get(
+        f"/v1/test-executions/{test_execution.id}/status_update"
+    )
+
     assert get_response.status_code == 200
     json = get_response.json()
     assert json[0]["event_name"] == "started_setup"
@@ -140,6 +144,7 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
     assert json[1]["event_name"] == "ended_setup"
     assert json[1]["timestamp"] == "2015-03-21T11:08:15.859831"
     assert json[1]["detail"] == "my_detail_two"
+
 
 def test_status_updates_invalid_timestamp(
     test_client: TestClient, generator: DataGenerator

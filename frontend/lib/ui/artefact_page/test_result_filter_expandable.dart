@@ -51,7 +51,7 @@ class TestResultsFilterExpandable extends ConsumerWidget {
           ),
           children: filteredTestResults
               .map(
-                (testResult) => TestResultExpandable(testResult: testResult),
+                  (testResult) => TestResultExpandable(testResult: testResult),
               )
               .toList(),
         );

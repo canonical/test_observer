@@ -32,7 +32,9 @@ router = APIRouter()
 
 
 @router.put("/{id}/status_update")
-def put_status_update(id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)):
+def put_status_update(
+    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
+):
     test_execution = db.get(
         TestExecution,
         id,
