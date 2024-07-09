@@ -70,7 +70,7 @@ def _get_test_execution_counts_subquery(db: Session) -> RowReturningQuery:
         .subquery()
     )
 
-    # Define subquery to calculate the ratio of completed TestExecutions to all TestExecutions
+    # Define the query to merge subquery for all and completed test executions
     return (
         db.query(
             all_tests.c.artefact_id,

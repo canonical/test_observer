@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
-import '../../providers/artefact_builds.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
 import 'artefact_build_expandable.dart';
