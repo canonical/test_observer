@@ -18,8 +18,10 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import case, func
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm.query import RowReturningQuery
+
 
 from test_observer.data_access import queries
 from test_observer.data_access.models import (
@@ -42,6 +44,44 @@ from .models import (
 )
 
 router = APIRouter(tags=["artefacts"])
+
+
+def _get_test_execution_counts_subquery(db: Session) -> RowReturningQuery:
+    # Define subquery to count all TestExecutions for each Artefact
+    all_tests = (
+        db.query(
+            ArtefactBuild.artefact_id,
+            func.count(TestExecution.id).label("total"),
+        )
+        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
+        .group_by(ArtefactBuild.artefact_id)
+        .subquery()
+    )
+
+    # Define subquery to count completed TestExecutions for each Artefact
+    completed_tests = (
+        db.query(
+            ArtefactBuild.artefact_id,
+            func.count(TestExecution.id).label("completed"),
+        )
+        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
+        .filter(func.array_length(TestExecution.review_decision, 1) > 0)
+        .group_by(ArtefactBuild.artefact_id)
+        .subquery()
+    )
+
+    # Define subquery to calculate the ratio of completed TestExecutions to all TestExecutions
+    return (
+        db.query(
+            all_tests.c.artefact_id,
+            func.coalesce(all_tests.c.total, 0).label("total"),
+            func.coalesce(completed_tests.c.completed, 0).label("completed"),
+        )
+        .outerjoin(
+            completed_tests, all_tests.c.artefact_id == completed_tests.c.artefact_id
+        )
+        .subquery()
+    )
 
 
 def _get_artefact_from_db(artefact_id: int, db: Session = Depends(get_db)) -> Artefact:
@@ -74,62 +114,38 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 order_by_columns=order_by,
             )
 
-    # Define subquery to count all TestExecutions for each Artefact
-    all_tests = (
-        db.query(
-            ArtefactBuild.artefact_id,
-            func.count(TestExecution.id).label("total"),
-        )
-        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
-        .group_by(ArtefactBuild.artefact_id)
-        .subquery()
-    )
-
-    # Define subquery to count completed TestExecutions for each Artefact
-    completed_tests = (
-        db.query(
-            ArtefactBuild.artefact_id,
-            func.count(TestExecution.id).label("completed"),
-        )
-        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
-        .filter(func.array_length(TestExecution.review_decision, 1) > 0)
-        .group_by(ArtefactBuild.artefact_id)
-    )
-    # print(completed_tests.all())
-
-    completed_tests = completed_tests.subquery()
-
-    # Define subquery to calculate the ratio of completed TestExecutions to all TestExecutions
-    ratio_completed = (
-        db.query(
-            all_tests.c.artefact_id,
-            func.coalesce((completed_tests.c.completed / all_tests.c.total), 0).label(
-                "ratio_completed"
-            ),
-        )
-        .outerjoin(
-            completed_tests, all_tests.c.artefact_id == completed_tests.c.artefact_id
-        )
-        .subquery()
-    )
+    test_execution_counts = _get_test_execution_counts_subquery(db)
 
     # Execute the query and fetch all results
     results = (
-        db.query(Artefact.id, ratio_completed.c.ratio_completed)
-        .outerjoin(ratio_completed, Artefact.id == ratio_completed.c.artefact_id)
+        db.query(
+            Artefact.id,
+            test_execution_counts.c.total,
+            test_execution_counts.c.completed,
+        )
+        .outerjoin(
+            test_execution_counts, Artefact.id == test_execution_counts.c.artefact_id
+        )
+        .filter(Artefact.id.in_([artefact.id for artefact in artefacts]))
         .all()
     )
 
     # Convert the results to a dictionary
-    ratio_completed_dict = {
-        artefact_id: ratio_completed for artefact_id, ratio_completed in results
+    counts_dict = {
+        artefact_id: {
+            "total": total,
+            "completed": completed,
+        }
+        for artefact_id, total, completed in results
     }
-
-    print(ratio_completed_dict)
 
     # Add the ratio_completed to the artefacts
     for artefact in artefacts:
-        artefact.ratio_completed = ratio_completed_dict.get(artefact.id, 0)
+        if counts_dict.get(artefact.id):
+            artefact.all_test_executions_count = counts_dict[artefact.id]["total"]
+            artefact.completed_test_executions_count = counts_dict[artefact.id][
+                "completed"
+            ]
 
     return artefacts
 

@@ -17,30 +17,6 @@ class ArtefactPageBody extends ConsumerWidget {
   final Artefact artefact;
   final List<ArtefactBuild> artefactBuilds;
 
-  int _getCompletedTestExecutionCount(List<ArtefactBuild> artefactBuilds) {
-    int completedCount = 0;
-    for (final artefactBuild in artefactBuilds) {
-      for (final testExecution in artefactBuild.testExecutions) {
-        if (testExecution.reviewDecision.isNotEmpty) completedCount++;
-      }
-    }
-    return completedCount;
-  }
-
-  int _getTotalTestExecutionCount(List<ArtefactBuild> artefactBuilds) {
-    int totalCount = 0;
-    for (final artefactBuild in artefactBuilds) {
-      totalCount += artefactBuild.testExecutions.length;
-    }
-    return totalCount;
-  }
-
-  double _getPercentage(List<ArtefactBuild> artefactBuilds) {
-    final completedCount = _getCompletedTestExecutionCount(artefactBuilds);
-    final totalCount = _getTotalTestExecutionCount(artefactBuilds);
-    return (completedCount / totalCount);
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
@@ -61,22 +37,9 @@ class ArtefactPageBody extends ConsumerWidget {
                     'Environments',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  const SizedBox(width: Spacing.level4),
-                  SizedBox(
-                    width: 25.0, // specify the width
-                    height: 25.0, // specify the height
-                    child: CircularProgressIndicator(
-                      value: _getPercentage(artefactBuilds),
-                      semanticsLabel: 'Circular progress indicator',
-                    ),
-                  ),
                   const Spacer(),
                   const RerunFilteredEnvironmentsButton(),
                 ],
-              ),
-              LinearProgressIndicator(
-                value: _getPercentage(artefactBuilds),
-                semanticsLabel: 'Linear progress indicator',
               ),
               Expanded(
                 child: ListView.builder(

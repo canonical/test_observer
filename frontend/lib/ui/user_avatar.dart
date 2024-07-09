@@ -24,16 +24,27 @@ Color getDarkerColor(Color color, [double amount = 0.2]) {
 
 class UserAvatar extends StatelessWidget {
   const UserAvatar(
-      {super.key, required this.user, required this.ratioCompleted});
+      {super.key,
+      required this.user,
+      required this.allTestExecutionsCount,
+      required this.completedTestExecutionsCount});
 
   final User user;
-  final double ratioCompleted;
+  final int allTestExecutionsCount;
+  final int completedTestExecutionsCount;
+
+  double get ratioCompleted {
+    if (allTestExecutionsCount == 0) {
+      return 0.0;
+    }
+    return completedTestExecutionsCount / allTestExecutionsCount;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Tooltip(
       message:
-          '${user.name}\n${user.launchpadHandle}\n${user.launchpadEmail}\nCompleted ${(ratioCompleted * 100).round()}%',
+          '${user.name}\n${user.launchpadHandle}\n${user.launchpadEmail}\nCompleted: $completedTestExecutionsCount / $allTestExecutionsCount (${(ratioCompleted * 100).round()}%)',
       child: Stack(
         alignment: Alignment.center,
         children: [

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
-import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
-import '../../providers/artefact_builds.dart';
 import '../spacing.dart';
 import '../user_avatar.dart';
 import 'artefact_signoff_button.dart';
@@ -18,20 +16,18 @@ class ArtefactPageHeader extends ConsumerWidget {
   final Artefact artefact;
   final List<ArtefactBuild> artefactBuilds;
 
-  double _computeRatioCompleted(List<ArtefactBuild> artefactBuilds) {
-    int totalTestExecutions = 0, completedTestExecution = 0;
-    for (final artefactBuild in artefactBuilds) {
-      totalTestExecutions += artefactBuild.testExecutions.length;
-      for (final testExecution in artefactBuild.testExecutions) {
-        if (testExecution.reviewDecision.isNotEmpty) {
-          completedTestExecution++;
-        }
-      }
-    }
+  int get allTestExecutionsCount {
+    return artefactBuilds
+        .map((build) => build.testExecutions.length)
+        .fold(0, (a, b) => a + b);
+  }
 
-    return totalTestExecutions == 0
-        ? 0
-        : completedTestExecution / totalTestExecutions;
+  int get completedTestExecutionsCount {
+    return artefactBuilds
+        .map((build) => build.testExecutions
+            .where((testExecution) => testExecution.reviewDecision.isNotEmpty)
+            .length)
+        .fold(0, (a, b) => a + b);
   }
 
   @override
@@ -48,7 +44,8 @@ class ArtefactPageHeader extends ConsumerWidget {
         if (assignee != null)
           UserAvatar(
             user: assignee,
-            ratioCompleted: _computeRatioCompleted(artefactBuilds),
+            allTestExecutionsCount: allTestExecutionsCount,
+            completedTestExecutionsCount: completedTestExecutionsCount,
           ),
         const SizedBox(width: Spacing.level4),
         if (dueDate != null)
