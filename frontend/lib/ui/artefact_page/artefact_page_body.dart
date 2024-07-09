@@ -11,9 +11,11 @@ import 'artefact_build_expandable.dart';
 import 'rerun_filtered_environments_button.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
-  const ArtefactPageBody({super.key, required this.artefact});
+  const ArtefactPageBody(
+      {super.key, required this.artefact, required this.artefactBuilds});
 
   final Artefact artefact;
+  final List<ArtefactBuild> artefactBuilds;
 
   int _getCompletedTestExecutionCount(List<ArtefactBuild> artefactBuilds) {
     int completedCount = 0;
@@ -41,65 +43,57 @@ class ArtefactPageBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactBuilds = ref.watch(ArtefactBuildsProvider(artefact.id));
-
-    return artefactBuilds.when(
-      data: (artefactBuilds) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const PageFiltersView(searchHint: 'Search by environment name'),
-          const SizedBox(width: Spacing.level5),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: Spacing.level3),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      'Environments',
-                      style: Theme.of(context).textTheme.headlineSmall,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PageFiltersView(searchHint: 'Search by environment name'),
+        const SizedBox(width: Spacing.level5),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: Spacing.level3),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    'Environments',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(width: Spacing.level4),
+                  SizedBox(
+                    width: 25.0, // specify the width
+                    height: 25.0, // specify the height
+                    child: CircularProgressIndicator(
+                      value: _getPercentage(artefactBuilds),
+                      semanticsLabel: 'Circular progress indicator',
                     ),
-                    const SizedBox(width: Spacing.level4),
-                    SizedBox(
-                      width: 25.0, // specify the width
-                      height: 25.0, // specify the height
-                      child: CircularProgressIndicator(
-                        value: _getPercentage(artefactBuilds),
-                        semanticsLabel: 'Circular progress indicator',
-                      ),
-                    ),
-                    const Spacer(),
-                    const RerunFilteredEnvironmentsButton(),
-                  ],
-                ),
-                // LinearProgressIndicator(
-                //   value: _getPercentage(artefactBuilds),
-                //   semanticsLabel: 'Linear progress indicator',
-                // ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: artefactBuilds.length,
-                    itemBuilder: (_, i) => Padding(
-                      // Padding is to avoid scroll bar covering trailing buttons
-                      padding: const EdgeInsets.only(right: Spacing.level3),
-                      child: ArtefactBuildExpandable(
-                        artefactBuild: artefactBuilds[i],
-                      ),
+                  ),
+                  const Spacer(),
+                  const RerunFilteredEnvironmentsButton(),
+                ],
+              ),
+              LinearProgressIndicator(
+                value: _getPercentage(artefactBuilds),
+                semanticsLabel: 'Linear progress indicator',
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: artefactBuilds.length,
+                  itemBuilder: (_, i) => Padding(
+                    // Padding is to avoid scroll bar covering trailing buttons
+                    padding: const EdgeInsets.only(right: Spacing.level3),
+                    child: ArtefactBuildExpandable(
+                      artefactBuild: artefactBuilds[i],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-      loading: () => const Center(child: YaruCircularProgressIndicator()),
-      error: (error, stackTrace) {
-        return Center(child: Text('Error: $error'));
-      },
+        ),
+      ],
     );
   }
 }

@@ -24,6 +24,7 @@ const dummyArtefact = Artefact(
   stage: StageName.beta,
   assignee: dummyUser,
   bugLink: '',
+  ratioCompleted: 0.0,
 );
 
 const dummyEnvironment = Environment(

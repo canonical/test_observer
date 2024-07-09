@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
+import '../../providers/artefact_builds.dart';
 import '../../providers/family_artefacts.dart';
 import '../../routing.dart';
 import '../dialog_header.dart';
@@ -43,17 +44,26 @@ class ArtefactPage extends ConsumerWidget {
         data: (artefacts) {
           final artefact = artefacts[artefactId];
           if (artefact == null) return _invalidArtefactErrorMessage;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ArtefactPageHeader(artefact: artefact),
-              const SizedBox(height: Spacing.level4),
-              ArtefactPageInfoSection(artefact: artefact),
-              const SizedBox(height: Spacing.level4),
-              Expanded(
-                child: ArtefactPageBody(artefact: artefact),
-              ),
-            ],
+
+          final artefactBuilds = ref.watch(ArtefactBuildsProvider(artefact.id));
+          return artefactBuilds.when(
+            data: (artefactBuilds) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ArtefactPageHeader(
+                    artefact: artefact, artefactBuilds: artefactBuilds),
+                const SizedBox(height: Spacing.level4),
+                ArtefactPageInfoSection(artefact: artefact),
+                const SizedBox(height: Spacing.level4),
+                Expanded(
+                  child: ArtefactPageBody(
+                      artefact: artefact, artefactBuilds: artefactBuilds),
+                ),
+              ],
+            ),
+            error: (e, stack) =>
+                Center(child: Text('Error:\n$e\nStackTrace:\n$stack')),
+            loading: () => const Center(child: YaruCircularProgressIndicator()),
           );
         },
         error: (e, stack) =>
