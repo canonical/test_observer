@@ -14,14 +14,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from fastapi import APIRouter
+from test_observer.data_access.models import TestEvent
 
-from . import end_test, get_test_results, patch, reruns, start_test, status_update
 
-router = APIRouter(tags=["test-executions"])
-router.include_router(start_test.router)
-router.include_router(get_test_results.router)
-router.include_router(end_test.router)
-router.include_router(patch.router)
-router.include_router(reruns.router)
-router.include_router(status_update.router)
+class TestflingerEventParser:
+    def __init__(self):
+        self.is_completed = False
+
+    def process_events(self, events: list[TestEvent]):
+        final_event = events[-1]
+        if final_event.event_name == "job_end":
+            self.is_completed = True

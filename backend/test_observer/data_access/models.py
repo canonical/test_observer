@@ -336,6 +336,11 @@ class TestExecution(Base):
     test_results: Mapped[list["TestResult"]] = relationship(
         back_populates="test_execution", cascade="all, delete"
     )
+    test_events: Mapped[list["TestEvent"]] = relationship(
+        back_populates="test_execution",
+        cascade="all, delete",
+        order_by="TestEvent.timestamp",
+    )
     rerun_request: Mapped[TestExecutionRerunRequest | None] = relationship(
         back_populates="test_execution", cascade="all, delete"
     )
@@ -425,3 +430,19 @@ class TestResult(Base):
             "test_execution_id",
             "test_case_id",
         )
+
+
+class TestEvent(Base):
+    """
+    A table to represent test events that have ocurred during a job
+    """
+
+    __tablename__ = "test_event"
+
+    event_name: Mapped[str]
+    timestamp: Mapped[datetime]
+    detail: Mapped[str]
+    test_execution_id: Mapped[int] = mapped_column(
+        ForeignKey("test_execution.id", ondelete="CASCADE")
+    )
+    test_execution: Mapped["TestExecution"] = relationship(back_populates="test_events")

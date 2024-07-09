@@ -24,6 +24,7 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
     TestResult,
+    TestEvent,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
 
@@ -51,6 +52,16 @@ def delete_previous_results(
 ):
     db.execute(
         delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
+    )
+    db.commit()
+
+
+def delete_previous_test_events(
+    db: Session,
+    test_execution: TestExecution,
+):
+    db.execute(
+        delete(TestEvent).where(TestEvent.test_execution_id == test_execution.id)
     )
     db.commit()
 
