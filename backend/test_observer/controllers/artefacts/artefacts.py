@@ -18,10 +18,13 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Subquery, func
 from sqlalchemy.orm import Session, joinedload
 
 
+from test_observer.controllers.artefacts.helpers import (
+    _get_test_executions_count_dict,
+    parse_artefact_orm_object,
+)
 from test_observer.data_access import queries
 from test_observer.data_access.models import (
     Artefact,
@@ -43,44 +46,6 @@ from .models import (
 )
 
 router = APIRouter(tags=["artefacts"])
-
-
-def _get_test_execution_counts_subquery(db: Session) -> Subquery:
-    # Define subquery to count all TestExecutions for each Artefact
-    all_tests = (
-        db.query(
-            ArtefactBuild.artefact_id,
-            func.count(TestExecution.id).label("total"),
-        )
-        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
-        .group_by(ArtefactBuild.artefact_id)
-        .subquery()
-    )
-
-    # Define subquery to count completed TestExecutions for each Artefact
-    completed_tests = (
-        db.query(
-            ArtefactBuild.artefact_id,
-            func.count(TestExecution.id).label("completed"),
-        )
-        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
-        .filter(func.array_length(TestExecution.review_decision, 1) > 0)
-        .group_by(ArtefactBuild.artefact_id)
-        .subquery()
-    )
-
-    # Define the query to merge subquery for all and completed test executions
-    return (
-        db.query(
-            all_tests.c.artefact_id,
-            func.coalesce(all_tests.c.total, 0).label("total"),
-            func.coalesce(completed_tests.c.completed, 0).label("completed"),
-        )
-        .outerjoin(
-            completed_tests, all_tests.c.artefact_id == completed_tests.c.artefact_id
-        )
-        .subquery()
-    )
 
 
 def _get_artefact_from_db(artefact_id: int, db: Session = Depends(get_db)) -> Artefact:
@@ -113,50 +78,23 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 order_by_columns=order_by,
             )
 
-    test_execution_counts = _get_test_execution_counts_subquery(db)
-
-    # Execute the query and fetch all results
-    results = (
-        db.query(
-            Artefact.id,
-            test_execution_counts.c.total,
-            test_execution_counts.c.completed,
-        )
-        .outerjoin(
-            test_execution_counts, Artefact.id == test_execution_counts.c.artefact_id
-        )
-        .filter(Artefact.id.in_([artefact.id for artefact in artefacts]))
-        .all()
+    test_executions_count_dict = _get_test_executions_count_dict(
+        db, [artefact.id for artefact in artefacts]
     )
 
-    # Convert the results to a dictionary
-    counts_dict = {
-        artefact_id: {
-            "total": total,
-            "completed": completed,
-        }
-        for artefact_id, total, completed in results
-    }
-
-    # Add the ratio_completed to the artefacts
-    parsed_artefacts: list[ArtefactDTO] = []
-    for artefact in artefacts:
-        parsed_artefact = ArtefactDTO.model_validate(artefact)
-        if counts_dict.get(artefact.id):
-            parsed_artefact.all_test_executions_count = counts_dict[artefact.id][
-                "total"
-            ]
-            parsed_artefact.completed_test_executions_count = counts_dict[artefact.id][
-                "completed"
-            ]
-        parsed_artefacts.append(parsed_artefact)
-
-    return parsed_artefacts
+    # Parse artefacts and add test execution counts
+    return [
+        parse_artefact_orm_object(artefact, test_executions_count_dict)
+        for artefact in artefacts
+    ]
 
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
-def get_artefact(artefact: Artefact = Depends(_get_artefact_from_db)):
-    return artefact
+def get_artefact(
+    artefact: Artefact = Depends(_get_artefact_from_db), db: Session = Depends(get_db)
+):
+    test_executions_count_dict = _get_test_executions_count_dict(db, [artefact.id])
+    return parse_artefact_orm_object(artefact, test_executions_count_dict)
 
 
 @router.patch("/{artefact_id}", response_model=ArtefactDTO)

@@ -30,6 +30,8 @@ from test_observer.data_access.models_enums import (
 
 
 class UserDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     launchpad_handle: str
     launchpad_email: str
