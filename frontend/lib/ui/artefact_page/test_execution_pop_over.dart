@@ -36,12 +36,14 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
   Function(bool?)? getOnChangedCheckboxListTileFunction(
     TestExecutionReviewDecision testExecutionReviewDecision,
   ) {
+    // Ensure the test execution cannot be rejected and approved in the same time
+    final bool enableCheckboxConsistencyCheck = (testExecutionReviewDecision ==
+                TestExecutionReviewDecision.rejected &&
+            _canReject) ||
+        (testExecutionReviewDecision != TestExecutionReviewDecision.rejected &&
+            _canApprove);
     if (!testExecutionReviewDecision.isDeprecated &&
-        ((testExecutionReviewDecision == TestExecutionReviewDecision.rejected &&
-                _canReject) ||
-            (testExecutionReviewDecision !=
-                    TestExecutionReviewDecision.rejected &&
-                _canApprove))) {
+        enableCheckboxConsistencyCheck) {
       return (bool? value) {
         setState(() {
           if (reviewDecisions.contains(testExecutionReviewDecision)) {
