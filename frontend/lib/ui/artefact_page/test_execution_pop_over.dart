@@ -56,8 +56,7 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
   }
 
   bool shouldDisplayDecision(TestExecutionReviewDecision decision) {
-    return !decision.isDeprecated ||
-        (decision.isDeprecated && reviewDecisions.contains(decision));
+    return !decision.isDeprecated || reviewDecisions.contains(decision);
   }
 
   @override
