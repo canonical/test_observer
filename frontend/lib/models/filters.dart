@@ -101,10 +101,8 @@ final emptyArtefactFilters = Filters<Artefact>(
         if (dueDate.isBefore(now)) return 'Overdue';
 
         final daysDueIn = now.difference(dueDate).inDays;
-
-        if (daysDueIn >= 14) return 'Later than next week';
-        if (daysDueIn >= 7) return 'Next week';
-        return 'This week';
+        if (daysDueIn >= 7) return 'More than a week';
+        return 'Within a week';
       },
     ),
   ],
