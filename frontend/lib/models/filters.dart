@@ -91,6 +91,22 @@ final emptyArtefactFilters = Filters<Artefact>(
       name: 'Status',
       extractOption: (artefact) => artefact.status.name,
     ),
+    Filter<Artefact>(
+      name: 'Due date',
+      extractOption: (artefact) {
+        final now = DateTime.now();
+        final dueDate = artefact.dueDate;
+
+        if (dueDate == null) return 'No due date';
+        if (dueDate.isBefore(now)) return 'Overdue';
+
+        final daysDueIn = now.difference(dueDate).inDays;
+
+        if (daysDueIn >= 14) return 'Later than next week';
+        if (daysDueIn >= 7) return 'Next week';
+        return 'This week';
+      },
+    ),
   ],
 );
 
