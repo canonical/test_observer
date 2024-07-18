@@ -55,6 +55,8 @@ def put_status_update(
         test_execution.test_events.append(test_event)
     event_parser = TestflingerEventParser()
     event_parser.process_events(test_execution.test_events)
+    if event_parser.resource_url is not None:
+        test_execution.resource_url = event_parser.resource_url
     if event_parser.is_completed:
         test_execution.status = TestExecutionStatus.ENDED
     db.commit()

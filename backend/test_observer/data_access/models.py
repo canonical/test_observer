@@ -341,6 +341,7 @@ class TestExecution(Base):
         cascade="all, delete",
         order_by="TestEvent.timestamp",
     )
+    resource_url: Mapped[str] = mapped_column(default="")
     rerun_request: Mapped[TestExecutionRerunRequest | None] = relationship(
         back_populates="test_execution", cascade="all, delete"
     )
