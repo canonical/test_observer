@@ -30,43 +30,46 @@ class TestEventLogExpandable extends ConsumerWidget {
           title: const Text('Event Log'),
           initiallyExpanded: initiallyExpanded,
           children: <Widget>[
-            DataTable(
-              columns: const <DataColumn>[
-                DataColumn(
-                  label: Expanded(
-                    child: Text(
-                      'Event Name',
-                      style: TextStyle(fontStyle: FontStyle.italic),
+            SingleChildScrollView( 
+              scrollDirection: Axis.horizontal, 
+              child: DataTable(
+                columns: const <DataColumn>[
+                  DataColumn(
+                    label: Expanded(
+                      child: Text(
+                        'Event Name',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
                     ),
                   ),
-                ),
-                DataColumn(
-                  label: Expanded(
-                    child: Text(
-                      'Timestamp',
-                      style: TextStyle(fontStyle: FontStyle.italic),
+                  DataColumn(
+                    label: Expanded(
+                      child: Text(
+                        'Timestamp',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
                     ),
                   ),
-                ),
-                DataColumn(
-                  label: Expanded(
-                    child: Text(
-                      'Detail',
-                      style: TextStyle(fontStyle: FontStyle.italic),
+                  DataColumn(
+                    label: Expanded(
+                      child: Text(
+                        'Detail',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
                     ),
                   ),
-                ),
-              ],
-              rows: testEvents.map(
-                (testEvent) => DataRow(
-                  cells: <DataCell>[
-                    DataCell(Text(testEvent.eventName)),
-                    DataCell(Text(testEvent.timestamp)),
-                    DataCell(Text(testEvent.detail)),
-                  ],
-                ),
-              )
-              .toList(),
+                ],
+                rows: testEvents.map(
+                  (testEvent) => DataRow(
+                    cells: <DataCell>[
+                      DataCell(Text(testEvent.eventName)),
+                      DataCell(Text(testEvent.timestamp)),
+                      DataCell(Text(testEvent.detail)),
+                    ],
+                  ),
+                )
+                .toList(),
+              ),
             ),
           ],
         );
