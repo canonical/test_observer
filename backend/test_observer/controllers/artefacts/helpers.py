@@ -79,14 +79,14 @@ def _get_test_executions_count_dict(
     """
     test_execution_counts = _get_test_execution_counts_subquery(db)
 
-    artefact_build_ids = list(
+    artefact_build_ids = [
         artefact_build.id
         for artefact_build in db.scalars(
             queries.latest_artefact_builds.where(
                 ArtefactBuild.artefact_id.in_(artefact_ids)
             )
         ).unique()
-    )
+    ]
 
     # Execute the query and fetch all results
     results = (
