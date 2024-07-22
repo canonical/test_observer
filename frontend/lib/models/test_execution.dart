@@ -119,11 +119,21 @@ enum TestExecutionReviewDecision {
       case approvedUnstablePhysicalInfra:
         return 'Approve (unstable physical infrastructure)';
       case approvedCustomerPrerequisiteFail:
-        return 'Approve (customer provided prerequsite failing)';
+        return 'Approve (customer provided prerequisite failing)';
       case approvedFaultyHardware:
         return 'Approve (faulty hardware)';
       case approvedAllTestsPass:
         return 'Approve (all tests pass)';
+    }
+  }
+
+  bool get isDeprecated {
+    switch (this) {
+      case approvedFaultyHardware:
+      case approvedUnstablePhysicalInfra:
+        return true;
+      default:
+        return false;
     }
   }
 
