@@ -45,25 +45,17 @@ class ArtefactPage extends ConsumerWidget {
           final artefact = artefacts[artefactId];
           if (artefact == null) return _invalidArtefactErrorMessage;
 
-          final artefactBuilds = ref.watch(ArtefactBuildsProvider(artefact.id));
-          return artefactBuilds.when(
-            data: (artefactBuilds) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ArtefactPageHeader(
-                    artefact: artefact, artefactBuilds: artefactBuilds),
-                const SizedBox(height: Spacing.level4),
-                ArtefactPageInfoSection(artefact: artefact),
-                const SizedBox(height: Spacing.level4),
-                Expanded(
-                  child: ArtefactPageBody(
-                      artefact: artefact, artefactBuilds: artefactBuilds),
-                ),
-              ],
-            ),
-            error: (e, stack) =>
-                Center(child: Text('Error:\n$e\nStackTrace:\n$stack')),
-            loading: () => const Center(child: YaruCircularProgressIndicator()),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ArtefactPageHeader(artefact: artefact),
+              const SizedBox(height: Spacing.level4),
+              ArtefactPageInfoSection(artefact: artefact),
+              const SizedBox(height: Spacing.level4),
+              Expanded(
+                child: ArtefactPageBody(artefact: artefact),
+              ),
+            ],
           );
         },
         error: (e, stack) =>

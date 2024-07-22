@@ -3,18 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
-import '../../models/artefact_build.dart';
 import '../spacing.dart';
 import '../user_avatar.dart';
 import 'artefact_signoff_button.dart';
 
 class ArtefactPageHeader extends ConsumerWidget {
-  const ArtefactPageHeader(
-      {Key? key, required this.artefact, required this.artefactBuilds})
-      : super(key: key);
+  const ArtefactPageHeader({super.key, required this.artefact});
 
   final Artefact artefact;
-  final List<ArtefactBuild> artefactBuilds;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
