@@ -23,11 +23,12 @@ Color getDarkerColor(Color color, [double amount = 0.2]) {
 }
 
 class UserAvatar extends StatelessWidget {
-  const UserAvatar(
-      {super.key,
-      required this.user,
-      required this.allTestExecutionsCount,
-      required this.completedTestExecutionsCount});
+  const UserAvatar({
+    super.key,
+    required this.user,
+    required this.allTestExecutionsCount,
+    required this.completedTestExecutionsCount,
+  });
 
   final User user;
   final int allTestExecutionsCount;
@@ -59,8 +60,8 @@ class UserAvatar extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: 43.0, // specify the width
-            height: 43.0, // specify the height
+            width: 43.0,
+            height: 43.0,
             child: CircularProgressIndicator(
               color: getDarkerColor(userIdToColor(user.id)),
               backgroundColor: userIdToColor(user.id),
