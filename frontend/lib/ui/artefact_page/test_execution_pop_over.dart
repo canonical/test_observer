@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
+import '../../models/family_name.dart';
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
+import '../../routing.dart';
 import '../spacing.dart';
 
 class TestExecutionPopOver extends ConsumerStatefulWidget {
@@ -11,10 +13,12 @@ class TestExecutionPopOver extends ConsumerStatefulWidget {
     super.key,
     required this.testExecution,
     required this.artefactId,
+    required this.family,
   });
 
   final TestExecution testExecution;
   final int artefactId;
+  final FamilyName family;
 
   @override
   TestExecutionPopOverState createState() => TestExecutionPopOverState();
@@ -122,6 +126,8 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
                   widget.testExecution.id,
                   reviewCommentController.text,
                   reviewDecisions,
+                  widget.family,
+                  widget.artefactId,
                 );
             Navigator.pop(context);
           },

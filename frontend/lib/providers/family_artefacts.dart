@@ -24,4 +24,18 @@ class FamilyArtefacts extends _$FamilyArtefacts {
     final previousState = await future;
     state = AsyncData({...previousState, artefact.id: artefact});
   }
+
+  Future<void> updateCompletedTestExecutionsCount(
+    int artefactId,
+    int count,
+  ) async {
+    final previousState = await future;
+    final artefact = previousState[artefactId];
+    if (artefact != null) {
+      state = AsyncData({
+        ...previousState,
+        artefactId: artefact.copyWith(completedTestExecutionsCount: count),
+      });
+    }
+  }
 }

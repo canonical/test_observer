@@ -16,20 +16,6 @@ class ArtefactPageHeader extends ConsumerWidget {
   final Artefact artefact;
   final List<ArtefactBuild> artefactBuilds;
 
-  int get allTestExecutionsCount {
-    return artefactBuilds
-        .map((build) => build.testExecutions.length)
-        .fold(0, (a, b) => a + b);
-  }
-
-  int get completedTestExecutionsCount {
-    return artefactBuilds
-        .map((build) => build.testExecutions
-            .where((testExecution) => testExecution.reviewDecision.isNotEmpty)
-            .length)
-        .fold(0, (a, b) => a + b);
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assignee = artefact.assignee;
@@ -44,8 +30,8 @@ class ArtefactPageHeader extends ConsumerWidget {
         if (assignee != null)
           UserAvatar(
             user: assignee,
-            allTestExecutionsCount: allTestExecutionsCount,
-            completedTestExecutionsCount: completedTestExecutionsCount,
+            allTestExecutionsCount: artefact.allTestExecutionsCount,
+            completedTestExecutionsCount: artefact.completedTestExecutionsCount,
           ),
         const SizedBox(width: Spacing.level4),
         if (dueDate != null)

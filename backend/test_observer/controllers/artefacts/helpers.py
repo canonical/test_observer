@@ -1,6 +1,7 @@
 from sqlalchemy import Subquery, func
 from sqlalchemy.orm import Session
 
+from test_observer.data_access import queries
 from test_observer.controllers.artefacts.models import ArtefactDTO
 from test_observer.data_access.models import (
     Artefact,
@@ -26,39 +27,37 @@ def _get_test_execution_counts_subquery(db: Session) -> Subquery:
         merge Artefacts queries with other filters with the counts fetched
         from this helper method
     """
-    # Define subquery to count all TestExecutions for each Artefact
+    # Define subquery to count all TestExecutions for each ArtefactBuild
     all_tests = (
         db.query(
-            ArtefactBuild.artefact_id,
+            ArtefactBuild.id,
             func.count(TestExecution.id).label("total"),
         )
         .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
-        .group_by(ArtefactBuild.artefact_id)
+        .group_by(ArtefactBuild.id)
         .subquery()
     )
 
-    # Define subquery to count completed TestExecutions for each Artefact
+    # Define subquery to count completed TestExecutions for each ArtefactBuild
     completed_tests = (
         db.query(
-            ArtefactBuild.artefact_id,
+            ArtefactBuild.id,
             func.count(TestExecution.id).label("completed"),
         )
         .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
         .filter(func.array_length(TestExecution.review_decision, 1) > 0)
-        .group_by(ArtefactBuild.artefact_id)
+        .group_by(ArtefactBuild.id)
         .subquery()
     )
 
-    # Define the query to merge subquery for all and completed test executions
+    # Define the query to merge the subqueries for all and completed test executions
     return (
         db.query(
-            all_tests.c.artefact_id,
+            all_tests.c.id,
             func.coalesce(all_tests.c.total, 0).label("total"),
             func.coalesce(completed_tests.c.completed, 0).label("completed"),
         )
-        .outerjoin(
-            completed_tests, all_tests.c.artefact_id == completed_tests.c.artefact_id
-        )
+        .outerjoin(completed_tests, all_tests.c.id == completed_tests.c.id)
         .subquery()
     )
 
@@ -80,25 +79,36 @@ def _get_test_executions_count_dict(
     """
     test_execution_counts = _get_test_execution_counts_subquery(db)
 
+    artefact_build_ids = list(
+        artefact_build.id
+        for artefact_build in db.scalars(
+            queries.latest_artefact_builds.where(
+                ArtefactBuild.artefact_id.in_(artefact_ids)
+            )
+        ).unique()
+    )
+
     # Execute the query and fetch all results
     results = (
         db.query(
-            Artefact.id,
-            func.coalesce(test_execution_counts.c.total, 0).label("total"),
-            func.coalesce(test_execution_counts.c.completed, 0).label("completed"),
+            ArtefactBuild.artefact_id,
+            func.sum(test_execution_counts.c.total).label("total"),
+            func.sum(test_execution_counts.c.completed).label("completed"),
         )
         .outerjoin(
-            test_execution_counts, Artefact.id == test_execution_counts.c.artefact_id
+            test_execution_counts,
+            ArtefactBuild.id == test_execution_counts.c.id,
         )
-        .filter(Artefact.id.in_(artefact_ids))
+        .filter(test_execution_counts.c.id.in_(artefact_build_ids))
+        .group_by(ArtefactBuild.artefact_id)
         .all()
     )
 
     # Convert the results to a dictionary
     return {
         artefact_id: {
-            "total": total,
-            "completed": completed,
+            "total": int(total),
+            "completed": int(completed),
         }
         for artefact_id, total, completed in results
     }

@@ -109,6 +109,37 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     }
 
 
+def test_get_artefact_test_execution_counts_only_latest_build(
+    test_client: TestClient, generator: DataGenerator
+):
+    u = generator.gen_user()
+    a = generator.gen_artefact(
+        "edge",
+        status=ArtefactStatus.APPROVED,
+        bug_link="localhost/bug",
+        due_date=date(2024, 12, 24),
+        assignee_id=u.id,
+    )
+    ab = generator.gen_artefact_build(artefact=a, revision=1)
+    e = generator.gen_environment()
+    # Test Execution for the first artefact build
+    generator.gen_test_execution(ab, e)
+
+    ab_second = generator.gen_artefact_build(artefact=a, revision=2)
+    # Test Execution for the second artefact build
+    generator.gen_test_execution(
+        artefact_build=ab_second,
+        environment=e,
+        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+
+    response = test_client.get(f"/v1/artefacts/{a.id}")
+    assert response.status_code == 200
+    # Verify only the counts of the latest build is returned
+    assert response.json()["all_test_executions_count"] == 1
+    assert response.json()["completed_test_executions_count"] == 1
+
+
 def test_get_artefact_test_execution_counts(
     test_client: TestClient,
     generator: DataGenerator,

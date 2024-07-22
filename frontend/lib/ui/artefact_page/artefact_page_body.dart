@@ -32,7 +32,7 @@ class ArtefactPageBody extends ConsumerWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    'Environments',
+                    'Environments (${artefact.completedTestExecutionsCount}/${artefact.allTestExecutionsCount})',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const Spacer(),
