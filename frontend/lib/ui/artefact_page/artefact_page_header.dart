@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
@@ -7,13 +6,13 @@ import '../spacing.dart';
 import '../user_avatar.dart';
 import 'artefact_signoff_button.dart';
 
-class ArtefactPageHeader extends ConsumerWidget {
+class ArtefactPageHeader extends StatelessWidget {
   const ArtefactPageHeader({super.key, required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final assignee = artefact.assignee;
     final dueDate = artefact.dueDateString;
 

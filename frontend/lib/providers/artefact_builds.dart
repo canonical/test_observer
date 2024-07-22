@@ -1,10 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/artefact.dart';
 import '../models/artefact_build.dart';
 import '../models/family_name.dart';
 import '../models/test_execution.dart';
-import '../routing.dart';
 import 'api.dart';
 import 'family_artefacts.dart';
 
@@ -36,9 +34,11 @@ class ArtefactBuilds extends _$ArtefactBuilds {
 
     final artefactBuilds = await future;
     final newCompletedTestExecutionsCount = artefactBuilds
-        .map((build) => build.testExecutions
-            .where((testExecution) => testExecution.reviewDecision.isNotEmpty)
-            .length)
+        .map(
+          (build) => build.testExecutions
+              .where((testExecution) => testExecution.reviewDecision.isNotEmpty)
+              .length,
+        )
         .fold(0, (a, b) => a + b);
 
     ref

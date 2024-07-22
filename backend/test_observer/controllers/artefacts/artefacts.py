@@ -115,7 +115,8 @@ def patch_artefact(
 
     artefact.status = request.status
     db.commit()
-    return artefact
+    test_executions_count_dict = _get_test_executions_count_dict(db, [artefact.id])
+    return parse_artefact_orm_object(artefact, test_executions_count_dict)
 
 
 def _validate_artefact_status(
