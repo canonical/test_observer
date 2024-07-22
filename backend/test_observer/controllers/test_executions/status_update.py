@@ -57,7 +57,11 @@ def put_status_update(
     event_parser.process_events(test_execution.test_events)
     if event_parser.resource_url is not None:
         test_execution.resource_url = event_parser.resource_url
-    if event_parser.is_completed:
+    if (
+        event_parser.is_completed
+        and test_execution.status is not TestExecutionStatus.FAILED
+        and test_execution.status is not TestExecutionStatus.PASSED
+    ):
         test_execution.status = TestExecutionStatus.ENDED
     db.commit()
 
