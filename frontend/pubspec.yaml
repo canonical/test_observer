@@ -24,6 +24,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  web_benchmarks: ^2.0.0
   flutter_lints: ^2.0.0
   dependency_validator: ^3.2.2
   build_runner: ^2.3.3
