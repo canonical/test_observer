@@ -112,14 +112,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
 def test_get_artefact_test_execution_counts_only_latest_build(
     test_client: TestClient, generator: DataGenerator
 ):
-    u = generator.gen_user()
-    a = generator.gen_artefact(
-        "edge",
-        status=ArtefactStatus.APPROVED,
-        bug_link="localhost/bug",
-        due_date=date(2024, 12, 24),
-        assignee_id=u.id,
-    )
+    a = generator.gen_artefact()
     ab = generator.gen_artefact_build(artefact=a, revision=1)
     e = generator.gen_environment()
     # Test Execution for the first artefact build
@@ -145,14 +138,7 @@ def test_get_artefact_test_execution_counts(
     generator: DataGenerator,
     db_session: Session,
 ):
-    u = generator.gen_user()
-    a = generator.gen_artefact(
-        "edge",
-        status=ArtefactStatus.APPROVED,
-        bug_link="localhost/bug",
-        due_date=date(2024, 12, 24),
-        assignee_id=u.id,
-    )
+    a = generator.gen_artefact()
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)

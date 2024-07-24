@@ -20,11 +20,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
-
-from test_observer.controllers.artefacts.helpers import (
-    _get_test_executions_count_dict,
-    parse_artefact_orm_object,
-)
 from test_observer.data_access import queries
 from test_observer.data_access.models import (
     Artefact,
@@ -49,7 +44,14 @@ router = APIRouter(tags=["artefacts"])
 
 
 def _get_artefact_from_db(artefact_id: int, db: Session = Depends(get_db)) -> Artefact:
-    a = db.get(Artefact, artefact_id)
+    a = (
+        db.query(Artefact)
+        .options(
+            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions),
+        )
+        .filter(Artefact.id == artefact_id)
+        .one_or_none()
+    )
     if a is None:
         msg = f"Artefact with id {artefact_id} not found"
         raise HTTPException(status_code=404, detail=msg)
@@ -67,6 +69,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             db,
             family,
             load_stage=True,
+            load_test_executions=True,
             order_by_columns=order_by,
         )
     else:
@@ -75,26 +78,18 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 db,
                 family,
                 load_stage=True,
+                load_test_executions=True,
                 order_by_columns=order_by,
             )
 
-    test_executions_count_dict = _get_test_executions_count_dict(
-        db, [artefact.id for artefact in artefacts]
-    )
-
-    # Parse artefacts and add test execution counts
-    return [
-        parse_artefact_orm_object(artefact, test_executions_count_dict)
-        for artefact in artefacts
-    ]
+    return artefacts
 
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
 def get_artefact(
-    artefact: Artefact = Depends(_get_artefact_from_db), db: Session = Depends(get_db)
+    artefact: Artefact = Depends(_get_artefact_from_db),
 ):
-    test_executions_count_dict = _get_test_executions_count_dict(db, [artefact.id])
-    return parse_artefact_orm_object(artefact, test_executions_count_dict)
+    return artefact
 
 
 @router.patch("/{artefact_id}", response_model=ArtefactDTO)
@@ -115,8 +110,7 @@ def patch_artefact(
 
     artefact.status = request.status
     db.commit()
-    test_executions_count_dict = _get_test_executions_count_dict(db, [artefact.id])
-    return parse_artefact_orm_object(artefact, test_executions_count_dict)
+    return artefact
 
 
 def _validate_artefact_status(
