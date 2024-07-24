@@ -112,7 +112,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
 def test_get_artefact_test_execution_counts_only_latest_build(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact()
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(artefact=a, revision=1)
     e = generator.gen_environment()
     # Test Execution for the first artefact build
@@ -138,7 +138,7 @@ def test_get_artefact_test_execution_counts(
     generator: DataGenerator,
     db_session: Session,
 ):
-    a = generator.gen_artefact()
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)
