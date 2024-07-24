@@ -215,7 +215,8 @@ class Artefact(Base):
             grouped_builds[build.architecture].append(build)
 
         return [
-            max(builds, key=lambda b: b.revision) for builds in grouped_builds.values()
+            max(builds, key=lambda b: b.revision if b.revision else 0)
+            for builds in grouped_builds.values()
         ]
 
     @property
