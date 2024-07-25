@@ -6,8 +6,8 @@ import '../../routing.dart';
 import '../spacing.dart';
 import 'stage_column.dart';
 
-class DashboardBody extends ConsumerWidget {
-  const DashboardBody({Key? key}) : super(key: key);
+class ArtefactsColumnsView extends ConsumerWidget {
+  const ArtefactsColumnsView({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
