@@ -42,7 +42,7 @@ def upgrade() -> None:
     )
 
     with op.get_context().autocommit_block():
-        op.execute("ALTER TYPE testexecutionstatus ADD VALUE 'ENDED'")
+        op.execute("ALTER TYPE testexecutionstatus ADD VALUE 'ENDED_PREMATURELY'")
 
 
 def downgrade() -> None:

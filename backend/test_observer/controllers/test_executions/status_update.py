@@ -58,11 +58,11 @@ def put_status_update(
     if event_parser.resource_url is not None:
         test_execution.resource_url = event_parser.resource_url
     if (
-        event_parser.is_completed
+        event_parser.is_ended_prematurely
         and test_execution.status is not TestExecutionStatus.FAILED
         and test_execution.status is not TestExecutionStatus.PASSED
     ):
-        test_execution.status = TestExecutionStatus.ENDED
+        test_execution.status = TestExecutionStatus.ENDED_PREMATURELY
     db.commit()
 
 
