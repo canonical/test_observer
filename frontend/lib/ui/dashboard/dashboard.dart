@@ -32,8 +32,13 @@ class Dashboard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DashboardHeader(
-            title: '${family.name.capitalize()} Update Verification',
+          Padding(
+            padding: const EdgeInsets.only(
+              right: Spacing.pageHorizontalPadding,
+            ),
+            child: DashboardHeader(
+              title: '${family.name.capitalize()} Update Verification',
+            ),
           ),
           Expanded(
             child: _ArtefactsLoader(
