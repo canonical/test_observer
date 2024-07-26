@@ -42,8 +42,14 @@ class _NavbarEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pageUri = AppRoutes.uriFromContext(context);
+
     return InkWell(
-      onTap: () => context.go(route),
+      onTap: () {
+        final destination =
+            Uri.parse(route).replace(queryParameters: pageUri.queryParameters);
+        context.go(destination.toString());
+      },
       child: Container(
         color: GoRouterState.of(context).fullPath!.startsWith(route)
             ? YaruColors.orange
