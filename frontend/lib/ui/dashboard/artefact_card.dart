@@ -34,6 +34,7 @@ class ArtefactCard extends ConsumerWidget {
         ),
         child: Container(
           width: width,
+          height: 176,
           padding: const EdgeInsets.all(Spacing.level4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
