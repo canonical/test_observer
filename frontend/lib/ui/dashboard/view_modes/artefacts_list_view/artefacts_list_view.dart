@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../models/artefact.dart';
-import '../../../providers/filtered_family_artefacts.dart';
-import '../../../routing.dart';
+import '../../../../models/artefact.dart';
+import '../../../../providers/filtered_family_artefacts.dart';
+import '../../../../routing.dart';
 
 part 'row.dart';
 part 'headers.dart';

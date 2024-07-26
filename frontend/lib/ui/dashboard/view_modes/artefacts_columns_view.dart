@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/stage_name.dart';
-import '../../routing.dart';
-import '../spacing.dart';
-import 'stage_column.dart';
+import '../../../models/stage_name.dart';
+import '../../../routing.dart';
+import '../../spacing.dart';
+import '../stage_column.dart';
 
 class ArtefactsColumnsView extends ConsumerWidget {
   const ArtefactsColumnsView({Key? key}) : super(key: key);

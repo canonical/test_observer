@@ -3,15 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
-import '../../models/family_name.dart';
 import '../../providers/family_artefacts.dart';
 import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
-import 'artefacts_columns_view.dart';
-import 'artefacts_list_view/artefacts_list_view.dart';
 import 'dashboard_header.dart';
+import 'view_modes/view_mode_manager.dart';
 
 class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
@@ -19,11 +17,7 @@ class Dashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final showFilters = ref.watch(artefactSideFiltersVisibilityProvider);
-    final pageUri = AppRoutes.uriFromContext(context);
-    final family = AppRoutes.familyFromUri(pageUri);
-
-    final viewType =
-        pageUri.queryParameters['view'] == 'list' ? 'list' : 'dashboard';
+    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
 
     return Padding(
       padding: const EdgeInsets.only(
@@ -58,13 +52,7 @@ class Dashboard extends ConsumerWidget {
                   ),
                   const SizedBox(width: Spacing.level5),
                   Expanded(
-                    child: switch ((family, viewType)) {
-                      (FamilyName.snap, 'list') =>
-                        const ArtefactsListView.snaps(),
-                      (FamilyName.deb, 'list') =>
-                        const ArtefactsListView.debs(),
-                      (_, _) => const ArtefactsColumnsView(),
-                    },
+                    child: ViewModeManager(context).buildAppropriateView(),
                   ),
                 ],
               ),
