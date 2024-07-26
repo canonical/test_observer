@@ -21,6 +21,7 @@
 from enum import Enum
 from typing import Annotated
 
+from datetime import datetime
 from pydantic import (
     AliasPath,
     BaseModel,
@@ -172,3 +173,13 @@ class PendingRerun(BaseModel):
 
 class DeleteReruns(BaseModel):
     test_execution_ids: set[int]
+
+
+class TestEvent(BaseModel):
+    event_name: str
+    timestamp: datetime
+    detail: str
+
+
+class StatusUpdateRequest(BaseModel):
+    events: list[TestEvent]

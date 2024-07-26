@@ -7,6 +7,7 @@ import '../models/family_name.dart';
 import '../models/rerun_request.dart';
 import '../models/test_execution.dart';
 import '../models/test_result.dart';
+import '../models/test_event.dart';
 
 class ApiRepository {
   final Dio dio;
@@ -65,6 +66,16 @@ class ApiRepository {
         testResultsJson.map((json) => TestResult.fromJson(json)).toList();
     return testResults;
   }
+
+  Future<List<TestEvent>> getTestExecutionEvents(int testExecutionId) async {
+    final response =
+        await dio.get('/v1/test-executions/$testExecutionId/status_update');
+    final List testEventsJson = response.data;
+    final testEvents =
+        testEventsJson.map((json) => TestEvent.fromJson(json)).toList();
+    return testEvents;
+  }
+
 
   Future<List<RerunRequest>> rerunTestExecutions(
     Set<int> testExecutionIds,
