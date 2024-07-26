@@ -12,6 +12,7 @@ const _snapColumnsMetadata = <ColumnMetadata>[
   (name: 'Track', flex: 1, cellBuilder: _buildTrackCell),
   (name: 'Risk', flex: 1, cellBuilder: _buildStageCell),
   (name: 'Due date', flex: 1, cellBuilder: _buildDueDateCell),
+  (name: 'Reviews remaining', flex: 1, cellBuilder: _buildReviewsRemainingCell),
   (name: 'Status', flex: 1, cellBuilder: _buildStatusCell),
   (name: 'Assignee', flex: 1, cellBuilder: _buildAssigneeCell),
 ];
@@ -23,6 +24,7 @@ const _debColumnsMetadata = <ColumnMetadata>[
   (name: 'Repo', flex: 1, cellBuilder: _buildRepoCell),
   (name: 'Pocket', flex: 1, cellBuilder: _buildStageCell),
   (name: 'Due date', flex: 1, cellBuilder: _buildDueDateCell),
+  (name: 'Reviews remaining', flex: 1, cellBuilder: _buildReviewsRemainingCell),
   (name: 'Status', flex: 1, cellBuilder: _buildStatusCell),
   (name: 'Assignee', flex: 1, cellBuilder: _buildAssigneeCell),
 ];
@@ -48,6 +50,9 @@ Widget _buildRepoCell(BuildContext context, Artefact artefact) =>
 Widget _buildDueDateCell(BuildContext context, Artefact artefact) =>
     Text(artefact.dueDateString ?? '');
 
+Widget _buildReviewsRemainingCell(BuildContext context, Artefact artefact) =>
+    Text(artefact.remainingTestExecutionCount.toString());
+
 Widget _buildStatusCell(BuildContext context, Artefact artefact) {
   final status = artefact.status;
   return Text(
@@ -56,16 +61,5 @@ Widget _buildStatusCell(BuildContext context, Artefact artefact) {
   );
 }
 
-Widget _buildAssigneeCell(BuildContext context, Artefact artefact) {
-  final assignee = artefact.assignee;
-  return assignee == null
-      ? const SizedBox.shrink()
-      : Align(
-          alignment: Alignment.centerLeft,
-          child: UserAvatar(
-            user: assignee,
-            allTestExecutionsCount: artefact.allTestExecutionsCount,
-            completedTestExecutionsCount: artefact.completedTestExecutionsCount,
-          ),
-        );
-}
+Widget _buildAssigneeCell(BuildContext context, Artefact artefact) =>
+    Text(artefact.assignee?.name ?? '');

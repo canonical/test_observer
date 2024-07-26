@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../models/artefact.dart';
 import '../../../providers/filtered_family_artefacts.dart';
 import '../../../routing.dart';
-import '../../user_avatar.dart';
 
 part 'row.dart';
 part 'headers.dart';
@@ -46,17 +45,14 @@ class ArtefactsListView extends ConsumerWidget {
     return Center(
       child: SizedBox(
         width: 1200,
-        child: DefaultTextStyle.merge(
-          overflow: TextOverflow.ellipsis,
-          child: ListView.separated(
-            itemCount: artefacts.length + 1,
-            itemBuilder: (_, i) =>
-                i == 0 ? listHeader : listItemBuilder(artefacts[i - 1]),
-            separatorBuilder: (_, __) => Container(
-              height: 1,
-              width: double.infinity,
-              color: Colors.grey,
-            ),
+        child: ListView.separated(
+          itemCount: artefacts.length + 1,
+          itemBuilder: (_, i) =>
+              i == 0 ? listHeader : listItemBuilder(artefacts[i - 1]),
+          separatorBuilder: (_, __) => Container(
+            height: 1,
+            width: double.infinity,
+            color: Colors.grey,
           ),
         ),
       ),

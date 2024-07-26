@@ -24,15 +24,18 @@ class _Row extends StatelessWidget {
       },
       child: SizedBox(
         height: 48,
-        child: Row(
-          children: columnsMetaData
-              .map(
-                (data) => Expanded(
-                  flex: data.flex,
-                  child: data.cellBuilder(context, artefact),
-                ),
-              )
-              .toList(),
+        child: DefaultTextStyle.merge(
+          overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: columnsMetaData
+                .map(
+                  (data) => Expanded(
+                    flex: data.flex,
+                    child: data.cellBuilder(context, artefact),
+                  ),
+                )
+                .toList(),
+          ),
         ),
       ),
     );
