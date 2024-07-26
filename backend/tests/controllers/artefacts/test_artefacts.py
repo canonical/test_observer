@@ -19,6 +19,8 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from datetime import date, timedelta
 
+from sqlalchemy.orm import Session
+
 from fastapi.testclient import TestClient
 
 from test_observer.data_access.models import TestExecution
@@ -64,6 +66,8 @@ def test_get_latest_artefacts_by_family(
                 else None
             ),
             "bug_link": "",
+            "all_test_executions_count": 0,
+            "completed_test_executions_count": 0,
         }
     ]
 
@@ -100,7 +104,60 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         },
         "due_date": "2024-12-24",
         "bug_link": a.bug_link,
+        "all_test_executions_count": 0,
+        "completed_test_executions_count": 0,
     }
+
+
+def test_get_artefact_test_execution_counts_only_latest_build(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(artefact=a, revision=1)
+    e = generator.gen_environment()
+    # Test Execution for the first artefact build
+    generator.gen_test_execution(ab, e)
+
+    ab_second = generator.gen_artefact_build(artefact=a, revision=2)
+    # Test Execution for the second artefact build
+    generator.gen_test_execution(
+        artefact_build=ab_second,
+        environment=e,
+        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+
+    response = test_client.get(f"/v1/artefacts/{a.id}")
+    assert response.status_code == 200
+    # Verify only the counts of the latest build is returned
+    assert response.json()["all_test_executions_count"] == 1
+    assert response.json()["completed_test_executions_count"] == 1
+
+
+def test_get_artefact_test_execution_counts(
+    test_client: TestClient,
+    generator: DataGenerator,
+    db_session: Session,
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e)
+
+    # Verify completed test execution count is zero, it is not reviewed yet
+    response = test_client.get(f"/v1/artefacts/{a.id}")
+    assert response.status_code == 200
+    assert response.json()["all_test_executions_count"] == 1
+    assert response.json()["completed_test_executions_count"] == 0
+
+    te.review_decision = [TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS]
+    db_session.commit()
+    db_session.refresh(te)
+
+    # Verify completed test execution count is one, it is reviewed
+    response = test_client.get(f"/v1/artefacts/{a.id}")
+    assert response.status_code == 200
+    assert response.json()["all_test_executions_count"] == 1
+    assert response.json()["completed_test_executions_count"] == 1
 
 
 def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
@@ -268,6 +325,8 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
             artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
         ),
         "bug_link": "",
+        "all_test_executions_count": 0,
+        "completed_test_executions_count": 0,
     }
 
 

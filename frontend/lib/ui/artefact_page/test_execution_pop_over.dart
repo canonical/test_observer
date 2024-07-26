@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
+import '../../models/family_name.dart';
 import '../../models/test_execution.dart';
-import '../../providers/artefact_builds.dart';
+import '../../providers/review_test_execution.dart';
 import '../spacing.dart';
 
 class TestExecutionPopOver extends ConsumerStatefulWidget {
@@ -11,10 +12,12 @@ class TestExecutionPopOver extends ConsumerStatefulWidget {
     super.key,
     required this.testExecution,
     required this.artefactId,
+    required this.family,
   });
 
   final TestExecution testExecution;
   final int artefactId;
+  final FamilyName family;
 
   @override
   TestExecutionPopOverState createState() => TestExecutionPopOverState();
@@ -116,12 +119,12 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
         const SizedBox(height: Spacing.level3),
         ElevatedButton(
           onPressed: () {
-            ref
-                .read(ArtefactBuildsProvider(widget.artefactId).notifier)
-                .changeReviewDecision(
+            ref.read(reviewTestExecutionProvider.notifier).reviewTestExecution(
                   widget.testExecution.id,
                   reviewCommentController.text,
                   reviewDecisions,
+                  widget.family,
+                  widget.artefactId,
                 );
             Navigator.pop(context);
           },

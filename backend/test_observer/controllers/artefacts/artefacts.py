@@ -44,7 +44,14 @@ router = APIRouter(tags=["artefacts"])
 
 
 def _get_artefact_from_db(artefact_id: int, db: Session = Depends(get_db)) -> Artefact:
-    a = db.get(Artefact, artefact_id)
+    a = (
+        db.query(Artefact)
+        .options(
+            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions),
+        )
+        .filter(Artefact.id == artefact_id)
+        .one_or_none()
+    )
     if a is None:
         msg = f"Artefact with id {artefact_id} not found"
         raise HTTPException(status_code=404, detail=msg)
@@ -62,6 +69,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             db,
             family,
             load_stage=True,
+            load_test_executions=True,
             order_by_columns=order_by,
         )
     else:
@@ -70,6 +78,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 db,
                 family,
                 load_stage=True,
+                load_test_executions=True,
                 order_by_columns=order_by,
             )
 
@@ -77,7 +86,9 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
 
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
-def get_artefact(artefact: Artefact = Depends(_get_artefact_from_db)):
+def get_artefact(
+    artefact: Artefact = Depends(_get_artefact_from_db),
+):
     return artefact
 
 

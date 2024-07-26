@@ -15,13 +15,19 @@ class ArtefactPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final assignee = artefact.assignee;
     final dueDate = artefact.dueDateString;
+
     return Row(
       children: [
         Text(artefact.name, style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(width: Spacing.level4),
         ArtefactSignoffButton(artefact: artefact),
         const SizedBox(width: Spacing.level4),
-        if (assignee != null) UserAvatar(user: assignee),
+        if (assignee != null)
+          UserAvatar(
+            user: assignee,
+            allTestExecutionsCount: artefact.allTestExecutionsCount,
+            completedTestExecutionsCount: artefact.completedTestExecutionsCount,
+          ),
         const SizedBox(width: Spacing.level4),
         if (dueDate != null)
           Text(

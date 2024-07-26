@@ -18,6 +18,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 #        Omar Selo <omar.selo@canonical.com>
 
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import TypeVar
 
@@ -206,6 +207,28 @@ class Artefact(Base):
     def is_kernel(self) -> bool:
         """Kernel artefacts start with 'linix-' or end with '-kernel'"""
         return self.name.startswith("linux-") or self.name.endswith("-kernel")
+
+    def _get_latest_builds(self) -> list["ArtefactBuild"]:
+        # Group builds by architecture
+        grouped_builds = defaultdict(list)
+        for build in self.builds:
+            grouped_builds[build.architecture].append(build)
+
+        return [
+            max(builds, key=lambda b: b.revision if b.revision else 0)
+            for builds in grouped_builds.values()
+        ]
+
+    @property
+    def all_test_executions_count(self) -> int:
+        return sum(len(ab.test_executions) for ab in self._get_latest_builds())
+
+    @property
+    def completed_test_executions_count(self) -> int:
+        return sum(
+            len([te for te in ab.test_executions if te.review_decision])
+            for ab in self._get_latest_builds()
+        )
 
 
 class ArtefactBuild(Base):

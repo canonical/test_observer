@@ -51,6 +51,8 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
       status: ArtefactStatus.undecided,
       stage: StageName.beta,
       bugLink: '',
+      allTestExecutionsCount: 1,
+      completedTestExecutionsCount: 0,
     );
 
     return {

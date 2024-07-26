@@ -30,6 +30,8 @@ from test_observer.data_access.models_enums import (
 
 
 class UserDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     launchpad_handle: str
     launchpad_email: str
@@ -51,6 +53,8 @@ class ArtefactDTO(BaseModel):
     assignee: UserDTO | None
     due_date: date | None
     bug_link: str
+    all_test_executions_count: int
+    completed_test_executions_count: int
 
 
 class EnvironmentDTO(BaseModel):

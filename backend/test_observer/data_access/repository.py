@@ -27,7 +27,7 @@ from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Artefact, DataModel, Family, Stage
+from .models import Artefact, ArtefactBuild, DataModel, Family, Stage
 from .models_enums import FamilyName
 
 
@@ -55,6 +55,7 @@ def get_artefacts_by_family(
     family_name: FamilyName,
     latest_only: bool = True,
     load_stage: bool = False,
+    load_test_executions: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
@@ -125,6 +126,11 @@ def get_artefacts_by_family(
 
     if load_stage:
         query = query.options(joinedload(Artefact.stage))
+
+    if load_test_executions:
+        query = query.options(
+            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions)
+        )
 
     if order_by_columns:
         query = query.order_by(*order_by_columns)
