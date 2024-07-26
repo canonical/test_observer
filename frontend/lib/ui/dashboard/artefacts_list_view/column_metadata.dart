@@ -62,6 +62,10 @@ Widget _buildAssigneeCell(BuildContext context, Artefact artefact) {
       ? const SizedBox.shrink()
       : Align(
           alignment: Alignment.centerLeft,
-          child: UserAvatar(user: assignee),
+          child: UserAvatar(
+            user: assignee,
+            allTestExecutionsCount: artefact.allTestExecutionsCount,
+            completedTestExecutionsCount: artefact.completedTestExecutionsCount,
+          ),
         );
 }
