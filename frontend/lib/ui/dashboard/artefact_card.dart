@@ -27,6 +27,7 @@ class ArtefactCard extends ConsumerWidget {
       },
       child: Card(
         margin: const EdgeInsets.all(0),
+        // color: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
           side: BorderSide(color: Theme.of(context).colorScheme.outline),
