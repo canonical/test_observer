@@ -8,8 +8,8 @@ import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
-import 'dashboard_header.dart';
-import 'view_modes/view_mode_manager.dart';
+import 'dashboard_body/dashboard_body.dart';
+import 'dashboard_header/dashboard_header.dart';
 
 class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
@@ -51,9 +51,7 @@ class Dashboard extends ConsumerWidget {
                     child: const PageFiltersView(searchHint: 'Search by name'),
                   ),
                   const SizedBox(width: Spacing.level5),
-                  Expanded(
-                    child: ViewModeManager(context).buildAppropriateView(),
-                  ),
+                  const Expanded(child: DashboardBody()),
                 ],
               ),
             ),

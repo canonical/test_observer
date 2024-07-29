@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../spacing.dart';
-import 'view_modes/view_mode_toggle.dart';
+import '../../spacing.dart';
+import 'view_mode_toggle.dart';
 
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({Key? key, required this.title}) : super(key: key);

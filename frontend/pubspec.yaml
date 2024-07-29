@@ -17,6 +17,7 @@ dependencies:
   json_annotation: ^4.8.1
   popover: ^0.2.8
   riverpod_annotation: ^2.1.1
+  shared_preferences: ^2.2.3
   url_launcher: ^6.1.10
   yaru: ^4.1.0
 dev_dependencies:
