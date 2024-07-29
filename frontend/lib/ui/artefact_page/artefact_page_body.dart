@@ -21,7 +21,6 @@ class ArtefactPageBody extends ConsumerWidget {
       data: (artefactBuilds) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: Spacing.level3),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
