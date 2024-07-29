@@ -10,16 +10,16 @@ import '../routing.dart';
 part 'filtered_test_executions.g.dart';
 
 @riverpod
-List<TestExecution> filteredTestExecutions(
+Future<List<TestExecution>> filteredTestExecutions(
   FilteredTestExecutionsRef ref,
   Uri pageUri,
-) {
+) async {
   final artefactId = AppRoutes.artefactIdFromUri(pageUri);
   final filters =
       emptyTestExecutionFilters.copyWithQueryParams(pageUri.queryParametersAll);
   final searchValue = pageUri.queryParameters['q'] ?? '';
 
-  final builds = ref.watch(artefactBuildsProvider(artefactId)).requireValue;
+  final builds = await ref.watch(artefactBuildsProvider(artefactId).future);
   final testExecutions = [
     for (final build in builds)
       for (final testExecution in build.testExecutions) testExecution,

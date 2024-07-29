@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
-import '../../providers/artefact_builds.dart';
+import '../../providers/filtered_test_executions.dart';
+import '../../routing.dart';
 import '../spacing.dart';
-import 'artefact_build_expandable.dart';
 import 'rerun_filtered_environments_button.dart';
+import 'test_execution_expandable.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -15,10 +16,12 @@ class ArtefactPageBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactBuilds = ref.watch(ArtefactBuildsProvider(artefact.id));
+    final pageUri = AppRoutes.uriFromContext(context);
+    final filteredTestExecutions =
+        ref.watch(filteredTestExecutionsProvider(pageUri));
 
-    return artefactBuilds.when(
-      data: (artefactBuilds) => Column(
+    return filteredTestExecutions.when(
+      data: (testExecutions) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -35,12 +38,12 @@ class ArtefactPageBody extends ConsumerWidget {
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: artefactBuilds.length,
+              itemCount: testExecutions.length,
               itemBuilder: (_, i) => Padding(
                 // Padding is to avoid scroll bar covering trailing buttons
                 padding: const EdgeInsets.only(right: Spacing.level3),
-                child: ArtefactBuildExpandable(
-                  artefactBuild: artefactBuilds[i],
+                child: TestExecutionExpandable(
+                  testExecution: testExecutions[i],
                 ),
               ),
             ),
