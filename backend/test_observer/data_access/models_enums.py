@@ -35,6 +35,7 @@ class TestExecutionStatus(str, Enum):
     PASSED = "PASSED"
     FAILED = "FAILED"
     NOT_TESTED = "NOT_TESTED"
+    ENDED_PREMATURELY = "ENDED_PREMATURELY"
 
 
 class TestExecutionReviewDecision(str, Enum):
