@@ -6,7 +6,6 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
 import '../../models/stage_name.dart';
-import '../../models/test_execution.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
@@ -19,54 +18,27 @@ class ArtefactPageInfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bugLink = artefact.bugLink;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _StagesRow(artefactStage: artefact.stage),
-            const SizedBox(height: Spacing.level3),
-            ...artefact.details.entries
-                .map<Widget>(
-                  (detail) => Text(
-                    '${detail.key}: ${detail.value}',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                )
-                .intersperse(const SizedBox(height: Spacing.level3)),
-            const SizedBox(height: Spacing.level3),
-            if (bugLink.isNotBlank)
-              InlineUrlText(
-                leadingText: 'bug link: ',
-                url: bugLink,
-                urlText: bugLink,
-                fontStyle: Theme.of(context).textTheme.bodyLarge,
+        _StagesRow(artefactStage: artefact.stage),
+        const SizedBox(height: Spacing.level3),
+        ...artefact.details.entries
+            .map<Widget>(
+              (detail) => Text(
+                '${detail.key}: ${detail.value}',
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
-          ],
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: TestExecutionStatus.values
-              .map<Widget>(
-                (status) => Row(
-                  children: [
-                    status.icon,
-                    const SizedBox(width: Spacing.level2),
-                    Text(
-                      status.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.apply(color: YaruColors.warmGrey),
-                    ),
-                  ],
-                ),
-              )
-              .intersperse(const SizedBox(height: Spacing.level2))
-              .toList(),
-        ),
+            )
+            .intersperse(const SizedBox(height: Spacing.level3)),
+        const SizedBox(height: Spacing.level3),
+        if (bugLink.isNotBlank)
+          InlineUrlText(
+            leadingText: 'bug link: ',
+            url: bugLink,
+            urlText: bugLink,
+            fontStyle: Theme.of(context).textTheme.bodyLarge,
+          ),
       ],
     );
   }

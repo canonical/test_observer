@@ -11,11 +11,11 @@ import 'page_search_bar.dart';
 import '../spacing.dart';
 
 class PageFiltersView extends ConsumerWidget {
-  const PageFiltersView({super.key, this.searchHint});
+  const PageFiltersView({super.key, this.searchHint, this.width = 300.0});
 
   final String? searchHint;
+  final double width;
 
-  static const width = 300.0;
   static const spacingBetweenFilters = Spacing.level4;
 
   @override
