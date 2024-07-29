@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:yaru_widgets/yaru_widgets.dart';
+import 'package:yaru/widgets.dart';
 
 import '../../models/test_execution.dart';
 import '../../models/test_result.dart';
@@ -22,32 +22,32 @@ class TestExecutionExpandable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final testEvents = ref.watch(testEventsProvider(testExecution.id));
-    
+
     Widget eventLogExpandable(bool initiallyExpanded) => testEvents.when(
-      loading: () => const Center(child: YaruCircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('Error: $error')),
-      data: (testEvents) => TestEventLogExpandable(
-        testExecutionId: testExecution.id,
-        initiallyExpanded: initiallyExpanded,          
-        testEvents: testEvents,
+          loading: () => const Center(child: YaruCircularProgressIndicator()),
+          error: (error, stackTrace) => Center(child: Text('Error: $error')),
+          data: (testEvents) => TestEventLogExpandable(
+            testExecutionId: testExecution.id,
+            initiallyExpanded: initiallyExpanded,
+            testEvents: testEvents,
+          ),
+        );
+
+    final executionTitle = _TestExecutionTileTitle(
+      testExecution: testExecution,
+      titleAdditions: testEvents.when(
+        loading: () => '',
+        error: (error, stackTrace) => '',
+        data: (testEvents) {
+          if (testEvents.isNotEmpty) {
+            return ' (${testEvents[testEvents.length - 1].eventName})';
+          } else {
+            return '';
+          }
+        },
       ),
     );
 
-    final executionTitle = _TestExecutionTileTitle(
-        testExecution: testExecution,
-        titleAdditions: testEvents.when(
-          loading: () => '',
-          error: (error, stackTrace) => '',
-          data: (testEvents) {
-            if (testEvents.isNotEmpty) {
-              return ' (${testEvents[testEvents.length - 1].eventName})';
-            } else {
-              return '';
-            }
-          },
-        ),
-    );
-    
     if (!testExecution.status.isCompleted) {
       return ExpansionTile(
         controlAffinity: ListTileControlAffinity.leading,
@@ -74,13 +74,13 @@ class TestExecutionExpandable extends ConsumerWidget {
           title: const Text('Test Results'),
           initiallyExpanded: true,
           children: TestResultStatus.values
-          .map(
-            (status) => TestResultsFilterExpandable(
-              statusToFilterBy: status,
-              testExecutionId: testExecution.id,
-            ),
-          )
-          .toList(),
+              .map(
+                (status) => TestResultsFilterExpandable(
+                  statusToFilterBy: status,
+                  testExecutionId: testExecution.id,
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -88,7 +88,10 @@ class TestExecutionExpandable extends ConsumerWidget {
 }
 
 class _TestExecutionTileTitle extends StatelessWidget {
-  const _TestExecutionTileTitle({required this.testExecution, required this.titleAdditions});
+  const _TestExecutionTileTitle({
+    required this.testExecution,
+    required this.titleAdditions,
+  });
 
   final TestExecution testExecution;
   final String titleAdditions;
@@ -99,7 +102,7 @@ class _TestExecutionTileTitle extends StatelessWidget {
     final c3Link = testExecution.c3Link;
 
     return Row(
-      children: [        
+      children: [
         testExecution.status.icon,
         const SizedBox(width: Spacing.level4),
         Text(
