@@ -77,4 +77,4 @@ def get_status_update(id: int, db: Session = Depends(get_db)):
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
-    return [test_event for test_event in test_execution.test_events]
+    return test_execution.test_events
