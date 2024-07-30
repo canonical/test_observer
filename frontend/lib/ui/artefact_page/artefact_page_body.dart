@@ -9,7 +9,7 @@ import '../../providers/filtered_test_executions.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import 'rerun_filtered_environments_button.dart';
-import 'test_execution_expandable.dart';
+import 'test_execution_expandable/test_execution_expandable.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});

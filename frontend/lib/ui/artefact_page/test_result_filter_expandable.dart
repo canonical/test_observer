@@ -44,6 +44,8 @@ class TestResultsFilterExpandable extends ConsumerWidget {
         return ExpansionTile(
           controlAffinity: ListTileControlAffinity.leading,
           childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+          initiallyExpanded: statusToFilterBy == TestResultStatus.failed &&
+              filteredTestResults.isNotEmpty,
           shape: const Border(),
           title: Text(
             '${statusToFilterBy.name} ${filteredTestResults.length}',
