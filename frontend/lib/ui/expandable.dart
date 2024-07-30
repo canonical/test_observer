@@ -17,6 +17,7 @@ class Expandable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ExpansionTile(
+      expansionAnimationStyle: AnimationStyle.noAnimation,
       controlAffinity: ListTileControlAffinity.leading,
       childrenPadding: const EdgeInsets.only(left: Spacing.level4),
       shape: const Border(),
