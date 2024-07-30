@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/test_execution.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/test_events.dart';
+import '../../../providers/test_results.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
 import '../test_execution_review.dart';
@@ -21,39 +22,42 @@ class TestExecutionExpandable extends ConsumerWidget {
     final testEvents =
         ref.watch(testEventsProvider(testExecution.id)).value ?? [];
 
-    return ExpansionTile(
-      controlAffinity: ListTileControlAffinity.leading,
-      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
-      shape: const Border(),
-      title: _TestExecutionTileTitle(
-        testExecution: testExecution,
-        titleAdditions: testEvents.isNotEmpty
-            ? ' (${testEvents[testEvents.length - 1].eventName})'
-            : '',
-      ),
-      children: <Widget>[
-        TestEventLogExpandable(
-          testExecutionId: testExecution.id,
-          initiallyExpanded: !testExecution.status.isCompleted,
-          testEvents: testEvents,
+    return _TestResultsLoader(
+      testExecutionId: testExecution.id,
+      child: ExpansionTile(
+        controlAffinity: ListTileControlAffinity.leading,
+        childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+        shape: const Border(),
+        title: _TestExecutionTileTitle(
+          testExecution: testExecution,
+          titleAdditions: testEvents.isNotEmpty
+              ? ' (${testEvents[testEvents.length - 1].eventName})'
+              : '',
         ),
-        if (testExecution.status.isCompleted)
-          ExpansionTile(
-            controlAffinity: ListTileControlAffinity.leading,
-            childrenPadding: const EdgeInsets.only(left: Spacing.level4),
-            shape: const Border(),
-            title: const Text('Test Results'),
-            initiallyExpanded: true,
-            children: TestResultStatus.values
-                .map(
-                  (status) => TestResultsFilterExpandable(
-                    statusToFilterBy: status,
-                    testExecutionId: testExecution.id,
-                  ),
-                )
-                .toList(),
+        children: <Widget>[
+          TestEventLogExpandable(
+            testExecutionId: testExecution.id,
+            initiallyExpanded: !testExecution.status.isCompleted,
+            testEvents: testEvents,
           ),
-      ],
+          if (testExecution.status.isCompleted)
+            ExpansionTile(
+              controlAffinity: ListTileControlAffinity.leading,
+              childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+              shape: const Border(),
+              title: const Text('Test Results'),
+              initiallyExpanded: true,
+              children: TestResultStatus.values
+                  .map(
+                    (status) => TestResultsFilterExpandable(
+                      statusToFilterBy: status,
+                      testExecutionId: testExecution.id,
+                    ),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -103,5 +107,19 @@ class _TestExecutionTileTitle extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+class _TestResultsLoader extends ConsumerWidget {
+  const _TestResultsLoader(
+      {required this.testExecutionId, required this.child});
+
+  final int testExecutionId;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(testResultsProvider(testExecutionId));
+    return child;
   }
 }
