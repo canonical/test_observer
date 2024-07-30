@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intersperse/intersperse.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/artefact.dart';
+import '../../models/test_execution.dart';
 import '../../providers/filtered_test_executions.dart';
 import '../../routing.dart';
 import '../spacing.dart';
@@ -32,6 +34,22 @@ class ArtefactPageBody extends ConsumerWidget {
                 'Environments',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
+              const SizedBox(width: Spacing.level4),
+              ...testExecutionStatusCounts(testExecutions)
+                  .entries
+                  .map<Widget>(
+                    (entry) => Row(
+                      children: [
+                        entry.key.icon,
+                        const SizedBox(width: Spacing.level2),
+                        Text(
+                          entry.value.toString(),
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ],
+                    ),
+                  )
+                  .intersperse(const SizedBox(width: Spacing.level4)),
               const Spacer(),
               const RerunFilteredEnvironmentsButton(),
             ],
@@ -55,5 +73,18 @@ class ArtefactPageBody extends ConsumerWidget {
         return Center(child: Text('Error: $error'));
       },
     );
+  }
+
+  Map<TestExecutionStatus, int> testExecutionStatusCounts(
+    List<TestExecution> testExecutions,
+  ) {
+    final counts = {for (final status in TestExecutionStatus.values) status: 0};
+
+    for (final testExecution in testExecutions) {
+      final status = testExecution.status;
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+
+    return counts;
   }
 }

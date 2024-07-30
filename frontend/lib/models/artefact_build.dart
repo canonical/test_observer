@@ -19,15 +19,4 @@ class ArtefactBuild with _$ArtefactBuild {
 
   factory ArtefactBuild.fromJson(Map<String, Object?> json) =>
       _$ArtefactBuildFromJson(json);
-
-  Map<TestExecutionStatus, int> get testExecutionStatusCounts {
-    final counts = {for (final status in TestExecutionStatus.values) status: 0};
-
-    for (final testExecution in testExecutions) {
-      final status = testExecution.status;
-      counts[status] = (counts[status] ?? 0) + 1;
-    }
-
-    return counts;
-  }
 }
