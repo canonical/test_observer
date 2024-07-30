@@ -6,7 +6,7 @@ import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/test_result.dart';
 import '../../providers/test_results.dart';
-import '../spacing.dart';
+import '../expandable.dart';
 import 'test_result_expandable.dart';
 
 class TestResultsFilterExpandable extends ConsumerWidget {
@@ -41,12 +41,9 @@ class TestResultsFilterExpandable extends ConsumerWidget {
             .filter((testResult) => testResult.status == statusToFilterBy)
             .toList();
 
-        return ExpansionTile(
-          controlAffinity: ListTileControlAffinity.leading,
-          childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+        return Expandable(
           initiallyExpanded: statusToFilterBy == TestResultStatus.failed &&
               filteredTestResults.isNotEmpty,
-          shape: const Border(),
           title: Text(
             '${statusToFilterBy.name} ${filteredTestResults.length}',
             style: headerStyle,

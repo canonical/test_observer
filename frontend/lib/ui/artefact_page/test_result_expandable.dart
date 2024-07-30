@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yaru_widgets/yaru_widgets.dart';
 
 import '../../models/test_result.dart';
-import '../spacing.dart';
+import '../expandable.dart';
 
 class TestResultExpandable extends StatelessWidget {
   const TestResultExpandable({super.key, required this.testResult});
@@ -11,10 +11,7 @@ class TestResultExpandable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExpansionTile(
-      controlAffinity: ListTileControlAffinity.leading,
-      childrenPadding: const EdgeInsets.only(left: Spacing.level5),
-      shape: const Border(),
+    return Expandable(
       title: Row(
         children: [
           Text(testResult.name),

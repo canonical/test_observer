@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/test_event.dart';
-import '../spacing.dart';
+import '../expandable.dart';
 
 class TestEventLogExpandable extends ConsumerWidget {
   const TestEventLogExpandable({
@@ -18,10 +18,7 @@ class TestEventLogExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ExpansionTile(
-      controlAffinity: ListTileControlAffinity.leading,
-      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
-      shape: const Border(),
+    return Expandable(
       title: const Text('Event Log'),
       initiallyExpanded: initiallyExpanded,
       children: <Widget>[

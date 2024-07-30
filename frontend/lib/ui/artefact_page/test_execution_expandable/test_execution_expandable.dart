@@ -5,6 +5,7 @@ import '../../../models/test_execution.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/test_events.dart';
 import '../../../providers/test_results.dart';
+import '../../expandable.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
 import '../test_execution_review.dart';
@@ -24,10 +25,7 @@ class TestExecutionExpandable extends ConsumerWidget {
 
     return _TestResultsLoader(
       testExecutionId: testExecution.id,
-      child: ExpansionTile(
-        controlAffinity: ListTileControlAffinity.leading,
-        childrenPadding: const EdgeInsets.only(left: Spacing.level4),
-        shape: const Border(),
+      child: Expandable(
         title: _TestExecutionTileTitle(
           testExecution: testExecution,
           titleAdditions: testEvents.isNotEmpty
@@ -41,10 +39,7 @@ class TestExecutionExpandable extends ConsumerWidget {
             testEvents: testEvents,
           ),
           if (testExecution.status.isCompleted)
-            ExpansionTile(
-              controlAffinity: ListTileControlAffinity.leading,
-              childrenPadding: const EdgeInsets.only(left: Spacing.level4),
-              shape: const Border(),
+            Expandable(
               title: const Text('Test Results'),
               initiallyExpanded: true,
               children: TestResultStatus.values
