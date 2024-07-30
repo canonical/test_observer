@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
-import 'package:yaru_widgets/yaru_widgets.dart';
-
+import 'package:yaru/widgets.dart';
 import '../../models/artefact.dart';
 import '../../models/test_execution.dart';
 import '../../providers/filtered_test_executions.dart';
