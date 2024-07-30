@@ -48,7 +48,7 @@ def main(artefact_id: int, test_case_regex: str):
     should_rerun = (
         input(
             f"Will rerun {len(test_execution_ids_to_rerun)}"
-            "test executions is that ok? (Y/n) "
+            " test executions is that ok? (Y/n) "
         )
         == "Y"
     )
