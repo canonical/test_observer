@@ -53,16 +53,16 @@ class _VanillaSearchBarState extends State<VanillaSearchBar> {
       child: SearchBar(
         controller: controller,
         hintText: widget.hintText,
-        hintStyle: MaterialStatePropertyAll(
+        hintStyle: WidgetStatePropertyAll(
           Theme.of(context)
               .textTheme
               .bodyLarge
               ?.apply(color: YaruColors.warmGrey),
         ),
         focusNode: widget.focusNode,
-        elevation: const MaterialStatePropertyAll(0),
-        shape: MaterialStatePropertyAll(LinearBorder.bottom()),
-        side: const MaterialStatePropertyAll(BorderSide()),
+        elevation: const WidgetStatePropertyAll(0),
+        shape: WidgetStatePropertyAll(LinearBorder.bottom()),
+        side: const WidgetStatePropertyAll(BorderSide()),
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
       ),

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/stage_name.dart';
-import '../../routing.dart';
-import '../spacing.dart';
-import 'stage_column.dart';
+import '../../../models/stage_name.dart';
+import '../../../routing.dart';
+import '../../spacing.dart';
+import '../stage_column.dart';
 
-class DashboardBody extends ConsumerWidget {
-  const DashboardBody({Key? key}) : super(key: key);
+class ArtefactsColumnsView extends ConsumerWidget {
+  const ArtefactsColumnsView({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -1,15 +1,15 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru_widgets/yaru_widgets.dart';
+import 'package:yaru/widgets.dart';
 
 import '../../providers/family_artefacts.dart';
 import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
-import 'dashboard_body.dart';
-import 'dashboard_header.dart';
+import 'dashboard_body/dashboard_body.dart';
+import 'dashboard_header/dashboard_header.dart';
 
 class Dashboard extends ConsumerWidget {
   const Dashboard({Key? key}) : super(key: key);
@@ -26,8 +26,13 @@ class Dashboard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DashboardHeader(
-            title: '${family.name.capitalize()} Update Verification',
+          Padding(
+            padding: const EdgeInsets.only(
+              right: Spacing.pageHorizontalPadding,
+            ),
+            child: DashboardHeader(
+              title: '${family.name.capitalize()} Update Verification',
+            ),
           ),
           Expanded(
             child: _ArtefactsLoader(

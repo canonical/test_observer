@@ -50,6 +50,9 @@ class Artefact with _$Artefact {
     }
     return null;
   }
+
+  int get remainingTestExecutionCount =>
+      allTestExecutionsCount - completedTestExecutionsCount;
 }
 
 const List<String> monthNames = [

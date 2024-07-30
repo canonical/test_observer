@@ -14,6 +14,7 @@ class ArtefactCard extends ConsumerWidget {
 
   final Artefact artefact;
   static const double width = 320;
+  static const double height = 182;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,6 +35,7 @@ class ArtefactCard extends ConsumerWidget {
         ),
         child: Container(
           width: width,
+          height: height,
           padding: const EdgeInsets.all(Spacing.level4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
