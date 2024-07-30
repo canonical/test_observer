@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-part 'view_mode.g.dart';
+import '../models/view_modes.dart';
 
-enum ViewModes { dashboard, list }
+part 'view_mode.g.dart';
 
 @riverpod
 class ViewMode extends _$ViewMode {

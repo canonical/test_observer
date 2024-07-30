@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/view_modes.dart';
 import '../../../providers/view_mode.dart';
 
 class ViewModeToggle extends ConsumerWidget {

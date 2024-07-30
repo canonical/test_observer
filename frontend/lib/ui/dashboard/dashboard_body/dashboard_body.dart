@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../../models/family_name.dart';
+import '../../../models/view_modes.dart';
 import '../../../providers/view_mode.dart';
 import '../../../routing.dart';
 import 'artefacts_columns_view.dart';
