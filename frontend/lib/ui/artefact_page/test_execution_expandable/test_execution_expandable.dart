@@ -106,8 +106,10 @@ class _TestExecutionTileTitle extends StatelessWidget {
 }
 
 class _TestResultsLoader extends ConsumerWidget {
-  const _TestResultsLoader(
-      {required this.testExecutionId, required this.child});
+  const _TestResultsLoader({
+    required this.testExecutionId,
+    required this.child,
+  });
 
   final int testExecutionId;
   final Widget child;
