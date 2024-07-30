@@ -24,6 +24,7 @@ jobs:
           channel: 'stable'
       - run: flutter pub get
       - run: flutter pub run build_runner build
+      - run: dart format --set-exit-if-changed lib
       - run: flutter analyze
       - name: Install Google Chrome
         run: |
