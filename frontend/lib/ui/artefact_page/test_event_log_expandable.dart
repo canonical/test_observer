@@ -6,10 +6,10 @@ import '../spacing.dart';
 
 class TestEventLogExpandable extends ConsumerWidget {
   const TestEventLogExpandable({
-      super.key,
-      required this.testExecutionId,
-      required this.initiallyExpanded,
-      required this.testEvents,
+    super.key,
+    required this.testExecutionId,
+    required this.initiallyExpanded,
+    required this.testEvents,
   });
 
   final int testExecutionId;
@@ -25,46 +25,53 @@ class TestEventLogExpandable extends ConsumerWidget {
       title: const Text('Event Log'),
       initiallyExpanded: initiallyExpanded,
       children: <Widget>[
-        SingleChildScrollView( 
-          scrollDirection: Axis.horizontal, 
-          child: DataTable(
-            columns: const <DataColumn>[
-              DataColumn(
-                label: Expanded(
-                  child: Text(
-                    'Event Name',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
+        DataTable(
+          columns: const <DataColumn>[
+            DataColumn(
+              label: Expanded(
+                child: Text(
+                  'Event Name',
+                  style: TextStyle(fontStyle: FontStyle.italic),
                 ),
               ),
-              DataColumn(
-                label: Expanded(
-                  child: Text(
-                    'Timestamp',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
+            ),
+            DataColumn(
+              label: Expanded(
+                child: Text(
+                  'Timestamp',
+                  style: TextStyle(fontStyle: FontStyle.italic),
                 ),
               ),
-              DataColumn(
-                label: Expanded(
-                  child: Text(
-                    'Detail',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
+            ),
+            DataColumn(
+              label: Expanded(
+                child: Text(
+                  'Detail',
+                  style: TextStyle(fontStyle: FontStyle.italic),
                 ),
               ),
-            ],
-            rows: testEvents.map(
-              (testEvent) => DataRow(
-                cells: <DataCell>[
-                  DataCell(Text(testEvent.eventName)),
-                  DataCell(Text(testEvent.timestamp)),
-                  DataCell(Text(testEvent.detail)),
-                ],
-              ),
-            )
-            .toList(),
-          ),
+            ),
+          ],
+          rows: testEvents
+              .map(
+                (testEvent) => DataRow(
+                  cells: <DataCell>[
+                    DataCell(Text(testEvent.eventName)),
+                    DataCell(Text(testEvent.timestamp)),
+                    DataCell(
+                      Tooltip(
+                        message: testEvent.detail,
+                        child: Text(
+                          testEvent.detail,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              .toList(),
         ),
       ],
     );
