@@ -6,10 +6,10 @@ import '../spacing.dart';
 
 class TestEventLogExpandable extends ConsumerWidget {
   const TestEventLogExpandable({
-      super.key,
-      required this.testExecutionId,
-      required this.initiallyExpanded,
-      required this.testEvents,
+    super.key,
+    required this.testExecutionId,
+    required this.initiallyExpanded,
+    required this.testEvents,
   });
 
   final int testExecutionId;
@@ -25,8 +25,8 @@ class TestEventLogExpandable extends ConsumerWidget {
       title: const Text('Event Log'),
       initiallyExpanded: initiallyExpanded,
       children: <Widget>[
-        SingleChildScrollView( 
-          scrollDirection: Axis.horizontal, 
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
           child: DataTable(
             columns: const <DataColumn>[
               DataColumn(
@@ -54,16 +54,17 @@ class TestEventLogExpandable extends ConsumerWidget {
                 ),
               ),
             ],
-            rows: testEvents.map(
-              (testEvent) => DataRow(
-                cells: <DataCell>[
-                  DataCell(Text(testEvent.eventName)),
-                  DataCell(Text(testEvent.timestamp)),
-                  DataCell(Text(testEvent.detail)),
-                ],
-              ),
-            )
-            .toList(),
+            rows: testEvents
+                .map(
+                  (testEvent) => DataRow(
+                    cells: <DataCell>[
+                      DataCell(Text(testEvent.eventName)),
+                      DataCell(Text(testEvent.timestamp)),
+                      DataCell(Text(testEvent.detail)),
+                    ],
+                  ),
+                )
+                .toList(),
           ),
         ),
       ],

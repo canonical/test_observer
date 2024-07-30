@@ -76,7 +76,6 @@ class ApiRepository {
     return testEvents;
   }
 
-
   Future<List<RerunRequest>> rerunTestExecutions(
     Set<int> testExecutionIds,
   ) async {
