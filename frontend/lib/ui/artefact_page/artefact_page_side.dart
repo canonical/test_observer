@@ -22,25 +22,35 @@ class ArtefactPageSide extends StatelessWidget {
           ArtefactPageInfoSection(artefact: artefact),
           const SizedBox(height: Spacing.level4),
           Expanded(
-            child: Consumer(
-              builder: (context, ref, child) {
-                final artefactBuilds =
-                    ref.watch(artefactBuildsProvider(artefact.id));
-
-                return artefactBuilds.when(
-                  loading: () => const YaruCircularProgressIndicator(),
-                  error: (e, stack) =>
-                      Center(child: Text('Error:\n$e\nStackTrace:\n$stack')),
-                  data: (artefactBuilds) => const PageFiltersView(
-                    searchHint: 'Search by environment name',
-                    width: double.infinity,
-                  ),
-                );
-              },
-            ),
+            child: _ArtefactPageSideFilters(artefact: artefact),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ArtefactPageSideFilters extends StatelessWidget {
+  const _ArtefactPageSideFilters({required this.artefact});
+
+  final Artefact artefact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final artefactBuilds = ref.watch(artefactBuildsProvider(artefact.id));
+
+        return artefactBuilds.when(
+          loading: () => const YaruCircularProgressIndicator(),
+          error: (e, stack) =>
+              Center(child: Text('Error:\n$e\nStackTrace:\n$stack')),
+          data: (artefactBuilds) => const PageFiltersView(
+            searchHint: 'Search by environment name',
+            width: double.infinity,
+          ),
+        );
+      },
     );
   }
 }
