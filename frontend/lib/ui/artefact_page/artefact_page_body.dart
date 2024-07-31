@@ -34,21 +34,7 @@ class ArtefactPageBody extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(width: Spacing.level4),
-              ...testExecutionStatusCounts(testExecutions)
-                  .entries
-                  .map<Widget>(
-                    (entry) => Row(
-                      children: [
-                        entry.key.icon,
-                        const SizedBox(width: Spacing.level2),
-                        Text(
-                          entry.value.toString(),
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ],
-                    ),
-                  )
-                  .intersperse(const SizedBox(width: Spacing.level4)),
+              _TestExecutionsStatusSummary(testExecutions: testExecutions),
               const Spacer(),
               const RerunFilteredEnvironmentsButton(),
             ],
@@ -73,8 +59,36 @@ class ArtefactPageBody extends ConsumerWidget {
       },
     );
   }
+}
 
-  Map<TestExecutionStatus, int> testExecutionStatusCounts(
+class _TestExecutionsStatusSummary extends StatelessWidget {
+  const _TestExecutionsStatusSummary({required this.testExecutions});
+
+  final List<TestExecution> testExecutions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: _testExecutionStatusCounts(testExecutions)
+          .entries
+          .map<Widget>(
+            (entry) => Row(
+              children: [
+                entry.key.icon,
+                const SizedBox(width: Spacing.level2),
+                Text(
+                  entry.value.toString(),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
+          )
+          .intersperse(const SizedBox(width: Spacing.level4))
+          .toList(),
+    );
+  }
+
+  Map<TestExecutionStatus, int> _testExecutionStatusCounts(
     List<TestExecution> testExecutions,
   ) {
     final counts = {for (final status in TestExecutionStatus.values) status: 0};
