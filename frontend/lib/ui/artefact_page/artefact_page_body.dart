@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intersperse/intersperse.dart';
 import 'package:yaru/widgets.dart';
-
 import '../../models/artefact.dart';
-import '../../providers/artefact_builds.dart';
-import '../page_filters/page_filters.dart';
+import '../../models/test_execution.dart';
+import '../../providers/filtered_test_executions.dart';
+import '../../routing.dart';
 import '../spacing.dart';
-import 'artefact_build_expandable.dart';
 import 'rerun_filtered_environments_button.dart';
+import 'test_execution_expandable/test_execution_expandable.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -16,44 +17,38 @@ class ArtefactPageBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactBuilds = ref.watch(ArtefactBuildsProvider(artefact.id));
+    final pageUri = AppRoutes.uriFromContext(context);
+    final filteredTestExecutions =
+        ref.watch(filteredTestExecutionsProvider(pageUri));
 
-    return artefactBuilds.when(
-      data: (artefactBuilds) => Row(
+    return filteredTestExecutions.when(
+      data: (testExecutions) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PageFiltersView(searchHint: 'Search by environment name'),
-          const SizedBox(width: Spacing.level5),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                'Environments',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(width: Spacing.level4),
+              _TestExecutionsStatusSummary(testExecutions: testExecutions),
+              const Spacer(),
+              const RerunFilteredEnvironmentsButton(),
+            ],
+          ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: Spacing.level3),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      'Environments',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const Spacer(),
-                    const RerunFilteredEnvironmentsButton(),
-                  ],
+            child: ListView.builder(
+              itemCount: testExecutions.length,
+              itemBuilder: (_, i) => Padding(
+                // Padding is to avoid scroll bar covering trailing buttons
+                padding: const EdgeInsets.only(right: Spacing.level3),
+                child: TestExecutionExpandable(
+                  testExecution: testExecutions[i],
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: artefactBuilds.length,
-                    itemBuilder: (_, i) => Padding(
-                      // Padding is to avoid scroll bar covering trailing buttons
-                      padding: const EdgeInsets.only(right: Spacing.level3),
-                      child: ArtefactBuildExpandable(
-                        artefactBuild: artefactBuilds[i],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -63,5 +58,46 @@ class ArtefactPageBody extends ConsumerWidget {
         return Center(child: Text('Error: $error'));
       },
     );
+  }
+}
+
+class _TestExecutionsStatusSummary extends StatelessWidget {
+  const _TestExecutionsStatusSummary({required this.testExecutions});
+
+  final List<TestExecution> testExecutions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: _testExecutionStatusCounts(testExecutions)
+          .entries
+          .map<Widget>(
+            (entry) => Row(
+              children: [
+                entry.key.icon,
+                const SizedBox(width: Spacing.level2),
+                Text(
+                  entry.value.toString(),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
+          )
+          .intersperse(const SizedBox(width: Spacing.level4))
+          .toList(),
+    );
+  }
+
+  Map<TestExecutionStatus, int> _testExecutionStatusCounts(
+    List<TestExecution> testExecutions,
+  ) {
+    final counts = {for (final status in TestExecutionStatus.values) status: 0};
+
+    for (final testExecution in testExecutions) {
+      final status = testExecution.status;
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+
+    return counts;
   }
 }

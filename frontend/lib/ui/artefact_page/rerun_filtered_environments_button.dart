@@ -17,8 +17,10 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
     final pageUri = GoRouterState.of(context).uri;
     final artefactId = AppRoutes.artefactIdFromUri(pageUri);
 
-    final filteredTestExecutions =
-        ref.watch(filteredTestExecutionsProvider(pageUri)).toList();
+    final filteredTestExecutions = ref
+        .watch(filteredTestExecutionsProvider(pageUri))
+        .requireValue
+        .toList();
 
     handlePress() => showDialog(
           context: context,

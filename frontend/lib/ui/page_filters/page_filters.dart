@@ -7,15 +7,16 @@ import '../../models/filter.dart';
 import '../../providers/page_filters.dart';
 import '../../providers/search_value.dart';
 import '../../routing.dart';
+import '../expandable.dart';
 import 'page_search_bar.dart';
 import '../spacing.dart';
 
 class PageFiltersView extends ConsumerWidget {
-  const PageFiltersView({super.key, this.searchHint});
+  const PageFiltersView({super.key, this.searchHint, this.width = 300.0});
 
   final String? searchHint;
+  final double width;
 
-  static const width = 300.0;
   static const spacingBetweenFilters = Spacing.level4;
 
   @override
@@ -87,12 +88,8 @@ class _SideFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExpansionTile(
+    return Expandable(
       initiallyExpanded: true,
-      controlAffinity: ListTileControlAffinity.leading,
-      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
-      shape: const Border(),
-      collapsedShape: const Border(),
       title: Text(
         filter.name,
         style: Theme.of(context).textTheme.headlineSmall,

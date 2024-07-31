@@ -83,21 +83,43 @@ enum TestExecutionStatus {
     }
   }
 
-  Icon get icon {
+  Widget get icon {
     const size = 20.0;
     switch (this) {
       case notStarted:
-        return const Icon(YaruIcons.media_play, size: size);
+        return const Tooltip(
+          message: 'Not Started',
+          child: Icon(YaruIcons.media_play, size: size),
+        );
       case inProgress:
-        return const Icon(YaruIcons.refresh, size: size);
+        return const Tooltip(
+          message: 'In Progress',
+          child: Icon(YaruIcons.refresh, size: size),
+        );
       case passed:
-        return Icon(YaruIcons.ok, color: YaruColors.light.success, size: size);
+        return Tooltip(
+          message: 'Passed',
+          child: Icon(
+            YaruIcons.ok,
+            color: YaruColors.light.success,
+            size: size,
+          ),
+        );
       case failed:
-        return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
+        return const Tooltip(
+          message: 'Failed',
+          child: Icon(YaruIcons.error, color: YaruColors.red, size: size),
+        );
       case notTested:
-        return const Icon(YaruIcons.information, size: size);
+        return const Tooltip(
+          message: 'Not Tested',
+          child: Icon(YaruIcons.information, size: size),
+        );
       case endedPrematurely:
-        return const Icon(YaruIcons.junk_filled, size: size);
+        return const Tooltip(
+          message: 'Ended Prematurely',
+          child: Icon(YaruIcons.junk_filled, size: size),
+        );
     }
   }
 }
