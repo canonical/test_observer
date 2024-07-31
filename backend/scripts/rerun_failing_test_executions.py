@@ -8,7 +8,7 @@ import requests
 TO_API_URL = "https://test-observer-api.canonical.com"
 
 
-def main(artefact_id: int, test_case_regex: str):
+def main(artefact_id: int, test_case_regex: str, reversed: bool):
     artefact_builds = requests.get(
         f"{TO_API_URL}/v1/artefacts/{artefact_id}/builds"
     ).json()
@@ -38,11 +38,17 @@ def main(artefact_id: int, test_case_regex: str):
 
         first_failing_test = next(matching_failed_tests, None)
 
-        if first_failing_test:
+        if first_failing_test and not reversed:
             test_execution_ids_to_rerun.append(te["id"])
             print(
                 f"will rerun {te['environment']['name']}"
                 f" for failing {first_failing_test['name']}"
+            )
+        elif not first_failing_test and reversed:
+            test_execution_ids_to_rerun.append(te["id"])
+            print(
+                f"will rerun {te['environment']['name']}"
+                f" as no failing matches found and reversed option is set"
             )
 
     should_rerun = (
@@ -75,6 +81,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("artefact_id", type=int)
     parser.add_argument("test_case_regex", type=str)
+    parser.add_argument("--reversed", action="store_true")
     args = parser.parse_args()
 
-    main(args.artefact_id, args.test_case_regex)
+    main(args.artefact_id, args.test_case_regex, args.reversed)
