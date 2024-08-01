@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/test_event.dart';
 import '../../../models/test_execution.dart';
 import '../../../models/test_result.dart';
-import '../../../providers/test_events.dart';
-import '../../../providers/test_results.dart';
+// import '../../../providers/test_events.dart';
+// import '../../../providers/test_results.dart';
 import '../../expandable.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
@@ -20,8 +21,10 @@ class TestExecutionExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final testEvents =
-        ref.watch(testEventsProvider(testExecution.id)).value ?? [];
+    final testEvents = <TestEvent>[];
+    // disabled until TO can handle the load
+    // final testEvents =
+    //     ref.watch(testEventsProvider(testExecution.id)).value ?? [];
 
     return _TestResultsLoader(
       testExecutionId: testExecution.id,
@@ -116,7 +119,8 @@ class _TestResultsLoader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(testResultsProvider(testExecutionId));
+    // disabled until TO api can handle the load
+    // ref.watch(testResultsProvider(testExecutionId));
     return child;
   }
 }
