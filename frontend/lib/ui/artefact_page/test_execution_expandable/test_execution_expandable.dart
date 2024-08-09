@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../models/test_event.dart';
 import '../../../models/test_execution.dart';
 import '../../../models/test_result.dart';
-// import '../../../providers/test_events.dart';
-// import '../../../providers/test_results.dart';
 import '../../expandable.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
@@ -21,41 +18,27 @@ class TestExecutionExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final testEvents = <TestEvent>[];
-    // disabled until TO can handle the load
-    // final testEvents =
-    //     ref.watch(testEventsProvider(testExecution.id)).value ?? [];
-
-    return _TestResultsLoader(
-      testExecutionId: testExecution.id,
-      child: Expandable(
-        title: _TestExecutionTileTitle(
-          testExecution: testExecution,
-          titleAdditions: testEvents.isNotEmpty
-              ? ' (${testEvents[testEvents.length - 1].eventName})'
-              : '',
+    return Expandable(
+      title: _TestExecutionTileTitle(testExecution: testExecution),
+      children: <Widget>[
+        TestEventLogExpandable(
+          testExecutionId: testExecution.id,
+          initiallyExpanded: !testExecution.status.isCompleted,
         ),
-        children: <Widget>[
-          TestEventLogExpandable(
-            testExecutionId: testExecution.id,
-            initiallyExpanded: !testExecution.status.isCompleted,
-            testEvents: testEvents,
+        if (testExecution.status.isCompleted)
+          Expandable(
+            title: const Text('Test Results'),
+            initiallyExpanded: true,
+            children: TestResultStatus.values
+                .map(
+                  (status) => TestResultsFilterExpandable(
+                    statusToFilterBy: status,
+                    testExecutionId: testExecution.id,
+                  ),
+                )
+                .toList(),
           ),
-          if (testExecution.status.isCompleted)
-            Expandable(
-              title: const Text('Test Results'),
-              initiallyExpanded: true,
-              children: TestResultStatus.values
-                  .map(
-                    (status) => TestResultsFilterExpandable(
-                      statusToFilterBy: status,
-                      testExecutionId: testExecution.id,
-                    ),
-                  )
-                  .toList(),
-            ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -63,11 +46,9 @@ class TestExecutionExpandable extends ConsumerWidget {
 class _TestExecutionTileTitle extends StatelessWidget {
   const _TestExecutionTileTitle({
     required this.testExecution,
-    required this.titleAdditions,
   });
 
   final TestExecution testExecution;
-  final String titleAdditions;
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +65,7 @@ class _TestExecutionTileTitle extends StatelessWidget {
         ),
         const SizedBox(width: Spacing.level4),
         Text(
-          testExecution.environment.name + titleAdditions,
+          testExecution.environment.name,
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const Spacer(),
@@ -105,22 +86,5 @@ class _TestExecutionTileTitle extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-class _TestResultsLoader extends ConsumerWidget {
-  const _TestResultsLoader({
-    required this.testExecutionId,
-    required this.child,
-  });
-
-  final int testExecutionId;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // disabled until TO api can handle the load
-    // ref.watch(testResultsProvider(testExecutionId));
-    return child;
   }
 }
