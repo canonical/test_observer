@@ -12,8 +12,9 @@ class _Headers extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uri = AppRoutes.uriFromContext(context);
-    final sortBy = uri.queryParameters['sortBy'];
-    final sortDirection = uri.queryParameters['direction'];
+    final sortBy = uri.queryParameters[CommonQueryParameters.sortBy];
+    final sortDirection =
+        uri.queryParameters[CommonQueryParameters.sortDirection];
 
     return SizedBox(
       height: 56,
@@ -34,7 +35,7 @@ class _Headers extends StatelessWidget {
                         ),
                       ),
                       if (sortBy == data.name)
-                        if (sortDirection == 'ASC')
+                        if (sortDirection == SortDirection.asc.name)
                           const Icon(Icons.arrow_upward)
                         else
                           const Icon(Icons.arrow_downward),
@@ -51,14 +52,15 @@ class _Headers extends StatelessWidget {
   void _handleFilterTap(BuildContext context, Uri pageUri, String columnName) {
     final queryParameters = pageUri.queryParameters;
     final sortBy = columnName;
-    final direction = queryParameters['sortBy'] == sortBy &&
-            queryParameters['direction'] == 'ASC'
-        ? 'DESC'
-        : 'ASC';
+    final direction = queryParameters[CommonQueryParameters.sortBy] == sortBy &&
+            queryParameters[CommonQueryParameters.sortDirection] ==
+                SortDirection.asc.name
+        ? SortDirection.desc.name
+        : SortDirection.asc.name;
     final newQueryParameters = {
       ...queryParameters,
-      'sortBy': sortBy,
-      'direction': direction,
+      CommonQueryParameters.sortBy: sortBy,
+      CommonQueryParameters.sortDirection: direction,
     };
     context.go(pageUri.replace(queryParameters: newQueryParameters).toString());
   }

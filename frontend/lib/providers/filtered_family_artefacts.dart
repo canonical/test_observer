@@ -30,8 +30,9 @@ LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
       )
       .toList();
 
-  final sortBy = pageUri.queryParameters['sortBy'];
-  final sortDirection = pageUri.queryParameters['direction'];
+  final sortBy = pageUri.queryParameters[CommonQueryParameters.sortBy];
+  final sortDirection =
+      pageUri.queryParameters[CommonQueryParameters.sortDirection];
 
   int Function(Artefact, Artefact)? compare;
   switch (sortBy) {
@@ -90,7 +91,9 @@ LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
   filteredArtefacts.sort(compare);
 
   return LinkedHashMap.fromIterable(
-    sortDirection == 'DESC' ? filteredArtefacts.reversed : filteredArtefacts,
+    sortDirection == SortDirection.desc.name
+        ? filteredArtefacts.reversed
+        : filteredArtefacts,
     key: (a) => a.id,
     value: (a) => a,
   );

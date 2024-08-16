@@ -51,8 +51,15 @@ final appRouter = GoRouter(
   ],
 );
 
+enum SortDirection {
+  asc,
+  desc,
+}
+
 class CommonQueryParameters {
   static const searchQuery = 'q';
+  static const sortBy = 'sortBy';
+  static const sortDirection = 'direction';
 }
 
 class AppRoutes {
