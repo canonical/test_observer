@@ -44,7 +44,7 @@ class ArtefactsListView extends ConsumerWidget {
 
     return Center(
       child: SizedBox(
-        width: 1200,
+        width: 1300,
         child: ListView.separated(
           itemCount: artefacts.length + 1,
           itemBuilder: (_, i) =>
