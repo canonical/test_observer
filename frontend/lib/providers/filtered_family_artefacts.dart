@@ -19,7 +19,8 @@ LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
   final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
   final filters =
       emptyArtefactFilters.copyWithQueryParams(pageUri.queryParametersAll);
-  final searchValue = pageUri.queryParameters['q'] ?? '';
+  final searchValue =
+      pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
 
   final filteredArtefacts = artefacts.values
       .filter(

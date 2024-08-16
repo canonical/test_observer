@@ -17,7 +17,8 @@ Future<List<TestExecution>> filteredTestExecutions(
   final artefactId = AppRoutes.artefactIdFromUri(pageUri);
   final filters =
       emptyTestExecutionFilters.copyWithQueryParams(pageUri.queryParametersAll);
-  final searchValue = pageUri.queryParameters['q'] ?? '';
+  final searchValue =
+      pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
 
   final builds = await ref.watch(artefactBuildsProvider(artefactId).future);
   final testExecutions = [

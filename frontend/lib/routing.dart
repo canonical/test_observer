@@ -51,6 +51,10 @@ final appRouter = GoRouter(
   ],
 );
 
+class CommonQueryParameters {
+  static const searchQuery = 'q';
+}
+
 class AppRoutes {
   static const snaps = '/snaps';
   static const debs = '/debs';

@@ -22,7 +22,8 @@ class PageFiltersView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
-    final searchQuery = pageUri.queryParameters['q'];
+    final searchQuery =
+        pageUri.queryParameters[CommonQueryParameters.searchQuery];
     final filters = ref.watch(pageFiltersProvider(pageUri));
 
     return SizedBox(
@@ -71,7 +72,8 @@ class PageFiltersView extends ConsumerWidget {
   ) {
     final searchValue = ref.read(searchValueProvider(searchQuery)).trim();
     final queryParams = {
-      if (searchValue.isNotEmpty) 'q': searchValue,
+      if (searchValue.isNotEmpty)
+        CommonQueryParameters.searchQuery: searchValue,
       ...ref.read(pageFiltersProvider(pageUri)).toQueryParams(),
     };
     context.go(
