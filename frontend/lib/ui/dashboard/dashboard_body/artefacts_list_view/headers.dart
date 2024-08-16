@@ -12,6 +12,8 @@ class _Headers extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uri = AppRoutes.uriFromContext(context);
+    final sortBy = uri.queryParameters['sortBy'];
+    final sortDirection = uri.queryParameters['direction'];
 
     return SizedBox(
       height: 56,
@@ -23,9 +25,20 @@ class _Headers extends StatelessWidget {
                 flex: data.flex,
                 child: InkWell(
                   onTap: () => _handleFilterTap(context, uri, data.name),
-                  child: Text(
-                    data.name,
-                    style: Theme.of(context).textTheme.titleLarge,
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          data.name,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      if (sortBy == data.name)
+                        if (sortDirection == 'ASC')
+                          const Icon(Icons.arrow_upward)
+                        else
+                          const Icon(Icons.arrow_downward),
+                    ],
                   ),
                 ),
               ),
