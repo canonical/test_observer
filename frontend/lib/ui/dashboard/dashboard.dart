@@ -51,7 +51,7 @@ class Dashboard extends ConsumerWidget {
                     child: const PageFiltersView(searchHint: 'Search by name'),
                   ),
                   const SizedBox(width: Spacing.level5),
-                  const DashboardBody()
+                  const Expanded(child: DashboardBody()),
                 ],
               ),
             ),

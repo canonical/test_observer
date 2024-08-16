@@ -42,7 +42,8 @@ class ArtefactsListView extends ConsumerWidget {
     final artefacts =
         ref.watch(filteredFamilyArtefactsProvider(pageUri)).values.toList();
 
-    return Center(
+    return Align(
+      alignment: Alignment.topLeft,
       child: SizedBox(
         width: 1300,
         child: ListView.separated(
