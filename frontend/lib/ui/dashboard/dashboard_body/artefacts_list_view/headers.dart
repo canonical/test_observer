@@ -25,7 +25,7 @@ class _Headers extends StatelessWidget {
               (data) => Expanded(
                 flex: data.flex,
                 child: InkWell(
-                  onTap: () => _handleFilterTap(context, uri, data.name),
+                  onTap: () => _handleFilterTap(context, uri, data),
                   child: Row(
                     children: [
                       Flexible(
@@ -34,7 +34,7 @@ class _Headers extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ),
-                      if (sortBy == data.name)
+                      if (sortBy == data.queryParam.name)
                         if (sortDirection == SortDirection.asc.name)
                           const Icon(Icons.arrow_upward)
                         else
@@ -49,9 +49,13 @@ class _Headers extends StatelessWidget {
     );
   }
 
-  void _handleFilterTap(BuildContext context, Uri pageUri, String columnName) {
+  void _handleFilterTap(
+    BuildContext context,
+    Uri pageUri,
+    ColumnMetadata columnData,
+  ) {
     final queryParameters = pageUri.queryParameters;
-    final sortBy = columnName;
+    final sortBy = columnData.queryParam.name;
     final direction = queryParameters[CommonQueryParameters.sortBy] == sortBy &&
             queryParameters[CommonQueryParameters.sortDirection] ==
                 SortDirection.asc.name

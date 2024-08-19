@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../models/artefact.dart';
 import '../../../../providers/filtered_family_artefacts.dart';
 import '../../../../routing.dart';
+import '../../../../utils/artefact_sorting.dart';
 
 part 'row.dart';
 part 'headers.dart';
