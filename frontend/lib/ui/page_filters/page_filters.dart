@@ -80,7 +80,7 @@ class PageFiltersView extends ConsumerWidget {
       ...ref.read(pageFiltersProvider(pageUri)).toQueryParams(),
       if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
       if (sortDirection != null)
-        CommonQueryParameters.sortDirection: sortDirection
+        CommonQueryParameters.sortDirection: sortDirection,
     };
     context.go(
       pageUri.replace(queryParameters: queryParams).toString(),
