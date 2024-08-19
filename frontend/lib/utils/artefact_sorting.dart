@@ -1,5 +1,3 @@
-import 'package:dartx/dartx.dart';
-
 import '../models/artefact.dart';
 import '../routing.dart';
 
