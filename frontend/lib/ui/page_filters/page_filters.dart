@@ -70,11 +70,17 @@ class PageFiltersView extends ConsumerWidget {
     Uri pageUri,
     BuildContext context,
   ) {
+    final sortBy = pageUri.queryParameters[CommonQueryParameters.sortBy];
+    final sortDirection =
+        pageUri.queryParameters[CommonQueryParameters.sortDirection];
     final searchValue = ref.read(searchValueProvider(searchQuery)).trim();
     final queryParams = {
       if (searchValue.isNotEmpty)
         CommonQueryParameters.searchQuery: searchValue,
       ...ref.read(pageFiltersProvider(pageUri)).toQueryParams(),
+      if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
+      if (sortDirection != null)
+        CommonQueryParameters.sortDirection: sortDirection
     };
     context.go(
       pageUri.replace(queryParameters: queryParams).toString(),
