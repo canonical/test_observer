@@ -2,31 +2,117 @@ part of 'artefacts_list_view.dart';
 
 typedef ColumnMetadata = ({
   String name,
+  ArtefactSortingQuery queryParam,
   int flex,
   Widget Function(BuildContext, Artefact) cellBuilder
 });
 
 const _snapColumnsMetadata = <ColumnMetadata>[
-  (name: 'Name', flex: 2, cellBuilder: _buildNameCell),
-  (name: 'Version', flex: 2, cellBuilder: _buildVersionCell),
-  (name: 'Track', flex: 1, cellBuilder: _buildTrackCell),
-  (name: 'Risk', flex: 1, cellBuilder: _buildStageCell),
-  (name: 'Due date', flex: 1, cellBuilder: _buildDueDateCell),
-  (name: 'Reviews remaining', flex: 1, cellBuilder: _buildReviewsRemainingCell),
-  (name: 'Status', flex: 1, cellBuilder: _buildStatusCell),
-  (name: 'Assignee', flex: 1, cellBuilder: _buildAssigneeCell),
+  (
+    name: 'Name',
+    queryParam: ArtefactSortingQuery.name,
+    flex: 2,
+    cellBuilder: _buildNameCell,
+  ),
+  (
+    name: 'Version',
+    queryParam: ArtefactSortingQuery.version,
+    flex: 2,
+    cellBuilder: _buildVersionCell,
+  ),
+  (
+    name: 'Track',
+    queryParam: ArtefactSortingQuery.track,
+    flex: 1,
+    cellBuilder: _buildTrackCell,
+  ),
+  (
+    name: 'Risk',
+    queryParam: ArtefactSortingQuery.risk,
+    flex: 1,
+    cellBuilder: _buildStageCell,
+  ),
+  (
+    name: 'Due date',
+    queryParam: ArtefactSortingQuery.dueDate,
+    flex: 1,
+    cellBuilder: _buildDueDateCell,
+  ),
+  (
+    name: 'Reviews remaining',
+    queryParam: ArtefactSortingQuery.reviewsRemaining,
+    flex: 1,
+    cellBuilder: _buildReviewsRemainingCell,
+  ),
+  (
+    name: 'Status',
+    queryParam: ArtefactSortingQuery.status,
+    flex: 1,
+    cellBuilder: _buildStatusCell,
+  ),
+  (
+    name: 'Assignee',
+    queryParam: ArtefactSortingQuery.assignee,
+    flex: 1,
+    cellBuilder: _buildAssigneeCell,
+  ),
 ];
 
 const _debColumnsMetadata = <ColumnMetadata>[
-  (name: 'Name', flex: 2, cellBuilder: _buildNameCell),
-  (name: 'Version', flex: 2, cellBuilder: _buildVersionCell),
-  (name: 'Series', flex: 1, cellBuilder: _buildSeriesCell),
-  (name: 'Repo', flex: 1, cellBuilder: _buildRepoCell),
-  (name: 'Pocket', flex: 1, cellBuilder: _buildStageCell),
-  (name: 'Due date', flex: 1, cellBuilder: _buildDueDateCell),
-  (name: 'Reviews remaining', flex: 1, cellBuilder: _buildReviewsRemainingCell),
-  (name: 'Status', flex: 1, cellBuilder: _buildStatusCell),
-  (name: 'Assignee', flex: 1, cellBuilder: _buildAssigneeCell),
+  (
+    name: 'Name',
+    queryParam: ArtefactSortingQuery.name,
+    flex: 2,
+    cellBuilder: _buildNameCell,
+  ),
+  (
+    name: 'Version',
+    queryParam: ArtefactSortingQuery.version,
+    flex: 2,
+    cellBuilder: _buildVersionCell,
+  ),
+  (
+    name: 'Series',
+    queryParam: ArtefactSortingQuery.series,
+    flex: 1,
+    cellBuilder: _buildSeriesCell,
+  ),
+  (
+    name: 'Repo',
+    queryParam: ArtefactSortingQuery.repo,
+    flex: 1,
+    cellBuilder: _buildRepoCell,
+  ),
+  (
+    name: 'Pocket',
+    queryParam: ArtefactSortingQuery.pocket,
+    flex: 1,
+    cellBuilder: _buildStageCell,
+  ),
+  (
+    name: 'Due date',
+    queryParam: ArtefactSortingQuery.dueDate,
+    flex: 1,
+    cellBuilder: _buildDueDateCell,
+  ),
+  (
+    name: 'Reviews remaining',
+    queryParam: ArtefactSortingQuery.reviewsRemaining,
+    flex: 1,
+    cellBuilder: _buildReviewsRemainingCell,
+  ),
+  (
+    name: 'Status',
+    queryParam: ArtefactSortingQuery.status,
+    flex: 1,
+    cellBuilder: _buildStatusCell,
+  ),
+  (
+    name: 'Assignee',
+    queryParam: ArtefactSortingQuery.assignee,
+    flex: 1,
+    cellBuilder: _buildAssigneeCell,
+  ),
 ];
 
 Widget _buildNameCell(BuildContext context, Artefact artefact) =>

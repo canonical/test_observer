@@ -96,7 +96,9 @@ void main() {
       filteredFamilyArtefactsProvider(
         Uri(
           path: AppRoutes.snaps,
-          queryParameters: {'q': firstArtefact.name},
+          queryParameters: {
+            CommonQueryParameters.searchQuery: firstArtefact.name,
+          },
         ),
       ),
     );

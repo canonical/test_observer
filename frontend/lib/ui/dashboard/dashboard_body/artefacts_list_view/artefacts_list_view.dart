@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../models/artefact.dart';
 import '../../../../providers/filtered_family_artefacts.dart';
 import '../../../../routing.dart';
+import '../../../../utils/artefact_sorting.dart';
 
 part 'row.dart';
 part 'headers.dart';
@@ -42,9 +43,10 @@ class ArtefactsListView extends ConsumerWidget {
     final artefacts =
         ref.watch(filteredFamilyArtefactsProvider(pageUri)).values.toList();
 
-    return Center(
+    return Align(
+      alignment: Alignment.topLeft,
       child: SizedBox(
-        width: 1200,
+        width: 1300,
         child: ListView.separated(
           itemCount: artefacts.length + 1,
           itemBuilder: (_, i) =>

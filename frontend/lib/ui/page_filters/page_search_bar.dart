@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/search_value.dart';
+import '../../routing.dart';
 import '../vanilla/vanilla_search_bar.dart';
 
 final pageSearchBarKey = GlobalKey<_PageSearchBarState>();
@@ -35,7 +36,9 @@ class _PageSearchBarState extends ConsumerState<PageSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    final searchQuery = GoRouterState.of(context).uri.queryParameters['q'];
+    final searchQuery = GoRouterState.of(context)
+        .uri
+        .queryParameters[CommonQueryParameters.searchQuery];
 
     return _SearchNotifierListener(
       searchQuery: searchQuery,
