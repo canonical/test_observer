@@ -55,17 +55,23 @@ class _Headers extends StatelessWidget {
     ColumnMetadata columnData,
   ) {
     final queryParameters = pageUri.queryParameters;
-    final sortBy = columnData.queryParam.name;
-    final direction = queryParameters[CommonQueryParameters.sortBy] == sortBy &&
-            queryParameters[CommonQueryParameters.sortDirection] ==
-                SortDirection.asc.name
+    final existingSortBy = queryParameters[CommonQueryParameters.sortBy];
+    final existingDirection =
+        queryParameters[CommonQueryParameters.sortDirection];
+
+    final newSortBy = columnData.queryParam.name;
+    final isSameSortBy = existingSortBy == newSortBy;
+    final wasAscending = existingDirection == SortDirection.asc.name;
+    final newDirection = isSameSortBy && wasAscending
         ? SortDirection.desc.name
         : SortDirection.asc.name;
+
     final newQueryParameters = {
       ...queryParameters,
-      CommonQueryParameters.sortBy: sortBy,
-      CommonQueryParameters.sortDirection: direction,
+      CommonQueryParameters.sortBy: newSortBy,
+      CommonQueryParameters.sortDirection: newDirection,
     };
+
     context.go(pageUri.replace(queryParameters: newQueryParameters).toString());
   }
 }

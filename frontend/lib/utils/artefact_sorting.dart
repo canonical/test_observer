@@ -29,22 +29,29 @@ void sortArtefacts(
     // use default
   }
 
-  int Function(Artefact, Artefact) compare;
+  final compare = _getArtefactCompareFunction(sortByParsed);
+
+  if (sortDirection == SortDirection.desc.name) {
+    artefacts.sort((a1, a2) => compare(a2, a1));
+  } else {
+    artefacts.sort(compare);
+  }
+}
+
+int Function(Artefact, Artefact) _getArtefactCompareFunction(
+  ArtefactSortingQuery sortByParsed,
+) {
   switch (sortByParsed) {
     case ArtefactSortingQuery.name:
-      compare = (a1, a2) => a1.name.compareTo(a2.name);
-      break;
+      return (a1, a2) => a1.name.compareTo(a2.name);
     case ArtefactSortingQuery.version:
-      compare = (a1, a2) => a1.version.compareTo(a2.version);
-      break;
+      return (a1, a2) => a1.version.compareTo(a2.version);
     case ArtefactSortingQuery.track:
-      compare = (a1, a2) => a1.track.compareTo(a2.track);
-      break;
+      return (a1, a2) => a1.track.compareTo(a2.track);
     case ArtefactSortingQuery.risk:
-      compare = (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
-      break;
+      return (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
     case ArtefactSortingQuery.dueDate:
-      compare = (a1, a2) {
+      return (a1, a2) {
         final a1DueDate = a1.dueDate;
         final a2DueDate = a2.dueDate;
         // no due date is always larger
@@ -52,16 +59,13 @@ void sortArtefacts(
         if (a2DueDate == null) return -1;
         return a1DueDate.compareTo(a2DueDate);
       };
-      break;
     case ArtefactSortingQuery.reviewsRemaining:
-      compare = (a1, a2) => a1.remainingTestExecutionCount
+      return (a1, a2) => a1.remainingTestExecutionCount
           .compareTo(a2.remainingTestExecutionCount);
-      break;
     case ArtefactSortingQuery.status:
-      compare = (a1, a2) => a1.status.name.compareTo(a2.status.name);
-      break;
+      return (a1, a2) => a1.status.name.compareTo(a2.status.name);
     case ArtefactSortingQuery.assignee:
-      compare = (a1, a2) {
+      return (a1, a2) {
         final a1Assignee = a1.assignee?.name;
         final a2Assignee = a2.assignee?.name;
         // no assignee is always larger
@@ -69,21 +73,11 @@ void sortArtefacts(
         if (a2Assignee == null) return -1;
         return a1Assignee.compareTo(a2Assignee);
       };
-      break;
     case ArtefactSortingQuery.series:
-      compare = (a1, a2) => a1.series.compareTo(a2.series);
-      break;
+      return (a1, a2) => a1.series.compareTo(a2.series);
     case ArtefactSortingQuery.repo:
-      compare = (a1, a2) => a1.repo.compareTo(a2.repo);
-      break;
+      return (a1, a2) => a1.repo.compareTo(a2.repo);
     case ArtefactSortingQuery.pocket:
-      compare = (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
-      break;
-  }
-
-  if (sortDirection == SortDirection.desc.name) {
-    artefacts.sort((a1, a2) => compare(a2, a1));
-  } else {
-    artefacts.sort(compare);
+      return (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
   }
 }
