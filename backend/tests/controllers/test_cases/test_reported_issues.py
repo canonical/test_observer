@@ -29,8 +29,26 @@ def get(test_client: TestClient):
     return get_helper
 
 
+@pytest.fixture
+def put(test_client: TestClient):
+    def put_helper(id: int, data: Any) -> Response:  # noqa: ANN401
+        return test_client.put(f"{endpoint}/{id}", json=data)
+
+    return put_helper
+
+
+@pytest.fixture
+def delete(test_client: TestClient):
+    def delete_helper(id: int) -> Response:
+        return test_client.delete(f"{endpoint}/{id}")
+
+    return delete_helper
+
+
 Post: TypeAlias = Callable[[Any], Response]
+Put: TypeAlias = Callable[[int, Any], Response]
 Get: TypeAlias = Callable[..., Response]
+Delete: TypeAlias = Callable[[int], Response]
 
 
 def test_empty_get(get: Get):
@@ -86,6 +104,29 @@ def test_get_specific_template_id(post: Post, get: Get):
     json = response.json()
     assert len(json) == 1
     _assert_reported_issue(json[0], issue2)
+
+
+def test_update_description(post: Post, get: Get, put: Put):
+    response = post(valid_post_data)
+    issue = response.json()
+    issue["description"] = "Updated"
+    response = put(issue["id"], {**issue, "description": "Updated"})
+
+    assert response.status_code == 200
+    _assert_reported_issue(response.json(), issue)
+
+    response = get()
+    _assert_reported_issue(response.json()[0], issue)
+
+
+def test_delete_issue(post: Post, get: Get, delete: Delete):
+    response = post(valid_post_data)
+
+    response = delete(response.json()["id"])
+    assert response.status_code == 200
+
+    response = get()
+    assert response.json() == []
 
 
 def _assert_fails_validation(response: Response, field: str, type: str) -> None:

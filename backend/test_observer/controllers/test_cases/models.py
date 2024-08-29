@@ -3,13 +3,13 @@ from datetime import datetime
 from pydantic import BaseModel, HttpUrl
 
 
-class CreateReportedIssue(BaseModel):
+class ReportedIssueRequest(BaseModel):
     template_id: str
     description: str
     url: HttpUrl
 
 
-class ReportedIssue(BaseModel):
+class ReportedIssueResponse(BaseModel):
     id: int
     template_id: str
     description: str

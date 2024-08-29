@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import TestCaseIssue
 from test_observer.data_access.setup import get_db
 
-from .models import CreateReportedIssue, ReportedIssue
+from .models import ReportedIssueRequest, ReportedIssueResponse
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ router = APIRouter()
 endpoint = "/reported-issues"
 
 
-@router.get(endpoint, response_model=list[ReportedIssue])
+@router.get(endpoint, response_model=list[ReportedIssueResponse])
 def get_reported_issues(template_id: str | None = None, db: Session = Depends(get_db)):
     stmt = select(TestCaseIssue)
     if template_id:
@@ -21,8 +21,8 @@ def get_reported_issues(template_id: str | None = None, db: Session = Depends(ge
     return db.execute(stmt).scalars()
 
 
-@router.post(endpoint, response_model=ReportedIssue)
-def create_reported_issue(request: CreateReportedIssue, db: Session = Depends(get_db)):
+@router.post(endpoint, response_model=ReportedIssueResponse)
+def create_reported_issue(request: ReportedIssueRequest, db: Session = Depends(get_db)):
     issue = TestCaseIssue(
         template_id=request.template_id,
         url=request.url,
@@ -32,3 +32,20 @@ def create_reported_issue(request: CreateReportedIssue, db: Session = Depends(ge
     db.commit()
 
     return issue
+
+
+@router.put(endpoint + "/{issue_id}", response_model=ReportedIssueResponse)
+def update_reported_issue(
+    issue_id: int, request: ReportedIssueRequest, db: Session = Depends(get_db)
+):
+    issue = db.get(TestCaseIssue, issue_id)
+    for field in request.model_fields:
+        setattr(issue, field, getattr(request, field))
+    db.commit()
+    return issue
+
+
+@router.delete(endpoint + "/{issue_id}")
+def delete_reported_issue(issue_id: int, db: Session = Depends(get_db)):
+    db.delete(db.get(TestCaseIssue, issue_id))
+    db.commit()
