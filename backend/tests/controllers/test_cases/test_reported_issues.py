@@ -8,6 +8,7 @@ from httpx import Response
 endpoint = "/v1/test-cases/reported-issues"
 valid_post_data = {
     "template_id": "template 1",
+    "case_name": "case",
     "url": "http://issue.link/",
     "description": "some description",
 }
@@ -57,11 +58,20 @@ def test_empty_get(get: Get):
     assert response.json() == []
 
 
-@pytest.mark.parametrize("field", ["template_id", "url", "description"])
+@pytest.mark.parametrize("field", ["url", "description"])
 def test_post_requires_field(post: Post, field: str):
     data = {k: v for k, v in valid_post_data.items() if k != field}
     response = post(data)
     _assert_fails_validation(response, field, "missing")
+
+
+def test_post_requires_template_id_or_case_name(post: Post):
+    data = {**valid_post_data}
+    data.pop("template_id")
+    data.pop("case_name")
+    response = post(data)
+
+    assert response.status_code == 422
 
 
 def test_post_validates_url(post: Post):
@@ -69,10 +79,18 @@ def test_post_validates_url(post: Post):
     _assert_fails_validation(response, "url", "url_parsing")
 
 
-def test_valid_post(post: Post):
-    response = post(valid_post_data)
+def test_valid_template_id_post(post: Post):
+    data = {k: v for k, v in valid_post_data.items() if k != "case_name"}
+    response = post(data)
     assert response.status_code == 200
-    _assert_reported_issue(response.json(), valid_post_data)
+    _assert_reported_issue(response.json(), data)
+
+
+def test_valid_case_name_post(post: Post):
+    data = {k: v for k, v in valid_post_data.items() if k != "template_id"}
+    response = post(data)
+    assert response.status_code == 200
+    _assert_reported_issue(response.json(), data)
 
 
 def test_post_three_then_get(post: Post, get: Get):
@@ -137,7 +155,12 @@ def _assert_fails_validation(response: Response, field: str, type: str) -> None:
 
 
 def _assert_reported_issue(value: dict, expected: dict) -> None:
-    assert value["template_id"] == expected["template_id"]
+    if "template_id" in expected:
+        assert value["template_id"] == expected["template_id"]
+
+    if "case_name" in expected:
+        assert value["case_name"] == expected["case_name"]
+
     assert value["url"] == expected["url"]
     assert value["description"] == expected["description"]
     assert isinstance(value["id"], int)

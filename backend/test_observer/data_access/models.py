@@ -466,6 +466,7 @@ class TestCaseIssue(Base):
     __tablename__ = "test_case_issue"
 
     template_id: Mapped[str] = mapped_column(index=True)
+    case_name: Mapped[str] = mapped_column(index=True)
     url: Mapped[str]
     description: Mapped[str]
 

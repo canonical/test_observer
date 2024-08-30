@@ -27,6 +27,7 @@ def create_reported_issue(request: ReportedIssueRequest, db: Session = Depends(g
         template_id=request.template_id,
         url=request.url,
         description=request.description,
+        case_name=request.case_name,
     )
     db.add(issue)
     db.commit()
