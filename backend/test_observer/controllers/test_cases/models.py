@@ -12,7 +12,7 @@ class ReportedIssueRequest(BaseModel):
     @model_validator(mode="after")
     def check_a_or_b(self):
         if not self.case_name and not self.template_id:
-            raise ValueError("either case_name or template_id is required")
+            raise ValueError("Either case_name or template_id is required")
         return self
 
 
