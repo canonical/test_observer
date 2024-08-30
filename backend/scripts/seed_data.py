@@ -228,7 +228,7 @@ END_TEST_EXECUTION_REQUESTS = [
             ),
             C3TestResult(
                 name="bluetooth4/beacon_eddystone_url_hci0",
-                template_id="luetooth4/beacon_eddystone_url_interface",
+                template_id="bluetooth4/beacon_eddystone_url_interface",
                 status=C3TestResultStatus.FAIL,
                 category="Bluetooth tests",
                 comment="",
