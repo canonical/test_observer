@@ -7,9 +7,11 @@ from textwrap import dedent
 
 import requests
 from fastapi.testclient import TestClient
+from pydantic import HttpUrl
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.controllers.test_cases.models import ReportedIssueRequest
 from test_observer.controllers.test_executions.models import (
     C3TestResult,
     C3TestResultStatus,
@@ -25,6 +27,7 @@ BASE_URL = "http://localhost:30000/v1"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 END_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/end-test"
 RERUN_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/reruns"
+TEST_CASE_ISSUE_URL = f"{BASE_URL}/test-cases/reported-issues"
 
 START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
@@ -225,6 +228,7 @@ END_TEST_EXECUTION_REQUESTS = [
             ),
             C3TestResult(
                 name="bluetooth4/beacon_eddystone_url_hci0",
+                template_id="bluetooth4/beacon_eddystone_url_interface",
                 status=C3TestResultStatus.FAIL,
                 category="Bluetooth tests",
                 comment="",
@@ -283,6 +287,24 @@ END_TEST_EXECUTION_REQUESTS = [
     ),
 ]
 
+TEST_CASE_ISSUE_REQUESTS = [
+    ReportedIssueRequest(
+        template_id=END_TEST_EXECUTION_REQUESTS[0].test_results[2].template_id,  # type: ignore
+        url=HttpUrl("http://bug1.link"),
+        description="known issue 1",
+    ),
+    ReportedIssueRequest(
+        case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[0].name,
+        url=HttpUrl("http://bug2.link"),
+        description="known issue 2",
+    ),
+    ReportedIssueRequest(
+        case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[1].name,
+        url=HttpUrl("http://bug3.link"),
+        description="known issue 3",
+    ),
+]
+
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
@@ -305,6 +327,11 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     for end_request in END_TEST_EXECUTION_REQUESTS:
         client.put(
             END_TEST_EXECUTION_URL, json=end_request.model_dump(mode="json")
+        ).raise_for_status()
+
+    for case_issue_request in TEST_CASE_ISSUE_REQUESTS:
+        client.post(
+            TEST_CASE_ISSUE_URL, json=case_issue_request.model_dump(mode="json")
         ).raise_for_status()
 
     _rerun_some_test_executions(client, test_executions)

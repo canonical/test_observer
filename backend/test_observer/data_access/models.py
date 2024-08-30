@@ -447,3 +447,33 @@ class TestEvent(Base):
         ForeignKey("test_execution.id", ondelete="CASCADE")
     )
     test_execution: Mapped["TestExecution"] = relationship(back_populates="test_events")
+
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self,
+            "event_name",
+            "timestamp",
+            "detail",
+            "test_execution_id",
+        )
+
+
+class TestCaseIssue(Base):
+    """
+    A table to store issues reported on certain tests
+    """
+
+    __tablename__ = "test_case_issue"
+
+    template_id: Mapped[str] = mapped_column(index=True)
+    case_name: Mapped[str] = mapped_column(index=True)
+    url: Mapped[str]
+    description: Mapped[str]
+
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self,
+            "template_id",
+            "url",
+            "description",
+        )
