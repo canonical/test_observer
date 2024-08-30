@@ -18,10 +18,10 @@
 #        Omar Selo <omar.selo@canonical.com>
 
 
+from datetime import datetime
 from enum import Enum
 from typing import Annotated
 
-from datetime import datetime
 from pydantic import (
     AliasPath,
     BaseModel,
@@ -143,6 +143,7 @@ class TestResultDTO(BaseModel):
     id: int
     name: str = Field(validation_alias=AliasPath("test_case", "name"))
     category: str = Field(validation_alias=AliasPath("test_case", "category"))
+    template_id: str = Field(validation_alias=AliasPath("test_case", "template_id"))
     status: TestResultStatus
     comment: str
     io_log: str

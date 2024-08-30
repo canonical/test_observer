@@ -22,7 +22,7 @@ from tests.data_generator import DataGenerator
 
 def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     environment = generator.gen_environment()
-    test_case = generator.gen_test_case()
+    test_case = generator.gen_test_case(template_id="template")
 
     artefact_first = generator.gen_artefact("beta", version="1.1.1")
     artefact_build_first = generator.gen_artefact_build(artefact_first)
@@ -56,6 +56,7 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     json = response.json()
     assert json[0]["name"] == test_case.name
     assert json[0]["category"] == test_case.category
+    assert json[0]["template_id"] == test_case.template_id
     assert json[0]["status"] == test_result_second.status.name
     assert json[0]["comment"] == test_result_second.comment
     assert json[0]["io_log"] == test_result_second.io_log
