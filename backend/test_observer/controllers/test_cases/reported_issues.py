@@ -14,10 +14,16 @@ endpoint = "/reported-issues"
 
 
 @router.get(endpoint, response_model=list[ReportedIssueResponse])
-def get_reported_issues(template_id: str | None = None, db: Session = Depends(get_db)):
+def get_reported_issues(
+    template_id: str | None = None,
+    case_name: str | None = None,
+    db: Session = Depends(get_db),
+):
     stmt = select(TestCaseIssue)
     if template_id:
         stmt = stmt.where(TestCaseIssue.template_id == template_id)
+    if case_name:
+        stmt = stmt.where(TestCaseIssue.case_name == case_name)
     return db.execute(stmt).scalars()
 
 

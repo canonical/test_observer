@@ -124,6 +124,20 @@ def test_get_specific_template_id(post: Post, get: Get):
     _assert_reported_issue(json[0], issue2)
 
 
+def test_get_specific_case_name(post: Post, get: Get):
+    issue1 = {**valid_post_data, "case_name": "Case 1"}
+    issue2 = {**valid_post_data, "case_name": "Case 2"}
+
+    post(issue1)
+    post(issue2)
+
+    response = get({"case_name": "Case 2"})
+    assert response.status_code == 200
+    json = response.json()
+    assert len(json) == 1
+    _assert_reported_issue(json[0], issue2)
+
+
 def test_update_description(post: Post, get: Get, put: Put):
     response = post(valid_post_data)
     issue = response.json()
