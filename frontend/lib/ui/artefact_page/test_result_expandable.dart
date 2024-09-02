@@ -22,6 +22,23 @@ class TestResultExpandable extends StatelessWidget {
         ],
       ),
       children: [
+        _TestResultOutputExpandable(testResult: testResult),
+      ],
+    );
+  }
+}
+
+class _TestResultOutputExpandable extends StatelessWidget {
+  const _TestResultOutputExpandable({required this.testResult});
+
+  final TestResult testResult;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expandable(
+      title: const Text('Details'),
+      initiallyExpanded: true,
+      children: [
         if (testResult.category != '')
           YaruTile(
             title: const Text('Category'),
