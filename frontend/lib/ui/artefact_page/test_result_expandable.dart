@@ -3,7 +3,7 @@ import 'package:yaru/widgets.dart';
 
 import '../../models/test_result.dart';
 import '../expandable.dart';
-import 'test_case_issues/test_case_issues_expandable.dart';
+import 'test_issues/test_issues_expandable.dart';
 
 class TestResultExpandable extends StatelessWidget {
   const TestResultExpandable({super.key, required this.testResult});
@@ -23,7 +23,7 @@ class TestResultExpandable extends StatelessWidget {
         ],
       ),
       children: [
-        const TestCaseIssuesExpandable(),
+        TestIssuesExpandable(testResult: testResult),
         _TestResultOutputExpandable(testResult: testResult),
       ],
     );

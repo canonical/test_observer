@@ -6,6 +6,7 @@ import '../models/artefact_build.dart';
 import '../models/family_name.dart';
 import '../models/rerun_request.dart';
 import '../models/test_execution.dart';
+import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_event.dart';
 
@@ -87,5 +88,11 @@ class ApiRepository {
     final reruns =
         rerunsJson.map((json) => RerunRequest.fromJson(json)).toList();
     return reruns;
+  }
+
+  Future<List<TestIssue>> getTestIssues() async {
+    final response = await dio.get('/v1/test-cases/reported-issues');
+    final List issuesJson = response.data;
+    return issuesJson.map((json) => TestIssue.fromJson(json)).toList();
   }
 }
