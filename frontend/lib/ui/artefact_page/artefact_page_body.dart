@@ -9,6 +9,7 @@ import '../../routing.dart';
 import '../spacing.dart';
 import 'rerun_filtered_environments_button.dart';
 import 'test_execution_expandable/test_execution_expandable.dart';
+import 'test_issues/test_issues_preloader.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -42,14 +43,16 @@ class ArtefactPageBody extends ConsumerWidget {
             const RerunFilteredEnvironmentsButton(),
           ],
         ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: testExecutions.length,
-            itemBuilder: (_, i) => Padding(
-              // Padding is to avoid scroll bar covering trailing buttons
-              padding: const EdgeInsets.only(right: Spacing.level3),
-              child: TestExecutionExpandable(
-                testExecution: testExecutions[i],
+        TestIssuesPreloader(
+          child: Expanded(
+            child: ListView.builder(
+              itemCount: testExecutions.length,
+              itemBuilder: (_, i) => Padding(
+                // Padding is to avoid scroll bar covering trailing buttons
+                padding: const EdgeInsets.only(right: Spacing.level3),
+                child: TestExecutionExpandable(
+                  testExecution: testExecutions[i],
+                ),
               ),
             ),
           ),
