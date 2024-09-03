@@ -95,4 +95,12 @@ class ApiRepository {
     final List issuesJson = response.data;
     return issuesJson.map((json) => TestIssue.fromJson(json)).toList();
   }
+
+  Future<TestIssue> updateTestIssue(TestIssue issue) async {
+    final response = await dio.put(
+      '/v1/test-cases/reported-issues/${issue.id}',
+      data: issue.toJson(),
+    );
+    return TestIssue.fromJson(response.data);
+  }
 }

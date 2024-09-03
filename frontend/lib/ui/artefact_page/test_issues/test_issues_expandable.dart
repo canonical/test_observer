@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/tests_issues.dart';
 import '../../expandable.dart';
+import 'test_issue_list_item.dart';
 
 class TestIssuesExpandable extends ConsumerWidget {
   const TestIssuesExpandable({super.key, required this.testResult});
@@ -25,11 +26,13 @@ class TestIssuesExpandable extends ConsumerWidget {
                 ),
               ),
             )
-            .value ??
+            .value
+            ?.toList() ??
         [];
     return Expandable(
-      title: const Text('Reported Issues'),
-      children: issues.map((issue) => Text(issue.description)).toList(),
+      initiallyExpanded: issues.isNotEmpty,
+      title: Text('Reported Issues (${issues.length})'),
+      children: issues.map((issue) => TestIssueListItem(issue: issue)).toList(),
     );
   }
 }
