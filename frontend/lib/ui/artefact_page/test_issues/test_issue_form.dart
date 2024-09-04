@@ -156,8 +156,11 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                 if (widget.onDelete != null)
                   TextButton(
                     onPressed: () {
-                      widget.onDelete?.call();
-                      context.pop();
+                      showDialog(
+                        context: context,
+                        builder: (_) =>
+                            DeleteDialog(onDelete: widget.onDelete!),
+                      );
                     },
                     child: Text(
                       'delete',
@@ -184,6 +187,38 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class DeleteDialog extends StatelessWidget {
+  const DeleteDialog({super.key, required this.onDelete});
+
+  final void Function() onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Are you sure you want to delete this issue?'),
+      content: const Text(
+        'Note that this will remove the issue for all related tests',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            context.pop();
+          },
+          child: const Text('No'),
+        ),
+        TextButton(
+          onPressed: () {
+            onDelete();
+            context.pop();
+            context.pop();
+          },
+          child: const Text('Yes'),
+        ),
+      ],
     );
   }
 }
