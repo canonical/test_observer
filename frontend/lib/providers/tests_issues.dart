@@ -35,4 +35,14 @@ class TestsIssues extends _$TestsIssues {
     final issues = await future;
     state = AsyncData([...issues, issue]);
   }
+
+  void deleteIssue(int issueId) async {
+    final api = ref.read(apiProvider);
+    await api.deleteTestIssue(issueId);
+    final issues = await future;
+    state = AsyncData([
+      for (final issue in issues)
+        if (issue.id != issueId) issue,
+    ]);
+  }
 }

@@ -29,6 +29,8 @@ class TestIssueUpdateForm extends ConsumerWidget {
                   description: description,
                 ),
               ),
+      onDelete: () =>
+          ref.read(testsIssuesProvider.notifier).deleteIssue(issue.id),
     );
   }
 }
@@ -70,12 +72,14 @@ class _TestIssueForm extends ConsumerStatefulWidget {
     this.initialDescription = '',
     required this.formSubtitle,
     required this.onSubmit,
+    this.onDelete,
   });
 
   final String initialUrl;
   final String initialDescription;
   final String formSubtitle;
   final void Function(String url, String description) onSubmit;
+  final void Function()? onDelete;
 
   @override
   ConsumerState<_TestIssueForm> createState() => _TestIssueFormState();
@@ -149,15 +153,17 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                   ),
                 ),
                 const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    context.pop();
-                  },
-                  child: Text(
-                    'delete',
-                    style: buttonFontStyle?.apply(color: Colors.red),
+                if (widget.onDelete != null)
+                  TextButton(
+                    onPressed: () {
+                      widget.onDelete?.call();
+                      context.pop();
+                    },
+                    child: Text(
+                      'delete',
+                      style: buttonFontStyle?.apply(color: Colors.red),
+                    ),
                   ),
-                ),
                 TextButton(
                   onPressed: () {
                     if (_formKey.currentState?.validate() == true) {

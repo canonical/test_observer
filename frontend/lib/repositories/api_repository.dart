@@ -121,4 +121,8 @@ class ApiRepository {
     );
     return TestIssue.fromJson(response.data);
   }
+
+  Future<void> deleteTestIssue(int issueId) async {
+    await dio.delete('/v1/test-cases/reported-issues/$issueId');
+  }
 }
