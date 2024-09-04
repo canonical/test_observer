@@ -8,8 +8,36 @@ import '../../../providers/tests_issues.dart';
 import '../../spacing.dart';
 import '../../vanilla/vanilla_text_input.dart';
 
-class TestIssueUpdateForm extends ConsumerWidget {
-  const TestIssueUpdateForm({super.key, required this.issue});
+void showTestIssueUpdateDialog({
+  required BuildContext context,
+  required TestIssue issue,
+}) =>
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: _TestIssueUpdateForm(issue: issue),
+        ),
+      ),
+    );
+
+void showTestIssueCreateDialog({
+  required BuildContext context,
+  required TestResult testResult,
+}) =>
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: _TestIssueCreateForm(testResult: testResult),
+        ),
+      ),
+    );
+
+class _TestIssueUpdateForm extends ConsumerWidget {
+  const _TestIssueUpdateForm({required this.issue});
 
   final TestIssue issue;
 
@@ -35,8 +63,8 @@ class TestIssueUpdateForm extends ConsumerWidget {
   }
 }
 
-class TestIssueCreateForm extends ConsumerWidget {
-  const TestIssueCreateForm({super.key, required this.testResult});
+class _TestIssueCreateForm extends ConsumerWidget {
+  const _TestIssueCreateForm({required this.testResult});
 
   final TestResult testResult;
 
@@ -158,8 +186,8 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                     onPressed: () {
                       showDialog(
                         context: context,
-                        builder: (_) =>
-                            DeleteDialog(onDelete: widget.onDelete!),
+                        builder: (_) => _DeleteTestIssueConfirmationDialog(
+                            onDelete: widget.onDelete!),
                       );
                     },
                     child: Text(
@@ -191,8 +219,8 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
   }
 }
 
-class DeleteDialog extends StatelessWidget {
-  const DeleteDialog({super.key, required this.onDelete});
+class _DeleteTestIssueConfirmationDialog extends StatelessWidget {
+  const _DeleteTestIssueConfirmationDialog({required this.onDelete});
 
   final void Function() onDelete;
 
@@ -222,31 +250,3 @@ class DeleteDialog extends StatelessWidget {
     );
   }
 }
-
-void showTestIssueUpdateDialog({
-  required BuildContext context,
-  required TestIssue issue,
-}) =>
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(Spacing.level4),
-          child: TestIssueUpdateForm(issue: issue),
-        ),
-      ),
-    );
-
-void showTestIssueCreateDialog({
-  required BuildContext context,
-  required TestResult testResult,
-}) =>
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(Spacing.level4),
-          child: TestIssueCreateForm(testResult: testResult),
-        ),
-      ),
-    );
