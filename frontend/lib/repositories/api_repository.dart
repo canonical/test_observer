@@ -103,4 +103,22 @@ class ApiRepository {
     );
     return TestIssue.fromJson(response.data);
   }
+
+  Future<TestIssue> createTestIssue(
+    String url,
+    String description,
+    String? caseName,
+    String? templateId,
+  ) async {
+    final response = await dio.post(
+      '/v1/test-cases/reported-issues',
+      data: {
+        'url': url,
+        'description': description,
+        if (caseName != null) 'case_name': caseName,
+        if (templateId != null) 'template_id': templateId,
+      },
+    );
+    return TestIssue.fromJson(response.data);
+  }
 }

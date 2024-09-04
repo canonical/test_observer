@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/tests_issues.dart';
 import '../../expandable.dart';
+import 'test_issue_form.dart';
 import 'test_issue_list_item.dart';
 
 class TestIssuesExpandable extends ConsumerWidget {
@@ -31,7 +32,19 @@ class TestIssuesExpandable extends ConsumerWidget {
         [];
     return Expandable(
       initiallyExpanded: issues.isNotEmpty,
-      title: Text('Reported Issues (${issues.length})'),
+      title: Row(
+        children: [
+          Text('Reported Issues (${issues.length})'),
+          const Spacer(),
+          TextButton(
+            onPressed: () => showTestIssueCreateDialog(
+              context: context,
+              testResult: testResult,
+            ),
+            child: const Text('add'),
+          ),
+        ],
+      ),
       children: issues.map((issue) => TestIssueListItem(issue: issue)).toList(),
     );
   }

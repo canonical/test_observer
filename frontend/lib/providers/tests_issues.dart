@@ -22,4 +22,17 @@ class TestsIssues extends _$TestsIssues {
         issue.id == updatedIssue.id ? updatedIssue : issue,
     ]);
   }
+
+  void createIssue(
+    String url,
+    String description, {
+    String? caseName,
+    String? templateId,
+  }) async {
+    final api = ref.read(apiProvider);
+    final issue =
+        await api.createTestIssue(url, description, caseName, templateId);
+    final issues = await future;
+    state = AsyncData([...issues, issue]);
+  }
 }

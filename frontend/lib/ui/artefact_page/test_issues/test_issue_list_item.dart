@@ -26,7 +26,7 @@ class TestIssueListItem extends StatelessWidget {
           ),
           TextButton(
             onPressed: () =>
-                showTestIssueUpdateDialog(context: context, issueId: issue.id),
+                showTestIssueUpdateDialog(context: context, issue: issue),
             child: const Text('edit'),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/test_issue.dart';
+import '../../../models/test_result.dart';
 import '../../../providers/tests_issues.dart';
 import '../../spacing.dart';
 import '../../vanilla/vanilla_text_input.dart';
@@ -28,6 +29,37 @@ class TestIssueUpdateForm extends ConsumerWidget {
                   description: description,
                 ),
               ),
+    );
+  }
+}
+
+class TestIssueCreateForm extends ConsumerWidget {
+  const TestIssueCreateForm({super.key, required this.testResult});
+
+  final TestResult testResult;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final issueOn = testResult.templateId.isEmpty
+        ? 'On all cases with name: ${testResult.name}'
+        : 'On all cases with template id: ${testResult.templateId}';
+    return _TestIssueForm(
+      formSubtitle: issueOn,
+      onSubmit: (url, description) {
+        if (testResult.templateId.isEmpty) {
+          ref.read(testsIssuesProvider.notifier).createIssue(
+                url,
+                description,
+                caseName: testResult.name,
+              );
+        } else {
+          ref.read(testsIssuesProvider.notifier).createIssue(
+                url,
+                description,
+                templateId: testResult.templateId,
+              );
+        }
+      },
     );
   }
 }
@@ -87,9 +119,15 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
             VanillaTextInput(
               label: 'Url',
               controller: _urlController,
-              validator: (url) => url == null || url.isEmpty
-                  ? 'Must provide a bug/jira link to the issue'
-                  : null,
+              validator: (url) {
+                if (url == null || url.isEmpty) {
+                  return 'Must provide a bug/jira link to the issue';
+                }
+                if (Uri.tryParse(url) == null) {
+                  return 'Provided url is not valid';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: Spacing.level3),
             VanillaTextInput(
@@ -124,7 +162,9 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                   onPressed: () {
                     if (_formKey.currentState?.validate() == true) {
                       widget.onSubmit(
-                          _urlController.text, _descriptionController.text);
+                        _urlController.text,
+                        _descriptionController.text,
+                      );
                       context.pop();
                     }
                   },
@@ -144,28 +184,28 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
 
 void showTestIssueUpdateDialog({
   required BuildContext context,
-  required int issueId,
+  required TestIssue issue,
 }) =>
     showDialog(
       context: context,
       builder: (_) => Dialog(
         child: Padding(
           padding: const EdgeInsets.all(Spacing.level4),
-          child: Consumer(
-            builder: (context, ref, child) {
-              final issue = ref
-                  .watch(
-                    testsIssuesProvider.select(
-                      (value) => value.whenData(
-                        (issues) =>
-                            issues.firstWhere((issue) => issue.id == issueId),
-                      ),
-                    ),
-                  )
-                  .requireValue;
-              return TestIssueUpdateForm(issue: issue);
-            },
-          ),
+          child: TestIssueUpdateForm(issue: issue),
+        ),
+      ),
+    );
+
+void showTestIssueCreateDialog({
+  required BuildContext context,
+  required TestResult testResult,
+}) =>
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: TestIssueCreateForm(testResult: testResult),
         ),
       ),
     );
