@@ -7,104 +7,142 @@ import '../../../providers/tests_issues.dart';
 import '../../spacing.dart';
 import '../../vanilla/vanilla_text_input.dart';
 
-class TestIssueForm extends ConsumerStatefulWidget {
-  const TestIssueForm({super.key, required this.issue});
+class TestIssueUpdateForm extends ConsumerWidget {
+  const TestIssueUpdateForm({super.key, required this.issue});
 
   final TestIssue issue;
 
   @override
-  ConsumerState<TestIssueForm> createState() => _TestIssueFormState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final issueOn = issue.templateId.isEmpty
+        ? 'On all cases with name: ${issue.caseName}'
+        : 'On all cases with template id: ${issue.templateId}';
+    return _TestIssueForm(
+      initialUrl: issue.url,
+      initialDescription: issue.description,
+      formSubtitle: issueOn,
+      onSubmit: (url, description) =>
+          ref.read(testsIssuesProvider.notifier).updateIssue(
+                issue.copyWith(
+                  url: url,
+                  description: description,
+                ),
+              ),
+    );
+  }
 }
 
-class _TestIssueFormState extends ConsumerState<TestIssueForm> {
-  final urlController = TextEditingController();
-  final descriptionController = TextEditingController();
+class _TestIssueForm extends ConsumerStatefulWidget {
+  const _TestIssueForm({
+    this.initialUrl = '',
+    this.initialDescription = '',
+    required this.formSubtitle,
+    required this.onSubmit,
+  });
+
+  final String initialUrl;
+  final String initialDescription;
+  final String formSubtitle;
+  final void Function(String url, String description) onSubmit;
+
+  @override
+  ConsumerState<_TestIssueForm> createState() => _TestIssueFormState();
+}
+
+class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _urlController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    urlController.text = widget.issue.url;
-    descriptionController.text = widget.issue.description;
+    _urlController.text = widget.initialUrl;
+    _descriptionController.text = widget.initialDescription;
   }
 
   @override
   void dispose() {
-    urlController.dispose();
-    descriptionController.dispose();
+    _urlController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final issueOn = widget.issue.templateId.isEmpty
-        ? 'On all cases with name: ${widget.issue.caseName}'
-        : 'On all cases with template id: ${widget.issue.templateId}';
-
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
 
-    return SizedBox(
-      width: 700,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Report Issue', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: Spacing.level4),
-          Text(issueOn),
-          const SizedBox(height: Spacing.level3),
-          VanillaTextInput(label: 'Url', controller: urlController),
-          const SizedBox(height: Spacing.level3),
-          VanillaTextInput(
-            label: 'Description',
-            multiline: true,
-            controller: descriptionController,
-          ),
-          const SizedBox(height: Spacing.level4),
-          Row(
-            children: [
-              TextButton(
-                onPressed: () {
-                  context.pop();
-                },
-                child: Text(
-                  'cancel',
-                  style: buttonFontStyle?.apply(color: Colors.grey),
+    return Form(
+      key: _formKey,
+      child: SizedBox(
+        width: 700,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Report Issue', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: Spacing.level4),
+            Text(widget.formSubtitle),
+            const SizedBox(height: Spacing.level3),
+            VanillaTextInput(
+              label: 'Url',
+              controller: _urlController,
+              validator: (url) => url == null || url.isEmpty
+                  ? 'Must provide a bug/jira link to the issue'
+                  : null,
+            ),
+            const SizedBox(height: Spacing.level3),
+            VanillaTextInput(
+              label: 'Description',
+              multiline: true,
+              controller: _descriptionController,
+              validator: (url) => url == null || url.isEmpty
+                  ? 'Must provide a description of the issue'
+                  : null,
+            ),
+            const SizedBox(height: Spacing.level4),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => context.pop(),
+                  child: Text(
+                    'cancel',
+                    style: buttonFontStyle?.apply(color: Colors.grey),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () {
-                  context.pop();
-                },
-                child: Text(
-                  'delete',
-                  style: buttonFontStyle?.apply(color: Colors.red),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    context.pop();
+                  },
+                  child: Text(
+                    'delete',
+                    style: buttonFontStyle?.apply(color: Colors.red),
+                  ),
                 ),
-              ),
-              TextButton(
-                onPressed: () {
-                  ref.read(testsIssuesProvider.notifier).updateIssue(
-                        widget.issue.copyWith(
-                          url: urlController.text,
-                          description: descriptionController.text,
-                        ),
-                      );
-                  context.pop();
-                },
-                child: Text(
-                  'submit',
-                  style: buttonFontStyle?.apply(color: Colors.black),
+                TextButton(
+                  onPressed: () {
+                    if (_formKey.currentState?.validate() == true) {
+                      widget.onSubmit(
+                          _urlController.text, _descriptionController.text);
+                      context.pop();
+                    }
+                  },
+                  child: Text(
+                    'submit',
+                    style: buttonFontStyle?.apply(color: Colors.black),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-void showTestIssueDialog({
+void showTestIssueUpdateDialog({
   required BuildContext context,
   required int issueId,
 }) =>
@@ -125,7 +163,7 @@ void showTestIssueDialog({
                     ),
                   )
                   .requireValue;
-              return TestIssueForm(issue: issue);
+              return TestIssueUpdateForm(issue: issue);
             },
           ),
         ),

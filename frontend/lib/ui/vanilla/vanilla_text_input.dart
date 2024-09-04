@@ -9,12 +9,14 @@ class VanillaTextInput extends StatelessWidget {
     this.enabled = true,
     this.multiline = false,
     this.controller,
+    this.validator,
   }) : _label = label;
 
   final String? _label;
   final bool enabled;
   final bool multiline;
   final TextEditingController? controller;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,7 @@ class VanillaTextInput extends StatelessWidget {
         const SizedBox(height: Spacing.level2),
         TextFormField(
           controller: controller,
+          validator: validator,
           keyboardType: multiline ? TextInputType.multiline : null,
           maxLines: multiline ? null : 1,
           minLines: multiline ? 4 : null,
