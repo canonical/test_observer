@@ -187,7 +187,8 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                       showDialog(
                         context: context,
                         builder: (_) => _DeleteTestIssueConfirmationDialog(
-                            onDelete: widget.onDelete!),
+                          onDelete: widget.onDelete!,
+                        ),
                       );
                     },
                     child: Text(
