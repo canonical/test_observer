@@ -46,7 +46,7 @@ class ArchiveManager:
         :pocket: deb pocket ("proposed" or "updates")
         :apt_repo: repo on archive (e.g. main, universe)
         """
-        if arch == "arm":
+        if arch.startswith("arm"):
             archive_url = "ports.ubuntu.com/ubuntu-ports/dists"
         else:
             archive_url = "us.archive.ubuntu.com/ubuntu/dists"
