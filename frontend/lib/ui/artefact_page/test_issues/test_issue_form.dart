@@ -57,8 +57,12 @@ class _TestIssueUpdateForm extends ConsumerWidget {
                   description: description,
                 ),
               ),
-      onDelete: () =>
-          ref.read(testsIssuesProvider.notifier).deleteIssue(issue.id),
+      onDelete: () => showDialog<bool>(
+        context: context,
+        builder: (_) => _DeleteTestIssueConfirmationDialog(
+          issue: issue,
+        ),
+      ),
     );
   }
 }
@@ -107,7 +111,7 @@ class _TestIssueForm extends ConsumerStatefulWidget {
   final String initialDescription;
   final String formSubtitle;
   final void Function(String url, String description) onSubmit;
-  final void Function()? onDelete;
+  final Future<bool?> Function()? onDelete;
 
   @override
   ConsumerState<_TestIssueForm> createState() => _TestIssueFormState();
@@ -184,12 +188,9 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                 if (widget.onDelete != null)
                   TextButton(
                     onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => _DeleteTestIssueConfirmationDialog(
-                          onDelete: widget.onDelete!,
-                        ),
-                      );
+                      widget.onDelete
+                          ?.call()
+                          .then((didDelete) => context.pop());
                     },
                     child: Text(
                       'delete',
@@ -220,30 +221,34 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
   }
 }
 
-class _DeleteTestIssueConfirmationDialog extends StatelessWidget {
-  const _DeleteTestIssueConfirmationDialog({required this.onDelete});
+class _DeleteTestIssueConfirmationDialog extends ConsumerWidget {
+  const _DeleteTestIssueConfirmationDialog({required this.issue});
 
-  final void Function() onDelete;
+  final TestIssue issue;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    String message = 'Note that this will remove the issue for all tests with';
+    if (issue.templateId.isNotEmpty) {
+      message += ' template id: ${issue.templateId}';
+    } else {
+      message += ' case name: ${issue.caseName}';
+    }
+
     return AlertDialog(
       title: const Text('Are you sure you want to delete this issue?'),
-      content: const Text(
-        'Note that this will remove the issue for all related tests',
-      ),
+      content: Text(message),
       actions: [
         TextButton(
           onPressed: () {
-            context.pop();
+            context.pop(false);
           },
           child: const Text('No'),
         ),
         TextButton(
           onPressed: () {
-            onDelete();
-            context.pop();
-            context.pop();
+            ref.read(testsIssuesProvider.notifier).deleteIssue(issue.id);
+            context.pop(true);
           },
           child: const Text('Yes'),
         ),
