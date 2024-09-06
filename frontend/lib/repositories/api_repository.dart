@@ -6,6 +6,7 @@ import '../models/artefact_build.dart';
 import '../models/family_name.dart';
 import '../models/rerun_request.dart';
 import '../models/test_execution.dart';
+import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_event.dart';
 
@@ -87,5 +88,41 @@ class ApiRepository {
     final reruns =
         rerunsJson.map((json) => RerunRequest.fromJson(json)).toList();
     return reruns;
+  }
+
+  Future<List<TestIssue>> getTestIssues() async {
+    final response = await dio.get('/v1/test-cases/reported-issues');
+    final List issuesJson = response.data;
+    return issuesJson.map((json) => TestIssue.fromJson(json)).toList();
+  }
+
+  Future<TestIssue> updateTestIssue(TestIssue issue) async {
+    final response = await dio.put(
+      '/v1/test-cases/reported-issues/${issue.id}',
+      data: issue.toJson(),
+    );
+    return TestIssue.fromJson(response.data);
+  }
+
+  Future<TestIssue> createTestIssue(
+    String url,
+    String description,
+    String? caseName,
+    String? templateId,
+  ) async {
+    final response = await dio.post(
+      '/v1/test-cases/reported-issues',
+      data: {
+        'url': url,
+        'description': description,
+        if (caseName != null) 'case_name': caseName,
+        if (templateId != null) 'template_id': templateId,
+      },
+    );
+    return TestIssue.fromJson(response.data);
+  }
+
+  Future<void> deleteTestIssue(int issueId) async {
+    await dio.delete('/v1/test-cases/reported-issues/$issueId');
   }
 }

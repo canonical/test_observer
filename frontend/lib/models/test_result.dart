@@ -27,6 +27,7 @@ class TestResult with _$TestResult {
     required TestResultStatus status,
     @Default('') String category,
     @Default('') String comment,
+    @JsonKey(name: 'template_id') @Default('') String templateId,
     @JsonKey(name: 'io_log') @Default('') String ioLog,
     @JsonKey(name: 'previous_results')
     @Default([])

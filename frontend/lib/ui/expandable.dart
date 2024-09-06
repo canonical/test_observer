@@ -21,6 +21,7 @@ class Expandable extends StatelessWidget {
       controlAffinity: ListTileControlAffinity.leading,
       childrenPadding: const EdgeInsets.only(left: Spacing.level4),
       shape: const Border(),
+      collapsedShape: const Border(),
       title: title,
       initiallyExpanded: initiallyExpanded,
       children: children,
