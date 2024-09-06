@@ -51,7 +51,7 @@ class TestExecutionReviewButton extends StatelessWidget {
           ),
           direction: PopoverDirection.bottom,
           width: 500,
-          height: 400,
+          height: 450,
           arrowHeight: 15,
           arrowWidth: 30,
         );

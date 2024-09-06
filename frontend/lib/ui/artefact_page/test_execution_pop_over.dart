@@ -6,6 +6,7 @@ import '../../models/family_name.dart';
 import '../../models/test_execution.dart';
 import '../../providers/review_test_execution.dart';
 import '../spacing.dart';
+import '../vanilla/vanilla_text_input.dart';
 
 class TestExecutionPopOver extends ConsumerStatefulWidget {
   const TestExecutionPopOver({
@@ -102,19 +103,12 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
               .toList(),
         ),
         const SizedBox(height: Spacing.level4),
-        Text(
-          'Additional review comments:',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: Spacing.level3),
-        TextField(
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Insert review comment',
-          ),
+        VanillaTextInput(
+          label: 'Additional review comments:',
+          labelStyle: Theme.of(context).textTheme.titleLarge,
           controller: reviewCommentController,
-          keyboardType: TextInputType.multiline,
-          maxLines: null,
+          multiline: true,
+          hintText: 'Insert review comment',
         ),
         const SizedBox(height: Spacing.level3),
         ElevatedButton(
