@@ -1,9 +1,8 @@
-import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/test_result.dart';
-import '../../../providers/tests_issues.dart';
+import '../../../providers/test_result_issues.dart';
 import '../../expandable.dart';
 import 'test_issue_form.dart';
 import 'test_issue_list_item.dart';
@@ -15,21 +14,8 @@ class TestIssuesExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final issues = ref
-            .watch(
-              testsIssuesProvider.select(
-                (value) => value.whenData(
-                  (issues) => issues.filter(
-                    (issue) =>
-                        issue.caseName == testResult.name ||
-                        issue.templateId == testResult.templateId,
-                  ),
-                ),
-              ),
-            )
-            .value
-            ?.toList() ??
-        [];
+    final issues = ref.watch(testResultIssuesProvider(testResult)).value ?? [];
+
     return Expandable(
       initiallyExpanded: issues.isNotEmpty,
       title: Row(

@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../models/test_result.dart';
+import '../../providers/test_result_issues.dart';
 import '../expandable.dart';
 import 'test_issues/test_issues_expandable.dart';
 
-class TestResultExpandable extends StatelessWidget {
+class TestResultExpandable extends ConsumerWidget {
   const TestResultExpandable({super.key, required this.testResult});
 
   final TestResult testResult;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final issues = ref.watch(testResultIssuesProvider(testResult)).value ?? [];
+
+    String title = testResult.name;
+    if (issues.length == 1) {
+      title += ' (${issues.length} reported issue)';
+    } else if (issues.length > 1) {
+      title += ' (${issues.length} reported issues)';
+    }
+
     return Expandable(
       title: Row(
         children: [
-          Text(testResult.name),
+          Text(title),
           const Spacer(),
           PreviousTestResultsWidget(
             previousResults: testResult.previousResults,
