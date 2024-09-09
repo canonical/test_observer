@@ -18,7 +18,8 @@ Future<List<TestIssue>> testResultIssues(
           .filter(
             (issue) =>
                 issue.caseName == testResult.name ||
-                issue.templateId == testResult.templateId,
+                (issue.templateId == testResult.templateId &&
+                    issue.templateId.isNotEmpty),
           )
           .toList(),
     ),
