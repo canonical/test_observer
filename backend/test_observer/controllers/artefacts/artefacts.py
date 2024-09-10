@@ -18,6 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access import queries
@@ -38,6 +39,7 @@ from .models import (
     ArtefactBuildDTO,
     ArtefactDTO,
     ArtefactPatch,
+    ArtefactVersionDTO,
 )
 
 router = APIRouter(tags=["artefacts"])
@@ -155,3 +157,24 @@ def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
         )
 
     return latest_builds
+
+
+@router.get("/{artefact_id}/versions", response_model=list[ArtefactVersionDTO])
+def get_artefact_versions(
+    artefact_id: int,
+    db: Session = Depends(get_db),
+):
+    artefact = db.get(Artefact, artefact_id)
+
+    if not artefact:
+        msg = f"Artefact with id {artefact_id} not found"
+        raise HTTPException(status_code=404, detail=msg)
+
+    return db.scalars(
+        select(Artefact)
+        .where(Artefact.name == artefact.name)
+        .where(Artefact.track == artefact.track)
+        .where(Artefact.series == artefact.series)
+        .where(Artefact.repo == artefact.repo)
+        .order_by(Artefact.id.desc())
+    )
