@@ -2,10 +2,11 @@
 
 import argparse
 import re
+from os import environ
 
 import requests
 
-TO_API_URL = "https://test-observer-api.canonical.com"
+TO_API_URL = environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
 
 
 def main(artefact_id: int, test_case_regex: str, reversed: bool):
@@ -15,14 +16,15 @@ def main(artefact_id: int, test_case_regex: str, reversed: bool):
 
     test_case_matcher = re.compile(test_case_regex)
 
-    relevant_test_executions = [
-        te
-        for ab in artefact_builds
-        for te in ab["test_executions"]
-        if te["review_decision"] == []
-        and not te["is_rerun_requested"]
-        and te["status"] == "FAILED"
-    ]
+    relevant_test_executions = []
+    for ab in artefact_builds:
+        for te in ab["test_executions"]:
+            if (
+                te["review_decision"] == []
+                and not te["is_rerun_requested"]
+                and te["status"] == "FAILED"
+            ):
+                relevant_test_executions.append(te)
 
     test_execution_ids_to_rerun = []
     for te in relevant_test_executions:
@@ -76,7 +78,8 @@ example_usage = """Example:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Reruns test executions of an artefact that"
-        " failed particular test cases matched by the passed regex",
+        " failed particular test cases matched by the passed regex."
+        "\nUses TO_API_URL environment if defined defaulting to production otherwise",
         epilog=example_usage,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

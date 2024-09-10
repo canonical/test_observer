@@ -3,11 +3,12 @@
 import argparse
 import sys
 from collections import Counter
+from os import environ
 from pprint import pprint
 
 import requests
 
-TO_API_URL = "https://test-observer-api.canonical.com"
+TO_API_URL = environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
 
 
 def main(artefact_id: int):
@@ -39,13 +40,14 @@ def main(artefact_id: int):
     counter = Counter(failing_test_cases)
 
     print()
-    pprint(counter.most_common())
+    pprint(counter.most_common())  # noqa: T203
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Given an artefact id, prints the most common failing"
-        " test cases under undecided test executions",
+        " test cases under undecided test executions."
+        "\nUses TO_API_URL environment if defined defaulting to production otherwise",
     )
     parser.add_argument("artefact_id", type=int)
     args = parser.parse_args()
