@@ -65,7 +65,8 @@ def main(artefact_id: int, test_case_regex: str, reversed: bool):
             json={"test_execution_ids": test_execution_ids_to_rerun},
         )
         print("Submitted rerun requests")
-
+    else:
+        print("Aborting the script")
 
 example_usage = """Example:
 
