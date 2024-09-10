@@ -130,4 +130,14 @@ class ApiRepository {
     final response = await dio.get('/v1/artefacts/$artefactId');
     return Artefact.fromJson(response.data);
   }
+
+  Future<List<({int artefactId, String version})>> getArtefactVersions(
+    int artefactId,
+  ) async {
+    return [
+      (artefactId: 1, version: '1'),
+      (artefactId: 2, version: '2'),
+      (artefactId: 3, version: '3'),
+    ];
+  }
 }

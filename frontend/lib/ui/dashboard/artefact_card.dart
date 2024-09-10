@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
+import '../../routing.dart';
 import '../spacing.dart';
 import '../user_avatar.dart';
 import '../vanilla/vanilla_chip.dart';
@@ -22,10 +22,7 @@ class ArtefactCard extends ConsumerWidget {
     final dueDate = artefact.dueDateString;
 
     return GestureDetector(
-      onTap: () {
-        final currentRoute = GoRouterState.of(context).fullPath;
-        context.go('$currentRoute/${artefact.id}');
-      },
+      onTap: () => navigateToArtefactPage(context, artefact.id),
       child: Card(
         margin: const EdgeInsets.all(0),
         elevation: 0,
@@ -45,13 +42,12 @@ class ArtefactCard extends ConsumerWidget {
                 artefact.name,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: Spacing.level2),
-              ...artefact.details.entries
-                  .map<Widget>(
-                    (detail) => Text('${detail.key}: ${detail.value}'),
-                  )
-                  .intersperse(const SizedBox(height: Spacing.level2)),
-              const SizedBox(height: Spacing.level2),
+              Text('version: ${artefact.version}'),
+              if (artefact.track.isNotEmpty) Text('track: ${artefact.track}'),
+              if (artefact.store.isNotEmpty) Text('store: ${artefact.store}'),
+              if (artefact.series.isNotEmpty)
+                Text('series: ${artefact.series}'),
+              if (artefact.repo.isNotEmpty) Text('repo: ${artefact.repo}'),
               Row(
                 children: [
                   VanillaChip(
@@ -74,7 +70,7 @@ class ArtefactCard extends ConsumerWidget {
                     ),
                 ],
               ),
-            ],
+            ].intersperse(const SizedBox(height: Spacing.level2)).toList(),
           ),
         ),
       ),

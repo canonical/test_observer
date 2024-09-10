@@ -6,6 +6,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
 import '../../models/stage_name.dart';
+import '../../providers/artefact_versions.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
@@ -18,27 +19,58 @@ class ArtefactPageInfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bugLink = artefact.bugLink;
+    final fontStyle = Theme.of(context).textTheme.bodyLarge;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StagesRow(artefactStage: artefact.stage),
-        const SizedBox(height: Spacing.level3),
-        ...artefact.details.entries
-            .map<Widget>(
-              (detail) => Text(
-                '${detail.key}: ${detail.value}',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            )
-            .intersperse(const SizedBox(height: Spacing.level3)),
-        const SizedBox(height: Spacing.level3),
+        _ArtefactVersionSelector(artefact: artefact),
+        if (artefact.track.isNotEmpty)
+          Text('track: ${artefact.track}', style: fontStyle),
+        if (artefact.store.isNotEmpty)
+          Text('store: ${artefact.store}', style: fontStyle),
+        if (artefact.series.isNotEmpty)
+          Text('series: ${artefact.series}', style: fontStyle),
+        if (artefact.repo.isNotEmpty)
+          Text('repo: ${artefact.repo}', style: fontStyle),
         if (bugLink.isNotBlank)
           InlineUrlText(
             leadingText: 'bug link: ',
             url: bugLink,
             urlText: bugLink,
-            fontStyle: Theme.of(context).textTheme.bodyLarge,
+            fontStyle: fontStyle,
           ),
+      ].intersperse(const SizedBox(height: Spacing.level3)).toList(),
+    );
+  }
+}
+
+class _ArtefactVersionSelector extends ConsumerWidget {
+  const _ArtefactVersionSelector({required this.artefact});
+
+  final Artefact artefact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final versions =
+        ref.watch(artefactVersionsProvider(artefact.id)).value ?? [];
+
+    return Row(
+      children: [
+        const Text('version: '),
+        YaruPopupMenuButton(
+          child: Text(artefact.version),
+          itemBuilder: (_) => versions
+              .map(
+                (version) => PopupMenuItem(
+                  child: Text(version.version),
+                  onTap: () =>
+                      navigateToArtefactPage(context, version.artefactId),
+                ),
+              )
+              .toList(),
+        ),
       ],
     );
   }

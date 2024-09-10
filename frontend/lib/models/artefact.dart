@@ -34,14 +34,6 @@ class Artefact with _$Artefact {
   factory Artefact.fromJson(Map<String, Object?> json) =>
       _$ArtefactFromJson(json);
 
-  Map<String, String> get details => {
-        'version': version,
-        if (track != '') 'track': track,
-        if (store != '') 'store': store,
-        if (series != '') 'series': series,
-        if (repo != '') 'repo': repo,
-      };
-
   String? get dueDateString {
     final month = dueDate?.month;
     final day = dueDate?.day;
