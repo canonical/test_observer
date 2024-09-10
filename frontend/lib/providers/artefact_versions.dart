@@ -1,11 +1,12 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../models/artefact_version.dart';
 import 'api.dart';
 
 part 'artefact_versions.g.dart';
 
 @riverpod
-Future<List<({int artefactId, String version})>> artefactVersions(
+Future<List<ArtefactVersion>> artefactVersions(
   ArtefactVersionsRef ref,
   int artefactId,
 ) async {

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../models/artefact.dart';
 
 import '../models/artefact_build.dart';
+import '../models/artefact_version.dart';
 import '../models/family_name.dart';
 import '../models/rerun_request.dart';
 import '../models/test_execution.dart';
@@ -131,13 +132,11 @@ class ApiRepository {
     return Artefact.fromJson(response.data);
   }
 
-  Future<List<({int artefactId, String version})>> getArtefactVersions(
+  Future<List<ArtefactVersion>> getArtefactVersions(
     int artefactId,
   ) async {
-    return [
-      (artefactId: 1, version: '1'),
-      (artefactId: 2, version: '2'),
-      (artefactId: 3, version: '3'),
-    ];
+    final response = await dio.get('/v1/artefacts/$artefactId/versions');
+    final List data = response.data;
+    return data.map((json) => ArtefactVersion.fromJson(json)).toList();
   }
 }
