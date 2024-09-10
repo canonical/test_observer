@@ -70,6 +70,7 @@ def main(artefact_id: int, test_case_regex: str, reversed: bool):
     else:
         print("Aborting the script")
 
+
 example_usage = """Example:
 
   python %(prog)s 47906 '.*wireless.*'
