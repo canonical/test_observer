@@ -64,5 +64,6 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
         {
             "status": test_result_first.status,
             "version": artefact_first.version,
+            "artefact_id": artefact_first.id,
         }
     ]

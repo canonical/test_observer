@@ -33,6 +33,7 @@ def parse_previous_test_results(
             PreviousTestResult(
                 status=test_result.status,
                 version=test_result.test_execution.artefact_build.artefact.version,
+                artefact_id=test_result.test_execution.artefact_build.artefact_id,
             )
             for test_result in test_results
         ]
