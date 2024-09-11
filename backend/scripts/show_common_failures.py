@@ -1,14 +1,18 @@
 # ruff: noqa: T201
 
 import argparse
+import functools
 import sys
 from collections import Counter
 from os import environ
 from pprint import pprint
 
-import requests
+from requests import Session
 
 TO_API_URL = environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
+
+requests = Session()
+requests.request = functools.partial(requests.request, timeout=5)  # type: ignore
 
 
 def main(artefact_id: int):

@@ -1,12 +1,16 @@
 # ruff: noqa: T201
 
 import argparse
+import functools
 import re
 from os import environ
 
-import requests
+from requests import Session
 
 TO_API_URL = environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
+
+requests = Session()
+requests.request = functools.partial(requests.request, timeout=5)  # type: ignore
 
 
 def main(artefact_id: int, test_case_regex: str, reversed: bool):
@@ -56,9 +60,9 @@ def main(artefact_id: int, test_case_regex: str, reversed: bool):
     should_rerun = (
         input(
             f"Will rerun {len(test_execution_ids_to_rerun)}"
-            " test executions is that ok? (yes/no) "
+            " test executions is that ok? (y/N) "
         )
-        == "yes"
+        == "y"
     )
 
     if should_rerun:
