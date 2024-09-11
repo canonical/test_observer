@@ -91,3 +91,20 @@ class AppRoutes {
           uri.path.contains(AppRoutes.debs)) &&
       uri.pathSegments.length == 2;
 }
+
+void navigateToArtefactPage(BuildContext context, int artefactId) {
+  final uri = AppRoutes.uriFromContext(context);
+  final family = AppRoutes.familyFromUri(uri);
+  String path = '/$artefactId';
+
+  switch (family) {
+    case FamilyName.deb:
+      path = AppRoutes.debs + path;
+      break;
+    case FamilyName.snap:
+      path = AppRoutes.snaps + path;
+      break;
+  }
+
+  context.go(path);
+}

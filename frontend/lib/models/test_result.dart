@@ -12,6 +12,7 @@ class PreviousTestResult with _$PreviousTestResult {
   const factory PreviousTestResult({
     required TestResultStatus status,
     required String version,
+    @JsonKey(name: 'artefact_id') required int artefactId,
   }) = _PreviousTestResult;
 
   factory PreviousTestResult.fromJson(Map<String, Object?> json) =>

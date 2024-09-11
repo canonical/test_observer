@@ -4,6 +4,7 @@ import 'package:yaru/widgets.dart';
 
 import '../../models/test_result.dart';
 import '../../providers/test_result_issues.dart';
+import '../../routing.dart';
 import '../expandable.dart';
 import 'test_issues/test_issues_expandable.dart';
 
@@ -82,9 +83,12 @@ class PreviousTestResultsWidget extends StatelessWidget {
     return Row(
       children: previousResults
           .map(
-            (e) => Tooltip(
-              message: 'Version: ${e.version}',
-              child: e.status.icon,
+            (e) => InkWell(
+              onTap: () => navigateToArtefactPage(context, e.artefactId),
+              child: Tooltip(
+                message: 'Version: ${e.version}',
+                child: e.status.icon,
+              ),
             ),
           )
           .toList(),

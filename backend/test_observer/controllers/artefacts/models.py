@@ -97,3 +97,8 @@ class ArtefactBuildDTO(BaseModel):
 
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus
+
+
+class ArtefactVersionDTO(BaseModel):
+    version: str
+    artefact_id: int = Field(validation_alias=AliasPath("id"))

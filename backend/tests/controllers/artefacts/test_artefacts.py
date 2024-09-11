@@ -19,9 +19,8 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from datetime import date, timedelta
 
-from sqlalchemy.orm import Session
-
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
@@ -401,3 +400,23 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     )
 
     assert response.status_code == 400
+
+
+def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
+    artefact1 = generator.gen_artefact("beta", version="1")
+    artefact2 = generator.gen_artefact("beta", version="2")
+    artefact3 = generator.gen_artefact("beta", version="3")
+
+    expected_result = [
+        {"version": "3", "artefact_id": artefact3.id},
+        {"version": "2", "artefact_id": artefact2.id},
+        {"version": "1", "artefact_id": artefact1.id},
+    ]
+
+    response = test_client.get(f"/v1/artefacts/{artefact1.id}/versions")
+    assert response.status_code == 200
+    assert response.json() == expected_result
+
+    response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
+    assert response.status_code == 200
+    assert response.json() == expected_result
