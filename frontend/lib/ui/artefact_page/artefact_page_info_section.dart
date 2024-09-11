@@ -25,7 +25,7 @@ class ArtefactPageInfoSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StagesRow(artefactStage: artefact.stage),
-        _ArtefactVersionSelector(artefact: artefact),
+        _ArtefactVersionSelector(artefact: artefact, labelFontStyle: fontStyle),
         if (artefact.track.isNotEmpty)
           Text('track: ${artefact.track}', style: fontStyle),
         if (artefact.store.isNotEmpty)
@@ -47,9 +47,10 @@ class ArtefactPageInfoSection extends StatelessWidget {
 }
 
 class _ArtefactVersionSelector extends ConsumerWidget {
-  const _ArtefactVersionSelector({required this.artefact});
+  const _ArtefactVersionSelector({required this.artefact, this.labelFontStyle});
 
   final Artefact artefact;
+  final TextStyle? labelFontStyle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,7 +59,7 @@ class _ArtefactVersionSelector extends ConsumerWidget {
 
     return Row(
       children: [
-        const Text('version: '),
+        Text('version: ', style: labelFontStyle),
         YaruPopupMenuButton(
           child: Text(artefact.version),
           itemBuilder: (_) => versions
