@@ -37,7 +37,6 @@ class TestExecutionReviewButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
     final artefactId =
         AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
     return GestureDetector(
@@ -47,7 +46,6 @@ class TestExecutionReviewButton extends StatelessWidget {
           bodyBuilder: (context) => TestExecutionPopOver(
             testExecution: testExecution,
             artefactId: artefactId,
-            family: family,
           ),
           direction: PopoverDirection.bottom,
           width: 500,

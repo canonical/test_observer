@@ -13,9 +13,17 @@ class Artefact extends _$Artefact {
     return api.getArtefact(artefactId);
   }
 
-  void changeArtefactStatus(id, artefact_model.ArtefactStatus status) async {
+  Future<void> changeArtefactStatus(
+    id,
+    artefact_model.ArtefactStatus status,
+  ) async {
     final api = ref.read(apiProvider);
     final artefact = await api.changeArtefactStatus(artefactId, status);
     state = AsyncData(artefact);
+  }
+
+  Future<void> updateCompletedTestExecutionsCount(int count) async {
+    final artefact = await future;
+    state = AsyncData(artefact.copyWith(completedTestExecutionsCount: count));
   }
 }
