@@ -1,9 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/family_name.dart';
 import '../models/test_execution.dart';
+import 'artefact.dart';
 import 'artefact_builds.dart';
-import 'family_artefacts.dart';
 
 part 'review_test_execution.g.dart';
 
@@ -18,7 +17,6 @@ class ReviewTestExecution extends _$ReviewTestExecution {
     int testExecutionId,
     String reviewComment,
     List<TestExecutionReviewDecision> reviewDecision,
-    FamilyName familyName,
     int artefactId,
   ) async {
     await ref
@@ -41,10 +39,7 @@ class ReviewTestExecution extends _$ReviewTestExecution {
         .fold(0, (a, b) => a + b);
 
     await ref
-        .read(familyArtefactsProvider(familyName).notifier)
-        .updateCompletedTestExecutionsCount(
-          artefactId,
-          newCompletedTestExecutionsCount,
-        );
+        .read(artefactProvider(artefactId).notifier)
+        .updateCompletedTestExecutionsCount(newCompletedTestExecutionsCount);
   }
 }

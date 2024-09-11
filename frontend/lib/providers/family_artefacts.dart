@@ -7,35 +7,10 @@ import 'api.dart';
 part 'family_artefacts.g.dart';
 
 @riverpod
-class FamilyArtefacts extends _$FamilyArtefacts {
-  @override
-  Future<Map<int, Artefact>> build(FamilyName family) async {
-    final api = ref.watch(apiProvider);
-    return api.getFamilyArtefacts(family);
-  }
-
-  Future<void> changeArtefactStatus(
-    int artefactId,
-    ArtefactStatus newStatus,
-  ) async {
-    final api = ref.read(apiProvider);
-    final artefact = await api.changeArtefactStatus(artefactId, newStatus);
-
-    final previousState = await future;
-    state = AsyncData({...previousState, artefact.id: artefact});
-  }
-
-  Future<void> updateCompletedTestExecutionsCount(
-    int artefactId,
-    int count,
-  ) async {
-    final previousState = await future;
-    final artefact = previousState[artefactId];
-    if (artefact != null) {
-      state = AsyncData({
-        ...previousState,
-        artefactId: artefact.copyWith(completedTestExecutionsCount: count),
-      });
-    }
-  }
+Future<Map<int, Artefact>> familyArtefacts(
+  FamilyArtefactsRef ref,
+  FamilyName family,
+) {
+  final api = ref.watch(apiProvider);
+  return api.getFamilyArtefacts(family);
 }

@@ -125,4 +125,9 @@ class ApiRepository {
   Future<void> deleteTestIssue(int issueId) async {
     await dio.delete('/v1/test-cases/reported-issues/$issueId');
   }
+
+  Future<Artefact> getArtefact(int artefactId) async {
+    final response = await dio.get('/v1/artefacts/$artefactId');
+    return Artefact.fromJson(response.data);
+  }
 }
