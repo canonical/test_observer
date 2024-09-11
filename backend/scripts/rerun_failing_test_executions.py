@@ -10,7 +10,7 @@ from requests import Session
 TO_API_URL = environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
 
 requests = Session()
-requests.request = functools.partial(requests.request, timeout=5)  # type: ignore
+requests.request = functools.partial(requests.request, timeout=30)  # type: ignore
 
 
 def main(artefact_id: int, test_case_regex: str, reversed: bool):
