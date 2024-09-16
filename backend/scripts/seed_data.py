@@ -312,16 +312,19 @@ ENVIRONMENT_ISSUE_REQUESTS = [
         environment_name=START_TEST_EXECUTION_REQUESTS[0].environment,
         url=HttpUrl("https://github.com"),
         description="known issue 1",
+        is_confirmed=True,
     ),
     environment_issues_models.ReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[1].environment,
         url=HttpUrl("https://warthogs.atlassian.net"),
         description="known issue 2",
+        is_confirmed=False,
     ),
     environment_issues_models.ReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[2].environment,
         url=HttpUrl("https://bugs.launchpad.net"),
         description="known issue 3",
+        is_confirmed=True,
     ),
 ]
 
