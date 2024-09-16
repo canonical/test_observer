@@ -8,6 +8,7 @@ valid_post_data = {
     "environment_name": "template 1",
     "url": "https://github.com/",
     "description": "some description",
+    "is_confirmed": True,
 }
 
 
@@ -17,7 +18,10 @@ def test_empty_get(test_client: TestClient):
     assert response.json() == []
 
 
-@pytest.mark.parametrize("field", ["url", "description", "environment_name"])
+@pytest.mark.parametrize(
+    "field",
+    ["url", "description", "environment_name", "is_confirmed"],
+)
 def test_post_requires_field(test_client: TestClient, field: str):
     data = {k: v for k, v in valid_post_data.items() if k != field}
     response = test_client.post(endpoint, json=data)
@@ -68,6 +72,19 @@ def test_update_description(test_client: TestClient):
     response = test_client.post(endpoint, json=valid_post_data)
     issue = response.json()
     issue["description"] = "Updated"
+    response = test_client.put(f"{endpoint}/{issue['id']}", json=issue)
+
+    assert response.status_code == 200
+    _assert_reported_issue(response.json(), issue)
+
+    response = test_client.get(endpoint)
+    _assert_reported_issue(response.json()[0], issue)
+
+
+def test_mark_unconfirmed(test_client: TestClient):
+    response = test_client.post(endpoint, json=valid_post_data)
+    issue = response.json()
+    issue["is_confirmed"] = False
     response = test_client.put(f"{endpoint}/{issue['id']}", json=issue)
 
     assert response.status_code == 200

@@ -23,6 +23,7 @@ def create_reported_issue(request: ReportedIssueRequest, db: Session = Depends(g
         environment_name=request.environment_name,
         url=request.url,
         description=request.description,
+        is_confirmed=request.is_confirmed,
     )
     db.add(issue)
     db.commit()

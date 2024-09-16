@@ -9,6 +9,7 @@ class ReportedIssueRequest(BaseModel):
     environment_name: str
     description: str
     url: HttpUrl
+    is_confirmed: bool
 
     @field_validator("url")
     @classmethod
@@ -25,5 +26,6 @@ class ReportedIssueResponse(BaseModel):
     environment_name: str
     description: str
     url: HttpUrl
+    is_confirmed: bool
     created_at: datetime
     updated_at: datetime

@@ -490,6 +490,7 @@ class EnvironmentIssue(Base):
     environment_name: Mapped[str]
     url: Mapped[str]
     description: Mapped[str]
+    is_confirmed: Mapped[bool]
 
     def __repr__(self) -> str:
         return data_model_repr(

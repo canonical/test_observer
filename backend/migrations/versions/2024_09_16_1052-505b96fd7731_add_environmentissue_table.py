@@ -21,6 +21,7 @@ def upgrade() -> None:
         sa.Column("environment_name", sa.String(), nullable=False),
         sa.Column("url", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
+        sa.Column("is_confirmed", sa.Boolean(), nullable=False),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
