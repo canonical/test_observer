@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from tests.asserts import assert_fails_validation
+
 endpoint = "/v1/test-cases/reported-issues"
 valid_post_data = {
     "template_id": "template 1",
@@ -62,7 +64,7 @@ def test_empty_get(get: Get):
 def test_post_requires_field(post: Post, field: str):
     data = {k: v for k, v in valid_post_data.items() if k != field}
     response = post(data)
-    _assert_fails_validation(response, field, "missing")
+    assert_fails_validation(response, field, "missing")
 
 
 def test_post_requires_template_id_or_case_name(post: Post):
@@ -76,7 +78,7 @@ def test_post_requires_template_id_or_case_name(post: Post):
 
 def test_post_validates_url(post: Post):
     response = post({**valid_post_data, "url": "invalid url"})
-    _assert_fails_validation(response, "url", "url_parsing")
+    assert_fails_validation(response, "url", "url_parsing")
 
 
 def test_valid_template_id_post(post: Post):
@@ -142,7 +144,7 @@ def test_update_description(post: Post, get: Get, put: Put):
     response = post(valid_post_data)
     issue = response.json()
     issue["description"] = "Updated"
-    response = put(issue["id"], {**issue, "description": "Updated"})
+    response = put(issue["id"], issue)
 
     assert response.status_code == 200
     _assert_reported_issue(response.json(), issue)
@@ -159,13 +161,6 @@ def test_delete_issue(post: Post, get: Get, delete: Delete):
 
     response = get()
     assert response.json() == []
-
-
-def _assert_fails_validation(response: Response, field: str, type: str) -> None:
-    assert response.status_code == 422
-    problem = response.json()["detail"][0]
-    assert problem["type"] == type
-    assert problem["loc"] == ["body", field]
 
 
 def _assert_reported_issue(value: dict, expected: dict) -> None:
