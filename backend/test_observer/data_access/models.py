@@ -474,6 +474,7 @@ class TestCaseIssue(Base):
         return data_model_repr(
             self,
             "template_id",
+            "case_name",
             "url",
             "description",
         )
