@@ -6,7 +6,7 @@ from tests.asserts import assert_fails_validation
 endpoint = "/v1/environments/reported-issues"
 valid_post_data = {
     "environment_name": "template 1",
-    "url": "http://issue.link/",
+    "url": "https://github.com/",
     "description": "some description",
 }
 
@@ -28,6 +28,17 @@ def test_post_validates_url(test_client: TestClient):
     data = {**valid_post_data, "url": "invalid url"}
     response = test_client.post(endpoint, json=data)
     assert_fails_validation(response, "url", "url_parsing")
+
+
+def test_url_cannot_be_canonical_chat(test_client: TestClient):
+    response = test_client.post(
+        endpoint,
+        json={
+            **valid_post_data,
+            "url": "https://chat.canonical.com/canonical/pl/n7oahef13jdpde7p6nf7s5yisw",
+        },
+    )
+    assert response.status_code == 422
 
 
 def test_valid_post(test_client: TestClient):

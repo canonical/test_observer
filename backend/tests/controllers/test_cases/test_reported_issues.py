@@ -11,7 +11,7 @@ endpoint = "/v1/test-cases/reported-issues"
 valid_post_data = {
     "template_id": "template 1",
     "case_name": "case",
-    "url": "http://issue.link/",
+    "url": "https://github.com/",
     "description": "some description",
 }
 
@@ -79,6 +79,16 @@ def test_post_requires_template_id_or_case_name(post: Post):
 def test_post_validates_url(post: Post):
     response = post({**valid_post_data, "url": "invalid url"})
     assert_fails_validation(response, "url", "url_parsing")
+
+
+def test_url_cannot_be_canonical_chat(post: Post):
+    response = post(
+        {
+            **valid_post_data,
+            "url": "https://chat.canonical.com/canonical/pl/n7oahef13jdpde7p6nf7s5yisw",
+        }
+    )
+    assert response.status_code == 422
 
 
 def test_valid_template_id_post(post: Post):
