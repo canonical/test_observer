@@ -11,7 +11,8 @@ from pydantic import HttpUrl
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.test_cases.models import ReportedIssueRequest
+from test_observer.controllers.environments import models as environment_issues_models
+from test_observer.controllers.test_cases import models as test_issues_models
 from test_observer.controllers.test_executions.models import (
     C3TestResult,
     C3TestResultStatus,
@@ -28,6 +29,7 @@ START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
 END_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/end-test"
 RERUN_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/reruns"
 TEST_CASE_ISSUE_URL = f"{BASE_URL}/test-cases/reported-issues"
+ENVIRONMENT_ISSUE_URL = f"{BASE_URL}/environments/reported-issues"
 
 START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
@@ -288,19 +290,37 @@ END_TEST_EXECUTION_REQUESTS = [
 ]
 
 TEST_CASE_ISSUE_REQUESTS = [
-    ReportedIssueRequest(
+    test_issues_models.ReportedIssueRequest(
         template_id=END_TEST_EXECUTION_REQUESTS[0].test_results[2].template_id,  # type: ignore
-        url=HttpUrl("http://bug1.link"),
+        url=HttpUrl("https://github.com"),
         description="known issue 1",
     ),
-    ReportedIssueRequest(
+    test_issues_models.ReportedIssueRequest(
         case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[0].name,
-        url=HttpUrl("http://bug2.link"),
+        url=HttpUrl("https://warthogs.atlassian.net"),
         description="known issue 2",
     ),
-    ReportedIssueRequest(
+    test_issues_models.ReportedIssueRequest(
         case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[1].name,
-        url=HttpUrl("http://bug3.link"),
+        url=HttpUrl("https://bugs.launchpad.net"),
+        description="known issue 3",
+    ),
+]
+
+ENVIRONMENT_ISSUE_REQUESTS = [
+    environment_issues_models.ReportedIssueRequest(
+        environment_name=START_TEST_EXECUTION_REQUESTS[0].environment,
+        url=HttpUrl("https://github.com"),
+        description="known issue 1",
+    ),
+    environment_issues_models.ReportedIssueRequest(
+        environment_name=START_TEST_EXECUTION_REQUESTS[1].environment,
+        url=HttpUrl("https://warthogs.atlassian.net"),
+        description="known issue 2",
+    ),
+    environment_issues_models.ReportedIssueRequest(
+        environment_name=START_TEST_EXECUTION_REQUESTS[2].environment,
+        url=HttpUrl("https://bugs.launchpad.net"),
         description="known issue 3",
     ),
 ]
@@ -332,6 +352,12 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     for case_issue_request in TEST_CASE_ISSUE_REQUESTS:
         client.post(
             TEST_CASE_ISSUE_URL, json=case_issue_request.model_dump(mode="json")
+        ).raise_for_status()
+
+    for environment_issue_request in ENVIRONMENT_ISSUE_REQUESTS:
+        client.post(
+            ENVIRONMENT_ISSUE_URL,
+            json=environment_issue_request.model_dump(mode="json"),
         ).raise_for_status()
 
     _rerun_some_test_executions(client, test_executions)
