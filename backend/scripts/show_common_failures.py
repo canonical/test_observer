@@ -34,7 +34,9 @@ def main(artefact_id: int):
         ).json()
 
         failing_test_cases.extend(
-            tr["name"] for tr in test_results if tr["status"] == "FAILED"
+            tr["template_id"] or tr["name"]
+            for tr in test_results
+            if tr["status"] == "FAILED"
         )
 
         sys.stdout.write("\r")
@@ -50,7 +52,8 @@ def main(artefact_id: int):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Given an artefact id, prints the most common failing"
-        " test cases under undecided test executions."
+        " test cases under undecided test executions. Groups tests by template_id"
+        " if present and case name otherwise"
         "\nUses TO_API_URL environment if defined defaulting to production otherwise",
     )
     parser.add_argument("artefact_id", type=int)
