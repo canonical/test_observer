@@ -6,6 +6,7 @@ import '../../../models/test_result.dart';
 import '../../expandable.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
+import '../environment_issues/environment_issues_expandable.dart';
 import '../test_execution_review.dart';
 import '../test_result_filter_expandable.dart';
 import '../test_event_log_expandable.dart';
@@ -21,6 +22,7 @@ class TestExecutionExpandable extends ConsumerWidget {
     return Expandable(
       title: _TestExecutionTileTitle(testExecution: testExecution),
       children: <Widget>[
+        EnvironmentIssuesExpandable(environment: testExecution.environment),
         TestEventLogExpandable(
           testExecutionId: testExecution.id,
           initiallyExpanded: !testExecution.status.isCompleted,
