@@ -75,7 +75,7 @@ class _EnvironmentIssueCreateForm extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return _EnvironmentIssueForm(
-      formSubtitle: 'On all environments with name ${environment.name}',
+      formSubtitle: 'On all runs of environment ${environment.name}',
       onSubmit: (url, description, isConfirmed) {
         ref.read(environmentsIssuesProvider.notifier).createIssue(
               url,
