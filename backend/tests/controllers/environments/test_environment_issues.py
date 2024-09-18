@@ -109,6 +109,7 @@ def _assert_reported_issue(value: dict, expected: dict) -> None:
     assert value["environment_name"] == expected["environment_name"]
     assert value["url"] == expected["url"]
     assert value["description"] == expected["description"]
+    assert value["is_confirmed"] == expected["is_confirmed"]
     assert isinstance(value["id"], int)
     assert isinstance(value["created_at"], str)
     assert isinstance(value["updated_at"], str)

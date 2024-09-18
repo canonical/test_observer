@@ -5,20 +5,22 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import EnvironmentIssue
 from test_observer.data_access.setup import get_db
 
-from .models import ReportedIssueRequest, ReportedIssueResponse
+from .models import EnvironmentReportedIssueRequest, EnvironmentReportedIssueResponse
 
 router = APIRouter()
 
 endpoint = "/reported-issues"
 
 
-@router.get(endpoint, response_model=list[ReportedIssueResponse])
+@router.get(endpoint, response_model=list[EnvironmentReportedIssueResponse])
 def get_reported_issues(db: Session = Depends(get_db)):
     return db.execute(select(EnvironmentIssue)).scalars()
 
 
-@router.post(endpoint, response_model=ReportedIssueResponse)
-def create_reported_issue(request: ReportedIssueRequest, db: Session = Depends(get_db)):
+@router.post(endpoint, response_model=EnvironmentReportedIssueResponse)
+def create_reported_issue(
+    request: EnvironmentReportedIssueRequest, db: Session = Depends(get_db)
+):
     issue = EnvironmentIssue(
         environment_name=request.environment_name,
         url=request.url,
@@ -31,9 +33,11 @@ def create_reported_issue(request: ReportedIssueRequest, db: Session = Depends(g
     return issue
 
 
-@router.put(endpoint + "/{issue_id}", response_model=ReportedIssueResponse)
+@router.put(endpoint + "/{issue_id}", response_model=EnvironmentReportedIssueResponse)
 def update_reported_issue(
-    issue_id: int, request: ReportedIssueRequest, db: Session = Depends(get_db)
+    issue_id: int,
+    request: EnvironmentReportedIssueRequest,
+    db: Session = Depends(get_db),
 ):
     issue = db.get(EnvironmentIssue, issue_id)
     for field in request.model_fields:

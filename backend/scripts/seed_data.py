@@ -11,8 +11,10 @@ from pydantic import HttpUrl
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.environments import models as environment_issues_models
-from test_observer.controllers.test_cases import models as test_issues_models
+from test_observer.controllers.environments.models import (
+    EnvironmentReportedIssueRequest,
+)
+from test_observer.controllers.test_cases.models import TestReportedIssueRequest
 from test_observer.controllers.test_executions.models import (
     C3TestResult,
     C3TestResultStatus,
@@ -290,17 +292,17 @@ END_TEST_EXECUTION_REQUESTS = [
 ]
 
 TEST_CASE_ISSUE_REQUESTS = [
-    test_issues_models.ReportedIssueRequest(
+    TestReportedIssueRequest(
         template_id=END_TEST_EXECUTION_REQUESTS[0].test_results[2].template_id,  # type: ignore
         url=HttpUrl("https://github.com"),
         description="known issue 1",
     ),
-    test_issues_models.ReportedIssueRequest(
+    TestReportedIssueRequest(
         case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[0].name,
         url=HttpUrl("https://warthogs.atlassian.net"),
         description="known issue 2",
     ),
-    test_issues_models.ReportedIssueRequest(
+    TestReportedIssueRequest(
         case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[1].name,
         url=HttpUrl("https://bugs.launchpad.net"),
         description="known issue 3",
@@ -308,19 +310,19 @@ TEST_CASE_ISSUE_REQUESTS = [
 ]
 
 ENVIRONMENT_ISSUE_REQUESTS = [
-    environment_issues_models.ReportedIssueRequest(
+    EnvironmentReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[0].environment,
         url=HttpUrl("https://github.com"),
         description="known issue 1",
         is_confirmed=True,
     ),
-    environment_issues_models.ReportedIssueRequest(
+    EnvironmentReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[1].environment,
         url=HttpUrl("https://warthogs.atlassian.net"),
         description="known issue 2",
         is_confirmed=False,
     ),
-    environment_issues_models.ReportedIssueRequest(
+    EnvironmentReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[2].environment,
         url=HttpUrl("https://bugs.launchpad.net"),
         description="known issue 3",

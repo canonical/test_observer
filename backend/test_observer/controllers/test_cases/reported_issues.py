@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import TestCaseIssue
 from test_observer.data_access.setup import get_db
 
-from .models import ReportedIssueRequest, ReportedIssueResponse
+from .models import TestReportedIssueRequest, TestReportedIssueResponse
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ router = APIRouter()
 endpoint = "/reported-issues"
 
 
-@router.get(endpoint, response_model=list[ReportedIssueResponse])
+@router.get(endpoint, response_model=list[TestReportedIssueResponse])
 def get_reported_issues(
     template_id: str | None = None,
     case_name: str | None = None,
@@ -27,8 +27,10 @@ def get_reported_issues(
     return db.execute(stmt).scalars()
 
 
-@router.post(endpoint, response_model=ReportedIssueResponse)
-def create_reported_issue(request: ReportedIssueRequest, db: Session = Depends(get_db)):
+@router.post(endpoint, response_model=TestReportedIssueResponse)
+def create_reported_issue(
+    request: TestReportedIssueRequest, db: Session = Depends(get_db)
+):
     issue = TestCaseIssue(
         template_id=request.template_id,
         url=request.url,
@@ -41,9 +43,9 @@ def create_reported_issue(request: ReportedIssueRequest, db: Session = Depends(g
     return issue
 
 
-@router.put(endpoint + "/{issue_id}", response_model=ReportedIssueResponse)
+@router.put(endpoint + "/{issue_id}", response_model=TestReportedIssueResponse)
 def update_reported_issue(
-    issue_id: int, request: ReportedIssueRequest, db: Session = Depends(get_db)
+    issue_id: int, request: TestReportedIssueRequest, db: Session = Depends(get_db)
 ):
     issue = db.get(TestCaseIssue, issue_id)
     for field in request.model_fields:
