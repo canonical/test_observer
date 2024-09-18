@@ -4,6 +4,7 @@ import '../models/artefact.dart';
 
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
+import '../models/environment_issue.dart';
 import '../models/family_name.dart';
 import '../models/rerun_request.dart';
 import '../models/test_execution.dart';
@@ -138,5 +139,43 @@ class ApiRepository {
     final response = await dio.get('/v1/artefacts/$artefactId/versions');
     final List data = response.data;
     return data.map((json) => ArtefactVersion.fromJson(json)).toList();
+  }
+
+  Future<List<EnvironmentIssue>> getEnvironmentsIssues() async {
+    final response = await dio.get('/v1/environments/reported-issues');
+    final List issuesJson = response.data;
+    return issuesJson.map((json) => EnvironmentIssue.fromJson(json)).toList();
+  }
+
+  Future<EnvironmentIssue> createEnvironmentIssue(
+    String url,
+    String description,
+    String environmentName,
+    bool isConfirmed,
+  ) async {
+    final response = await dio.post(
+      '/v1/environments/reported-issues',
+      data: {
+        'url': url,
+        'description': description,
+        'environment_name': environmentName,
+        'is_confirmed': isConfirmed,
+      },
+    );
+    return EnvironmentIssue.fromJson(response.data);
+  }
+
+  Future<EnvironmentIssue> updateEnvironmentIssue(
+    EnvironmentIssue issue,
+  ) async {
+    final response = await dio.put(
+      '/v1/environments/reported-issues/${issue.id}',
+      data: issue.toJson(),
+    );
+    return EnvironmentIssue.fromJson(response.data);
+  }
+
+  Future<void> deleteEnvironmentIssue(int issueId) async {
+    await dio.delete('/v1/environments/reported-issues/$issueId');
   }
 }

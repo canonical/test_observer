@@ -3,64 +3,63 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../helpers.dart';
-import '../../../models/test_issue.dart';
-import '../../../models/test_result.dart';
-import '../../../providers/tests_issues.dart';
+import '../../../models/environment.dart';
+import '../../../models/environment_issue.dart';
+import '../../../providers/environments_issues.dart';
 import '../../spacing.dart';
 import '../../vanilla/vanilla_text_input.dart';
 
-void showTestIssueUpdateDialog({
+void showEnvironmentIssueUpdateDialog({
   required BuildContext context,
-  required TestIssue issue,
+  required EnvironmentIssue issue,
 }) =>
     showDialog(
       context: context,
       builder: (_) => Dialog(
         child: Padding(
           padding: const EdgeInsets.all(Spacing.level4),
-          child: _TestIssueUpdateForm(issue: issue),
+          child: _EnvironmentIssueUpdateForm(issue: issue),
         ),
       ),
     );
 
-void showTestIssueCreateDialog({
+void showEnvironmentIssueCreateDialog({
   required BuildContext context,
-  required TestResult testResult,
+  required Environment environment,
 }) =>
     showDialog(
       context: context,
       builder: (_) => Dialog(
         child: Padding(
           padding: const EdgeInsets.all(Spacing.level4),
-          child: _TestIssueCreateForm(testResult: testResult),
+          child: _EnvironmentIssueCreateForm(environment: environment),
         ),
       ),
     );
 
-class _TestIssueUpdateForm extends ConsumerWidget {
-  const _TestIssueUpdateForm({required this.issue});
+class _EnvironmentIssueUpdateForm extends ConsumerWidget {
+  const _EnvironmentIssueUpdateForm({required this.issue});
 
-  final TestIssue issue;
+  final EnvironmentIssue issue;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final issueOn = issue.templateId.isEmpty
-        ? 'On all cases with name: ${issue.caseName}'
-        : 'On all cases with template id: ${issue.templateId}';
-    return _TestIssueForm(
+    return _EnvironmentIssueForm(
       initialUrl: issue.url,
       initialDescription: issue.description,
-      formSubtitle: issueOn,
-      onSubmit: (url, description) =>
-          ref.read(testsIssuesProvider.notifier).updateIssue(
+      initialIsConfirmed: issue.isConfirmed,
+      formSubtitle: 'On all environments with name: ${issue.environmentName}',
+      onSubmit: (url, description, isConfirmed) =>
+          ref.read(environmentsIssuesProvider.notifier).updateIssue(
                 issue.copyWith(
                   url: url,
                   description: description,
+                  isConfirmed: isConfirmed,
                 ),
               ),
       onDelete: () => showDialog<bool>(
         context: context,
-        builder: (_) => _DeleteTestIssueConfirmationDialog(
+        builder: (_) => _DeleteEnvironmentIssueConfirmationDialog(
           issue: issue,
         ),
       ),
@@ -68,41 +67,32 @@ class _TestIssueUpdateForm extends ConsumerWidget {
   }
 }
 
-class _TestIssueCreateForm extends ConsumerWidget {
-  const _TestIssueCreateForm({required this.testResult});
+class _EnvironmentIssueCreateForm extends ConsumerWidget {
+  const _EnvironmentIssueCreateForm({required this.environment});
 
-  final TestResult testResult;
+  final Environment environment;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final issueOn = testResult.templateId.isEmpty
-        ? 'On all cases with name: ${testResult.name}'
-        : 'On all cases with template id: ${testResult.templateId}';
-    return _TestIssueForm(
-      formSubtitle: issueOn,
-      onSubmit: (url, description) {
-        if (testResult.templateId.isEmpty) {
-          ref.read(testsIssuesProvider.notifier).createIssue(
-                url,
-                description,
-                caseName: testResult.name,
-              );
-        } else {
-          ref.read(testsIssuesProvider.notifier).createIssue(
-                url,
-                description,
-                templateId: testResult.templateId,
-              );
-        }
+    return _EnvironmentIssueForm(
+      formSubtitle: 'On all runs of environment ${environment.name}',
+      onSubmit: (url, description, isConfirmed) {
+        ref.read(environmentsIssuesProvider.notifier).createIssue(
+              url,
+              description,
+              environment.name,
+              isConfirmed,
+            );
       },
     );
   }
 }
 
-class _TestIssueForm extends ConsumerStatefulWidget {
-  const _TestIssueForm({
+class _EnvironmentIssueForm extends ConsumerStatefulWidget {
+  const _EnvironmentIssueForm({
     this.initialUrl = '',
     this.initialDescription = '',
+    this.initialIsConfirmed = false,
     required this.formSubtitle,
     required this.onSubmit,
     this.onDelete,
@@ -110,24 +100,29 @@ class _TestIssueForm extends ConsumerStatefulWidget {
 
   final String initialUrl;
   final String initialDescription;
+  final bool initialIsConfirmed;
   final String formSubtitle;
-  final void Function(String url, String description) onSubmit;
+  final void Function(String url, String description, bool isConfirmed)
+      onSubmit;
   final Future<bool?> Function()? onDelete;
 
   @override
-  ConsumerState<_TestIssueForm> createState() => _TestIssueFormState();
+  ConsumerState<_EnvironmentIssueForm> createState() =>
+      _EnvironmentIssueFormState();
 }
 
-class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
+class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
   final _formKey = GlobalKey<FormState>();
   final _urlController = TextEditingController();
   final _descriptionController = TextEditingController();
+  late bool _isConfirmed;
 
   @override
   void initState() {
     super.initState();
     _urlController.text = widget.initialUrl;
     _descriptionController.text = widget.initialDescription;
+    _isConfirmed = widget.initialIsConfirmed;
   }
 
   @override
@@ -170,6 +165,31 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
             const SizedBox(height: Spacing.level4),
             Row(
               children: [
+                const Text('Needs confirmation'),
+                const SizedBox(width: Spacing.level2),
+                Checkbox(
+                  value: !_isConfirmed,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _isConfirmed = !value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(width: Spacing.level2),
+                Text(
+                  '(Does this issue require certlab\'s confirmation?)',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: Spacing.level4),
+            Row(
+              children: [
                 TextButton(
                   onPressed: () => context.pop(),
                   child: Text(
@@ -196,6 +216,7 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                       widget.onSubmit(
                         _urlController.text,
                         _descriptionController.text,
+                        _isConfirmed,
                       );
                       context.pop();
                     }
@@ -214,23 +235,19 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
   }
 }
 
-class _DeleteTestIssueConfirmationDialog extends ConsumerWidget {
-  const _DeleteTestIssueConfirmationDialog({required this.issue});
+class _DeleteEnvironmentIssueConfirmationDialog extends ConsumerWidget {
+  const _DeleteEnvironmentIssueConfirmationDialog({required this.issue});
 
-  final TestIssue issue;
+  final EnvironmentIssue issue;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    String message = 'Note that this will remove the issue for all tests with';
-    if (issue.templateId.isNotEmpty) {
-      message += ' template id: ${issue.templateId}';
-    } else {
-      message += ' case name: ${issue.caseName}';
-    }
-
     return AlertDialog(
       title: const Text('Are you sure you want to delete this issue?'),
-      content: Text(message),
+      content: Text(
+        'Note that this will remove the issue for'
+        ' runs of environment ${issue.environmentName}',
+      ),
       actions: [
         TextButton(
           onPressed: () {
@@ -240,7 +257,7 @@ class _DeleteTestIssueConfirmationDialog extends ConsumerWidget {
         ),
         TextButton(
           onPressed: () {
-            ref.read(testsIssuesProvider.notifier).deleteIssue(issue.id);
+            ref.read(environmentsIssuesProvider.notifier).deleteIssue(issue.id);
             context.pop(true);
           },
           child: const Text('Yes'),

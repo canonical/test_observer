@@ -474,6 +474,28 @@ class TestCaseIssue(Base):
         return data_model_repr(
             self,
             "template_id",
+            "case_name",
+            "url",
+            "description",
+        )
+
+
+class EnvironmentIssue(Base):
+    """
+    A table to store issues reported on certain environments
+    """
+
+    __tablename__ = "environment_issue"
+
+    environment_name: Mapped[str]
+    url: Mapped[str]
+    description: Mapped[str]
+    is_confirmed: Mapped[bool]
+
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self,
+            "environment_name",
             "url",
             "description",
         )

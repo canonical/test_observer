@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru/yaru.dart';
 
 import '../../providers/test_events.dart';
+import '../blocking_provider_preloader.dart';
 import '../expandable.dart';
 
-class TestEventLogExpandable extends ConsumerWidget {
+class TestEventLogExpandable extends StatelessWidget {
   const TestEventLogExpandable({
     super.key,
     required this.testExecutionId,
@@ -16,17 +15,14 @@ class TestEventLogExpandable extends ConsumerWidget {
   final bool initiallyExpanded;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final testEvents = ref.watch(testEventsProvider(testExecutionId));
-
+  Widget build(BuildContext context) {
     return Expandable(
-      title: const Text('Event Log'),
+      title: const Text('Event log'),
       initiallyExpanded: initiallyExpanded,
-      children: <Widget>[
-        testEvents.when(
-          loading: () => const Center(child: YaruCircularProgressIndicator()),
-          error: (error, stackTrace) => Center(child: Text('Error: $error')),
-          data: (testEvents) => DataTable(
+      children: [
+        BlockingProviderPreloader(
+          provider: testEventsProvider(testExecutionId),
+          builder: (_, testEvents) => DataTable(
             columns: const <DataColumn>[
               DataColumn(
                 label: Expanded(

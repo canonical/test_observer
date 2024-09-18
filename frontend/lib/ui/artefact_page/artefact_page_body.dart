@@ -4,12 +4,14 @@ import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../models/test_execution.dart';
+import '../../providers/environments_issues.dart';
 import '../../providers/filtered_test_executions.dart';
+import '../../providers/tests_issues.dart';
 import '../../routing.dart';
+import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'rerun_filtered_environments_button.dart';
 import 'test_execution_expandable/test_execution_expandable.dart';
-import 'test_issues/test_issues_preloader.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -43,15 +45,19 @@ class ArtefactPageBody extends ConsumerWidget {
             const RerunFilteredEnvironmentsButton(),
           ],
         ),
-        TestIssuesPreloader(
-          child: Expanded(
-            child: ListView.builder(
-              itemCount: testExecutions.length,
-              itemBuilder: (_, i) => Padding(
-                // Padding is to avoid scroll bar covering trailing buttons
-                padding: const EdgeInsets.only(right: Spacing.level3),
-                child: TestExecutionExpandable(
-                  testExecution: testExecutions[i],
+        NonBlockingProviderPreloader(
+          provider: environmentsIssuesProvider,
+          child: NonBlockingProviderPreloader(
+            provider: testsIssuesProvider,
+            child: Expanded(
+              child: ListView.builder(
+                itemCount: testExecutions.length,
+                itemBuilder: (_, i) => Padding(
+                  // Padding is to avoid scroll bar covering trailing buttons
+                  padding: const EdgeInsets.only(right: Spacing.level3),
+                  child: TestExecutionExpandable(
+                    testExecution: testExecutions[i],
+                  ),
                 ),
               ),
             ),
