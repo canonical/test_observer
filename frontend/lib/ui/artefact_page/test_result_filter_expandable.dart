@@ -1,14 +1,14 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/test_result.dart';
 import '../../providers/test_results.dart';
+import '../blocking_provider_preloader.dart';
 import '../expandable.dart';
 import 'test_result_expandable.dart';
 
-class TestResultsFilterExpandable extends ConsumerWidget {
+class TestResultsFilterExpandable extends StatelessWidget {
   const TestResultsFilterExpandable({
     super.key,
     required this.statusToFilterBy,
@@ -19,9 +19,7 @@ class TestResultsFilterExpandable extends ConsumerWidget {
   final int testExecutionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final testResults = ref.watch(testResultsProvider(testExecutionId));
-
+  Widget build(BuildContext context) {
     Color? fontColor;
     if (statusToFilterBy == TestResultStatus.failed) {
       fontColor = YaruColors.red;
@@ -32,10 +30,9 @@ class TestResultsFilterExpandable extends ConsumerWidget {
     final headerStyle =
         Theme.of(context).textTheme.titleMedium?.apply(color: fontColor);
 
-    return testResults.when(
-      loading: () => const Center(child: YaruCircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('Error: $error')),
-      data: (testResults) {
+    return BlockingProviderPreloader(
+      provider: testResultsProvider(testExecutionId),
+      builder: (_, testResults) {
         final filteredTestResults = testResults
             .filter((testResult) => testResult.status == statusToFilterBy)
             .toList();

@@ -9,22 +9,20 @@ class ViewModeToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final viewMode = ref.watch(viewModeProvider);
+    final viewMode = ref.watch(viewModeProvider).value;
 
-    return viewMode.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (viewMode) => ToggleButtons(
-        isSelected: [
-          viewMode == ViewModes.list,
-          viewMode == ViewModes.dashboard,
-        ],
-        children: const [Icon(Icons.list), Icon(Icons.dashboard)],
-        onPressed: (i) {
-          final selectedView = [ViewModes.list, ViewModes.dashboard][i];
-          ref.watch(viewModeProvider.notifier).set(selectedView);
-        },
-      ),
+    if (viewMode == null) return const SizedBox.shrink();
+
+    return ToggleButtons(
+      isSelected: [
+        viewMode == ViewModes.list,
+        viewMode == ViewModes.dashboard,
+      ],
+      children: const [Icon(Icons.list), Icon(Icons.dashboard)],
+      onPressed: (i) {
+        final selectedView = [ViewModes.list, ViewModes.dashboard][i];
+        ref.watch(viewModeProvider.notifier).set(selectedView);
+      },
     );
   }
 }

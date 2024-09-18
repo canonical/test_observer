@@ -6,6 +6,7 @@ import 'package:yaru/widgets.dart';
 import '../../providers/family_artefacts.dart';
 import '../../providers/artefact_side_filters_visibility.dart';
 import '../../routing.dart';
+import '../blocking_provider_preloader.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
 import 'dashboard_body/dashboard_body.dart';
@@ -35,8 +36,9 @@ class Dashboard extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: _ArtefactsLoader(
-              child: Row(
+            child: BlockingProviderPreloader(
+              provider: familyArtefactsProvider(family),
+              builder: (_, __) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   YaruOptionButton(
@@ -58,25 +60,6 @@ class Dashboard extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ArtefactsLoader extends ConsumerWidget {
-  const _ArtefactsLoader({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
-    final artefacts = ref.watch(familyArtefactsProvider(family));
-
-    return artefacts.when(
-      data: (_) => child,
-      error: (e, stack) =>
-          Center(child: Text('Error:\n$e\nStackTrace:\n$stack')),
-      loading: () => const Center(child: YaruCircularProgressIndicator()),
     );
   }
 }
