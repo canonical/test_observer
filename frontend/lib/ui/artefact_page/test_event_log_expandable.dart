@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../providers/test_events.dart';
 import '../blocking_provider_preloader.dart';
+import '../expandable.dart';
 
 class TestEventLogExpandable extends StatelessWidget {
   const TestEventLogExpandable({
@@ -15,56 +16,62 @@ class TestEventLogExpandable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlockingProviderPreloader(
-      provider: testEventsProvider(testExecutionId),
-      builder: (_, testEvents) => DataTable(
-        columns: const <DataColumn>[
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Event Name',
-                style: TextStyle(fontStyle: FontStyle.italic),
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Timestamp',
-                style: TextStyle(fontStyle: FontStyle.italic),
-              ),
-            ),
-          ),
-          DataColumn(
-            label: Expanded(
-              child: Text(
-                'Detail',
-                style: TextStyle(fontStyle: FontStyle.italic),
-              ),
-            ),
-          ),
-        ],
-        rows: testEvents
-            .map(
-              (testEvent) => DataRow(
-                cells: <DataCell>[
-                  DataCell(Text(testEvent.eventName)),
-                  DataCell(Text(testEvent.timestamp)),
-                  DataCell(
-                    Tooltip(
-                      message: testEvent.detail,
-                      child: Text(
-                        testEvent.detail,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
+    return Expandable(
+      title: const Text('Event log'),
+      initiallyExpanded: initiallyExpanded,
+      children: [
+        BlockingProviderPreloader(
+          provider: testEventsProvider(testExecutionId),
+          builder: (_, testEvents) => DataTable(
+            columns: const <DataColumn>[
+              DataColumn(
+                label: Expanded(
+                  child: Text(
+                    'Event Name',
+                    style: TextStyle(fontStyle: FontStyle.italic),
                   ),
-                ],
+                ),
               ),
-            )
-            .toList(),
-      ),
+              DataColumn(
+                label: Expanded(
+                  child: Text(
+                    'Timestamp',
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ),
+              DataColumn(
+                label: Expanded(
+                  child: Text(
+                    'Detail',
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ),
+            ],
+            rows: testEvents
+                .map(
+                  (testEvent) => DataRow(
+                    cells: <DataCell>[
+                      DataCell(Text(testEvent.eventName)),
+                      DataCell(Text(testEvent.timestamp)),
+                      DataCell(
+                        Tooltip(
+                          message: testEvent.detail,
+                          child: Text(
+                            testEvent.detail,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ],
     );
   }
 }
