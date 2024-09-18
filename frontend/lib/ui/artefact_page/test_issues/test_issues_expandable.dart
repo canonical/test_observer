@@ -20,7 +20,7 @@ class TestIssuesExpandable extends ConsumerWidget {
       initiallyExpanded: issues.isNotEmpty,
       title: Row(
         children: [
-          Text('Reported Issues (${issues.length})'),
+          Text('Reported Test Issues (${issues.length})'),
           const Spacer(),
           TextButton(
             onPressed: () => showTestIssueCreateDialog(

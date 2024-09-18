@@ -32,7 +32,7 @@ class EnvironmentIssuesExpandable extends ConsumerWidget {
       initiallyExpanded: issues.isNotEmpty,
       title: Row(
         children: [
-          Text('Reported Issues (${issues.length})'),
+          Text('Reported Environment Issues (${issues.length})'),
           const Spacer(),
           TextButton(
             onPressed: () => showEnvironmentIssueCreateDialog(
