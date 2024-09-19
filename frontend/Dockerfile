@@ -17,6 +17,12 @@ COPY . /app
 RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
 RUN flutter build web --release
+# Cache busting so that users don't have to hard refresh
+RUN RANDOMVALUE=$RANDOM
+RUN mv build/web/flutter_bootstrap.js build/web/flutter_bootstrap.$RANDOMVALUE.js
+RUN mv build/web/main.dart.js build/web/main.dart.$RANDOMVALUE.js
+RUN find build/web/ -type f -exec sed -i -e 's/flutter_bootstrap.js/flutter_bootstrap.'$RANDOMVALUE'.js/g' {} \;
+RUN find build/web/ -type f -exec sed -i -e 's/main.dart.js/main.dart.'$RANDOMVALUE'.js/g' {} \;
 
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
