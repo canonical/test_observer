@@ -68,6 +68,28 @@ def test_post_three_then_get(test_client: TestClient):
     _assert_reported_issue(json[2], issue3)
 
 
+def test_get_needs_confirmation(test_client: TestClient):
+    confirmed_issue = {
+        **valid_post_data,
+        "description": "Confirmed",
+        "is_confirmed": True,
+    }
+    unconfirmed_issue = {
+        **valid_post_data,
+        "description": "Unconfirmed",
+        "is_confirmed": False,
+    }
+
+    test_client.post(endpoint, json=confirmed_issue)
+    test_client.post(endpoint, json=unconfirmed_issue)
+
+    response = test_client.get(endpoint, params={"is_confirmed": False})
+    assert response.status_code == 200
+    json = response.json()
+    assert len(json) == 1
+    _assert_reported_issue(json[0], unconfirmed_issue)
+
+
 def test_update_description(test_client: TestClient):
     response = test_client.post(endpoint, json=valid_post_data)
     issue = response.json()

@@ -13,8 +13,13 @@ endpoint = "/reported-issues"
 
 
 @router.get(endpoint, response_model=list[EnvironmentReportedIssueResponse])
-def get_reported_issues(db: Session = Depends(get_db)):
-    return db.execute(select(EnvironmentIssue)).scalars()
+def get_reported_issues(
+    is_confirmed: bool | None = None, db: Session = Depends(get_db)
+):
+    stmt = select(EnvironmentIssue)
+    if is_confirmed is not None:
+        stmt = stmt.where(EnvironmentIssue.is_confirmed == is_confirmed)
+    return db.execute(stmt).scalars()
 
 
 @router.post(endpoint, response_model=EnvironmentReportedIssueResponse)
