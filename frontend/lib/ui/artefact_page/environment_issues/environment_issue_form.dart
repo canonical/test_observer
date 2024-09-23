@@ -45,7 +45,7 @@ class _EnvironmentIssueUpdateForm extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return _EnvironmentIssueForm(
-      initialUrl: issue.url,
+      initialUrl: issue.url ?? '',
       initialDescription: issue.description,
       initialIsConfirmed: issue.isConfirmed,
       formSubtitle: 'On all environments with name: ${issue.environmentName}',
@@ -151,7 +151,15 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
             VanillaTextInput(
               label: 'Url',
               controller: _urlController,
-              validator: validateIssueUrl,
+              validator: (url) {
+                if ((url == null || url.isEmpty) && _isConfirmed) {
+                  return 'Confirmed environment issues must have a URL';
+                }
+
+                if (url != null && url.isNotEmpty) return validateIssueUrl(url);
+
+                return null;
+              },
             ),
             const SizedBox(height: Spacing.level3),
             VanillaTextInput(

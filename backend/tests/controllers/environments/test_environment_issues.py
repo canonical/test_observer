@@ -20,12 +20,31 @@ def test_empty_get(test_client: TestClient):
 
 @pytest.mark.parametrize(
     "field",
-    ["url", "description", "environment_name", "is_confirmed"],
+    ["description", "environment_name", "is_confirmed"],
 )
 def test_post_requires_field(test_client: TestClient, field: str):
     data = {k: v for k, v in valid_post_data.items() if k != field}
     response = test_client.post(endpoint, json=data)
     assert_fails_validation(response, field, "missing")
+
+
+def test_url_is_required_if_confirmed(test_client: TestClient):
+    data = {**valid_post_data, "url": None}
+
+    response = test_client.post(endpoint, json=data)
+
+    assert response.status_code == 422
+
+
+def test_url_not_required_if_unconfirmed(test_client: TestClient):
+    data = {**valid_post_data, "is_confirmed": False}
+    data.pop("url")
+
+    response = test_client.post(endpoint, json=data)
+    json = response.json()
+
+    assert response.status_code == 200
+    _assert_reported_issue(json, json)
 
 
 def test_post_validates_url(test_client: TestClient):
@@ -66,6 +85,28 @@ def test_post_three_then_get(test_client: TestClient):
     _assert_reported_issue(json[0], issue1)
     _assert_reported_issue(json[1], issue2)
     _assert_reported_issue(json[2], issue3)
+
+
+def test_get_needs_confirmation(test_client: TestClient):
+    confirmed_issue = {
+        **valid_post_data,
+        "description": "Confirmed",
+        "is_confirmed": True,
+    }
+    unconfirmed_issue = {
+        **valid_post_data,
+        "description": "Unconfirmed",
+        "is_confirmed": False,
+    }
+
+    test_client.post(endpoint, json=confirmed_issue)
+    test_client.post(endpoint, json=unconfirmed_issue)
+
+    response = test_client.get(endpoint, params={"is_confirmed": False})
+    assert response.status_code == 200
+    json = response.json()
+    assert len(json) == 1
+    _assert_reported_issue(json[0], unconfirmed_issue)
 
 
 def test_update_description(test_client: TestClient):

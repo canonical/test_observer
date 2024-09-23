@@ -488,7 +488,7 @@ class EnvironmentIssue(Base):
     __tablename__ = "environment_issue"
 
     environment_name: Mapped[str]
-    url: Mapped[str]
+    url: Mapped[str | None] = mapped_column(default=None)
     description: Mapped[str]
     is_confirmed: Mapped[bool]
 
@@ -498,4 +498,5 @@ class EnvironmentIssue(Base):
             "environment_name",
             "url",
             "description",
+            "is_confirmed",
         )

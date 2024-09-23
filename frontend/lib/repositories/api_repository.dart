@@ -156,7 +156,7 @@ class ApiRepository {
     final response = await dio.post(
       '/v1/environments/reported-issues',
       data: {
-        'url': url,
+        'url': url.isEmpty ? null : url,
         'description': description,
         'environment_name': environmentName,
         'is_confirmed': isConfirmed,

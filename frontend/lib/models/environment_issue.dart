@@ -9,7 +9,7 @@ class EnvironmentIssue with _$EnvironmentIssue {
     required int id,
     @JsonKey(name: 'environment_name') required String environmentName,
     required String description,
-    required String url,
+    required String? url,
     @JsonKey(name: 'is_confirmed') required bool isConfirmed,
   }) = _EnvironmentIssue;
 

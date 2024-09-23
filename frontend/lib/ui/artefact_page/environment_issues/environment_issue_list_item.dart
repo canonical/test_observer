@@ -12,6 +12,7 @@ class EnvironmentIssueListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final issueUrl = issue.url;
     return ListTile(
       title: Tooltip(
         message: issue.description,
@@ -36,11 +37,12 @@ class EnvironmentIssueListItem extends StatelessWidget {
                       ?.copyWith(color: Colors.yellow.shade800),
                 ),
           const SizedBox(width: Spacing.level4),
-          InlineUrlText(
-            url: issue.url,
-            urlText: 'URL',
-            fontStyle: Theme.of(context).textTheme.bodyMedium,
-          ),
+          if (issueUrl != null)
+            InlineUrlText(
+              url: issueUrl,
+              urlText: 'URL',
+              fontStyle: Theme.of(context).textTheme.bodyMedium,
+            ),
           TextButton(
             onPressed: () => showEnvironmentIssueUpdateDialog(
               context: context,
