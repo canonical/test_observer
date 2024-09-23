@@ -20,12 +20,31 @@ def test_empty_get(test_client: TestClient):
 
 @pytest.mark.parametrize(
     "field",
-    ["url", "description", "environment_name", "is_confirmed"],
+    ["description", "environment_name", "is_confirmed"],
 )
 def test_post_requires_field(test_client: TestClient, field: str):
     data = {k: v for k, v in valid_post_data.items() if k != field}
     response = test_client.post(endpoint, json=data)
     assert_fails_validation(response, field, "missing")
+
+
+def test_url_is_required_if_confirmed(test_client: TestClient):
+    data = {**valid_post_data, "url": None}
+
+    response = test_client.post(endpoint, json=data)
+
+    assert response.status_code == 422
+
+
+def test_url_not_required_if_unconfirmed(test_client: TestClient):
+    data = {**valid_post_data, "is_confirmed": False}
+    data.pop("url")
+
+    response = test_client.post(endpoint, json=data)
+    json = response.json()
+
+    assert response.status_code == 200
+    _assert_reported_issue(json, json)
 
 
 def test_post_validates_url(test_client: TestClient):
