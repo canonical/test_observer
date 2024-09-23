@@ -39,7 +39,7 @@ class EnvironmentIssueListItem extends StatelessWidget {
           const SizedBox(width: Spacing.level4),
           if (issueUrl != null)
             InlineUrlText(
-              url: issueUrl,
+              url: issueUrl.toString(),
               urlText: 'URL',
               fontStyle: Theme.of(context).textTheme.bodyMedium,
             ),
