@@ -45,18 +45,20 @@ class _EnvironmentIssueUpdateForm extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return _EnvironmentIssueForm(
-      initialUrl: issue.url ?? '',
+      initialUrl: issue.url?.toString() ?? '',
       initialDescription: issue.description,
       initialIsConfirmed: issue.isConfirmed,
       formSubtitle: 'On all environments with name: ${issue.environmentName}',
-      onSubmit: (url, description, isConfirmed) =>
-          ref.read(environmentsIssuesProvider.notifier).updateIssue(
-                issue.copyWith(
-                  url: url,
-                  description: description,
-                  isConfirmed: isConfirmed,
-                ),
+      onSubmit: (url, description, isConfirmed) {
+        final parsedUrl = Uri.tryParse(url);
+        ref.read(environmentsIssuesProvider.notifier).updateIssue(
+              issue.copyWith(
+                url: (parsedUrl?.isAbsolute == true) ? parsedUrl : null,
+                description: description,
+                isConfirmed: isConfirmed,
               ),
+            );
+      },
       onDelete: () => showDialog<bool>(
         context: context,
         builder: (_) => _DeleteEnvironmentIssueConfirmationDialog(
