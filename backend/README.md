@@ -116,3 +116,19 @@ DOCKER_BUILDKIT=1 docker build . -t your-choice-of-tag -f backend/Dockerfile.pro
 ```
 
 GitHub built images are also made available in the authorisation requiring private registry at `ghcr.io/canonical/test_observer/api` (every main branch commit and tag following the pattern `v*.*.*` gets stored there).
+
+## Loading a database dump
+
+If you have a database dump created using pg_dump, you can load it your local database instance in k8s. To do that simply run the following:
+
+```bash
+kubectl exec -i services/test-observer-db -- pg_restore -U postgres -d postgres --clean --if-exists --no-owner < path/to/db.dump
+```
+
+## Benchmarks
+
+We use [locust](https://locust.io) to benchmark our API. Our benchmarks live in `locustfile.py` and can be run independantly via:
+
+```bash
+locust
+```

@@ -22,6 +22,8 @@ build:
           - dest: "scripts/"
             src: "scripts/**"
             strip: "scripts/"
+          - dest: "."
+            src: "locustfile.py"
   # Use microk8s registry
   insecureRegistries:
     - localhost:32000
