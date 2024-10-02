@@ -43,6 +43,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql import func
 
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     TestExecutionReviewDecision,
     TestExecutionStatus,
@@ -500,3 +501,26 @@ class EnvironmentIssue(Base):
             "description",
             "is_confirmed",
         )
+
+
+class ArtefactBuildEnvironmentReview(Base):
+    """
+    A table to store review information for test runs on a combination
+    of environment and artefact builds.
+    """
+
+    __tablename__ = "artefact_build_environment_review"
+    __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
+
+    review_decision: Mapped[
+        list[ArtefactBuildEnvironmentReviewDecision]
+    ] = mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    review_comment: Mapped[str] = mapped_column(default="")
+
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environment.id", ondelete="CASCADE")
+    )
+
+    artefact_build_id: Mapped[int] = mapped_column(
+        ForeignKey("artefact_build.id", ondelete="CASCADE")
+    )
