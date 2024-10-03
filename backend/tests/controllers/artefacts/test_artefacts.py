@@ -18,6 +18,7 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from datetime import date, timedelta
+from operator import itemgetter
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -420,3 +421,46 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
     assert response.status_code == 200
     assert response.json() == expected_result
+
+
+def test_get_404_when_artefact_is_not_found(test_client: TestClient):
+    response = test_client.get("/v1/artefacts/1/environment-reviews")
+    assert response.status_code == 404
+
+
+def test_get_no_environment_reviews_exist(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    response = test_client.get(f"/v1/artefacts/{a.id}/environment-reviews")
+    assert response.status_code == 200
+
+
+def test_get_with_two_environment_reviews(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    review1 = generator.gen_artefact_build_environment_review(ab.id, e1.id)
+    review2 = generator.gen_artefact_build_environment_review(ab.id, e2.id)
+
+    response = test_client.get(f"/v1/artefacts/{a.id}/environment-reviews")
+    assert response.status_code == 200
+    assert sorted(response.json(), key=itemgetter("id")) == [
+        {
+            "id": review1.id,
+            "review_decision": review1.review_decision,
+            "review_comment": review1.review_comment,
+            "environment_id": review1.environment_id,
+            "artefact_build_id": review1.artefact_build_id,
+        },
+        {
+            "id": review2.id,
+            "review_decision": review2.review_decision,
+            "review_comment": review2.review_comment,
+            "environment_id": review2.environment_id,
+            "artefact_build_id": review2.artefact_build_id,
+        },
+    ]

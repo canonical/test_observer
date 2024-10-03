@@ -19,7 +19,7 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from test_observer.data_access import queries
 from test_observer.data_access.models import (
@@ -37,6 +37,7 @@ from .logic import (
 )
 from .models import (
     ArtefactBuildDTO,
+    ArtefactBuildEnvironmentReviewDTO,
     ArtefactDTO,
     ArtefactPatch,
     ArtefactVersionDTO,
@@ -178,3 +179,26 @@ def get_artefact_versions(
         .where(Artefact.repo == artefact.repo)
         .order_by(Artefact.id.desc())
     )
+
+
+@router.get(
+    "/{artefact_id}/environment-reviews",
+    response_model=list[ArtefactBuildEnvironmentReviewDTO],
+)
+def get_environment_reviews(artefact_id: int, db: Session = Depends(get_db)):
+    artefact = db.get(
+        Artefact,
+        artefact_id,
+        populate_existing=True,
+        options=[
+            selectinload(Artefact.builds).selectinload(
+                ArtefactBuild.environment_reviews
+            )
+        ],
+    )
+
+    if not artefact:
+        msg = f"Artefact with id {artefact_id} not found"
+        raise HTTPException(status_code=404, detail=msg)
+
+    return [review for build in artefact.builds for review in build.environment_reviews]

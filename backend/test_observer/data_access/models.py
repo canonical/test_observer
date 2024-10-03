@@ -249,6 +249,9 @@ class ArtefactBuild(Base):
     test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete"
     )
+    environment_reviews: Mapped[list["ArtefactBuildEnvironmentReview"]] = relationship(
+        lazy="raise"
+    )
 
     __table_args__ = (
         # Unique constraint when revision is NULL
