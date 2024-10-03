@@ -23,6 +23,7 @@ from typing import Any
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, computed_field
 
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     TestExecutionReviewDecision,
     TestExecutionStatus,
@@ -102,3 +103,11 @@ class ArtefactPatch(BaseModel):
 class ArtefactVersionDTO(BaseModel):
     version: str
     artefact_id: int = Field(validation_alias=AliasPath("id"))
+
+
+class ArtefactBuildEnvironmentReviewDTO(BaseModel):
+    id: int
+    review_decision: list[ArtefactBuildEnvironmentReviewDecision]
+    review_comment: str
+    environment_id: int
+    artefact_build_id: int
