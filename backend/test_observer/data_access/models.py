@@ -209,7 +209,8 @@ class Artefact(Base):
         """Kernel artefacts start with 'linix-' or end with '-kernel'"""
         return self.name.startswith("linux-") or self.name.endswith("-kernel")
 
-    def _get_latest_builds(self) -> list["ArtefactBuild"]:
+    @property
+    def latest_builds(self) -> list["ArtefactBuild"]:
         # Group builds by architecture
         grouped_builds = defaultdict(list)
         for build in self.builds:
@@ -222,13 +223,13 @@ class Artefact(Base):
 
     @property
     def all_test_executions_count(self) -> int:
-        return sum(len(ab.test_executions) for ab in self._get_latest_builds())
+        return sum(len(ab.test_executions) for ab in self.latest_builds)
 
     @property
     def completed_test_executions_count(self) -> int:
         return sum(
             len([te for te in ab.test_executions if te.review_decision])
-            for ab in self._get_latest_builds()
+            for ab in self.latest_builds
         )
 
 
