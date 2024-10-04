@@ -199,4 +199,3 @@ class DataGenerator:
     def _add_object(self, instance: object) -> None:
         self.db_session.add(instance)
         self.db_session.commit()
-        self.db_session.expire_all()

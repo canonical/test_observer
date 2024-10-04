@@ -186,15 +186,14 @@ def get_artefact_versions(
     response_model=list[ArtefactBuildEnvironmentReviewDTO],
 )
 def get_environment_reviews(artefact_id: int, db: Session = Depends(get_db)):
-    artefact = db.get(
-        Artefact,
-        artefact_id,
-        populate_existing=True,
-        options=[
+    artefact = db.scalar(
+        select(Artefact)
+        .where(Artefact.id == artefact_id)
+        .options(
             selectinload(Artefact.builds).selectinload(
                 ArtefactBuild.environment_reviews
             )
-        ],
+        )
     )
 
     if not artefact:
