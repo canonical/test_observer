@@ -67,8 +67,8 @@ def test_get_latest_artefacts_by_family(
                 else None
             ),
             "bug_link": "",
-            "all_test_executions_count": 0,
-            "completed_test_executions_count": 0,
+            "all_environment_reviews_count": 0,
+            "completed_environment_reviews_count": 0,
         }
     ]
 
@@ -105,8 +105,8 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         },
         "due_date": "2024-12-24",
         "bug_link": a.bug_link,
-        "all_test_executions_count": 0,
-        "completed_test_executions_count": 0,
+        "all_environment_reviews_count": 0,
+        "completed_environment_reviews_count": 0,
     }
 
 
@@ -117,21 +117,23 @@ def test_get_artefact_test_execution_counts_only_latest_build(
     ab = generator.gen_artefact_build(artefact=a, revision=1)
     e = generator.gen_environment()
     # Test Execution for the first artefact build
-    generator.gen_test_execution(ab, e)
+    generator.gen_artefact_build_environment_review(ab.id, e.id)
 
     ab_second = generator.gen_artefact_build(artefact=a, revision=2)
     # Test Execution for the second artefact build
-    generator.gen_test_execution(
-        artefact_build=ab_second,
-        environment=e,
-        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    generator.gen_artefact_build_environment_review(
+        artefact_build_id=ab_second.id,
+        environment_id=e.id,
+        review_decision=[
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+        ],
     )
 
     response = test_client.get(f"/v1/artefacts/{a.id}")
     assert response.status_code == 200
     # Verify only the counts of the latest build is returned
-    assert response.json()["all_test_executions_count"] == 1
-    assert response.json()["completed_test_executions_count"] == 1
+    assert response.json()["all_environment_reviews_count"] == 1
+    assert response.json()["completed_environment_reviews_count"] == 1
 
 
 def test_get_artefact_test_execution_counts(
@@ -142,23 +144,25 @@ def test_get_artefact_test_execution_counts(
     a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
-    te = generator.gen_test_execution(ab, e)
+    er = generator.gen_artefact_build_environment_review(ab.id, e.id)
 
     # Verify completed test execution count is zero, it is not reviewed yet
     response = test_client.get(f"/v1/artefacts/{a.id}")
     assert response.status_code == 200
-    assert response.json()["all_test_executions_count"] == 1
-    assert response.json()["completed_test_executions_count"] == 0
+    assert response.json()["all_environment_reviews_count"] == 1
+    assert response.json()["completed_environment_reviews_count"] == 0
 
-    te.review_decision = [TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS]
+    er.review_decision = [
+        ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+    ]
     db_session.commit()
-    db_session.refresh(te)
+    db_session.refresh(er)
 
     # Verify completed test execution count is one, it is reviewed
     response = test_client.get(f"/v1/artefacts/{a.id}")
     assert response.status_code == 200
-    assert response.json()["all_test_executions_count"] == 1
-    assert response.json()["completed_test_executions_count"] == 1
+    assert response.json()["all_environment_reviews_count"] == 1
+    assert response.json()["completed_environment_reviews_count"] == 1
 
 
 def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
@@ -326,17 +330,20 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
             artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
         ),
         "bug_link": "",
-        "all_test_executions_count": 0,
-        "completed_test_executions_count": 0,
+        "all_environment_reviews_count": 0,
+        "completed_environment_reviews_count": 0,
     }
 
 
 def test_artefact_signoff_disallow_approve(
-    test_client: TestClient, test_execution: TestExecution
+    test_client: TestClient, generator: DataGenerator
 ):
-    artefact_id = test_execution.artefact_build.artefact_id
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("env1")
+    generator.gen_artefact_build_environment_review(ab.id, e.id)
     response = test_client.patch(
-        f"/v1/artefacts/{artefact_id}",
+        f"/v1/artefacts/{a.id}",
         json={"status": ArtefactStatus.APPROVED},
     )
 
@@ -363,16 +370,20 @@ def test_artefact_signoff_ignore_old_build_on_approve(
     build2 = generator.gen_artefact_build(artefact, revision=1, architecture="arm64")
     build3 = generator.gen_artefact_build(artefact, revision=2)
     environment = generator.gen_environment()
-    generator.gen_test_execution(build1, environment)
-    generator.gen_test_execution(
-        build2,
-        environment,
-        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    generator.gen_artefact_build_environment_review(build1.id, environment.id)
+    generator.gen_artefact_build_environment_review(
+        build2.id,
+        environment.id,
+        review_decision=[
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+        ],
     )
-    generator.gen_test_execution(
-        build3,
-        environment,
-        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    generator.gen_artefact_build_environment_review(
+        build3.id,
+        environment.id,
+        review_decision=[
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+        ],
     )
 
     response = test_client.patch(

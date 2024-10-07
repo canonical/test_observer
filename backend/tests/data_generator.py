@@ -15,6 +15,7 @@ from test_observer.data_access.models import (
     User,
 )
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
     TestExecutionReviewDecision,
@@ -184,7 +185,7 @@ class DataGenerator:
         self,
         artefact_build_id: int,
         environment_id: int,
-        review_decision: list[TestExecutionReviewDecision] | None = None,
+        review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None,
         review_comment: str = "",
     ):
         review = ArtefactBuildEnvironmentReview(

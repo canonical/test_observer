@@ -22,9 +22,9 @@ from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    TestEvent,
     TestExecution,
     TestResult,
-    TestEvent,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
 

@@ -15,6 +15,7 @@
 #
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models_enums import (
     TestExecutionReviewDecision,
@@ -72,7 +73,9 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.test_results[1].test_case.template_id == "disk/stats_name"
 
 
-def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator):
+def test_end_test_is_idempotent(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -97,6 +100,7 @@ def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerato
             },
         )
 
+    db_session.refresh(test_execution)
     assert len(test_execution.test_results) == 1
 
 

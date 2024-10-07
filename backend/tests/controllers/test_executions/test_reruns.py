@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from operator import itemgetter
 from typing import Any, TypeAlias
 
 import pytest
@@ -145,7 +146,7 @@ def test_get_after_post_with_two_test_execution_ids(
 
     post({"test_execution_ids": [te1.id, te2.id]})
 
-    assert get().json() == [
+    assert sorted(get().json(), key=itemgetter("test_execution_id")) == [
         {
             "test_execution_id": te1.id,
             "ci_link": te1.ci_link,

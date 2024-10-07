@@ -177,11 +177,11 @@ class DeleteReruns(BaseModel):
     test_execution_ids: set[int]
 
 
-class TestEvent(BaseModel):
+class TestEventDTO(BaseModel):
     event_name: str
     timestamp: datetime
     detail: str
 
 
 class StatusUpdateRequest(BaseModel):
-    events: list[TestEvent]
+    events: list[TestEventDTO]

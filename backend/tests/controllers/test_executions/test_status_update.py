@@ -17,6 +17,7 @@
 import datetime
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from tests.data_generator import DataGenerator
 
@@ -68,7 +69,7 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
 
 
 def test_status_updates_is_idempotent(
-    test_client: TestClient, generator: DataGenerator
+    test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
     artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
@@ -97,6 +98,8 @@ def test_status_updates_is_idempotent(
                 ],
             },
         )
+
+    db_session.refresh(test_execution)
     assert len(test_execution.test_events) == 2
 
 

@@ -7,7 +7,12 @@ DEFAULT_DB_URL = "postgresql+pg8000://postgres:password@test-observer-db:5432/po
 DB_URL = environ.get("DB_URL", DEFAULT_DB_URL)
 
 engine = create_engine(DB_URL, pool_size=45, max_overflow=45)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    expire_on_commit=False,
+)
 
 
 # Dependency
