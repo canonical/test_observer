@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     TestExecutionReviewDecision,
 )
@@ -464,3 +465,45 @@ def test_get_with_two_environment_reviews(
             "artefact_build_id": review2.artefact_build_id,
         },
     ]
+
+
+def test_review_an_environment(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("env1")
+    er = generator.gen_artefact_build_environment_review(ab.id, e.id)
+
+    update = {
+        "review_comment": "Some Comment",
+        "review_decision": [
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
+        ],
+    }
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": er.id,
+        "environment_id": e.id,
+        "artefact_build_id": ab.id,
+        "review_decision": update["review_decision"],
+        "review_comment": update["review_comment"],
+    }
+
+
+def test_requires_review_to_belong_to_artefact(
+    test_client: TestClient, generator: DataGenerator
+):
+    a1 = generator.gen_artefact("beta", name="a1")
+    a2 = generator.gen_artefact("beta", name="a2")
+    ab = generator.gen_artefact_build(a1)
+    e = generator.gen_environment("env1")
+    er = generator.gen_artefact_build_environment_review(ab.id, e.id)
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a2.id}/environment-reviews/{er.id}", json={}
+    )
+
+    assert response.status_code == 422

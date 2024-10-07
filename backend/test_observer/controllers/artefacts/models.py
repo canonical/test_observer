@@ -111,3 +111,8 @@ class ArtefactBuildEnvironmentReviewDTO(BaseModel):
     review_comment: str
     environment_id: int
     artefact_build_id: int
+
+
+class EnvironmentReviewPatch(BaseModel):
+    review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None
+    review_comment: str | None = None
