@@ -280,7 +280,7 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
 
 
 def test_deletes_rerun_request_if_different_ci_link(
-    execute: Execute, generator: DataGenerator
+    execute: Execute, generator: DataGenerator, db_session: Session
 ):
     a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
@@ -305,6 +305,7 @@ def test_deletes_rerun_request_if_different_ci_link(
         },
     )
 
+    db_session.refresh(te)
     assert not te.rerun_request
 
 

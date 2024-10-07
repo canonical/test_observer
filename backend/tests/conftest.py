@@ -76,7 +76,12 @@ def db_session(db_engine: Engine):
     connection = db_engine.connect()
     # Start transaction and not commit it to rollback automatically
     transaction = connection.begin()
-    session = sessionmaker(autocommit=False, autoflush=False, bind=connection)()
+    session = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=connection,
+        expire_on_commit=False,
+    )()
 
     yield session
 

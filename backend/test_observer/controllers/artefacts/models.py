@@ -54,8 +54,8 @@ class ArtefactDTO(BaseModel):
     assignee: UserDTO | None
     due_date: date | None
     bug_link: str
-    all_test_executions_count: int
-    completed_test_executions_count: int
+    all_environment_reviews_count: int
+    completed_environment_reviews_count: int
 
 
 class EnvironmentDTO(BaseModel):

@@ -33,8 +33,8 @@ from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
 from .logic import (
-    are_all_test_executions_approved,
-    is_there_a_rejected_test_execution,
+    are_all_environments_approved,
+    is_there_a_rejected_environment,
 )
 from .models import (
     ArtefactBuildDTO,
@@ -93,7 +93,9 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
 def get_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions)
+            selectinload(Artefact.builds).selectinload(
+                ArtefactBuild.environment_reviews
+            )
         )
     ),
 ):
@@ -106,7 +108,9 @@ def patch_artefact(
     db: Session = Depends(get_db),
     artefact: Artefact = Depends(
         ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions)
+            selectinload(Artefact.builds).selectinload(
+                ArtefactBuild.environment_reviews
+            )
         )
     ),
 ):
@@ -120,9 +124,8 @@ def patch_artefact(
 def _validate_artefact_status(
     builds: list[ArtefactBuild], status: ArtefactStatus
 ) -> None:
-    if status == ArtefactStatus.APPROVED and not are_all_test_executions_approved(
-        builds
-    ):
+    ...
+    if status == ArtefactStatus.APPROVED and not are_all_environments_approved(builds):
         raise HTTPException(
             status_code=400,
             detail="All test executions need to be approved",
@@ -130,7 +133,7 @@ def _validate_artefact_status(
 
     if (
         status == ArtefactStatus.MARKED_AS_FAILED
-        and not is_there_a_rejected_test_execution(builds)
+        and not is_there_a_rejected_environment(builds)
     ):
         raise HTTPException(
             400,

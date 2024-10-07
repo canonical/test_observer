@@ -222,13 +222,13 @@ class Artefact(Base):
         ]
 
     @property
-    def all_test_executions_count(self) -> int:
-        return sum(len(ab.test_executions) for ab in self.latest_builds)
+    def all_environment_reviews_count(self) -> int:
+        return sum(len(ab.environment_reviews) for ab in self.latest_builds)
 
     @property
-    def completed_test_executions_count(self) -> int:
+    def completed_environment_reviews_count(self) -> int:
         return sum(
-            len([te for te in ab.test_executions if te.review_decision])
+            len([er for er in ab.environment_reviews if er.review_decision])
             for ab in self.latest_builds
         )
 
