@@ -28,7 +28,6 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )

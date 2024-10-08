@@ -27,7 +27,6 @@ from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    TestExecutionReviewDecision,
 )
 from tests.data_generator import DataGenerator
 
@@ -190,8 +189,6 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
                         "name": e.name,
                         "architecture": e.architecture,
                     },
-                    "review_decision": [],
-                    "review_comment": "",
                     "is_rerun_requested": False,
                 }
             ],
@@ -225,8 +222,6 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                         "name": e1.name,
                         "architecture": e1.architecture,
                     },
-                    "review_decision": [],
-                    "review_comment": "",
                     "is_rerun_requested": False,
                 },
                 {
@@ -239,8 +234,6 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                         "name": e2.name,
                         "architecture": e2.architecture,
                     },
-                    "review_decision": [],
-                    "review_comment": "",
                     "is_rerun_requested": False,
                 },
             ],
@@ -296,8 +289,6 @@ def test_get_artefact_builds_with_rerun_requested(
                         "name": e.name,
                         "architecture": e.architecture,
                     },
-                    "review_decision": [],
-                    "review_comment": "",
                     "is_rerun_requested": True,
                 }
             ],
@@ -402,10 +393,14 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     build_1 = generator.gen_artefact_build(artefact, revision=1)
     build_2 = generator.gen_artefact_build(artefact, revision=2)
     environment = generator.gen_environment()
-    generator.gen_test_execution(
-        build_1, environment, review_decision=[TestExecutionReviewDecision.REJECTED]
-    )
+    generator.gen_test_execution(build_1, environment)
     generator.gen_test_execution(build_2, environment)
+    generator.gen_artefact_build_environment_review(
+        build_1.id,
+        environment.id,
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.REJECTED],
+    )
+    generator.gen_artefact_build_environment_review(build_2.id, environment.id)
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}",

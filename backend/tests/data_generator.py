@@ -18,7 +18,6 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -122,21 +121,14 @@ class DataGenerator:
         ci_link: str | None = None,
         c3_link: str | None = None,
         status: TestExecutionStatus = TestExecutionStatus.NOT_STARTED,
-        review_decision: list[TestExecutionReviewDecision] | None = None,
-        review_comment: str = "",
         checkbox_version: str | None = None,
     ) -> TestExecution:
-        if review_decision is None:
-            review_decision = []
-
         test_execution = TestExecution(
             artefact_build=artefact_build,
             environment=environment,
             ci_link=ci_link,
             c3_link=c3_link,
             status=status,
-            review_decision=review_decision,
-            review_comment=review_comment,
             checkbox_version=checkbox_version,
         )
         self._add_object(test_execution)
