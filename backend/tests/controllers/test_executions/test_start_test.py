@@ -27,6 +27,7 @@ from test_observer.controllers.test_executions.models import StartTestExecutionR
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    ArtefactBuildEnvironmentReview,
     Environment,
     TestExecution,
     TestResult,
@@ -98,6 +99,16 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
         .one_or_none()
     )
     assert artefact_build
+
+    environment_review = (
+        db_session.query(ArtefactBuildEnvironmentReview)
+        .filter(
+            ArtefactBuildEnvironmentReview.artefact_build_id == artefact_build.id,
+            ArtefactBuildEnvironmentReview.environment_id == environment.id,
+        )
+        .one_or_none()
+    )
+    assert environment_review
 
     test_execution = (
         db_session.query(TestExecution)

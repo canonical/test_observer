@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    ArtefactBuildEnvironmentReview,
     Environment,
     Stage,
     TestExecution,
@@ -78,6 +79,15 @@ def start_test_execution(
                 "architecture": request.arch,
                 "revision": request.revision,
                 "artefact_id": artefact.id,
+            },
+        )
+
+        get_or_create(
+            db,
+            ArtefactBuildEnvironmentReview,
+            filter_kwargs={
+                "environment_id": environment.id,
+                "artefact_build_id": artefact_build.id,
             },
         )
 
