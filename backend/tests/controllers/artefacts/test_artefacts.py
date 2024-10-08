@@ -518,3 +518,24 @@ def test_requires_review_to_belong_to_artefact(
     )
 
     assert response.status_code == 422
+
+
+def test_environment_review_fails_if_both_rejected_and_approved(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("env1")
+    er = generator.gen_artefact_build_environment_review(ab.id, e.id)
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}/environment-reviews/{er.id}",
+        json={
+            "review_decision": [
+                ArtefactBuildEnvironmentReviewDecision.REJECTED.name,
+                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST.name,
+            ],
+        },
+    )
+
+    assert response.status_code == 422

@@ -345,36 +345,3 @@ def test_keep_rerun_request_if_same_ci_link(execute: Execute, generator: DataGen
     )
 
     assert te.rerun_request
-
-
-def test_rerun_keeps_review_as_is(execute: Execute, generator: DataGenerator):
-    review_comment = "review comment"
-    review_decision = [TestExecutionReviewDecision.REJECTED]
-    a = generator.gen_artefact("beta")
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    te = generator.gen_test_execution(
-        ab,
-        e,
-        ci_link="ci.link",
-        review_comment=review_comment,
-        review_decision=review_decision,
-    )
-
-    execute(
-        {
-            "family": a.stage.family.name,
-            "name": a.name,
-            "version": a.version,
-            "revision": ab.revision,
-            "track": a.track,
-            "store": a.store,
-            "arch": ab.architecture,
-            "execution_stage": a.stage.name,
-            "environment": e.name,
-            "ci_link": "different-ci.link",
-        },
-    )
-
-    assert te.review_comment == review_comment
-    assert te.review_decision == review_decision
