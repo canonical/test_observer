@@ -22,10 +22,10 @@ class Artefact with _$Artefact {
     required String repo,
     required ArtefactStatus status,
     required StageName stage,
-    @JsonKey(name: 'all_test_executions_count')
-    required int allTestExecutionsCount,
-    @JsonKey(name: 'completed_test_executions_count')
-    required int completedTestExecutionsCount,
+    @JsonKey(name: 'all_environment_reviews_count')
+    required int allEnvironmentReviewsCount,
+    @JsonKey(name: 'completed_environment_reviews_count')
+    required int completedEnvironmentReviewsCount,
     User? assignee,
     @JsonKey(name: 'bug_link') required String bugLink,
     @JsonKey(name: 'due_date') DateTime? dueDate,
@@ -44,7 +44,7 @@ class Artefact with _$Artefact {
   }
 
   int get remainingTestExecutionCount =>
-      allTestExecutionsCount - completedTestExecutionsCount;
+      allEnvironmentReviewsCount - completedEnvironmentReviewsCount;
 }
 
 const List<String> monthNames = [

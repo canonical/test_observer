@@ -26,26 +26,26 @@ class UserAvatar extends StatelessWidget {
   const UserAvatar({
     super.key,
     required this.user,
-    required this.allTestExecutionsCount,
-    required this.completedTestExecutionsCount,
+    required this.allEnvironmentReviewsCount,
+    required this.completedEnvironmentReviewsCount,
   });
 
   final User user;
-  final int allTestExecutionsCount;
-  final int completedTestExecutionsCount;
+  final int allEnvironmentReviewsCount;
+  final int completedEnvironmentReviewsCount;
 
   double get ratioCompleted {
-    if (allTestExecutionsCount == 0) {
+    if (allEnvironmentReviewsCount == 0) {
       return 0.0;
     }
-    return completedTestExecutionsCount / allTestExecutionsCount;
+    return completedEnvironmentReviewsCount / allEnvironmentReviewsCount;
   }
 
   @override
   Widget build(BuildContext context) {
     return Tooltip(
       message:
-          '${user.name}\n${user.launchpadHandle}\n${user.launchpadEmail}\nCompleted: $completedTestExecutionsCount / $allTestExecutionsCount (${(ratioCompleted * 100).round()}%)',
+          '${user.name}\n${user.launchpadHandle}\n${user.launchpadEmail}\nCompleted: $completedEnvironmentReviewsCount / $allEnvironmentReviewsCount (${(ratioCompleted * 100).round()}%)',
       child: Stack(
         alignment: Alignment.center,
         children: [

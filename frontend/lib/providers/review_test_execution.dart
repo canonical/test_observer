@@ -30,7 +30,7 @@ class ReviewTestExecution extends _$ReviewTestExecution {
     final artefactBuilds =
         ref.read(artefactBuildsProvider(artefactId)).requireValue;
 
-    final newCompletedTestExecutionsCount = artefactBuilds
+    final newcompletedEnvironmentReviewsCount = artefactBuilds
         .map(
           (build) => build.testExecutions
               .where((testExecution) => testExecution.reviewDecision.isNotEmpty)
@@ -40,6 +40,8 @@ class ReviewTestExecution extends _$ReviewTestExecution {
 
     await ref
         .read(artefactProvider(artefactId).notifier)
-        .updateCompletedTestExecutionsCount(newCompletedTestExecutionsCount);
+        .updatecompletedEnvironmentReviewsCount(
+          newcompletedEnvironmentReviewsCount,
+        );
   }
 }
