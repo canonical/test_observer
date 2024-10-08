@@ -21,11 +21,13 @@ from sqlalchemy.orm import Session, joinedload
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    ArtefactBuildEnvironmentReview,
     TestCase,
     TestExecution,
     TestResult,
 )
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
@@ -56,6 +58,35 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     )
 
     prev_test_execution = _get_previous_test_execution(db, test_execution)
+    environment_review = db.scalars(
+        select(ArtefactBuildEnvironmentReview).where(
+            ArtefactBuildEnvironmentReview.environment_id
+            == test_execution.environment_id,
+            ArtefactBuildEnvironmentReview.artefact_build_id
+            == test_execution.artefact_build_id,
+        )
+    ).one()
+
+    if prev_test_execution:
+        prev_environment_review = db.scalar(
+            select(ArtefactBuildEnvironmentReview).where(
+                ArtefactBuildEnvironmentReview.environment_id
+                == test_execution.environment_id,
+                ArtefactBuildEnvironmentReview.artefact_build_id
+                == prev_test_execution.artefact_build_id,
+            )
+        )
+
+        if (
+            prev_environment_review
+            and prev_environment_review.is_approved
+            and not has_failures
+            and _ran_all_previously_run_cases(prev_test_execution, test_execution)
+            and not environment_review.review_decision
+        ):
+            environment_review.review_decision = [
+                ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+            ]
 
     if (
         prev_test_execution
