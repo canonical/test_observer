@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -140,7 +139,7 @@ def test_end_test_approves_test_execution_automatically(
     )
 
     assert curr_environment_review.review_decision == [
-        TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
+        ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
     ]
 
 

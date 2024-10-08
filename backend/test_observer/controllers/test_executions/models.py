@@ -36,7 +36,6 @@ from pydantic import (
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )

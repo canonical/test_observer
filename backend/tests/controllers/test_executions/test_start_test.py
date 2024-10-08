@@ -32,11 +32,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import (
-    FamilyName,
-    TestExecutionReviewDecision,
-    TestExecutionStatus,
-)
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 from tests.data_generator import DataGenerator
 
 Execute: TypeAlias = Callable[[dict[str, Any]], Response]
