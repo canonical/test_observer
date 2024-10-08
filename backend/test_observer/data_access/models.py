@@ -531,3 +531,9 @@ class ArtefactBuildEnvironmentReview(Base):
     artefact_build: Mapped["ArtefactBuild"] = relationship(
         back_populates="environment_reviews", lazy="raise"
     )
+
+    @property
+    def is_approved(self) -> bool:
+        return (len(self.review_decision) > 0) and (
+            ArtefactBuildEnvironmentReviewDecision.REJECTED not in self.review_decision
+        )
