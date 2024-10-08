@@ -22,8 +22,9 @@ class Artefact extends _$Artefact {
     state = AsyncData(artefact);
   }
 
-  Future<void> updateCompletedTestExecutionsCount(int count) async {
+  Future<void> updatecompletedEnvironmentReviewsCount(int count) async {
     final artefact = await future;
-    state = AsyncData(artefact.copyWith(completedTestExecutionsCount: count));
+    state =
+        AsyncData(artefact.copyWith(completedEnvironmentReviewsCount: count));
   }
 }

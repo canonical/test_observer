@@ -25,8 +25,9 @@ class ArtefactPageHeader extends StatelessWidget {
         if (assignee != null)
           UserAvatar(
             user: assignee,
-            allTestExecutionsCount: artefact.allTestExecutionsCount,
-            completedTestExecutionsCount: artefact.completedTestExecutionsCount,
+            allEnvironmentReviewsCount: artefact.allEnvironmentReviewsCount,
+            completedEnvironmentReviewsCount:
+                artefact.completedEnvironmentReviewsCount,
           ),
         const SizedBox(width: Spacing.level4),
         if (dueDate != null)
