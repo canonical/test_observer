@@ -112,8 +112,6 @@ def _expected_report_row(test_result: TestResult) -> list:
         str(artefact.created_at),
         str(test_execution.id),
         test_execution.status.name,
-        str(test_execution.review_decision),
-        test_execution.review_comment,
         "" if not test_execution.c3_link else test_execution.c3_link,
         "" if not test_execution.checkbox_version else test_execution.checkbox_version,
         environment.name,

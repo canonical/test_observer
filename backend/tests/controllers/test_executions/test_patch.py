@@ -43,21 +43,3 @@ def test_updates_test_execution(test_client: TestClient, test_execution: TestExe
     assert test_execution.ci_link == "http://ci_link/"
     assert test_execution.c3_link == "http://c3_link/"
     assert test_execution.status == TestExecutionStatus.PASSED
-    assert set(test_execution.review_decision) == set(new_review_decision)
-    assert test_execution.review_comment == "Tests fail because of broken keyboard"
-
-
-def test_review_test_execution_fails_if_both_failed_and_approved(
-    test_client: TestClient, test_execution: TestExecution
-):
-    response = test_client.patch(
-        f"/v1/test-executions/{test_execution.id}",
-        json={
-            "review_decision": [
-                TestExecutionReviewDecision.REJECTED.name,
-                TestExecutionReviewDecision.APPROVED_INCONSISTENT_TEST.name,
-            ],
-        },
-    )
-
-    assert response.status_code == 422

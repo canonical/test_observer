@@ -20,7 +20,14 @@
 from datetime import date
 from typing import Any
 
-from pydantic import AliasPath, BaseModel, ConfigDict, Field, computed_field
+from pydantic import (
+    AliasPath,
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+)
 
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -116,3 +123,19 @@ class ArtefactBuildEnvironmentReviewDTO(BaseModel):
 class EnvironmentReviewPatch(BaseModel):
     review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None
     review_comment: str | None = None
+
+    @field_validator("review_decision")
+    @classmethod
+    def validate_review_decision(
+        cls: type["EnvironmentReviewPatch"],
+        review_decision: set[ArtefactBuildEnvironmentReviewDecision] | None,
+    ) -> set[ArtefactBuildEnvironmentReviewDecision] | None:
+        if review_decision is None:
+            return review_decision
+
+        if len(review_decision) <= 1:
+            return review_decision
+
+        if ArtefactBuildEnvironmentReviewDecision.REJECTED in review_decision:
+            raise ValueError("Environment review can either be rejected or approved")
+        return review_decision

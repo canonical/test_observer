@@ -33,8 +33,6 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     Artefact.created_at,
     TestExecution.id,
     TestExecution.status,
-    TestExecution.review_decision,
-    TestExecution.review_comment,
     TestExecution.c3_link,
     TestExecution.checkbox_version,
     Environment.name,

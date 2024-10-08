@@ -46,11 +46,5 @@ def patch_test_execution(
     if request.status is not None:
         test_execution.status = request.status
 
-    if request.review_decision is not None:
-        test_execution.review_decision = list(request.review_decision)
-
-    if request.review_comment is not None:
-        test_execution.review_comment = request.review_comment
-
     db.commit()
     return test_execution

@@ -110,24 +110,6 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | None = None
-    review_decision: set[TestExecutionReviewDecision] | None = None
-    review_comment: str | None = None
-
-    @field_validator("review_decision")
-    @classmethod
-    def validate_review_decision(
-        cls: type["TestExecutionsPatchRequest"],
-        review_decision: set[TestExecutionReviewDecision] | None,
-    ) -> set[TestExecutionReviewDecision] | None:
-        if review_decision is None:
-            return review_decision
-
-        if len(review_decision) <= 1:
-            return review_decision
-
-        if TestExecutionReviewDecision.REJECTED in review_decision:
-            raise ValueError("Test execution can either be rejected or approved")
-        return review_decision
 
 
 class PreviousTestResult(BaseModel):

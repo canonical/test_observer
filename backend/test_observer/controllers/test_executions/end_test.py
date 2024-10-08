@@ -88,16 +88,6 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
                 ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
             ]
 
-    if (
-        prev_test_execution
-        and not has_failures
-        and prev_test_execution.is_approved
-        and _ran_all_previously_run_cases(prev_test_execution, test_execution)
-    ):
-        test_execution.review_decision = [
-            TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
-        ]
-
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
 
