@@ -73,7 +73,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             db,
             family,
             load_stage=True,
-            load_test_executions=True,
+            load_environment_reviews=True,
             order_by_columns=order_by,
         )
     else:
@@ -82,7 +82,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 db,
                 family,
                 load_stage=True,
-                load_test_executions=True,
+                load_environment_reviews=True,
                 order_by_columns=order_by,
             )
 

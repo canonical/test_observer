@@ -55,7 +55,7 @@ def get_artefacts_by_family(
     family_name: FamilyName,
     latest_only: bool = True,
     load_stage: bool = False,
-    load_test_executions: bool = False,
+    load_environment_reviews: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
@@ -127,9 +127,9 @@ def get_artefacts_by_family(
     if load_stage:
         query = query.options(joinedload(Artefact.stage))
 
-    if load_test_executions:
+    if load_environment_reviews:
         query = query.options(
-            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions)
+            joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews)
         )
 
     if order_by_columns:
