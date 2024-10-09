@@ -190,7 +190,11 @@ def get_environment_reviews(
         )
     ),
 ):
-    return [review for build in artefact.builds for review in build.environment_reviews]
+    return [
+        review
+        for build in artefact.latest_builds
+        for review in build.environment_reviews
+    ]
 
 
 @router.patch(

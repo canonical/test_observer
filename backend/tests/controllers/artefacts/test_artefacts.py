@@ -473,6 +473,30 @@ def test_get_with_two_environment_reviews(
     ]
 
 
+def test_get_only_consideres_latest_builds(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab1 = generator.gen_artefact_build(a, revision=1)
+    ab2 = generator.gen_artefact_build(a, revision=2)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    generator.gen_artefact_build_environment_review(ab1.id, e1.id)
+    review2 = generator.gen_artefact_build_environment_review(ab2.id, e2.id)
+
+    response = test_client.get(f"/v1/artefacts/{a.id}/environment-reviews")
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": review2.id,
+            "review_decision": review2.review_decision,
+            "review_comment": review2.review_comment,
+            "environment_id": review2.environment_id,
+            "artefact_build_id": review2.artefact_build_id,
+        },
+    ]
+
+
 def test_review_an_environment(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
