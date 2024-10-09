@@ -5,6 +5,7 @@ import '../models/artefact.dart';
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
 import '../models/environment_issue.dart';
+import '../models/environment_review.dart';
 import '../models/family_name.dart';
 import '../models/rerun_request.dart';
 import '../models/test_execution.dart';
@@ -177,5 +178,16 @@ class ApiRepository {
 
   Future<void> deleteEnvironmentIssue(int issueId) async {
     await dio.delete('/v1/environments/reported-issues/$issueId');
+  }
+
+  Future<List<EnvironmentReview>> getArtefactEnvironmentReviews(
+    int artefactId,
+  ) async {
+    final response =
+        await dio.get('/v1/artefacts/$artefactId/environment-reviews');
+    final List environmentReviewsJson = response.data;
+    return environmentReviewsJson
+        .map((json) => EnvironmentReview.fromJson(json))
+        .toList();
   }
 }
