@@ -115,7 +115,7 @@ class ArchiveManager:
 
     def _download_data(self) -> None:
         """Download Packages.gz file from archive"""
-        response = requests.get(self.url, stream=True)
+        response = requests.get(self.url, stream=True, timeout=30)
         if not response.ok:
             response.raise_for_status()
 

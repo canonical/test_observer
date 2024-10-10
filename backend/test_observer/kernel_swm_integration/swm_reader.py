@@ -20,7 +20,7 @@ def get_artefacts_swm_info(db: Session) -> dict[int, ArtefactTrackerInfo]:
 
 def _fetch_stable_workflow_manager_status() -> dict:
     url = "https://kernel.ubuntu.com/swm/status.json"
-    return requests.get(url).json()
+    return requests.get(url, timeout=30).json()
 
 
 def _extract_artefact_bug_info_from_swm(
