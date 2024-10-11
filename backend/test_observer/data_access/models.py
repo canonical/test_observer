@@ -250,7 +250,7 @@ class ArtefactBuild(Base):
         back_populates="artefact_build", cascade="all, delete"
     )
     environment_reviews: Mapped[list["ArtefactBuildEnvironmentReview"]] = relationship(
-        back_populates="artefact_build", lazy="raise"
+        back_populates="artefact_build",
     )
 
     __table_args__ = (
@@ -512,13 +512,13 @@ class ArtefactBuildEnvironmentReview(Base):
     environment_id: Mapped[int] = mapped_column(
         ForeignKey("environment.id", ondelete="CASCADE")
     )
-    environment: Mapped["Environment"] = relationship(lazy="raise")
+    environment: Mapped["Environment"] = relationship()
 
     artefact_build_id: Mapped[int] = mapped_column(
         ForeignKey("artefact_build.id", ondelete="CASCADE")
     )
     artefact_build: Mapped["ArtefactBuild"] = relationship(
-        back_populates="environment_reviews", lazy="raise"
+        back_populates="environment_reviews",
     )
 
     @property
