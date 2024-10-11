@@ -34,7 +34,14 @@ const dummyEnvironment = Environment(
   architecture: 'amd64',
 );
 
-const dummyTestExecution = TestExecution(
+const dummyArtefactBuild = ArtefactBuild(
+  id: 1,
+  architecture: 'amd64',
+  revision: 1,
+  testExecutions: [],
+);
+
+final dummyTestExecution = TestExecution(
   id: 1,
   ciLink: 'ci-link',
   c3Link: 'c3-link',
@@ -42,11 +49,5 @@ const dummyTestExecution = TestExecution(
   environment: dummyEnvironment,
   reviewComment: '',
   reviewDecision: [],
-);
-
-const dummyArtefactBuild = ArtefactBuild(
-  id: 1,
-  architecture: 'amd64',
-  revision: 1,
-  testExecutions: [],
+  artefactBuildId: dummyArtefactBuild.id,
 );

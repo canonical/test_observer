@@ -18,11 +18,14 @@ class TestExecution with _$TestExecution {
     @JsonKey(name: 'c3_link') required String? c3Link,
     required TestExecutionStatus status,
     required Environment environment,
+    @Default('')
     @JsonKey(name: TestExecution.reviewCommentJsonKey)
-    required String reviewComment,
+    String reviewComment,
+    @Default([])
     @JsonKey(name: TestExecution.reviewDecisionJsonKey)
-    required List<TestExecutionReviewDecision> reviewDecision,
+    List<TestExecutionReviewDecision> reviewDecision,
     @Default(false) @JsonKey(name: 'is_rerun_requested') bool isRerunRequested,
+    @JsonKey(name: 'artefact_build_id') required int artefactBuildId,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>
