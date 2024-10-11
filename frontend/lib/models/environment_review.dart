@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'environment.dart';
+
 part 'environment_review.freezed.dart';
 part 'environment_review.g.dart';
 
@@ -9,8 +11,10 @@ class EnvironmentReview with _$EnvironmentReview {
   static const String reviewDecisionJsonKey = 'review_decision';
 
   const factory EnvironmentReview({
-    @JsonKey(name: 'artefact_build_id') required int artefactBuildId,
-    @JsonKey(name: 'environment_id') required int environmentId,
+    required int id,
+    @JsonKey(name: 'artefact_build')
+    required EnvironmentReviewArtefactBuild artefactBuildId,
+    @JsonKey(name: 'environment') required Environment environmentId,
     @JsonKey(name: EnvironmentReview.reviewCommentJsonKey)
     required String reviewComment,
     @JsonKey(name: EnvironmentReview.reviewDecisionJsonKey)
@@ -19,6 +23,18 @@ class EnvironmentReview with _$EnvironmentReview {
 
   factory EnvironmentReview.fromJson(Map<String, Object?> json) =>
       _$EnvironmentReviewFromJson(json);
+}
+
+@freezed
+class EnvironmentReviewArtefactBuild with _$EnvironmentReviewArtefactBuild {
+  const factory EnvironmentReviewArtefactBuild({
+    required int id,
+    required String architecture,
+    required int? revision,
+  }) = _EnvironmentReviewArtefactBuild;
+
+  factory EnvironmentReviewArtefactBuild.fromJson(Map<String, Object?> json) =>
+      _$EnvironmentReviewArtefactBuildFromJson(json);
 }
 
 enum EnvironmentReviewDecision {
