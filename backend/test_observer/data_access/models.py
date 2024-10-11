@@ -512,6 +512,7 @@ class ArtefactBuildEnvironmentReview(Base):
     environment_id: Mapped[int] = mapped_column(
         ForeignKey("environment.id", ondelete="CASCADE")
     )
+    environment: Mapped["Environment"] = relationship(lazy="raise")
 
     artefact_build_id: Mapped[int] = mapped_column(
         ForeignKey("artefact_build.id", ondelete="CASCADE")

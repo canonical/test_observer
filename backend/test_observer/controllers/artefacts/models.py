@@ -107,12 +107,18 @@ class ArtefactVersionDTO(BaseModel):
     artefact_id: int = Field(validation_alias=AliasPath("id"))
 
 
+class _EnvironmentReviewArtefactBuild(BaseModel):
+    id: int
+    architecture: str
+    revision: int | None
+
+
 class ArtefactBuildEnvironmentReviewDTO(BaseModel):
     id: int
     review_decision: list[ArtefactBuildEnvironmentReviewDecision]
     review_comment: str
-    environment_id: int
-    artefact_build_id: int
+    environment: EnvironmentDTO
+    artefact_build: _EnvironmentReviewArtefactBuild
 
 
 class EnvironmentReviewPatch(BaseModel):

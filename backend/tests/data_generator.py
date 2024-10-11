@@ -175,14 +175,14 @@ class DataGenerator:
 
     def gen_artefact_build_environment_review(
         self,
-        artefact_build_id: int,
-        environment_id: int,
+        artefact_build: ArtefactBuild,
+        environment: Environment,
         review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None,
         review_comment: str = "",
     ):
         review = ArtefactBuildEnvironmentReview(
-            artefact_build_id=artefact_build_id,
-            environment_id=environment_id,
+            artefact_build=artefact_build,
+            environment=environment,
             review_decision=review_decision,
             review_comment=review_comment,
         )
