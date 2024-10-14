@@ -1,6 +1,7 @@
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/environment.dart';
+import 'package:testcase_dashboard/models/environment_review.dart';
 import 'package:testcase_dashboard/models/stage_name.dart';
 import 'package:testcase_dashboard/models/test_execution.dart';
 import 'package:testcase_dashboard/models/user.dart';
@@ -50,4 +51,16 @@ final dummyTestExecution = TestExecution(
   reviewComment: '',
   reviewDecision: [],
   artefactBuildId: dummyArtefactBuild.id,
+);
+
+final dummyEnvironmentReview = EnvironmentReview(
+  id: 1,
+  artefactBuild: EnvironmentReviewArtefactBuild(
+    id: dummyArtefactBuild.id,
+    architecture: dummyArtefactBuild.architecture,
+    revision: dummyArtefactBuild.revision,
+  ),
+  environment: dummyEnvironment,
+  reviewComment: '',
+  reviewDecision: [],
 );

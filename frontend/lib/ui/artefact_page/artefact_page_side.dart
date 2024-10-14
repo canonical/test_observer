@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/artefact.dart';
 import '../../providers/artefact_builds.dart';
+import '../../providers/artefact_environment_reviews.dart';
 import '../blocking_provider_preloader.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
@@ -38,9 +39,12 @@ class _ArtefactPageSideFilters extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlockingProviderPreloader(
       provider: artefactBuildsProvider(artefact.id),
-      builder: (_, artefactBuilds) => const PageFiltersView(
-        searchHint: 'Search by environment name',
-        width: double.infinity,
+      builder: (_, artefactBuilds) => BlockingProviderPreloader(
+        provider: artefactEnvironmentReviewsProvider(artefact.id),
+        builder: (_, environmentReviews) => const PageFiltersView(
+          searchHint: 'Search by environment name',
+          width: double.infinity,
+        ),
       ),
     );
   }
