@@ -2,6 +2,7 @@ import 'package:dartx/dartx.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'artefact.dart';
+import 'environment_review.dart';
 import 'filter.dart';
 import 'test_execution.dart';
 
@@ -111,13 +112,18 @@ final emptyArtefactFilters = Filters<Artefact>(
 final emptyTestExecutionFilters = Filters<TestExecution>(
   filters: [
     Filter<TestExecution>(
+      name: 'Execution status',
+      extractOption: (te) => te.status.name,
+    ),
+  ],
+);
+
+final emptyEnvironmentReviewFilters = Filters<EnvironmentReview>(
+  filters: [
+    Filter<EnvironmentReview>(
       name: 'Review status',
       extractOption: (te) =>
           te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
-    ),
-    Filter<TestExecution>(
-      name: 'Execution status',
-      extractOption: (te) => te.status.name,
     ),
   ],
 );

@@ -190,4 +190,15 @@ class ApiRepository {
         .map((json) => EnvironmentReview.fromJson(json))
         .toList();
   }
+
+  Future<EnvironmentReview> updateEnvironmentReview(
+    int artefactId,
+    EnvironmentReview review,
+  ) async {
+    final response = await dio.patch(
+      '/v1/artefacts/$artefactId/environment-reviews/${review.id}',
+      data: review.toJson(),
+    );
+    return EnvironmentReview.fromJson(response.data);
+  }
 }

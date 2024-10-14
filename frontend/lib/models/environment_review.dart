@@ -13,8 +13,8 @@ class EnvironmentReview with _$EnvironmentReview {
   const factory EnvironmentReview({
     required int id,
     @JsonKey(name: 'artefact_build')
-    required EnvironmentReviewArtefactBuild artefactBuildId,
-    @JsonKey(name: 'environment') required Environment environmentId,
+    required EnvironmentReviewArtefactBuild artefactBuild,
+    required Environment environment,
     @JsonKey(name: EnvironmentReview.reviewCommentJsonKey)
     required String reviewComment,
     @JsonKey(name: EnvironmentReview.reviewDecisionJsonKey)

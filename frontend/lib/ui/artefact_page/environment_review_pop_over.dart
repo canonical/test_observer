@@ -2,55 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 
-import '../../models/test_execution.dart';
-import '../../providers/review_test_execution.dart';
+import '../../models/environment_review.dart';
+import '../../providers/artefact_environment_reviews.dart';
 import '../spacing.dart';
 import '../vanilla/vanilla_text_input.dart';
 
-class TestExecutionPopOver extends ConsumerStatefulWidget {
-  const TestExecutionPopOver({
+class EnvironmentReviewPopOver extends ConsumerStatefulWidget {
+  const EnvironmentReviewPopOver({
     super.key,
-    required this.testExecution,
+    required this.environmentReview,
     required this.artefactId,
   });
 
-  final TestExecution testExecution;
+  final EnvironmentReview environmentReview;
   final int artefactId;
 
   @override
-  TestExecutionPopOverState createState() => TestExecutionPopOverState();
+  EnvironmentReviewPopOverState createState() =>
+      EnvironmentReviewPopOverState();
 }
 
-class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
+class EnvironmentReviewPopOverState
+    extends ConsumerState<EnvironmentReviewPopOver> {
   TextEditingController reviewCommentController = TextEditingController();
-  List<TestExecutionReviewDecision> reviewDecisions = [];
+  List<EnvironmentReviewDecision> reviewDecisions = [];
 
   bool get _canApprove {
-    return !reviewDecisions.contains(TestExecutionReviewDecision.rejected);
+    return !reviewDecisions.contains(EnvironmentReviewDecision.rejected);
   }
 
   bool get _canReject {
     return reviewDecisions.isEmpty ||
-        reviewDecisions.contains(TestExecutionReviewDecision.rejected);
+        reviewDecisions.contains(EnvironmentReviewDecision.rejected);
   }
 
   Function(bool?)? getOnChangedCheckboxListTileFunction(
-    TestExecutionReviewDecision testExecutionReviewDecision,
+    EnvironmentReviewDecision reviewDecision,
   ) {
-    // Ensure the test execution cannot be rejected and approved in the same time
-    final bool enableCheckboxConsistencyCheck = (testExecutionReviewDecision ==
-                TestExecutionReviewDecision.rejected &&
-            _canReject) ||
-        (testExecutionReviewDecision != TestExecutionReviewDecision.rejected &&
-            _canApprove);
-    if (!testExecutionReviewDecision.isDeprecated &&
-        enableCheckboxConsistencyCheck) {
+    // Ensure the environment cannot be rejected and approved in the same time
+    final bool enableCheckboxConsistencyCheck =
+        (reviewDecision == EnvironmentReviewDecision.rejected && _canReject) ||
+            (reviewDecision != EnvironmentReviewDecision.rejected &&
+                _canApprove);
+    if (!reviewDecision.isDeprecated && enableCheckboxConsistencyCheck) {
       return (bool? value) {
         setState(() {
-          if (reviewDecisions.contains(testExecutionReviewDecision)) {
-            reviewDecisions.remove(testExecutionReviewDecision);
+          if (reviewDecisions.contains(reviewDecision)) {
+            reviewDecisions.remove(reviewDecision);
           } else {
-            reviewDecisions.add(testExecutionReviewDecision);
+            reviewDecisions.add(reviewDecision);
           }
         });
       };
@@ -58,15 +58,15 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
     return null;
   }
 
-  bool shouldDisplayDecision(TestExecutionReviewDecision decision) {
+  bool shouldDisplayDecision(EnvironmentReviewDecision decision) {
     return !decision.isDeprecated || reviewDecisions.contains(decision);
   }
 
   @override
   void initState() {
     super.initState();
-    reviewCommentController.text = widget.testExecution.reviewComment;
-    reviewDecisions = List.from(widget.testExecution.reviewDecision);
+    reviewCommentController.text = widget.environmentReview.reviewComment;
+    reviewDecisions = List.from(widget.environmentReview.reviewDecision);
   }
 
   @override
@@ -86,7 +86,7 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
         ),
         const SizedBox(height: Spacing.level3),
         Column(
-          children: TestExecutionReviewDecision.values
+          children: EnvironmentReviewDecision.values
               .map(
                 (e) => shouldDisplayDecision(e)
                     ? YaruCheckboxListTile(
@@ -110,11 +110,16 @@ class TestExecutionPopOverState extends ConsumerState<TestExecutionPopOver> {
         const SizedBox(height: Spacing.level3),
         ElevatedButton(
           onPressed: () {
-            ref.read(reviewTestExecutionProvider.notifier).reviewTestExecution(
-                  widget.testExecution.id,
-                  reviewCommentController.text,
-                  reviewDecisions,
-                  widget.artefactId,
+            ref
+                .read(
+                  artefactEnvironmentReviewsProvider(widget.artefactId)
+                      .notifier,
+                )
+                .updateReview(
+                  widget.environmentReview.copyWith(
+                    reviewDecision: reviewDecisions,
+                    reviewComment: reviewCommentController.text,
+                  ),
                 );
             Navigator.pop(context);
           },
