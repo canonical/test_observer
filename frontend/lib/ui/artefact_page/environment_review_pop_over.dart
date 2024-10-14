@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../models/environment_review.dart';
-import '../../providers/artefact_environment_reviews.dart';
+import '../../providers/review_environment.dart';
 import '../spacing.dart';
 import '../vanilla/vanilla_text_input.dart';
 
@@ -110,16 +110,12 @@ class EnvironmentReviewPopOverState
         const SizedBox(height: Spacing.level3),
         ElevatedButton(
           onPressed: () {
-            ref
-                .read(
-                  artefactEnvironmentReviewsProvider(widget.artefactId)
-                      .notifier,
-                )
-                .updateReview(
+            ref.read(reviewEnvironmentProvider.notifier).review(
                   widget.environmentReview.copyWith(
                     reviewDecision: reviewDecisions,
                     reviewComment: reviewCommentController.text,
                   ),
+                  widget.artefactId,
                 );
             Navigator.pop(context);
           },
