@@ -48,8 +48,6 @@ final dummyTestExecution = TestExecution(
   c3Link: 'c3-link',
   status: TestExecutionStatus.passed,
   environment: dummyEnvironment,
-  reviewComment: '',
-  reviewDecision: [],
   artefactBuildId: dummyArtefactBuild.id,
 );
 

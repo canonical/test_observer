@@ -52,7 +52,6 @@ void main() {
     expect(filteredTestExecutions, {
       dummyTestExecution.copyWith(
         id: 1,
-        reviewDecision: [],
         status: TestExecutionStatus.failed,
       ),
     });
@@ -67,14 +66,10 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
         testExecutions: [
           dummyTestExecution.copyWith(
             id: 1,
-            reviewDecision: [],
             status: TestExecutionStatus.failed,
           ),
           dummyTestExecution.copyWith(
             id: 2,
-            reviewDecision: [
-              TestExecutionReviewDecision.approvedAllTestsPass,
-            ],
             status: TestExecutionStatus.passed,
           ),
         ],

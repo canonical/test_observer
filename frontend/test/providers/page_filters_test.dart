@@ -69,7 +69,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   Future<List<ArtefactBuild>> getArtefactBuilds(int artefactId) async {
     return [
       dummyArtefactBuild.copyWith(
-        testExecutions: [dummyTestExecution.copyWith(reviewDecision: [])],
+        testExecutions: [dummyTestExecution],
       ),
     ];
   }
