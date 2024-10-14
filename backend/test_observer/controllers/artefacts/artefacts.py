@@ -222,7 +222,7 @@ def update_environment_review(
 
     for field in request.model_fields_set:
         value = getattr(request, field)
-        if value:
+        if value is not None:
             setattr(review, field, value)
 
     db.commit()

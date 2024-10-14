@@ -590,3 +590,39 @@ def test_environment_review_fails_if_both_rejected_and_approved(
     )
 
     assert response.status_code == 422
+
+
+def test_environment_review_reset_review(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("env1")
+    er = generator.gen_artefact_build_environment_review(
+        ab,
+        e,
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.REJECTED],
+        review_comment="some comment",
+    )
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}/environment-reviews/{er.id}",
+        json={"review_decision": [], "review_comment": ""},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": er.id,
+        "review_decision": [],
+        "review_comment": "",
+        "environment": {
+            "id": e.id,
+            "name": e.name,
+            "architecture": e.architecture,
+        },
+        "artefact_build": {
+            "id": ab.id,
+            "revision": ab.revision,
+            "architecture": ab.architecture,
+        },
+    }
