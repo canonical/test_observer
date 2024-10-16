@@ -85,43 +85,8 @@ def upgrade() -> None:
 
     op.execute(copy_cmd)
 
-    op.drop_column("test_execution", "review_comment")
-    op.drop_column("test_execution", "review_decision")
-    op.execute("DROP TYPE testexecutionreviewdecision")
-
 
 def downgrade() -> None:
-    te_review_decision = sa.Enum(
-        "REJECTED",
-        "APPROVED_INCONSISTENT_TEST",
-        "APPROVED_UNSTABLE_PHYSICAL_INFRA",
-        "APPROVED_FAULTY_HARDWARE",
-        "APPROVED_CUSTOMER_PREREQUISITE_FAIL",
-        "APPROVED_ALL_TESTS_PASS",
-        name="testexecutionreviewdecision",
-    )
-    te_review_decision.create(op.get_bind())
-    op.add_column(
-        "test_execution",
-        sa.Column(
-            "review_decision",
-            postgresql.ARRAY(te_review_decision),
-            server_default=sa.text("'{}'::testexecutionreviewdecision[]"),
-            autoincrement=False,
-            nullable=False,
-        ),
-    )
-    op.add_column(
-        "test_execution",
-        sa.Column(
-            "review_comment",
-            sa.VARCHAR(),
-            server_default=sa.text("''::character varying"),
-            autoincrement=False,
-            nullable=False,
-        ),
-    )
-
     op.execute(reverse_copy_cmd)
 
     op.drop_table("artefact_build_environment_review")
