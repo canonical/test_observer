@@ -25,19 +25,17 @@ from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetri
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
-    TestExecution,
 )
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
-from . import environment_reviews
+from . import builds, environment_reviews
 from .logic import (
     are_all_environments_approved,
     is_there_a_rejected_environment,
 )
 from .models import (
-    ArtefactBuildDTO,
     ArtefactDTO,
     ArtefactPatch,
     ArtefactVersionDTO,
@@ -45,6 +43,7 @@ from .models import (
 
 router = APIRouter(tags=["artefacts"])
 router.include_router(environment_reviews.router)
+router.include_router(builds.router)
 
 
 @router.get("", response_model=list[ArtefactDTO])
@@ -124,28 +123,6 @@ def _validate_artefact_status(
             400,
             detail="At least one test execution needs to be rejected",
         )
-
-
-@router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
-def get_artefact_builds(
-    artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds)
-            .selectinload(ArtefactBuild.test_executions)
-            .options(
-                selectinload(TestExecution.environment),
-                selectinload(TestExecution.rerun_request),
-            )
-        )
-    ),
-):
-    """Get latest artefact builds of an artefact together with their test executions"""
-    for artefact_build in artefact.latest_builds:
-        artefact_build.test_executions.sort(
-            key=lambda test_execution: test_execution.environment.name
-        )
-
-    return artefact.latest_builds
 
 
 @router.get("/{artefact_id}/versions", response_model=list[ArtefactVersionDTO])
