@@ -5,9 +5,9 @@ import '../models/artefact.dart';
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
 import '../models/environment_issue.dart';
+import '../models/environment_review.dart';
 import '../models/family_name.dart';
 import '../models/rerun_request.dart';
-import '../models/test_execution.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_event.dart';
@@ -44,21 +44,6 @@ class ApiRepository {
     final artefactBuilds =
         artefactBuildsJson.map((json) => ArtefactBuild.fromJson(json)).toList();
     return artefactBuilds;
-  }
-
-  Future<TestExecution> changeTestExecutionReview(
-    int testExecutionId,
-    List<TestExecutionReviewDecision> reviewDecision,
-    String reviewComment,
-  ) async {
-    final response = await dio.patch(
-      '/v1/test-executions/$testExecutionId',
-      data: TestExecution.updateReviewDecisionRequestData(
-        reviewComment,
-        reviewDecision,
-      ),
-    );
-    return TestExecution.fromJson(response.data);
   }
 
   Future<List<TestResult>> getTestExecutionResults(int testExecutionId) async {
@@ -177,5 +162,27 @@ class ApiRepository {
 
   Future<void> deleteEnvironmentIssue(int issueId) async {
     await dio.delete('/v1/environments/reported-issues/$issueId');
+  }
+
+  Future<List<EnvironmentReview>> getArtefactEnvironmentReviews(
+    int artefactId,
+  ) async {
+    final response =
+        await dio.get('/v1/artefacts/$artefactId/environment-reviews');
+    final List environmentReviewsJson = response.data;
+    return environmentReviewsJson
+        .map((json) => EnvironmentReview.fromJson(json))
+        .toList();
+  }
+
+  Future<EnvironmentReview> updateEnvironmentReview(
+    int artefactId,
+    EnvironmentReview review,
+  ) async {
+    final response = await dio.patch(
+      '/v1/artefacts/$artefactId/environment-reviews/${review.id}',
+      data: review.toJson(),
+    );
+    return EnvironmentReview.fromJson(response.data);
   }
 }

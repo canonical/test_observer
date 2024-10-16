@@ -2,27 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 import 'package:popover/popover.dart';
 
-import '../../models/test_execution.dart';
+import '../../models/environment_review.dart';
 import '../../routing.dart';
-import 'test_execution_pop_over.dart';
+import 'environment_review_pop_over.dart';
 
-class TestExecutionReviewButton extends StatelessWidget {
-  const TestExecutionReviewButton({
-    super.key,
-    required this.testExecution,
-  });
+class EnvironmentReviewButton extends StatelessWidget {
+  const EnvironmentReviewButton({super.key, required this.environmentReview});
 
-  final TestExecution testExecution;
+  final EnvironmentReview environmentReview;
 
   Text _getReviewDecisionText(BuildContext context) {
     final fontStyle = Theme.of(context).textTheme.labelMedium;
-    if (testExecution.reviewDecision.isEmpty) {
+    if (environmentReview.reviewDecision.isEmpty) {
       return Text(
         'Undecided',
         style: fontStyle?.apply(color: YaruColors.textGrey),
       );
-    } else if (testExecution.reviewDecision
-        .contains(TestExecutionReviewDecision.rejected)) {
+    } else if (environmentReview.reviewDecision
+        .contains(EnvironmentReviewDecision.rejected)) {
       return Text(
         'Rejected',
         style: fontStyle?.apply(color: YaruColors.red),
@@ -39,13 +36,14 @@ class TestExecutionReviewButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final artefactId =
         AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
+
     return GestureDetector(
       onTap: () {
         showPopover(
           context: context,
-          bodyBuilder: (context) => TestExecutionPopOver(
-            testExecution: testExecution,
+          bodyBuilder: (context) => EnvironmentReviewPopOver(
             artefactId: artefactId,
+            environmentReview: environmentReview,
           ),
           direction: PopoverDirection.bottom,
           width: 500,

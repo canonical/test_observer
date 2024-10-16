@@ -1,6 +1,7 @@
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/environment.dart';
+import 'package:testcase_dashboard/models/environment_review.dart';
 import 'package:testcase_dashboard/models/stage_name.dart';
 import 'package:testcase_dashboard/models/test_execution.dart';
 import 'package:testcase_dashboard/models/user.dart';
@@ -24,8 +25,8 @@ const dummyArtefact = Artefact(
   stage: StageName.beta,
   assignee: dummyUser,
   bugLink: '',
-  allTestExecutionsCount: 1,
-  completedTestExecutionsCount: 0,
+  allEnvironmentReviewsCount: 1,
+  completedEnvironmentReviewsCount: 0,
 );
 
 const dummyEnvironment = Environment(
@@ -34,19 +35,30 @@ const dummyEnvironment = Environment(
   architecture: 'amd64',
 );
 
-const dummyTestExecution = TestExecution(
-  id: 1,
-  ciLink: 'ci-link',
-  c3Link: 'c3-link',
-  status: TestExecutionStatus.passed,
-  environment: dummyEnvironment,
-  reviewComment: '',
-  reviewDecision: [],
-);
-
 const dummyArtefactBuild = ArtefactBuild(
   id: 1,
   architecture: 'amd64',
   revision: 1,
   testExecutions: [],
+);
+
+final dummyTestExecution = TestExecution(
+  id: 1,
+  ciLink: 'ci-link',
+  c3Link: 'c3-link',
+  status: TestExecutionStatus.passed,
+  environment: dummyEnvironment,
+  artefactBuildId: dummyArtefactBuild.id,
+);
+
+final dummyEnvironmentReview = EnvironmentReview(
+  id: 1,
+  artefactBuild: EnvironmentReviewArtefactBuild(
+    id: dummyArtefactBuild.id,
+    architecture: dummyArtefactBuild.architecture,
+    revision: dummyArtefactBuild.revision,
+  ),
+  environment: dummyEnvironment,
+  reviewComment: '',
+  reviewDecision: [],
 );

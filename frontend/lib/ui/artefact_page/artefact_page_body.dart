@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
+import '../../models/environment_review.dart';
 import '../../models/test_execution.dart';
 import '../../providers/environments_issues.dart';
+import '../../providers/filtered_artefact_environment_reviews.dart';
 import '../../providers/filtered_test_executions.dart';
 import '../../providers/tests_issues.dart';
 import '../../routing.dart';
@@ -21,11 +23,23 @@ class ArtefactPageBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
-    final testExecutions =
+    final filteredTestExecutions =
         ref.watch(filteredTestExecutionsProvider(pageUri)).value;
+    final filteredEnvironmentReviews =
+        ref.watch(filteredArtefactEnvironmentReviewsProvider(pageUri)).value;
 
-    if (testExecutions == null) {
+    if (filteredTestExecutions == null || filteredEnvironmentReviews == null) {
       return const YaruCircularProgressIndicator();
+    }
+
+    final reviewsMap = {
+      for (final review in filteredEnvironmentReviews)
+        (review.artefactBuild.id, review.environment.id): review,
+    };
+    final List<(EnvironmentReview, TestExecution)> filteredCombination = [];
+    for (final te in filteredTestExecutions) {
+      final review = reviewsMap[(te.artefactBuildId, te.environment.id)];
+      if (review != null) filteredCombination.add((review, te));
     }
 
     return Column(
@@ -40,7 +54,9 @@ class ArtefactPageBody extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(width: Spacing.level4),
-            _TestExecutionsStatusSummary(testExecutions: testExecutions),
+            _TestExecutionsStatusSummary(
+              testExecutions: filteredCombination.map((comb) => comb.$2),
+            ),
             const Spacer(),
             const RerunFilteredEnvironmentsButton(),
           ],
@@ -51,12 +67,13 @@ class ArtefactPageBody extends ConsumerWidget {
             provider: testsIssuesProvider,
             child: Expanded(
               child: ListView.builder(
-                itemCount: testExecutions.length,
+                itemCount: filteredCombination.length,
                 itemBuilder: (_, i) => Padding(
                   // Padding is to avoid scroll bar covering trailing buttons
                   padding: const EdgeInsets.only(right: Spacing.level3),
                   child: TestExecutionExpandable(
-                    testExecution: testExecutions[i],
+                    testExecution: filteredCombination[i].$2,
+                    environmentReview: filteredCombination[i].$1,
                   ),
                 ),
               ),
@@ -71,7 +88,7 @@ class ArtefactPageBody extends ConsumerWidget {
 class _TestExecutionsStatusSummary extends StatelessWidget {
   const _TestExecutionsStatusSummary({required this.testExecutions});
 
-  final List<TestExecution> testExecutions;
+  final Iterable<TestExecution> testExecutions;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +113,7 @@ class _TestExecutionsStatusSummary extends StatelessWidget {
   }
 
   Map<TestExecutionStatus, int> _testExecutionStatusCounts(
-    List<TestExecution> testExecutions,
+    Iterable<TestExecution> testExecutions,
   ) {
     final counts = {for (final status in TestExecutionStatus.values) status: 0};
 

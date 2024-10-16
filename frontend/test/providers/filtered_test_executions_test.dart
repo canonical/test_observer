@@ -33,31 +33,6 @@ void main() {
     expect(filteredTestExecutions, allTestExecutions);
   });
 
-  test('it filters test executions by review status', () async {
-    final apiMock = ApiRepositoryMock();
-    final container = createContainer(
-      overrides: [apiProvider.overrideWith((ref) => apiMock)],
-    );
-    const artefactId = 1;
-
-    // Wait on artefact builds to load cause test execution filters uses requireValue
-    await container.read(artefactBuildsProvider(artefactId).future);
-
-    final filteredTestExecutions = await container.read(
-      filteredTestExecutionsProvider(
-        Uri.parse('/snaps/$artefactId?Review+status=Undecided'),
-      ).future,
-    );
-
-    expect(filteredTestExecutions, {
-      dummyTestExecution.copyWith(
-        id: 1,
-        reviewDecision: [],
-        status: TestExecutionStatus.failed,
-      ),
-    });
-  });
-
   test('it filters test executions by test execution status', () async {
     final apiMock = ApiRepositoryMock();
     final container = createContainer(
@@ -77,7 +52,6 @@ void main() {
     expect(filteredTestExecutions, {
       dummyTestExecution.copyWith(
         id: 1,
-        reviewDecision: [],
         status: TestExecutionStatus.failed,
       ),
     });
@@ -92,14 +66,10 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
         testExecutions: [
           dummyTestExecution.copyWith(
             id: 1,
-            reviewDecision: [],
             status: TestExecutionStatus.failed,
           ),
           dummyTestExecution.copyWith(
             id: 2,
-            reviewDecision: [
-              TestExecutionReviewDecision.approvedAllTestsPass,
-            ],
             status: TestExecutionStatus.passed,
           ),
         ],

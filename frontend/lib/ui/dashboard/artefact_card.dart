@@ -64,9 +64,10 @@ class ArtefactCard extends ConsumerWidget {
                   if (assignee != null)
                     UserAvatar(
                       user: assignee,
-                      allTestExecutionsCount: artefact.allTestExecutionsCount,
-                      completedTestExecutionsCount:
-                          artefact.completedTestExecutionsCount,
+                      allEnvironmentReviewsCount:
+                          artefact.allEnvironmentReviewsCount,
+                      completedEnvironmentReviewsCount:
+                          artefact.completedEnvironmentReviewsCount,
                     ),
                 ],
               ),

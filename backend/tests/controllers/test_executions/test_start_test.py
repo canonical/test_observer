@@ -27,15 +27,12 @@ from test_observer.controllers.test_executions.models import StartTestExecutionR
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    ArtefactBuildEnvironmentReview,
     Environment,
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import (
-    FamilyName,
-    TestExecutionReviewDecision,
-    TestExecutionStatus,
-)
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 from tests.data_generator import DataGenerator
 
 Execute: TypeAlias = Callable[[dict[str, Any]], Response]
@@ -98,6 +95,16 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
         .one_or_none()
     )
     assert artefact_build
+
+    environment_review = (
+        db_session.query(ArtefactBuildEnvironmentReview)
+        .filter(
+            ArtefactBuildEnvironmentReview.artefact_build_id == artefact_build.id,
+            ArtefactBuildEnvironmentReview.environment_id == environment.id,
+        )
+        .one_or_none()
+    )
+    assert environment_review
 
     test_execution = (
         db_session.query(TestExecution)
@@ -280,7 +287,7 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
 
 
 def test_deletes_rerun_request_if_different_ci_link(
-    execute: Execute, generator: DataGenerator
+    execute: Execute, generator: DataGenerator, db_session: Session
 ):
     a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
@@ -305,6 +312,7 @@ def test_deletes_rerun_request_if_different_ci_link(
         },
     )
 
+    db_session.refresh(te)
     assert not te.rerun_request
 
 
@@ -333,36 +341,3 @@ def test_keep_rerun_request_if_same_ci_link(execute: Execute, generator: DataGen
     )
 
     assert te.rerun_request
-
-
-def test_rerun_keeps_review_as_is(execute: Execute, generator: DataGenerator):
-    review_comment = "review comment"
-    review_decision = [TestExecutionReviewDecision.REJECTED]
-    a = generator.gen_artefact("beta")
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    te = generator.gen_test_execution(
-        ab,
-        e,
-        ci_link="ci.link",
-        review_comment=review_comment,
-        review_decision=review_decision,
-    )
-
-    execute(
-        {
-            "family": a.stage.family.name,
-            "name": a.name,
-            "version": a.version,
-            "revision": ab.revision,
-            "track": a.track,
-            "store": a.store,
-            "arch": ab.architecture,
-            "execution_stage": a.stage.name,
-            "environment": e.name,
-            "ci_link": "different-ci.link",
-        },
-    )
-
-    assert te.review_comment == review_comment
-    assert te.review_decision == review_decision

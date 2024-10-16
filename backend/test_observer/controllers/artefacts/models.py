@@ -20,11 +20,18 @@
 from datetime import date
 from typing import Any
 
-from pydantic import AliasPath, BaseModel, ConfigDict, Field, computed_field
+from pydantic import (
+    AliasPath,
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+)
 
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
 )
 
@@ -53,8 +60,8 @@ class ArtefactDTO(BaseModel):
     assignee: UserDTO | None
     due_date: date | None
     bug_link: str
-    all_test_executions_count: int
-    completed_test_executions_count: int
+    all_environment_reviews_count: int
+    completed_environment_reviews_count: int
 
 
 class EnvironmentDTO(BaseModel):
@@ -75,10 +82,6 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
-    # Since in a test execution there might be tests that fail for different
-    # reasons, we allow multiple reasons to be picked for the approval
-    review_decision: set[TestExecutionReviewDecision]
-    review_comment: str
     rerun_request: Any = Field(exclude=True)
 
     @computed_field
@@ -102,3 +105,38 @@ class ArtefactPatch(BaseModel):
 class ArtefactVersionDTO(BaseModel):
     version: str
     artefact_id: int = Field(validation_alias=AliasPath("id"))
+
+
+class _EnvironmentReviewArtefactBuild(BaseModel):
+    id: int
+    architecture: str
+    revision: int | None
+
+
+class ArtefactBuildEnvironmentReviewDTO(BaseModel):
+    id: int
+    review_decision: list[ArtefactBuildEnvironmentReviewDecision]
+    review_comment: str
+    environment: EnvironmentDTO
+    artefact_build: _EnvironmentReviewArtefactBuild
+
+
+class EnvironmentReviewPatch(BaseModel):
+    review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None
+    review_comment: str | None = None
+
+    @field_validator("review_decision")
+    @classmethod
+    def validate_review_decision(
+        cls: type["EnvironmentReviewPatch"],
+        review_decision: set[ArtefactBuildEnvironmentReviewDecision] | None,
+    ) -> set[ArtefactBuildEnvironmentReviewDecision] | None:
+        if review_decision is None:
+            return review_decision
+
+        if len(review_decision) <= 1:
+            return review_decision
+
+        if ArtefactBuildEnvironmentReviewDecision.REJECTED in review_decision:
+            raise ValueError("Environment review can either be rejected or approved")
+        return review_decision

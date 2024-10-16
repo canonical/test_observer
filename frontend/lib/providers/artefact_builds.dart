@@ -14,21 +14,6 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     return await api.getArtefactBuilds(artefactId);
   }
 
-  Future<void> changeReviewDecision(
-    int testExecutionId,
-    String reviewComment,
-    List<TestExecutionReviewDecision> reviewDecision,
-  ) async {
-    final api = ref.read(apiProvider);
-    final testExecution = await api.changeTestExecutionReview(
-      testExecutionId,
-      reviewDecision,
-      reviewComment,
-    );
-
-    await _updateTestExecutions({testExecutionId}, (_) => testExecution);
-  }
-
   Future<void> rerunTestExecutions(Set<int> testExecutionIds) async {
     final api = ref.read(apiProvider);
     final rerunRequests = await api.rerunTestExecutions(testExecutionIds);

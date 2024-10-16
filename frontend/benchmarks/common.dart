@@ -51,8 +51,8 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
       status: ArtefactStatus.undecided,
       stage: StageName.beta,
       bugLink: '',
-      allTestExecutionsCount: 1,
-      completedTestExecutionsCount: 0,
+      allEnvironmentReviewsCount: 1,
+      completedEnvironmentReviewsCount: 0,
     );
 
     return {
@@ -80,8 +80,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
                 name: 'Environment $i',
                 architecture: 'amd64',
               ),
-              reviewComment: 'reviewComment',
-              reviewDecision: [],
+              artefactBuildId: 1,
             ),
         ],
       ),
@@ -101,8 +100,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
                 name: 'Environment $i',
                 architecture: 'armhf',
               ),
-              reviewComment: 'reviewComment',
-              reviewDecision: [],
+              artefactBuildId: i,
             ),
         ],
       ),

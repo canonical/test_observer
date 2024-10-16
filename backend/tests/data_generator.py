@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    ArtefactBuildEnvironmentReview,
     Environment,
     Stage,
     TestCase,
@@ -14,9 +15,9 @@ from test_observer.data_access.models import (
     User,
 )
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -39,8 +40,7 @@ class DataGenerator:
             launchpad_email=launchpad_email,
             launchpad_handle=launchpad_handle,
         )
-        self.db_session.add(user)
-        self.db_session.commit()
+        self._add_object(user)
         return user
 
     def gen_artefact(
@@ -85,8 +85,7 @@ class DataGenerator:
             due_date=due_date,
             assignee_id=assignee_id,
         )
-        self.db_session.add(artefact)
-        self.db_session.commit()
+        self._add_object(artefact)
         return artefact
 
     def gen_artefact_build(
@@ -103,8 +102,7 @@ class DataGenerator:
             revision=revision,
             artefact=artefact,
         )
-        self.db_session.add(build)
-        self.db_session.commit()
+        self._add_object(build)
         return build
 
     def gen_environment(
@@ -113,8 +111,7 @@ class DataGenerator:
         architecture: str = DEFAULT_ARCHITECTURE,
     ) -> Environment:
         environment = Environment(name=name, architecture=architecture)
-        self.db_session.add(environment)
-        self.db_session.commit()
+        self._add_object(environment)
         return environment
 
     def gen_test_execution(
@@ -124,25 +121,17 @@ class DataGenerator:
         ci_link: str | None = None,
         c3_link: str | None = None,
         status: TestExecutionStatus = TestExecutionStatus.NOT_STARTED,
-        review_decision: list[TestExecutionReviewDecision] | None = None,
-        review_comment: str = "",
         checkbox_version: str | None = None,
     ) -> TestExecution:
-        if review_decision is None:
-            review_decision = []
-
         test_execution = TestExecution(
             artefact_build=artefact_build,
             environment=environment,
             ci_link=ci_link,
             c3_link=c3_link,
             status=status,
-            review_decision=review_decision,
-            review_comment=review_comment,
             checkbox_version=checkbox_version,
         )
-        self.db_session.add(test_execution)
-        self.db_session.commit()
+        self._add_object(test_execution)
         return test_execution
 
     def gen_test_case(
@@ -156,8 +145,7 @@ class DataGenerator:
             category=category,
             template_id=template_id,
         )
-        self.db_session.add(test_case)
-        self.db_session.commit()
+        self._add_object(test_case)
         return test_case
 
     def gen_test_result(
@@ -175,14 +163,32 @@ class DataGenerator:
             comment=comment,
             io_log=io_log,
         )
-        self.db_session.add(test_result)
-        self.db_session.commit()
+        self._add_object(test_result)
         return test_result
 
     def gen_rerun_request(
         self, test_execution: TestExecution
     ) -> TestExecutionRerunRequest:
         rerun = TestExecutionRerunRequest(test_execution=test_execution)
-        self.db_session.add(rerun)
-        self.db_session.commit()
+        self._add_object(rerun)
         return rerun
+
+    def gen_artefact_build_environment_review(
+        self,
+        artefact_build: ArtefactBuild,
+        environment: Environment,
+        review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None,
+        review_comment: str = "",
+    ):
+        review = ArtefactBuildEnvironmentReview(
+            artefact_build=artefact_build,
+            environment=environment,
+            review_decision=review_decision,
+            review_comment=review_comment,
+        )
+        self._add_object(review)
+        return review
+
+    def _add_object(self, instance: object) -> None:
+        self.db_session.add(instance)
+        self.db_session.commit()

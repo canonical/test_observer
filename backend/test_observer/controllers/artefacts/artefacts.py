@@ -19,45 +19,31 @@
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
-from test_observer.data_access import queries
+from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
-    TestExecution,
 )
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
+from . import builds, environment_reviews
 from .logic import (
-    are_all_test_executions_approved,
-    is_there_a_rejected_test_execution,
+    are_all_environments_approved,
+    is_there_a_rejected_environment,
 )
 from .models import (
-    ArtefactBuildDTO,
     ArtefactDTO,
     ArtefactPatch,
     ArtefactVersionDTO,
 )
 
 router = APIRouter(tags=["artefacts"])
-
-
-def _get_artefact_from_db(artefact_id: int, db: Session = Depends(get_db)) -> Artefact:
-    a = (
-        db.query(Artefact)
-        .options(
-            joinedload(Artefact.builds).joinedload(ArtefactBuild.test_executions),
-        )
-        .filter(Artefact.id == artefact_id)
-        .one_or_none()
-    )
-    if a is None:
-        msg = f"Artefact with id {artefact_id} not found"
-        raise HTTPException(status_code=404, detail=msg)
-    return a
+router.include_router(environment_reviews.router)
+router.include_router(builds.router)
 
 
 @router.get("", response_model=list[ArtefactDTO])
@@ -71,7 +57,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             db,
             family,
             load_stage=True,
-            load_test_executions=True,
+            load_environment_reviews=True,
             order_by_columns=order_by,
         )
     else:
@@ -80,7 +66,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 db,
                 family,
                 load_stage=True,
-                load_test_executions=True,
+                load_environment_reviews=True,
                 order_by_columns=order_by,
             )
 
@@ -89,7 +75,13 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
 
 @router.get("/{artefact_id}", response_model=ArtefactDTO)
 def get_artefact(
-    artefact: Artefact = Depends(_get_artefact_from_db),
+    artefact: Artefact = Depends(
+        ArtefactRetriever(
+            selectinload(Artefact.builds).selectinload(
+                ArtefactBuild.environment_reviews
+            )
+        )
+    ),
 ):
     return artefact
 
@@ -98,17 +90,15 @@ def get_artefact(
 def patch_artefact(
     request: ArtefactPatch,
     db: Session = Depends(get_db),
-    artefact: Artefact = Depends(_get_artefact_from_db),
+    artefact: Artefact = Depends(
+        ArtefactRetriever(
+            selectinload(Artefact.builds).selectinload(
+                ArtefactBuild.environment_reviews
+            )
+        )
+    ),
 ):
-    latest_builds = list(
-        db.scalars(
-            queries.latest_artefact_builds.where(
-                ArtefactBuild.artefact_id == artefact.id
-            ).options(joinedload(ArtefactBuild.test_executions))
-        ).unique()
-    )
-
-    _validate_artefact_status(latest_builds, request.status)
+    _validate_artefact_status(artefact.latest_builds, request.status)
 
     artefact.status = request.status
     db.commit()
@@ -118,9 +108,8 @@ def patch_artefact(
 def _validate_artefact_status(
     builds: list[ArtefactBuild], status: ArtefactStatus
 ) -> None:
-    if status == ArtefactStatus.APPROVED and not are_all_test_executions_approved(
-        builds
-    ):
+    ...
+    if status == ArtefactStatus.APPROVED and not are_all_environments_approved(builds):
         raise HTTPException(
             status_code=400,
             detail="All test executions need to be approved",
@@ -128,7 +117,7 @@ def _validate_artefact_status(
 
     if (
         status == ArtefactStatus.MARKED_AS_FAILED
-        and not is_there_a_rejected_test_execution(builds)
+        and not is_there_a_rejected_environment(builds)
     ):
         raise HTTPException(
             400,
@@ -136,40 +125,10 @@ def _validate_artefact_status(
         )
 
 
-@router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
-def get_artefact_builds(artefact_id: int, db: Session = Depends(get_db)):
-    """Get latest artefact builds of an artefact together with their test executions"""
-    latest_builds = list(
-        db.scalars(
-            queries.latest_artefact_builds.where(
-                ArtefactBuild.artefact_id == artefact_id
-            ).options(
-                joinedload(ArtefactBuild.test_executions).joinedload(
-                    TestExecution.rerun_request
-                )
-            )
-        ).unique()
-    )
-
-    for artefact_build in latest_builds:
-        artefact_build.test_executions.sort(
-            key=lambda test_execution: test_execution.environment.name
-        )
-
-    return latest_builds
-
-
 @router.get("/{artefact_id}/versions", response_model=list[ArtefactVersionDTO])
 def get_artefact_versions(
-    artefact_id: int,
-    db: Session = Depends(get_db),
+    artefact: Artefact = Depends(ArtefactRetriever()), db: Session = Depends(get_db)
 ):
-    artefact = db.get(Artefact, artefact_id)
-
-    if not artefact:
-        msg = f"Artefact with id {artefact_id} not found"
-        raise HTTPException(status_code=404, detail=msg)
-
     return db.scalars(
         select(Artefact)
         .where(Artefact.name == artefact.name)

@@ -15,9 +15,10 @@
 #
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models_enums import (
-    TestExecutionReviewDecision,
+    ArtefactBuildEnvironmentReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -32,6 +33,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     test_execution = generator.gen_test_execution(
         artefact_build, environment, ci_link="http://localhost"
     )
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
     test_case = generator.gen_test_case()
 
     response = test_client.put(
@@ -72,13 +74,16 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.test_results[1].test_case.template_id == "disk/stats_name"
 
 
-def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator):
+def test_end_test_is_idempotent(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
         artefact_build, environment, ci_link="http://localhost"
     )
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
 
     for _ in range(2):
         test_client.put(
@@ -97,6 +102,7 @@ def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerato
             },
         )
 
+    db_session.refresh(test_execution)
     assert len(test_execution.test_results) == 1
 
 
@@ -108,10 +114,14 @@ def test_end_test_approves_test_execution_automatically(
     prev_artefact = generator.gen_artefact("beta", version="1")
     prev_artefact_build = generator.gen_artefact_build(prev_artefact)
     generator.gen_test_execution(
+        prev_artefact_build, environment, ci_link="http://cilink1"
+    )
+    generator.gen_artefact_build_environment_review(
         prev_artefact_build,
         environment,
-        ci_link="http://cilink1",
-        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+        review_decision=[
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+        ],
     )
 
     curr_artefact = generator.gen_artefact("beta", version="2")
@@ -119,14 +129,17 @@ def test_end_test_approves_test_execution_automatically(
     curr_test_execution = generator.gen_test_execution(
         curr_artefact_build, environment, ci_link="http://cilink2"
     )
+    curr_environment_review = generator.gen_artefact_build_environment_review(
+        curr_artefact_build, environment
+    )
 
     test_client.put(
         "/v1/test-executions/end-test",
         json={"ci_link": curr_test_execution.ci_link, "test_results": []},
     )
 
-    assert curr_test_execution.review_decision == [
-        TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
+    assert curr_environment_review.review_decision == [
+        ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
     ]
 
 
@@ -141,13 +154,22 @@ def test_end_test_does_not_approve_with_failing_tests(
         prev_artefact_build,
         environment,
         ci_link="http://cilink1",
-        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+    generator.gen_artefact_build_environment_review(
+        prev_artefact_build,
+        environment,
+        review_decision=[
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+        ],
     )
 
     curr_artefact = generator.gen_artefact("beta", version="2")
     curr_artefact_build = generator.gen_artefact_build(curr_artefact)
     curr_test_execution = generator.gen_test_execution(
         curr_artefact_build, environment, ci_link="http://cilink2"
+    )
+    curr_environment_review = generator.gen_artefact_build_environment_review(
+        curr_artefact_build, environment
     )
 
     test_client.put(
@@ -166,7 +188,7 @@ def test_end_test_does_not_approve_with_failing_tests(
         },
     )
 
-    assert curr_test_execution.review_decision == []
+    assert curr_environment_review.review_decision == []
 
 
 def test_end_test_does_not_approve_if_previous_is_not_approved(
@@ -181,11 +203,15 @@ def test_end_test_does_not_approve_if_previous_is_not_approved(
         environment,
         ci_link="http://cilink1",
     )
+    generator.gen_artefact_build_environment_review(prev_artefact_build, environment)
 
     curr_artefact = generator.gen_artefact("beta", version="2")
     curr_artefact_build = generator.gen_artefact_build(curr_artefact)
     curr_test_execution = generator.gen_test_execution(
         curr_artefact_build, environment, ci_link="http://cilink2"
+    )
+    curr_environment_review = generator.gen_artefact_build_environment_review(
+        curr_artefact_build, environment
     )
 
     test_client.put(
@@ -193,7 +219,7 @@ def test_end_test_does_not_approve_if_previous_is_not_approved(
         json={"ci_link": curr_test_execution.ci_link, "test_results": []},
     )
 
-    assert curr_test_execution.review_decision == []
+    assert curr_environment_review.review_decision == []
 
 
 def test_end_test_does_not_approve_if_missing_test_cases(
@@ -208,7 +234,13 @@ def test_end_test_does_not_approve_if_missing_test_cases(
         prev_artefact_build,
         environment,
         ci_link="http://cilink1",
-        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+    generator.gen_artefact_build_environment_review(
+        prev_artefact_build,
+        environment,
+        review_decision=[
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+        ],
     )
     generator.gen_test_result(test_case, prev_test_execution)
 
@@ -217,13 +249,16 @@ def test_end_test_does_not_approve_if_missing_test_cases(
     curr_test_execution = generator.gen_test_execution(
         curr_artefact_build, environment, ci_link="http://cilink2"
     )
+    curr_environment_review = generator.gen_artefact_build_environment_review(
+        curr_artefact_build, environment
+    )
 
     test_client.put(
         "/v1/test-executions/end-test",
         json={"ci_link": curr_test_execution.ci_link, "test_results": []},
     )
 
-    assert curr_test_execution.review_decision == []
+    assert curr_environment_review.review_decision == []
 
 
 def test_end_test_uses_test_execution_of_latest_build(
@@ -239,11 +274,18 @@ def test_end_test_uses_test_execution_of_latest_build(
         environment,
         ci_link="http://cilink1",
     )
+    generator.gen_artefact_build_environment_review(prev_artefact_build1, environment)
     generator.gen_test_execution(
         prev_artefact_build2,
         environment,
         ci_link="http://cilink2",
-        review_decision=[TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
+    generator.gen_artefact_build_environment_review(
+        prev_artefact_build2,
+        environment,
+        review_decision=[
+            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
+        ],
     )
 
     curr_artefact = generator.gen_artefact("beta", version="2")
@@ -251,14 +293,17 @@ def test_end_test_uses_test_execution_of_latest_build(
     curr_test_execution = generator.gen_test_execution(
         curr_artefact_build, environment, ci_link="http://cilink3"
     )
+    curr_environment_review = generator.gen_artefact_build_environment_review(
+        curr_artefact_build, environment
+    )
 
     test_client.put(
         "/v1/test-executions/end-test",
         json={"ci_link": curr_test_execution.ci_link, "test_results": []},
     )
 
-    assert curr_test_execution.review_decision == [
-        TestExecutionReviewDecision.APPROVED_ALL_TESTS_PASS
+    assert curr_environment_review.review_decision == [
+        ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
     ]
 
 
@@ -271,6 +316,7 @@ def test_end_test_updates_template_id(
     test_execution = generator.gen_test_execution(
         artefact_build, environment, ci_link="http://localhost"
     )
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
     test_case = generator.gen_test_case(template_id="")
 
     response = test_client.put(

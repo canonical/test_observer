@@ -2,20 +2,21 @@ import 'package:dartx/dartx.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'artefact.dart';
+import 'environment_review.dart';
 import 'filter.dart';
 import 'test_execution.dart';
 
 part 'filters.freezed.dart';
 
 @freezed
-class Filters<T> with _$Filters<T> {
-  const Filters._();
+class FiltersGroup<T> with _$FiltersGroup<T> {
+  const FiltersGroup._();
 
-  const factory Filters({
+  const factory FiltersGroup({
     required List<Filter<T>> filters,
   }) = _Filters<T>;
 
-  Filters<T> copyWithFilterOptionValue(
+  FiltersGroup<T> copyWithFilterOptionValue(
     String filterName,
     String optionName,
     bool optionValue,
@@ -42,7 +43,7 @@ class Filters<T> with _$Filters<T> {
   bool doesObjectPassFilters(T object) =>
       filters.all((filter) => filter.doesObjectPassFilter(object));
 
-  Filters<T> copyWithQueryParams(Map<String, List<String>> queryParams) {
+  FiltersGroup<T> copyWithQueryParams(Map<String, List<String>> queryParams) {
     final newFilters = filters.map((filter) {
       final values = queryParams[filter.name]?.toSet();
       if (values == null || values.isEmpty) return filter;
@@ -66,7 +67,7 @@ class Filters<T> with _$Filters<T> {
     return queryParams;
   }
 
-  Filters<T> copyWithOptionsExtracted(List<T> objects) {
+  FiltersGroup<T> copyWithOptionsExtracted(List<T> objects) {
     final newFilters = <Filter<T>>[];
     for (final filter in filters) {
       final options = <String>{};
@@ -81,7 +82,7 @@ class Filters<T> with _$Filters<T> {
   }
 }
 
-final emptyArtefactFilters = Filters<Artefact>(
+final emptyArtefactFilters = FiltersGroup<Artefact>(
   filters: [
     Filter<Artefact>(
       name: 'Assignee',
@@ -108,16 +109,21 @@ final emptyArtefactFilters = Filters<Artefact>(
   ],
 );
 
-final emptyTestExecutionFilters = Filters<TestExecution>(
+final emptyTestExecutionFilters = FiltersGroup<TestExecution>(
   filters: [
-    Filter<TestExecution>(
-      name: 'Review status',
-      extractOption: (te) =>
-          te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
-    ),
     Filter<TestExecution>(
       name: 'Execution status',
       extractOption: (te) => te.status.name,
+    ),
+  ],
+);
+
+final emptyEnvironmentReviewFilters = FiltersGroup<EnvironmentReview>(
+  filters: [
+    Filter<EnvironmentReview>(
+      name: 'Review status',
+      extractOption: (te) =>
+          te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
     ),
   ],
 );

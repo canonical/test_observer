@@ -43,6 +43,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql import func
 
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     TestExecutionReviewDecision,
     TestExecutionStatus,
@@ -208,7 +209,8 @@ class Artefact(Base):
         """Kernel artefacts start with 'linix-' or end with '-kernel'"""
         return self.name.startswith("linux-") or self.name.endswith("-kernel")
 
-    def _get_latest_builds(self) -> list["ArtefactBuild"]:
+    @property
+    def latest_builds(self) -> list["ArtefactBuild"]:
         # Group builds by architecture
         grouped_builds = defaultdict(list)
         for build in self.builds:
@@ -220,14 +222,14 @@ class Artefact(Base):
         ]
 
     @property
-    def all_test_executions_count(self) -> int:
-        return sum(len(ab.test_executions) for ab in self._get_latest_builds())
+    def all_environment_reviews_count(self) -> int:
+        return sum(len(ab.environment_reviews) for ab in self.latest_builds)
 
     @property
-    def completed_test_executions_count(self) -> int:
+    def completed_environment_reviews_count(self) -> int:
         return sum(
-            len([te for te in ab.test_executions if te.review_decision])
-            for ab in self._get_latest_builds()
+            len([er for er in ab.environment_reviews if er.review_decision])
+            for ab in self.latest_builds
         )
 
 
@@ -247,6 +249,9 @@ class ArtefactBuild(Base):
     )
     test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete"
+    )
+    environment_reviews: Mapped[list["ArtefactBuildEnvironmentReview"]] = relationship(
+        back_populates="artefact_build",
     )
 
     __table_args__ = (
@@ -358,12 +363,6 @@ class TestExecution(Base):
     checkbox_version: Mapped[str | None] = mapped_column(
         String(200), nullable=True, default=None
     )
-
-    @property
-    def is_approved(self) -> bool:
-        return (len(self.review_decision) > 0) and (
-            TestExecutionReviewDecision.REJECTED not in self.review_decision
-        )
 
     @property
     def has_failures(self) -> bool:
@@ -499,4 +498,37 @@ class EnvironmentIssue(Base):
             "url",
             "description",
             "is_confirmed",
+        )
+
+
+class ArtefactBuildEnvironmentReview(Base):
+    """
+    A table to store review information for test runs on a combination
+    of environment and artefact builds.
+    """
+
+    __tablename__ = "artefact_build_environment_review"
+    __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
+
+    review_decision: Mapped[
+        list[ArtefactBuildEnvironmentReviewDecision]
+    ] = mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    review_comment: Mapped[str] = mapped_column(default="")
+
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environment.id", ondelete="CASCADE")
+    )
+    environment: Mapped["Environment"] = relationship()
+
+    artefact_build_id: Mapped[int] = mapped_column(
+        ForeignKey("artefact_build.id", ondelete="CASCADE")
+    )
+    artefact_build: Mapped["ArtefactBuild"] = relationship(
+        back_populates="environment_reviews",
+    )
+
+    @property
+    def is_approved(self) -> bool:
+        return (len(self.review_decision) > 0) and (
+            ArtefactBuildEnvironmentReviewDecision.REJECTED not in self.review_decision
         )

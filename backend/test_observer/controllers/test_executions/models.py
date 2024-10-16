@@ -36,7 +36,6 @@ from pydantic import (
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -110,24 +109,6 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | None = None
-    review_decision: set[TestExecutionReviewDecision] | None = None
-    review_comment: str | None = None
-
-    @field_validator("review_decision")
-    @classmethod
-    def validate_review_decision(
-        cls: type["TestExecutionsPatchRequest"],
-        review_decision: set[TestExecutionReviewDecision] | None,
-    ) -> set[TestExecutionReviewDecision] | None:
-        if review_decision is None:
-            return review_decision
-
-        if len(review_decision) <= 1:
-            return review_decision
-
-        if TestExecutionReviewDecision.REJECTED in review_decision:
-            raise ValueError("Test execution can either be rejected or approved")
-        return review_decision
 
 
 class PreviousTestResult(BaseModel):
@@ -177,11 +158,11 @@ class DeleteReruns(BaseModel):
     test_execution_ids: set[int]
 
 
-class TestEvent(BaseModel):
+class TestEventDTO(BaseModel):
     event_name: str
     timestamp: datetime
     detail: str
 
 
 class StatusUpdateRequest(BaseModel):
-    events: list[TestEvent]
+    events: list[TestEventDTO]
