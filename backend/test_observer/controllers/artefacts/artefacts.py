@@ -20,46 +20,31 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.sql.base import ExecutableOption
 
+from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
-    ArtefactBuildEnvironmentReview,
     TestExecution,
 )
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
+from . import environment_reviews
 from .logic import (
     are_all_environments_approved,
     is_there_a_rejected_environment,
 )
 from .models import (
     ArtefactBuildDTO,
-    ArtefactBuildEnvironmentReviewDTO,
     ArtefactDTO,
     ArtefactPatch,
     ArtefactVersionDTO,
-    EnvironmentReviewPatch,
 )
 
 router = APIRouter(tags=["artefacts"])
-
-
-class ArtefactRetriever:
-    def __init__(self, *options: ExecutableOption):
-        self._options = options
-
-    def __call__(self, artefact_id: int, db: Session = Depends(get_db)):
-        artefact = db.scalar(
-            select(Artefact).where(Artefact.id == artefact_id).options(*self._options)
-        )
-        if artefact is None:
-            msg = f"Artefact with id {artefact_id} not found"
-            raise HTTPException(status_code=404, detail=msg)
-        return artefact
+router.include_router(environment_reviews.router)
 
 
 @router.get("", response_model=list[ArtefactDTO])
@@ -175,55 +160,3 @@ def get_artefact_versions(
         .where(Artefact.repo == artefact.repo)
         .order_by(Artefact.id.desc())
     )
-
-
-@router.get(
-    "/{artefact_id}/environment-reviews",
-    response_model=list[ArtefactBuildEnvironmentReviewDTO],
-)
-def get_environment_reviews(
-    artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(
-                ArtefactBuild.environment_reviews
-            )
-        )
-    ),
-):
-    return [
-        review
-        for build in artefact.latest_builds
-        for review in build.environment_reviews
-    ]
-
-
-@router.patch(
-    "/{artefact_id}/environment-reviews/{review_id}",
-    response_model=ArtefactBuildEnvironmentReviewDTO,
-)
-def update_environment_review(
-    artefact_id: int,
-    request: EnvironmentReviewPatch,
-    review_id: int,
-    db: Session = Depends(get_db),
-):
-    review = db.scalar(
-        select(ArtefactBuildEnvironmentReview)
-        .where(ArtefactBuildEnvironmentReview.id == review_id)
-        .options(selectinload(ArtefactBuildEnvironmentReview.artefact_build))
-    )
-
-    if not review:
-        raise HTTPException(404, f"Environment review {review_id} doesn't exist")
-
-    if review.artefact_build.artefact_id != artefact_id:
-        msg = f"Environment review {review_id} doesn't belong to artefact {artefact_id}"
-        raise HTTPException(422, msg)
-
-    for field in request.model_fields_set:
-        value = getattr(request, field)
-        if value is not None:
-            setattr(review, field, value)
-
-    db.commit()
-    return review
