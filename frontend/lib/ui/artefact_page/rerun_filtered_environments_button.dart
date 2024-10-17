@@ -5,22 +5,21 @@ import 'package:intersperse/intersperse.dart';
 
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
-import '../../providers/filtered_test_executions.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 
 class RerunFilteredEnvironmentsButton extends ConsumerWidget {
-  const RerunFilteredEnvironmentsButton({super.key});
+  const RerunFilteredEnvironmentsButton({
+    super.key,
+    required this.filteredTestExecutions,
+  });
+
+  final Iterable<TestExecution> filteredTestExecutions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = GoRouterState.of(context).uri;
     final artefactId = AppRoutes.artefactIdFromUri(pageUri);
-
-    final filteredTestExecutions = ref
-        .watch(filteredTestExecutionsProvider(pageUri))
-        .requireValue
-        .toList();
 
     handlePress() => showDialog(
           context: context,
@@ -46,7 +45,7 @@ class _ConfirmationDialog extends ConsumerWidget {
     required this.artefactId,
   });
 
-  final List<TestExecution> filteredTestExecutions;
+  final Iterable<TestExecution> filteredTestExecutions;
   final int artefactId;
 
   @override
