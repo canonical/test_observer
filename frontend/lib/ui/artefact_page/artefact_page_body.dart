@@ -58,7 +58,10 @@ class ArtefactPageBody extends ConsumerWidget {
               testExecutions: filteredCombination.map((comb) => comb.$2),
             ),
             const Spacer(),
-            const RerunFilteredEnvironmentsButton(),
+            RerunFilteredEnvironmentsButton(
+              filteredTestExecutions:
+                  filteredCombination.map((comb) => comb.$2),
+            ),
           ],
         ),
         NonBlockingProviderPreloader(
