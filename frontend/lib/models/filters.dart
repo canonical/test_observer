@@ -122,8 +122,13 @@ final emptyEnvironmentReviewFilters = FiltersGroup<EnvironmentReview>(
   filters: [
     Filter<EnvironmentReview>(
       name: 'Review status',
-      extractOption: (te) =>
-          te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
+      // extractOption: (te) =>
+      //     te.reviewDecision.isEmpty ? 'Undecided' : 'Reviewed',
+      extractOption: (er) => switch (er.reviewDecision) {
+        [] => 'Undecided',
+        [EnvironmentReviewDecision.rejected] => 'Rejected',
+        [...] => 'Approved',
+      },
     ),
   ],
 );
