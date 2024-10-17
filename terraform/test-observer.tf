@@ -66,7 +66,7 @@ resource "juju_application" "pg" {
 
   charm {
     name    = "postgresql-k8s"
-    channel = "14/stable"
+    channel = "14/candidate"
     series  = "jammy"
   }
 }
