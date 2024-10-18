@@ -24,6 +24,7 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     TestEvent,
     TestExecution,
+    TestExecutionRerunRequest,
     TestResult,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus
@@ -39,11 +40,7 @@ def reset_test_execution(
     test_execution.status = TestExecutionStatus.IN_PROGRESS
     test_execution.ci_link = request.ci_link
     test_execution.c3_link = None
-    if test_execution.rerun_request:
-        db.delete(test_execution.rerun_request)
     db.commit()
-
-    delete_previous_results(db, test_execution)
 
 
 def delete_previous_results(
@@ -185,3 +182,12 @@ def get_previous_test_results(
         .order_by(TestResult.test_case_id, desc(TestResult.id))
         .all()
     )
+
+
+def delete_rerun_request(db: Session, test_execution_id: int):
+    db.execute(
+        delete(TestExecutionRerunRequest).where(
+            TestExecutionRerunRequest.test_execution_id == test_execution_id
+        )
+    )
+    db.commit()

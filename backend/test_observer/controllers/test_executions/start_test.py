@@ -19,6 +19,7 @@ import random
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from test_observer.controllers.test_executions.logic import delete_rerun_request
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -32,7 +33,7 @@ from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-from .logic import reset_test_execution
+from .logic import delete_previous_results, reset_test_execution
 from .models import StartTestExecutionRequest
 
 router = APIRouter()
@@ -106,6 +107,8 @@ def start_test_execution(
 
         if test_execution.ci_link != request.ci_link:
             reset_test_execution(request, db, test_execution)
+            delete_previous_results(db, test_execution)
+            delete_rerun_request(db, test_execution.id)
 
         if artefact.assignee_id is None and (users := db.query(User).all()):
             artefact.assignee = random.choice(users)

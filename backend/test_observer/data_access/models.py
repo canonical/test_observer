@@ -312,9 +312,7 @@ class TestExecutionRerunRequest(Base):
     test_execution_id: Mapped[int] = mapped_column(
         ForeignKey("test_execution.id"), unique=True
     )
-    test_execution: Mapped["TestExecution"] = relationship(
-        back_populates="rerun_request"
-    )
+    test_execution: Mapped["TestExecution"] = relationship()
 
 
 class TestExecution(Base):
@@ -346,9 +344,6 @@ class TestExecution(Base):
         order_by="TestEvent.timestamp",
     )
     resource_url: Mapped[str] = mapped_column(default="")
-    rerun_request: Mapped[TestExecutionRerunRequest | None] = relationship(
-        back_populates="test_execution", cascade="all, delete"
-    )
     # Default fields
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED

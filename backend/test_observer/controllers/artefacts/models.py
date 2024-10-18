@@ -81,7 +81,6 @@ class TestExecutionDTO(BaseModel):
     c3_link: str | None
     environment: EnvironmentDTO
     status: TestExecutionStatus
-    rerun_request: Any = Field(exclude=True)
 
 
 class ArtefactBuildDTO(BaseModel):
