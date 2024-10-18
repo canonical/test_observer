@@ -21,10 +21,7 @@ def get_artefact_builds(
         ArtefactRetriever(
             selectinload(Artefact.builds)
             .selectinload(ArtefactBuild.test_executions)
-            .options(
-                selectinload(TestExecution.environment),
-                selectinload(TestExecution.rerun_request),
-            )
+            .selectinload(TestExecution.environment)
         )
     ),
 ):

@@ -25,7 +25,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    computed_field,
     field_validator,
 )
 
@@ -83,10 +82,6 @@ class TestExecutionDTO(BaseModel):
     environment: EnvironmentDTO
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
-
-    @computed_field
-    def is_rerun_requested(self) -> bool:
-        return bool(self.rerun_request)
 
 
 class ArtefactBuildDTO(BaseModel):
