@@ -185,4 +185,9 @@ class ApiRepository {
     );
     return EnvironmentReview.fromJson(response.data);
   }
+
+  Future<List<RerunRequest>> getRerunRequests() async {
+    final response = await dio.get('/v1/test-executions/reruns');
+    return [for (final json in response.data) RerunRequest.fromJson(json)];
+  }
 }

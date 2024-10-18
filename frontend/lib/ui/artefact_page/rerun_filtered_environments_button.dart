@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
 
 import '../../models/test_execution.dart';
-import '../../providers/artefact_builds.dart';
-import '../../routing.dart';
+import '../../providers/rerun_requests.dart';
 import '../spacing.dart';
 
 class RerunFilteredEnvironmentsButton extends ConsumerWidget {
@@ -18,14 +17,10 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pageUri = GoRouterState.of(context).uri;
-    final artefactId = AppRoutes.artefactIdFromUri(pageUri);
-
     handlePress() => showDialog(
           context: context,
           builder: (_) => _ConfirmationDialog(
             filteredTestExecutions: filteredTestExecutions,
-            artefactId: artefactId,
           ),
         );
 
@@ -40,20 +35,16 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
 }
 
 class _ConfirmationDialog extends ConsumerWidget {
-  const _ConfirmationDialog({
-    required this.filteredTestExecutions,
-    required this.artefactId,
-  });
+  const _ConfirmationDialog({required this.filteredTestExecutions});
 
   final Iterable<TestExecution> filteredTestExecutions;
-  final int artefactId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     handleYes() {
       final testExecutionIds = {for (final te in filteredTestExecutions) te.id};
       ref
-          .read(artefactBuildsProvider(artefactId).notifier)
+          .read(rerunRequestsProvider.notifier)
           .rerunTestExecutions(testExecutionIds);
       context.pop();
     }

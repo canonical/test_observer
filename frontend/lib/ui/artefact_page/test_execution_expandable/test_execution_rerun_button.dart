@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/test_execution.dart';
-import '../../../providers/artefact_builds.dart';
-import '../../../routing.dart';
+import '../../../providers/rerun_requests.dart';
 
 class RerunButton extends ConsumerWidget {
   const RerunButton({super.key, required this.testExecution});
@@ -13,21 +12,22 @@ class RerunButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactId =
-        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
+    final rerunRequests = ref.watch(rerunRequestsProvider).value;
+    final isRerunRequested =
+        rerunRequests?.any((rr) => rr.testExecutionId == testExecution.id) ==
+            true;
 
-    final handlePress = testExecution.isRerunRequested
+    final handlePress = isRerunRequested
         ? null
         : () => showDialog(
               context: context,
               builder: (_) => _RerunConfirmationDialog(
-                artefactId: artefactId,
                 testExecutionId: testExecution.id,
               ),
             );
 
     return Tooltip(
-      message: testExecution.isRerunRequested ? 'Already requested' : '',
+      message: isRerunRequested ? 'Already requested' : '',
       child: TextButton(
         onPressed: handlePress,
         child: const Text('rerun'),
@@ -37,12 +37,8 @@ class RerunButton extends ConsumerWidget {
 }
 
 class _RerunConfirmationDialog extends ConsumerWidget {
-  const _RerunConfirmationDialog({
-    required this.artefactId,
-    required this.testExecutionId,
-  });
+  const _RerunConfirmationDialog({required this.testExecutionId});
 
-  final int artefactId;
   final int testExecutionId;
 
   @override
@@ -56,7 +52,7 @@ class _RerunConfirmationDialog extends ConsumerWidget {
           autofocus: true,
           onPressed: () {
             ref
-                .read(artefactBuildsProvider(artefactId).notifier)
+                .read(rerunRequestsProvider.notifier)
                 .rerunTestExecutions({testExecutionId});
             context.pop();
           },

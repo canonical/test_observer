@@ -18,7 +18,6 @@ class TestExecution with _$TestExecution {
     @JsonKey(name: 'c3_link') required String? c3Link,
     required TestExecutionStatus status,
     required Environment environment,
-    @Default(false) @JsonKey(name: 'is_rerun_requested') bool isRerunRequested,
     @JsonKey(name: 'artefact_build_id') required int artefactBuildId,
   }) = _TestExecution;
 
