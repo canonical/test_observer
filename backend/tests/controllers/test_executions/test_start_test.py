@@ -30,7 +30,6 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     Environment,
     TestExecution,
-    TestResult,
 )
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 from tests.data_generator import DataGenerator
@@ -145,14 +144,6 @@ def test_uses_existing_models(
     artefact = generator.gen_artefact("beta")
     environment = generator.gen_environment()
     artefact_build = generator.gen_artefact_build(artefact)
-    test_execution = generator.gen_test_execution(
-        artefact_build,
-        environment,
-        ci_link="http://should-be-changed",
-        c3_link="http://should-be-nulled",
-    )
-    test_case = generator.gen_test_case()
-    generator.gen_test_result(test_case, test_execution)
 
     request = StartTestExecutionRequest(
         family=FamilyName(artefact.stage.family.name),
@@ -182,13 +173,6 @@ def test_uses_existing_models(
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
     assert test_execution.c3_link is None
-    # deleted existing test results
-    assert (
-        db_session.query(TestResult)
-        .filter(TestResult.test_case_id == test_case.id)
-        .one_or_none()
-        is None
-    )
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
@@ -286,16 +270,16 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
     assert artefact.due_date is None
 
 
-def test_deletes_rerun_request_if_different_ci_link(
+def test_deletes_rerun_requests(
     execute: Execute, generator: DataGenerator, db_session: Session
 ):
     a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
-    te = generator.gen_test_execution(ab, e, ci_link="ci.link")
-    generator.gen_rerun_request(te)
-
-    assert te.rerun_request
+    te1 = generator.gen_test_execution(ab, e, ci_link="ci1.link")
+    te2 = generator.gen_test_execution(ab, e, ci_link="ci2.link")
+    generator.gen_rerun_request(te1)
+    generator.gen_rerun_request(te2)
 
     execute(
         {
@@ -312,32 +296,7 @@ def test_deletes_rerun_request_if_different_ci_link(
         },
     )
 
-    db_session.refresh(te)
-    assert not te.rerun_request
-
-
-def test_keep_rerun_request_if_same_ci_link(execute: Execute, generator: DataGenerator):
-    a = generator.gen_artefact("beta")
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    te = generator.gen_test_execution(ab, e, ci_link="ci.link")
-    generator.gen_rerun_request(te)
-
-    assert te.rerun_request
-
-    execute(
-        {
-            "family": a.stage.family.name,
-            "name": a.name,
-            "version": a.version,
-            "revision": ab.revision,
-            "track": a.track,
-            "store": a.store,
-            "arch": ab.architecture,
-            "execution_stage": a.stage.name,
-            "environment": e.name,
-            "ci_link": "ci.link",
-        },
-    )
-
-    assert te.rerun_request
+    db_session.refresh(te1)
+    db_session.refresh(te2)
+    assert not te1.rerun_request
+    assert not te2.rerun_request
