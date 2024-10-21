@@ -362,8 +362,6 @@ class TestExecution(Base):
     def has_failures(self) -> bool:
         return any(tr.status == TestResultStatus.FAILED for tr in self.test_results)
 
-    __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
-
     def __repr__(self) -> str:
         return data_model_repr(
             self,

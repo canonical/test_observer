@@ -14,8 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from sqlalchemy import delete, desc
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import delete, desc, select
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.query import RowReturningQuery
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
@@ -26,24 +26,24 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus
-
-from .models import StartTestExecutionRequest
 
 
-def reset_test_execution(
-    request: StartTestExecutionRequest,
-    db: Session,
-    test_execution: TestExecution,
-):
-    test_execution.status = TestExecutionStatus.IN_PROGRESS
-    test_execution.ci_link = request.ci_link
-    test_execution.c3_link = None
-    if test_execution.rerun_request:
-        db.delete(test_execution.rerun_request)
+def delete_rerun_requests(db: Session, test_execution: TestExecution):
+    related_test_execution_runs = db.scalars(
+        select(TestExecution)
+        .where(
+            TestExecution.artefact_build_id == test_execution.artefact_build_id,
+            TestExecution.environment_id == test_execution.environment_id,
+        )
+        .options(selectinload(TestExecution.rerun_request))
+    )
+
+    for te in related_test_execution_runs:
+        rerun_request = te.rerun_request
+        if rerun_request:
+            db.delete(rerun_request)
+
     db.commit()
-
-    delete_previous_results(db, test_execution)
 
 
 def delete_previous_results(
