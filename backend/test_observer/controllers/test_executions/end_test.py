@@ -19,15 +19,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import (
-    Artefact,
     ArtefactBuild,
-    ArtefactBuildEnvironmentReview,
     TestCase,
     TestExecution,
     TestResult,
 )
 from test_observer.data_access.models_enums import (
-    ArtefactBuildEnvironmentReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -56,104 +53,12 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
         TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
     )
 
-    prev_test_execution = _get_previous_test_execution(db, test_execution)
-    environment_review = db.scalars(
-        select(ArtefactBuildEnvironmentReview).where(
-            ArtefactBuildEnvironmentReview.environment_id
-            == test_execution.environment_id,
-            ArtefactBuildEnvironmentReview.artefact_build_id
-            == test_execution.artefact_build_id,
-        )
-    ).one()
-
-    if prev_test_execution:
-        prev_environment_review = db.scalar(
-            select(ArtefactBuildEnvironmentReview).where(
-                ArtefactBuildEnvironmentReview.environment_id
-                == test_execution.environment_id,
-                ArtefactBuildEnvironmentReview.artefact_build_id
-                == prev_test_execution.artefact_build_id,
-            )
-        )
-
-        if (
-            prev_environment_review
-            and prev_environment_review.is_approved
-            and not has_failures
-            and _ran_all_previously_run_cases(prev_test_execution, test_execution)
-            and not environment_review.review_decision
-        ):
-            environment_review.review_decision = [
-                ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-            ]
-
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
 
     test_execution.checkbox_version = request.checkbox_version
 
     db.commit()
-
-
-def _ran_all_previously_run_cases(
-    prev_test_execution: TestExecution, test_execution: TestExecution
-) -> bool:
-    prev_test_cases = {
-        tr.test_case.name
-        for tr in prev_test_execution.test_results
-        if tr.status != TestResultStatus.SKIPPED
-    }
-
-    test_cases = {
-        tr.test_case.name
-        for tr in test_execution.test_results
-        if tr.status != TestResultStatus.SKIPPED
-    }
-
-    return prev_test_cases.issubset(test_cases)
-
-
-def _get_previous_test_execution(
-    db: Session, test_execution: TestExecution
-) -> TestExecution | None:
-    artefact = test_execution.artefact_build.artefact
-    prev_artefact = _get_previous_artefact(db, artefact)
-
-    if prev_artefact is None:
-        return None
-
-    query = (
-        select(TestExecution)
-        .join(ArtefactBuild)
-        .where(
-            ArtefactBuild.artefact_id == prev_artefact.id,
-            TestExecution.environment_id == test_execution.environment_id,
-        )
-        .order_by(ArtefactBuild.revision.desc())
-        .limit(1)
-        .options(
-            joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
-        )
-    )
-
-    return db.execute(query).unique().scalar_one_or_none()
-
-
-def _get_previous_artefact(db: Session, artefact: Artefact) -> Artefact | None:
-    query = (
-        select(Artefact)
-        .where(
-            Artefact.id < artefact.id,
-            Artefact.name == artefact.name,
-            Artefact.track == artefact.track,
-            Artefact.series == artefact.series,
-            Artefact.repo == artefact.repo,
-        )
-        .order_by(Artefact.id.desc())
-        .limit(1)
-    )
-
-    return db.execute(query).scalar_one_or_none()
 
 
 def _find_related_test_execution(
