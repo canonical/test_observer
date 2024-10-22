@@ -20,5 +20,7 @@ Future<Iterable<EnvironmentReview>> filteredArtefactEnvironmentReviews(
   final environmentReviews =
       await ref.watch(artefactEnvironmentReviewsProvider(artefactId).future);
 
-  return environmentReviews.filter(filters.doesObjectPassFilters);
+  return environmentReviews
+      .filter(filters.doesObjectPassFilters)
+      .sortedBy((er) => er.environment.name);
 }
