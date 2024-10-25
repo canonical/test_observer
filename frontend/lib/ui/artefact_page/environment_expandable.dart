@@ -44,6 +44,8 @@ class _EnvironmentExpandableTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        artefactEnvironment.runsDescending.first.status.icon,
+        const SizedBox(width: Spacing.level4),
         Text(
           artefactEnvironment.architecture,
           style: Theme.of(context).textTheme.titleLarge,
