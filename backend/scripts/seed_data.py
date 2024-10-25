@@ -67,6 +67,18 @@ START_TEST_EXECUTION_REQUESTS = [
         store="ubuntu",
         arch="armhf",
         execution_stage="beta",
+        environment="rpi2",
+        ci_link="http://example14",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.SNAP,
+        name="core22",
+        version="20230531",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage="beta",
         environment="rpi4",
         ci_link="http://example10",
     ),
@@ -196,7 +208,7 @@ END_TEST_EXECUTION_REQUESTS = [
         test_results=[
             C3TestResult(
                 name="docker/compose-and-basic_armhf",
-                status=C3TestResultStatus.PASS,
+                status=C3TestResultStatus.FAIL,
                 category="Docker containers",
                 comment="",
                 io_log=dedent(
@@ -279,6 +291,25 @@ END_TEST_EXECUTION_REQUESTS = [
                     _bluetooth.error: (100, 'Network is down')
                     """
                 ),
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example13",
+        test_results=[
+            C3TestResult(
+                name="docker/compose-and-basic_armhf",
+                status=C3TestResultStatus.PASS,
+                category="Docker containers",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                name="after-suspend-audio/alsa-loopback-automated",
+                status=C3TestResultStatus.FAIL,
+                category="Audio tests",
+                comment="",
+                io_log="",
             ),
         ],
     ),
