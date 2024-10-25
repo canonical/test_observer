@@ -25,6 +25,7 @@ class EnvironmentExpandable extends StatelessWidget {
         ),
         ...artefactEnvironment.runsDescending.mapIndexed(
           (i, te) => TestExecutionExpandable(
+            initiallyExpanded: i == 0,
             testExecution: te,
             runNumber: artefactEnvironment.runsDescending.length - i,
           ),

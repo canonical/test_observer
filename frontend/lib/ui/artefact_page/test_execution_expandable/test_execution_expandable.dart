@@ -15,14 +15,17 @@ class TestExecutionExpandable extends ConsumerWidget {
     super.key,
     required this.testExecution,
     required this.runNumber,
+    this.initiallyExpanded = false,
   });
 
   final TestExecution testExecution;
   final int runNumber;
+  final bool initiallyExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Expandable(
+      initiallyExpanded: initiallyExpanded,
       title: _TestExecutionTileTitle(
         testExecution: testExecution,
         runNumber: runNumber,
