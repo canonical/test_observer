@@ -115,7 +115,6 @@ class PreviousTestResult(BaseModel):
     status: TestResultStatus
     version: str
     artefact_id: int
-    test_execution_id: int
 
 
 class TestResultDTO(BaseModel):

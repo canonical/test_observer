@@ -34,7 +34,6 @@ def parse_previous_test_results(
                 status=test_result.status,
                 version=test_result.test_execution.artefact_build.artefact.version,
                 artefact_id=test_result.test_execution.artefact_build.artefact_id,
-                test_execution_id=test_result.test_execution.id,
             )
             for test_result in test_results
         ]
