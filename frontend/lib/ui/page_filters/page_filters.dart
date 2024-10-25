@@ -1,11 +1,10 @@
-import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../models/filter.dart';
-import '../../providers/page_filter_groups.dart';
+import '../../providers/page_filters.dart';
 import '../../providers/search_value.dart';
 import '../../routing.dart';
 import '../expandable.dart';
@@ -25,9 +24,7 @@ class PageFiltersView extends ConsumerWidget {
     final pageUri = AppRoutes.uriFromContext(context);
     final searchQuery =
         pageUri.queryParameters[CommonQueryParameters.searchQuery];
-    final filterGroups = ref.watch(pageFilterGroupsProvider(pageUri));
-    final allFilters =
-        filterGroups.map((group) => group.filters).flatten().toList();
+    final filters = ref.watch(pageFiltersProvider(pageUri));
 
     return SizedBox(
       width: width,
@@ -42,7 +39,7 @@ class PageFiltersView extends ConsumerWidget {
             );
           }
 
-          if (i == allFilters.length + 1) {
+          if (i == filters.filters.length + 1) {
             return SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -53,33 +50,16 @@ class PageFiltersView extends ConsumerWidget {
             );
           }
 
-          int filterGroupIndex = 0;
-          int filtersCounted = filterGroups[filterGroupIndex].filters.length;
-          while (i > filtersCounted) {
-            filterGroupIndex++;
-            filtersCounted += filterGroups[filterGroupIndex].filters.length;
-          }
-
           return _SideFilter(
-            filter: allFilters[i - 1],
-            onOptionChanged: (
-              filterName,
-              optionName,
-              optionValue,
-            ) =>
-                ref
-                    .read(pageFilterGroupsProvider(pageUri).notifier)
-                    .handleFilterOptionChange(
-                      filterGroupIndex,
-                      filterName,
-                      optionName,
-                      optionValue,
-                    ),
+            filter: filters.filters[i - 1],
+            onOptionChanged: ref
+                .read(pageFiltersProvider(pageUri).notifier)
+                .handleFilterOptionChange,
           );
         },
         separatorBuilder: (_, __) =>
             const SizedBox(height: spacingBetweenFilters),
-        itemCount: allFilters.length + 2,
+        itemCount: filters.filters.length + 2,
       ),
     );
   }
@@ -94,14 +74,10 @@ class PageFiltersView extends ConsumerWidget {
     final sortDirection =
         pageUri.queryParameters[CommonQueryParameters.sortDirection];
     final searchValue = ref.read(searchValueProvider(searchQuery)).trim();
-    final filtersQueryParameters = {
-      for (final filterGroup in ref.read(pageFilterGroupsProvider(pageUri)))
-        ...filterGroup.toQueryParams(),
-    };
     final queryParams = {
       if (searchValue.isNotEmpty)
         CommonQueryParameters.searchQuery: searchValue,
-      ...filtersQueryParameters,
+      ...ref.read(pageFiltersProvider(pageUri)).toQueryParams(),
       if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
       if (sortDirection != null)
         CommonQueryParameters.sortDirection: sortDirection,

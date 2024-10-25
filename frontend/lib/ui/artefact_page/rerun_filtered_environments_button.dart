@@ -1,43 +1,28 @@
-import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
 
+import '../../models/artefact_environment.dart';
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
-import '../../providers/filtered_artefact_environment_reviews.dart';
-import '../../providers/filtered_test_executions.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 
-class RerunFilteredEnvironmentsButton extends ConsumerWidget {
-  const RerunFilteredEnvironmentsButton({super.key});
+class RerunFilteredEnvironmentsButton extends StatelessWidget {
+  const RerunFilteredEnvironmentsButton({
+    super.key,
+    required this.filteredArtefactEnvironments,
+  });
+
+  final List<ArtefactEnvironment> filteredArtefactEnvironments;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pageUri = GoRouterState.of(context).uri;
-    final artefactId = AppRoutes.artefactIdFromUri(pageUri);
-    final filteredTestExecutions =
-        ref.watch(filteredTestExecutionsProvider(pageUri)).value ?? [];
-    final filteredEnvironmentReviews =
-        ref.watch(filteredArtefactEnvironmentReviewsProvider(pageUri)).value ??
-            [];
-
-    final groupedTestExecutions = filteredTestExecutions
-        .groupBy((te) => (te.artefactBuildId, te.environment.id));
-    final latestTestExecutions = groupedTestExecutions.map(
-      (key, testExecutionGroup) =>
-          MapEntry(key, testExecutionGroup.maxBy((te) => te.id)),
-    );
+  Widget build(BuildContext context) {
+    final artefactId =
+        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
     final testExecutionsToRerun =
-        filteredEnvironmentReviews.fold(<TestExecution>[], (currentList, er) {
-      final te = latestTestExecutions[(er.artefactBuild.id, er.environment.id)];
-      if (te != null) {
-        currentList.add(te);
-      }
-      return currentList;
-    });
+        filteredArtefactEnvironments.map((ae) => ae.runsDescending.first);
 
     handlePress() => showDialog(
           context: context,

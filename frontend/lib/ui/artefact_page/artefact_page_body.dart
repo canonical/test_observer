@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../providers/environments_issues.dart';
-import '../../providers/filtered_artefact_environment_reviews.dart';
+import '../../providers/filtered_artefact_environments.dart';
 import '../../providers/tests_issues.dart';
 import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
@@ -19,12 +19,12 @@ class ArtefactPageBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
-    final environmentReviews = ref
-        .watch(filteredArtefactEnvironmentReviewsProvider(pageUri))
+    final environments = ref
+        .watch(filteredArtefactEnvironmentsProvider(pageUri))
         .value
         ?.toList();
 
-    if (environmentReviews == null) {
+    if (environments == null) {
       return const Center(child: YaruCircularProgressIndicator());
     }
 
@@ -41,7 +41,9 @@ class ArtefactPageBody extends ConsumerWidget {
             ),
             const SizedBox(width: Spacing.level4),
             const Spacer(),
-            const RerunFilteredEnvironmentsButton(),
+            RerunFilteredEnvironmentsButton(
+              filteredArtefactEnvironments: environments,
+            ),
           ],
         ),
         NonBlockingProviderPreloader(
@@ -50,12 +52,12 @@ class ArtefactPageBody extends ConsumerWidget {
             provider: testsIssuesProvider,
             child: Expanded(
               child: ListView.builder(
-                itemCount: environmentReviews.length,
+                itemCount: environments.length,
                 itemBuilder: (_, i) => Padding(
                   // Padding is to avoid scroll bar covering trailing buttons
                   padding: const EdgeInsets.only(right: Spacing.level3),
                   child: EnvironmentExpandable(
-                    environmentReview: environmentReviews[i],
+                    artefactEnvironment: environments[i],
                   ),
                 ),
               ),
