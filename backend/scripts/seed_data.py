@@ -314,6 +314,25 @@ END_TEST_EXECUTION_REQUESTS = [
         ],
     ),
     EndTestExecutionRequest(
+        ci_link="http://example10",
+        test_results=[
+            C3TestResult(
+                name="docker/compose-and-basic_armhf",
+                status=C3TestResultStatus.PASS,
+                category="Docker containers",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                name="after-suspend-audio/alsa-loopback-automated",
+                status=C3TestResultStatus.FAIL,
+                category="Audio tests",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
         ci_link="http://example2",
         test_results=[
             C3TestResult(
