@@ -181,6 +181,17 @@ START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
+        version="5.15.0.73.70",
+        series="jammy",
+        repo="main",
+        arch="arm64",
+        execution_stage="updates",
+        environment="rpi400",
+        ci_link="http://example9",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.DEB,
+        name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
         repo="main",
@@ -192,13 +203,24 @@ START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
-        version="5.15.0.73.70",
+        version="5.15.0.73.71",
         series="jammy",
         repo="main",
         arch="arm64",
-        execution_stage="updates",
+        execution_stage="proposed",
         environment="rpi400",
-        ci_link="http://example9",
+        ci_link="http://example15",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.DEB,
+        name="linux-raspi",
+        version="5.15.0.73.71",
+        series="jammy",
+        repo="main",
+        arch="arm64",
+        execution_stage="proposed",
+        environment="rpi400",
+        ci_link="http://example16",
     ),
 ]
 
@@ -345,6 +367,54 @@ END_TEST_EXECUTION_REQUESTS = [
             C3TestResult(
                 name="test8",
                 status=C3TestResultStatus.SKIP,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example8",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.FAIL,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example15",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.FAIL,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example16",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.PASS,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example9",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.PASS,
                 category="",
                 comment="",
                 io_log="",
