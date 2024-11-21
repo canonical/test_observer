@@ -71,53 +71,6 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     ]
 
 
-def test_previous_results_only_uses_latest_builds(
-    test_client: TestClient, generator: DataGenerator
-):
-    e = generator.gen_environment()
-    tc = generator.gen_test_case()
-
-    a1 = generator.gen_artefact("beta", version="1")
-    a2 = generator.gen_artefact("beta", version="2")
-
-    ab11 = generator.gen_artefact_build(a1, revision=1)
-    ab12 = generator.gen_artefact_build(a1, revision=2)
-    ab21 = generator.gen_artefact_build(a2, revision=1)
-    ab22 = generator.gen_artefact_build(a2, revision=2)
-
-    te11 = generator.gen_test_execution(ab11, e)
-    te12 = generator.gen_test_execution(ab12, e)
-    te21 = generator.gen_test_execution(ab21, e)
-    te22 = generator.gen_test_execution(ab22, e)
-
-    tr11 = generator.gen_test_result(tc, te11, status=TestResultStatus.FAILED)
-    tr12 = generator.gen_test_result(tc, te12, status=TestResultStatus.PASSED)
-    tr21 = generator.gen_test_result(tc, te21, status=TestResultStatus.FAILED)
-    tr22 = generator.gen_test_result(tc, te22, status=TestResultStatus.PASSED)
-
-    response = test_client.get(f"/v1/test-executions/{te22.id}/test-results")
-
-    assert response.status_code == 200
-    assert response.json() == [
-        {
-            "id": tr22.id,
-            "name": tc.name,
-            "category": tc.category,
-            "template_id": tc.template_id,
-            "status": tr22.status.name,
-            "comment": tr22.comment,
-            "io_log": tr22.io_log,
-            "previous_results": [
-                {
-                    "status": tr12.status,
-                    "version": a1.version,
-                    "artefact_id": a1.id,
-                }
-            ],
-        }
-    ]
-
-
 def test_previous_results_shows_reruns(
     test_client: TestClient, generator: DataGenerator
 ):
@@ -154,3 +107,63 @@ def test_previous_results_shows_reruns(
             ],
         }
     ]
+
+
+def test_previous_results_orders_by_artefact(
+    test_client: TestClient, generator: DataGenerator
+):
+    e = generator.gen_environment()
+    tc = generator.gen_test_case()
+
+    a1 = generator.gen_artefact("candidate", version="1")
+    a2 = generator.gen_artefact("beta", version="2")
+
+    ab1 = generator.gen_artefact_build(a1)
+    ab2 = generator.gen_artefact_build(a2)
+
+    te2 = generator.gen_test_execution(ab2, e)
+    te1 = generator.gen_test_execution(ab1, e)
+
+    tr2 = generator.gen_test_result(tc, te2)
+    tr1 = generator.gen_test_result(tc, te1)
+
+    response = test_client.get(f"/v1/test-executions/{te2.id}/test-results")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": tr2.id,
+            "name": tc.name,
+            "category": tc.category,
+            "template_id": tc.template_id,
+            "status": tr2.status.name,
+            "comment": tr2.comment,
+            "io_log": tr2.io_log,
+            "previous_results": [
+                {
+                    "status": tr1.status,
+                    "version": a1.version,
+                    "artefact_id": a1.id,
+                }
+            ],
+        }
+    ]
+
+
+def test_shows_up_to_10_previous_results(
+    test_client: TestClient, generator: DataGenerator
+):
+    e = generator.gen_environment()
+    tc = generator.gen_test_case()
+
+    a = generator.gen_artefact("beta", version="1")
+    ab = generator.gen_artefact_build(a)
+
+    for _ in range(15):
+        te = generator.gen_test_execution(ab, e)
+        generator.gen_test_result(tc, te)
+
+    response = test_client.get(f"/v1/test-executions/{te.id}/test-results")
+
+    assert response.status_code == 200
+    assert len(response.json()[0]["previous_results"]) == 10
