@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../models/test_result.dart';
+import '../../providers/artefact.dart';
 import '../../providers/test_result_issues.dart';
 import '../../routing.dart';
 import '../expandable.dart';
@@ -29,7 +30,7 @@ class TestResultExpandable extends ConsumerWidget {
         children: [
           Text(title),
           const Spacer(),
-          PreviousTestResultsWidget(
+          _PreviousTestResultsWidget(
             currentResult: testResult,
             previousResults: testResult.previousResults,
           ),
@@ -74,9 +75,8 @@ class _TestResultOutputExpandable extends StatelessWidget {
   }
 }
 
-class PreviousTestResultsWidget extends StatelessWidget {
-  const PreviousTestResultsWidget({
-    super.key,
+class _PreviousTestResultsWidget extends ConsumerWidget {
+  const _PreviousTestResultsWidget({
     required this.currentResult,
     required this.previousResults,
   });
@@ -85,7 +85,14 @@ class PreviousTestResultsWidget extends StatelessWidget {
   final List<PreviousTestResult> previousResults;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final artefactId =
+        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
+    final currentVersion = ref
+        .watch(artefactProvider(artefactId)
+            .select((data) => data.whenData((a) => a.version)))
+        .value;
+
     return Row(
       children: [
         ...previousResults.reversed.map(
@@ -97,7 +104,10 @@ class PreviousTestResultsWidget extends StatelessWidget {
             ),
           ),
         ),
-        currentResult.status.getIcon(scale: 1.5),
+        Tooltip(
+          message: 'Version: $currentVersion',
+          child: currentResult.status.getIcon(scale: 1.5),
+        ),
       ],
     );
   }
