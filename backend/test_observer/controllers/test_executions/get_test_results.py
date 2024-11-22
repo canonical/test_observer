@@ -20,7 +20,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.data_access.models import (
     TestExecution,
@@ -40,7 +40,7 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
         TestExecution,
         id,
         options=[
-            joinedload(TestExecution.test_results).joinedload(TestResult.test_case),
+            selectinload(TestExecution.test_results).selectinload(TestResult.test_case),
         ],
     )
 

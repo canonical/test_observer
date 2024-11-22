@@ -18,7 +18,6 @@
 
 from fastapi.testclient import TestClient
 
-from test_observer.data_access.models_enums import TestResultStatus
 from tests.data_generator import DataGenerator
 
 
