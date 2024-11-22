@@ -1,5 +1,7 @@
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intersperse/intersperse.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../models/test_result.dart';
@@ -7,6 +9,7 @@ import '../../providers/artefact.dart';
 import '../../providers/test_result_issues.dart';
 import '../../routing.dart';
 import '../expandable.dart';
+import '../spacing.dart';
 import 'test_issues/test_issues_expandable.dart';
 
 class TestResultExpandable extends ConsumerWidget {
@@ -89,26 +92,68 @@ class _PreviousTestResultsWidget extends ConsumerWidget {
     final artefactId =
         AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
     final currentVersion = ref
-        .watch(artefactProvider(artefactId)
-            .select((data) => data.whenData((a) => a.version)))
-        .value;
+            .watch(
+              artefactProvider(artefactId)
+                  .select((data) => data.whenData((a) => a.version)),
+            )
+            .value ??
+        '';
 
-    return Row(
-      children: [
-        ...previousResults.reversed.map(
-          (e) => InkWell(
-            onTap: () => navigateToArtefactPage(context, e.artefactId),
-            child: Tooltip(
-              message: 'Version: ${e.version}',
-              child: e.status.getIcon(),
-            ),
-          ),
-        ),
-        Tooltip(
-          message: 'Version: $currentVersion',
-          child: currentResult.status.getIcon(scale: 1.5),
+    final statusGroups = {
+      currentVersion: [
+        PreviousTestResult(
+          artefactId: artefactId,
+          status: currentResult.status,
+          version: currentVersion,
         ),
       ],
+    };
+    for (final result in previousResults) {
+      final statuses = statusGroups[result.version];
+      if (statuses != null) {
+        statuses.add(result);
+      } else {
+        statusGroups[result.version] = [result];
+      }
+    }
+
+    return Row(
+      children: statusGroups.entries
+          .mapIndexed<Widget>(
+            (groupIndex, entry) => InkWell(
+              onTap: (groupIndex > 0)
+                  ? () => navigateToArtefactPage(
+                        context,
+                        entry.value.first.artefactId,
+                      )
+                  : null,
+              child: Tooltip(
+                message: 'Version: ${entry.key}',
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: -5,
+                  children: entry.value
+                      .mapIndexed(
+                        (index, result) => Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: result.status.getIcon(
+                            scale:
+                                (groupIndex == index && index == 0) ? 1.5 : 1,
+                          ),
+                        ),
+                      )
+                      .reversed
+                      .toList(),
+                ),
+              ),
+            ),
+          )
+          .reversed
+          .intersperse(const SizedBox(width: Spacing.level2))
+          .toList(),
     );
   }
 }
