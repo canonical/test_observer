@@ -30,6 +30,7 @@ class TestResultExpandable extends ConsumerWidget {
           Text(title),
           const Spacer(),
           PreviousTestResultsWidget(
+            currentResult: testResult,
             previousResults: testResult.previousResults,
           ),
         ],
@@ -74,24 +75,30 @@ class _TestResultOutputExpandable extends StatelessWidget {
 }
 
 class PreviousTestResultsWidget extends StatelessWidget {
-  const PreviousTestResultsWidget({super.key, required this.previousResults});
+  const PreviousTestResultsWidget({
+    super.key,
+    required this.currentResult,
+    required this.previousResults,
+  });
 
+  final TestResult currentResult;
   final List<PreviousTestResult> previousResults;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: previousResults
-          .map(
-            (e) => InkWell(
-              onTap: () => navigateToArtefactPage(context, e.artefactId),
-              child: Tooltip(
-                message: 'Version: ${e.version}',
-                child: e.status.icon,
-              ),
+      children: [
+        ...previousResults.reversed.map(
+          (e) => InkWell(
+            onTap: () => navigateToArtefactPage(context, e.artefactId),
+            child: Tooltip(
+              message: 'Version: ${e.version}',
+              child: e.status.getIcon(),
             ),
-          )
-          .toList(),
+          ),
+        ),
+        currentResult.status.getIcon(scale: 1.5),
+      ],
     );
   }
 }
