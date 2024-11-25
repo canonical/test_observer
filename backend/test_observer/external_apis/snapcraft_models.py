@@ -22,27 +22,15 @@
 from pydantic import BaseModel
 
 
-class Download(BaseModel):
-    deltas: list[str]
-    sha3_384: str
-    size: int
-    url: str
-
-
 class Channel(BaseModel):
     architecture: str
-    name: str
-    released_at: str
     risk: str
     track: str
 
 
 class ChannelMap(BaseModel):
     channel: Channel
-    created_at: str
-    download: Download
     revision: int
-    type: str
     version: str
 
 

@@ -167,3 +167,34 @@ def test_run_to_move_artefact_deb(
     assert artefact1.stage.name == "updates"
     assert artefact2.stage.name == "updates"
     assert artefact3.stage.name == "updates"
+
+
+def test_promote_snap_from_beta_to_stable(
+    db_session: Session,
+    requests_mock: Mocker,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact("beta", store="ubuntu")
+    build = generator.gen_artefact_build(artefact, revision=1)
+
+    requests_mock.get(
+        f"https://api.snapcraft.io/v2/snaps/info/{artefact.name}",
+        json={
+            "channel-map": [
+                {
+                    "channel": {
+                        "architecture": build.architecture,
+                        "risk": "stable",
+                        "track": artefact.track,
+                    },
+                    "revision": build.revision,
+                    "type": "app",
+                    "version": artefact.version,
+                },
+            ]
+        },
+    )
+
+    promote_artefacts(db_session)
+
+    assert artefact.stage.name == "stable"
