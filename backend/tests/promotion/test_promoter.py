@@ -174,10 +174,6 @@ def test_promote_snap_from_beta_to_stable(
     requests_mock: Mocker,
     generator: DataGenerator,
 ):
-    """
-    If artefact's current stage name is different to its stage name on
-    snapcraft, the artefact is moved to the next stage
-    """
     artefact = generator.gen_artefact("beta", store="ubuntu")
     build = generator.gen_artefact_build(artefact, revision=1)
 
