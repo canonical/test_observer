@@ -339,3 +339,51 @@ def test_end_test_updates_template_id(
 
     assert response.status_code == 200
     assert test_execution.test_results[0].test_case.template_id == "some template id"
+
+
+def test_end_test_with_execution_id_instead_of_ci_link(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("beta")
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
+    test_execution = generator.gen_test_execution(artefact_build, environment)
+    test_case = generator.gen_test_case()
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "test_execution_id": test_execution.id,
+            "test_results": [
+                {
+                    "name": test_case.name,
+                    "status": "pass",
+                    "category": test_case.category,
+                    "template_id": "some template id",
+                    "comment": "",
+                    "io_log": "",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+
+def test_end_test_needs_execution_id_or_ci_link(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact("beta")
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
+    generator.gen_test_execution(artefact_build, environment)
+    generator.gen_test_case()
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={"test_results": []},
+    )
+
+    assert response.status_code == 422

@@ -16,7 +16,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.data_access.models import (
     Artefact,
@@ -132,7 +132,7 @@ def _get_previous_test_execution(
         .order_by(ArtefactBuild.revision.desc())
         .limit(1)
         .options(
-            joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
+            selectinload(TestExecution.test_results).selectinload(TestResult.test_case)
         )
     )
 
@@ -159,21 +159,17 @@ def _get_previous_artefact(db: Session, artefact: Artefact) -> Artefact | None:
 def _find_related_test_execution(
     request: EndTestExecutionRequest, db: Session
 ) -> TestExecution | None:
-    return (
-        db.execute(
-            select(TestExecution)
-            .where(TestExecution.ci_link == request.ci_link)
-            .options(
-                joinedload(TestExecution.artefact_build).joinedload(
-                    ArtefactBuild.artefact
-                )
-            )
-            .options(
-                joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
+    return db.scalar(
+        select(TestExecution)
+        .where(
+            (TestExecution.ci_link == request.ci_link)
+            | (TestExecution.id == request.test_execution_id)
+        )
+        .options(
+            selectinload(TestExecution.artefact_build).selectinload(
+                ArtefactBuild.artefact
             )
         )
-        .unique()
-        .scalar_one_or_none()
     )
 
 

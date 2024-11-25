@@ -97,10 +97,18 @@ class C3TestResult(BaseModel):
 
 
 class EndTestExecutionRequest(BaseModel):
-    ci_link: Annotated[str, HttpUrl]
+    test_execution_id: int | None = None
+    ci_link: Annotated[str, HttpUrl] | None = None
     c3_link: Annotated[str, HttpUrl] | None = None
     checkbox_version: str | None = None
     test_results: list[C3TestResult]
+
+    @model_validator(mode="after")
+    def require_ci_link_or_execution_id(self) -> "EndTestExecutionRequest":
+        if self.test_execution_id is None and self.ci_link is None:
+            raise ValueError("Missing one of test_execution_id or ci_link")
+
+        return self
 
 
 class TestExecutionsPatchRequest(BaseModel):
