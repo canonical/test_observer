@@ -341,3 +341,26 @@ def test_keep_rerun_request_if_same_ci_link(execute: Execute, generator: DataGen
     )
 
     assert te.rerun_request
+
+
+def test_ci_link_is_optional(execute: Execute, db_session: Session):
+    response = execute(
+        {
+            "family": FamilyName.SNAP.value,
+            "name": "core22",
+            "version": "1.1.1",
+            "revision": 1,
+            "track": "latest",
+            "store": "ubuntu",
+            "arch": "amd64",
+            "execution_stage": "beta",
+            "environment": "rpi4",
+        }
+    )
+
+    assert response.status_code == 200
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+
+    assert test_execution
+    assert test_execution.ci_link is None
