@@ -36,15 +36,6 @@ from test_observer.external_apis.snapcraft import (
 )
 
 logger = logging.getLogger("test-observer-backend")
-
-CHANNEL_PROMOTION_MAP = {
-    # channel -> next-channel
-    "edge": "beta",
-    "beta": "candidate",
-    "candidate": "stable",
-    "stable": "stable",
-}
-
 POCKET_PROMOTION_MAP = {
     # pocket -> next-pocket
     "proposed": "updates",
@@ -150,15 +141,14 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 )
                 continue
 
-            next_risk = CHANNEL_PROMOTION_MAP[artefact.stage.name]
             if (
-                risk == next_risk != artefact.stage.name.lower()
+                risk != artefact.stage.name.lower()
                 and version == artefact.version
                 and revision == build.revision
             ):
-                logger.info("Move artefact '%s' to the '%s' stage", artefact, next_risk)
+                logger.info("Move artefact '%s' to the '%s' stage", artefact, risk)
                 stage = get_stage_by_name(
-                    session, stage_name=next_risk, family=artefact.stage.family
+                    session, stage_name=risk, family=artefact.stage.family
                 )
                 if stage:
                     artefact.stage = stage
