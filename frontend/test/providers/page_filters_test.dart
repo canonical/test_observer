@@ -5,10 +5,9 @@ import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/environment_review.dart';
 import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/providers/api.dart';
-import 'package:testcase_dashboard/providers/artefact_builds.dart';
-import 'package:testcase_dashboard/providers/artefact_environment_reviews.dart';
+import 'package:testcase_dashboard/providers/artefact_environments.dart';
 import 'package:testcase_dashboard/providers/family_artefacts.dart';
-import 'package:testcase_dashboard/providers/page_filter_groups.dart';
+import 'package:testcase_dashboard/providers/page_filters.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 import 'package:testcase_dashboard/routing.dart';
 
@@ -25,17 +24,17 @@ void main() {
     // Wait on artefacts to load cause artefactFiltersProvider uses requireValue
     await container.read(familyArtefactsProvider(family).future);
 
-    final filterGroups =
-        container.read(pageFilterGroupsProvider(Uri(path: AppRoutes.snaps)));
+    final pageFilters =
+        container.read(pageFiltersProvider(Uri(path: AppRoutes.snaps)));
 
-    expect(filterGroups[0].filters[0].name, 'Assignee');
+    expect(pageFilters.filters[0].name, 'Assignee');
     expect(
-      filterGroups[0].filters[0].detectedOptions,
+      pageFilters.filters[0].detectedOptions,
       {dummyArtefact.assignee?.name},
     );
-    expect(filterGroups[0].filters[1].name, 'Status');
+    expect(pageFilters.filters[1].name, 'Status');
     expect(
-      filterGroups[0].filters[1].detectedOptions,
+      pageFilters.filters[1].detectedOptions,
       {dummyArtefact.status.name},
     );
   });
@@ -47,15 +46,14 @@ void main() {
     const artefactId = 1;
 
     // Wait on to load cause filters uses requireValue
-    await container.read(artefactBuildsProvider(artefactId).future);
-    await container.read(artefactEnvironmentReviewsProvider(artefactId).future);
+    await container.read(artefactEnvironmentsProvider(artefactId).future);
 
-    final filterGroups = container.read(
-      pageFilterGroupsProvider(Uri(path: '${AppRoutes.snaps}/$artefactId')),
+    final pageFilters = container.read(
+      pageFiltersProvider(Uri(path: '${AppRoutes.snaps}/$artefactId')),
     );
 
-    expect(filterGroups[0].filters[0].name, 'Review status');
-    expect(filterGroups[0].filters[0].detectedOptions, {'Undecided'});
+    expect(pageFilters.filters[0].name, 'Review status');
+    expect(pageFilters.filters[0].detectedOptions, {'Undecided'});
   });
 }
 

@@ -55,6 +55,30 @@ START_TEST_EXECUTION_REQUESTS = [
         store="ubuntu",
         arch="armhf",
         execution_stage="beta",
+        environment="rpi2",
+        ci_link="http://example13",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.SNAP,
+        name="core22",
+        version="20230531",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage="beta",
+        environment="rpi2",
+        ci_link="http://example14",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.SNAP,
+        name="core22",
+        version="20230531",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage="beta",
         environment="rpi4",
         ci_link="http://example10",
     ),
@@ -157,6 +181,17 @@ START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
+        version="5.15.0.73.70",
+        series="jammy",
+        repo="main",
+        arch="arm64",
+        execution_stage="updates",
+        environment="rpi400",
+        ci_link="http://example9",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.DEB,
+        name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
         repo="main",
@@ -168,13 +203,24 @@ START_TEST_EXECUTION_REQUESTS = [
     StartTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
-        version="5.15.0.73.70",
+        version="5.15.0.73.71",
         series="jammy",
         repo="main",
         arch="arm64",
-        execution_stage="updates",
+        execution_stage="proposed",
         environment="rpi400",
-        ci_link="http://example9",
+        ci_link="http://example15",
+    ),
+    StartTestExecutionRequest(
+        family=FamilyName.DEB,
+        name="linux-raspi",
+        version="5.15.0.73.71",
+        series="jammy",
+        repo="main",
+        arch="arm64",
+        execution_stage="proposed",
+        environment="rpi400",
+        ci_link="http://example16",
     ),
 ]
 
@@ -184,7 +230,7 @@ END_TEST_EXECUTION_REQUESTS = [
         test_results=[
             C3TestResult(
                 name="docker/compose-and-basic_armhf",
-                status=C3TestResultStatus.PASS,
+                status=C3TestResultStatus.FAIL,
                 category="Docker containers",
                 comment="",
                 io_log=dedent(
@@ -271,6 +317,44 @@ END_TEST_EXECUTION_REQUESTS = [
         ],
     ),
     EndTestExecutionRequest(
+        ci_link="http://example13",
+        test_results=[
+            C3TestResult(
+                name="docker/compose-and-basic_armhf",
+                status=C3TestResultStatus.PASS,
+                category="Docker containers",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                name="after-suspend-audio/alsa-loopback-automated",
+                status=C3TestResultStatus.FAIL,
+                category="Audio tests",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example10",
+        test_results=[
+            C3TestResult(
+                name="docker/compose-and-basic_armhf",
+                status=C3TestResultStatus.PASS,
+                category="Docker containers",
+                comment="",
+                io_log="",
+            ),
+            C3TestResult(
+                name="after-suspend-audio/alsa-loopback-automated",
+                status=C3TestResultStatus.FAIL,
+                category="Audio tests",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
         ci_link="http://example2",
         test_results=[
             C3TestResult(
@@ -283,6 +367,54 @@ END_TEST_EXECUTION_REQUESTS = [
             C3TestResult(
                 name="test8",
                 status=C3TestResultStatus.SKIP,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example8",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.FAIL,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example15",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.FAIL,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example16",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.PASS,
+                category="",
+                comment="",
+                io_log="",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example9",
+        test_results=[
+            C3TestResult(
+                name="test",
+                status=C3TestResultStatus.PASS,
                 category="",
                 comment="",
                 io_log="",

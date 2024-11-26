@@ -1,11 +1,15 @@
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intersperse/intersperse.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../models/test_result.dart';
+import '../../providers/artefact.dart';
 import '../../providers/test_result_issues.dart';
 import '../../routing.dart';
 import '../expandable.dart';
+import '../spacing.dart';
 import 'test_issues/test_issues_expandable.dart';
 
 class TestResultExpandable extends ConsumerWidget {
@@ -29,7 +33,8 @@ class TestResultExpandable extends ConsumerWidget {
         children: [
           Text(title),
           const Spacer(),
-          PreviousTestResultsWidget(
+          _PreviousTestResultsWidget(
+            currentResult: testResult,
             previousResults: testResult.previousResults,
           ),
         ],
@@ -73,25 +78,102 @@ class _TestResultOutputExpandable extends StatelessWidget {
   }
 }
 
-class PreviousTestResultsWidget extends StatelessWidget {
-  const PreviousTestResultsWidget({super.key, required this.previousResults});
+class _PreviousTestResultsWidget extends ConsumerWidget {
+  const _PreviousTestResultsWidget({
+    required this.currentResult,
+    required this.previousResults,
+  });
 
+  final TestResult currentResult;
   final List<PreviousTestResult> previousResults;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final artefactId =
+        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
+    final currentVersion = ref
+            .watch(
+              artefactProvider(artefactId)
+                  .select((data) => data.whenData((a) => a.version)),
+            )
+            .value ??
+        '';
+
+    final statusGroups = {
+      currentVersion: [
+        PreviousTestResult(
+          artefactId: artefactId,
+          status: currentResult.status,
+          version: currentVersion,
+        ),
+      ],
+    };
+    for (final result in previousResults) {
+      final statuses = statusGroups[result.version];
+      if (statuses != null) {
+        statuses.add(result);
+      } else {
+        statusGroups[result.version] = [result];
+      }
+    }
+
     return Row(
-      children: previousResults
-          .map(
-            (e) => InkWell(
-              onTap: () => navigateToArtefactPage(context, e.artefactId),
-              child: Tooltip(
-                message: 'Version: ${e.version}',
-                child: e.status.icon,
-              ),
+      children: statusGroups.entries
+          .mapIndexed<Widget>(
+            (groupIndex, entry) => _TestResultsGroup(
+              groupIndex: groupIndex,
+              version: entry.key,
+              results: entry.value,
             ),
           )
+          .reversed
+          .intersperse(const SizedBox(width: Spacing.level2))
           .toList(),
+    );
+  }
+}
+
+class _TestResultsGroup extends StatelessWidget {
+  const _TestResultsGroup({
+    required this.groupIndex,
+    required this.version,
+    required this.results,
+  });
+
+  final int groupIndex;
+  final String version;
+  final List<PreviousTestResult> results;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: (groupIndex > 0)
+          ? () => navigateToArtefactPage(
+                context,
+                results.first.artefactId,
+              )
+          : null,
+      child: Tooltip(
+        message: 'Version: $version',
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: -5,
+          children: results
+              .mapIndexed(
+                (index, result) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: result.status.getIcon(
+                    scale: (groupIndex == index && index == 0) ? 1.5 : 1,
+                  ),
+                ),
+              )
+              .reversed
+              .toList(),
+        ),
+      ),
     );
   }
 }

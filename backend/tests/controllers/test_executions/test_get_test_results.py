@@ -14,9 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+# ruff: noqa: F841 unused defined variables
 
 from fastapi.testclient import TestClient
 
+from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from tests.data_generator import DataGenerator
 
 
@@ -67,3 +69,101 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
             "artefact_id": artefact_first.id,
         }
     ]
+
+
+def test_previous_results_shows_reruns(
+    test_client: TestClient, generator: DataGenerator
+):
+    e = generator.gen_environment()
+    tc = generator.gen_test_case()
+
+    a = generator.gen_artefact("beta", version="1")
+    ab = generator.gen_artefact_build(a)
+
+    te1 = generator.gen_test_execution(ab, e)
+    te2 = generator.gen_test_execution(ab, e)
+
+    tr1 = generator.gen_test_result(tc, te1)
+    tr2 = generator.gen_test_result(tc, te2)
+
+    response = test_client.get(f"/v1/test-executions/{te2.id}/test-results")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": tr2.id,
+            "name": tc.name,
+            "category": tc.category,
+            "template_id": tc.template_id,
+            "status": tr2.status.name,
+            "comment": tr2.comment,
+            "io_log": tr2.io_log,
+            "previous_results": [
+                {
+                    "status": tr1.status,
+                    "version": a.version,
+                    "artefact_id": a.id,
+                }
+            ],
+        }
+    ]
+
+
+def test_previous_results_orders_by_artefact(
+    test_client: TestClient, generator: DataGenerator
+):
+    e = generator.gen_environment()
+    tc = generator.gen_test_case()
+
+    a1 = generator.gen_artefact("candidate", version="1")
+    a2 = generator.gen_artefact("beta", version="2")
+
+    ab1 = generator.gen_artefact_build(a1)
+    ab2 = generator.gen_artefact_build(a2)
+
+    te2 = generator.gen_test_execution(ab2, e)
+    te1 = generator.gen_test_execution(ab1, e)
+
+    tr2 = generator.gen_test_result(tc, te2)
+    tr1 = generator.gen_test_result(tc, te1)
+
+    response = test_client.get(f"/v1/test-executions/{te2.id}/test-results")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": tr2.id,
+            "name": tc.name,
+            "category": tc.category,
+            "template_id": tc.template_id,
+            "status": tr2.status.name,
+            "comment": tr2.comment,
+            "io_log": tr2.io_log,
+            "previous_results": [
+                {
+                    "status": tr1.status,
+                    "version": a1.version,
+                    "artefact_id": a1.id,
+                }
+            ],
+        }
+    ]
+
+
+def test_shows_up_to_maximum_previous_results(
+    test_client: TestClient, generator: DataGenerator
+):
+    e = generator.gen_environment()
+    tc = generator.gen_test_case()
+
+    a = generator.gen_artefact("beta", version="1")
+    ab = generator.gen_artefact_build(a)
+
+    for _ in range(PREVIOUS_TEST_RESULT_COUNT * 2):
+        te = generator.gen_test_execution(ab, e)
+        generator.gen_test_result(tc, te)
+
+    response = test_client.get(f"/v1/test-executions/{te.id}/test-results")
+
+    assert response.status_code == 200
+    assert len(response.json()[0]["previous_results"]) == PREVIOUS_TEST_RESULT_COUNT

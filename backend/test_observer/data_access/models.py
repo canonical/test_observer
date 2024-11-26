@@ -45,7 +45,6 @@ from sqlalchemy.sql import func
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    TestExecutionReviewDecision,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -354,11 +353,6 @@ class TestExecution(Base):
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
     )
-    review_decision: Mapped[list[TestExecutionReviewDecision]] = mapped_column(
-        ARRAY(Enum(TestExecutionReviewDecision)),
-        default=[],
-    )
-    review_comment: Mapped[str] = mapped_column(default="")
 
     checkbox_version: Mapped[str | None] = mapped_column(
         String(200), nullable=True, default=None
@@ -367,8 +361,6 @@ class TestExecution(Base):
     @property
     def has_failures(self) -> bool:
         return any(tr.status == TestResultStatus.FAILED for tr in self.test_results)
-
-    __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
     def __repr__(self) -> str:
         return data_model_repr(

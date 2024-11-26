@@ -14,11 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from sqlalchemy import delete, desc
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.orm.query import RowReturningQuery
+from collections import defaultdict
+
+from sqlalchemy import delete, desc, func, or_, over, select
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
+from test_observer.controllers.test_executions.models import PreviousTestResult
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -26,24 +28,26 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus
-
-from .models import StartTestExecutionRequest
 
 
-def reset_test_execution(
-    request: StartTestExecutionRequest,
-    db: Session,
-    test_execution: TestExecution,
+def delete_related_rerun_requests(
+    db: Session, artefact_build_id: int, environment_id: int
 ):
-    test_execution.status = TestExecutionStatus.IN_PROGRESS
-    test_execution.ci_link = request.ci_link
-    test_execution.c3_link = None
-    if test_execution.rerun_request:
-        db.delete(test_execution.rerun_request)
-    db.commit()
+    related_test_execution_runs = db.scalars(
+        select(TestExecution)
+        .where(
+            TestExecution.artefact_build_id == artefact_build_id,
+            TestExecution.environment_id == environment_id,
+        )
+        .options(selectinload(TestExecution.rerun_request))
+    )
 
-    delete_previous_results(db, test_execution)
+    for te in related_test_execution_runs:
+        rerun_request = te.rerun_request
+        if rerun_request:
+            db.delete(rerun_request)
+
+    db.commit()
 
 
 def delete_previous_results(
@@ -66,122 +70,77 @@ def delete_previous_test_events(
     db.commit()
 
 
-def get_previous_artefact_builds_query(
-    session: Session,
-    artefact: Artefact,
-    architecture: str,
-) -> RowReturningQuery:
-    """
-    Helper method to get a query that fetches the previous Artefact Build IDs
-    for given Artefact object identifiers (name, track, repo, store) and architecture.
-
-    The query only returns the latest revision build for each Artefact, in case there
-    are multiple revision of the same artefact version.
-
-    Parameters:
-        session (Session): Database session object used to generate the query for
-        artefact (Artefact): Artefact objects used to take the identifiers from
-        architecture (str): Architecture name to filter the results returned
-
-    Returns:
-        Prepared query object that can be executed as a query itself using .all()
-        or a subquery using .subquery()
-    """
-
-    return (
-        session.query(ArtefactBuild.id)
-        .distinct(ArtefactBuild.artefact_id)
-        .join(ArtefactBuild.artefact)
-        .filter(
-            Artefact.name == artefact.name,
-            Artefact.track == artefact.track,
-            Artefact.repo == artefact.repo,
-            Artefact.series == artefact.series,
-            ArtefactBuild.architecture == architecture,
-        )
-        .order_by(
-            desc(ArtefactBuild.artefact_id),
-            desc(ArtefactBuild.revision),
-        )
-    )
-
-
-def get_previous_test_executions_query(
-    session: Session,
-    test_execution: TestExecution,
-    artefact_build_query: RowReturningQuery,
-) -> RowReturningQuery:
-    """
-    Helper method to get a query that fetches the previous Test Execution IDs
-    for all test executions that come from the artefact_build_ids subquery.
-
-    The query returns only the test executions that belong to the same environment
-    as the given input test execution
-
-    Parameters:
-        session (Session): Database session object used to generate the query for
-        test_execution (TestExecution): TestExecution object to filter based on
-        artefact_build_query (RowReturningQuery): Query to fetch the artefact builds
-
-    Returns:
-        Prepared query object that can be executed as a query itself using .all()
-        or a subquery using .subquery()
-    """
-
-    return (
-        session.query(TestExecution.id)
-        .filter(
-            TestExecution.artefact_build_id.in_(artefact_build_query.scalar_subquery()),
-            TestExecution.environment_id == test_execution.environment_id,
-            TestExecution.id < test_execution.id,
-        )
-        .order_by(desc(TestExecution.id))
-        .limit(PREVIOUS_TEST_RESULT_COUNT)
-    )
-
-
 def get_previous_test_results(
     session: Session,
     test_execution: TestExecution,
-) -> list[TestResult]:
+) -> dict[int, list[PreviousTestResult]]:
     """
-    Helper method to get the previous test results (10 latest) for
-    a given Test Execution object
+    Helper method to get the previous test results up to a maximum for
+    all the test cases of a given Test Execution object
 
     Parameters:
         session (Session): Database session object used to generate the query for
         test_execution (TestExecution): TestExecution object to filter based on
 
     Returns:
-        List of Test Result objects that match the test execution objects
-        received as input
+        A dictionary whose key is a test case id and value is an ordered list
+        of previous test results from most recent to oldest.
     """
 
-    artefact_builds_query = get_previous_artefact_builds_query(
-        session=session,
-        artefact=test_execution.artefact_build.artefact,
-        architecture=test_execution.artefact_build.architecture,
-    )
-    test_executions_query = get_previous_test_executions_query(
-        session=session,
-        test_execution=test_execution,
-        artefact_build_query=artefact_builds_query,
+    subq = (
+        select(
+            TestResult.id.label("result_id"),
+            TestResult.status.label("result_status"),
+            TestResult.test_case_id.label("case_id"),
+            Artefact.id.label("artefact_id"),
+            Artefact.version.label("artefact_version"),
+            over(
+                func.row_number(),
+                partition_by=TestResult.test_case_id,
+                order_by=[desc(Artefact.id), desc(TestResult.id)],
+            ).label("row_number"),
+        )
+        .join(TestResult.test_execution)
+        .join(TestExecution.artefact_build)
+        .join(ArtefactBuild.artefact)
+        .where(
+            TestExecution.environment_id == test_execution.environment_id,
+            ArtefactBuild.architecture == test_execution.artefact_build.architecture,
+            Artefact.name == test_execution.artefact_build.artefact.name,
+            Artefact.series == test_execution.artefact_build.artefact.series,
+            Artefact.repo == test_execution.artefact_build.artefact.repo,
+            Artefact.track == test_execution.artefact_build.artefact.track,
+            Artefact.id <= test_execution.artefact_build.artefact_id,
+            or_(
+                TestExecution.id < test_execution.id,
+                Artefact.id < test_execution.artefact_build.artefact_id,
+            ),
+        )
+    ).subquery()
+
+    stmt = (
+        select(
+            subq.c.case_id,
+            subq.c.result_status,
+            subq.c.artefact_id,
+            subq.c.artefact_version,
+        )
+        .where(subq.c.row_number <= PREVIOUS_TEST_RESULT_COUNT)
+        .order_by(
+            subq.c.case_id,
+            desc(subq.c.artefact_id),
+            desc(subq.c.result_id),
+        )
     )
 
-    # It is important to have the order_by(TestResult.test_case_id) in this query
-    # This is because we use the output of this function with itertools.groupby
-    # which merges consecutive items by key, and needs the items sorted to group
-    # everything correctly
-    return (
-        session.query(TestResult)
-        .options(
-            joinedload(TestResult.test_execution)
-            .joinedload(TestExecution.artefact_build)
-            .joinedload(ArtefactBuild.artefact)
+    previous_results = defaultdict(list)
+    for case_id, result_status, artefact_id, artefact_version in session.execute(stmt):
+        previous_results[case_id].append(
+            PreviousTestResult(
+                status=result_status,
+                version=artefact_version,
+                artefact_id=artefact_id,
+            )
         )
-        .filter(
-            TestResult.test_execution_id.in_(test_executions_query.scalar_subquery())
-        )
-        .order_by(TestResult.test_case_id, desc(TestResult.id))
-        .all()
-    )
+
+    return previous_results

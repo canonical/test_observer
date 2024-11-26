@@ -20,11 +20,8 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
-from test_observer.controllers.test_executions.helpers import (
-    parse_previous_test_results,
-)
 from test_observer.data_access.models import (
     TestExecution,
     TestResult,
@@ -43,7 +40,7 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
         TestExecution,
         id,
         options=[
-            joinedload(TestExecution.test_results).joinedload(TestResult.test_case),
+            selectinload(TestExecution.test_results).selectinload(TestResult.test_case),
         ],
     )
 
@@ -51,12 +48,11 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
     previous_test_results = get_previous_test_results(db, test_execution)
-    parsed_previous_test_results = parse_previous_test_results(previous_test_results)
 
     test_results: list[TestResultDTO] = []
     for test_result in test_execution.test_results:
         parsed_test_result = TestResultDTO.model_validate(test_result)
-        parsed_test_result.previous_results = parsed_previous_test_results.get(
+        parsed_test_result.previous_results = previous_test_results.get(
             test_result.test_case_id, []
         )
         test_results.append(parsed_test_result)

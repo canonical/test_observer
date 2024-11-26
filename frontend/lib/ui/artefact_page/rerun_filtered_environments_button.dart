@@ -3,28 +3,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intersperse/intersperse.dart';
 
+import '../../models/artefact_environment.dart';
 import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 
-class RerunFilteredEnvironmentsButton extends ConsumerWidget {
+class RerunFilteredEnvironmentsButton extends StatelessWidget {
   const RerunFilteredEnvironmentsButton({
     super.key,
-    required this.filteredTestExecutions,
+    required this.filteredArtefactEnvironments,
   });
 
-  final Iterable<TestExecution> filteredTestExecutions;
+  final List<ArtefactEnvironment> filteredArtefactEnvironments;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pageUri = GoRouterState.of(context).uri;
-    final artefactId = AppRoutes.artefactIdFromUri(pageUri);
+  Widget build(BuildContext context) {
+    final artefactId =
+        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
+    final testExecutionsToRerun =
+        filteredArtefactEnvironments.map((ae) => ae.runsDescending.first);
 
     handlePress() => showDialog(
           context: context,
           builder: (_) => _ConfirmationDialog(
-            filteredTestExecutions: filteredTestExecutions,
+            testExecutionToRerun: testExecutionsToRerun,
             artefactId: artefactId,
           ),
         );
@@ -32,7 +35,7 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
     return TextButton(
       onPressed: handlePress,
       child: Text(
-        'Rerun ${filteredTestExecutions.length} Filtered Environments',
+        'Rerun ${testExecutionsToRerun.length} Filtered Environments',
         textScaler: const TextScaler.linear(1.2),
       ),
     );
@@ -41,17 +44,17 @@ class RerunFilteredEnvironmentsButton extends ConsumerWidget {
 
 class _ConfirmationDialog extends ConsumerWidget {
   const _ConfirmationDialog({
-    required this.filteredTestExecutions,
+    required this.testExecutionToRerun,
     required this.artefactId,
   });
 
-  final Iterable<TestExecution> filteredTestExecutions;
+  final Iterable<TestExecution> testExecutionToRerun;
   final int artefactId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     handleYes() {
-      final testExecutionIds = {for (final te in filteredTestExecutions) te.id};
+      final testExecutionIds = {for (final te in testExecutionToRerun) te.id};
       ref
           .read(artefactBuildsProvider(artefactId).notifier)
           .rerunTestExecutions(testExecutionIds);
@@ -62,11 +65,11 @@ class _ConfirmationDialog extends ConsumerWidget {
       scrollable: true,
       title: Text(
         'Are you sure you want to rerun the following'
-        ' ${filteredTestExecutions.length} environments?',
+        ' ${testExecutionToRerun.length} environments?',
       ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: filteredTestExecutions
+        children: testExecutionToRerun
             .map<Widget>((te) => Text(te.environment.name))
             .intersperse(const SizedBox(height: Spacing.level2))
             .toList(),

@@ -58,15 +58,15 @@ enum TestResultStatus {
     }
   }
 
-  Icon get icon {
-    const size = 15.0;
+  Icon getIcon({double scale = 1}) {
+    final size = 15.0 * scale;
     switch (this) {
       case passed:
         return Icon(YaruIcons.ok, color: YaruColors.light.success, size: size);
       case failed:
-        return const Icon(YaruIcons.error, color: YaruColors.red, size: size);
+        return Icon(YaruIcons.error, color: YaruColors.red, size: size);
       case skipped:
-        return const Icon(
+        return Icon(
           YaruIcons.error,
           color: YaruColors.coolGrey,
           size: size,

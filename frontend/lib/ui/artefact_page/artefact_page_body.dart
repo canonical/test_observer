@@ -3,17 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
-import '../../models/environment_review.dart';
+import '../../models/artefact_environment.dart';
 import '../../models/test_execution.dart';
 import '../../providers/environments_issues.dart';
-import '../../providers/filtered_artefact_environment_reviews.dart';
-import '../../providers/filtered_test_executions.dart';
+import '../../providers/filtered_artefact_environments.dart';
 import '../../providers/tests_issues.dart';
 import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
+import 'environment_expandable.dart';
 import 'rerun_filtered_environments_button.dart';
-import 'test_execution_expandable/test_execution_expandable.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -23,23 +22,13 @@ class ArtefactPageBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
-    final filteredTestExecutions =
-        ref.watch(filteredTestExecutionsProvider(pageUri)).value;
-    final filteredEnvironmentReviews =
-        ref.watch(filteredArtefactEnvironmentReviewsProvider(pageUri)).value;
+    final environments = ref
+        .watch(filteredArtefactEnvironmentsProvider(pageUri))
+        .value
+        ?.toList();
 
-    if (filteredTestExecutions == null || filteredEnvironmentReviews == null) {
-      return const YaruCircularProgressIndicator();
-    }
-
-    final reviewsMap = {
-      for (final review in filteredEnvironmentReviews)
-        (review.artefactBuild.id, review.environment.id): review,
-    };
-    final List<(EnvironmentReview, TestExecution)> filteredCombination = [];
-    for (final te in filteredTestExecutions) {
-      final review = reviewsMap[(te.artefactBuildId, te.environment.id)];
-      if (review != null) filteredCombination.add((review, te));
+    if (environments == null) {
+      return const Center(child: YaruCircularProgressIndicator());
     }
 
     return Column(
@@ -54,13 +43,12 @@ class ArtefactPageBody extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(width: Spacing.level4),
-            _TestExecutionsStatusSummary(
-              testExecutions: filteredCombination.map((comb) => comb.$2),
+            _ArtefactEnvironmentsStatusSummary(
+              artefactEnvironments: environments,
             ),
             const Spacer(),
             RerunFilteredEnvironmentsButton(
-              filteredTestExecutions:
-                  filteredCombination.map((comb) => comb.$2),
+              filteredArtefactEnvironments: environments,
             ),
           ],
         ),
@@ -70,13 +58,12 @@ class ArtefactPageBody extends ConsumerWidget {
             provider: testsIssuesProvider,
             child: Expanded(
               child: ListView.builder(
-                itemCount: filteredCombination.length,
+                itemCount: environments.length,
                 itemBuilder: (_, i) => Padding(
                   // Padding is to avoid scroll bar covering trailing buttons
                   padding: const EdgeInsets.only(right: Spacing.level3),
-                  child: TestExecutionExpandable(
-                    testExecution: filteredCombination[i].$2,
-                    environmentReview: filteredCombination[i].$1,
+                  child: EnvironmentExpandable(
+                    artefactEnvironment: environments[i],
                   ),
                 ),
               ),
@@ -88,15 +75,17 @@ class ArtefactPageBody extends ConsumerWidget {
   }
 }
 
-class _TestExecutionsStatusSummary extends StatelessWidget {
-  const _TestExecutionsStatusSummary({required this.testExecutions});
+class _ArtefactEnvironmentsStatusSummary extends StatelessWidget {
+  const _ArtefactEnvironmentsStatusSummary({
+    required this.artefactEnvironments,
+  });
 
-  final Iterable<TestExecution> testExecutions;
+  final Iterable<ArtefactEnvironment> artefactEnvironments;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: _testExecutionStatusCounts(testExecutions)
+      children: _latestExecutionStatusCounts(artefactEnvironments)
           .entries
           .map<Widget>(
             (entry) => Row(
@@ -115,13 +104,13 @@ class _TestExecutionsStatusSummary extends StatelessWidget {
     );
   }
 
-  Map<TestExecutionStatus, int> _testExecutionStatusCounts(
-    Iterable<TestExecution> testExecutions,
+  Map<TestExecutionStatus, int> _latestExecutionStatusCounts(
+    Iterable<ArtefactEnvironment> artefactEnvironments,
   ) {
     final counts = {for (final status in TestExecutionStatus.values) status: 0};
 
-    for (final testExecution in testExecutions) {
-      final status = testExecution.status;
+    for (final artefactEnvironment in artefactEnvironments) {
+      final status = artefactEnvironment.runsDescending.first.status;
       counts[status] = (counts[status] ?? 0) + 1;
     }
 

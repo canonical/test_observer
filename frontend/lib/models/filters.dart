@@ -2,21 +2,21 @@ import 'package:dartx/dartx.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'artefact.dart';
+import 'artefact_environment.dart';
 import 'environment_review.dart';
 import 'filter.dart';
-import 'test_execution.dart';
 
 part 'filters.freezed.dart';
 
 @freezed
-class FiltersGroup<T> with _$FiltersGroup<T> {
-  const FiltersGroup._();
+class Filters<T> with _$Filters<T> {
+  const Filters._();
 
-  const factory FiltersGroup({
+  const factory Filters({
     required List<Filter<T>> filters,
   }) = _Filters<T>;
 
-  FiltersGroup<T> copyWithFilterOptionValue(
+  Filters<T> copyWithFilterOptionValue(
     String filterName,
     String optionName,
     bool optionValue,
@@ -43,7 +43,7 @@ class FiltersGroup<T> with _$FiltersGroup<T> {
   bool doesObjectPassFilters(T object) =>
       filters.all((filter) => filter.doesObjectPassFilter(object));
 
-  FiltersGroup<T> copyWithQueryParams(Map<String, List<String>> queryParams) {
+  Filters<T> copyWithQueryParams(Map<String, List<String>> queryParams) {
     final newFilters = filters.map((filter) {
       final values = queryParams[filter.name]?.toSet();
       if (values == null || values.isEmpty) return filter;
@@ -67,7 +67,7 @@ class FiltersGroup<T> with _$FiltersGroup<T> {
     return queryParams;
   }
 
-  FiltersGroup<T> copyWithOptionsExtracted(List<T> objects) {
+  Filters<T> copyWithOptionsExtracted(List<T> objects) {
     final newFilters = <Filter<T>>[];
     for (final filter in filters) {
       final options = <String>{};
@@ -82,7 +82,7 @@ class FiltersGroup<T> with _$FiltersGroup<T> {
   }
 }
 
-final emptyArtefactFilters = FiltersGroup<Artefact>(
+final emptyArtefactFilters = Filters<Artefact>(
   filters: [
     Filter<Artefact>(
       name: 'Assignee',
@@ -109,24 +109,21 @@ final emptyArtefactFilters = FiltersGroup<Artefact>(
   ],
 );
 
-final emptyTestExecutionFilters = FiltersGroup<TestExecution>(
+final emptyArtefactEnvironmentsFilters = Filters<ArtefactEnvironment>(
   filters: [
-    Filter<TestExecution>(
-      name: 'Execution status',
-      extractOption: (te) => te.status.name,
-    ),
-  ],
-);
-
-final emptyEnvironmentReviewFilters = FiltersGroup<EnvironmentReview>(
-  filters: [
-    Filter<EnvironmentReview>(
+    Filter<ArtefactEnvironment>(
       name: 'Review status',
-      extractOption: (er) => switch (er.reviewDecision) {
+      extractOption: (environment) =>
+          switch (environment.review.reviewDecision) {
         [] => 'Undecided',
         [EnvironmentReviewDecision.rejected] => 'Rejected',
         [...] => 'Approved',
       },
+    ),
+    Filter<ArtefactEnvironment>(
+      name: 'Last execution status',
+      extractOption: (environment) =>
+          environment.runsDescending.firstOrNull?.status.name,
     ),
   ],
 );
