@@ -120,40 +120,60 @@ class _PreviousTestResultsWidget extends ConsumerWidget {
     return Row(
       children: statusGroups.entries
           .mapIndexed<Widget>(
-            (groupIndex, entry) => InkWell(
-              onTap: (groupIndex > 0)
-                  ? () => navigateToArtefactPage(
-                        context,
-                        entry.value.first.artefactId,
-                      )
-                  : null,
-              child: Tooltip(
-                message: 'Version: ${entry.key}',
-                child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: -5,
-                  children: entry.value
-                      .mapIndexed(
-                        (index, result) => Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: result.status.getIcon(
-                            scale:
-                                (groupIndex == index && index == 0) ? 1.5 : 1,
-                          ),
-                        ),
-                      )
-                      .reversed
-                      .toList(),
-                ),
-              ),
+            (groupIndex, entry) => _TestResultsGroup(
+              groupIndex: groupIndex,
+              version: entry.key,
+              results: entry.value,
             ),
           )
           .reversed
           .intersperse(const SizedBox(width: Spacing.level2))
           .toList(),
+    );
+  }
+}
+
+class _TestResultsGroup extends StatelessWidget {
+  const _TestResultsGroup({
+    required this.groupIndex,
+    required this.version,
+    required this.results,
+  });
+
+  final int groupIndex;
+  final String version;
+  final List<PreviousTestResult> results;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: (groupIndex > 0)
+          ? () => navigateToArtefactPage(
+                context,
+                results.first.artefactId,
+              )
+          : null,
+      child: Tooltip(
+        message: 'Version: $version',
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: -5,
+          children: results
+              .mapIndexed(
+                (index, result) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: result.status.getIcon(
+                    scale: (groupIndex == index && index == 0) ? 1.5 : 1,
+                  ),
+                ),
+              )
+              .reversed
+              .toList(),
+        ),
+      ),
     );
   }
 }

@@ -27,7 +27,7 @@ class RerunFilteredEnvironmentsButton extends StatelessWidget {
     handlePress() => showDialog(
           context: context,
           builder: (_) => _ConfirmationDialog(
-            filteredTestExecutions: testExecutionsToRerun,
+            testExecutionToRerun: testExecutionsToRerun,
             artefactId: artefactId,
           ),
         );
@@ -44,17 +44,17 @@ class RerunFilteredEnvironmentsButton extends StatelessWidget {
 
 class _ConfirmationDialog extends ConsumerWidget {
   const _ConfirmationDialog({
-    required this.filteredTestExecutions,
+    required this.testExecutionToRerun,
     required this.artefactId,
   });
 
-  final Iterable<TestExecution> filteredTestExecutions;
+  final Iterable<TestExecution> testExecutionToRerun;
   final int artefactId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     handleYes() {
-      final testExecutionIds = {for (final te in filteredTestExecutions) te.id};
+      final testExecutionIds = {for (final te in testExecutionToRerun) te.id};
       ref
           .read(artefactBuildsProvider(artefactId).notifier)
           .rerunTestExecutions(testExecutionIds);
@@ -65,11 +65,11 @@ class _ConfirmationDialog extends ConsumerWidget {
       scrollable: true,
       title: Text(
         'Are you sure you want to rerun the following'
-        ' ${filteredTestExecutions.length} environments?',
+        ' ${testExecutionToRerun.length} environments?',
       ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: filteredTestExecutions
+        children: testExecutionToRerun
             .map<Widget>((te) => Text(te.environment.name))
             .intersperse(const SizedBox(height: Spacing.level2))
             .toList(),
