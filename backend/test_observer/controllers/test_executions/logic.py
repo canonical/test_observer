@@ -30,12 +30,14 @@ from test_observer.data_access.models import (
 )
 
 
-def delete_rerun_requests(db: Session, test_execution: TestExecution):
+def delete_related_rerun_requests(
+    db: Session, artefact_build_id: int, environment_id: int
+):
     related_test_execution_runs = db.scalars(
         select(TestExecution)
         .where(
-            TestExecution.artefact_build_id == test_execution.artefact_build_id,
-            TestExecution.environment_id == test_execution.environment_id,
+            TestExecution.artefact_build_id == artefact_build_id,
+            TestExecution.environment_id == environment_id,
         )
         .options(selectinload(TestExecution.rerun_request))
     )

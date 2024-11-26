@@ -18,6 +18,7 @@
 
 from fastapi.testclient import TestClient
 
+from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from tests.data_generator import DataGenerator
 
 
@@ -149,7 +150,7 @@ def test_previous_results_orders_by_artefact(
     ]
 
 
-def test_shows_up_to_10_previous_results(
+def test_shows_up_to_maximum_previous_results(
     test_client: TestClient, generator: DataGenerator
 ):
     e = generator.gen_environment()
@@ -158,11 +159,11 @@ def test_shows_up_to_10_previous_results(
     a = generator.gen_artefact("beta", version="1")
     ab = generator.gen_artefact_build(a)
 
-    for _ in range(15):
+    for _ in range(PREVIOUS_TEST_RESULT_COUNT * 2):
         te = generator.gen_test_execution(ab, e)
         generator.gen_test_result(tc, te)
 
     response = test_client.get(f"/v1/test-executions/{te.id}/test-results")
 
     assert response.status_code == 200
-    assert len(response.json()[0]["previous_results"]) == 10
+    assert len(response.json()[0]["previous_results"]) == PREVIOUS_TEST_RESULT_COUNT
