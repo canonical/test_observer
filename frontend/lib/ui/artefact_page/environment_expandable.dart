@@ -7,6 +7,7 @@ import '../spacing.dart';
 import 'environment_issues/environment_issues_expandable.dart';
 import 'environment_review_button.dart';
 import 'test_execution_expandable/test_execution_expandable.dart';
+import 'test_execution_expandable/test_execution_rerun_button.dart';
 
 class EnvironmentExpandable extends StatelessWidget {
   const EnvironmentExpandable({super.key, required this.artefactEnvironment});
@@ -56,6 +57,8 @@ class _EnvironmentExpandableTitle extends StatelessWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const Spacer(),
+        RerunButton(testExecution: artefactEnvironment.runsDescending.first),
+        const SizedBox(width: Spacing.level3),
         EnvironmentReviewButton(environmentReview: artefactEnvironment.review),
       ],
     );

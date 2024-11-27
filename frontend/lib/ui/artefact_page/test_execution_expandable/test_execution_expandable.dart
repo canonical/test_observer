@@ -8,7 +8,6 @@ import '../../inline_url_text.dart';
 import '../../spacing.dart';
 import '../test_result_filter_expandable.dart';
 import '../test_event_log_expandable.dart';
-import 'test_execution_rerun_button.dart';
 
 class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({
@@ -76,8 +75,6 @@ class _TestExecutionTileTitle extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const Spacer(),
-        RerunButton(testExecution: testExecution),
-        const SizedBox(width: Spacing.level3),
         if (ciLink != null)
           InlineUrlText(
             url: ciLink,
