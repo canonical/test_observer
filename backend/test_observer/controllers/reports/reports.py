@@ -158,8 +158,8 @@ def get_test_execution_reports(
     db: Session = Depends(get_db),
 ):
     """
-    Returns a csv report detailing all test executions within a given date range. Together
-    with their artefact and environment details in csv format.
+    Returns a csv report detailing all test executions within a given date range.
+    Together with their artefact and environment details in csv format.
     """
 
     if end_date is None:
