@@ -21,7 +21,7 @@ def test_get_testresults_report_in_range(
     test_result = generator.gen_test_result(test_case, test_execution)
 
     response = test_client.get(
-        "/v1/reports/testresults",
+        "/v1/reports/test-results",
         params={
             "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
             "end_date": datetime.now().isoformat(),
@@ -48,7 +48,7 @@ def test_get_testresults_report_out_range(
     generator.gen_test_result(test_case, test_execution)
 
     response = test_client.get(
-        "/v1/reports/testresults",
+        "/v1/reports/test-results",
         params={
             "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
             "end_date": datetime.now().isoformat(),
@@ -74,7 +74,7 @@ def test_get_testresults_report_overwritten_build(
         test_result = generator.gen_test_result(test_case, test_execution)
 
     response = test_client.get(
-        "/v1/reports/testresults",
+        "/v1/reports/test-results",
         params={
             "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
             "end_date": datetime.now().isoformat(),
