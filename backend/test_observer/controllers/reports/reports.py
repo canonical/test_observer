@@ -1,4 +1,3 @@
-from copy import deepcopy
 import csv
 from datetime import datetime
 from typing import Any
@@ -165,15 +164,25 @@ def get_test_execution_reports(
     if end_date is None:
         end_date = datetime.now()
 
-    columns = deepcopy(TEST_EXECUTIONS_REPORT_COLUMNS)
+    columns = [*TEST_EXECUTIONS_REPORT_COLUMNS]
     column_names = [str(column) for column in TEST_EXECUTIONS_REPORT_COLUMNS]
     if include_test_events:
-        columns.append(
-            func.array_agg(
-                aggregate_order_by(TestEvent.event_name, TestEvent.timestamp)
-            )
+        columns.extend(
+            [
+                func.array_agg(
+                    aggregate_order_by(TestEvent.event_name, TestEvent.timestamp)
+                ),
+                func.array_agg(
+                    aggregate_order_by(TestEvent.timestamp, TestEvent.timestamp)
+                ),
+                func.array_agg(
+                    aggregate_order_by(TestEvent.detail, TestEvent.timestamp)
+                ),
+            ]
         )
-        column_names.append("TestEvent.event_name")
+        column_names.extend(
+            ["TestEvent.event_name", "TestEvent.timestamp", "TestEvent.detail"]
+        )
 
     cursor = db.execute(
         _get_test_execution_reports_query(
