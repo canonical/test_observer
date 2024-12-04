@@ -15,7 +15,7 @@ from test_observer.data_access.models import (
 from tests.data_generator import DataGenerator
 
 
-def test_get_testresults_report_in_range(
+def test_get_testexecutions_report_in_range(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
     artefact = generator.gen_artefact("beta")
@@ -38,7 +38,7 @@ def test_get_testresults_report_in_range(
     assert table[1] == _expected_report_row(test_execution, db_session=db_session)
 
 
-def test_get_testresults_report_out_range(
+def test_get_testexecutions_report_out_range(
     test_client: TestClient, generator: DataGenerator
 ):
     artefact = generator.gen_artefact(
@@ -65,7 +65,7 @@ def test_get_testresults_report_out_range(
     assert table[0] == [str(c) for c in TEST_EXECUTIONS_REPORT_COLUMNS]
 
 
-def test_get_testresults_report_overwritten_build(
+def test_get_testexecutions_report_overwritten_build(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
     artefact = generator.gen_artefact("beta")
@@ -96,7 +96,7 @@ def test_get_testresults_report_overwritten_build(
     assert table[1] == _expected_report_row(test_execution, db_session=db_session)
 
 
-def test_get_testresults_report_with_test_events(
+def test_get_testexecutions_report_with_test_events(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
     artefact = generator.gen_artefact("beta")
