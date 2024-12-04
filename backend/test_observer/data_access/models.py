@@ -131,7 +131,9 @@ class Stage(Base):
     name: Mapped[str] = mapped_column(String(100), index=True)
     position: Mapped[int] = mapped_column()
     # Relationships
-    family_id: Mapped[int] = mapped_column(ForeignKey("family.id", ondelete="CASCADE"))
+    family_id: Mapped[int] = mapped_column(
+        ForeignKey("family.id", ondelete="CASCADE"), index=True
+    )
     family: Mapped[Family] = relationship(back_populates="stages")
     artefacts: Mapped[list["Artefact"]] = relationship(
         back_populates="stage", cascade="all, delete"
@@ -153,12 +155,16 @@ class Artefact(Base):
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
     # Relationships
-    stage_id: Mapped[int] = mapped_column(ForeignKey("stage.id", ondelete="CASCADE"))
+    stage_id: Mapped[int] = mapped_column(
+        ForeignKey("stage.id", ondelete="CASCADE"), index=True
+    )
     stage: Mapped[Stage] = relationship(back_populates="artefacts")
     builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete"
     )
-    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"))
+    assignee_id: Mapped[int | None] = mapped_column(
+        ForeignKey("app_user.id"), index=True
+    )
     assignee: Mapped[User | None] = relationship(back_populates="assignments")
     # Default fields
     due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
@@ -241,7 +247,7 @@ class ArtefactBuild(Base):
     revision: Mapped[int | None]
     # Relationships
     artefact_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact.id", ondelete="CASCADE")
+        ForeignKey("artefact.id", ondelete="CASCADE"), index=True
     )
     artefact: Mapped[Artefact] = relationship(
         back_populates="builds", foreign_keys=[artefact_id]
@@ -330,12 +336,14 @@ class TestExecution(Base):
     c3_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # Relationships
     artefact_build_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact_build.id", ondelete="CASCADE")
+        ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True
     )
     artefact_build: Mapped["ArtefactBuild"] = relationship(
         back_populates="test_executions"
     )
-    environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"))
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environment.id"), index=True
+    )
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
     test_results: Mapped[list["TestResult"]] = relationship(
         back_populates="test_execution", cascade="all, delete"
@@ -435,7 +443,7 @@ class TestEvent(Base):
     timestamp: Mapped[datetime]
     detail: Mapped[str]
     test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id", ondelete="CASCADE")
+        ForeignKey("test_execution.id", ondelete="CASCADE"), index=True
     )
     test_execution: Mapped["TestExecution"] = relationship(back_populates="test_events")
 
@@ -508,12 +516,12 @@ class ArtefactBuildEnvironmentReview(Base):
     review_comment: Mapped[str] = mapped_column(default="")
 
     environment_id: Mapped[int] = mapped_column(
-        ForeignKey("environment.id", ondelete="CASCADE")
+        ForeignKey("environment.id", ondelete="CASCADE"), index=True
     )
     environment: Mapped["Environment"] = relationship()
 
     artefact_build_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact_build.id", ondelete="CASCADE")
+        ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True
     )
     artefact_build: Mapped["ArtefactBuild"] = relationship(
         back_populates="environment_reviews",
