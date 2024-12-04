@@ -184,7 +184,12 @@ def _expected_report_row(
         expected_report.extend(
             [
                 str([te.event_name for te in test_events]),
-                str([te.timestamp for te in test_events]),
+                str(
+                    [
+                        te.timestamp.strftime("%Y-%m-%d %H:%M:%S:%f")[:-3]
+                        for te in test_events
+                    ]
+                ),
                 str([te.detail for te in test_events]),
             ]
         )

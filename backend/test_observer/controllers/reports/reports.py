@@ -173,7 +173,10 @@ def get_test_execution_reports(
                     aggregate_order_by(TestEvent.event_name, TestEvent.timestamp)
                 ),
                 func.array_agg(
-                    aggregate_order_by(TestEvent.timestamp, TestEvent.timestamp)
+                    aggregate_order_by(
+                        func.to_char(TestEvent.timestamp, "YYYY-MM-DD HH24:MI:SS:MS"),
+                        TestEvent.timestamp,
+                    ),
                 ),
                 func.array_agg(
                     aggregate_order_by(TestEvent.detail, TestEvent.timestamp)
