@@ -54,6 +54,7 @@ class StartTestExecutionRequest(BaseModel):
     execution_stage: str
     environment: str
     ci_link: Annotated[str, HttpUrl]
+    test_plan: str
 
     @field_serializer("family")
     def serialize_dt(self, family: FamilyName):
