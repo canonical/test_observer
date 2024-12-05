@@ -44,7 +44,7 @@ TEST_EXECUTIONS_REPORT_COLUMNS: list[Any] = [
 ]
 
 
-def _get_test_execution_reports_query(
+def _get_test_executions_reports_query(
     start_date: datetime, end_date: datetime
 ) -> Select:
     """
@@ -53,15 +53,18 @@ def _get_test_execution_reports_query(
     test_events_subq = (
         select(
             TestExecution.id.label("test_execution_id"),
-            func.json_agg(
-                func.json_build_object(
-                    "event_name",
-                    TestEvent.event_name,
-                    "timestamp",
-                    func.to_char(TestEvent.timestamp, "YYYY-MM-DD HH24:MI:SS:MS"),
-                    "detail",
-                    TestEvent.detail,
-                )
+            func.coalesce(
+                func.array_agg(
+                    func.json_build_object(
+                        "event_name",
+                        TestEvent.event_name,
+                        "timestamp",
+                        func.to_char(TestEvent.timestamp, "YYYY-MM-DD HH24:MI:SS:MS"),
+                        "detail",
+                        TestEvent.detail,
+                    ),
+                ).filter(TestEvent.id.is_not(None)),
+                [],
             ).label("testevents"),
         )
         .outerjoin(TestEvent)
@@ -105,7 +108,7 @@ def get_test_execution_reports(
     if end_date is None:
         end_date = datetime.now()
 
-    cursor = db.execute(_get_test_execution_reports_query(start_date, end_date))
+    cursor = db.execute(_get_test_executions_reports_query(start_date, end_date))
 
     filename = "test_executions_report.csv"
     with open(filename, "w") as csvfile:
