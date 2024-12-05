@@ -49,6 +49,7 @@ final dummyTestExecution = TestExecution(
   status: TestExecutionStatus.passed,
   environment: dummyEnvironment,
   artefactBuildId: dummyArtefactBuild.id,
+  testPlan: 'test plan',
 );
 
 final dummyEnvironmentReview = EnvironmentReview(
