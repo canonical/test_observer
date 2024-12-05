@@ -2,6 +2,7 @@ import csv
 from datetime import datetime, timedelta
 from io import StringIO
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from fastapi.testclient import TestClient
@@ -104,16 +105,14 @@ def _expected_report_row(
     environment = test_execution.environment
     artefact = test_execution.artefact_build.artefact
     family = artefact.stage.family
-    environment_review = (
-        db_session.query(ArtefactBuildEnvironmentReview)
-        .filter(
+    environment_review = db_session.execute(
+        select(ArtefactBuildEnvironmentReview).where(
             ArtefactBuildEnvironmentReview.artefact_build_id
             == test_execution.artefact_build_id,
             ArtefactBuildEnvironmentReview.environment_id
             == test_execution.environment_id,
         )
-        .one()
-    )
+    ).scalar_one()
 
     return [
         family.name,
