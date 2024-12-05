@@ -5,7 +5,7 @@ from io import StringIO
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from backend.test_observer.controllers.reports.test_results import (
+from test_observer.controllers.reports.test_results import (
     TESTRESULTS_REPORT_COLUMNS,
 )
 from test_observer.data_access.models import TestResult

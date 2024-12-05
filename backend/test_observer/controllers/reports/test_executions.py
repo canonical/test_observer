@@ -25,7 +25,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.setup import get_db
 
 
-router = APIRouter(tags=["reports2"])
+router = APIRouter()
 
 
 TEST_EXECUTIONS_REPORT_COLUMNS: list[Any] = [

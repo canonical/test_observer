@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from backend.test_observer.controllers.reports.test_results import (
+from test_observer.controllers.reports.test_executions import (
     TEST_EXECUTIONS_REPORT_COLUMNS,
 )
 from test_observer.data_access.models import (

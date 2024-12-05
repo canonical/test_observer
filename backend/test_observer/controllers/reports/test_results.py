@@ -1,6 +1,5 @@
 import csv
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
@@ -20,7 +19,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.setup import get_db
 
-router = APIRouter(tags=["reports"])
+router = APIRouter()
 
 TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     Family.name,
