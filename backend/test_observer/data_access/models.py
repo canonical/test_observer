@@ -366,6 +366,8 @@ class TestExecution(Base):
         String(200), nullable=True, default=None
     )
 
+    test_plan: Mapped[str] = mapped_column(String(200))
+
     @property
     def has_failures(self) -> bool:
         return any(tr.status == TestResultStatus.FAILED for tr in self.test_results)

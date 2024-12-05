@@ -97,12 +97,13 @@ def start_test_execution(
             db,
             TestExecution,
             filter_kwargs={
-                "environment_id": environment.id,
-                "artefact_build_id": artefact_build.id,
                 "ci_link": request.ci_link,
             },
             creation_kwargs={
                 "status": TestExecutionStatus.IN_PROGRESS,
+                "environment_id": environment.id,
+                "artefact_build_id": artefact_build.id,
+                "test_plan": request.test_plan,
             },
         )
 

@@ -88,11 +88,11 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
     artefact = (
         db_session.query(Artefact)
         .filter(
-            Artefact.name == "core22",
-            Artefact.version == "abec123",
-            Artefact.store == "ubuntu",
-            Artefact.track == "22",
-            Artefact.stage.has(name="beta"),
+            Artefact.name == test_request["name"],
+            Artefact.version == test_request["version"],
+            Artefact.store == test_request["store"],
+            Artefact.track == test_request["track"],
+            Artefact.stage.has(name=test_request["execution_stage"]),
         )
         .one_or_none()
     )
@@ -101,8 +101,8 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
     environment = (
         db_session.query(Environment)
         .filter(
-            Environment.name == "cm3",
-            Environment.architecture == "arm64",
+            Environment.name == test_request["environment"],
+            Environment.architecture == test_request["arch"],
         )
         .one_or_none()
     )
@@ -111,9 +111,9 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
     artefact_build = (
         db_session.query(ArtefactBuild)
         .filter(
-            ArtefactBuild.architecture == "arm64",
+            ArtefactBuild.architecture == test_request["arch"],
             ArtefactBuild.artefact == artefact,
-            ArtefactBuild.revision == 123,
+            ArtefactBuild.revision == test_request["revision"],
         )
         .one_or_none()
     )
@@ -135,6 +135,7 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
             TestExecution.artefact_build == artefact_build,
             TestExecution.environment == environment,
             TestExecution.status == TestExecutionStatus.IN_PROGRESS,
+            TestExecution.test_plan == test_request["test_plan"],
         )
         .one_or_none()
     )
@@ -188,6 +189,7 @@ def test_uses_existing_models(
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
     assert test_execution.c3_link is None
+    assert test_execution.test_plan == "test plan"
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
