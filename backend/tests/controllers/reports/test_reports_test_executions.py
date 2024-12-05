@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from test_observer.controllers.reports.reports import TEST_EXECUTIONS_REPORT_COLUMNS
+from backend.test_observer.controllers.reports.test_results import (
+    TEST_EXECUTIONS_REPORT_COLUMNS,
+)
 from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     TestExecution,
