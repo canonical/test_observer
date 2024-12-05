@@ -36,6 +36,7 @@ TEST_EXECUTIONS_REPORT_COLUMNS: list[Any] = [
     TestExecution.ci_link,
     TestExecution.c3_link,
     TestExecution.checkbox_version,
+    TestExecution.created_at,
     Environment.name,
     Environment.architecture,
     ArtefactBuildEnvironmentReview.review_decision,
