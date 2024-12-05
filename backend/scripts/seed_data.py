@@ -238,6 +238,18 @@ START_TEST_EXECUTION_REQUESTS = [
         ci_link="http://example16",
         test_plan="com.canonical.certification::sru",
     ),
+    StartTestExecutionRequest(
+        family=FamilyName.DEB,
+        name="linux-raspi",
+        version="5.15.0.73.71",
+        series="jammy",
+        repo="main",
+        arch="arm64",
+        execution_stage="proposed",
+        environment="rpi400",
+        ci_link="http://example17",
+        test_plan="com.canonical.certification::sru-server",
+    ),
 ]
 
 END_TEST_EXECUTION_REQUESTS = [
