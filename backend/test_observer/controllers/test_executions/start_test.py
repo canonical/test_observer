@@ -108,7 +108,10 @@ def start_test_execution(
         )
 
         delete_related_rerun_requests(
-            db, test_execution.artefact_build_id, test_execution.environment_id
+            db,
+            test_execution.artefact_build_id,
+            test_execution.environment_id,
+            test_execution.test_plan,
         )
 
         if artefact.assignee_id is None and (users := db.query(User).all()):

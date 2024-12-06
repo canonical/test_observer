@@ -272,7 +272,7 @@ def test_deletes_rerun_requests(
             "execution_stage": a.stage.name,
             "environment": e.name,
             "ci_link": "different-ci.link",
-            "test_plan": "some test plan",
+            "test_plan": te1.test_plan,
         },
     )
 
@@ -280,3 +280,32 @@ def test_deletes_rerun_requests(
     db_session.refresh(te2)
     assert not te1.rerun_request
     assert not te2.rerun_request
+
+
+def test_keeps_rerun_request_of_different_plan(
+    execute: Execute, generator: DataGenerator, db_session: Session
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e, ci_link="ci1.link", test_plan="plan1")
+    generator.gen_rerun_request(te)
+
+    execute(
+        {
+            "family": a.stage.family.name,
+            "name": a.name,
+            "version": a.version,
+            "revision": ab.revision,
+            "track": a.track,
+            "store": a.store,
+            "arch": ab.architecture,
+            "execution_stage": a.stage.name,
+            "environment": e.name,
+            "ci_link": "different-ci.link",
+            "test_plan": "plan2",
+        },
+    )
+
+    db_session.refresh(te)
+    assert te.rerun_request
