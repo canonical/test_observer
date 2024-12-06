@@ -28,6 +28,7 @@ def test_get_testexecutions_report_in_range_with_test_events(
         artefact_build, environment, created_at=datetime.now()
     )
     generator.gen_artefact_build_environment_review(artefact_build, environment)
+    generator.gen_test_event(test_execution, "job_start")
     generator.gen_test_event(test_execution, "provision_fail")
 
     response = test_client.get(

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
@@ -39,6 +39,7 @@ TEST_EXECUTIONS_REPORT_COLUMNS = [
     Environment.architecture,
     ArtefactBuildEnvironmentReview.review_decision,
     ArtefactBuildEnvironmentReview.review_comment,
+    text("test_executions_events.testevents"),
 ]
 
 
@@ -48,9 +49,9 @@ def _get_test_executions_reports_query(
     """
     Builds the query that retrieves the test executions based on the parameters set
     """
-    return (
+    test_events_subq = (
         select(
-            *TEST_EXECUTIONS_REPORT_COLUMNS,
+            TestExecution.id.label("test_execution_id"),
             func.coalesce(
                 func.array_agg(
                     func.json_build_object(
@@ -60,14 +61,18 @@ def _get_test_executions_reports_query(
                         func.to_char(TestEvent.timestamp, "YYYY-MM-DD HH24:MI:SS:MS"),
                         "detail",
                         TestEvent.detail,
-                    )
-                )
-                .filter(TestEvent.event_name.isnot(None))
-                .over(partition_by=TestExecution.id),
+                    ),
+                ).filter(TestEvent.id.is_not(None)),
                 [],
-            ).label("test_executions_events.testevents")
+            ).label("testevents"),
         )
-        .join_from(TestExecution, TestEvent, isouter=True)
+        .outerjoin(TestEvent)
+        .group_by(TestExecution.id)
+        .alias("test_executions_events")
+    )
+
+    return (
+        select(*TEST_EXECUTIONS_REPORT_COLUMNS)
         .join_from(TestExecution, Environment)
         .join_from(TestExecution, ArtefactBuild)
         .join_from(ArtefactBuild, Artefact)
@@ -77,6 +82,10 @@ def _get_test_executions_reports_query(
             ArtefactBuildEnvironmentReview,
             (ArtefactBuildEnvironmentReview.artefact_build_id == ArtefactBuild.id)
             & (ArtefactBuildEnvironmentReview.environment_id == Environment.id),
+        )
+        .join(
+            test_events_subq,
+            TestExecution.id == test_events_subq.c.test_execution_id,
         )
         .where(
             TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
