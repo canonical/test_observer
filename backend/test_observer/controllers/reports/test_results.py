@@ -7,9 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from test_observer.data_access import queries
 from test_observer.data_access.models import (
     Artefact,
+    ArtefactBuild,
     Environment,
     Family,
     Stage,
@@ -45,7 +45,7 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
 ]
 
 
-@router.get("/testresults", response_class=FileResponse)
+@router.get("/test-results", response_class=FileResponse)
 def get_testresults_report(
     start_date: datetime = datetime.min,
     end_date: datetime | None = None,
@@ -58,14 +58,12 @@ def get_testresults_report(
     if end_date is None:
         end_date = datetime.now()
 
-    latest_builds = queries.latest_artefact_builds.subquery()
-
     cursor = db.execute(
         select(*TESTRESULTS_REPORT_COLUMNS)
         .join_from(Family, Stage)
         .join_from(Stage, Artefact)
-        .join_from(Artefact, latest_builds)
-        .join_from(latest_builds, TestExecution)
+        .join_from(Artefact, ArtefactBuild)
+        .join_from(ArtefactBuild, TestExecution)
         .join_from(TestExecution, Environment)
         .join_from(TestExecution, TestResult)
         .join_from(TestResult, TestCase)

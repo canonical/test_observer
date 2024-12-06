@@ -5,7 +5,9 @@ from io import StringIO
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from test_observer.controllers.reports.reports import TESTRESULTS_REPORT_COLUMNS
+from test_observer.controllers.reports.test_results import (
+    TESTRESULTS_REPORT_COLUMNS,
+)
 from test_observer.data_access.models import TestResult
 from tests.data_generator import DataGenerator
 
@@ -21,7 +23,7 @@ def test_get_testresults_report_in_range(
     test_result = generator.gen_test_result(test_case, test_execution)
 
     response = test_client.get(
-        "/v1/reports/testresults",
+        "/v1/reports/test-results",
         params={
             "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
             "end_date": datetime.now().isoformat(),
@@ -48,7 +50,7 @@ def test_get_testresults_report_out_range(
     generator.gen_test_result(test_case, test_execution)
 
     response = test_client.get(
-        "/v1/reports/testresults",
+        "/v1/reports/test-results",
         params={
             "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
             "end_date": datetime.now().isoformat(),
@@ -59,33 +61,6 @@ def test_get_testresults_report_out_range(
 
     assert len(table) == 1
     assert table[0] == [str(c) for c in TESTRESULTS_REPORT_COLUMNS]
-
-
-def test_get_testresults_report_overwritten_build(
-    test_client: TestClient, generator: DataGenerator
-):
-    artefact = generator.gen_artefact("beta")
-    artefact_build_1 = generator.gen_artefact_build(artefact, revision=1)
-    artefact_build_2 = generator.gen_artefact_build(artefact, revision=2)
-    environment = generator.gen_environment()
-    test_case = generator.gen_test_case()
-    for build in (artefact_build_1, artefact_build_2):
-        test_execution = generator.gen_test_execution(build, environment)
-        test_result = generator.gen_test_result(test_case, test_execution)
-
-    response = test_client.get(
-        "/v1/reports/testresults",
-        params={
-            "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
-            "end_date": datetime.now().isoformat(),
-        },
-    )
-
-    table = _read_csv_response(response)
-
-    assert len(table) == 2
-    assert table[0] == [str(c) for c in TESTRESULTS_REPORT_COLUMNS]
-    assert table[1] == _expected_report_row(test_result)
 
 
 def _read_csv_response(response: Response) -> list:

@@ -23,10 +23,9 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access.setup import get_db
 
-from . import environments, test_cases, test_executions
+from . import environments, reports, test_cases, test_executions
 from .application import version
 from .artefacts import artefacts
-from .reports import reports
 
 router = APIRouter()
 router.include_router(version.router, prefix="/v1/version")

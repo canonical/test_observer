@@ -9,6 +9,7 @@ from test_observer.data_access.models import (
     Environment,
     Stage,
     TestCase,
+    TestEvent,
     TestExecution,
     TestExecutionRerunRequest,
     TestResult,
@@ -122,6 +123,7 @@ class DataGenerator:
         c3_link: str | None = None,
         status: TestExecutionStatus = TestExecutionStatus.NOT_STARTED,
         checkbox_version: str | None = None,
+        created_at: datetime | None = None,
     ) -> TestExecution:
         test_execution = TestExecution(
             artefact_build=artefact_build,
@@ -130,6 +132,7 @@ class DataGenerator:
             c3_link=c3_link,
             status=status,
             checkbox_version=checkbox_version,
+            created_at=created_at,
         )
         self._add_object(test_execution)
         return test_execution
@@ -188,6 +191,22 @@ class DataGenerator:
         )
         self._add_object(review)
         return review
+
+    def gen_test_event(
+        self,
+        test_execution: TestExecution,
+        event_name: str,
+        timestamp: datetime = datetime.now(),
+        detail: str = "",
+    ) -> TestEvent:
+        test_event = TestEvent(
+            test_execution=test_execution,
+            event_name=event_name,
+            timestamp=timestamp,
+            detail=detail,
+        )
+        self._add_object(test_event)
+        return test_event
 
     def _add_object(self, instance: object) -> None:
         self.db_session.add(instance)
