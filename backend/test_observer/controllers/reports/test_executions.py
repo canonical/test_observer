@@ -39,7 +39,29 @@ TEST_EXECUTIONS_REPORT_COLUMNS = [
     Environment.architecture,
     ArtefactBuildEnvironmentReview.review_decision,
     ArtefactBuildEnvironmentReview.review_comment,
-    text("test_executions_events.testevents"),
+    func.coalesce(text("test_executions_events.testevents"), []).label("testevents"),
+]
+
+TEST_EXECUTIONS_REPORT_HEADERS = [
+    "Family.name",
+    "Artefact.id",
+    "Artefact.name",
+    "Artefact.version",
+    "Artefact.status",
+    "Artefact.track",
+    "Artefact.series",
+    "Artefact.repo",
+    "TestExecution.id",
+    "TestExecution.status",
+    "TestExecution.ci_link",
+    "TestExecution.c3_link",
+    "TestExecution.checkbox_version",
+    "TestExecution.created_at",
+    "Environment.name",
+    "Environment.architecture",
+    "ArtefactBuildEnvironmentReview.review_decision",
+    "ArtefactBuildEnvironmentReview.review_comment",
+    "TestEvents",
 ]
 
 
@@ -51,28 +73,30 @@ def _get_test_executions_reports_query(
     """
     test_events_subq = (
         select(
-            TestExecution.id.label("test_execution_id"),
-            func.coalesce(
-                func.array_agg(
-                    func.json_build_object(
-                        "event_name",
-                        TestEvent.event_name,
-                        "timestamp",
-                        func.to_char(TestEvent.timestamp, "YYYY-MM-DD HH24:MI:SS:MS"),
-                        "detail",
-                        TestEvent.detail,
-                    ),
-                ).filter(TestEvent.id.is_not(None)),
-                [],
+            TestEvent.test_execution_id.label("test_execution_id"),
+            func.array_agg(
+                func.json_build_object(
+                    "event_name",
+                    TestEvent.event_name,
+                    "timestamp",
+                    func.to_char(TestEvent.timestamp, "YYYY-MM-DD HH24:MI:SS:MS"),
+                    "detail",
+                    TestEvent.detail,
+                ),
             ).label("testevents"),
         )
-        .outerjoin(TestEvent)
-        .group_by(TestExecution.id)
+        .where(
+            TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
+        )
+        .join_from(TestEvent, TestExecution)
+        .group_by(TestEvent.test_execution_id)
         .alias("test_executions_events")
     )
 
     return (
-        select(*TEST_EXECUTIONS_REPORT_COLUMNS)
+        select(
+            *TEST_EXECUTIONS_REPORT_COLUMNS,
+        )
         .join_from(TestExecution, Environment)
         .join_from(TestExecution, ArtefactBuild)
         .join_from(ArtefactBuild, Artefact)
@@ -86,6 +110,7 @@ def _get_test_executions_reports_query(
         .join(
             test_events_subq,
             TestExecution.id == test_events_subq.c.test_execution_id,
+            isouter=True,
         )
         .where(
             TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
@@ -112,7 +137,7 @@ def get_test_execution_reports(
     filename = "test_executions_report.csv"
     with open(filename, "w") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(TEST_EXECUTIONS_REPORT_COLUMNS)
+        writer.writerow(TEST_EXECUTIONS_REPORT_HEADERS)
         writer.writerows(cursor)
 
     return filename

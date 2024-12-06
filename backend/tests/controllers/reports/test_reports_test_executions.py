@@ -17,6 +17,28 @@ from test_observer.data_access.models import (
 )
 from tests.data_generator import DataGenerator
 
+EXPECTED_COLUMN_NAMES = [
+    "Family.name",
+    "Artefact.id",
+    "Artefact.name",
+    "Artefact.version",
+    "Artefact.status",
+    "Artefact.track",
+    "Artefact.series",
+    "Artefact.repo",
+    "TestExecution.id",
+    "TestExecution.status",
+    "TestExecution.ci_link",
+    "TestExecution.c3_link",
+    "TestExecution.checkbox_version",
+    "TestExecution.created_at",
+    "Environment.name",
+    "Environment.architecture",
+    "ArtefactBuildEnvironmentReview.review_decision",
+    "ArtefactBuildEnvironmentReview.review_comment",
+    "TestEvents",
+]
+
 
 def test_get_testexecutions_report_in_range_with_test_events(
     test_client: TestClient, generator: DataGenerator, db_session: Session
@@ -39,7 +61,7 @@ def test_get_testexecutions_report_in_range_with_test_events(
     table = _read_csv_response(response)
 
     assert len(table) == 2
-    assert table[0] == [str(c) for c in TEST_EXECUTIONS_REPORT_COLUMNS]
+    assert table[0] == EXPECTED_COLUMN_NAMES
     assert table[1] == _expected_report_row(test_execution, db_session=db_session)
 
 
@@ -62,7 +84,7 @@ def test_get_testexecutions_report_in_range_without_test_events(
     table = _read_csv_response(response)
 
     assert len(table) == 2
-    assert table[0] == [str(c) for c in TEST_EXECUTIONS_REPORT_COLUMNS]
+    assert table[0] == EXPECTED_COLUMN_NAMES
     assert table[1] == _expected_report_row(test_execution, db_session=db_session)
 
 
@@ -90,7 +112,7 @@ def test_get_testexecutions_report_out_range(
     table = _read_csv_response(response)
 
     assert len(table) == 1
-    assert table[0] == [str(c) for c in TEST_EXECUTIONS_REPORT_COLUMNS]
+    assert table[0] == EXPECTED_COLUMN_NAMES
 
 
 def _read_csv_response(response: Response) -> list:
