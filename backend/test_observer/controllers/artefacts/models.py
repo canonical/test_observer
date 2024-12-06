@@ -83,6 +83,7 @@ class TestExecutionDTO(BaseModel):
     environment: EnvironmentDTO
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
+    test_plan: str
 
     @computed_field
     def is_rerun_requested(self) -> bool:

@@ -97,17 +97,21 @@ def start_test_execution(
             db,
             TestExecution,
             filter_kwargs={
-                "environment_id": environment.id,
-                "artefact_build_id": artefact_build.id,
                 "ci_link": request.ci_link,
             },
             creation_kwargs={
                 "status": TestExecutionStatus.IN_PROGRESS,
+                "environment_id": environment.id,
+                "artefact_build_id": artefact_build.id,
+                "test_plan": request.test_plan,
             },
         )
 
         delete_related_rerun_requests(
-            db, test_execution.artefact_build_id, test_execution.environment_id
+            db,
+            test_execution.artefact_build_id,
+            test_execution.environment_id,
+            test_execution.test_plan,
         )
 
         if artefact.assignee_id is None and (users := db.query(User).all()):

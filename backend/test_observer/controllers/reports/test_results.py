@@ -35,6 +35,7 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     TestExecution.status,
     TestExecution.c3_link,
     TestExecution.checkbox_version,
+    TestExecution.test_plan,
     Environment.name,
     Environment.architecture,
     TestCase.template_id,

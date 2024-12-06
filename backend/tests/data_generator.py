@@ -124,6 +124,7 @@ class DataGenerator:
         status: TestExecutionStatus = TestExecutionStatus.NOT_STARTED,
         checkbox_version: str | None = None,
         created_at: datetime | None = None,
+        test_plan: str | None = "Test plan",
     ) -> TestExecution:
         test_execution = TestExecution(
             artefact_build=artefact_build,
@@ -133,6 +134,7 @@ class DataGenerator:
             status=status,
             checkbox_version=checkbox_version,
             created_at=created_at,
+            test_plan=test_plan,
         )
         self._add_object(test_execution)
         return test_execution
