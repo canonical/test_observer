@@ -1,10 +1,9 @@
 import csv
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from sqlalchemy import select, func, text, Select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
@@ -19,10 +18,9 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.setup import get_db
 
-
 router = APIRouter()
 
-TEST_EXECUTIONS_REPORT_COLUMNS: list[Any] = [
+TEST_EXECUTIONS_REPORT_COLUMNS = [
     Family.name,
     Artefact.id,
     Artefact.name,
@@ -41,7 +39,6 @@ TEST_EXECUTIONS_REPORT_COLUMNS: list[Any] = [
     Environment.architecture,
     ArtefactBuildEnvironmentReview.review_decision,
     ArtefactBuildEnvironmentReview.review_comment,
-    text("test_executions_events.testevents"),
 ]
 
 
@@ -51,9 +48,9 @@ def _get_test_executions_reports_query(
     """
     Builds the query that retrieves the test executions based on the parameters set
     """
-    test_events_subq = (
+    return (
         select(
-            TestExecution.id.label("test_execution_id"),
+            *TEST_EXECUTIONS_REPORT_COLUMNS,
             func.coalesce(
                 func.array_agg(
                     func.json_build_object(
@@ -63,18 +60,14 @@ def _get_test_executions_reports_query(
                         func.to_char(TestEvent.timestamp, "YYYY-MM-DD HH24:MI:SS:MS"),
                         "detail",
                         TestEvent.detail,
-                    ),
-                ).filter(TestEvent.id.is_not(None)),
+                    )
+                )
+                .filter(TestEvent.event_name.isnot(None))
+                .over(partition_by=TestExecution.id),
                 [],
-            ).label("testevents"),
+            ).label("test_executions_events.testevents")
         )
-        .outerjoin(TestEvent)
-        .group_by(TestExecution.id)
-        .alias("test_executions_events")
-    )
-
-    return (
-        select(*TEST_EXECUTIONS_REPORT_COLUMNS)
+        .join_from(TestExecution, TestEvent, isouter=True)
         .join_from(TestExecution, Environment)
         .join_from(TestExecution, ArtefactBuild)
         .join_from(ArtefactBuild, Artefact)
@@ -84,10 +77,6 @@ def _get_test_executions_reports_query(
             ArtefactBuildEnvironmentReview,
             (ArtefactBuildEnvironmentReview.artefact_build_id == ArtefactBuild.id)
             & (ArtefactBuildEnvironmentReview.environment_id == Environment.id),
-        )
-        .join(
-            test_events_subq,
-            TestExecution.id == test_events_subq.c.test_execution_id,
         )
         .where(
             TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
