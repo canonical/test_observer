@@ -23,7 +23,9 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.test_executions.models import StartTestExecutionRequest
+from test_observer.controllers.test_executions.models import (
+    StartSnapTestExecutionRequest,
+)
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -38,7 +40,7 @@ from tests.data_generator import DataGenerator
 Execute: TypeAlias = Callable[[dict[str, Any]], Response]
 
 
-test_request = {
+snap_test_request = {
     "family": "snap",
     "name": "core22",
     "version": "abec123",
@@ -52,6 +54,19 @@ test_request = {
     "test_plan": "test plan",
 }
 
+deb_test_request = {
+    "family": "deb",
+    "name": "linux-generic-hwe-22.04",
+    "version": "6.8.0-50.51~22.04.1",
+    "series": "jammy",
+    "repo": "main",
+    "execution_stage": "proposed",
+    "arch": "amd64",
+    "environment": "xps",
+    "ci_link": "http://localhost",
+    "test_plan": "test plan",
+}
+
 
 @pytest.fixture
 def execute(test_client: TestClient) -> Execute:
@@ -61,12 +76,44 @@ def execute(test_client: TestClient) -> Execute:
     return execute_helper
 
 
+def test_requires_family_field(execute: Execute):
+    request = snap_test_request.copy()
+    request.pop("family")
+    response = execute(request)
+
+    assert response.status_code == 422
+
+
 @pytest.mark.parametrize(
     "field",
     [
-        "family",
         "name",
         "version",
+        "revision",
+        "arch",
+        "execution_stage",
+        "environment",
+        "ci_link",
+        "test_plan",
+        "store",
+        "track",
+    ],
+)
+def test_snap_required_fields(execute: Execute, field: str):
+    request = snap_test_request.copy()
+    request.pop(field)
+    response = execute(request)
+
+    assert_fails_validation(response, field, "missing")
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "version",
+        "series",
+        "repo",
         "arch",
         "execution_stage",
         "environment",
@@ -74,8 +121,8 @@ def execute(test_client: TestClient) -> Execute:
         "test_plan",
     ],
 )
-def test_required_fields(execute: Execute, field: str):
-    request = test_request.copy()
+def test_deb_required_fields(execute: Execute, field: str):
+    request = deb_test_request.copy()
     request.pop(field)
     response = execute(request)
 
@@ -83,16 +130,16 @@ def test_required_fields(execute: Execute, field: str):
 
 
 def test_creates_all_data_models(db_session: Session, execute: Execute):
-    response = execute(test_request)
+    response = execute(snap_test_request)
 
     artefact = (
         db_session.query(Artefact)
         .filter(
-            Artefact.name == test_request["name"],
-            Artefact.version == test_request["version"],
-            Artefact.store == test_request["store"],
-            Artefact.track == test_request["track"],
-            Artefact.stage.has(name=test_request["execution_stage"]),
+            Artefact.name == snap_test_request["name"],
+            Artefact.version == snap_test_request["version"],
+            Artefact.store == snap_test_request["store"],
+            Artefact.track == snap_test_request["track"],
+            Artefact.stage.has(name=snap_test_request["execution_stage"]),
         )
         .one_or_none()
     )
@@ -101,8 +148,8 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
     environment = (
         db_session.query(Environment)
         .filter(
-            Environment.name == test_request["environment"],
-            Environment.architecture == test_request["arch"],
+            Environment.name == snap_test_request["environment"],
+            Environment.architecture == snap_test_request["arch"],
         )
         .one_or_none()
     )
@@ -111,9 +158,9 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
     artefact_build = (
         db_session.query(ArtefactBuild)
         .filter(
-            ArtefactBuild.architecture == test_request["arch"],
+            ArtefactBuild.architecture == snap_test_request["arch"],
             ArtefactBuild.artefact == artefact,
-            ArtefactBuild.revision == test_request["revision"],
+            ArtefactBuild.revision == snap_test_request["revision"],
         )
         .one_or_none()
     )
@@ -135,20 +182,12 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
             TestExecution.artefact_build == artefact_build,
             TestExecution.environment == environment,
             TestExecution.status == TestExecutionStatus.IN_PROGRESS,
-            TestExecution.test_plan == test_request["test_plan"],
+            TestExecution.test_plan == snap_test_request["test_plan"],
         )
         .one_or_none()
     )
     assert test_execution
     assert response.json() == {"id": test_execution.id}
-
-
-def test_invalid_artefact_format(execute: Execute):
-    """Artefact with invalid format no store should not be created"""
-    request = test_request.copy()
-    del request["store"]
-    response = execute(request)
-    assert response.status_code == 422
 
 
 def test_uses_existing_models(
@@ -158,13 +197,13 @@ def test_uses_existing_models(
 ):
     artefact = generator.gen_artefact("beta")
     environment = generator.gen_environment()
-    artefact_build = generator.gen_artefact_build(artefact)
+    artefact_build = generator.gen_artefact_build(artefact, revision=1)
 
-    request = StartTestExecutionRequest(
-        family=FamilyName(artefact.stage.family.name),
+    request = StartSnapTestExecutionRequest(
+        family=FamilyName.SNAP,
         name=artefact.name,
         version=artefact.version,
-        revision=artefact_build.revision,
+        revision=1,
         track=artefact.track,
         store=artefact.store,
         arch=artefact_build.architecture,
@@ -197,7 +236,7 @@ def test_new_artefacts_get_assigned_a_reviewer(
 ):
     user = generator.gen_user()
 
-    execute(test_request)
+    execute(snap_test_request)
 
     artefact = db_session.query(Artefact).filter(Artefact.name == "core22").one()
     assert artefact.assignee is not None
@@ -208,16 +247,16 @@ def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    execute(test_request)
+    execute(snap_test_request)
 
     artefact = (
         db_session.query(Artefact)
         .filter(
-            Artefact.name == test_request["name"],
-            Artefact.version == test_request["version"],
-            Artefact.store == test_request["store"],
-            Artefact.track == test_request["track"],
-            Artefact.stage.has(name=test_request["execution_stage"]),
+            Artefact.name == snap_test_request["name"],
+            Artefact.version == snap_test_request["version"],
+            Artefact.store == snap_test_request["store"],
+            Artefact.track == snap_test_request["track"],
+            Artefact.stage.has(name=snap_test_request["execution_stage"]),
         )
         .one_or_none()
     )
@@ -230,7 +269,7 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
     """
     For kernel artefacts, due date shouldn't be set to default
     """
-    request = {**test_request, "name": "pi-kernel"}
+    request = {**snap_test_request, "name": "pi-kernel"}
     execute(request)
 
     artefact = (

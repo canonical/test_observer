@@ -16,7 +16,7 @@
 
 import random
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.test_executions.logic import (
@@ -35,14 +35,16 @@ from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-from .models import StartTestExecutionRequest
+from .models import StartDebTestExecutionRequest, StartSnapTestExecutionRequest
 
 router = APIRouter()
 
 
 @router.put("/start-test")
 def start_test_execution(
-    request: StartTestExecutionRequest, db: Session = Depends(get_db)
+    request: StartSnapTestExecutionRequest
+    | StartDebTestExecutionRequest = Body(discriminator="family"),
+    db: Session = Depends(get_db),
 ):
     stage = (
         db.query(Stage)
@@ -54,17 +56,21 @@ def start_test_execution(
     )
 
     try:
+        artefact_filter_kwargs: dict[str, str | int] = {
+            "name": request.name,
+            "version": request.version,
+        }
+        if isinstance(request, StartSnapTestExecutionRequest):
+            artefact_filter_kwargs["store"] = request.store
+            artefact_filter_kwargs["track"] = request.track
+        else:
+            artefact_filter_kwargs["series"] = request.series
+            artefact_filter_kwargs["repo"] = request.repo
+
         artefact = get_or_create(
             db,
             Artefact,
-            filter_kwargs={
-                "name": request.name,
-                "version": request.version,
-                "track": request.track if request.track is not None else "",
-                "store": request.store if request.store is not None else "",
-                "series": request.series if request.series is not None else "",
-                "repo": request.repo if request.repo is not None else "",
-            },
+            filter_kwargs=artefact_filter_kwargs,
             creation_kwargs={"stage_id": stage.id},
         )
 
@@ -79,7 +85,9 @@ def start_test_execution(
             ArtefactBuild,
             filter_kwargs={
                 "architecture": request.arch,
-                "revision": request.revision,
+                "revision": request.revision
+                if isinstance(request, StartSnapTestExecutionRequest)
+                else None,
                 "artefact_id": artefact.id,
             },
         )
