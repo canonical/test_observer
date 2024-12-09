@@ -20,7 +20,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import (
     AliasPath,
@@ -28,9 +28,7 @@ from pydantic import (
     ConfigDict,
     Field,
     HttpUrl,
-    field_serializer,
     field_validator,
-    model_validator,
 )
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
@@ -41,44 +39,34 @@ from test_observer.data_access.models_enums import (
 )
 
 
-class StartTestExecutionRequest(BaseModel):
-    family: FamilyName
+class _StartTestExecutionRequest(BaseModel):
     name: str
     version: str
-    revision: int | None = None
-    track: str | None = None
-    store: str | None = None
-    series: str | None = None
-    repo: str | None = None
     arch: str
     execution_stage: str
     environment: str
     ci_link: Annotated[str, HttpUrl]
-
-    @field_serializer("family")
-    def serialize_dt(self, family: FamilyName):
-        return family.value
+    test_plan: str = Field(max_length=200)
 
     @field_validator("version")
     @classmethod
-    def validate_version(cls: type["StartTestExecutionRequest"], version: str) -> str:
+    def validate_version(cls: type["_StartTestExecutionRequest"], version: str) -> str:
         if version in ("", "null"):
             raise ValueError(f"Invalid version value '{version}'")
         return version
 
-    @model_validator(mode="after")
-    def validate_required_fields(self) -> "StartTestExecutionRequest":
-        required_fields = {
-            FamilyName.SNAP: ("store", "track", "revision"),
-            FamilyName.DEB: ("series", "repo"),
-        }
-        family = self.family
 
-        for required_field in required_fields[family]:
-            if not getattr(self, required_field):
-                raise ValueError(f"{required_field} is required for {family} family")
+class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
+    family: Literal[FamilyName.SNAP]
+    revision: int
+    track: str
+    store: str
 
-        return self
+
+class StartDebTestExecutionRequest(_StartTestExecutionRequest):
+    family: Literal[FamilyName.DEB]
+    series: str
+    repo: str
 
 
 class C3TestResultStatus(str, Enum):

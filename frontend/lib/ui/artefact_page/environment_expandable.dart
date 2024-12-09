@@ -6,8 +6,7 @@ import '../expandable.dart';
 import '../spacing.dart';
 import 'environment_issues/environment_issues_expandable.dart';
 import 'environment_review_button.dart';
-import 'test_execution_expandable/test_execution_expandable.dart';
-import 'test_execution_expandable/test_execution_rerun_button.dart';
+import 'test_plan_expandable.dart';
 
 class EnvironmentExpandable extends StatelessWidget {
   const EnvironmentExpandable({super.key, required this.artefactEnvironment});
@@ -16,6 +15,9 @@ class EnvironmentExpandable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final groupedTestExecutions =
+        artefactEnvironment.runsDescending.groupBy((te) => te.testPlan);
+
     return Expandable(
       title: _EnvironmentExpandableTitle(
         artefactEnvironment: artefactEnvironment,
@@ -24,12 +26,17 @@ class EnvironmentExpandable extends StatelessWidget {
         EnvironmentIssuesExpandable(
           environment: artefactEnvironment.environment,
         ),
-        ...artefactEnvironment.runsDescending.mapIndexed(
-          (i, te) => TestExecutionExpandable(
-            initiallyExpanded: i == 0,
-            testExecution: te,
-            runNumber: artefactEnvironment.runsDescending.length - i,
-          ),
+        Expandable(
+          title: const Text('Test Plans'),
+          initiallyExpanded: true,
+          children: groupedTestExecutions.values
+              .map(
+                (testExecutions) => TestPlanExpandable(
+                  initiallyExpanded: groupedTestExecutions.length == 1,
+                  testExecutionsDescending: testExecutions,
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -57,8 +64,6 @@ class _EnvironmentExpandableTitle extends StatelessWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const Spacer(),
-        RerunButton(testExecution: artefactEnvironment.runsDescending.first),
-        const SizedBox(width: Spacing.level3),
         EnvironmentReviewButton(environmentReview: artefactEnvironment.review),
       ],
     );

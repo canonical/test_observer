@@ -19,7 +19,8 @@ from test_observer.controllers.test_executions.models import (
     C3TestResult,
     C3TestResultStatus,
     EndTestExecutionRequest,
-    StartTestExecutionRequest,
+    StartDebTestExecutionRequest,
+    StartSnapTestExecutionRequest,
 )
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
@@ -34,7 +35,7 @@ TEST_CASE_ISSUE_URL = f"{BASE_URL}/test-cases/reported-issues"
 ENVIRONMENT_ISSUE_URL = f"{BASE_URL}/environments/reported-issues"
 
 START_TEST_EXECUTION_REQUESTS = [
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
         version="20230531",
@@ -45,8 +46,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rpi2",
         ci_link="http://example1",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
         version="20230531",
@@ -57,8 +59,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rpi2",
         ci_link="http://example13",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
         version="20230531",
@@ -69,8 +72,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rpi2",
         ci_link="http://example14",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
         version="20230531",
@@ -81,8 +85,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rpi4",
         ci_link="http://example10",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
         version="20230531",
@@ -93,8 +98,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rpi3aplus",
         ci_link="http://example11",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
         version="20230531",
@@ -105,8 +111,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rp3bplus",
         ci_link="http://example12",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="docker",
         version="20.10.24",
@@ -117,8 +124,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rpi2",
         ci_link="http://example2",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="docker",
         version="20.10.24",
@@ -129,8 +137,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="beta",
         environment="rpi2",
         ci_link="http://example3",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="bluez",
         version="5.64-2",
@@ -141,8 +150,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="edge",
         environment="dawson-i",
         ci_link="http://example4",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="core22",
         version="20230531",
@@ -153,8 +163,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="candidate",
         environment="cm3",
         ci_link="http://example5",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="checkbox22",
         version="2.6",
@@ -165,8 +176,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="stable",
         environment="cm3",
         ci_link="http://example6",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartSnapTestExecutionRequest(
         family=FamilyName.SNAP,
         name="snapd",
         version="2.59.4",
@@ -177,8 +189,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="stable",
         environment="dragonboard",
         ci_link="http://example7",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    StartTestExecutionRequest(
+    StartDebTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
         version="5.15.0.73.70",
@@ -188,8 +201,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="updates",
         environment="rpi400",
         ci_link="http://example9",
+        test_plan="com.canonical.certification::sru",
     ),
-    StartTestExecutionRequest(
+    StartDebTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
@@ -199,8 +213,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="proposed",
         environment="rpi400",
         ci_link="http://example8",
+        test_plan="com.canonical.certification::sru",
     ),
-    StartTestExecutionRequest(
+    StartDebTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
@@ -210,8 +225,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="proposed",
         environment="rpi400",
         ci_link="http://example15",
+        test_plan="com.canonical.certification::sru",
     ),
-    StartTestExecutionRequest(
+    StartDebTestExecutionRequest(
         family=FamilyName.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
@@ -221,6 +237,19 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage="proposed",
         environment="rpi400",
         ci_link="http://example16",
+        test_plan="com.canonical.certification::sru",
+    ),
+    StartDebTestExecutionRequest(
+        family=FamilyName.DEB,
+        name="linux-raspi",
+        version="5.15.0.73.71",
+        series="jammy",
+        repo="main",
+        arch="arm64",
+        execution_stage="proposed",
+        environment="rpi400",
+        ci_link="http://example17",
+        test_plan="com.canonical.certification::sru-server",
     ),
 ]
 

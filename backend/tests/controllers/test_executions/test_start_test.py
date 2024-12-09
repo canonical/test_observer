@@ -23,7 +23,9 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.test_executions.models import StartTestExecutionRequest
+from test_observer.controllers.test_executions.models import (
+    StartSnapTestExecutionRequest,
+)
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -32,9 +34,38 @@ from test_observer.data_access.models import (
     TestExecution,
 )
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from tests.asserts import assert_fails_validation
 from tests.data_generator import DataGenerator
 
 Execute: TypeAlias = Callable[[dict[str, Any]], Response]
+
+
+snap_test_request = {
+    "family": "snap",
+    "name": "core22",
+    "version": "abec123",
+    "revision": 123,
+    "track": "22",
+    "store": "ubuntu",
+    "arch": "arm64",
+    "execution_stage": "beta",
+    "environment": "cm3",
+    "ci_link": "http://localhost",
+    "test_plan": "test plan",
+}
+
+deb_test_request = {
+    "family": "deb",
+    "name": "linux-generic-hwe-22.04",
+    "version": "6.8.0-50.51~22.04.1",
+    "series": "jammy",
+    "repo": "main",
+    "execution_stage": "proposed",
+    "arch": "amd64",
+    "environment": "xps",
+    "ci_link": "http://localhost",
+    "test_plan": "test plan",
+}
 
 
 @pytest.fixture
@@ -45,30 +76,70 @@ def execute(test_client: TestClient) -> Execute:
     return execute_helper
 
 
+def test_requires_family_field(execute: Execute):
+    request = snap_test_request.copy()
+    request.pop("family")
+    response = execute(request)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "version",
+        "revision",
+        "arch",
+        "execution_stage",
+        "environment",
+        "ci_link",
+        "test_plan",
+        "store",
+        "track",
+    ],
+)
+def test_snap_required_fields(execute: Execute, field: str):
+    request = snap_test_request.copy()
+    request.pop(field)
+    response = execute(request)
+
+    assert_fails_validation(response, field, "missing")
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "version",
+        "series",
+        "repo",
+        "arch",
+        "execution_stage",
+        "environment",
+        "ci_link",
+        "test_plan",
+    ],
+)
+def test_deb_required_fields(execute: Execute, field: str):
+    request = deb_test_request.copy()
+    request.pop(field)
+    response = execute(request)
+
+    assert_fails_validation(response, field, "missing")
+
+
 def test_creates_all_data_models(db_session: Session, execute: Execute):
-    response = execute(
-        {
-            "family": "snap",
-            "name": "core22",
-            "version": "abec123",
-            "revision": 123,
-            "track": "22",
-            "store": "ubuntu",
-            "arch": "arm64",
-            "execution_stage": "beta",
-            "environment": "cm3",
-            "ci_link": "http://localhost",
-        }
-    )
+    response = execute(snap_test_request)
 
     artefact = (
         db_session.query(Artefact)
         .filter(
-            Artefact.name == "core22",
-            Artefact.version == "abec123",
-            Artefact.store == "ubuntu",
-            Artefact.track == "22",
-            Artefact.stage.has(name="beta"),
+            Artefact.name == snap_test_request["name"],
+            Artefact.version == snap_test_request["version"],
+            Artefact.store == snap_test_request["store"],
+            Artefact.track == snap_test_request["track"],
+            Artefact.stage.has(name=snap_test_request["execution_stage"]),
         )
         .one_or_none()
     )
@@ -77,8 +148,8 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
     environment = (
         db_session.query(Environment)
         .filter(
-            Environment.name == "cm3",
-            Environment.architecture == "arm64",
+            Environment.name == snap_test_request["environment"],
+            Environment.architecture == snap_test_request["arch"],
         )
         .one_or_none()
     )
@@ -87,9 +158,9 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
     artefact_build = (
         db_session.query(ArtefactBuild)
         .filter(
-            ArtefactBuild.architecture == "arm64",
+            ArtefactBuild.architecture == snap_test_request["arch"],
             ArtefactBuild.artefact == artefact,
-            ArtefactBuild.revision == 123,
+            ArtefactBuild.revision == snap_test_request["revision"],
         )
         .one_or_none()
     )
@@ -111,29 +182,12 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
             TestExecution.artefact_build == artefact_build,
             TestExecution.environment == environment,
             TestExecution.status == TestExecutionStatus.IN_PROGRESS,
+            TestExecution.test_plan == snap_test_request["test_plan"],
         )
         .one_or_none()
     )
     assert test_execution
     assert response.json() == {"id": test_execution.id}
-
-
-def test_invalid_artefact_format(execute: Execute):
-    """Artefact with invalid format no store should not be created"""
-    response = execute(
-        {
-            "family": "snap",
-            "name": "core22",
-            "version": "abec123",
-            "revision": 123,
-            "track": "22",
-            "arch": "arm64",
-            "execution_stage": "beta",
-            "environment": "cm3",
-            "ci_link": "http://localhost",
-        },
-    )
-    assert response.status_code == 422
 
 
 def test_uses_existing_models(
@@ -143,19 +197,20 @@ def test_uses_existing_models(
 ):
     artefact = generator.gen_artefact("beta")
     environment = generator.gen_environment()
-    artefact_build = generator.gen_artefact_build(artefact)
+    artefact_build = generator.gen_artefact_build(artefact, revision=1)
 
-    request = StartTestExecutionRequest(
-        family=FamilyName(artefact.stage.family.name),
+    request = StartSnapTestExecutionRequest(
+        family=FamilyName.SNAP,
         name=artefact.name,
         version=artefact.version,
-        revision=artefact_build.revision,
+        revision=1,
         track=artefact.track,
         store=artefact.store,
         arch=artefact_build.architecture,
         execution_stage=artefact.stage.name,
         environment=environment.name,
         ci_link="http://localhost/",
+        test_plan="test plan",
     )
 
     test_execution_id = execute(
@@ -173,6 +228,7 @@ def test_uses_existing_models(
     assert test_execution.status == TestExecutionStatus.IN_PROGRESS
     assert test_execution.ci_link == "http://localhost/"
     assert test_execution.c3_link is None
+    assert test_execution.test_plan == "test plan"
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
@@ -180,20 +236,7 @@ def test_new_artefacts_get_assigned_a_reviewer(
 ):
     user = generator.gen_user()
 
-    execute(
-        {
-            "family": "snap",
-            "name": "core22",
-            "version": "abec123",
-            "revision": 123,
-            "track": "22",
-            "store": "ubuntu",
-            "arch": "arm64",
-            "execution_stage": "beta",
-            "environment": "cm3",
-            "ci_link": "http://localhost",
-        },
-    )
+    execute(snap_test_request)
 
     artefact = db_session.query(Artefact).filter(Artefact.name == "core22").one()
     assert artefact.assignee is not None
@@ -204,29 +247,16 @@ def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    execute(
-        {
-            "family": FamilyName.SNAP,
-            "name": "core22",
-            "version": "abec123",
-            "revision": 123,
-            "track": "22",
-            "store": "ubuntu",
-            "arch": "arm64",
-            "execution_stage": "beta",
-            "environment": "cm3",
-            "ci_link": "http://localhost",
-        },
-    )
+    execute(snap_test_request)
 
     artefact = (
         db_session.query(Artefact)
         .filter(
-            Artefact.name == "core22",
-            Artefact.version == "abec123",
-            Artefact.store == "ubuntu",
-            Artefact.track == "22",
-            Artefact.stage.has(name="beta"),
+            Artefact.name == snap_test_request["name"],
+            Artefact.version == snap_test_request["version"],
+            Artefact.store == snap_test_request["store"],
+            Artefact.track == snap_test_request["track"],
+            Artefact.stage.has(name=snap_test_request["execution_stage"]),
         )
         .one_or_none()
     )
@@ -239,29 +269,17 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
     """
     For kernel artefacts, due date shouldn't be set to default
     """
-    execute(
-        {
-            "family": FamilyName.SNAP,
-            "name": "pi-kernel",
-            "version": "abec123",
-            "revision": 123,
-            "track": "22",
-            "store": "ubuntu",
-            "arch": "arm64",
-            "execution_stage": "beta",
-            "environment": "cm3",
-            "ci_link": "http://localhost",
-        },
-    )
+    request = {**snap_test_request, "name": "pi-kernel"}
+    execute(request)
 
     artefact = (
         db_session.query(Artefact)
         .filter(
-            Artefact.name == "pi-kernel",
-            Artefact.version == "abec123",
-            Artefact.store == "ubuntu",
-            Artefact.track == "22",
-            Artefact.stage.has(name="beta"),
+            Artefact.name == request["name"],
+            Artefact.version == request["version"],
+            Artefact.store == request["store"],
+            Artefact.track == request["track"],
+            Artefact.stage.has(name=request["execution_stage"]),
         )
         .one_or_none()
     )
@@ -293,6 +311,7 @@ def test_deletes_rerun_requests(
             "execution_stage": a.stage.name,
             "environment": e.name,
             "ci_link": "different-ci.link",
+            "test_plan": te1.test_plan,
         },
     )
 
@@ -300,3 +319,32 @@ def test_deletes_rerun_requests(
     db_session.refresh(te2)
     assert not te1.rerun_request
     assert not te2.rerun_request
+
+
+def test_keeps_rerun_request_of_different_plan(
+    execute: Execute, generator: DataGenerator, db_session: Session
+):
+    a = generator.gen_artefact("beta")
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment()
+    te = generator.gen_test_execution(ab, e, ci_link="ci1.link", test_plan="plan1")
+    generator.gen_rerun_request(te)
+
+    execute(
+        {
+            "family": a.stage.family.name,
+            "name": a.name,
+            "version": a.version,
+            "revision": ab.revision,
+            "track": a.track,
+            "store": a.store,
+            "arch": ab.architecture,
+            "execution_stage": a.stage.name,
+            "environment": e.name,
+            "ci_link": "different-ci.link",
+            "test_plan": "plan2",
+        },
+    )
+
+    db_session.refresh(te)
+    assert te.rerun_request
