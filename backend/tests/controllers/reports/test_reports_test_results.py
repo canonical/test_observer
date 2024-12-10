@@ -89,6 +89,7 @@ def _expected_report_row(test_result: TestResult) -> list:
         test_execution.status.name,
         "" if not test_execution.c3_link else test_execution.c3_link,
         "" if not test_execution.checkbox_version else test_execution.checkbox_version,
+        test_execution.test_plan,
         environment.name,
         environment.architecture,
         test_case.template_id,
