@@ -19,6 +19,7 @@ import datetime
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.models_enums import TestExecutionStatus
 from tests.data_generator import DataGenerator
 
 
@@ -181,7 +182,9 @@ def test_status_updates_invalid_timestamp(
     assert response.status_code == 422
 
 
-def test_status_update_normal_exit(test_client: TestClient, generator: DataGenerator):
+def test_status_update_normal_exit(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -189,7 +192,7 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
         artefact_build, environment, ci_link="http://localhost"
     )
 
-    test_client.put(
+    response = test_client.put(
         f"/v1/test-executions/{test_execution.id}/status_update",
         json={
             "agent_id": "test_agent",
@@ -197,20 +200,23 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
             "events": [
                 {
                     "event_name": "started_setup",
-                    "timestamp": "201-03-21T11:08:14.859831",
+                    "timestamp": "2015-03-21T11:08:14.859831",
                     "detail": "my_detail_one",
                 },
                 {
                     "event_name": "ended_setup",
-                    "timestamp": "20-03-21T11:08:15.859831",
+                    "timestamp": "2015-03-21T11:08:15.859831",
                     "detail": "my_detail_two",
                 },
                 {
                     "event_name": "job_end",
-                    "timestamp": "2015-03-21T11:08:15.859831",
+                    "timestamp": "2015-03-21T11:09:15.859831",
                     "detail": "normal_exit",
                 },
             ],
         },
     )
-    assert test_execution.status != "ENDED_PREMATURELY"
+
+    db_session.refresh(test_execution)
+    assert response.status_code == 200
+    assert test_execution.status == TestExecutionStatus.COMPLETED

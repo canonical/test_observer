@@ -62,7 +62,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     )
 
     assert response.status_code == 200
-    assert test_execution.status == TestExecutionStatus.PASSED
+    assert test_execution.status == TestExecutionStatus.COMPLETED
     assert test_execution.c3_link == c3_link
     assert test_execution.checkbox_version == "3.3.0"
     assert test_execution.test_results[0].test_case.name == test_case.name
