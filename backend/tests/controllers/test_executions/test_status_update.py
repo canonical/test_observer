@@ -19,6 +19,7 @@ import datetime
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.models_enums import TestExecutionStatus
 from tests.data_generator import DataGenerator
 
 
@@ -197,20 +198,20 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
             "events": [
                 {
                     "event_name": "started_setup",
-                    "timestamp": "201-03-21T11:08:14.859831",
+                    "timestamp": "2015-03-21T11:08:14.859831",
                     "detail": "my_detail_one",
                 },
                 {
                     "event_name": "ended_setup",
-                    "timestamp": "20-03-21T11:08:15.859831",
+                    "timestamp": "2015-03-21T11:08:15.859831",
                     "detail": "my_detail_two",
                 },
                 {
                     "event_name": "job_end",
-                    "timestamp": "2015-03-21T11:08:15.859831",
+                    "timestamp": "2015-03-21T11:08:16.859831",
                     "detail": "normal_exit",
                 },
             ],
         },
     )
-    assert test_execution.status != "ENDED_PREMATURELY"
+    assert test_execution.status == TestExecutionStatus.ENDED_PREMATURELY

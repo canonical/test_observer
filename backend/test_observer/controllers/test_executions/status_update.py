@@ -58,7 +58,7 @@ def put_status_update(
     if event_parser.resource_url is not None:
         test_execution.resource_url = event_parser.resource_url
     if (
-        event_parser.is_ended_prematurely
+        event_parser.is_done
         and test_execution.status is not TestExecutionStatus.FAILED
         and test_execution.status is not TestExecutionStatus.PASSED
     ):
