@@ -29,12 +29,12 @@ from test_observer.data_access.models import (
 from test_observer.data_access.setup import get_db
 
 from .logic import get_previous_test_results
-from .models import TestResultDTO
+from .models import TestResultResponse
 
-router = APIRouter()
+router = APIRouter(tags=["test-results"])
 
 
-@router.get("/{id}/test-results", response_model=list[TestResultDTO])
+@router.get("/{id}/test-results", response_model=list[TestResultResponse])
 def get_test_results(id: int, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
@@ -49,9 +49,9 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
 
     previous_test_results = get_previous_test_results(db, test_execution)
 
-    test_results: list[TestResultDTO] = []
+    test_results: list[TestResultResponse] = []
     for test_result in test_execution.test_results:
-        parsed_test_result = TestResultDTO.model_validate(test_result)
+        parsed_test_result = TestResultResponse.model_validate(test_result)
         parsed_test_result.previous_results = previous_test_results.get(
             test_result.test_case_id, []
         )
