@@ -32,8 +32,10 @@ class TestExecutionStatus(str, Enum):
 
     NOT_STARTED = "NOT_STARTED"
     IN_PROGRESS = "IN_PROGRESS"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    NOT_TESTED = "NOT_TESTED"
     ENDED_PREMATURELY = "ENDED_PREMATURELY"
-    COMPLETED = "COMPLETED"
 
 
 class ArtefactBuildEnvironmentReviewDecision(str, Enum):

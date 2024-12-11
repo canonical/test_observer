@@ -16,7 +16,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import (
     ArtefactBuild,
@@ -47,7 +47,11 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     delete_previous_results(db, test_execution)
     _store_test_results(db, request.test_results, test_execution)
 
-    test_execution.status = TestExecutionStatus.COMPLETED
+    has_failures = test_execution.has_failures
+
+    test_execution.status = (
+        TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
+    )
 
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
@@ -60,15 +64,22 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
 def _find_related_test_execution(
     request: EndTestExecutionRequest, db: Session
 ) -> TestExecution | None:
-    return db.execute(
-        select(TestExecution)
-        .where(TestExecution.ci_link == request.ci_link)
-        .options(
-            selectinload(TestExecution.artefact_build).selectinload(
-                ArtefactBuild.artefact
+    return (
+        db.execute(
+            select(TestExecution)
+            .where(TestExecution.ci_link == request.ci_link)
+            .options(
+                joinedload(TestExecution.artefact_build).joinedload(
+                    ArtefactBuild.artefact
+                )
+            )
+            .options(
+                joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
             )
         )
-    ).scalar_one_or_none()
+        .unique()
+        .scalar_one_or_none()
+    )
 
 
 def _store_test_results(
