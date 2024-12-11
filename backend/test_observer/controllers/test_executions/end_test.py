@@ -45,7 +45,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
         raise HTTPException(status_code=404, detail="Related TestExecution not found")
 
     delete_previous_results(db, test_execution)
-    _store_test_results(db, request.test_results, test_execution)
+    _store_c3_test_results(db, request.test_results, test_execution)
 
     has_failures = test_execution.has_failures
 
@@ -82,7 +82,7 @@ def _find_related_test_execution(
     )
 
 
-def _store_test_results(
+def _store_c3_test_results(
     db: Session,
     c3_test_results: list[C3TestResult],
     test_execution: TestExecution,
