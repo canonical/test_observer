@@ -47,6 +47,7 @@ class _StartTestExecutionRequest(BaseModel):
     environment: str
     ci_link: Annotated[str, HttpUrl]
     test_plan: str = Field(max_length=200)
+    initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
 
     @field_validator("version")
     @classmethod

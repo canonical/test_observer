@@ -108,7 +108,7 @@ def start_test_execution(
                 "ci_link": request.ci_link,
             },
             creation_kwargs={
-                "status": TestExecutionStatus.IN_PROGRESS,
+                "status": request.initial_status,
                 "environment_id": environment.id,
                 "artefact_build_id": artefact_build.id,
                 "test_plan": request.test_plan,
