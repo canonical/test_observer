@@ -31,7 +31,6 @@ from test_observer.data_access.models import (
     TestExecution,
     User,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
