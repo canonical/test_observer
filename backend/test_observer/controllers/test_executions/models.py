@@ -97,7 +97,7 @@ class TestExecutionsPatchRequest(BaseModel):
 
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
-    status: TestExecutionStatus | None = None
+    status: TestExecutionStatus | Literal["COMPLETED"] | None = None
 
 
 class PreviousTestResult(BaseModel):
