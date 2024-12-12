@@ -348,3 +348,12 @@ def test_keeps_rerun_request_of_different_plan(
 
     db_session.refresh(te)
     assert te.rerun_request
+
+
+def test_sets_initial_test_execution_status(db_session: Session, execute: Execute):
+    response = execute({**deb_test_request, "initial_status": "NOT_STARTED"})
+
+    assert response.status_code == 200
+    te = db_session.get(TestExecution, response.json()["id"])
+    assert te is not None
+    assert te.status == TestExecutionStatus.NOT_STARTED
