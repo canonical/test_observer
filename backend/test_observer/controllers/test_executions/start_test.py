@@ -31,7 +31,6 @@ from test_observer.data_access.models import (
     TestExecution,
     User,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
@@ -108,7 +107,7 @@ def start_test_execution(
                 "ci_link": request.ci_link,
             },
             creation_kwargs={
-                "status": TestExecutionStatus.IN_PROGRESS,
+                "status": request.initial_status,
                 "environment_id": environment.id,
                 "artefact_build_id": artefact_build.id,
                 "test_plan": request.test_plan,
