@@ -27,19 +27,19 @@ def upgrade() -> None:
     conn = op.get_bind()
     session = sa.orm.Session(bind=conn)
 
-    for family, stages in new_families.items():
+    for family_name, stage_names in new_families.items():
         # Create family
-        new_family = Family(name=family)
+        family = Family(name=family_name)
 
         # Add stages
         stage_position = 10
-        new_family.stages = []
-        for stage in stages:
-            new_family.stages.append(Stage(name=stage, position=stage_position))
+        family.stages = []
+        for stage_name in stage_names:
+            family.stages.append(Stage(name=stage_name, position=stage_position))
             stage_position += 10
 
         # Add family
-        session.add(new_family)
+        session.add(family)
 
     session.commit()
 
@@ -49,8 +49,8 @@ def downgrade() -> None:
     session = sa.orm.Session(bind=conn)
 
     # Delete each family, stage deletes on cascade
-    for family in new_families:
-        family = session.query(Family).filter_by(name=family).first()
+    for family_name in new_families:
+        family = session.query(Family).filter_by(name=family_name).first()
         session.delete(family)
 
     session.commit()

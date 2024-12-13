@@ -21,6 +21,7 @@ from test_observer.controllers.test_executions.models import (
     EndTestExecutionRequest,
     StartDebTestExecutionRequest,
     StartSnapTestExecutionRequest,
+    StartCharmTestExecutionRequest,
 )
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
@@ -250,6 +251,18 @@ START_TEST_EXECUTION_REQUESTS = [
         environment="rpi400",
         ci_link="http://example17",
         test_plan="com.canonical.certification::sru-server",
+    ),
+    StartCharmTestExecutionRequest(
+        family=FamilyName.CHARM,
+        name="postgresql-k8s",
+        version="123",
+        revision=123,
+        track="14",
+        arch="arm64",
+        execution_stage="candidate",
+        environment="juju=3.5 ubuntu=22.04 cloud=k8s",
+        ci_link="http://example13",
+        test_plan="com.canonical.solutions-qa::tbd",
     ),
 ]
 

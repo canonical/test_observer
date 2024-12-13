@@ -34,7 +34,11 @@ from test_observer.data_access.models import (
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-from .models import StartDebTestExecutionRequest, StartSnapTestExecutionRequest
+from .models import (
+    StartDebTestExecutionRequest,
+    StartSnapTestExecutionRequest,
+    StartCharmTestExecutionRequest,
+)
 
 router = APIRouter()
 
@@ -42,7 +46,8 @@ router = APIRouter()
 @router.put("/start-test")
 def start_test_execution(
     request: StartSnapTestExecutionRequest
-    | StartDebTestExecutionRequest = Body(discriminator="family"),
+    | StartDebTestExecutionRequest
+    | StartCharmTestExecutionRequest = Body(discriminator="family"),
     db: Session = Depends(get_db),
 ):
     stage = (
@@ -59,12 +64,15 @@ def start_test_execution(
             "name": request.name,
             "version": request.version,
         }
-        if isinstance(request, StartSnapTestExecutionRequest):
-            artefact_filter_kwargs["store"] = request.store
-            artefact_filter_kwargs["track"] = request.track
-        else:
-            artefact_filter_kwargs["series"] = request.series
-            artefact_filter_kwargs["repo"] = request.repo
+        match request:
+            case StartSnapTestExecutionRequest():
+                artefact_filter_kwargs["store"] = request.store
+                artefact_filter_kwargs["track"] = request.track
+            case StartDebTestExecutionRequest():
+                artefact_filter_kwargs["series"] = request.series
+                artefact_filter_kwargs["repo"] = request.repo
+            case StartCharmTestExecutionRequest():
+                artefact_filter_kwargs["track"] = request.track
 
         artefact = get_or_create(
             db,

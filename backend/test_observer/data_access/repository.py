@@ -82,39 +82,65 @@ def get_artefacts_by_family(
             .group_by(Artefact.stage_id, Artefact.name)
         )
 
-        if family_name == FamilyName.SNAP:
-            subquery = (
-                base_query.add_columns(Artefact.track)
-                .group_by(Artefact.track)
-                .subquery()
-            )
+        match family_name:
+            case FamilyName.SNAP:
+                subquery = (
+                    base_query.add_columns(Artefact.track)
+                    .group_by(Artefact.track)
+                    .subquery()
+                )
 
-            query = session.query(Artefact).join(
-                subquery,
-                and_(
-                    Artefact.stage_id == subquery.c.stage_id,
-                    Artefact.name == subquery.c.name,
-                    Artefact.created_at == subquery.c.max_created,
-                    Artefact.track == subquery.c.track,
-                ),
-            )
-        else:
-            subquery = (
-                base_query.add_columns(Artefact.repo, Artefact.series)
-                .group_by(Artefact.repo, Artefact.series)
-                .subquery()
-            )
+                query = session.query(Artefact).join(
+                    subquery,
+                    and_(
+                        Artefact.stage_id == subquery.c.stage_id,
+                        Artefact.name == subquery.c.name,
+                        Artefact.created_at == subquery.c.max_created,
+                        Artefact.track == subquery.c.track,
+                    ),
+                )
 
-            query = session.query(Artefact).join(
-                subquery,
-                and_(
-                    Artefact.stage_id == subquery.c.stage_id,
-                    Artefact.name == subquery.c.name,
-                    Artefact.created_at == subquery.c.max_created,
-                    Artefact.repo == subquery.c.repo,
-                    Artefact.series == subquery.c.series,
-                ),
-            )
+            case FamilyName.DEB:
+                subquery = (
+                    base_query.add_columns(Artefact.repo, Artefact.series)
+                    .group_by(Artefact.repo, Artefact.series)
+                    .subquery()
+                )
+
+                query = session.query(Artefact).join(
+                    subquery,
+                    and_(
+                        Artefact.stage_id == subquery.c.stage_id,
+                        Artefact.name == subquery.c.name,
+                        Artefact.created_at == subquery.c.max_created,
+                        Artefact.repo == subquery.c.repo,
+                        Artefact.series == subquery.c.series,
+                    ),
+                )
+
+            case FamilyName.CHARM:
+                subquery = (
+                    base_query.join(ArtefactBuild)
+                    .add_columns(Artefact.track, ArtefactBuild.architecture)
+                    .group_by(Artefact.track, ArtefactBuild.architecture)
+                    .subquery()
+                )
+
+                query = (
+                    session.query(Artefact)
+                    .join(ArtefactBuild)
+                    .join(
+                        subquery,
+                        and_(
+                            Artefact.stage_id == subquery.c.stage_id,
+                            Artefact.name == subquery.c.name,
+                            Artefact.created_at == subquery.c.max_created,
+                            Artefact.track == subquery.c.track,
+                            ArtefactBuild.architecture == subquery.c.architecture,
+                        ),
+                    )
+                    .distinct()
+                )
 
     else:
         query = (

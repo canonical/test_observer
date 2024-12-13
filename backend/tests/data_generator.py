@@ -8,6 +8,7 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     Environment,
     Stage,
+    Family,
     TestCase,
     TestEvent,
     TestExecution,
@@ -47,6 +48,7 @@ class DataGenerator:
     def gen_artefact(
         self,
         stage_name: str,
+        family_name: str = "snap",
         name: str = "core",
         version: str = "1.1.1",
         track: str = "",
@@ -59,16 +61,24 @@ class DataGenerator:
         due_date: date | None = None,
         assignee_id: int | None = None,
     ) -> Artefact:
-        stage = self.db_session.query(Stage).filter(Stage.name == stage_name).one()
-        family = FamilyName(stage.family.name)
+        family = FamilyName(family_name)
+        stage = (
+            self.db_session.query(Stage)
+            .join(Family)
+            .filter(Stage.name == stage_name)
+            .filter(Family.name == family)
+            .one()
+        )
 
-        if family == FamilyName.SNAP:
-            track = track or "latest"
-            store = store or "ubuntu"
-
-        if family == FamilyName.DEB:
-            series = series or "jammy"
-            repo = repo or "main"
+        match family:
+            case FamilyName.SNAP:
+                track = track or "latest"
+                store = store or "ubuntu"
+            case FamilyName.DEB:
+                series = series or "jammy"
+                repo = repo or "main"
+            case FamilyName.CHARM:
+                track = track or "latest"
 
         created_at = created_at or datetime.utcnow()
 
@@ -95,8 +105,9 @@ class DataGenerator:
         architecture: str = DEFAULT_ARCHITECTURE,
         revision: int | None = None,
     ) -> ArtefactBuild:
-        if revision is None and artefact.stage.family.name == FamilyName.SNAP:
-            revision = 1
+        match artefact.stage.family.name:
+            case FamilyName.SNAP | FamilyName.CHARM:
+                revision = revision or 1
 
         build = ArtefactBuild(
             architecture=architecture,
