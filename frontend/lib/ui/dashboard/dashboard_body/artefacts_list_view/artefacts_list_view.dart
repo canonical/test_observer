@@ -37,6 +37,14 @@ class ArtefactsListView extends ConsumerWidget {
     return _Row.deb(key: PageStorageKey(artefact.id), artefact: artefact);
   }
 
+  const ArtefactsListView.charms({super.key})
+      : listHeader = const _Headers.charms(key: PageStorageKey('Header')),
+        listItemBuilder = _charmsListItemBuilder;
+
+  static Widget _charmsListItemBuilder(Artefact artefact) {
+    return _Row.charm(key: PageStorageKey(artefact.id), artefact: artefact);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);

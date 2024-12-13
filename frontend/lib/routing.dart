@@ -46,6 +46,20 @@ final appRouter = GoRouter(
             ),
           ),
         ),
+        GoRoute(
+          path: AppRoutes.charms,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: Dashboard(),
+          ),
+        ),
+        GoRoute(
+          path: '${AppRoutes.charms}/:artefactId',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: ArtefactPage(
+              artefactId: int.parse(state.pathParameters['artefactId']!),
+            ),
+          ),
+        ),
       ],
     ),
   ],
@@ -65,6 +79,7 @@ class CommonQueryParameters {
 class AppRoutes {
   static const snaps = '/snaps';
   static const debs = '/debs';
+  static const charms = '/charms';
 
   static Uri uriFromContext(BuildContext context) =>
       GoRouterState.of(context).uri;
@@ -74,6 +89,7 @@ class AppRoutes {
 
     if (path.startsWith(snaps)) return FamilyName.snap;
     if (path.startsWith(debs)) return FamilyName.deb;
+    if (path.startsWith(charms)) return FamilyName.charm;
 
     throw Exception('Unknown route: $path');
   }
@@ -84,11 +100,13 @@ class AppRoutes {
     throw Exception('$uri isn\'t an artefact page');
   }
 
-  static bool isDashboardPage(Uri uri) => {snaps, debs}.contains(uri.path);
+  static bool isDashboardPage(Uri uri) =>
+      {snaps, debs, charms}.contains(uri.path);
 
   static bool isArtefactPage(Uri uri) =>
       (uri.path.contains(AppRoutes.snaps) ||
-          uri.path.contains(AppRoutes.debs)) &&
+          uri.path.contains(AppRoutes.debs) ||
+          uri.path.contains(AppRoutes.charms)) &&
       uri.pathSegments.length == 2;
 }
 
@@ -103,6 +121,9 @@ void navigateToArtefactPage(BuildContext context, int artefactId) {
       break;
     case FamilyName.snap:
       path = AppRoutes.snaps + path;
+      break;
+    case FamilyName.charm:
+      path = AppRoutes.charms + path;
       break;
   }
 

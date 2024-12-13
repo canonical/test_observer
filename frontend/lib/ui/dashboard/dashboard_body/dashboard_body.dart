@@ -22,6 +22,7 @@ class DashboardBody extends StatelessWidget {
         (_, ViewModes.dashboard) => const ArtefactsColumnsView(),
         (FamilyName.snap, ViewModes.list) => const ArtefactsListView.snaps(),
         (FamilyName.deb, ViewModes.list) => const ArtefactsListView.debs(),
+        (FamilyName.charm, ViewModes.list) => const ArtefactsListView.charms(),
       },
     );
   }

@@ -1,1 +1,1 @@
-enum FamilyName { snap, deb }
+enum FamilyName { snap, deb, charm }

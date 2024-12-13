@@ -16,5 +16,12 @@ List<StageName> familyStages(FamilyName family) {
         StageName.proposed,
         StageName.updates,
       ];
+    case FamilyName.charm:
+      return [
+        StageName.edge,
+        StageName.beta,
+        StageName.candidate,
+        StageName.stable,
+      ];
   }
 }
