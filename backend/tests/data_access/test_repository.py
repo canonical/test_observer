@@ -123,7 +123,7 @@ def test_get_artefacts_by_family_name_latest(
 def test_get_artefacts_by_family_charm_unique(
     db_session: Session, generator: DataGenerator
 ):
-    """For latest charms, latest artefacts should be unique on name, track, and version"""
+    """For latest charms, artefacts should be unique on name, track, and version"""
     # Arrange
     specs = [
         ("name-1", "track-1", "version-1"),
@@ -155,7 +155,7 @@ def test_get_artefacts_by_family_charm_unique(
 def test_get_artefacts_by_family_charm_all_architectures(
     db_session: Session, generator: DataGenerator
 ):
-    """For latest charms, latest artefacts should return all known architectures"""
+    """For latest charms, artefacts should return all known architectures"""
     # Arrange
     specs = [
         ("version-3", "arch-1", 0),
