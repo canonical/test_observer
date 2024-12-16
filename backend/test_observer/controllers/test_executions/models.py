@@ -91,6 +91,15 @@ class C3TestResult(BaseModel):
     io_log: str
 
 
+class TestResultRequest(BaseModel):
+    name: str
+    status: TestResultStatus
+    template_id: str = ""
+    category: str = ""
+    comment: str = ""
+    io_log: str = ""
+
+
 class EndTestExecutionRequest(BaseModel):
     ci_link: Annotated[str, HttpUrl]
     c3_link: Annotated[str, HttpUrl] | None = None
@@ -103,7 +112,7 @@ class TestExecutionsPatchRequest(BaseModel):
 
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
-    status: TestExecutionStatus | None = None
+    status: TestExecutionStatus | Literal["COMPLETED"] | None = None
 
 
 class PreviousTestResult(BaseModel):
@@ -112,7 +121,7 @@ class PreviousTestResult(BaseModel):
     artefact_id: int
 
 
-class TestResultDTO(BaseModel):
+class TestResultResponse(BaseModel):
     __test__ = False
 
     model_config = ConfigDict(from_attributes=True)
