@@ -9,7 +9,6 @@ from alembic import op
 import sqlalchemy as sa
 
 from test_observer.data_access.models_enums import FamilyName
-from test_observer.data_access.models import Family, Stage
 
 new_families = {
     FamilyName.CHARM: ["edge", "beta", "candidate", "stable"],
@@ -25,32 +24,61 @@ depends_on = None
 
 def upgrade() -> None:
     conn = op.get_bind()
-    session = sa.orm.Session(bind=conn)
+
+    family_table = sa.table(
+        "family",
+        sa.column("id", sa.Integer()),
+        sa.column("name", sa.String()),
+        sa.column("created_at", sa.DateTime()),
+        sa.column("updated_at", sa.DateTime()),
+    )
+    stage_table = sa.table(
+        "stage",
+        sa.column("name", sa.String()),
+        sa.column("family_id", sa.Integer()),
+        sa.column("position", sa.Integer()),
+        sa.column("created_at", sa.DateTime()),
+        sa.column("updated_at", sa.DateTime()),
+    )
 
     for family_name, stage_names in new_families.items():
         # Create family
-        family = Family(name=family_name)
+        (inserted_family,) = conn.execute(
+            sa.insert(family_table)
+            .values(
+                name=family_name,
+                created_at=sa.func.now(),
+                updated_at=sa.func.now(),
+            )
+            .returning(family_table.c.id)
+        )
 
         # Add stages
         stage_position = 10
-        family.stages = []
         for stage_name in stage_names:
-            family.stages.append(Stage(name=stage_name, position=stage_position))
+            conn.execute(
+                sa.insert(stage_table).values(
+                    name=stage_name,
+                    family_id=inserted_family.id,
+                    position=stage_position,
+                    created_at=sa.func.now(),
+                    updated_at=sa.func.now(),
+                )
+            )
             stage_position += 10
-
-        # Add family
-        session.add(family)
-
-    session.commit()
 
 
 def downgrade() -> None:
     conn = op.get_bind()
-    session = sa.orm.Session(bind=conn)
+
+    family_table = sa.table(
+        "family",
+        sa.column("id", sa.Integer()),
+        sa.column("name", sa.String()),
+        sa.column("created_at", sa.DateTime()),
+        sa.column("updated_at", sa.DateTime()),
+    )
 
     # Delete each family, stage deletes on cascade
     for family_name in new_families:
-        family = session.query(Family).filter_by(name=family_name).first()
-        session.delete(family)
-
-    session.commit()
+        conn.execute(sa.delete(family_table).where(family_table.c.name == family_name))
