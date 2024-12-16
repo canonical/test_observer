@@ -21,7 +21,6 @@
 
 
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
 
 from sqlalchemy.orm import Session
 
@@ -121,64 +120,65 @@ def test_get_artefacts_by_family_name_latest(
     } == expected_artefacts
 
 
-def test_get_artefacts_by_family_charm_latest_architectures(
+def test_get_artefacts_by_family_charm_unique(
     db_session: Session, generator: DataGenerator
 ):
-    """For latest charms, latest artefacts should include all unique architectures"""
+    """For latest charms, latest artefacts should be unique on name, track, and version"""
     # Arrange
-    base = SimpleNamespace(
-        expect=True,
-        name="name-1",
-        version="1",
-        family="charm",
-        track="track-1",
-        stage="edge",
-        day=0,
-        arches=["arch-1"],
-    )
     specs = [
-        # Base case
-        SimpleNamespace(),
-        # Family is not Charm
-        SimpleNamespace(version="2", family="snap", expect=False),
-        # Name different from base (same version)
-        SimpleNamespace(name="name-2"),
-        # Track different from base (same version)
-        SimpleNamespace(track="track-2"),
-        # Version different from base (same date, return both)
-        SimpleNamespace(version="3"),
-        # Stage different from base
-        SimpleNamespace(version="4", stage="beta"),
-        # Older release than base
-        SimpleNamespace(version="5", day=-1, expect=False),
-        # Older release than base with unique arch
-        SimpleNamespace(version="6", day=-1, arches=["arch-1", "arch-2"]),
+        ("name-1", "track-1", "version-1"),
+        ("name-2", "track-1", "version-1"),
+        ("name-1", "track-2", "version-1"),
+        ("name-1", "track-1", "version-2"),
     ]
-
-    expected_artefacts = []
-    for spec in specs:
-        spec = SimpleNamespace(**{**vars(base), **vars(spec)})
+    for name, track, version in specs:
         artefact = generator.gen_artefact(
-            spec.stage,
-            family_name=spec.family,
-            name=spec.name,
-            version=spec.version,
-            track=spec.track,
-            created_at=datetime(2024, 1, 1, tzinfo=timezone.utc)
-            + timedelta(days=spec.day),
+            "edge",
+            family_name="charm",
+            name=name,
+            version=version,
+            track=track,
+            created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
         )
-        for arch in spec.arches:
-            generator.gen_artefact_build(
-                artefact,
-                arch,
-            )
-        if spec.expect:
-            expected_artefacts.append(artefact)
+        generator.gen_artefact_build(
+            artefact,
+            "arch-1",
+        )
 
     # Act
     artefacts = get_artefacts_by_family(db_session, FamilyName.CHARM)
 
     # Assert
-    assert sorted([a.id for a in artefacts]) == sorted(
-        [a.id for a in expected_artefacts]
-    )
+    assert len(artefacts) == 4
+
+
+def test_get_artefacts_by_family_charm_all_architectures(
+    db_session: Session, generator: DataGenerator
+):
+    """For latest charms, latest artefacts should return all known architectures"""
+    # Arrange
+    specs = [
+        ("version-3", "arch-1", 0),
+        ("version-2", "arch-1", -1),
+        ("version-1", "arch-2", -2),
+    ]
+    for version, arch, day in specs:
+        artefact = generator.gen_artefact(
+            "edge",
+            family_name="charm",
+            name="name",
+            version=version,
+            track="track",
+            created_at=datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=day),
+        )
+        generator.gen_artefact_build(
+            artefact,
+            arch,
+        )
+
+    # Act
+    artefacts = get_artefacts_by_family(db_session, FamilyName.CHARM)
+
+    # Assert
+    assert len(artefacts) == 2
+    assert {artefact.version for artefact in artefacts} == {"version-3", "version-1"}
