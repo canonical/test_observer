@@ -25,6 +25,7 @@ from enum import Enum
 class FamilyName(str, Enum):
     SNAP = "snap"
     DEB = "deb"
+    CHARM = "charm"
 
 
 class TestExecutionStatus(str, Enum):

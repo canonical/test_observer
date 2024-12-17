@@ -9,6 +9,8 @@ class _Headers extends StatelessWidget {
 
   const _Headers.snaps({super.key}) : columnsMetaData = _snapColumnsMetadata;
 
+  const _Headers.charms({super.key}) : columnsMetaData = _charmColumnsMetadata;
+
   @override
   Widget build(BuildContext context) {
     final uri = AppRoutes.uriFromContext(context);

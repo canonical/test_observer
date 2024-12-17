@@ -115,6 +115,57 @@ const _debColumnsMetadata = <ColumnMetadata>[
   ),
 ];
 
+const _charmColumnsMetadata = <ColumnMetadata>[
+  (
+    name: 'Name',
+    queryParam: ArtefactSortingQuery.name,
+    flex: 2,
+    cellBuilder: _buildNameCell,
+  ),
+  (
+    name: 'Version',
+    queryParam: ArtefactSortingQuery.version,
+    flex: 2,
+    cellBuilder: _buildVersionCell,
+  ),
+  (
+    name: 'Track',
+    queryParam: ArtefactSortingQuery.track,
+    flex: 1,
+    cellBuilder: _buildTrackCell,
+  ),
+  (
+    name: 'Risk',
+    queryParam: ArtefactSortingQuery.risk,
+    flex: 1,
+    cellBuilder: _buildStageCell,
+  ),
+  (
+    name: 'Due date',
+    queryParam: ArtefactSortingQuery.dueDate,
+    flex: 1,
+    cellBuilder: _buildDueDateCell,
+  ),
+  (
+    name: 'Reviews remaining',
+    queryParam: ArtefactSortingQuery.reviewsRemaining,
+    flex: 1,
+    cellBuilder: _buildReviewsRemainingCell,
+  ),
+  (
+    name: 'Status',
+    queryParam: ArtefactSortingQuery.status,
+    flex: 1,
+    cellBuilder: _buildStatusCell,
+  ),
+  (
+    name: 'Assignee',
+    queryParam: ArtefactSortingQuery.assignee,
+    flex: 1,
+    cellBuilder: _buildAssigneeCell,
+  ),
+];
+
 Widget _buildNameCell(BuildContext context, Artefact artefact) =>
     Text(artefact.name);
 

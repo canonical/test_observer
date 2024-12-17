@@ -70,6 +70,12 @@ class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     repo: str
 
 
+class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
+    family: Literal[FamilyName.CHARM]
+    revision: int
+    track: str
+
+
 class C3TestResultStatus(str, Enum):
     PASS = "pass"
     FAIL = "fail"
