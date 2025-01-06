@@ -172,8 +172,8 @@ class Artefact(Base):
     bug_link: Mapped[str] = mapped_column(default="")
 
     @property
-    def family(self) -> "Family":
-        return self.stage.family
+    def family_name(self) -> str:
+        return self.stage.family.name
 
     @property
     def architectures(self) -> set[str]:

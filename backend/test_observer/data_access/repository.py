@@ -31,20 +31,18 @@ from .models import Artefact, ArtefactBuild, DataModel, Family, Stage
 from .models_enums import FamilyName
 
 
-def get_stage_by_name(
-    session: Session, stage_name: str, family: Family
-) -> Stage | None:
+def get_stage_by_name(session: Session, stage_name: str, family: str) -> Stage | None:
     """
     Get the stage object by its name
 
     :session: DB session
     :stage_name: name of the stage
-    :family: the Family object where stages are located
+    :family: the family name
     :return: Stage
     """
     stage = (
         session.query(Stage)
-        .filter(Stage.name == stage_name, Stage.family == family)
+        .filter(Stage.name == stage_name, Stage.family.has(Family.name == family))
         .one_or_none()
     )
     return stage

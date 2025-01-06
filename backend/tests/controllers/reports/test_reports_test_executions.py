@@ -124,7 +124,6 @@ def _expected_report_row(
 ) -> list:
     environment = test_execution.environment
     artefact = test_execution.artefact_build.artefact
-    family = artefact.family
     environment_review = db_session.execute(
         select(ArtefactBuildEnvironmentReview).where(
             ArtefactBuildEnvironmentReview.artefact_build_id
@@ -135,7 +134,7 @@ def _expected_report_row(
     ).scalar_one()
 
     return [
-        family.name,
+        artefact.family_name,
         str(artefact.id),
         artefact.name,
         artefact.version,

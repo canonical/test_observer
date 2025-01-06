@@ -24,7 +24,6 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Family
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import (
     get_artefacts_by_family,
@@ -36,11 +35,10 @@ from tests.data_generator import DataGenerator
 def test_get_stage_by_name(db_session: Session):
     """The function should select the correct stage by its name"""
     # Arrange
-    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
     stage_name = "proposed"
 
     # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
+    stage = get_stage_by_name(db_session, stage_name, FamilyName.DEB)
 
     # Assert
     assert stage and stage.name == stage_name
@@ -49,11 +47,10 @@ def test_get_stage_by_name(db_session: Session):
 def test_get_stage_by_name_no_such_stage(db_session: Session):
     """The function should return None"""
     # Arrange
-    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
     stage_name = "fakestage"
 
     # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
+    stage = get_stage_by_name(db_session, stage_name, FamilyName.DEB)
 
     # Assert
     assert stage is None
@@ -111,7 +108,7 @@ def test_get_artefacts_by_family_name_latest(
     assert {
         (
             artefact.name,
-            artefact.family.name,
+            artefact.family_name,
             artefact.stage.name,
             artefact.created_at,
             artefact.version,
