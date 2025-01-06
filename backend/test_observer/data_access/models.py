@@ -439,6 +439,7 @@ class TestEvent(Base):
     A table to represent test events that have ocurred during a job
     """
 
+    __test__ = False
     __tablename__ = "test_event"
 
     event_name: Mapped[str]
