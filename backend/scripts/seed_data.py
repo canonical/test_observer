@@ -19,14 +19,15 @@ from test_observer.controllers.test_executions.models import (
     C3TestResult,
     C3TestResultStatus,
     EndTestExecutionRequest,
+    StartCharmTestExecutionRequest,
     StartDebTestExecutionRequest,
     StartSnapTestExecutionRequest,
-    StartCharmTestExecutionRequest,
 )
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
+from tests.fake_launchpad_api import FakeLaunchpadAPI
 
 BASE_URL = "http://localhost:30000/v1"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
@@ -508,12 +509,7 @@ ENVIRONMENT_ISSUE_REQUESTS = [
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
 
-    for email in (
-        "omar.selo@canonical.com",
-        "nadzeya.hutsko@canonical.com",
-        "andrej.velichkovski@canonical.com",
-    ):
-        add_user(email, session)
+    add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
     test_executions = []
     for start_request in START_TEST_EXECUTION_REQUESTS:
