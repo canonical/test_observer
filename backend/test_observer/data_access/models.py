@@ -154,6 +154,8 @@ class Artefact(Base):
     store: Mapped[str] = mapped_column(default="")
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+    stage_name: Mapped[str] = mapped_column(String(200))
+    family_name: Mapped[str] = mapped_column(String(200))
     # Relationships
     stage_id: Mapped[int] = mapped_column(
         ForeignKey("stage.id", ondelete="CASCADE"), index=True
@@ -170,14 +172,6 @@ class Artefact(Base):
     due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     bug_link: Mapped[str] = mapped_column(default="")
-
-    @property
-    def stage_name(self) -> str:
-        return self.stage.name
-
-    @property
-    def family_name(self) -> str:
-        return self.stage.family.name
 
     @property
     def architectures(self) -> set[str]:

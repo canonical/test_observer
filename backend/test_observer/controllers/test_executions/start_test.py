@@ -35,9 +35,9 @@ from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
 from .models import (
+    StartCharmTestExecutionRequest,
     StartDebTestExecutionRequest,
     StartSnapTestExecutionRequest,
-    StartCharmTestExecutionRequest,
 )
 
 router = APIRouter()
@@ -78,7 +78,11 @@ def start_test_execution(
             db,
             Artefact,
             filter_kwargs=artefact_filter_kwargs,
-            creation_kwargs={"stage_id": stage.id},
+            creation_kwargs={
+                "stage_id": stage.id,
+                "family_name": request.family.value,
+                "stage_name": request.execution_stage,
+            },
         )
 
         environment = get_or_create(

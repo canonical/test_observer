@@ -152,6 +152,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 )
                 if stage:
                     artefact.stage = stage
+                    artefact.stage_name = stage.name
                     session.commit()
                     # The artefact was promoted, so we're done
                     return
@@ -200,6 +201,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                 )
                 if stage:
                     artefact.stage = stage
+                    artefact.stage_name = stage.name
                     session.commit()
                     # The artefact was promoted, so we're done
                     return
