@@ -28,9 +28,9 @@ def test_create_user(db_session: Session):
 
 
 def test_email_not_in_launchpad():
-    email = "john@doe.com"
+    email = "missing-email@canonical.com"
     with pytest.raises(ValueError, match="Email not registered in launchpad"):
-        add_user(email)
+        add_user(email, launchpad_api=_FakeLaunchpadAPI())
 
 
 class _FakeLaunchpadAPI(LaunchpadAPI):
@@ -39,4 +39,6 @@ class _FakeLaunchpadAPI(LaunchpadAPI):
         pass
 
     def get_user_by_email(self, email: str) -> LaunchpadUser | None:
-        return LaunchpadUser(handle="john-doe", email=email, name="John Doe")
+        if email == "john.doe@canonical.com":
+            return LaunchpadUser(handle="john-doe", email=email, name="John Doe")
+        return None
