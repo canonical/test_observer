@@ -57,8 +57,6 @@ def get_rerun_requests(db: Session = Depends(get_db)):
             joinedload(TestExecutionRerunRequest.test_execution)
             .joinedload(TestExecution.artefact_build)
             .joinedload(ArtefactBuild.artefact)
-            .joinedload(Artefact.stage)
-            .joinedload(Stage.family)
         )
     )
 

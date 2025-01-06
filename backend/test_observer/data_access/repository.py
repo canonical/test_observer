@@ -148,9 +148,6 @@ def get_artefacts_by_family(
             .filter(Family.name == family_name)
         )
 
-    if load_stage:
-        query = query.options(joinedload(Artefact.stage))
-
     if load_environment_reviews:
         query = query.options(
             joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews)

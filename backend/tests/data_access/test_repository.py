@@ -109,7 +109,7 @@ def test_get_artefacts_by_family_name_latest(
         (
             artefact.name,
             artefact.family_name,
-            artefact.stage.name,
+            artefact.stage_name,
             artefact.created_at,
             artefact.version,
         )
