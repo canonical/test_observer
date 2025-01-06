@@ -142,7 +142,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 continue
 
             if (
-                risk != artefact.stage.name.lower()
+                risk != artefact.stage_name.lower()
                 and version == artefact.version
                 and revision == build.revision
             ):
@@ -184,12 +184,12 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                         artefact.name,
                     )
                     continue
-            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage.name)
+            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage_name)
             logger.debug(
                 "Artefact version: %s, deb version: %s", artefact.version, deb_version
             )
             if (
-                pocket == next_pocket != artefact.stage.name
+                pocket == next_pocket != artefact.stage_name
                 and deb_version == artefact.version
             ):
                 logger.info(

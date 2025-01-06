@@ -56,7 +56,7 @@ def test_get_latest_artefacts_by_family(
             "store": relevant_artefact.store,
             "series": relevant_artefact.series,
             "repo": relevant_artefact.repo,
-            "stage": relevant_artefact.stage.name,
+            "stage": relevant_artefact.stage_name,
             "status": relevant_artefact.status,
             "assignee": None,
             "due_date": (
@@ -93,7 +93,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         "store": a.store,
         "series": a.series,
         "repo": a.repo,
-        "stage": a.stage.name,
+        "stage": a.stage_name,
         "status": a.status,
         "assignee": {
             "id": u.id,
@@ -181,7 +181,7 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
         "store": artefact.store,
         "series": artefact.series,
         "repo": artefact.repo,
-        "stage": artefact.stage.name,
+        "stage": artefact.stage_name,
         "status": artefact.status,
         "assignee": None,
         "due_date": (

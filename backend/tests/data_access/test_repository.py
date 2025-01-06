@@ -74,7 +74,7 @@ def test_get_artefacts_by_family_name(db_session: Session, generator: DataGenera
     # Assert
     assert len(artefacts) == len(artefact_name_stage_pair)
     assert {
-        (artefact.name, artefact.stage.name) for artefact in artefacts
+        (artefact.name, artefact.stage_name) for artefact in artefacts
     } == artefact_name_stage_pair
 
 
