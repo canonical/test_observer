@@ -111,7 +111,7 @@ def test_get_artefacts_by_family_name_latest(
     assert {
         (
             artefact.name,
-            artefact.stage.family.name,
+            artefact.family.name,
             artefact.stage.name,
             artefact.created_at,
             artefact.version,

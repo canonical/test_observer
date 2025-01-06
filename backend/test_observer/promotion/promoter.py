@@ -148,7 +148,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
             ):
                 logger.info("Move artefact '%s' to the '%s' stage", artefact, risk)
                 stage = get_stage_by_name(
-                    session, stage_name=risk, family=artefact.stage.family
+                    session, stage_name=risk, family=artefact.family
                 )
                 if stage:
                     artefact.stage = stage
@@ -196,7 +196,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                     "Move artefact '%s' to the '%s' stage", artefact, next_pocket
                 )
                 stage = get_stage_by_name(
-                    session, stage_name=next_pocket, family=artefact.stage.family
+                    session, stage_name=next_pocket, family=artefact.family
                 )
                 if stage:
                     artefact.stage = stage

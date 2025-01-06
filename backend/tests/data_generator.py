@@ -7,8 +7,8 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
-    Stage,
     Family,
+    Stage,
     TestCase,
     TestEvent,
     TestExecution,
@@ -105,7 +105,7 @@ class DataGenerator:
         architecture: str = DEFAULT_ARCHITECTURE,
         revision: int | None = None,
     ) -> ArtefactBuild:
-        match artefact.stage.family.name:
+        match artefact.family.name:
             case FamilyName.SNAP | FamilyName.CHARM:
                 revision = revision or 1
 

@@ -301,7 +301,7 @@ def test_deletes_rerun_requests(
 
     execute(
         {
-            "family": a.stage.family.name,
+            "family": a.family.name,
             "name": a.name,
             "version": a.version,
             "revision": ab.revision,
