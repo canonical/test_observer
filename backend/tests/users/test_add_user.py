@@ -1,18 +1,16 @@
 import pytest
-from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from scripts.add_user import add_user
 from test_observer.data_access.models import User
-from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
-from test_observer.external_apis.launchpad.models import LaunchpadUser
+from tests.fake_launchpad_api import FakeLaunchpadAPI
 
 
 def test_create_user(db_session: Session):
     email = "john.doe@canonical.com"
 
-    user = add_user(email, db_session, _FakeLaunchpadAPI())
+    user = add_user(email, db_session, FakeLaunchpadAPI())
 
     assert user
     assert (
@@ -30,15 +28,4 @@ def test_create_user(db_session: Session):
 def test_email_not_in_launchpad():
     email = "missing-email@canonical.com"
     with pytest.raises(ValueError, match="Email not registered in launchpad"):
-        add_user(email, launchpad_api=_FakeLaunchpadAPI())
-
-
-class _FakeLaunchpadAPI(LaunchpadAPI):
-    def __init__(self):
-        # override superclass init
-        pass
-
-    def get_user_by_email(self, email: str) -> LaunchpadUser | None:
-        if email == "john.doe@canonical.com":
-            return LaunchpadUser(handle="john-doe", email=email, name="John Doe")
-        return None
+        add_user(email, launchpad_api=FakeLaunchpadAPI())
