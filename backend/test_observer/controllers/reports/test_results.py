@@ -11,8 +11,6 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
-    Family,
-    Stage,
     TestCase,
     TestExecution,
     TestResult,
@@ -22,7 +20,7 @@ from test_observer.data_access.setup import get_db
 router = APIRouter()
 
 TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
-    Family.name,
+    Artefact.family,
     Artefact.id,
     Artefact.name,
     Artefact.version,
@@ -61,8 +59,6 @@ def get_testresults_report(
 
     cursor = db.execute(
         select(*TESTRESULTS_REPORT_COLUMNS)
-        .join_from(Family, Stage)
-        .join_from(Stage, Artefact)
         .join_from(Artefact, ArtefactBuild)
         .join_from(ArtefactBuild, TestExecution)
         .join_from(TestExecution, Environment)

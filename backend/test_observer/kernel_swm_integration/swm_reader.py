@@ -2,10 +2,8 @@ from datetime import date, datetime
 from typing import TypedDict
 
 import requests
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Stage
+from test_observer.data_access.models_enums import StageName
 
 
 class ArtefactTrackerInfo(TypedDict):
@@ -13,9 +11,9 @@ class ArtefactTrackerInfo(TypedDict):
     due_date: date | None
 
 
-def get_artefacts_swm_info(db: Session) -> dict[int, ArtefactTrackerInfo]:
+def get_artefacts_swm_info() -> dict[int, ArtefactTrackerInfo]:
     json = _fetch_stable_workflow_manager_status()
-    return _extract_artefact_bug_info_from_swm(json, db)
+    return _extract_artefact_bug_info_from_swm(json)
 
 
 def _fetch_stable_workflow_manager_status() -> dict:
@@ -23,13 +21,10 @@ def _fetch_stable_workflow_manager_status() -> dict:
     return requests.get(url, timeout=30).json()
 
 
-def _extract_artefact_bug_info_from_swm(
-    json: dict, db: Session
-) -> dict[int, ArtefactTrackerInfo]:
+def _extract_artefact_bug_info_from_swm(json: dict) -> dict[int, ArtefactTrackerInfo]:
     result: dict[int, ArtefactTrackerInfo] = {}
-    stage_names = _get_stage_names(db)
     for bug_id, tracker in json["trackers"].items():
-        artefact_id = _extract_artefact_id(tracker, stage_names)
+        artefact_id = _extract_artefact_id(tracker)
 
         if artefact_id and _is_tracker_open(tracker):
             result[artefact_id] = {
@@ -40,22 +35,18 @@ def _extract_artefact_bug_info_from_swm(
     return result
 
 
-def _get_stage_names(db: Session) -> list[str]:
-    return list(db.scalars(select(Stage.name)))
-
-
 def _is_tracker_open(tracker: dict) -> bool:
     closed_statuses = ("Fix Committed", "Fix Released")
     status = tracker.get("task", {}).get("kernel-sru-workflow", {}).get("status")
     return status and status not in closed_statuses
 
 
-def _extract_artefact_id(tracker: dict, stage_names: list[str]) -> int | None:
+def _extract_artefact_id(tracker: dict) -> int | None:
     to_info = tracker.get("test-observer")
     if to_info:
-        for stages in stage_names:
-            if stages in to_info:
-                return to_info[stages]
+        for stage in StageName:
+            if stage in to_info:
+                return to_info[stage]
     return None
 
 

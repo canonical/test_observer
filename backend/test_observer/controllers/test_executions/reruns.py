@@ -5,9 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import (
-    Artefact,
     ArtefactBuild,
-    Stage,
     TestExecution,
     TestExecutionRerunRequest,
 )
@@ -57,8 +55,6 @@ def get_rerun_requests(db: Session = Depends(get_db)):
             joinedload(TestExecutionRerunRequest.test_execution)
             .joinedload(TestExecution.artefact_build)
             .joinedload(ArtefactBuild.artefact)
-            .joinedload(Artefact.stage)
-            .joinedload(Stage.family)
         )
     )
 

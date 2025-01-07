@@ -26,6 +26,8 @@ from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
+    FamilyName,
+    StageName,
 )
 from tests.data_generator import DataGenerator
 
@@ -35,14 +37,14 @@ def test_get_latest_artefacts_by_family(
 ):
     """Should only get latest artefacts and only ones that belong to given family"""
     relevant_artefact = generator.gen_artefact(
-        "edge",
+        StageName.edge,
         version="2",
         status=ArtefactStatus.MARKED_AS_FAILED,
     )
 
     old_timestamp = relevant_artefact.created_at - timedelta(days=1)
-    generator.gen_artefact("edge", created_at=old_timestamp, version="1")
-    generator.gen_artefact("proposed", family_name="deb")
+    generator.gen_artefact(StageName.edge, created_at=old_timestamp, version="1")
+    generator.gen_artefact(StageName.proposed, family=FamilyName.deb)
 
     response = test_client.get("/v1/artefacts", params={"family": "snap"})
 
@@ -56,7 +58,7 @@ def test_get_latest_artefacts_by_family(
             "store": relevant_artefact.store,
             "series": relevant_artefact.series,
             "repo": relevant_artefact.repo,
-            "stage": relevant_artefact.stage.name,
+            "stage": relevant_artefact.stage,
             "status": relevant_artefact.status,
             "assignee": None,
             "due_date": (
@@ -75,7 +77,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     """Should be able to fetch an existing artefact"""
     u = generator.gen_user()
     a = generator.gen_artefact(
-        "edge",
+        StageName.edge,
         status=ArtefactStatus.APPROVED,
         bug_link="localhost/bug",
         due_date=date(2024, 12, 24),
@@ -93,7 +95,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         "store": a.store,
         "series": a.series,
         "repo": a.repo,
-        "stage": a.stage.name,
+        "stage": a.stage,
         "status": a.status,
         "assignee": {
             "id": u.id,
@@ -111,7 +113,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
 def test_get_artefact_environment_reviews_counts_only_latest_build(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(artefact=a, revision=1)
     e = generator.gen_environment()
     # Test Execution for the first artefact build
@@ -139,7 +141,7 @@ def test_get_artefact_environment_reviews_counts(
     generator: DataGenerator,
     db_session: Session,
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -164,7 +166,7 @@ def test_get_artefact_environment_reviews_counts(
 
 
 def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact("candidate")
+    artefact = generator.gen_artefact(StageName.candidate)
 
     response = test_client.patch(
         f"/v1/artefacts/{artefact.id}",
@@ -181,7 +183,7 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
         "store": artefact.store,
         "series": artefact.series,
         "repo": artefact.repo,
-        "stage": artefact.stage.name,
+        "stage": artefact.stage,
         "status": artefact.status,
         "assignee": None,
         "due_date": (
@@ -196,7 +198,7 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
 def test_artefact_signoff_disallow_approve(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     generator.gen_artefact_build_environment_review(ab, e)
@@ -223,7 +225,7 @@ def test_artefact_signoff_disallow_reject(
 def test_artefact_signoff_ignore_old_build_on_approve(
     test_client: TestClient, generator: DataGenerator
 ):
-    artefact = generator.gen_artefact("candidate")
+    artefact = generator.gen_artefact(StageName.candidate)
     build1 = generator.gen_artefact_build(artefact, revision=1)
     build2 = generator.gen_artefact_build(artefact, revision=1, architecture="arm64")
     build3 = generator.gen_artefact_build(artefact, revision=2)
@@ -256,7 +258,7 @@ def test_artefact_signoff_ignore_old_build_on_approve(
 def test_artefact_signoff_ignore_old_build_on_reject(
     test_client: TestClient, generator: DataGenerator
 ):
-    artefact = generator.gen_artefact("candidate")
+    artefact = generator.gen_artefact(StageName.candidate)
     build_1 = generator.gen_artefact_build(artefact, revision=1)
     build_2 = generator.gen_artefact_build(artefact, revision=2)
     environment = generator.gen_environment()
@@ -278,9 +280,9 @@ def test_artefact_signoff_ignore_old_build_on_reject(
 
 
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
-    artefact1 = generator.gen_artefact("beta", version="1")
-    artefact2 = generator.gen_artefact("beta", version="2")
-    artefact3 = generator.gen_artefact("beta", version="3")
+    artefact1 = generator.gen_artefact(StageName.beta, version="1")
+    artefact2 = generator.gen_artefact(StageName.beta, version="2")
+    artefact3 = generator.gen_artefact(StageName.beta, version="3")
 
     expected_result = [
         {"version": "3", "artefact_id": artefact3.id},

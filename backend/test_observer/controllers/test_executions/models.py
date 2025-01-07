@@ -34,6 +34,7 @@ from pydantic import (
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import (
     FamilyName,
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -43,7 +44,7 @@ class _StartTestExecutionRequest(BaseModel):
     name: str
     version: str
     arch: str
-    execution_stage: str
+    execution_stage: StageName
     environment: str
     ci_link: Annotated[str, HttpUrl]
     test_plan: str = Field(max_length=200)
@@ -58,20 +59,20 @@ class _StartTestExecutionRequest(BaseModel):
 
 
 class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.SNAP]
+    family: Literal[FamilyName.snap]
     revision: int
     track: str
     store: str
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.DEB]
+    family: Literal[FamilyName.deb]
     series: str
     repo: str
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.CHARM]
+    family: Literal[FamilyName.charm]
     revision: int
     track: str
 
@@ -153,7 +154,7 @@ class PendingRerun(BaseModel):
     ci_link: str = Field(validation_alias=AliasPath("test_execution", "ci_link"))
     family: FamilyName = Field(
         validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "stage", "family", "name"
+            "test_execution", "artefact_build", "artefact", "family"
         )
     )
 

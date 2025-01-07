@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
+    StageName,
 )
 from tests.data_generator import DataGenerator
 
@@ -16,7 +17,7 @@ def test_get_404_when_artefact_is_not_found(test_client: TestClient):
 def test_get_no_environment_reviews_exist(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     response = test_client.get(f"/v1/artefacts/{a.id}/environment-reviews")
     assert response.status_code == 200
 
@@ -24,7 +25,7 @@ def test_get_no_environment_reviews_exist(
 def test_get_with_two_environment_reviews(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")
@@ -70,7 +71,7 @@ def test_get_with_two_environment_reviews(
 def test_get_only_consideres_latest_builds(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab1 = generator.gen_artefact_build(a, revision=1)
     ab2 = generator.gen_artefact_build(a, revision=2)
     e1 = generator.gen_environment("env1")
@@ -100,7 +101,7 @@ def test_get_only_consideres_latest_builds(
 
 
 def test_review_an_environment(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -136,8 +137,8 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
 def test_requires_review_to_belong_to_artefact(
     test_client: TestClient, generator: DataGenerator
 ):
-    a1 = generator.gen_artefact("beta", name="a1")
-    a2 = generator.gen_artefact("beta", name="a2")
+    a1 = generator.gen_artefact(StageName.beta, name="a1")
+    a2 = generator.gen_artefact(StageName.beta, name="a2")
     ab = generator.gen_artefact_build(a1)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -152,7 +153,7 @@ def test_requires_review_to_belong_to_artefact(
 def test_environment_review_fails_if_both_rejected_and_approved(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -173,7 +174,7 @@ def test_environment_review_fails_if_both_rejected_and_approved(
 def test_environment_review_reset_review(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(

@@ -25,11 +25,8 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access import queries
 from test_observer.data_access.models import Artefact, ArtefactBuild
-from test_observer.data_access.models_enums import FamilyName
-from test_observer.data_access.repository import (
-    get_artefacts_by_family,
-    get_stage_by_name,
-)
+from test_observer.data_access.models_enums import FamilyName, StageName
+from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.external_apis.archive import ArchiveManager
 from test_observer.external_apis.snapcraft import (
     get_channel_map_from_snapcraft,
@@ -38,8 +35,8 @@ from test_observer.external_apis.snapcraft import (
 logger = logging.getLogger("test-observer-backend")
 POCKET_PROMOTION_MAP = {
     # pocket -> next-pocket
-    "proposed": "updates",
-    "updates": "updates",
+    StageName.proposed: StageName.updates,
+    StageName.updates: StageName.updates,
 }
 
 
@@ -81,15 +78,15 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     the second only for the processed cards with the corresponding error message
     """
     family_mapping = {
-        FamilyName.SNAP: run_snap_promoter,
-        FamilyName.DEB: run_deb_promoter,
+        FamilyName.snap: run_snap_promoter,
+        FamilyName.deb: run_deb_promoter,
     }
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
-    for family_name, promoter_function in family_mapping.items():
-        artefacts = get_artefacts_by_family(session, family_name, load_stage=True)
+    for family, promoter_function in family_mapping.items():
+        artefacts = get_artefacts_by_family(session, family)
         for artefact in artefacts:
-            artefact_key = f"{family_name} - {artefact.name} - {artefact.version}"
+            artefact_key = f"{family} - {artefact.name} - {artefact.version}"
             try:
                 processed_artefacts_status[artefact_key] = True
                 promoter_function(session, artefact)
@@ -142,19 +139,14 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 continue
 
             if (
-                risk != artefact.stage.name.lower()
+                risk != artefact.stage
                 and version == artefact.version
                 and revision == build.revision
             ):
                 logger.info("Move artefact '%s' to the '%s' stage", artefact, risk)
-                stage = get_stage_by_name(
-                    session, stage_name=risk, family=artefact.stage.family
-                )
-                if stage:
-                    artefact.stage = stage
-                    session.commit()
-                    # The artefact was promoted, so we're done
-                    return
+
+                artefact.stage = StageName(risk)
+                session.commit()
 
 
 def run_deb_promoter(session: Session, artefact: Artefact) -> None:
@@ -184,22 +176,17 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                         artefact.name,
                     )
                     continue
-            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage.name)
+            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage)
             logger.debug(
                 "Artefact version: %s, deb version: %s", artefact.version, deb_version
             )
             if (
-                pocket == next_pocket != artefact.stage.name
+                next_pocket
+                and pocket == next_pocket != artefact.stage
                 and deb_version == artefact.version
             ):
                 logger.info(
                     "Move artefact '%s' to the '%s' stage", artefact, next_pocket
                 )
-                stage = get_stage_by_name(
-                    session, stage_name=next_pocket, family=artefact.stage.family
-                )
-                if stage:
-                    artefact.stage = stage
-                    session.commit()
-                    # The artefact was promoted, so we're done
-                    return
+                artefact.stage = next_pocket
+                session.commit()

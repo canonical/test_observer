@@ -3,6 +3,7 @@ name = "test-observer"
 version = "0.0.0"
 description = "Observe the status and state of certification tests for various artefacts"
 authors = []
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"

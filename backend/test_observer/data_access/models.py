@@ -45,6 +45,8 @@ from sqlalchemy.sql import func
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
+    FamilyName,
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -108,57 +110,27 @@ class User(Base):
         return data_model_repr(self, "launchpad_handle")
 
 
-class Family(Base):
-    """A model to represent artefact family object"""
-
-    __tablename__ = "family"
-
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
-    # Relationships
-    stages: Mapped[list["Stage"]] = relationship(
-        back_populates="family", cascade="all, delete", order_by="Stage.position"
-    )
-
-    def __repr__(self) -> str:
-        return data_model_repr(self, "name")
-
-
-class Stage(Base):
-    """A model to represent artefact stage in the promotion cycle"""
-
-    __tablename__ = "stage"
-
-    name: Mapped[str] = mapped_column(String(100), index=True)
-    position: Mapped[int] = mapped_column()
-    # Relationships
-    family_id: Mapped[int] = mapped_column(
-        ForeignKey("family.id", ondelete="CASCADE"), index=True
-    )
-    family: Mapped[Family] = relationship(back_populates="stages")
-    artefacts: Mapped[list["Artefact"]] = relationship(
-        back_populates="stage", cascade="all, delete"
-    )
-
-    def __repr__(self) -> str:
-        return data_model_repr(self, "name", "position", "family_id")
-
-
 class Artefact(Base):
     """A model to represent artefacts (snaps, debs, images)"""
 
     __tablename__ = "artefact"
 
+    # Generic fields
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
+    stage: Mapped[StageName]
+    family: Mapped[FamilyName]
+    due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
+    bug_link: Mapped[str] = mapped_column(default="")
+    status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
+
+    # Family specific fields
     track: Mapped[str] = mapped_column(default="")
     store: Mapped[str] = mapped_column(default="")
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+
     # Relationships
-    stage_id: Mapped[int] = mapped_column(
-        ForeignKey("stage.id", ondelete="CASCADE"), index=True
-    )
-    stage: Mapped[Stage] = relationship(back_populates="artefacts")
     builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete"
     )
@@ -166,10 +138,6 @@ class Artefact(Base):
         ForeignKey("app_user.id"), index=True
     )
     assignee: Mapped[User | None] = relationship(back_populates="assignments")
-    # Default fields
-    due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
-    status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
-    bug_link: Mapped[str] = mapped_column(default="")
 
     @property
     def architectures(self) -> set[str]:
@@ -200,11 +168,12 @@ class Artefact(Base):
             self,
             "name",
             "version",
+            "stage",
+            "family",
             "track",
             "store",
             "series",
             "repo",
-            "stage_id",
             "due_date",
             "status",
         )
@@ -439,6 +408,7 @@ class TestEvent(Base):
     A table to represent test events that have ocurred during a job
     """
 
+    __test__ = False
     __tablename__ = "test_event"
 
     event_name: Mapped[str]

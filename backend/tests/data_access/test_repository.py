@@ -24,95 +24,75 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Family
-from test_observer.data_access.models_enums import FamilyName
-from test_observer.data_access.repository import (
-    get_artefacts_by_family,
-    get_stage_by_name,
-)
+from test_observer.data_access.models_enums import FamilyName, StageName
+from test_observer.data_access.repository import get_artefacts_by_family
 from tests.data_generator import DataGenerator
 
 
-def test_get_stage_by_name(db_session: Session):
-    """The function should select the correct stage by its name"""
-    # Arrange
-    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
-    stage_name = "proposed"
-
-    # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
-
-    # Assert
-    assert stage and stage.name == stage_name
-
-
-def test_get_stage_by_name_no_such_stage(db_session: Session):
-    """The function should return None"""
-    # Arrange
-    family = db_session.query(Family).filter(Family.name == FamilyName.DEB).one()
-    stage_name = "fakestage"
-
-    # Act
-    stage = get_stage_by_name(db_session, stage_name, family)
-
-    # Assert
-    assert stage is None
-
-
-def test_get_artefacts_by_family_name(db_session: Session, generator: DataGenerator):
+def test_get_artefacts_by_family(db_session: Session, generator: DataGenerator):
     """We should get a valid list of all artefacts"""
     # Arrange
     artefact_name_stage_pair = {
-        ("core20", "edge"),
-        ("core22", "beta"),
-        ("docker", "candidate"),
+        ("core20", StageName.edge),
+        ("core22", StageName.beta),
+        ("docker", StageName.candidate),
     }
 
     for name, stage in artefact_name_stage_pair:
         generator.gen_artefact(stage, name=name)
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.SNAP, latest_only=False)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.snap, latest_only=False)
 
     # Assert
     assert len(artefacts) == len(artefact_name_stage_pair)
     assert {
-        (artefact.name, artefact.stage.name) for artefact in artefacts
+        (artefact.name, artefact.stage) for artefact in artefacts
     } == artefact_name_stage_pair
 
 
-def test_get_artefacts_by_family_name_latest(
-    db_session: Session, generator: DataGenerator
-):
+def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGenerator):
     """We should get a only latest artefacts in each stage for the specified family"""
     # Arrange
     artefact_tuple = [
-        ("core20", "snap", "edge", datetime.utcnow(), "1"),
-        ("oem-jammy", "deb", "proposed", datetime.utcnow(), "1"),
-        ("core20", "snap", "edge", datetime.utcnow() - timedelta(days=10), "2"),
-        ("core20", "snap", "beta", datetime.utcnow() - timedelta(days=20), "3"),
+        ("core20", FamilyName.snap, StageName.edge, datetime.utcnow(), "1"),
+        ("oem-jammy", FamilyName.deb, StageName.proposed, datetime.utcnow(), "1"),
+        (
+            "core20",
+            FamilyName.snap,
+            StageName.edge,
+            datetime.utcnow() - timedelta(days=10),
+            "2",
+        ),
+        (
+            "core20",
+            FamilyName.snap,
+            StageName.beta,
+            datetime.utcnow() - timedelta(days=20),
+            "3",
+        ),
     ]
     expected_artefacts = {artefact_tuple[0], artefact_tuple[-1]}
 
     for name, family, stage, created_at, version in artefact_tuple:
         generator.gen_artefact(
             stage,
-            family_name=family,
+            family=family,
             name=name,
             created_at=created_at,
             version=version,
         )
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.SNAP)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.snap)
 
     # Assert
     assert len(artefacts) == len(expected_artefacts)
     assert {
         (
             artefact.name,
-            artefact.stage.family.name,
-            artefact.stage.name,
+            artefact.family,
+            artefact.stage,
             artefact.created_at,
             artefact.version,
         )
@@ -133,8 +113,8 @@ def test_get_artefacts_by_family_charm_unique(
     ]
     for name, track, version in specs:
         artefact = generator.gen_artefact(
-            "edge",
-            family_name="charm",
+            StageName.edge,
+            family=FamilyName.charm,
             name=name,
             version=version,
             track=track,
@@ -146,7 +126,7 @@ def test_get_artefacts_by_family_charm_unique(
         )
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.CHARM)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
 
     # Assert
     assert len(artefacts) == 4
@@ -164,8 +144,8 @@ def test_get_artefacts_by_family_charm_all_architectures(
     ]
     for version, arch, day in specs:
         artefact = generator.gen_artefact(
-            "edge",
-            family_name="charm",
+            StageName.edge,
+            family=FamilyName.charm,
             name="name",
             version=version,
             track="track",
@@ -177,7 +157,7 @@ def test_get_artefacts_by_family_charm_all_architectures(
         )
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.CHARM)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
 
     # Assert
     assert len(artefacts) == 2

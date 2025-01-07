@@ -2,20 +2,20 @@ import csv
 from datetime import datetime, timedelta
 from io import StringIO
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from fastapi.testclient import TestClient
 from httpx import Response
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     TestExecution,
 )
+from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
 
 EXPECTED_COLUMN_NAMES = [
-    "Family.name",
+    "Artefact.family",
     "Artefact.id",
     "Artefact.name",
     "Artefact.version",
@@ -41,7 +41,7 @@ EXPECTED_COLUMN_NAMES = [
 def test_get_testexecutions_report_in_range_with_test_events(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -66,7 +66,7 @@ def test_get_testexecutions_report_in_range_with_test_events(
 def test_get_testexecutions_report_in_range_without_test_events(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -90,7 +90,7 @@ def test_get_testexecutions_report_out_range(
     test_client: TestClient, generator: DataGenerator
 ):
     artefact = generator.gen_artefact(
-        "beta", created_at=datetime.now() - timedelta(days=2)
+        StageName.beta, created_at=datetime.now() - timedelta(days=2)
     )
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -125,7 +125,6 @@ def _expected_report_row(
 ) -> list:
     environment = test_execution.environment
     artefact = test_execution.artefact_build.artefact
-    family = artefact.stage.family
     environment_review = db_session.execute(
         select(ArtefactBuildEnvironmentReview).where(
             ArtefactBuildEnvironmentReview.artefact_build_id
@@ -136,7 +135,7 @@ def _expected_report_row(
     ).scalar_one()
 
     return [
-        family.name,
+        artefact.family,
         str(artefact.id),
         artefact.name,
         artefact.version,

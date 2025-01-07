@@ -56,7 +56,6 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
         artefacts = get_artefacts_by_family(
             db,
             family,
-            load_stage=True,
             load_environment_reviews=True,
             order_by_columns=order_by,
         )
@@ -65,7 +64,6 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             artefacts += get_artefacts_by_family(
                 db,
                 family,
-                load_stage=True,
                 load_environment_reviews=True,
                 order_by_columns=order_by,
             )

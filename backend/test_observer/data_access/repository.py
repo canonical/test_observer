@@ -27,34 +27,14 @@ from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Artefact, ArtefactBuild, DataModel, Family, Stage
+from .models import Artefact, ArtefactBuild, DataModel
 from .models_enums import FamilyName
-
-
-def get_stage_by_name(
-    session: Session, stage_name: str, family: Family
-) -> Stage | None:
-    """
-    Get the stage object by its name
-
-    :session: DB session
-    :stage_name: name of the stage
-    :family: the Family object where stages are located
-    :return: Stage
-    """
-    stage = (
-        session.query(Stage)
-        .filter(Stage.name == stage_name, Stage.family == family)
-        .one_or_none()
-    )
-    return stage
 
 
 def get_artefacts_by_family(
     session: Session,
-    family_name: FamilyName,
+    family: FamilyName,
     latest_only: bool = True,
-    load_stage: bool = False,
     load_environment_reviews: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
@@ -62,7 +42,7 @@ def get_artefacts_by_family(
     Get all the artefacts
 
     :session: DB session
-    :family_name: name of the family
+    :family: name of the family
     :latest_only: return only latest artefacts, i.e. for each group of artefacts
                   with the same name and source but different version return
                   the latest one in a stage
@@ -72,18 +52,16 @@ def get_artefacts_by_family(
     if latest_only:
         base_query = (
             session.query(
-                Artefact.stage_id,
+                Artefact.stage,
                 Artefact.name,
                 func.max(Artefact.created_at).label("max_created"),
             )
-            .join(Stage)
-            .join(Family)
-            .filter(Family.name == family_name)
-            .group_by(Artefact.stage_id, Artefact.name)
+            .filter(Artefact.family == family)
+            .group_by(Artefact.stage, Artefact.name)
         )
 
-        match family_name:
-            case FamilyName.SNAP:
+        match family:
+            case FamilyName.snap:
                 subquery = (
                     base_query.add_columns(Artefact.track)
                     .group_by(Artefact.track)
@@ -93,14 +71,14 @@ def get_artefacts_by_family(
                 query = session.query(Artefact).join(
                     subquery,
                     and_(
-                        Artefact.stage_id == subquery.c.stage_id,
+                        Artefact.stage == subquery.c.stage,
                         Artefact.name == subquery.c.name,
                         Artefact.created_at == subquery.c.max_created,
                         Artefact.track == subquery.c.track,
                     ),
                 )
 
-            case FamilyName.DEB:
+            case FamilyName.deb:
                 subquery = (
                     base_query.add_columns(Artefact.repo, Artefact.series)
                     .group_by(Artefact.repo, Artefact.series)
@@ -110,7 +88,7 @@ def get_artefacts_by_family(
                 query = session.query(Artefact).join(
                     subquery,
                     and_(
-                        Artefact.stage_id == subquery.c.stage_id,
+                        Artefact.stage == subquery.c.stage,
                         Artefact.name == subquery.c.name,
                         Artefact.created_at == subquery.c.max_created,
                         Artefact.repo == subquery.c.repo,
@@ -118,7 +96,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case FamilyName.CHARM:
+            case FamilyName.charm:
                 subquery = (
                     base_query.join(ArtefactBuild)
                     .add_columns(Artefact.track, ArtefactBuild.architecture)
@@ -132,7 +110,7 @@ def get_artefacts_by_family(
                     .join(
                         subquery,
                         and_(
-                            Artefact.stage_id == subquery.c.stage_id,
+                            Artefact.stage == subquery.c.stage,
                             Artefact.name == subquery.c.name,
                             Artefact.created_at == subquery.c.max_created,
                             Artefact.track == subquery.c.track,
@@ -143,15 +121,7 @@ def get_artefacts_by_family(
                 )
 
     else:
-        query = (
-            session.query(Artefact)
-            .join(Stage)
-            .join(Family)
-            .filter(Family.name == family_name)
-        )
-
-    if load_stage:
-        query = query.options(joinedload(Artefact.stage))
+        query = session.query(Artefact).filter(Artefact.family == family)
 
     if load_environment_reviews:
         query = query.options(

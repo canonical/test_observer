@@ -7,8 +7,6 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
-    Stage,
-    Family,
     TestCase,
     TestEvent,
     TestExecution,
@@ -20,6 +18,7 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -47,8 +46,8 @@ class DataGenerator:
 
     def gen_artefact(
         self,
-        stage_name: str,
-        family_name: str = "snap",
+        stage: StageName = StageName.beta,
+        family: FamilyName = FamilyName.snap,
         name: str = "core",
         version: str = "1.1.1",
         track: str = "",
@@ -61,23 +60,16 @@ class DataGenerator:
         due_date: date | None = None,
         assignee_id: int | None = None,
     ) -> Artefact:
-        family = FamilyName(family_name)
-        stage = (
-            self.db_session.query(Stage)
-            .join(Family)
-            .filter(Stage.name == stage_name)
-            .filter(Family.name == family)
-            .one()
-        )
+        family = FamilyName(family)
 
         match family:
-            case FamilyName.SNAP:
+            case FamilyName.snap:
                 track = track or "latest"
                 store = store or "ubuntu"
-            case FamilyName.DEB:
+            case FamilyName.deb:
                 series = series or "jammy"
                 repo = repo or "main"
-            case FamilyName.CHARM:
+            case FamilyName.charm:
                 track = track or "latest"
 
         created_at = created_at or datetime.utcnow()
@@ -85,6 +77,7 @@ class DataGenerator:
         artefact = Artefact(
             name=name,
             stage=stage,
+            family=family,
             version=version,
             track=track,
             store=store,
@@ -105,8 +98,8 @@ class DataGenerator:
         architecture: str = DEFAULT_ARCHITECTURE,
         revision: int | None = None,
     ) -> ArtefactBuild:
-        match artefact.stage.family.name:
-            case FamilyName.SNAP | FamilyName.CHARM:
+        match artefact.family:
+            case FamilyName.snap | FamilyName.charm:
                 revision = revision or 1
 
         build = ArtefactBuild(

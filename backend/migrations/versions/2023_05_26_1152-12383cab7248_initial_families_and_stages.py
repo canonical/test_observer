@@ -12,8 +12,8 @@ from alembic import op
 from test_observer.data_access.models_enums import FamilyName
 
 initial_families_and_stages = {
-    FamilyName.SNAP: ["edge", "beta", "candidate", "stable"],
-    FamilyName.DEB: ["proposed", "updates"],
+    FamilyName.snap: ["edge", "beta", "candidate", "stable"],
+    FamilyName.deb: ["proposed", "updates"],
 }
 
 # revision identifiers, used by Alembic.

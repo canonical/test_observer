@@ -23,9 +23,18 @@ from enum import Enum
 
 
 class FamilyName(str, Enum):
-    SNAP = "snap"
-    DEB = "deb"
-    CHARM = "charm"
+    snap = "snap"
+    deb = "deb"
+    charm = "charm"
+
+
+class StageName(str, Enum):
+    proposed = "proposed"
+    updates = "updates"
+    edge = "edge"
+    beta = "beta"
+    candidate = "candidate"
+    stable = "stable"
 
 
 class TestExecutionStatus(str, Enum):

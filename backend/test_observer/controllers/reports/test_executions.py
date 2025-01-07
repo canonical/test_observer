@@ -11,8 +11,6 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
-    Family,
-    Stage,
     TestEvent,
     TestExecution,
 )
@@ -21,7 +19,7 @@ from test_observer.data_access.setup import get_db
 router = APIRouter()
 
 TEST_EXECUTIONS_REPORT_COLUMNS = [
-    Family.name,
+    Artefact.family,
     Artefact.id,
     Artefact.name,
     Artefact.version,
@@ -44,7 +42,7 @@ TEST_EXECUTIONS_REPORT_COLUMNS = [
 ]
 
 TEST_EXECUTIONS_REPORT_HEADERS = [
-    "Family.name",
+    "Artefact.family",
     "Artefact.id",
     "Artefact.name",
     "Artefact.version",
@@ -102,8 +100,6 @@ def _get_test_executions_reports_query(
         .join_from(TestExecution, Environment)
         .join_from(TestExecution, ArtefactBuild)
         .join_from(ArtefactBuild, Artefact)
-        .join_from(Artefact, Stage)
-        .join_from(Stage, Family)
         .join(
             ArtefactBuildEnvironmentReview,
             (ArtefactBuildEnvironmentReview.artefact_build_id == ArtefactBuild.id)
