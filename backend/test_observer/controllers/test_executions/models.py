@@ -34,6 +34,7 @@ from pydantic import (
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import (
     FamilyName,
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -43,7 +44,7 @@ class _StartTestExecutionRequest(BaseModel):
     name: str
     version: str
     arch: str
-    execution_stage: str
+    execution_stage: StageName
     environment: str
     ci_link: Annotated[str, HttpUrl]
     test_plan: str = Field(max_length=200)
