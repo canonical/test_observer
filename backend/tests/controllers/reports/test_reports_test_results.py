@@ -75,7 +75,7 @@ def _expected_report_row(test_result: TestResult) -> list:
     environment = test_execution.environment
     artefact = test_execution.artefact_build.artefact
     return [
-        artefact.family_name,
+        artefact.family,
         str(artefact.id),
         artefact.name,
         artefact.version,

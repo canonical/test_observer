@@ -80,7 +80,7 @@ def start_test_execution(
             filter_kwargs=artefact_filter_kwargs,
             creation_kwargs={
                 "stage_id": stage.id,
-                "family_name": request.family.value,
+                "family": request.family.value,
                 "stage": request.execution_stage,
             },
         )

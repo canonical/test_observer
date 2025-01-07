@@ -86,10 +86,10 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     }
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
-    for family_name, promoter_function in family_mapping.items():
-        artefacts = get_artefacts_by_family(session, family_name, load_stage=True)
+    for family, promoter_function in family_mapping.items():
+        artefacts = get_artefacts_by_family(session, family, load_stage=True)
         for artefact in artefacts:
-            artefact_key = f"{family_name} - {artefact.name} - {artefact.version}"
+            artefact_key = f"{family} - {artefact.name} - {artefact.version}"
             try:
                 processed_artefacts_status[artefact_key] = True
                 promoter_function(session, artefact)
@@ -148,7 +148,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
             ):
                 logger.info("Move artefact '%s' to the '%s' stage", artefact, risk)
                 stage = get_stage_by_name(
-                    session, stage_name=risk, family=artefact.family_name
+                    session, stage_name=risk, family=artefact.family
                 )
                 if stage:
                     artefact.stage_id = stage.id
@@ -197,7 +197,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                     "Move artefact '%s' to the '%s' stage", artefact, next_pocket
                 )
                 stage = get_stage_by_name(
-                    session, stage_name=next_pocket, family=artefact.family_name
+                    session, stage_name=next_pocket, family=artefact.family
                 )
                 if stage:
                     artefact.stage_id = stage.id

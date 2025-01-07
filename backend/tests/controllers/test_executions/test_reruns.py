@@ -60,7 +60,7 @@ def test_valid_post(post: Post, test_execution: TestExecution):
         {
             "test_execution_id": test_execution.id,
             "ci_link": test_execution.ci_link,
-            "family": test_execution.artefact_build.artefact.family_name,
+            "family": test_execution.artefact_build.artefact.family,
         }
     ]
 
@@ -86,7 +86,7 @@ def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution)
         {
             "test_execution_id": test_execution.id,
             "ci_link": test_execution.ci_link,
-            "family": test_execution.artefact_build.artefact.family_name,
+            "family": test_execution.artefact_build.artefact.family,
         }
     ]
 
@@ -103,7 +103,7 @@ def test_get_after_two_identical_posts(
         {
             "test_execution_id": test_execution.id,
             "ci_link": test_execution.ci_link,
-            "family": test_execution.artefact_build.artefact.family_name,
+            "family": test_execution.artefact_build.artefact.family,
         }
     ]
 
@@ -124,12 +124,12 @@ def test_get_after_two_different_posts(
         {
             "test_execution_id": te1.id,
             "ci_link": te1.ci_link,
-            "family": te1.artefact_build.artefact.family_name,
+            "family": te1.artefact_build.artefact.family,
         },
         {
             "test_execution_id": te2.id,
             "ci_link": te2.ci_link,
-            "family": te2.artefact_build.artefact.family_name,
+            "family": te2.artefact_build.artefact.family,
         },
     ]
 
@@ -150,12 +150,12 @@ def test_get_after_post_with_two_test_execution_ids(
         {
             "test_execution_id": te1.id,
             "ci_link": te1.ci_link,
-            "family": te1.artefact_build.artefact.family_name,
+            "family": te1.artefact_build.artefact.family,
         },
         {
             "test_execution_id": te2.id,
             "ci_link": te2.ci_link,
-            "family": te2.artefact_build.artefact.family_name,
+            "family": te2.artefact_build.artefact.family,
         },
     ]
 

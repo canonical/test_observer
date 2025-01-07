@@ -42,7 +42,7 @@ def test_get_latest_artefacts_by_family(
 
     old_timestamp = relevant_artefact.created_at - timedelta(days=1)
     generator.gen_artefact("edge", created_at=old_timestamp, version="1")
-    generator.gen_artefact("proposed", family_name="deb")
+    generator.gen_artefact("proposed", family="deb")
 
     response = test_client.get("/v1/artefacts", params={"family": "snap"})
 

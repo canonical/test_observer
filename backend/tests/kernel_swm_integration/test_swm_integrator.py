@@ -21,7 +21,7 @@ def test_update_artefacts_with_tracker_info(
         "due_date": date(2024, 2, 20),
     }
     artefact1 = generator.gen_artefact("beta")
-    artefact2 = generator.gen_artefact("proposed", family_name="deb")
+    artefact2 = generator.gen_artefact("proposed", family="deb")
     artefacts_swm_info = {artefact2.id: tracker_info_2, artefact1.id: tracker_info_1}
 
     update_artefacts_with_tracker_info(db_session, artefacts_swm_info)

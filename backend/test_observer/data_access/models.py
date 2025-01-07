@@ -153,7 +153,7 @@ class Artefact(Base):
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
     stage: Mapped[str] = mapped_column(String(200))
-    family_name: Mapped[str] = mapped_column(String(200))
+    family: Mapped[str] = mapped_column(String(200))
     # Relationships
     stage_id: Mapped[int] = mapped_column(
         ForeignKey("stage.id", ondelete="CASCADE"), index=True

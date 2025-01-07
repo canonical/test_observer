@@ -134,7 +134,7 @@ def _expected_report_row(
     ).scalar_one()
 
     return [
-        artefact.family_name,
+        artefact.family,
         str(artefact.id),
         artefact.name,
         artefact.version,

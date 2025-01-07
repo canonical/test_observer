@@ -56,7 +56,7 @@ def test_get_stage_by_name_no_such_stage(db_session: Session):
     assert stage is None
 
 
-def test_get_artefacts_by_family_name(db_session: Session, generator: DataGenerator):
+def test_get_artefacts_by_family(db_session: Session, generator: DataGenerator):
     """We should get a valid list of all artefacts"""
     # Arrange
     artefact_name_stage_pair = {
@@ -78,9 +78,7 @@ def test_get_artefacts_by_family_name(db_session: Session, generator: DataGenera
     } == artefact_name_stage_pair
 
 
-def test_get_artefacts_by_family_name_latest(
-    db_session: Session, generator: DataGenerator
-):
+def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGenerator):
     """We should get a only latest artefacts in each stage for the specified family"""
     # Arrange
     artefact_tuple = [
@@ -94,7 +92,7 @@ def test_get_artefacts_by_family_name_latest(
     for name, family, stage, created_at, version in artefact_tuple:
         generator.gen_artefact(
             stage,
-            family_name=family,
+            family=family,
             name=name,
             created_at=created_at,
             version=version,
@@ -108,7 +106,7 @@ def test_get_artefacts_by_family_name_latest(
     assert {
         (
             artefact.name,
-            artefact.family_name,
+            artefact.family,
             artefact.stage,
             artefact.created_at,
             artefact.version,
@@ -131,7 +129,7 @@ def test_get_artefacts_by_family_charm_unique(
     for name, track, version in specs:
         artefact = generator.gen_artefact(
             "edge",
-            family_name="charm",
+            family="charm",
             name=name,
             version=version,
             track=track,
@@ -162,7 +160,7 @@ def test_get_artefacts_by_family_charm_all_architectures(
     for version, arch, day in specs:
         artefact = generator.gen_artefact(
             "edge",
-            family_name="charm",
+            family="charm",
             name="name",
             version=version,
             track="track",

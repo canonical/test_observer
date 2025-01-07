@@ -301,7 +301,7 @@ def test_deletes_rerun_requests(
 
     execute(
         {
-            "family": a.family_name,
+            "family": a.family,
             "name": a.name,
             "version": a.version,
             "revision": ab.revision,
@@ -332,7 +332,7 @@ def test_keeps_rerun_request_of_different_plan(
 
     execute(
         {
-            "family": a.family_name,
+            "family": a.family,
             "name": a.name,
             "version": a.version,
             "revision": ab.revision,

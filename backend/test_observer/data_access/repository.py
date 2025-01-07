@@ -50,7 +50,7 @@ def get_stage_by_name(session: Session, stage_name: str, family: str) -> Stage |
 
 def get_artefacts_by_family(
     session: Session,
-    family_name: FamilyName,
+    family: FamilyName,
     latest_only: bool = True,
     load_stage: bool = False,
     load_environment_reviews: bool = False,
@@ -60,7 +60,7 @@ def get_artefacts_by_family(
     Get all the artefacts
 
     :session: DB session
-    :family_name: name of the family
+    :family: name of the family
     :latest_only: return only latest artefacts, i.e. for each group of artefacts
                   with the same name and source but different version return
                   the latest one in a stage
@@ -76,11 +76,11 @@ def get_artefacts_by_family(
             )
             .join(Stage)
             .join(Family)
-            .filter(Family.name == family_name)
+            .filter(Family.name == family)
             .group_by(Artefact.stage_id, Artefact.name)
         )
 
-        match family_name:
+        match family:
             case FamilyName.SNAP:
                 subquery = (
                     base_query.add_columns(Artefact.track)
@@ -145,7 +145,7 @@ def get_artefacts_by_family(
             session.query(Artefact)
             .join(Stage)
             .join(Family)
-            .filter(Family.name == family_name)
+            .filter(Family.name == family)
         )
 
     if load_environment_reviews:

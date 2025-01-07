@@ -48,7 +48,7 @@ class DataGenerator:
     def gen_artefact(
         self,
         stage: str,
-        family_name: str = "snap",
+        family: str = "snap",
         name: str = "core",
         version: str = "1.1.1",
         track: str = "",
@@ -61,7 +61,7 @@ class DataGenerator:
         due_date: date | None = None,
         assignee_id: int | None = None,
     ) -> Artefact:
-        family = FamilyName(family_name)
+        family = FamilyName(family)
         stage_id = (
             self.db_session.query(Stage)
             .join(Family)
@@ -87,7 +87,7 @@ class DataGenerator:
             name=name,
             stage_id=stage_id,
             stage=stage,
-            family_name=family_name,
+            family=family,
             version=version,
             track=track,
             store=store,
@@ -108,7 +108,7 @@ class DataGenerator:
         architecture: str = DEFAULT_ARCHITECTURE,
         revision: int | None = None,
     ) -> ArtefactBuild:
-        match artefact.family_name:
+        match artefact.family:
             case FamilyName.SNAP | FamilyName.CHARM:
                 revision = revision or 1
 

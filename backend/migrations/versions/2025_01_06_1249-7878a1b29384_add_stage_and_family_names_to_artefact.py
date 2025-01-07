@@ -22,11 +22,11 @@ FROM (SELECT id, name FROM stage) as subq
 WHERE subq.id = artefact.stage_id
 """
 
-fill_family_names_stmt = """
+fill_families_stmt = """
 UPDATE artefact
-SET family_name = subq.family_name
+SET family = subq.family
 FROM (
-    SELECT stage.id stage_id, family.name family_name
+    SELECT stage.id stage_id, family.name family
     FROM stage 
     JOIN family ON family.id = stage.family_id
 ) subq
@@ -36,15 +36,15 @@ WHERE subq.stage_id = artefact.stage_id
 
 def upgrade() -> None:
     op.add_column("artefact", sa.Column("stage", sa.String(length=200)))
-    op.add_column("artefact", sa.Column("family_name", sa.String(length=200)))
+    op.add_column("artefact", sa.Column("family", sa.String(length=200)))
 
     op.execute(fill_stages_stmt)
-    op.execute(fill_family_names_stmt)
+    op.execute(fill_families_stmt)
 
     op.alter_column("artefact", "stage", nullable=False)
-    op.alter_column("artefact", "family_name", nullable=False)
+    op.alter_column("artefact", "family", nullable=False)
 
 
 def downgrade() -> None:
-    op.drop_column("artefact", "family_name")
+    op.drop_column("artefact", "family")
     op.drop_column("artefact", "stage")

@@ -111,7 +111,7 @@ def test_run_to_move_artefact_deb(
     # Arrange
     artefact1 = generator.gen_artefact(
         "proposed",
-        family_name="deb",
+        family="deb",
         name="linux-generic",
         version="5.19.0.43.39",
         series="kinetic",
@@ -120,7 +120,7 @@ def test_run_to_move_artefact_deb(
     )
     artefact2 = generator.gen_artefact(
         "proposed",
-        family_name="deb",
+        family="deb",
         name="linux-oem-22_04a",
         version="6.1.0.1028.29",
         series="kinetic",
@@ -129,7 +129,7 @@ def test_run_to_move_artefact_deb(
     )
     artefact3 = generator.gen_artefact(
         "proposed",
-        family_name="deb",
+        family="deb",
         name="linux-cloud-tools-5_15.0-86",
         version="5.15.0-86.96",
         series="kinetic",
