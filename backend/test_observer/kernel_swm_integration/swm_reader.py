@@ -5,7 +5,7 @@ import requests
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Stage
+from test_observer.data_access.models import Artefact
 
 
 class ArtefactTrackerInfo(TypedDict):
@@ -41,7 +41,7 @@ def _extract_artefact_bug_info_from_swm(
 
 
 def _get_stage_names(db: Session) -> list[str]:
-    return list(db.scalars(select(Stage.name)))
+    return list(db.scalars(select(Artefact.stage).distinct()))
 
 
 def _is_tracker_open(tracker: dict) -> bool:

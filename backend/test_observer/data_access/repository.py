@@ -27,25 +27,8 @@ from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Artefact, ArtefactBuild, DataModel, Family, Stage
+from .models import Artefact, ArtefactBuild, DataModel
 from .models_enums import FamilyName
-
-
-def get_stage_by_name(session: Session, stage_name: str, family: str) -> Stage | None:
-    """
-    Get the stage object by its name
-
-    :session: DB session
-    :stage_name: name of the stage
-    :family: the family name
-    :return: Stage
-    """
-    stage = (
-        session.query(Stage)
-        .filter(Stage.name == stage_name, Stage.family.has(Family.name == family))
-        .one_or_none()
-    )
-    return stage
 
 
 def get_artefacts_by_family(

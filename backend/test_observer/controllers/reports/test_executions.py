@@ -11,8 +11,6 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
-    Family,
-    Stage,
     TestEvent,
     TestExecution,
 )

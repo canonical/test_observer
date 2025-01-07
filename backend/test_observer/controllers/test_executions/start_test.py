@@ -27,7 +27,6 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
-    Stage,
     TestExecution,
     User,
 )
