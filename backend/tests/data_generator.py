@@ -17,7 +17,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    FamilyName,
+    Family,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -59,16 +59,16 @@ class DataGenerator:
         due_date: date | None = None,
         assignee_id: int | None = None,
     ) -> Artefact:
-        family = FamilyName(family)
+        family = Family(family)
 
         match family:
-            case FamilyName.SNAP:
+            case Family.SNAP:
                 track = track or "latest"
                 store = store or "ubuntu"
-            case FamilyName.DEB:
+            case Family.DEB:
                 series = series or "jammy"
                 repo = repo or "main"
-            case FamilyName.CHARM:
+            case Family.CHARM:
                 track = track or "latest"
 
         created_at = created_at or datetime.utcnow()
@@ -98,7 +98,7 @@ class DataGenerator:
         revision: int | None = None,
     ) -> ArtefactBuild:
         match artefact.family:
-            case FamilyName.SNAP | FamilyName.CHARM:
+            case Family.SNAP | Family.CHARM:
                 revision = revision or 1
 
         build = ArtefactBuild(

@@ -5,13 +5,13 @@ Revises: 4c2e5946358c
 Create Date: 2024-12-13 17:02:14.136283+00:00
 
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import Family
 
 new_families = {
-    FamilyName.CHARM: ["edge", "beta", "candidate", "stable"],
+    Family.CHARM: ["edge", "beta", "candidate", "stable"],
 }
 
 

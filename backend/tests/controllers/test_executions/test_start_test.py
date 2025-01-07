@@ -33,7 +33,7 @@ from test_observer.data_access.models import (
     Environment,
     TestExecution,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import Family, TestExecutionStatus
 from tests.asserts import assert_fails_validation
 from tests.data_generator import DataGenerator
 
@@ -200,7 +200,7 @@ def test_uses_existing_models(
     artefact_build = generator.gen_artefact_build(artefact, revision=1)
 
     request = StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name=artefact.name,
         version=artefact.version,
         revision=1,

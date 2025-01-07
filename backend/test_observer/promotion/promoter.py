@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access import queries
 from test_observer.data_access.models import Artefact, ArtefactBuild
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import Family
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.external_apis.archive import ArchiveManager
 from test_observer.external_apis.snapcraft import (
@@ -78,8 +78,8 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     the second only for the processed cards with the corresponding error message
     """
     family_mapping = {
-        FamilyName.SNAP: run_snap_promoter,
-        FamilyName.DEB: run_deb_promoter,
+        Family.SNAP: run_snap_promoter,
+        Family.DEB: run_deb_promoter,
     }
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}

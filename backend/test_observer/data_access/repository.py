@@ -28,12 +28,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from .models import Artefact, ArtefactBuild, DataModel
-from .models_enums import FamilyName
+from .models_enums import Family
 
 
 def get_artefacts_by_family(
     session: Session,
-    family: FamilyName,
+    family: Family,
     latest_only: bool = True,
     load_environment_reviews: bool = False,
     order_by_columns: Iterable[Any] | None = None,
@@ -61,7 +61,7 @@ def get_artefacts_by_family(
         )
 
         match family:
-            case FamilyName.SNAP:
+            case Family.SNAP:
                 subquery = (
                     base_query.add_columns(Artefact.track)
                     .group_by(Artefact.track)
@@ -78,7 +78,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case FamilyName.DEB:
+            case Family.DEB:
                 subquery = (
                     base_query.add_columns(Artefact.repo, Artefact.series)
                     .group_by(Artefact.repo, Artefact.series)
@@ -96,7 +96,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case FamilyName.CHARM:
+            case Family.CHARM:
                 subquery = (
                     base_query.join(ArtefactBuild)
                     .add_columns(Artefact.track, ArtefactBuild.architecture)

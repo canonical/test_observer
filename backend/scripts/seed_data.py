@@ -24,7 +24,7 @@ from test_observer.controllers.test_executions.models import (
     StartSnapTestExecutionRequest,
 )
 from test_observer.data_access.models import Artefact
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import Family
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
 from tests.fake_launchpad_api import FakeLaunchpadAPI
@@ -38,7 +38,7 @@ ENVIRONMENT_ISSUE_URL = f"{BASE_URL}/environments/reported-issues"
 
 START_TEST_EXECUTION_REQUESTS = [
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -51,7 +51,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -64,7 +64,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -77,7 +77,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -90,7 +90,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -103,7 +103,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -116,7 +116,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="docker",
         version="20.10.24",
         revision=1,
@@ -129,7 +129,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="docker",
         version="20.10.24",
         revision=1,
@@ -142,7 +142,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="bluez",
         version="5.64-2",
         revision=1,
@@ -155,7 +155,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="core22",
         version="20230531",
         revision=1,
@@ -168,7 +168,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="checkbox22",
         version="2.6",
         revision=1,
@@ -181,7 +181,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.SNAP,
+        family=Family.SNAP,
         name="snapd",
         version="2.59.4",
         revision=1,
@@ -194,7 +194,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.DEB,
+        family=Family.DEB,
         name="linux-raspi",
         version="5.15.0.73.70",
         series="jammy",
@@ -206,7 +206,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.DEB,
+        family=Family.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -218,7 +218,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.DEB,
+        family=Family.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -230,7 +230,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.DEB,
+        family=Family.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -242,7 +242,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.DEB,
+        family=Family.DEB,
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -254,7 +254,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru-server",
     ),
     StartCharmTestExecutionRequest(
-        family=FamilyName.CHARM,
+        family=Family.CHARM,
         name="postgresql-k8s",
         version="123",
         revision=123,

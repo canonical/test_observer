@@ -45,6 +45,7 @@ from sqlalchemy.sql import func
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
+    Family,
     TestExecutionStatus,
     TestResultStatus,
 )
