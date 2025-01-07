@@ -135,9 +135,7 @@ class Stage(Base):
         ForeignKey("family.id", ondelete="CASCADE"), index=True
     )
     family: Mapped[Family] = relationship(back_populates="stages")
-    artefacts: Mapped[list["Artefact"]] = relationship(
-        back_populates="stage", cascade="all, delete"
-    )
+    artefacts: Mapped[list["Artefact"]] = relationship(cascade="all, delete")
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name", "position", "family_id")
@@ -160,7 +158,6 @@ class Artefact(Base):
     stage_id: Mapped[int] = mapped_column(
         ForeignKey("stage.id", ondelete="CASCADE"), index=True
     )
-    stage: Mapped[Stage] = relationship(back_populates="artefacts")
     builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete"
     )

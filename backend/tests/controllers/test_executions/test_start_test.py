@@ -139,7 +139,7 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
             Artefact.version == snap_test_request["version"],
             Artefact.store == snap_test_request["store"],
             Artefact.track == snap_test_request["track"],
-            Artefact.stage.has(name=snap_test_request["execution_stage"]),
+            Artefact.stage_name == snap_test_request["execution_stage"],
         )
         .one_or_none()
     )
@@ -256,7 +256,7 @@ def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
             Artefact.version == snap_test_request["version"],
             Artefact.store == snap_test_request["store"],
             Artefact.track == snap_test_request["track"],
-            Artefact.stage.has(name=snap_test_request["execution_stage"]),
+            Artefact.stage_name == snap_test_request["execution_stage"],
         )
         .one_or_none()
     )
@@ -279,7 +279,7 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
             Artefact.version == request["version"],
             Artefact.store == request["store"],
             Artefact.track == request["track"],
-            Artefact.stage.has(name=request["execution_stage"]),
+            Artefact.stage_name == request["execution_stage"],
         )
         .one_or_none()
     )

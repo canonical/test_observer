@@ -84,7 +84,7 @@ class DataGenerator:
 
         artefact = Artefact(
             name=name,
-            stage=stage,
+            stage_id=stage.id,
             stage_name=stage_name,
             family_name=family_name,
             version=version,

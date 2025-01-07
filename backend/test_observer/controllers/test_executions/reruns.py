@@ -5,9 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import (
-    Artefact,
     ArtefactBuild,
-    Stage,
     TestExecution,
     TestExecutionRerunRequest,
 )

@@ -153,7 +153,7 @@ class PendingRerun(BaseModel):
     ci_link: str = Field(validation_alias=AliasPath("test_execution", "ci_link"))
     family: FamilyName = Field(
         validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "stage", "family", "name"
+            "test_execution", "artefact_build", "artefact", "family_name"
         )
     )
 

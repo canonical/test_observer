@@ -151,7 +151,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                     session, stage_name=risk, family=artefact.family_name
                 )
                 if stage:
-                    artefact.stage = stage
+                    artefact.stage_id = stage.id
                     artefact.stage_name = stage.name
                     session.commit()
                     # The artefact was promoted, so we're done
@@ -200,7 +200,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                     session, stage_name=next_pocket, family=artefact.family_name
                 )
                 if stage:
-                    artefact.stage = stage
+                    artefact.stage_id = stage.id
                     artefact.stage_name = stage.name
                     session.commit()
                     # The artefact was promoted, so we're done

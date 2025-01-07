@@ -55,7 +55,7 @@ class ArtefactDTO(BaseModel):
     store: str
     series: str
     repo: str
-    stage: str = Field(validation_alias=AliasPath("stage", "name"))
+    stage: str = Field(validation_alias=AliasPath("stage_name"))
     status: ArtefactStatus
     assignee: UserDTO | None
     due_date: date | None
