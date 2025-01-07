@@ -135,7 +135,6 @@ class Stage(Base):
         ForeignKey("family.id", ondelete="CASCADE"), index=True
     )
     family: Mapped[Family] = relationship(back_populates="stages")
-    artefacts: Mapped[list["Artefact"]] = relationship(cascade="all, delete")
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name", "position", "family_id")
@@ -148,16 +147,13 @@ class Artefact(Base):
 
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
+    stage: Mapped[str] = mapped_column(String(200))
+    family: Mapped[str] = mapped_column(String(200))
     track: Mapped[str] = mapped_column(default="")
     store: Mapped[str] = mapped_column(default="")
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
-    stage: Mapped[str] = mapped_column(String(200))
-    family: Mapped[str] = mapped_column(String(200))
     # Relationships
-    stage_id: Mapped[int] = mapped_column(
-        ForeignKey("stage.id", ondelete="CASCADE"), index=True
-    )
     builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete"
     )
@@ -199,11 +195,12 @@ class Artefact(Base):
             self,
             "name",
             "version",
+            "stage",
+            "family",
             "track",
             "store",
             "series",
             "repo",
-            "stage_id",
             "due_date",
             "status",
         )

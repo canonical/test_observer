@@ -50,15 +50,6 @@ def start_test_execution(
     | StartCharmTestExecutionRequest = Body(discriminator="family"),
     db: Session = Depends(get_db),
 ):
-    stage = (
-        db.query(Stage)
-        .filter(
-            Stage.name == request.execution_stage,
-            Stage.family.has(name=request.family),
-        )
-        .one()
-    )
-
     try:
         artefact_filter_kwargs: dict[str, str | int] = {
             "name": request.name,
@@ -79,7 +70,6 @@ def start_test_execution(
             Artefact,
             filter_kwargs=artefact_filter_kwargs,
             creation_kwargs={
-                "stage_id": stage.id,
                 "family": request.family.value,
                 "stage": request.execution_stage,
             },

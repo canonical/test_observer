@@ -42,26 +42,13 @@ def test_run_to_move_artefact_snap(
     # Arrange
     artefact = generator.gen_artefact(
         "edge",
+        family="snap",
         name="core20",
         version="1.1.1",
         store="ubuntu",
         created_at=datetime.utcnow(),
     )
-    generator.gen_artefact(
-        "edge",
-        name="core20",
-        version="1.1.0",
-        store="ubuntu",
-        created_at=datetime.utcnow() - timedelta(days=1),
-    )
-    db_session.add_all(
-        [
-            ArtefactBuild(architecture="amd64", artefact=artefact, revision=1),
-            ArtefactBuild(architecture="amd64", artefact=artefact, revision=2),
-            ArtefactBuild(architecture="arm64", artefact=artefact, revision=1),
-        ]
-    )
-    db_session.commit()
+    build = generator.gen_artefact_build(artefact, revision=1)
 
     requests_mock.get(
         "https://api.snapcraft.io/v2/snaps/info/core20",
@@ -69,7 +56,7 @@ def test_run_to_move_artefact_snap(
             "channel-map": [
                 {
                     "channel": {
-                        "architecture": artefact.builds[0].architecture,
+                        "architecture": build.architecture,
                         "name": "beta",
                         "released-at": "2023-05-17T12:39:07.471800+00:00",
                         "risk": "beta",
@@ -82,7 +69,7 @@ def test_run_to_move_artefact_snap(
                         "size": 130830336,
                         "url": "https://api.snapcraft.io/api/v1/snaps/download/...",
                     },
-                    "revision": artefact.builds[1].revision,
+                    "revision": build.revision,
                     "type": "app",
                     "version": "1.1.1",
                 },

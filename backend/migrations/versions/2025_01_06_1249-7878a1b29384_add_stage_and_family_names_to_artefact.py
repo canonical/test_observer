@@ -44,7 +44,40 @@ def upgrade() -> None:
     op.alter_column("artefact", "stage", nullable=False)
     op.alter_column("artefact", "family", nullable=False)
 
+    op.drop_index("artefact_stage_id_ix", table_name="artefact")
+    op.drop_constraint("artefact_stage_id_fkey", "artefact", type_="foreignkey")
+    op.drop_column("artefact", "stage_id")
+
+
+fill_stage_id_stmt = """
+UPDATE artefact
+SET stage_id = subq.stage_id
+FROM (
+    SELECT stage.id stage_id, stage.name stage_name, family.name family_name
+    FROM stage
+    JOIN family ON family.id = stage.family_id
+) subq
+WHERE subq.stage_name = artefact.stage AND subq.family_name = artefact.family
+"""
+
 
 def downgrade() -> None:
+    op.add_column(
+        "artefact",
+        sa.Column("stage_id", sa.INTEGER(), autoincrement=False),
+    )
+
+    op.execute(fill_stage_id_stmt)
+    op.alter_column("artefact", "stage_id", nullable=False)
+    op.create_foreign_key(
+        "artefact_stage_id_fkey",
+        "artefact",
+        "stage",
+        ["stage_id"],
+        ["id"],
+        ondelete="CASCADE",
+    )
+    op.create_index("artefact_stage_id_ix", "artefact", ["stage_id"], unique=False)
+
     op.drop_column("artefact", "family")
     op.drop_column("artefact", "stage")

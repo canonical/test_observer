@@ -26,10 +26,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access import queries
 from test_observer.data_access.models import Artefact, ArtefactBuild
 from test_observer.data_access.models_enums import FamilyName
-from test_observer.data_access.repository import (
-    get_artefacts_by_family,
-    get_stage_by_name,
-)
+from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.external_apis.archive import ArchiveManager
 from test_observer.external_apis.snapcraft import (
     get_channel_map_from_snapcraft,
@@ -87,7 +84,7 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
     for family, promoter_function in family_mapping.items():
-        artefacts = get_artefacts_by_family(session, family, load_stage=True)
+        artefacts = get_artefacts_by_family(session, family)
         for artefact in artefacts:
             artefact_key = f"{family} - {artefact.name} - {artefact.version}"
             try:
@@ -142,20 +139,14 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 continue
 
             if (
-                risk != artefact.stage.lower()
+                risk != artefact.stage
                 and version == artefact.version
                 and revision == build.revision
             ):
                 logger.info("Move artefact '%s' to the '%s' stage", artefact, risk)
-                stage = get_stage_by_name(
-                    session, stage_name=risk, family=artefact.family
-                )
-                if stage:
-                    artefact.stage_id = stage.id
-                    artefact.stage = stage.name
-                    session.commit()
-                    # The artefact was promoted, so we're done
-                    return
+
+                artefact.stage = risk
+                session.commit()
 
 
 def run_deb_promoter(session: Session, artefact: Artefact) -> None:
@@ -190,18 +181,12 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                 "Artefact version: %s, deb version: %s", artefact.version, deb_version
             )
             if (
-                pocket == next_pocket != artefact.stage
+                next_pocket
+                and pocket == next_pocket != artefact.stage
                 and deb_version == artefact.version
             ):
                 logger.info(
                     "Move artefact '%s' to the '%s' stage", artefact, next_pocket
                 )
-                stage = get_stage_by_name(
-                    session, stage_name=next_pocket, family=artefact.family
-                )
-                if stage:
-                    artefact.stage_id = stage.id
-                    artefact.stage = stage.name
-                    session.commit()
-                    # The artefact was promoted, so we're done
-                    return
+                artefact.stage = next_pocket
+                session.commit()

@@ -14,7 +14,7 @@ from test_observer.data_access.models import (
 from tests.data_generator import DataGenerator
 
 EXPECTED_COLUMN_NAMES = [
-    "Family.name",
+    "Artefact.family",
     "Artefact.id",
     "Artefact.name",
     "Artefact.version",
