@@ -61,7 +61,7 @@ def get_artefacts_by_family(
         )
 
         match family:
-            case Family.SNAP:
+            case Family.snap:
                 subquery = (
                     base_query.add_columns(Artefact.track)
                     .group_by(Artefact.track)
@@ -78,7 +78,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case Family.DEB:
+            case Family.deb:
                 subquery = (
                     base_query.add_columns(Artefact.repo, Artefact.series)
                     .group_by(Artefact.repo, Artefact.series)
@@ -96,7 +96,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case Family.CHARM:
+            case Family.charm:
                 subquery = (
                     base_query.join(ArtefactBuild)
                     .add_columns(Artefact.track, ArtefactBuild.architecture)

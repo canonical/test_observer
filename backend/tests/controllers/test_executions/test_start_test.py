@@ -200,7 +200,7 @@ def test_uses_existing_models(
     artefact_build = generator.gen_artefact_build(artefact, revision=1)
 
     request = StartSnapTestExecutionRequest(
-        family=Family.SNAP,
+        family=Family.snap,
         name=artefact.name,
         version=artefact.version,
         revision=1,

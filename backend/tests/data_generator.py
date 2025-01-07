@@ -62,13 +62,13 @@ class DataGenerator:
         family = Family(family)
 
         match family:
-            case Family.SNAP:
+            case Family.snap:
                 track = track or "latest"
                 store = store or "ubuntu"
-            case Family.DEB:
+            case Family.deb:
                 series = series or "jammy"
                 repo = repo or "main"
-            case Family.CHARM:
+            case Family.charm:
                 track = track or "latest"
 
         created_at = created_at or datetime.utcnow()
@@ -98,7 +98,7 @@ class DataGenerator:
         revision: int | None = None,
     ) -> ArtefactBuild:
         match artefact.family:
-            case Family.SNAP | Family.CHARM:
+            case Family.snap | Family.charm:
                 revision = revision or 1
 
         build = ArtefactBuild(

@@ -11,7 +11,7 @@ from alembic import op
 from test_observer.data_access.models_enums import Family
 
 new_families = {
-    Family.CHARM: ["edge", "beta", "candidate", "stable"],
+    Family.charm: ["edge", "beta", "candidate", "stable"],
 }
 
 

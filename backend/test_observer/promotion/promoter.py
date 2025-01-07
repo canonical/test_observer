@@ -78,8 +78,8 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     the second only for the processed cards with the corresponding error message
     """
     family_mapping = {
-        Family.SNAP: run_snap_promoter,
-        Family.DEB: run_deb_promoter,
+        Family.snap: run_snap_promoter,
+        Family.deb: run_deb_promoter,
     }
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}

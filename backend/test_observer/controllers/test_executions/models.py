@@ -58,20 +58,20 @@ class _StartTestExecutionRequest(BaseModel):
 
 
 class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[Family.SNAP]
+    family: Literal[Family.snap]
     revision: int
     track: str
     store: str
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[Family.DEB]
+    family: Literal[Family.deb]
     series: str
     repo: str
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[Family.CHARM]
+    family: Literal[Family.charm]
     revision: int
     track: str
 
