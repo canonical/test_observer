@@ -113,14 +113,21 @@ class Artefact(Base):
 
     __tablename__ = "artefact"
 
+    # Generic fields
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
     stage: Mapped[str] = mapped_column(String(200))
     family: Mapped[str] = mapped_column(String(200))
+    due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
+    bug_link: Mapped[str] = mapped_column(default="")
+    status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
+
+    # Family specific fields
     track: Mapped[str] = mapped_column(default="")
     store: Mapped[str] = mapped_column(default="")
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(
         back_populates="artefact", cascade="all, delete"
@@ -129,10 +136,6 @@ class Artefact(Base):
         ForeignKey("app_user.id"), index=True
     )
     assignee: Mapped[User | None] = relationship(back_populates="assignments")
-    # Default fields
-    due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
-    status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
-    bug_link: Mapped[str] = mapped_column(default="")
 
     @property
     def architectures(self) -> set[str]:
