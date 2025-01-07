@@ -33,7 +33,11 @@ from test_observer.data_access.models import (
     Environment,
     TestExecution,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    StageName,
+    TestExecutionStatus,
+)
 from tests.asserts import assert_fails_validation
 from tests.data_generator import DataGenerator
 
@@ -48,7 +52,7 @@ snap_test_request = {
     "track": "22",
     "store": "ubuntu",
     "arch": "arm64",
-    "execution_stage": "beta",
+    "execution_stage": StageName.beta,
     "environment": "cm3",
     "ci_link": "http://localhost",
     "test_plan": "test plan",
@@ -60,7 +64,7 @@ deb_test_request = {
     "version": "6.8.0-50.51~22.04.1",
     "series": "jammy",
     "repo": "main",
-    "execution_stage": "proposed",
+    "execution_stage": StageName.proposed,
     "arch": "amd64",
     "environment": "xps",
     "ci_link": "http://localhost",
@@ -195,7 +199,7 @@ def test_uses_existing_models(
     execute: Execute,
     generator: DataGenerator,
 ):
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     environment = generator.gen_environment()
     artefact_build = generator.gen_artefact_build(artefact, revision=1)
 
@@ -291,7 +295,7 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
 def test_deletes_rerun_requests(
     execute: Execute, generator: DataGenerator, db_session: Session
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te1 = generator.gen_test_execution(ab, e, ci_link="ci1.link")
@@ -324,7 +328,7 @@ def test_deletes_rerun_requests(
 def test_keeps_rerun_request_of_different_plan(
     execute: Execute, generator: DataGenerator, db_session: Session
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e, ci_link="ci1.link", test_plan="plan1")

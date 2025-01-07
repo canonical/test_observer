@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
@@ -137,7 +138,7 @@ def test_get_after_two_different_posts(
 def test_get_after_post_with_two_test_execution_ids(
     get: Get, post: Post, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("e1")
     e2 = generator.gen_environment("e2")

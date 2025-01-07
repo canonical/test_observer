@@ -46,6 +46,7 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -117,7 +118,7 @@ class Artefact(Base):
     # Generic fields
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
-    stage: Mapped[str] = mapped_column(String(200))
+    stage: Mapped[StageName]
     family: Mapped[FamilyName]
     due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
     bug_link: Mapped[str] = mapped_column(default="")

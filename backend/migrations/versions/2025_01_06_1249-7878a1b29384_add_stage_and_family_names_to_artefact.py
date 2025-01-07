@@ -17,11 +17,14 @@ depends_on = None
 
 
 family_type = sa.Enum("snap", "deb", "charm", name="familyname")
+stage_type = sa.Enum(
+    "proposed", "updates", "edge", "beta", "candidate", "stable", name="stagename"
+)
 
 
-fill_stages_stmt = """
+fill_stages_stmt = f"""
 UPDATE artefact
-SET stage = subq.name
+SET stage = subq.name::{stage_type.name}
 FROM (SELECT id, name FROM stage) as subq
 WHERE subq.id = artefact.stage_id
 """
@@ -47,7 +50,8 @@ def upgrade() -> None:
 
 
 def _add_artefact_stage_field() -> None:
-    op.add_column("artefact", sa.Column("stage", sa.String(length=200)))
+    stage_type.create(op.get_bind())
+    op.add_column("artefact", sa.Column("stage", stage_type))
     op.execute(fill_stages_stmt)
     op.alter_column("artefact", "stage", nullable=False)
 
@@ -87,7 +91,8 @@ FROM (
     FROM stage
     JOIN family ON family.id = stage.family_id
 ) subq
-WHERE subq.stage_name = artefact.stage AND subq.family_name = artefact.family::text
+WHERE subq.stage_name = artefact.stage::text 
+    AND subq.family_name = artefact.family::text
 """
 
 
@@ -97,7 +102,7 @@ def downgrade() -> None:
     _fill_tables(family_table, stage_table)
     _add_artefact_stage_id_field()
     _drop_family_column()
-    op.drop_column("artefact", "stage")
+    _drop_stage_column()
 
 
 def _create_stage_table() -> sa.Table:
@@ -204,3 +209,8 @@ def _add_artefact_stage_id_field() -> None:
 def _drop_family_column() -> None:
     op.drop_column("artefact", "family")
     op.execute(f"DROP TYPE IF EXISTS {family_type.name}")
+
+
+def _drop_stage_column() -> None:
+    op.drop_column("artefact", "stage")
+    op.execute(f"DROP TYPE IF EXISTS {stage_type.name}")

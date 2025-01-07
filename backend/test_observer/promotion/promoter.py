@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access import queries
 from test_observer.data_access.models import Artefact, ArtefactBuild
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import FamilyName, StageName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.external_apis.archive import ArchiveManager
 from test_observer.external_apis.snapcraft import (
@@ -35,8 +35,8 @@ from test_observer.external_apis.snapcraft import (
 logger = logging.getLogger("test-observer-backend")
 POCKET_PROMOTION_MAP = {
     # pocket -> next-pocket
-    "proposed": "updates",
-    "updates": "updates",
+    StageName.proposed: StageName.updates,
+    StageName.updates: StageName.updates,
 }
 
 
@@ -145,7 +145,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
             ):
                 logger.info("Move artefact '%s' to the '%s' stage", artefact, risk)
 
-                artefact.stage = risk
+                artefact.stage = StageName(risk)
                 session.commit()
 
 

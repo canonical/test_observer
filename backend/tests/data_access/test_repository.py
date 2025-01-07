@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import FamilyName, StageName
 from test_observer.data_access.repository import get_artefacts_by_family
 from tests.data_generator import DataGenerator
 
@@ -33,9 +33,9 @@ def test_get_artefacts_by_family(db_session: Session, generator: DataGenerator):
     """We should get a valid list of all artefacts"""
     # Arrange
     artefact_name_stage_pair = {
-        ("core20", "edge"),
-        ("core22", "beta"),
-        ("docker", "candidate"),
+        ("core20", StageName.edge),
+        ("core22", StageName.beta),
+        ("docker", StageName.candidate),
     }
 
     for name, stage in artefact_name_stage_pair:
@@ -55,10 +55,22 @@ def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGene
     """We should get a only latest artefacts in each stage for the specified family"""
     # Arrange
     artefact_tuple = [
-        ("core20", "snap", "edge", datetime.utcnow(), "1"),
-        ("oem-jammy", "deb", "proposed", datetime.utcnow(), "1"),
-        ("core20", "snap", "edge", datetime.utcnow() - timedelta(days=10), "2"),
-        ("core20", "snap", "beta", datetime.utcnow() - timedelta(days=20), "3"),
+        ("core20", FamilyName.snap, StageName.edge, datetime.utcnow(), "1"),
+        ("oem-jammy", FamilyName.deb, StageName.proposed, datetime.utcnow(), "1"),
+        (
+            "core20",
+            FamilyName.snap,
+            StageName.edge,
+            datetime.utcnow() - timedelta(days=10),
+            "2",
+        ),
+        (
+            "core20",
+            FamilyName.snap,
+            StageName.beta,
+            datetime.utcnow() - timedelta(days=20),
+            "3",
+        ),
     ]
     expected_artefacts = {artefact_tuple[0], artefact_tuple[-1]}
 
@@ -101,8 +113,8 @@ def test_get_artefacts_by_family_charm_unique(
     ]
     for name, track, version in specs:
         artefact = generator.gen_artefact(
-            "edge",
-            family="charm",
+            StageName.edge,
+            family=FamilyName.charm,
             name=name,
             version=version,
             track=track,
@@ -132,8 +144,8 @@ def test_get_artefacts_by_family_charm_all_architectures(
     ]
     for version, arch, day in specs:
         artefact = generator.gen_artefact(
-            "edge",
-            family="charm",
+            StageName.edge,
+            family=FamilyName.charm,
             name="name",
             version=version,
             track="track",

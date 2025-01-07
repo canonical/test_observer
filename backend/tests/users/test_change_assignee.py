@@ -1,11 +1,12 @@
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.models_enums import StageName
 from test_observer.users.change_assignee import change_assignee
 from tests.data_generator import DataGenerator
 
 
 def test_change_assignee(db_session: Session, generator: DataGenerator):
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     user1 = generator.gen_user(
         launchpad_email="user1@email.com",
         launchpad_handle="user1",

@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models_enums import (
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -26,7 +27,7 @@ from tests.data_generator import DataGenerator
 
 def test_report_test_execution_data(test_client: TestClient, generator: DataGenerator):
     c3_link = "http://c3.localhost"
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -76,7 +77,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
 def test_end_test_is_idempotent(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -108,7 +109,7 @@ def test_end_test_is_idempotent(
 def test_end_test_updates_template_id(
     test_client: TestClient, generator: DataGenerator
 ):
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(

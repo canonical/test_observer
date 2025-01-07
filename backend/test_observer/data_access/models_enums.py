@@ -28,6 +28,15 @@ class FamilyName(str, Enum):
     charm = "charm"
 
 
+class StageName(str, Enum):
+    proposed = "proposed"
+    updates = "updates"
+    edge = "edge"
+    beta = "beta"
+    candidate = "candidate"
+    stable = "stable"
+
+
 class TestExecutionStatus(str, Enum):
     __test__ = False
 

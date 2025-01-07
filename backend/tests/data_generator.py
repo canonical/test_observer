@@ -18,6 +18,7 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -45,8 +46,8 @@ class DataGenerator:
 
     def gen_artefact(
         self,
-        stage: str,
-        family: str = "snap",
+        stage: StageName = StageName.beta,
+        family: FamilyName = FamilyName.snap,
         name: str = "core",
         version: str = "1.1.1",
         track: str = "",

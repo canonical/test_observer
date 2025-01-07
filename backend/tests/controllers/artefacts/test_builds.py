@@ -1,10 +1,11 @@
 from fastapi.testclient import TestClient
 
+from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
 
 
 def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)
@@ -39,7 +40,7 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
 def test_get_artefact_builds_sorts_test_executions_by_environment_name(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e2 = generator.gen_environment("e2")
     e1 = generator.gen_environment("e1")
@@ -86,7 +87,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
 def test_get_artefact_builds_only_latest(
     test_client: TestClient, generator: DataGenerator
 ):
-    artefact = generator.gen_artefact("beta")
+    artefact = generator.gen_artefact(StageName.beta)
     generator.gen_artefact_build(artefact=artefact, revision=1)
     artefact_build2 = generator.gen_artefact_build(artefact=artefact, revision=2)
 
@@ -106,7 +107,7 @@ def test_get_artefact_builds_only_latest(
 def test_get_artefact_builds_with_rerun_requested(
     test_client: TestClient, generator: DataGenerator
 ):
-    a = generator.gen_artefact("beta")
+    a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)

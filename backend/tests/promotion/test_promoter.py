@@ -26,6 +26,7 @@ from requests_mock import Mocker
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild
+from test_observer.data_access.models_enums import FamilyName, StageName
 from test_observer.promotion.promoter import promote_artefacts
 from tests.data_generator import DataGenerator
 
@@ -41,8 +42,8 @@ def test_run_to_move_artefact_snap(
     """
     # Arrange
     artefact = generator.gen_artefact(
-        "edge",
-        family="snap",
+        StageName.edge,
+        family=FamilyName.snap,
         name="core20",
         version="1.1.1",
         store="ubuntu",
@@ -83,7 +84,7 @@ def test_run_to_move_artefact_snap(
     db_session.refresh(artefact)
 
     # Assert
-    assert artefact.stage == "beta"
+    assert artefact.stage == StageName.beta
 
 
 def test_run_to_move_artefact_deb(
@@ -97,8 +98,8 @@ def test_run_to_move_artefact_deb(
     """
     # Arrange
     artefact1 = generator.gen_artefact(
-        "proposed",
-        family="deb",
+        StageName.proposed,
+        family=FamilyName.deb,
         name="linux-generic",
         version="5.19.0.43.39",
         series="kinetic",
@@ -106,8 +107,8 @@ def test_run_to_move_artefact_deb(
         created_at=datetime.utcnow(),
     )
     artefact2 = generator.gen_artefact(
-        "proposed",
-        family="deb",
+        StageName.proposed,
+        family=FamilyName.deb,
         name="linux-oem-22_04a",
         version="6.1.0.1028.29",
         series="kinetic",
@@ -115,8 +116,8 @@ def test_run_to_move_artefact_deb(
         created_at=datetime.utcnow() - timedelta(days=1),
     )
     artefact3 = generator.gen_artefact(
-        "proposed",
-        family="deb",
+        StageName.proposed,
+        family=FamilyName.deb,
         name="linux-cloud-tools-5_15.0-86",
         version="5.15.0-86.96",
         series="kinetic",
@@ -154,9 +155,9 @@ def test_run_to_move_artefact_deb(
     db_session.refresh(artefact1)
 
     # Assert
-    assert artefact1.stage == "updates"
-    assert artefact2.stage == "updates"
-    assert artefact3.stage == "updates"
+    assert artefact1.stage == StageName.updates
+    assert artefact2.stage == StageName.updates
+    assert artefact3.stage == StageName.updates
 
 
 def test_promote_snap_from_beta_to_stable(
@@ -164,7 +165,7 @@ def test_promote_snap_from_beta_to_stable(
     requests_mock: Mocker,
     generator: DataGenerator,
 ):
-    artefact = generator.gen_artefact("beta", store="ubuntu")
+    artefact = generator.gen_artefact(StageName.beta, store="ubuntu")
     build = generator.gen_artefact_build(artefact, revision=1)
 
     requests_mock.get(
@@ -187,4 +188,4 @@ def test_promote_snap_from_beta_to_stable(
 
     promote_artefacts(db_session)
 
-    assert artefact.stage == "stable"
+    assert artefact.stage == StageName.stable

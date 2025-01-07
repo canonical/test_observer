@@ -3,6 +3,8 @@ from typing import TypedDict
 
 import requests
 
+from test_observer.data_access.models_enums import StageName
+
 
 class ArtefactTrackerInfo(TypedDict):
     bug_id: str
@@ -21,9 +23,8 @@ def _fetch_stable_workflow_manager_status() -> dict:
 
 def _extract_artefact_bug_info_from_swm(json: dict) -> dict[int, ArtefactTrackerInfo]:
     result: dict[int, ArtefactTrackerInfo] = {}
-    stage_names = _get_stage_names()
     for bug_id, tracker in json["trackers"].items():
-        artefact_id = _extract_artefact_id(tracker, stage_names)
+        artefact_id = _extract_artefact_id(tracker)
 
         if artefact_id and _is_tracker_open(tracker):
             result[artefact_id] = {
@@ -34,22 +35,18 @@ def _extract_artefact_bug_info_from_swm(json: dict) -> dict[int, ArtefactTracker
     return result
 
 
-def _get_stage_names() -> list[str]:
-    return ["edge", "beta", "candidate", "stable", "proposed", "updates"]
-
-
 def _is_tracker_open(tracker: dict) -> bool:
     closed_statuses = ("Fix Committed", "Fix Released")
     status = tracker.get("task", {}).get("kernel-sru-workflow", {}).get("status")
     return status and status not in closed_statuses
 
 
-def _extract_artefact_id(tracker: dict, stage_names: list[str]) -> int | None:
+def _extract_artefact_id(tracker: dict) -> int | None:
     to_info = tracker.get("test-observer")
     if to_info:
-        for stages in stage_names:
-            if stages in to_info:
-                return to_info[stages]
+        for stage in StageName:
+            if stage in to_info:
+                return to_info[stage]
     return None
 
 
