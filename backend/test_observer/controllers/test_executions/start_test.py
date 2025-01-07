@@ -81,7 +81,7 @@ def start_test_execution(
             creation_kwargs={
                 "stage_id": stage.id,
                 "family_name": request.family.value,
-                "stage_name": request.execution_stage,
+                "stage": request.execution_stage,
             },
         )
 

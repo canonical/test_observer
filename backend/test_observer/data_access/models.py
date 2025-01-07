@@ -152,7 +152,7 @@ class Artefact(Base):
     store: Mapped[str] = mapped_column(default="")
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
-    stage_name: Mapped[str] = mapped_column(String(200))
+    stage: Mapped[str] = mapped_column(String(200))
     family_name: Mapped[str] = mapped_column(String(200))
     # Relationships
     stage_id: Mapped[int] = mapped_column(

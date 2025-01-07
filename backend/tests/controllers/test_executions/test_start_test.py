@@ -139,7 +139,7 @@ def test_creates_all_data_models(db_session: Session, execute: Execute):
             Artefact.version == snap_test_request["version"],
             Artefact.store == snap_test_request["store"],
             Artefact.track == snap_test_request["track"],
-            Artefact.stage_name == snap_test_request["execution_stage"],
+            Artefact.stage == snap_test_request["execution_stage"],
         )
         .one_or_none()
     )
@@ -207,7 +207,7 @@ def test_uses_existing_models(
         track=artefact.track,
         store=artefact.store,
         arch=artefact_build.architecture,
-        execution_stage=artefact.stage_name,
+        execution_stage=artefact.stage,
         environment=environment.name,
         ci_link="http://localhost/",
         test_plan="test plan",
@@ -256,7 +256,7 @@ def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
             Artefact.version == snap_test_request["version"],
             Artefact.store == snap_test_request["store"],
             Artefact.track == snap_test_request["track"],
-            Artefact.stage_name == snap_test_request["execution_stage"],
+            Artefact.stage == snap_test_request["execution_stage"],
         )
         .one_or_none()
     )
@@ -279,7 +279,7 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
             Artefact.version == request["version"],
             Artefact.store == request["store"],
             Artefact.track == request["track"],
-            Artefact.stage_name == request["execution_stage"],
+            Artefact.stage == request["execution_stage"],
         )
         .one_or_none()
     )
@@ -308,7 +308,7 @@ def test_deletes_rerun_requests(
             "track": a.track,
             "store": a.store,
             "arch": ab.architecture,
-            "execution_stage": a.stage_name,
+            "execution_stage": a.stage,
             "environment": e.name,
             "ci_link": "different-ci.link",
             "test_plan": te1.test_plan,
@@ -339,7 +339,7 @@ def test_keeps_rerun_request_of_different_plan(
             "track": a.track,
             "store": a.store,
             "arch": ab.architecture,
-            "execution_stage": a.stage_name,
+            "execution_stage": a.stage,
             "environment": e.name,
             "ci_link": "different-ci.link",
             "test_plan": "plan2",

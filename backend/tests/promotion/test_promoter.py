@@ -96,7 +96,7 @@ def test_run_to_move_artefact_snap(
     db_session.refresh(artefact)
 
     # Assert
-    assert artefact.stage_name == "beta"
+    assert artefact.stage == "beta"
 
 
 def test_run_to_move_artefact_deb(
@@ -167,9 +167,9 @@ def test_run_to_move_artefact_deb(
     db_session.refresh(artefact1)
 
     # Assert
-    assert artefact1.stage_name == "updates"
-    assert artefact2.stage_name == "updates"
-    assert artefact3.stage_name == "updates"
+    assert artefact1.stage == "updates"
+    assert artefact2.stage == "updates"
+    assert artefact3.stage == "updates"
 
 
 def test_promote_snap_from_beta_to_stable(
@@ -200,4 +200,4 @@ def test_promote_snap_from_beta_to_stable(
 
     promote_artefacts(db_session)
 
-    assert artefact.stage_name == "stable"
+    assert artefact.stage == "stable"

@@ -15,9 +15,9 @@ branch_labels = None
 depends_on = None
 
 
-fill_stage_names_stmt = """
+fill_stages_stmt = """
 UPDATE artefact
-SET stage_name = subq.name
+SET stage = subq.name
 FROM (SELECT id, name FROM stage) as subq
 WHERE subq.id = artefact.stage_id
 """
@@ -35,16 +35,16 @@ WHERE subq.stage_id = artefact.stage_id
 
 
 def upgrade() -> None:
-    op.add_column("artefact", sa.Column("stage_name", sa.String(length=200)))
+    op.add_column("artefact", sa.Column("stage", sa.String(length=200)))
     op.add_column("artefact", sa.Column("family_name", sa.String(length=200)))
 
-    op.execute(fill_stage_names_stmt)
+    op.execute(fill_stages_stmt)
     op.execute(fill_family_names_stmt)
 
-    op.alter_column("artefact", "stage_name", nullable=False)
+    op.alter_column("artefact", "stage", nullable=False)
     op.alter_column("artefact", "family_name", nullable=False)
 
 
 def downgrade() -> None:
     op.drop_column("artefact", "family_name")
-    op.drop_column("artefact", "stage_name")
+    op.drop_column("artefact", "stage")

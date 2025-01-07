@@ -142,7 +142,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 continue
 
             if (
-                risk != artefact.stage_name.lower()
+                risk != artefact.stage.lower()
                 and version == artefact.version
                 and revision == build.revision
             ):
@@ -152,7 +152,7 @@ def run_snap_promoter(session: Session, artefact: Artefact) -> None:
                 )
                 if stage:
                     artefact.stage_id = stage.id
-                    artefact.stage_name = stage.name
+                    artefact.stage = stage.name
                     session.commit()
                     # The artefact was promoted, so we're done
                     return
@@ -185,12 +185,12 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                         artefact.name,
                     )
                     continue
-            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage_name)
+            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage)
             logger.debug(
                 "Artefact version: %s, deb version: %s", artefact.version, deb_version
             )
             if (
-                pocket == next_pocket != artefact.stage_name
+                pocket == next_pocket != artefact.stage
                 and deb_version == artefact.version
             ):
                 logger.info(
@@ -201,7 +201,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
                 )
                 if stage:
                     artefact.stage_id = stage.id
-                    artefact.stage_name = stage.name
+                    artefact.stage = stage.name
                     session.commit()
                     # The artefact was promoted, so we're done
                     return
