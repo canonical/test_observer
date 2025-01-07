@@ -26,7 +26,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
 )
-from test_observer.data_access.models_enums import ArtefactStatus, Family
+from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
@@ -47,7 +47,7 @@ router.include_router(builds.router)
 
 
 @router.get("", response_model=list[ArtefactDTO])
-def get_artefacts(family: Family | None = None, db: Session = Depends(get_db)):
+def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
     artefacts = []
     order_by = (Artefact.name, Artefact.created_at)
@@ -60,7 +60,7 @@ def get_artefacts(family: Family | None = None, db: Session = Depends(get_db)):
             order_by_columns=order_by,
         )
     else:
-        for family in Family:
+        for family in FamilyName:
             artefacts += get_artefacts_by_family(
                 db,
                 family,

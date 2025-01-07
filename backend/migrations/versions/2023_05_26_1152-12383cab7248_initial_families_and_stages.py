@@ -9,11 +9,11 @@ Create Date: 2023-05-26 11:52:18.703471+00:00
 import sqlalchemy as sa
 from alembic import op
 
-from test_observer.data_access.models_enums import Family
+from test_observer.data_access.models_enums import FamilyName
 
 initial_families_and_stages = {
-    Family.snap: ["edge", "beta", "candidate", "stable"],
-    Family.deb: ["proposed", "updates"],
+    FamilyName.snap: ["edge", "beta", "candidate", "stable"],
+    FamilyName.deb: ["proposed", "updates"],
 }
 
 # revision identifiers, used by Alembic.

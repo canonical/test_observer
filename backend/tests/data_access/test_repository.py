@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models_enums import Family
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from tests.data_generator import DataGenerator
 
@@ -42,7 +42,7 @@ def test_get_artefacts_by_family(db_session: Session, generator: DataGenerator):
         generator.gen_artefact(stage, name=name)
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, Family.snap, latest_only=False)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.snap, latest_only=False)
 
     # Assert
     assert len(artefacts) == len(artefact_name_stage_pair)
@@ -72,7 +72,7 @@ def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGene
         )
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, Family.snap)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.snap)
 
     # Assert
     assert len(artefacts) == len(expected_artefacts)
@@ -114,7 +114,7 @@ def test_get_artefacts_by_family_charm_unique(
         )
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, Family.charm)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
 
     # Assert
     assert len(artefacts) == 4
@@ -145,7 +145,7 @@ def test_get_artefacts_by_family_charm_all_architectures(
         )
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, Family.charm)
+    artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
 
     # Assert
     assert len(artefacts) == 2

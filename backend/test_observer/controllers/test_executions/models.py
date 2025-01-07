@@ -33,7 +33,7 @@ from pydantic import (
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import (
-    Family,
+    FamilyName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -58,20 +58,20 @@ class _StartTestExecutionRequest(BaseModel):
 
 
 class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[Family.snap]
+    family: Literal[FamilyName.snap]
     revision: int
     track: str
     store: str
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[Family.deb]
+    family: Literal[FamilyName.deb]
     series: str
     repo: str
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[Family.charm]
+    family: Literal[FamilyName.charm]
     revision: int
     track: str
 
@@ -151,7 +151,7 @@ class RerunRequest(BaseModel):
 class PendingRerun(BaseModel):
     test_execution_id: int
     ci_link: str = Field(validation_alias=AliasPath("test_execution", "ci_link"))
-    family: Family = Field(
+    family: FamilyName = Field(
         validation_alias=AliasPath(
             "test_execution", "artefact_build", "artefact", "family"
         )

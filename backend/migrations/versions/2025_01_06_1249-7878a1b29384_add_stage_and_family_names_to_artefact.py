@@ -51,7 +51,6 @@ def _add_artefact_stage_field() -> None:
 
 def _add_artefact_family_field() -> None:
     op.add_column("artefact", sa.Column("family", sa.String(length=200)))
-    # sa.Enum('SNAP', 'DEB', 'CHARM', name='family')
     op.execute(fill_families_stmt)
     op.alter_column("artefact", "family", nullable=False)
 

@@ -22,7 +22,7 @@
 from enum import Enum
 
 
-class Family(str, Enum):
+class FamilyName(str, Enum):
     snap = "snap"
     deb = "deb"
     charm = "charm"
