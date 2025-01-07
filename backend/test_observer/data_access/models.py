@@ -108,38 +108,6 @@ class User(Base):
         return data_model_repr(self, "launchpad_handle")
 
 
-class Family(Base):
-    """A model to represent artefact family object"""
-
-    __tablename__ = "family"
-
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
-    # Relationships
-    stages: Mapped[list["Stage"]] = relationship(
-        back_populates="family", cascade="all, delete", order_by="Stage.position"
-    )
-
-    def __repr__(self) -> str:
-        return data_model_repr(self, "name")
-
-
-class Stage(Base):
-    """A model to represent artefact stage in the promotion cycle"""
-
-    __tablename__ = "stage"
-
-    name: Mapped[str] = mapped_column(String(100), index=True)
-    position: Mapped[int] = mapped_column()
-    # Relationships
-    family_id: Mapped[int] = mapped_column(
-        ForeignKey("family.id", ondelete="CASCADE"), index=True
-    )
-    family: Mapped[Family] = relationship(back_populates="stages")
-
-    def __repr__(self) -> str:
-        return data_model_repr(self, "name", "position", "family_id")
-
-
 class Artefact(Base):
     """A model to represent artefacts (snaps, debs, images)"""
 
