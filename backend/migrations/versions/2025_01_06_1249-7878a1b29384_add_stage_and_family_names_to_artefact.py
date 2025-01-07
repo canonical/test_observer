@@ -16,6 +16,9 @@ branch_labels = None
 depends_on = None
 
 
+family_type = sa.Enum("snap", "deb", "charm", name="familyname")
+
+
 fill_stages_stmt = """
 UPDATE artefact
 SET stage = subq.name
@@ -23,9 +26,9 @@ FROM (SELECT id, name FROM stage) as subq
 WHERE subq.id = artefact.stage_id
 """
 
-fill_families_stmt = """
+fill_families_stmt = f"""
 UPDATE artefact
-SET family = subq.family
+SET family = subq.family::{family_type.name}
 FROM (
     SELECT stage.id stage_id, family.name family
     FROM stage 
@@ -50,7 +53,11 @@ def _add_artefact_stage_field() -> None:
 
 
 def _add_artefact_family_field() -> None:
-    op.add_column("artefact", sa.Column("family", sa.String(length=200)))
+    family_type.create(op.get_bind())
+    op.add_column(
+        "artefact",
+        sa.Column("family", family_type),
+    )
     op.execute(fill_families_stmt)
     op.alter_column("artefact", "family", nullable=False)
 
@@ -80,7 +87,7 @@ FROM (
     FROM stage
     JOIN family ON family.id = stage.family_id
 ) subq
-WHERE subq.stage_name = artefact.stage AND subq.family_name = artefact.family
+WHERE subq.stage_name = artefact.stage AND subq.family_name = artefact.family::text
 """
 
 
@@ -89,7 +96,7 @@ def downgrade() -> None:
     stage_table = _create_stage_table()
     _fill_tables(family_table, stage_table)
     _add_artefact_stage_id_field()
-    op.drop_column("artefact", "family")
+    _drop_family_column()
     op.drop_column("artefact", "stage")
 
 
@@ -192,3 +199,8 @@ def _add_artefact_stage_id_field() -> None:
         ondelete="CASCADE",
     )
     op.create_index("artefact_stage_id_ix", "artefact", ["stage_id"], unique=False)
+
+
+def _drop_family_column() -> None:
+    op.drop_column("artefact", "family")
+    op.execute(f"DROP TYPE IF EXISTS {family_type.name}")

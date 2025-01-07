@@ -118,7 +118,7 @@ class Artefact(Base):
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
     stage: Mapped[str] = mapped_column(String(200))
-    family: Mapped[str] = mapped_column(String(200))
+    family: Mapped[FamilyName]
     due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
     bug_link: Mapped[str] = mapped_column(default="")
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
