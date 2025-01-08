@@ -16,7 +16,7 @@
 
 import random
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
