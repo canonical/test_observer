@@ -8,13 +8,10 @@ COPY backend/poetry.lock .
 
 COPY backend/pyproject.toml .
 
-RUN --mount=source=.git,target=.git,type=bind pip3 install poetry && \
+RUN pip3 install poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --without dev && \
-    pip3 install --user poetry-dynamic-versioning[plugin]
+    poetry install --no-interaction --no-ansi --without dev
 
 COPY ./backend .
-
-RUN --mount=source=.git,target=.git,type=bind poetry build && pip3 install dist/*.whl
 
 CMD [ "uvicorn",  "test_observer.main:app", "--host", "0.0.0.0", "--port", "30000" ]
