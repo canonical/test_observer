@@ -44,7 +44,6 @@ class _StartTestExecutionRequest(BaseModel):
     name: str
     version: str
     arch: str
-    execution_stage: StageName
     environment: str
     ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
@@ -63,18 +62,25 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
+    execution_stage: Literal[StageName.edge] | Literal[StageName.beta] | Literal[
+        StageName.candidate
+    ] | Literal[StageName.stable]
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.deb]
     series: str
     repo: str
+    execution_stage: Literal[StageName.proposed] | Literal[StageName.updates]
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.charm]
     revision: int
     track: str
+    execution_stage: Literal[StageName.edge] | Literal[StageName.beta] | Literal[
+        StageName.candidate
+    ] | Literal[StageName.stable]
 
 
 class C3TestResultStatus(str, Enum):

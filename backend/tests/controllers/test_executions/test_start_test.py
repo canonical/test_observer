@@ -71,6 +71,19 @@ deb_test_request = {
     "test_plan": "test plan",
 }
 
+charm_test_request = {
+    "family": "charm",
+    "name": "postgresql",
+    "version": "abec123",
+    "revision": 123,
+    "track": "22",
+    "arch": "arm64",
+    "execution_stage": StageName.beta,
+    "environment": "juju 3 - microk8s 2",
+    "ci_link": "http://localhost",
+    "test_plan": "test plan",
+}
+
 
 @pytest.fixture
 def execute(test_client: TestClient) -> Execute:
@@ -209,7 +222,7 @@ def test_uses_existing_models(
         track=artefact.track,
         store=artefact.store,
         arch=artefact_build.architecture,
-        execution_stage=artefact.stage,
+        execution_stage=StageName.beta,
         environment=environment.name,
         ci_link="http://localhost/",
         test_plan="test plan",
@@ -394,3 +407,45 @@ def test_create_two_executions_for_null_ci_link(execute: Execute):
     assert response_1.status_code == 200
     assert response_2.status_code == 200
     assert response_1.json()["id"] != response_2.json()["id"]
+
+
+@pytest.mark.parametrize(
+    "an_invalid_stage",
+    set(StageName) - {StageName.proposed, StageName.updates},
+)
+def test_validates_stage_for_debs(execute: Execute, an_invalid_stage: StageName):
+    response = execute({**deb_test_request, "execution_stage": an_invalid_stage})
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "an_invalid_stage",
+    set(StageName)
+    - {
+        StageName.edge,
+        StageName.beta,
+        StageName.candidate,
+        StageName.stable,
+    },
+)
+def test_validates_stage_for_snaps(execute: Execute, an_invalid_stage: StageName):
+    response = execute({**snap_test_request, "execution_stage": an_invalid_stage})
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "an_invalid_stage",
+    set(StageName)
+    - {
+        StageName.edge,
+        StageName.beta,
+        StageName.candidate,
+        StageName.stable,
+    },
+)
+def test_validates_stage_for_charms(execute: Execute, an_invalid_stage: StageName):
+    response = execute({**charm_test_request, "execution_stage": an_invalid_stage})
+
+    assert response.status_code == 422
