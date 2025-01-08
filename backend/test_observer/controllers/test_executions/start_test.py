@@ -116,28 +116,19 @@ class TestExecutionController:
         )
 
     def create_artefact(self) -> None:
-        artefact_filter_kwargs: dict[str, str | int] = {
-            "name": self.request.name,
-            "version": self.request.version,
-        }
-        match self.request:
-            case StartSnapTestExecutionRequest():
-                artefact_filter_kwargs["store"] = self.request.store
-                artefact_filter_kwargs["track"] = self.request.track
-            case StartDebTestExecutionRequest():
-                artefact_filter_kwargs["series"] = self.request.series
-                artefact_filter_kwargs["repo"] = self.request.repo
-            case StartCharmTestExecutionRequest():
-                artefact_filter_kwargs["track"] = self.request.track
-
         self.artefact = get_or_create(
             self.db,
             Artefact,
-            filter_kwargs=artefact_filter_kwargs,
-            creation_kwargs={
-                "family": self.request.family.value,
-                "stage": self.request.execution_stage,
+            filter_kwargs={
+                "name": self.request.name,
+                "version": self.request.version,
+                "family": self.request.family,
+                "store": getattr(self.request, "store", ""),
+                "track": getattr(self.request, "track", ""),
+                "series": getattr(self.request, "series", ""),
+                "repo": getattr(self.request, "repo", ""),
             },
+            creation_kwargs={"stage": self.request.execution_stage},
         )
 
     def delete_related_rerun_requests(self):
