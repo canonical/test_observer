@@ -100,9 +100,7 @@ class TestExecutionController:
             ArtefactBuild,
             filter_kwargs={
                 "architecture": self.request.arch,
-                "revision": self.request.revision
-                if isinstance(self.request, StartSnapTestExecutionRequest)
-                else None,
+                "revision": getattr(self.request, "revision", None),
                 "artefact_id": self.artefact.id,
             },
         )
