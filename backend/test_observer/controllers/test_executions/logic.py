@@ -17,7 +17,7 @@
 from collections import defaultdict
 
 from sqlalchemy import delete, desc, func, or_, over, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.controllers.test_executions.models import PreviousTestResult
@@ -28,27 +28,6 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
 )
-
-
-def delete_related_rerun_requests(
-    db: Session, artefact_build_id: int, environment_id: int, test_plan: str
-):
-    related_test_execution_runs = db.scalars(
-        select(TestExecution)
-        .where(
-            TestExecution.artefact_build_id == artefact_build_id,
-            TestExecution.environment_id == environment_id,
-            TestExecution.test_plan == test_plan,
-        )
-        .options(selectinload(TestExecution.rerun_request))
-    )
-
-    for te in related_test_execution_runs:
-        rerun_request = te.rerun_request
-        if rerun_request:
-            db.delete(rerun_request)
-
-    db.commit()
 
 
 def delete_previous_results(

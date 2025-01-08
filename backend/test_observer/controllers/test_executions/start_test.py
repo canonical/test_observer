@@ -17,11 +17,9 @@
 import random
 
 from fastapi import APIRouter, Body, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
-from test_observer.controllers.test_executions.logic import (
-    delete_related_rerun_requests,
-)
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -55,88 +53,115 @@ class TestExecutionController:
 
     def execute(self):
         try:
-            artefact_filter_kwargs: dict[str, str | int] = {
-                "name": self.request.name,
-                "version": self.request.version,
-            }
-            match self.request:
-                case StartSnapTestExecutionRequest():
-                    artefact_filter_kwargs["store"] = self.request.store
-                    artefact_filter_kwargs["track"] = self.request.track
-                case StartDebTestExecutionRequest():
-                    artefact_filter_kwargs["series"] = self.request.series
-                    artefact_filter_kwargs["repo"] = self.request.repo
-                case StartCharmTestExecutionRequest():
-                    artefact_filter_kwargs["track"] = self.request.track
+            self.create_artefact()
+            self.create_environment()
+            self.create_artefact_build()
+            self.create_artefact_build_environment()
+            self.create_test_execution()
 
-            artefact = get_or_create(
-                self.db,
-                Artefact,
-                filter_kwargs=artefact_filter_kwargs,
-                creation_kwargs={
-                    "family": self.request.family.value,
-                    "stage": self.request.execution_stage,
-                },
-            )
+            self.delete_related_rerun_requests()
 
-            environment = get_or_create(
-                self.db,
-                Environment,
-                filter_kwargs={
-                    "name": self.request.environment,
-                    "architecture": self.request.arch,
-                },
-            )
+            self.assign_reviewer()
 
-            artefact_build = get_or_create(
-                self.db,
-                ArtefactBuild,
-                filter_kwargs={
-                    "architecture": self.request.arch,
-                    "revision": self.request.revision
-                    if isinstance(self.request, StartSnapTestExecutionRequest)
-                    else None,
-                    "artefact_id": artefact.id,
-                },
-            )
-
-            get_or_create(
-                self.db,
-                ArtefactBuildEnvironmentReview,
-                filter_kwargs={
-                    "environment_id": environment.id,
-                    "artefact_build_id": artefact_build.id,
-                },
-            )
-
-            test_execution = get_or_create(
-                self.db,
-                TestExecution,
-                filter_kwargs={
-                    "ci_link": self.request.ci_link,
-                },
-                creation_kwargs={
-                    "status": self.request.initial_status,
-                    "environment_id": environment.id,
-                    "artefact_build_id": artefact_build.id,
-                    "test_plan": self.request.test_plan,
-                },
-            )
-
-            delete_related_rerun_requests(
-                self.db,
-                test_execution.artefact_build_id,
-                test_execution.environment_id,
-                test_execution.test_plan,
-            )
-
-            if artefact.assignee_id is None and (users := self.db.query(User).all()):
-                artefact.assignee = random.choice(users)
-                self.db.commit()
-
-            return {"id": test_execution.id}
+            return {"id": self.test_execution.id}
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    def assign_reviewer(self):
+        if self.artefact.assignee_id is None and (users := self.db.query(User).all()):
+            self.artefact.assignee = random.choice(users)
+            self.db.commit()
+
+    def create_test_execution(self):
+        self.test_execution = get_or_create(
+            self.db,
+            TestExecution,
+            filter_kwargs={
+                "ci_link": self.request.ci_link,
+            },
+            creation_kwargs={
+                "status": self.request.initial_status,
+                "environment_id": self.environment.id,
+                "artefact_build_id": self.artefact_build.id,
+                "test_plan": self.request.test_plan,
+            },
+        )
+
+    def create_artefact_build_environment(self):
+        get_or_create(
+            self.db,
+            ArtefactBuildEnvironmentReview,
+            filter_kwargs={
+                "environment_id": self.environment.id,
+                "artefact_build_id": self.artefact_build.id,
+            },
+        )
+
+    def create_artefact_build(self):
+        self.artefact_build = get_or_create(
+            self.db,
+            ArtefactBuild,
+            filter_kwargs={
+                "architecture": self.request.arch,
+                "revision": self.request.revision
+                if isinstance(self.request, StartSnapTestExecutionRequest)
+                else None,
+                "artefact_id": self.artefact.id,
+            },
+        )
+
+    def create_environment(self):
+        self.environment = get_or_create(
+            self.db,
+            Environment,
+            filter_kwargs={
+                "name": self.request.environment,
+                "architecture": self.request.arch,
+            },
+        )
+
+    def create_artefact(self) -> None:
+        artefact_filter_kwargs: dict[str, str | int] = {
+            "name": self.request.name,
+            "version": self.request.version,
+        }
+        match self.request:
+            case StartSnapTestExecutionRequest():
+                artefact_filter_kwargs["store"] = self.request.store
+                artefact_filter_kwargs["track"] = self.request.track
+            case StartDebTestExecutionRequest():
+                artefact_filter_kwargs["series"] = self.request.series
+                artefact_filter_kwargs["repo"] = self.request.repo
+            case StartCharmTestExecutionRequest():
+                artefact_filter_kwargs["track"] = self.request.track
+
+        self.artefact = get_or_create(
+            self.db,
+            Artefact,
+            filter_kwargs=artefact_filter_kwargs,
+            creation_kwargs={
+                "family": self.request.family.value,
+                "stage": self.request.execution_stage,
+            },
+        )
+
+    def delete_related_rerun_requests(self):
+        related_test_execution_runs = self.db.scalars(
+            select(TestExecution)
+            .where(
+                TestExecution.artefact_build_id == self.artefact_build.id,
+                TestExecution.environment_id == self.environment.id,
+                TestExecution.test_plan == self.test_execution.test_plan,
+            )
+            .options(selectinload(TestExecution.rerun_request))
+        )
+
+        for te in related_test_execution_runs:
+            rerun_request = te.rerun_request
+            if rerun_request:
+                self.db.delete(rerun_request)
+
+        self.db.commit()
 
 
 @router.put("/start-test")
