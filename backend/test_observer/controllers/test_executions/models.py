@@ -83,6 +83,11 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     ] | Literal[StageName.stable]
 
 
+class StartImageTestExecutionRequest(_StartTestExecutionRequest):
+    family: Literal[FamilyName.image]
+    execution_stage: Literal[StageName.pending] | Literal[StageName.current]
+
+
 class C3TestResultStatus(str, Enum):
     PASS = "pass"
     FAIL = "fail"

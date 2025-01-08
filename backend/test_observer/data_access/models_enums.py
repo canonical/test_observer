@@ -26,6 +26,7 @@ class FamilyName(str, Enum):
     snap = "snap"
     deb = "deb"
     charm = "charm"
+    image = "image"
 
 
 class StageName(str, Enum):
@@ -35,6 +36,8 @@ class StageName(str, Enum):
     beta = "beta"
     candidate = "candidate"
     stable = "stable"
+    pending = "pending"
+    current = "current"
 
     def _compare(self, other: str) -> int:
         stages = list(StageName.__members__.values())

@@ -84,6 +84,22 @@ charm_test_request = {
     "test_plan": "test plan",
 }
 
+image_test_request = {
+    "family": "image",
+    "name": "noble-desktop-amd64",
+    "os": "ubuntu",
+    "release": "noble",
+    "arch": "amd64",
+    "version": "20240827",
+    "sha256": "e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
+    "owner": "foundations",
+    "url": "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso",
+    "execution_stage": StageName.pending,
+    "test_plan": "image test plan",
+    "environment": "xps",
+    "ci_link": "http://localhost",
+}
+
 
 @pytest.fixture
 def execute(test_client: TestClient) -> Execute:
@@ -449,3 +465,9 @@ def test_validates_stage_for_charms(execute: Execute, an_invalid_stage: StageNam
     response = execute({**charm_test_request, "execution_stage": an_invalid_stage})
 
     assert response.status_code == 422
+
+
+def test_start_an_image_test(execute: Execute):
+    response = execute(image_test_request)
+    print(response.json())
+    assert response.status_code == 200

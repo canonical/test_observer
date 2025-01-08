@@ -34,18 +34,20 @@ from test_observer.data_access.setup import get_db
 from .models import (
     StartCharmTestExecutionRequest,
     StartDebTestExecutionRequest,
+    StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
 
 router = APIRouter()
 
 
-class TestExecutionController:
+class StartTestExecutionController:
     def __init__(
         self,
         request: StartSnapTestExecutionRequest
         | StartDebTestExecutionRequest
-        | StartCharmTestExecutionRequest = Body(discriminator="family"),
+        | StartCharmTestExecutionRequest
+        | StartImageTestExecutionRequest = Body(discriminator="family"),
         db: Session = Depends(get_db),
     ):
         self.request = request
@@ -152,6 +154,6 @@ class TestExecutionController:
 
 @router.put("/start-test")
 def start_test_execution(
-    test_starter: TestExecutionController = Depends(TestExecutionController),
+    test_starter: StartTestExecutionController = Depends(StartTestExecutionController),
 ):
     return test_starter.execute()
