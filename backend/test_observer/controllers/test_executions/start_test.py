@@ -52,20 +52,17 @@ class TestExecutionController:
         self.db = db
 
     def execute(self):
-        try:
-            self.create_artefact()
-            self.create_environment()
-            self.create_artefact_build()
-            self.create_artefact_build_environment()
-            self.create_test_execution()
+        self.create_artefact()
+        self.create_environment()
+        self.create_artefact_build()
+        self.create_artefact_build_environment()
+        self.create_test_execution()
 
-            self.delete_related_rerun_requests()
+        self.delete_related_rerun_requests()
 
-            self.assign_reviewer()
+        self.assign_reviewer()
 
-            return {"id": self.test_execution.id}
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
         if self.artefact.assignee_id is None and (users := self.db.query(User).all()):
