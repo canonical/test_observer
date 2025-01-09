@@ -471,6 +471,7 @@ def test_start_an_image_test(execute: Execute, db_session: Session):
     response = execute(image_test_request)
     assert response.status_code == 200
 
+    # TODO refactor common assertion functionality
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
     assert test_execution.ci_link == image_test_request["ci_link"]
