@@ -106,59 +106,28 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
 
 
 class SnapPromoter:
-    def __init__(self, db_session: Session, an_artefact: Artefact):
-        assert an_artefact.family == FamilyName.snap
-        self._snap = an_artefact
+    def __init__(self, db_session: Session, snap: Artefact):
+        assert snap.family == FamilyName.snap
+        assert snap.store, f"Store is not set for the snap artefact {snap.id}"
+        self._snap = snap
         self._db_session = db_session
 
     def execute(self):
-        store = self._snap.store
-        assert store is not None, f"Store is not set for the artefact {self._snap.id}"
-
-        latest_builds = self._db_session.scalars(
-            queries.latest_artefact_builds.where(
-                ArtefactBuild.artefact_id == self._snap.id
-            )
+        all_channel_maps = get_channel_map_from_snapcraft(
+            snapstore=self._snap.store,
+            snap_name=self._snap.name,
         )
-
-        for build in latest_builds:
-            arch = build.architecture
-            channel_map = get_channel_map_from_snapcraft(
-                arch=arch,
-                snapstore=store,
-                snap_name=self._snap.name,
-            )
-            track = self._snap.track
-
-            for channel_info in channel_map:
-                if not (
-                    channel_info.channel.track == track
-                    and channel_info.channel.architecture == arch
-                ):
-                    continue
-
-                risk = channel_info.channel.risk
-                try:
-                    version = channel_info.version
-                    revision = channel_info.revision
-                except KeyError as exc:
-                    logger.warning(
-                        "No key '%s' is found. Continue processing...",
-                        str(exc),
-                    )
-                    continue
-
-                if (
-                    risk != self._snap.stage
-                    and version == self._snap.version
-                    and revision == build.revision
-                ):
-                    logger.info(
-                        "Move artefact '%s' to the '%s' stage", self._snap, risk
-                    )
-
-                    self._snap.stage = StageName(risk)
-                    self._db_session.commit()
+        self._snap.stage = max(
+            (
+                cm.channel.risk
+                for cm in all_channel_maps
+                if cm.channel.track == self._snap.track
+                and cm.channel.architecture in self._snap.architectures
+                and cm.version == self._snap.version
+            ),
+            default=self._snap.stage,
+        )
+        self._db_session.commit()
 
 
 def run_deb_promoter(session: Session, artefact: Artefact) -> None:

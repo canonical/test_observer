@@ -2,23 +2,21 @@ import logging
 
 import requests
 
-from .snapcraft_models import SnapInfo, rename_keys
+from .snapcraft_models import ChannelMap, SnapInfo, rename_keys
 
 logger = logging.getLogger("test-observer-backend")
 
 
-def get_channel_map_from_snapcraft(arch: str, snapstore: str, snap_name: str):
+def get_channel_map_from_snapcraft(snapstore: str, snap_name: str) -> list[ChannelMap]:
     """
     Get channel_map from snapcraft.io
 
-    :arch: architecture
     :snapstore: Snapstore name
     :snap_name: snap name
     :return: channgel map as python dict (JSON format)
     """
     headers = {
         "Snap-Device-Series": "16",
-        "Snap-Device-Architecture": arch,
         "Snap-Device-Store": snapstore,
     }
     req = requests.get(

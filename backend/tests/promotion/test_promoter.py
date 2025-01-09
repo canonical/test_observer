@@ -189,3 +189,44 @@ def test_promote_snap_from_beta_to_stable(
     promote_artefacts(db_session)
 
     assert artefact.stage == StageName.stable
+
+
+def test_snap_that_is_in_two_stages(
+    db_session: Session,
+    requests_mock: Mocker,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact(StageName.edge, store="ubuntu")
+    build = generator.gen_artefact_build(artefact, revision=1)
+
+    requests_mock.get(
+        f"https://api.snapcraft.io/v2/snaps/info/{artefact.name}",
+        json={
+            "channel-map": [
+                {
+                    "channel": {
+                        "architecture": build.architecture,
+                        "risk": "beta",
+                        "track": artefact.track,
+                    },
+                    "revision": build.revision,
+                    "type": "app",
+                    "version": artefact.version,
+                },
+                {
+                    "channel": {
+                        "architecture": build.architecture,
+                        "risk": "edge",
+                        "track": artefact.track,
+                    },
+                    "revision": build.revision,
+                    "type": "app",
+                    "version": artefact.version,
+                },
+            ]
+        },
+    )
+
+    promote_artefacts(db_session)
+
+    assert artefact.stage == StageName.beta
