@@ -36,6 +36,22 @@ class StageName(str, Enum):
     candidate = "candidate"
     stable = "stable"
 
+    def _compare(self, other: str) -> int:
+        stages = list(StageName.__members__.values())
+        return stages.index(self) - stages.index(StageName(other))
+
+    def __lt__(self, other: str) -> bool:
+        return self._compare(other) < 0
+
+    def __le__(self, other: str) -> bool:
+        return self._compare(other) <= 0
+
+    def __gt__(self, other: str) -> bool:
+        return self._compare(other) > 1
+
+    def __ge__(self, other: str) -> bool:
+        return self._compare(other) >= 0
+
 
 class TestExecutionStatus(str, Enum):
     __test__ = False
