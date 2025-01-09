@@ -77,76 +77,88 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     :return: tuple of dicts, the first the processed cards and the status of execution
     the second only for the processed cards with the corresponding error message
     """
-    family_mapping = {
-        FamilyName.snap: run_snap_promoter,
-        FamilyName.deb: run_deb_promoter,
-    }
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
-    for family, promoter_function in family_mapping.items():
-        artefacts = get_artefacts_by_family(session, family)
-        for artefact in artefacts:
-            artefact_key = f"{family} - {artefact.name} - {artefact.version}"
-            try:
-                processed_artefacts_status[artefact_key] = True
-                promoter_function(session, artefact)
-            except Exception as exc:
-                processed_artefacts_status[artefact_key] = False
-                processed_artefacts_error_messages[artefact_key] = str(exc)
-                logger.warning("WARNING: %s", str(exc), exc_info=True)
+
+    snaps = get_artefacts_by_family(session, FamilyName.snap)
+    for snap in snaps:
+        snap_key = f"snap - {snap.name} - {snap.version}"
+        try:
+            processed_artefacts_status[snap_key] = True
+            SnapPromoter(session, snap).execute()
+        except Exception as exc:
+            processed_artefacts_status[snap_key] = False
+            processed_artefacts_error_messages[snap_key] = str(exc)
+            logger.warning("WARNING: %s", str(exc), exc_info=True)
+
+    debs = get_artefacts_by_family(session, FamilyName.deb)
+    for deb in debs:
+        deb_key = f"deb - {deb.name} - {deb.version}"
+        try:
+            processed_artefacts_status[deb_key] = True
+            run_deb_promoter(session, deb)
+        except Exception as exc:
+            processed_artefacts_status[deb_key] = False
+            processed_artefacts_error_messages[deb_key] = str(exc)
+            logger.warning("WARNING: %s", str(exc), exc_info=True)
+
     return processed_artefacts_status, processed_artefacts_error_messages
 
 
-def run_snap_promoter(session: Session, artefact: Artefact) -> None:
-    """
-    Check snap artefacts state and move/archive them if necessary
+class SnapPromoter:
+    def __init__(self, db_session: Session, an_artefact: Artefact):
+        assert an_artefact.family == FamilyName.snap
+        self._snap = an_artefact
+        self._db_session = db_session
 
-    :session: DB connection session
-    :artefact_build: an ArtefactBuild object
-    """
-    store = artefact.store
-    assert store is not None, f"Store is not set for the artefact {artefact.id}"
+    def execute(self):
+        store = self._snap.store
+        assert store is not None, f"Store is not set for the artefact {self._snap.id}"
 
-    latest_builds = session.scalars(
-        queries.latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact.id)
-    )
-
-    for build in latest_builds:
-        arch = build.architecture
-        channel_map = get_channel_map_from_snapcraft(
-            arch=arch,
-            snapstore=store,
-            snap_name=artefact.name,
+        latest_builds = self._db_session.scalars(
+            queries.latest_artefact_builds.where(
+                ArtefactBuild.artefact_id == self._snap.id
+            )
         )
-        track = artefact.track
 
-        for channel_info in channel_map:
-            if not (
-                channel_info.channel.track == track
-                and channel_info.channel.architecture == arch
-            ):
-                continue
+        for build in latest_builds:
+            arch = build.architecture
+            channel_map = get_channel_map_from_snapcraft(
+                arch=arch,
+                snapstore=store,
+                snap_name=self._snap.name,
+            )
+            track = self._snap.track
 
-            risk = channel_info.channel.risk
-            try:
-                version = channel_info.version
-                revision = channel_info.revision
-            except KeyError as exc:
-                logger.warning(
-                    "No key '%s' is found. Continue processing...",
-                    str(exc),
-                )
-                continue
+            for channel_info in channel_map:
+                if not (
+                    channel_info.channel.track == track
+                    and channel_info.channel.architecture == arch
+                ):
+                    continue
 
-            if (
-                risk != artefact.stage
-                and version == artefact.version
-                and revision == build.revision
-            ):
-                logger.info("Move artefact '%s' to the '%s' stage", artefact, risk)
+                risk = channel_info.channel.risk
+                try:
+                    version = channel_info.version
+                    revision = channel_info.revision
+                except KeyError as exc:
+                    logger.warning(
+                        "No key '%s' is found. Continue processing...",
+                        str(exc),
+                    )
+                    continue
 
-                artefact.stage = StageName(risk)
-                session.commit()
+                if (
+                    risk != self._snap.stage
+                    and version == self._snap.version
+                    and revision == build.revision
+                ):
+                    logger.info(
+                        "Move artefact '%s' to the '%s' stage", self._snap, risk
+                    )
+
+                    self._snap.stage = StageName(risk)
+                    self._db_session.commit()
 
 
 def run_deb_promoter(session: Session, artefact: Artefact) -> None:
