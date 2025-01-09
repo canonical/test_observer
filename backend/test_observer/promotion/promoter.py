@@ -76,50 +76,45 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     :return: tuple of dicts, the first the processed cards and the status of execution
     the second only for the processed cards with the corresponding error message
     """
+    family_mapping = {
+        FamilyName.snap: run_snap_promoter,
+        FamilyName.deb: run_deb_promoter,
+    }
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
-
-    for family in (FamilyName.snap, FamilyName.deb):
+    for family, promoter_function in family_mapping.items():
         artefacts = get_artefacts_by_family(session, family)
         for artefact in artefacts:
             artefact_key = f"{family} - {artefact.name} - {artefact.version}"
             try:
                 processed_artefacts_status[artefact_key] = True
-                if family == FamilyName.snap:
-                    SnapPromoter(session, artefact).execute()
-                elif family == FamilyName.deb:
-                    run_deb_promoter(session, artefact)
+                promoter_function(session, artefact)
             except Exception as exc:
                 processed_artefacts_status[artefact_key] = False
                 processed_artefacts_error_messages[artefact_key] = str(exc)
                 logger.warning("WARNING: %s", str(exc), exc_info=True)
-
     return processed_artefacts_status, processed_artefacts_error_messages
 
 
-class SnapPromoter:
-    def __init__(self, db_session: Session, snap: Artefact):
-        assert snap.family == FamilyName.snap
-        assert snap.store, f"Store is not set for the snap artefact {snap.id}"
-        self._snap = snap
-        self._db_session = db_session
+def run_snap_promoter(db_session: Session, snap: Artefact):
+    assert snap.family == FamilyName.snap
+    assert snap.store, f"Store is not set for the snap artefact {snap.id}"
 
-    def execute(self):
-        all_channel_maps = get_channel_map_from_snapcraft(
-            snapstore=self._snap.store,
-            snap_name=self._snap.name,
-        )
-        self._snap.stage = max(
-            (
-                cm.channel.risk
-                for cm in all_channel_maps
-                if cm.channel.track == self._snap.track
-                and cm.channel.architecture in self._snap.architectures
-                and cm.version == self._snap.version
-            ),
-            default=self._snap.stage,
-        )
-        self._db_session.commit()
+    all_channel_maps = get_channel_map_from_snapcraft(
+        snapstore=snap.store,
+        snap_name=snap.name,
+    )
+    snap.stage = max(
+        (
+            cm.channel.risk
+            for cm in all_channel_maps
+            if cm.channel.track == snap.track
+            and cm.channel.architecture in snap.architectures
+            and cm.version == snap.version
+        ),
+        default=snap.stage,
+    )
+    db_session.commit()
 
 
 def run_deb_promoter(session: Session, artefact: Artefact) -> None:
