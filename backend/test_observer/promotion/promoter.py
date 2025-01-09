@@ -23,8 +23,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from test_observer.data_access import queries
-from test_observer.data_access.models import Artefact, ArtefactBuild
+from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName, StageName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.external_apis.archive import ArchiveManager
@@ -80,27 +79,20 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
 
-    snaps = get_artefacts_by_family(session, FamilyName.snap)
-    for snap in snaps:
-        snap_key = f"snap - {snap.name} - {snap.version}"
-        try:
-            processed_artefacts_status[snap_key] = True
-            SnapPromoter(session, snap).execute()
-        except Exception as exc:
-            processed_artefacts_status[snap_key] = False
-            processed_artefacts_error_messages[snap_key] = str(exc)
-            logger.warning("WARNING: %s", str(exc), exc_info=True)
-
-    debs = get_artefacts_by_family(session, FamilyName.deb)
-    for deb in debs:
-        deb_key = f"deb - {deb.name} - {deb.version}"
-        try:
-            processed_artefacts_status[deb_key] = True
-            run_deb_promoter(session, deb)
-        except Exception as exc:
-            processed_artefacts_status[deb_key] = False
-            processed_artefacts_error_messages[deb_key] = str(exc)
-            logger.warning("WARNING: %s", str(exc), exc_info=True)
+    for family in (FamilyName.snap, FamilyName.deb):
+        artefacts = get_artefacts_by_family(session, family)
+        for artefact in artefacts:
+            artefact_key = f"{family} - {artefact.name} - {artefact.version}"
+            try:
+                processed_artefacts_status[artefact_key] = True
+                if family == FamilyName.snap:
+                    SnapPromoter(session, artefact).execute()
+                elif family == FamilyName.deb:
+                    run_deb_promoter(session, artefact)
+            except Exception as exc:
+                processed_artefacts_status[artefact_key] = False
+                processed_artefacts_error_messages[artefact_key] = str(exc)
+                logger.warning("WARNING: %s", str(exc), exc_info=True)
 
     return processed_artefacts_status, processed_artefacts_error_messages
 
