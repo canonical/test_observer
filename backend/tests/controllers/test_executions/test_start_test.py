@@ -473,9 +473,24 @@ def test_start_an_image_test(execute: Execute, db_session: Session):
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assert test_execution.environment.name == image_test_request["environment"]
+    assert test_execution.ci_link == image_test_request["ci_link"]
+    assert test_execution.test_plan == image_test_request["test_plan"]
+    assert test_execution.status == image_test_request.get(
+        "initial_status", TestExecutionStatus.IN_PROGRESS
+    )
 
-    artefact = test_execution.artefact_build.artefact
+    environment = test_execution.environment
+    assert environment.architecture == image_test_request["arch"]
+    assert environment.name == image_test_request["environment"]
+
+    artefact_build = test_execution.artefact_build
+    artefact_build.architecture = image_test_request["arch"]
+
+    artefact = artefact_build.artefact
+    assert artefact.name == image_test_request["name"]
+    assert artefact.family == image_test_request["family"]
+    assert artefact.stage == image_test_request["execution_stage"]
+    assert artefact.version == image_test_request["version"]
     assert artefact.os == image_test_request["os"]
     assert artefact.release == image_test_request["release"]
     assert artefact.sha256 == image_test_request["sha256"]
