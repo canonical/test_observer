@@ -28,9 +28,7 @@ from test_observer.data_access.models_enums import StageName
 
 class Channel(BaseModel):
     architecture: str
-    risk: Literal[StageName.edge] | Literal[StageName.beta] | Literal[
-        StageName.candidate
-    ] | Literal[StageName.stable]
+    risk: Literal[StageName.edge, StageName.beta, StageName.candidate, StageName.stable]
     track: str
 
 
