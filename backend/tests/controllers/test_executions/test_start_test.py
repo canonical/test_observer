@@ -467,7 +467,16 @@ def test_validates_stage_for_charms(execute: Execute, an_invalid_stage: StageNam
     assert response.status_code == 422
 
 
-def test_start_an_image_test(execute: Execute):
+def test_start_an_image_test(execute: Execute, db_session: Session):
     response = execute(image_test_request)
-    print(response.json())
     assert response.status_code == 200
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assert test_execution.environment.name == image_test_request["environment"]
+
+    artefact = test_execution.artefact_build.artefact
+    assert artefact.os == image_test_request["os"]
+    assert artefact.release == image_test_request["release"]
+    assert artefact.sha256 == image_test_request["sha256"]
+    assert artefact.owner == image_test_request["owner"]

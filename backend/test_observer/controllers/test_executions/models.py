@@ -86,6 +86,10 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.image]
     execution_stage: Literal[StageName.pending] | Literal[StageName.current]
+    os: str
+    release: str
+    sha256: str
+    owner: str
 
 
 class C3TestResultStatus(str, Enum):

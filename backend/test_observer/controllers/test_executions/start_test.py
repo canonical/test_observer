@@ -129,6 +129,10 @@ class StartTestExecutionController:
                 "track": getattr(self.request, "track", ""),
                 "series": getattr(self.request, "series", ""),
                 "repo": getattr(self.request, "repo", ""),
+                "os": getattr(self.request, "os", ""),
+                "release": getattr(self.request, "release", ""),
+                "sha256": getattr(self.request, "sha256", ""),
+                "owner": getattr(self.request, "owner", ""),
             },
             creation_kwargs={"stage": self.request.execution_stage},
         )
