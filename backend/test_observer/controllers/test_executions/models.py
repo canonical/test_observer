@@ -62,30 +62,30 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
-    execution_stage: Literal[StageName.edge] | Literal[StageName.beta] | Literal[
-        StageName.candidate
-    ] | Literal[StageName.stable]
+    execution_stage: Literal[
+        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
+    ]
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.deb]
     series: str
     repo: str
-    execution_stage: Literal[StageName.proposed] | Literal[StageName.updates]
+    execution_stage: Literal[StageName.proposed, StageName.updates]
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.charm]
     revision: int
     track: str
-    execution_stage: Literal[StageName.edge] | Literal[StageName.beta] | Literal[
-        StageName.candidate
-    ] | Literal[StageName.stable]
+    execution_stage: Literal[
+        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
+    ]
 
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.image]
-    execution_stage: Literal[StageName.pending] | Literal[StageName.current]
+    execution_stage: Literal[StageName.pending, StageName.current]
     os: str
     release: str
     sha256: str
