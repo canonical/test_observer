@@ -15,7 +15,7 @@
 #
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import (
@@ -67,7 +67,12 @@ def _find_related_test_execution(
     return (
         db.execute(
             select(TestExecution)
-            .where(TestExecution.ci_link == request.ci_link)
+            .where(
+                or_(
+                    TestExecution.ci_link == request.ci_link,
+                    TestExecution.id == request.test_execution_id,
+                )
+            )
             .options(
                 joinedload(TestExecution.artefact_build).joinedload(
                     ArtefactBuild.artefact

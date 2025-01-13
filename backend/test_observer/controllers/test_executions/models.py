@@ -29,6 +29,7 @@ from pydantic import (
     Field,
     HttpUrl,
     field_validator,
+    model_validator,
 )
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
@@ -102,10 +103,17 @@ class TestResultRequest(BaseModel):
 
 
 class EndTestExecutionRequest(BaseModel):
-    ci_link: Annotated[str, HttpUrl]
+    ci_link: Annotated[str, HttpUrl] | None = None
+    test_execution_id: int | None = None
     c3_link: Annotated[str, HttpUrl] | None = None
     checkbox_version: str | None = None
     test_results: list[C3TestResult]
+
+    @model_validator(mode="after")
+    def ensure_test_execution_identifier(self) -> "EndTestExecutionRequest":
+        if sum([self.ci_link is None, self.test_execution_id is None]) != 1:
+            raise ValueError("Provide exactly one of 'ci_link' or 'test_execution_id'")
+        return self
 
 
 class TestExecutionsPatchRequest(BaseModel):

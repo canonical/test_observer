@@ -138,3 +138,50 @@ def test_end_test_updates_template_id(
 
     assert response.status_code == 200
     assert test_execution.test_results[0].test_case.template_id == "some template id"
+
+
+def test_end_test_no_test_identifier(test_client: TestClient):
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "test_results": [],
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_end_test_by_test_execution_id(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact(StageName.beta)
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build, environment, ci_link="http://localhost"
+    )
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "test_execution_id": test_execution.id,
+            "test_results": [],
+        },
+    )
+
+    assert response.status_code == 200
+    assert test_execution.status == TestExecutionStatus.PASSED
+
+
+def test_end_test_multiple_identifiers(test_client: TestClient):
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "ci_link": "http://localhost",
+            "test_execution_id": 1,
+            "test_results": [],
+        },
+    )
+
+    assert response.status_code == 422
