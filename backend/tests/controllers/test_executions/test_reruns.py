@@ -42,6 +42,21 @@ Get: TypeAlias = Callable[[], Response]
 Delete: TypeAlias = Callable[[Any], Response]
 
 
+def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
+    return {
+        "test_execution_id": test_execution.id,
+        "ci_link": test_execution.ci_link,
+        "family": test_execution.artefact_build.artefact.family,
+        "test_execution_status": test_execution.status,
+        "artefact_name": test_execution.artefact_build.artefact.name,
+        "version": test_execution.artefact_build.artefact.version,
+        "revision": test_execution.artefact_build.revision,
+        "architecture": test_execution.environment.architecture,
+        "environment": test_execution.environment.name,
+        "test_plan": test_execution.test_plan,
+    }
+
+
 def test_post_no_data_returns_422(post: Post):
     assert post(None).status_code == 422
 
@@ -57,13 +72,7 @@ def test_valid_post(post: Post, test_execution: TestExecution):
     response = post({"test_execution_ids": [test_execution.id]})
 
     assert response.status_code == 200
-    assert response.json() == [
-        {
-            "test_execution_id": test_execution.id,
-            "ci_link": test_execution.ci_link,
-            "family": test_execution.artefact_build.artefact.family,
-        }
-    ]
+    assert response.json() == [test_execution_to_pending_rerun(test_execution)]
 
 
 def test_post_with_valid_and_invalid_ids(post: Post, test_execution: TestExecution):
@@ -83,13 +92,7 @@ def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution)
 
     post({"test_execution_ids": [test_execution.id]})
 
-    assert get().json() == [
-        {
-            "test_execution_id": test_execution.id,
-            "ci_link": test_execution.ci_link,
-            "family": test_execution.artefact_build.artefact.family,
-        }
-    ]
+    assert get().json() == [test_execution_to_pending_rerun(test_execution)]
 
 
 def test_get_after_two_identical_posts(
@@ -100,13 +103,7 @@ def test_get_after_two_identical_posts(
     post({"test_execution_ids": [test_execution.id]})
     post({"test_execution_ids": [test_execution.id]})
 
-    assert get().json() == [
-        {
-            "test_execution_id": test_execution.id,
-            "ci_link": test_execution.ci_link,
-            "family": test_execution.artefact_build.artefact.family,
-        }
-    ]
+    assert get().json() == [test_execution_to_pending_rerun(test_execution)]
 
 
 def test_get_after_two_different_posts(
@@ -122,16 +119,8 @@ def test_get_after_two_different_posts(
     post({"test_execution_ids": [te2.id]})
 
     assert get().json() == [
-        {
-            "test_execution_id": te1.id,
-            "ci_link": te1.ci_link,
-            "family": te1.artefact_build.artefact.family,
-        },
-        {
-            "test_execution_id": te2.id,
-            "ci_link": te2.ci_link,
-            "family": te2.artefact_build.artefact.family,
-        },
+        test_execution_to_pending_rerun(te1),
+        test_execution_to_pending_rerun(te2),
     ]
 
 
@@ -148,16 +137,8 @@ def test_get_after_post_with_two_test_execution_ids(
     post({"test_execution_ids": [te1.id, te2.id]})
 
     assert sorted(get().json(), key=itemgetter("test_execution_id")) == [
-        {
-            "test_execution_id": te1.id,
-            "ci_link": te1.ci_link,
-            "family": te1.artefact_build.artefact.family,
-        },
-        {
-            "test_execution_id": te2.id,
-            "ci_link": te2.ci_link,
-            "family": te2.artefact_build.artefact.family,
-        },
+        test_execution_to_pending_rerun(te1),
+        test_execution_to_pending_rerun(te2),
     ]
 
 

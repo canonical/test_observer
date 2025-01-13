@@ -151,12 +151,35 @@ class RerunRequest(BaseModel):
 
 class PendingRerun(BaseModel):
     test_execution_id: int
-    ci_link: str = Field(validation_alias=AliasPath("test_execution", "ci_link"))
+    ci_link: str | None = Field(validation_alias=AliasPath("test_execution", "ci_link"))
     family: FamilyName = Field(
         validation_alias=AliasPath(
             "test_execution", "artefact_build", "artefact", "family"
         )
     )
+    test_execution_status: TestExecutionStatus = Field(
+        validation_alias=AliasPath("test_execution", "status")
+    )
+    artefact_name: str = Field(
+        validation_alias=AliasPath(
+            "test_execution", "artefact_build", "artefact", "name"
+        )
+    )
+    version: str = Field(
+        validation_alias=AliasPath(
+            "test_execution", "artefact_build", "artefact", "version"
+        )
+    )
+    revision: int | None = Field(
+        validation_alias=AliasPath("test_execution", "artefact_build", "revision")
+    )
+    architecture: str = Field(
+        validation_alias=AliasPath("test_execution", "environment", "architecture")
+    )
+    environment: str = Field(
+        validation_alias=AliasPath("test_execution", "environment", "name")
+    )
+    test_plan: str = Field(validation_alias=AliasPath("test_execution", "test_plan"))
 
 
 class DeleteReruns(BaseModel):
