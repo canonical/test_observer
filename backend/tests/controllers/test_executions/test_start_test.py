@@ -361,3 +361,12 @@ def test_sets_initial_test_execution_status(db_session: Session, execute: Execut
     te = db_session.get(TestExecution, response.json()["id"])
     assert te is not None
     assert te.status == TestExecutionStatus.NOT_STARTED
+
+
+def test_allows_null_ci_link(db_session: Session, execute: Execute):
+    response = execute({**deb_test_request, "ci_link": None})
+
+    assert response.status_code == 200
+    te = db_session.get(TestExecution, response.json()["id"])
+    assert te is not None
+    assert te.ci_link is None
