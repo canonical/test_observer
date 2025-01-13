@@ -51,6 +51,8 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
         "artefact_name": test_execution.artefact_build.artefact.name,
         "version": test_execution.artefact_build.artefact.version,
         "revision": test_execution.artefact_build.revision,
+        "stage": test_execution.artefact_build.artefact.stage,
+        "track": test_execution.artefact_build.artefact.track,
         "architecture": test_execution.environment.architecture,
         "environment": test_execution.environment.name,
         "test_plan": test_execution.test_plan,

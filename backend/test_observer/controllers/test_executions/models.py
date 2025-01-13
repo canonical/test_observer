@@ -173,6 +173,16 @@ class PendingRerun(BaseModel):
     revision: int | None = Field(
         validation_alias=AliasPath("test_execution", "artefact_build", "revision")
     )
+    stage: StageName = Field(
+        validation_alias=AliasPath(
+            "test_execution", "artefact_build", "artefact", "stage"
+        )
+    )
+    track: str = Field(
+        validation_alias=AliasPath(
+            "test_execution", "artefact_build", "artefact", "track"
+        )
+    )
     architecture: str = Field(
         validation_alias=AliasPath("test_execution", "environment", "architecture")
     )
