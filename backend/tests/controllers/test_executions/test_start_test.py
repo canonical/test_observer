@@ -35,7 +35,14 @@ from tests.asserts import assert_fails_validation
 from tests.data_generator import DataGenerator
 
 Execute: TypeAlias = Callable[[dict[str, Any]], Response]
-Assert: TypeAlias = Callable[[dict[str, Any], Response], None]
+
+
+@pytest.fixture
+def execute(test_client: TestClient) -> Execute:
+    def execute_helper(data: dict[str, Any]) -> Response:
+        return test_client.put("/v1/test-executions/start-test", json=data)
+
+    return execute_helper
 
 
 snap_test_request = {
@@ -99,7 +106,7 @@ image_test_request = {
     "start_request",
     [snap_test_request, deb_test_request, charm_test_request, image_test_request],
 )
-class TestStartTest:
+class TestFamilyIndependentTests:
     def test_starts_a_test(self, execute: Execute, start_request: dict[str, Any]):
         response = execute(start_request)
         self._assert_objects_created(start_request, response)
@@ -139,6 +146,65 @@ class TestStartTest:
         assert test_execution_2.environment_id == test_execution_1.environment_id
         assert test_execution_2.artefact_build_id == test_execution_1.artefact_build_id
 
+    def test_new_artefacts_get_assigned_a_reviewer(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        user = generator.gen_user()
+
+        response = execute(start_request)
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assignee = test_execution.artefact_build.artefact.assignee
+        assert assignee is not None
+        assert assignee.launchpad_handle == user.launchpad_handle
+
+    def test_deletes_rerun_requests(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        response = execute(start_request)
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+
+        generator.gen_rerun_request(test_execution)
+        assert test_execution.rerun_request
+
+        execute({**start_request, "ci_link": "http://someother.link"})
+        self._db_session.refresh(test_execution)
+        assert not test_execution.rerun_request
+
+    def test_keeps_rerun_request_of_different_plan(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        response = execute(start_request)
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+
+        generator.gen_rerun_request(test_execution)
+        assert test_execution.rerun_request
+
+        execute(
+            {
+                **start_request,
+                "ci_link": "http://someother.link",
+                "test_plan": "different plan",
+            }
+        )
+        self._db_session.refresh(test_execution)
+        assert test_execution.rerun_request
+
+    def test_sets_initial_test_execution_status(
+        self, execute: Execute, start_request: dict[str, Any]
+    ):
+        response = execute({**start_request, "initial_status": "NOT_STARTED"})
+
+        assert response.status_code == 200
+        te = self._db_session.get(TestExecution, response.json()["id"])
+        assert te is not None
+        assert te.status == TestExecutionStatus.NOT_STARTED
+
     @pytest.fixture(autouse=True)
     def _set_db_session(self, db_session: Session) -> None:
         self._db_session = db_session
@@ -177,14 +243,6 @@ class TestStartTest:
         assert artefact.track == request.get("track", "")
         assert artefact.series == request.get("series", "")
         assert artefact.repo == request.get("repo", "")
-
-
-@pytest.fixture
-def execute(test_client: TestClient) -> Execute:
-    def execute_helper(data: dict[str, Any]) -> Response:
-        return test_client.put("/v1/test-executions/start-test", json=data)
-
-    return execute_helper
 
 
 @pytest.mark.parametrize(
@@ -276,18 +334,6 @@ def test_image_required_fields(execute: Execute, field: str):
     assert_fails_validation(response, field, "missing")
 
 
-def test_new_artefacts_get_assigned_a_reviewer(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
-    user = generator.gen_user()
-
-    execute(snap_test_request)
-
-    artefact = db_session.query(Artefact).filter(Artefact.name == "core22").one()
-    assert artefact.assignee is not None
-    assert artefact.assignee.launchpad_handle == user.launchpad_handle
-
-
 def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
@@ -333,124 +379,18 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
     assert artefact.due_date is None
 
 
-def test_deletes_rerun_requests(
-    execute: Execute, generator: DataGenerator, db_session: Session
-):
-    a = generator.gen_artefact(StageName.beta)
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    te1 = generator.gen_test_execution(ab, e, ci_link="ci1.link")
-    te2 = generator.gen_test_execution(ab, e, ci_link="ci2.link")
-    generator.gen_rerun_request(te1)
-    generator.gen_rerun_request(te2)
-
-    execute(
-        {
-            "family": a.family,
-            "name": a.name,
-            "version": a.version,
-            "revision": ab.revision,
-            "track": a.track,
-            "store": a.store,
-            "arch": ab.architecture,
-            "execution_stage": a.stage,
-            "environment": e.name,
-            "ci_link": "different-ci.link",
-            "test_plan": te1.test_plan,
-        },
-    )
-
-    db_session.refresh(te1)
-    db_session.refresh(te2)
-    assert not te1.rerun_request
-    assert not te2.rerun_request
-
-
-def test_keeps_rerun_request_of_different_plan(
-    execute: Execute, generator: DataGenerator, db_session: Session
-):
-    a = generator.gen_artefact(StageName.beta)
-    ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment()
-    te = generator.gen_test_execution(ab, e, ci_link="ci1.link", test_plan="plan1")
-    generator.gen_rerun_request(te)
-
-    execute(
-        {
-            "family": a.family,
-            "name": a.name,
-            "version": a.version,
-            "revision": ab.revision,
-            "track": a.track,
-            "store": a.store,
-            "arch": ab.architecture,
-            "execution_stage": a.stage,
-            "environment": e.name,
-            "ci_link": "different-ci.link",
-            "test_plan": "plan2",
-        },
-    )
-
-    db_session.refresh(te)
-    assert te.rerun_request
-
-
-def test_sets_initial_test_execution_status(db_session: Session, execute: Execute):
-    response = execute({**deb_test_request, "initial_status": "NOT_STARTED"})
-
-    assert response.status_code == 200
-    te = db_session.get(TestExecution, response.json()["id"])
-    assert te is not None
-    assert te.status == TestExecutionStatus.NOT_STARTED
-
-
-def test_allows_null_ci_link(db_session: Session, execute: Execute):
-    request = {**deb_test_request, "ci_link": None}
-
-    response = execute(request)
-
-    assert response.status_code == 200
-    te = db_session.get(TestExecution, response.json()["id"])
-    assert te is not None
-    assert te.ci_link is None
-
-
-def test_allows_omitting_ci_link(db_session: Session, execute: Execute):
-    request = {**deb_test_request}
-    del request["ci_link"]
-
-    response = execute(request)
-
-    assert response.status_code == 200
-    te = db_session.get(TestExecution, response.json()["id"])
-    assert te is not None
-    assert te.ci_link is None
-
-
-def test_create_two_executions_for_null_ci_link(execute: Execute):
-    request = {**deb_test_request}
-    del request["ci_link"]
-
-    response_1 = execute(request)
-    response_2 = execute(request)
-
-    assert response_1.status_code == 200
-    assert response_2.status_code == 200
-    assert response_1.json()["id"] != response_2.json()["id"]
-
-
 @pytest.mark.parametrize(
-    "an_invalid_stage",
+    "invalid_stage",
     set(StageName) - {StageName.proposed, StageName.updates},
 )
-def test_validates_stage_for_debs(execute: Execute, an_invalid_stage: StageName):
-    response = execute({**deb_test_request, "execution_stage": an_invalid_stage})
+def test_validates_stage_for_debs(execute: Execute, invalid_stage: StageName):
+    response = execute({**deb_test_request, "execution_stage": invalid_stage})
 
     assert response.status_code == 422
 
 
 @pytest.mark.parametrize(
-    "an_invalid_stage",
+    "invalid_stage",
     set(StageName)
     - {
         StageName.edge,
@@ -459,14 +399,14 @@ def test_validates_stage_for_debs(execute: Execute, an_invalid_stage: StageName)
         StageName.stable,
     },
 )
-def test_validates_stage_for_snaps(execute: Execute, an_invalid_stage: StageName):
-    response = execute({**snap_test_request, "execution_stage": an_invalid_stage})
+def test_validates_stage_for_snaps(execute: Execute, invalid_stage: StageName):
+    response = execute({**snap_test_request, "execution_stage": invalid_stage})
 
     assert response.status_code == 422
 
 
 @pytest.mark.parametrize(
-    "an_invalid_stage",
+    "invalid_stage",
     set(StageName)
     - {
         StageName.edge,
@@ -475,7 +415,7 @@ def test_validates_stage_for_snaps(execute: Execute, an_invalid_stage: StageName
         StageName.stable,
     },
 )
-def test_validates_stage_for_charms(execute: Execute, an_invalid_stage: StageName):
-    response = execute({**charm_test_request, "execution_stage": an_invalid_stage})
+def test_validates_stage_for_charms(execute: Execute, invalid_stage: StageName):
+    response = execute({**charm_test_request, "execution_stage": invalid_stage})
 
     assert response.status_code == 422
