@@ -208,6 +208,52 @@ def test_deb_required_fields(execute: Execute, field: str):
     assert_fails_validation(response, field, "missing")
 
 
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "version",
+        "track",
+        "revision",
+        "arch",
+        "execution_stage",
+        "environment",
+        "ci_link",
+        "test_plan",
+    ],
+)
+def test_charm_required_fields(execute: Execute, field: str):
+    request = charm_test_request.copy()
+    request.pop(field)
+    response = execute(request)
+
+    assert_fails_validation(response, field, "missing")
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "version",
+        "os",
+        "release",
+        "arch",
+        "sha256",
+        "owner",
+        "image_url",
+        "execution_stage",
+        "environment",
+        "ci_link",
+    ],
+)
+def test_image_required_fields(execute: Execute, field: str):
+    request = image_test_request.copy()
+    request.pop(field)
+    response = execute(request)
+
+    assert_fails_validation(response, field, "missing")
+
+
 def test_uses_existing_models(
     db_session: Session,
     execute: Execute,
