@@ -108,6 +108,15 @@ class TestStartTest:
         response = execute(start_request)
         self._assert_objects_created(start_request, response)
 
+    def test_requires_family_field(
+        self, execute: Execute, start_request: dict[str, Any]
+    ):
+        request = start_request.copy()
+        request.pop("family")
+        response = execute(request)
+
+        assert response.status_code == 422
+
     @pytest.fixture(autouse=True)
     def _set_db_session(self, db_session: Session) -> None:
         self._db_session = db_session
@@ -154,14 +163,6 @@ def execute(test_client: TestClient) -> Execute:
         return test_client.put("/v1/test-executions/start-test", json=data)
 
     return execute_helper
-
-
-def test_requires_family_field(execute: Execute):
-    request = snap_test_request.copy()
-    request.pop("family")
-    response = execute(request)
-
-    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(
