@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# ruff: noqa: E501 Line too long
+# ruff: noqa
 
 from datetime import date, timedelta
 from textwrap import dedent
