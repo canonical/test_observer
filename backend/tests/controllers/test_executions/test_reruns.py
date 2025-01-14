@@ -10,7 +10,11 @@ from httpx import Response
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
-from test_observer.controllers.artefacts.models import TestExecutionDTO, ArtefactDTO
+from test_observer.controllers.artefacts.models import (
+    TestExecutionDTO,
+    ArtefactDTO,
+    ArtefactBuildMinimalDTO,
+)
 
 reruns_url = "/v1/test-executions/reruns"
 
@@ -52,6 +56,9 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "family": test_execution.artefact_build.artefact.family,
             "test_execution": TestExecutionDTO.from_orm(test_execution),
             "artefact": ArtefactDTO.from_orm(test_execution.artefact_build.artefact),
+            "artefact_build": ArtefactBuildMinimalDTO.from_orm(
+                test_execution.artefact_build
+            ),
         }
     )
 

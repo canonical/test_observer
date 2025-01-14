@@ -38,7 +38,11 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
-from test_observer.controllers.artefacts.models import TestExecutionDTO, ArtefactDTO
+from test_observer.controllers.artefacts.models import (
+    TestExecutionDTO,
+    ArtefactDTO,
+    ArtefactBuildMinimalDTO,
+)
 
 
 class _StartTestExecutionRequest(BaseModel):
@@ -163,6 +167,9 @@ class PendingRerun(BaseModel):
     )
     artefact: ArtefactDTO = Field(
         validation_alias=AliasPath("test_execution", "artefact_build", "artefact")
+    )
+    artefact_build: ArtefactBuildMinimalDTO = Field(
+        validation_alias=AliasPath("test_execution", "artefact_build")
     )
 
 
