@@ -42,6 +42,7 @@ from tests.asserts import assert_fails_validation
 from tests.data_generator import DataGenerator
 
 Execute: TypeAlias = Callable[[dict[str, Any]], Response]
+Assert: TypeAlias = Callable[[dict[str, Any], Response], None]
 
 
 snap_test_request = {
@@ -107,6 +108,44 @@ def execute(test_client: TestClient) -> Execute:
         return test_client.put("/v1/test-executions/start-test", json=data)
 
     return execute_helper
+
+
+@pytest.fixture
+def assert_objects_created(db_session: Session) -> Assert:
+    def helper(request: dict[str, Any], response: Response) -> None:
+        assert response.status_code == 200
+        test_execution = db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assert test_execution.ci_link == request["ci_link"]
+        assert test_execution.test_plan == request["test_plan"]
+        assert test_execution.status == request.get(
+            "initial_status", TestExecutionStatus.IN_PROGRESS
+        )
+
+        environment = test_execution.environment
+        assert environment.architecture == request["arch"]
+        assert environment.name == request["environment"]
+
+        artefact_build = test_execution.artefact_build
+        assert artefact_build.architecture == request["arch"]
+        assert artefact_build.revision == request.get("revision")
+
+        artefact = artefact_build.artefact
+        assert artefact.name == request["name"]
+        assert artefact.family == request["family"]
+        assert artefact.stage == request["execution_stage"]
+        assert artefact.version == request["version"]
+        assert artefact.os == request.get("os", "")
+        assert artefact.release == request.get("release", "")
+        assert artefact.sha256 == request.get("sha256", "")
+        assert artefact.owner == request.get("owner", "")
+        assert artefact.image_url == request.get("image_url", "")
+        assert artefact.store == request.get("store", "")
+        assert artefact.track == request.get("track", "")
+        assert artefact.series == request.get("series", "")
+        assert artefact.repo == request.get("repo", "")
+
+    return helper
 
 
 def test_requires_family_field(execute: Execute):
@@ -467,33 +506,8 @@ def test_validates_stage_for_charms(execute: Execute, an_invalid_stage: StageNam
     assert response.status_code == 422
 
 
-def test_start_an_image_test(execute: Execute, db_session: Session):
-    response = execute(image_test_request)
-    assert response.status_code == 200
+def test_start_an_image_test(execute: Execute, assert_objects_created: Assert):
+    request = image_test_request
+    response = execute(request)
 
-    # TODO refactor common assertion functionality
-    test_execution = db_session.get(TestExecution, response.json()["id"])
-    assert test_execution
-    assert test_execution.ci_link == image_test_request["ci_link"]
-    assert test_execution.test_plan == image_test_request["test_plan"]
-    assert test_execution.status == image_test_request.get(
-        "initial_status", TestExecutionStatus.IN_PROGRESS
-    )
-
-    environment = test_execution.environment
-    assert environment.architecture == image_test_request["arch"]
-    assert environment.name == image_test_request["environment"]
-
-    artefact_build = test_execution.artefact_build
-    artefact_build.architecture = image_test_request["arch"]
-
-    artefact = artefact_build.artefact
-    assert artefact.name == image_test_request["name"]
-    assert artefact.family == image_test_request["family"]
-    assert artefact.stage == image_test_request["execution_stage"]
-    assert artefact.version == image_test_request["version"]
-    assert artefact.os == image_test_request["os"]
-    assert artefact.release == image_test_request["release"]
-    assert artefact.sha256 == image_test_request["sha256"]
-    assert artefact.owner == image_test_request["owner"]
-    assert artefact.image_url == image_test_request["image_url"]
+    assert_objects_created(request, response)
