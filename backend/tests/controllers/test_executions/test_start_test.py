@@ -28,9 +28,6 @@ from test_observer.controllers.test_executions.models import (
 )
 from test_observer.data_access.models import (
     Artefact,
-    ArtefactBuild,
-    ArtefactBuildEnvironmentReview,
-    Environment,
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
@@ -199,65 +196,15 @@ def test_deb_required_fields(execute: Execute, field: str):
     assert_fails_validation(response, field, "missing")
 
 
-def test_creates_all_data_models(db_session: Session, execute: Execute):
-    response = execute(snap_test_request)
-
-    artefact = (
-        db_session.query(Artefact)
-        .filter(
-            Artefact.name == snap_test_request["name"],
-            Artefact.version == snap_test_request["version"],
-            Artefact.store == snap_test_request["store"],
-            Artefact.track == snap_test_request["track"],
-            Artefact.stage == snap_test_request["execution_stage"],
-        )
-        .one_or_none()
-    )
-    assert artefact
-
-    environment = (
-        db_session.query(Environment)
-        .filter(
-            Environment.name == snap_test_request["environment"],
-            Environment.architecture == snap_test_request["arch"],
-        )
-        .one_or_none()
-    )
-    assert environment
-
-    artefact_build = (
-        db_session.query(ArtefactBuild)
-        .filter(
-            ArtefactBuild.architecture == snap_test_request["arch"],
-            ArtefactBuild.artefact == artefact,
-            ArtefactBuild.revision == snap_test_request["revision"],
-        )
-        .one_or_none()
-    )
-    assert artefact_build
-
-    environment_review = (
-        db_session.query(ArtefactBuildEnvironmentReview)
-        .filter(
-            ArtefactBuildEnvironmentReview.artefact_build_id == artefact_build.id,
-            ArtefactBuildEnvironmentReview.environment_id == environment.id,
-        )
-        .one_or_none()
-    )
-    assert environment_review
-
-    test_execution = (
-        db_session.query(TestExecution)
-        .filter(
-            TestExecution.artefact_build == artefact_build,
-            TestExecution.environment == environment,
-            TestExecution.status == TestExecutionStatus.IN_PROGRESS,
-            TestExecution.test_plan == snap_test_request["test_plan"],
-        )
-        .one_or_none()
-    )
-    assert test_execution
-    assert response.json() == {"id": test_execution.id}
+@pytest.mark.parametrize(
+    "start_request",
+    [snap_test_request, deb_test_request, charm_test_request, image_test_request],
+)
+def test_starts_a_test(
+    execute: Execute, assert_objects_created: Assert, start_request: dict[str, Any]
+):
+    response = execute(start_request)
+    assert_objects_created(start_request, response)
 
 
 def test_uses_existing_models(
@@ -504,10 +451,3 @@ def test_validates_stage_for_charms(execute: Execute, an_invalid_stage: StageNam
     response = execute({**charm_test_request, "execution_stage": an_invalid_stage})
 
     assert response.status_code == 422
-
-
-def test_start_an_image_test(execute: Execute, assert_objects_created: Assert):
-    request = image_test_request
-    response = execute(request)
-
-    assert_objects_created(request, response)
