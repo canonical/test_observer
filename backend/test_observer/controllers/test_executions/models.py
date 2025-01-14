@@ -51,7 +51,7 @@ class _StartTestExecutionRequest(BaseModel):
     arch: str
     execution_stage: StageName
     environment: str
-    ci_link: Annotated[str, HttpUrl]
+    ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
     initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
 

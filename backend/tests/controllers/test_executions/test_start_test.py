@@ -97,7 +97,6 @@ def test_requires_family_field(execute: Execute):
         "arch",
         "execution_stage",
         "environment",
-        "ci_link",
         "test_plan",
         "store",
         "track",
@@ -121,7 +120,6 @@ def test_snap_required_fields(execute: Execute, field: str):
         "arch",
         "execution_stage",
         "environment",
-        "ci_link",
         "test_plan",
     ],
 )
@@ -361,3 +359,38 @@ def test_sets_initial_test_execution_status(db_session: Session, execute: Execut
     te = db_session.get(TestExecution, response.json()["id"])
     assert te is not None
     assert te.status == TestExecutionStatus.NOT_STARTED
+
+
+def test_allows_null_ci_link(db_session: Session, execute: Execute):
+    request = {**deb_test_request, "ci_link": None}
+
+    response = execute(request)
+
+    assert response.status_code == 200
+    te = db_session.get(TestExecution, response.json()["id"])
+    assert te is not None
+    assert te.ci_link is None
+
+
+def test_allows_omitting_ci_link(db_session: Session, execute: Execute):
+    request = {**deb_test_request}
+    del request["ci_link"]
+
+    response = execute(request)
+
+    assert response.status_code == 200
+    te = db_session.get(TestExecution, response.json()["id"])
+    assert te is not None
+    assert te.ci_link is None
+
+
+def test_create_two_executions_for_null_ci_link(execute: Execute):
+    request = {**deb_test_request}
+    del request["ci_link"]
+
+    response_1 = execute(request)
+    response_2 = execute(request)
+
+    assert response_1.status_code == 200
+    assert response_2.status_code == 200
+    assert response_1.json()["id"] != response_2.json()["id"]
