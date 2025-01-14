@@ -92,6 +92,42 @@ class DataGenerator:
         self._add_object(artefact)
         return artefact
 
+    def gen_image(
+        self,
+        stage: StageName = StageName.pending,
+        name: str = "noble-desktop-amd64",
+        version: str = "20240827",
+        os: str = "ubuntu",
+        release: str = "noble",
+        sha256: str = "e71fb5681e63330445eec6fc3fe043f36"
+        "5289c2e595e3ceeac08fbeccfb9a957",
+        owner: str = "foundations",
+        image_url: str = "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso",
+        created_at: datetime | None = None,
+        status: ArtefactStatus = ArtefactStatus.UNDECIDED,
+        bug_link: str = "",
+        due_date: date | None = None,
+        assignee_id: int | None = None,
+    ):
+        image = Artefact(
+            name=name,
+            stage=stage,
+            family=FamilyName.image,
+            version=version,
+            os=os,
+            release=release,
+            sha256=sha256,
+            owner=owner,
+            image_url=image_url,
+            created_at=created_at,
+            status=status,
+            bug_link=bug_link,
+            due_date=due_date,
+            assignee_id=assignee_id,
+        )
+        self._add_object(image)
+        return image
+
     def gen_artefact_build(
         self,
         artefact: Artefact,

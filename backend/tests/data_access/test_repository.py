@@ -29,28 +29,6 @@ from test_observer.data_access.repository import get_artefacts_by_family
 from tests.data_generator import DataGenerator
 
 
-def test_get_artefacts_by_family(db_session: Session, generator: DataGenerator):
-    """We should get a valid list of all artefacts"""
-    # Arrange
-    artefact_name_stage_pair = {
-        ("core20", StageName.edge),
-        ("core22", StageName.beta),
-        ("docker", StageName.candidate),
-    }
-
-    for name, stage in artefact_name_stage_pair:
-        generator.gen_artefact(stage, name=name)
-
-    # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.snap, latest_only=False)
-
-    # Assert
-    assert len(artefacts) == len(artefact_name_stage_pair)
-    assert {
-        (artefact.name, artefact.stage) for artefact in artefacts
-    } == artefact_name_stage_pair
-
-
 def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGenerator):
     """We should get a only latest artefacts in each stage for the specified family"""
     # Arrange

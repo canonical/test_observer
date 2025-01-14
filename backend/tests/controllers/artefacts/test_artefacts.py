@@ -18,11 +18,12 @@
 #        Omar Selo <omar.selo@canonical.com>
 #        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
 from datetime import date, timedelta
+from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models import Artefact, TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -47,30 +48,26 @@ def test_get_latest_artefacts_by_family(
     generator.gen_artefact(StageName.proposed, family=FamilyName.deb)
 
     response = test_client.get("/v1/artefacts", params={"family": "snap"})
+    assert response.status_code == 200
+    _assert_get_artefacts_response(response.json(), [relevant_artefact])
+
+
+def test_get_relevant_image_artefacts(
+    test_client: TestClient, generator: DataGenerator
+):
+    old_image = generator.gen_image()
+    new_image = generator.gen_image(
+        sha256="someothersha256",
+        version="20250101",
+        created_at=old_image.created_at + timedelta(days=1),
+    )
+
+    response = test_client.get("/v1/artefacts", params={"family": "image"})
 
     assert response.status_code == 200
-    assert response.json() == [
-        {
-            "id": relevant_artefact.id,
-            "name": relevant_artefact.name,
-            "version": relevant_artefact.version,
-            "track": relevant_artefact.track,
-            "store": relevant_artefact.store,
-            "series": relevant_artefact.series,
-            "repo": relevant_artefact.repo,
-            "stage": relevant_artefact.stage,
-            "status": relevant_artefact.status,
-            "assignee": None,
-            "due_date": (
-                relevant_artefact.due_date.strftime("%Y-%m-%d")
-                if relevant_artefact.due_date
-                else None
-            ),
-            "bug_link": "",
-            "all_environment_reviews_count": 0,
-            "completed_environment_reviews_count": 0,
-        }
-    ]
+    response_data = response.json()
+    assert len(response_data) == 1
+    assert response_data[0]["sha256"] == new_image.sha256
 
 
 def test_get_artefact(test_client: TestClient, generator: DataGenerator):
@@ -87,27 +84,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     response = test_client.get(f"/v1/artefacts/{a.id}")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "id": a.id,
-        "name": a.name,
-        "version": a.version,
-        "track": a.track,
-        "store": a.store,
-        "series": a.series,
-        "repo": a.repo,
-        "stage": a.stage,
-        "status": a.status,
-        "assignee": {
-            "id": u.id,
-            "launchpad_handle": u.launchpad_handle,
-            "launchpad_email": u.launchpad_email,
-            "name": u.name,
-        },
-        "due_date": "2024-12-24",
-        "bug_link": a.bug_link,
-        "all_environment_reviews_count": 0,
-        "completed_environment_reviews_count": 0,
-    }
+    _assert_get_artefact_response(response.json(), a)
 
 
 def test_get_artefact_environment_reviews_counts_only_latest_build(
@@ -175,24 +152,6 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
 
     assert response.status_code == 200
     assert artefact.status == ArtefactStatus.APPROVED
-    assert response.json() == {
-        "id": artefact.id,
-        "name": artefact.name,
-        "version": artefact.version,
-        "track": artefact.track,
-        "store": artefact.store,
-        "series": artefact.series,
-        "repo": artefact.repo,
-        "stage": artefact.stage,
-        "status": artefact.status,
-        "assignee": None,
-        "due_date": (
-            artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
-        ),
-        "bug_link": "",
-        "all_environment_reviews_count": 0,
-        "completed_environment_reviews_count": 0,
-    }
 
 
 def test_artefact_signoff_disallow_approve(
@@ -297,3 +256,44 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
     assert response.status_code == 200
     assert response.json() == expected_result
+
+
+def _assert_get_artefacts_response(
+    response_json: list[dict[str, Any]], artefacts: list[Artefact]
+) -> None:
+    for r, a in zip(response_json, artefacts, strict=True):
+        _assert_get_artefact_response(r, a)
+
+
+def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) -> None:
+    expected = {
+        "id": artefact.id,
+        "name": artefact.name,
+        "version": artefact.version,
+        "track": artefact.track,
+        "store": artefact.store,
+        "series": artefact.series,
+        "repo": artefact.repo,
+        "stage": artefact.stage,
+        "os": artefact.os,
+        "release": artefact.release,
+        "owner": artefact.owner,
+        "sha256": artefact.sha256,
+        "image_url": artefact.image_url,
+        "status": artefact.status,
+        "assignee": None,
+        "due_date": (
+            artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
+        ),
+        "bug_link": artefact.bug_link,
+        "all_environment_reviews_count": artefact.all_environment_reviews_count,
+        "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
+    }
+    if artefact.assignee:
+        expected["assignee"] = {
+            "id": artefact.assignee.id,
+            "launchpad_email": artefact.assignee.launchpad_email,
+            "launchpad_handle": artefact.assignee.launchpad_handle,
+            "name": artefact.assignee.name,
+        }
+    assert response == expected

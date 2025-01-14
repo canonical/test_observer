@@ -34,7 +34,6 @@ from .models_enums import FamilyName
 def get_artefacts_by_family(
     session: Session,
     family: FamilyName,
-    latest_only: bool = True,
     load_environment_reviews: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
@@ -43,85 +42,96 @@ def get_artefacts_by_family(
 
     :session: DB session
     :family: name of the family
-    :latest_only: return only latest artefacts, i.e. for each group of artefacts
-                  with the same name and source but different version return
-                  the latest one in a stage
     :load_stage: whether to eagerly load stage object in all artefacts
     :return: list of Artefacts
     """
-    if latest_only:
-        base_query = (
-            session.query(
-                Artefact.stage,
-                Artefact.name,
-                func.max(Artefact.created_at).label("max_created"),
-            )
-            .filter(Artefact.family == family)
-            .group_by(Artefact.stage, Artefact.name)
+    base_query = (
+        session.query(
+            Artefact.stage,
+            Artefact.name,
+            func.max(Artefact.created_at).label("max_created"),
         )
+        .filter(Artefact.family == family)
+        .group_by(Artefact.stage, Artefact.name)
+    )
 
-        match family:
-            case FamilyName.snap:
-                subquery = (
-                    base_query.add_columns(Artefact.track)
-                    .group_by(Artefact.track)
-                    .subquery()
-                )
+    match family:
+        case FamilyName.snap:
+            subquery = (
+                base_query.add_columns(Artefact.track)
+                .group_by(Artefact.track)
+                .subquery()
+            )
 
-                query = session.query(Artefact).join(
+            query = session.query(Artefact).join(
+                subquery,
+                and_(
+                    Artefact.stage == subquery.c.stage,
+                    Artefact.name == subquery.c.name,
+                    Artefact.created_at == subquery.c.max_created,
+                    Artefact.track == subquery.c.track,
+                ),
+            )
+
+        case FamilyName.deb:
+            subquery = (
+                base_query.add_columns(Artefact.repo, Artefact.series)
+                .group_by(Artefact.repo, Artefact.series)
+                .subquery()
+            )
+
+            query = session.query(Artefact).join(
+                subquery,
+                and_(
+                    Artefact.stage == subquery.c.stage,
+                    Artefact.name == subquery.c.name,
+                    Artefact.created_at == subquery.c.max_created,
+                    Artefact.repo == subquery.c.repo,
+                    Artefact.series == subquery.c.series,
+                ),
+            )
+
+        case FamilyName.charm:
+            subquery = (
+                base_query.join(ArtefactBuild)
+                .add_columns(Artefact.track, ArtefactBuild.architecture)
+                .group_by(Artefact.track, ArtefactBuild.architecture)
+                .subquery()
+            )
+
+            query = (
+                session.query(Artefact)
+                .join(ArtefactBuild)
+                .join(
                     subquery,
                     and_(
                         Artefact.stage == subquery.c.stage,
                         Artefact.name == subquery.c.name,
                         Artefact.created_at == subquery.c.max_created,
                         Artefact.track == subquery.c.track,
+                        ArtefactBuild.architecture == subquery.c.architecture,
                     ),
                 )
+                .distinct()
+            )
 
-            case FamilyName.deb:
-                subquery = (
-                    base_query.add_columns(Artefact.repo, Artefact.series)
-                    .group_by(Artefact.repo, Artefact.series)
-                    .subquery()
-                )
+        case FamilyName.image:
+            subquery = (
+                base_query.add_columns(Artefact.os, Artefact.release)
+                .group_by(Artefact.os, Artefact.release)
+                .subquery()
+            )
 
-                query = session.query(Artefact).join(
-                    subquery,
-                    and_(
-                        Artefact.stage == subquery.c.stage,
-                        Artefact.name == subquery.c.name,
-                        Artefact.created_at == subquery.c.max_created,
-                        Artefact.repo == subquery.c.repo,
-                        Artefact.series == subquery.c.series,
-                    ),
-                )
-
-            case FamilyName.charm:
-                subquery = (
-                    base_query.join(ArtefactBuild)
-                    .add_columns(Artefact.track, ArtefactBuild.architecture)
-                    .group_by(Artefact.track, ArtefactBuild.architecture)
-                    .subquery()
-                )
-
-                query = (
-                    session.query(Artefact)
-                    .join(ArtefactBuild)
-                    .join(
-                        subquery,
-                        and_(
-                            Artefact.stage == subquery.c.stage,
-                            Artefact.name == subquery.c.name,
-                            Artefact.created_at == subquery.c.max_created,
-                            Artefact.track == subquery.c.track,
-                            ArtefactBuild.architecture == subquery.c.architecture,
-                        ),
-                    )
-                    .distinct()
-                )
-
-    else:
-        query = session.query(Artefact).filter(Artefact.family == family)
+            query = session.query(Artefact).join(
+                subquery,
+                and_(
+                    Artefact.stage == subquery.c.stage,
+                    Artefact.name == subquery.c.name,
+                    Artefact.created_at == subquery.c.max_created,
+                    Artefact.os == subquery.c.os,
+                    Artefact.release == subquery.c.release,
+                ),
+            )
 
     if load_environment_reviews:
         query = query.options(
