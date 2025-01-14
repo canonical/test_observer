@@ -133,6 +133,7 @@ class StartTestExecutionController:
                 "release": getattr(self.request, "release", ""),
                 "sha256": getattr(self.request, "sha256", ""),
                 "owner": getattr(self.request, "owner", ""),
+                "image_url": getattr(self.request, "image_url", ""),
             },
             creation_kwargs={"stage": self.request.execution_stage},
         )

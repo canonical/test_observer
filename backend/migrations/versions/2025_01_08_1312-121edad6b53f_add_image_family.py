@@ -23,6 +23,7 @@ def upgrade() -> None:
     add_release_column()
     add_sha256_column()
     add_owner_column()
+    add_image_url_column()
 
 
 def add_image_family():
@@ -58,12 +59,19 @@ def add_owner_column():
     op.alter_column("artefact", "owner", nullable=False)
 
 
+def add_image_url_column():
+    op.add_column("artefact", sa.Column("image_url", sa.String(length=200)))
+    op.execute("UPDATE artefact SET image_url = '' WHERE image_url is NULL")
+    op.alter_column("artefact", "image_url", nullable=False)
+
+
 def downgrade() -> None:
     op.execute("DELETE FROM artefact WHERE family = 'image'")
     op.drop_column("artefact", "owner")
     op.drop_column("artefact", "sha256")
     op.drop_column("artefact", "release")
     op.drop_column("artefact", "os")
+    op.drop_column("artefact", "image_url")
 
     remove_image_family_enum_value()
     remove_added_stage_enum_values()

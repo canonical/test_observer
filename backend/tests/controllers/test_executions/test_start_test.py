@@ -93,7 +93,7 @@ image_test_request = {
     "version": "20240827",
     "sha256": "e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
     "owner": "foundations",
-    "url": "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso",
+    "image_url": "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso",
     "execution_stage": StageName.pending,
     "test_plan": "image test plan",
     "environment": "xps",
@@ -496,3 +496,4 @@ def test_start_an_image_test(execute: Execute, db_session: Session):
     assert artefact.release == image_test_request["release"]
     assert artefact.sha256 == image_test_request["sha256"]
     assert artefact.owner == image_test_request["owner"]
+    assert artefact.image_url == image_test_request["image_url"]

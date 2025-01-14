@@ -90,6 +90,7 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     release: str
     sha256: str
     owner: str
+    image_url: HttpUrl
 
 
 class C3TestResultStatus(str, Enum):

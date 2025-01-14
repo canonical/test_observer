@@ -133,8 +133,7 @@ class Artefact(Base):
     release: Mapped[str] = mapped_column(String(200), default="")
     sha256: Mapped[str] = mapped_column(String(200), default="")
     owner: Mapped[str] = mapped_column(String(200), default="")
-    # TODO add image url
-    # TODO optionally rename prepend family specific fields with family name
+    image_url: Mapped[str] = mapped_column(String(200), default="")
 
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(
