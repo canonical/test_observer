@@ -23,15 +23,11 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.test_executions.models import (
-    StartSnapTestExecutionRequest,
-)
 from test_observer.data_access.models import (
     Artefact,
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
-    FamilyName,
     StageName,
     TestExecutionStatus,
 )
@@ -116,6 +112,32 @@ class TestStartTest:
         response = execute(request)
 
         assert response.status_code == 422
+
+    def test_reuses_test_execution(
+        self, execute: Execute, start_request: dict[str, Any]
+    ):
+        response = execute(start_request)
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+
+        response = execute(start_request)
+        assert response.json()["id"] == test_execution.id
+
+    def test_reuses_environment_and_build(
+        self, execute: Execute, start_request: dict[str, Any]
+    ):
+        response = execute(start_request)
+        test_execution_1 = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution_1
+
+        response = execute({**start_request, "ci_link": "http://someother.link"})
+        test_execution_2 = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution_2
+
+        assert test_execution_2.id != test_execution_1.id
+        assert test_execution_2.environment_id == test_execution_1.environment_id
+        assert test_execution_2.artefact_build_id == test_execution_1.artefact_build_id
 
     @pytest.fixture(autouse=True)
     def _set_db_session(self, db_session: Session) -> None:
@@ -252,47 +274,6 @@ def test_image_required_fields(execute: Execute, field: str):
     response = execute(request)
 
     assert_fails_validation(response, field, "missing")
-
-
-def test_uses_existing_models(
-    db_session: Session,
-    execute: Execute,
-    generator: DataGenerator,
-):
-    artefact = generator.gen_artefact(StageName.beta)
-    environment = generator.gen_environment()
-    artefact_build = generator.gen_artefact_build(artefact, revision=1)
-
-    request = StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
-        name=artefact.name,
-        version=artefact.version,
-        revision=1,
-        track=artefact.track,
-        store=artefact.store,
-        arch=artefact_build.architecture,
-        execution_stage=StageName.beta,
-        environment=environment.name,
-        ci_link="http://localhost/",
-        test_plan="test plan",
-    )
-
-    test_execution_id = execute(
-        request.model_dump(mode="json"),
-    ).json()["id"]
-
-    test_execution = (
-        db_session.query(TestExecution)
-        .where(TestExecution.id == test_execution_id)
-        .one()
-    )
-
-    assert test_execution.artefact_build_id == artefact_build.id
-    assert test_execution.environment_id == environment.id
-    assert test_execution.status == TestExecutionStatus.IN_PROGRESS
-    assert test_execution.ci_link == "http://localhost/"
-    assert test_execution.c3_link is None
-    assert test_execution.test_plan == "test plan"
 
 
 def test_new_artefacts_get_assigned_a_reviewer(
