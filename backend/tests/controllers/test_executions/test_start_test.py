@@ -99,19 +99,24 @@ image_test_request = {
 }
 
 
-@pytest.fixture
-def execute(test_client: TestClient) -> Execute:
-    def execute_helper(data: dict[str, Any]) -> Response:
-        return test_client.put("/v1/test-executions/start-test", json=data)
+@pytest.mark.parametrize(
+    "start_request",
+    [snap_test_request, deb_test_request, charm_test_request, image_test_request],
+)
+class TestStartTest:
+    def test_starts_a_test(self, execute: Execute, start_request: dict[str, Any]):
+        response = execute(start_request)
+        self._assert_objects_created(start_request, response)
 
-    return execute_helper
+    @pytest.fixture(autouse=True)
+    def _set_db_session(self, db_session: Session) -> None:
+        self._db_session = db_session
 
-
-@pytest.fixture
-def assert_objects_created(db_session: Session) -> Assert:
-    def helper(request: dict[str, Any], response: Response) -> None:
+    def _assert_objects_created(
+        self, request: dict[str, Any], response: Response
+    ) -> None:
         assert response.status_code == 200
-        test_execution = db_session.get(TestExecution, response.json()["id"])
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
         assert test_execution.ci_link == request["ci_link"]
         assert test_execution.test_plan == request["test_plan"]
@@ -142,7 +147,13 @@ def assert_objects_created(db_session: Session) -> Assert:
         assert artefact.series == request.get("series", "")
         assert artefact.repo == request.get("repo", "")
 
-    return helper
+
+@pytest.fixture
+def execute(test_client: TestClient) -> Execute:
+    def execute_helper(data: dict[str, Any]) -> Response:
+        return test_client.put("/v1/test-executions/start-test", json=data)
+
+    return execute_helper
 
 
 def test_requires_family_field(execute: Execute):
@@ -194,17 +205,6 @@ def test_deb_required_fields(execute: Execute, field: str):
     response = execute(request)
 
     assert_fails_validation(response, field, "missing")
-
-
-@pytest.mark.parametrize(
-    "start_request",
-    [snap_test_request, deb_test_request, charm_test_request, image_test_request],
-)
-def test_starts_a_test(
-    execute: Execute, assert_objects_created: Assert, start_request: dict[str, Any]
-):
-    response = execute(start_request)
-    assert_objects_created(start_request, response)
 
 
 def test_uses_existing_models(
