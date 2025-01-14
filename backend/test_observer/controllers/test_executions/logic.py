@@ -90,6 +90,8 @@ def get_previous_test_results(
             Artefact.series == test_execution.artefact_build.artefact.series,
             Artefact.repo == test_execution.artefact_build.artefact.repo,
             Artefact.track == test_execution.artefact_build.artefact.track,
+            Artefact.os == test_execution.artefact_build.artefact.os,
+            Artefact.series == test_execution.artefact_build.artefact.series,
             Artefact.id <= test_execution.artefact_build.artefact_id,
             or_(
                 TestExecution.id < test_execution.id,
