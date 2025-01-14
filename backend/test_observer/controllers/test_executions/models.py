@@ -38,6 +38,7 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
+from test_observer.controllers.artefacts.models import TestExecutionDTO, ArtefactDTO
 
 
 class _StartTestExecutionRequest(BaseModel):
@@ -157,39 +158,12 @@ class PendingRerun(BaseModel):
             "test_execution", "artefact_build", "artefact", "family"
         )
     )
-    test_execution_status: TestExecutionStatus = Field(
-        validation_alias=AliasPath("test_execution", "status")
+    test_execution: TestExecutionDTO = Field(
+        validation_alias=AliasPath("test_execution")
     )
-    artefact_name: str = Field(
-        validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "name"
-        )
+    artefact: ArtefactDTO = Field(
+        validation_alias=AliasPath("test_execution", "artefact_build", "artefact")
     )
-    version: str = Field(
-        validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "version"
-        )
-    )
-    revision: int | None = Field(
-        validation_alias=AliasPath("test_execution", "artefact_build", "revision")
-    )
-    stage: StageName = Field(
-        validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "stage"
-        )
-    )
-    track: str = Field(
-        validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "track"
-        )
-    )
-    architecture: str = Field(
-        validation_alias=AliasPath("test_execution", "environment", "architecture")
-    )
-    environment: str = Field(
-        validation_alias=AliasPath("test_execution", "environment", "name")
-    )
-    test_plan: str = Field(validation_alias=AliasPath("test_execution", "test_plan"))
 
 
 class DeleteReruns(BaseModel):

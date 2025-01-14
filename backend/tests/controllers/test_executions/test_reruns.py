@@ -4,11 +4,13 @@ from typing import Any, TypeAlias
 
 import pytest
 from fastapi.testclient import TestClient
+from fastapi.encoders import jsonable_encoder
 from httpx import Response
 
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
+from test_observer.controllers.artefacts.models import TestExecutionDTO, ArtefactDTO
 
 reruns_url = "/v1/test-executions/reruns"
 
@@ -43,20 +45,15 @@ Delete: TypeAlias = Callable[[Any], Response]
 
 
 def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
-    return {
-        "test_execution_id": test_execution.id,
-        "ci_link": test_execution.ci_link,
-        "family": test_execution.artefact_build.artefact.family,
-        "test_execution_status": test_execution.status,
-        "artefact_name": test_execution.artefact_build.artefact.name,
-        "version": test_execution.artefact_build.artefact.version,
-        "revision": test_execution.artefact_build.revision,
-        "stage": test_execution.artefact_build.artefact.stage,
-        "track": test_execution.artefact_build.artefact.track,
-        "architecture": test_execution.environment.architecture,
-        "environment": test_execution.environment.name,
-        "test_plan": test_execution.test_plan,
-    }
+    return jsonable_encoder(
+        {
+            "test_execution_id": test_execution.id,
+            "ci_link": test_execution.ci_link,
+            "family": test_execution.artefact_build.artefact.family,
+            "test_execution": TestExecutionDTO.from_orm(test_execution),
+            "artefact": ArtefactDTO.from_orm(test_execution.artefact_build.artefact),
+        }
+    )
 
 
 def test_post_no_data_returns_422(post: Post):
