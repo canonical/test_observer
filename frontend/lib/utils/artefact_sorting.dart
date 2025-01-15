@@ -12,7 +12,10 @@ enum ArtefactSortingQuery {
   assignee,
   series,
   repo,
-  pocket
+  pocket,
+  os,
+  release,
+  owner,
 }
 
 void sortArtefacts(
@@ -79,5 +82,11 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
       return (a1, a2) => a1.repo.compareTo(a2.repo);
     case ArtefactSortingQuery.pocket:
       return (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
+    case ArtefactSortingQuery.os:
+      return (a1, a2) => a1.os.compareTo(a2.os);
+    case ArtefactSortingQuery.release:
+      return (a1, a2) => a1.release.compareTo(a2.release);
+    case ArtefactSortingQuery.owner:
+      return (a1, a2) => a1.owner.compareTo(a2.owner);
   }
 }

@@ -176,8 +176,26 @@ const _imageColumnsMetadata = <ColumnMetadata>[
   (
     name: 'Version',
     queryParam: ArtefactSortingQuery.version,
-    flex: 2,
+    flex: 1,
     cellBuilder: _buildVersionCell,
+  ),
+  (
+    name: 'OS',
+    queryParam: ArtefactSortingQuery.os,
+    flex: 1,
+    cellBuilder: _buildOSCell,
+  ),
+  (
+    name: 'Release',
+    queryParam: ArtefactSortingQuery.release,
+    flex: 1,
+    cellBuilder: _buildReleaseCell,
+  ),
+  (
+    name: 'Owner',
+    queryParam: ArtefactSortingQuery.owner,
+    flex: 1,
+    cellBuilder: _buildOwnerCell,
   ),
   (
     name: 'Due date',
@@ -239,3 +257,12 @@ Widget _buildStatusCell(BuildContext context, Artefact artefact) {
 
 Widget _buildAssigneeCell(BuildContext context, Artefact artefact) =>
     Text(artefact.assignee?.name ?? '');
+
+Widget _buildOSCell(BuildContext context, Artefact artefact) =>
+    Text(artefact.os);
+
+Widget _buildReleaseCell(BuildContext context, Artefact artefact) =>
+    Text(artefact.release);
+
+Widget _buildOwnerCell(BuildContext context, Artefact artefact) =>
+    Text(artefact.owner);
