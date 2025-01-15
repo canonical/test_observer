@@ -10,11 +10,6 @@ from httpx import Response
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
-from test_observer.controllers.artefacts.models import (
-    TestExecutionDTO,
-    ArtefactDTO,
-    ArtefactBuildMinimalDTO,
-)
 
 reruns_url = "/v1/test-executions/reruns"
 
@@ -54,11 +49,44 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "test_execution_id": test_execution.id,
             "ci_link": test_execution.ci_link,
             "family": test_execution.artefact_build.artefact.family,
-            "test_execution": TestExecutionDTO.from_orm(test_execution),
-            "artefact": ArtefactDTO.from_orm(test_execution.artefact_build.artefact),
-            "artefact_build": ArtefactBuildMinimalDTO.from_orm(
-                test_execution.artefact_build
-            ),
+            "test_execution": {
+                "id": test_execution.id,
+                "ci_link": test_execution.ci_link,
+                "c3_link": test_execution.c3_link,
+                "environment": {
+                    "id": test_execution.environment.id,
+                    "name": test_execution.environment.name,
+                    "architecture": test_execution.environment.architecture,
+                },
+                "status": test_execution.status,
+                "test_plan": test_execution.test_plan,
+                "is_rerun_requested": bool(test_execution.rerun_request),
+            },
+            "artefact": {
+                "id": test_execution.artefact_build.artefact.id,
+                "name": test_execution.artefact_build.artefact.name,
+                "version": test_execution.artefact_build.artefact.version,
+                "track": test_execution.artefact_build.artefact.track,
+                "store": test_execution.artefact_build.artefact.store,
+                "series": test_execution.artefact_build.artefact.series,
+                "repo": test_execution.artefact_build.artefact.repo,
+                "stage": test_execution.artefact_build.artefact.stage,
+                "status": test_execution.artefact_build.artefact.status,
+                "assignee": test_execution.artefact_build.artefact.assignee,
+                "due_date": test_execution.artefact_build.artefact.due_date,
+                "bug_link": test_execution.artefact_build.artefact.bug_link,
+                "all_environment_reviews_count": (
+                    test_execution.artefact_build.artefact.all_environment_reviews_count
+                ),
+                "completed_environment_reviews_count": (
+                    test_execution.artefact_build.artefact.completed_environment_reviews_count
+                ),
+            },
+            "artefact_build": {
+                "id": test_execution.artefact_build.id,
+                "architecture": test_execution.artefact_build.architecture,
+                "revision": test_execution.artefact_build.revision,
+            },
         }
     )
 
