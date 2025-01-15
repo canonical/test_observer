@@ -45,6 +45,14 @@ class ArtefactsListView extends ConsumerWidget {
     return _Row.charm(key: PageStorageKey(artefact.id), artefact: artefact);
   }
 
+  const ArtefactsListView.images({super.key})
+      : listHeader = const _Headers.images(key: PageStorageKey('Header')),
+        listItemBuilder = _imagesListItemBuilder;
+
+  static Widget _imagesListItemBuilder(Artefact artefact) {
+    return _Row.image(key: PageStorageKey(artefact.id), artefact: artefact);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
