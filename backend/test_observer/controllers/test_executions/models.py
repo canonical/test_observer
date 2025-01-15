@@ -32,6 +32,11 @@ from pydantic import (
 )
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
+from test_observer.controllers.artefacts.models import (
+    ArtefactBuildMinimalDTO,
+    ArtefactDTO,
+    TestExecutionDTO,
+)
 from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
@@ -167,13 +172,20 @@ class RerunRequest(BaseModel):
 
 class PendingRerun(BaseModel):
     test_execution_id: int
-    ci_link: str | None = Field(
-        validation_alias=AliasPath("test_execution", "ci_link"), default=None
-    )
+    ci_link: str | None = Field(validation_alias=AliasPath("test_execution", "ci_link"))
     family: FamilyName = Field(
         validation_alias=AliasPath(
             "test_execution", "artefact_build", "artefact", "family"
         )
+    )
+    test_execution: TestExecutionDTO = Field(
+        validation_alias=AliasPath("test_execution")
+    )
+    artefact: ArtefactDTO = Field(
+        validation_alias=AliasPath("test_execution", "artefact_build", "artefact")
+    )
+    artefact_build: ArtefactBuildMinimalDTO = Field(
+        validation_alias=AliasPath("test_execution", "artefact_build")
     )
 
 

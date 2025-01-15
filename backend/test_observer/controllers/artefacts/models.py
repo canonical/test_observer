@@ -113,7 +113,9 @@ class ArtefactVersionDTO(BaseModel):
     artefact_id: int = Field(validation_alias=AliasPath("id"))
 
 
-class _EnvironmentReviewArtefactBuild(BaseModel):
+class ArtefactBuildMinimalDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     architecture: str
     revision: int | None
@@ -124,7 +126,7 @@ class ArtefactBuildEnvironmentReviewDTO(BaseModel):
     review_decision: list[ArtefactBuildEnvironmentReviewDecision]
     review_comment: str
     environment: EnvironmentDTO
-    artefact_build: _EnvironmentReviewArtefactBuild
+    artefact_build: ArtefactBuildMinimalDTO
 
 
 class EnvironmentReviewPatch(BaseModel):
