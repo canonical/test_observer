@@ -84,7 +84,7 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
 
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.image]
+    family: Literal[FamilyName.image] = FamilyName.image
     execution_stage: Literal[StageName.pending, StageName.current]
     os: str
     release: str
@@ -167,7 +167,9 @@ class RerunRequest(BaseModel):
 
 class PendingRerun(BaseModel):
     test_execution_id: int
-    ci_link: str = Field(validation_alias=AliasPath("test_execution", "ci_link"))
+    ci_link: str | None = Field(
+        validation_alias=AliasPath("test_execution", "ci_link"), default=None
+    )
     family: FamilyName = Field(
         validation_alias=AliasPath(
             "test_execution", "artefact_build", "artefact", "family"
