@@ -86,7 +86,10 @@ def start_test_execution(
             filter_kwargs={
                 "architecture": request.arch,
                 "revision": request.revision
-                if isinstance(request, StartSnapTestExecutionRequest)
+                if isinstance(
+                    request,
+                    StartSnapTestExecutionRequest | StartCharmTestExecutionRequest,
+                )
                 else None,
                 "artefact_id": artefact.id,
             },

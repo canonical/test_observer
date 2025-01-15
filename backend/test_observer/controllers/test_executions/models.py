@@ -38,6 +38,11 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
+from test_observer.controllers.artefacts.models import (
+    TestExecutionDTO,
+    ArtefactDTO,
+    ArtefactBuildMinimalDTO,
+)
 
 
 class _StartTestExecutionRequest(BaseModel):
@@ -151,11 +156,20 @@ class RerunRequest(BaseModel):
 
 class PendingRerun(BaseModel):
     test_execution_id: int
-    ci_link: str = Field(validation_alias=AliasPath("test_execution", "ci_link"))
+    ci_link: str | None = Field(validation_alias=AliasPath("test_execution", "ci_link"))
     family: FamilyName = Field(
         validation_alias=AliasPath(
             "test_execution", "artefact_build", "artefact", "family"
         )
+    )
+    test_execution: TestExecutionDTO = Field(
+        validation_alias=AliasPath("test_execution")
+    )
+    artefact: ArtefactDTO = Field(
+        validation_alias=AliasPath("test_execution", "artefact_build", "artefact")
+    )
+    artefact_build: ArtefactBuildMinimalDTO = Field(
+        validation_alias=AliasPath("test_execution", "artefact_build")
     )
 
 
