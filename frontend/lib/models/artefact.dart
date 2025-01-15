@@ -20,6 +20,11 @@ class Artefact with _$Artefact {
     required String store,
     required String series,
     required String repo,
+    required String os,
+    required String release,
+    required String owner,
+    required String sha256,
+    @JsonKey(name: 'image_url') required String imageUrl,
     required ArtefactStatus status,
     required StageName stage,
     @JsonKey(name: 'all_environment_reviews_count')

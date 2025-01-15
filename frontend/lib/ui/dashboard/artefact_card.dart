@@ -48,6 +48,10 @@ class ArtefactCard extends ConsumerWidget {
               if (artefact.series.isNotEmpty)
                 Text('series: ${artefact.series}'),
               if (artefact.repo.isNotEmpty) Text('repo: ${artefact.repo}'),
+              if (artefact.os.isNotEmpty) Text('os: ${artefact.os}'),
+              if (artefact.release.isNotEmpty)
+                Text('release: ${artefact.release}'),
+              if (artefact.owner.isNotEmpty) Text('owner: ${artefact.owner}'),
               Row(
                 children: [
                   VanillaChip(
