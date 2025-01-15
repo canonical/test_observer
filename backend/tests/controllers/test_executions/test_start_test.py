@@ -298,7 +298,6 @@ def test_deb_required_fields(execute: Execute, field: str):
         "arch",
         "execution_stage",
         "environment",
-        "ci_link",
         "test_plan",
     ],
 )
@@ -323,7 +322,6 @@ def test_charm_required_fields(execute: Execute, field: str):
         "image_url",
         "execution_stage",
         "environment",
-        "ci_link",
     ],
 )
 def test_image_required_fields(execute: Execute, field: str):
