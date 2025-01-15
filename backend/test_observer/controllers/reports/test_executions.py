@@ -27,6 +27,8 @@ TEST_EXECUTIONS_REPORT_COLUMNS = [
     Artefact.track,
     Artefact.series,
     Artefact.repo,
+    Artefact.os,
+    Artefact.series,
     TestExecution.id,
     TestExecution.status,
     TestExecution.ci_link,

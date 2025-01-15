@@ -55,6 +55,11 @@ class ArtefactDTO(BaseModel):
     store: str
     series: str
     repo: str
+    os: str
+    release: str
+    owner: str
+    sha256: str
+    image_url: str
     stage: str
     status: ArtefactStatus
     assignee: UserDTO | None

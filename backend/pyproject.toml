@@ -57,6 +57,10 @@ select = [
 ]
 ignore = ["ANN201", "ANN003", "N999", "ANN101", "ANN204", "N818", "B008"]
 
+[tool.mypy]
+exclude = "charm/*"
+explicit_package_bases = true
+
 [[tool.mypy.overrides]]
 module = "celery.*"
 ignore_missing_imports = true

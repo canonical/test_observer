@@ -28,6 +28,8 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     Artefact.track,
     Artefact.series,
     Artefact.repo,
+    Artefact.os,
+    Artefact.series,
     Artefact.created_at,
     TestExecution.id,
     TestExecution.status,

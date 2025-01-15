@@ -32,16 +32,16 @@ from pydantic import (
 )
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
+from test_observer.controllers.artefacts.models import (
+    ArtefactBuildMinimalDTO,
+    ArtefactDTO,
+    TestExecutionDTO,
+)
 from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
     TestExecutionStatus,
     TestResultStatus,
-)
-from test_observer.controllers.artefacts.models import (
-    TestExecutionDTO,
-    ArtefactDTO,
-    ArtefactBuildMinimalDTO,
 )
 
 
@@ -49,7 +49,6 @@ class _StartTestExecutionRequest(BaseModel):
     name: str
     version: str
     arch: str
-    execution_stage: StageName
     environment: str
     ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
@@ -68,18 +67,35 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
+    execution_stage: Literal[
+        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
+    ]
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.deb]
     series: str
     repo: str
+    execution_stage: Literal[StageName.proposed, StageName.updates]
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.charm]
     revision: int
     track: str
+    execution_stage: Literal[
+        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
+    ]
+
+
+class StartImageTestExecutionRequest(_StartTestExecutionRequest):
+    family: Literal[FamilyName.image] = FamilyName.image
+    execution_stage: Literal[StageName.pending, StageName.current]
+    os: str
+    release: str
+    sha256: str
+    owner: str
+    image_url: HttpUrl
 
 
 class C3TestResultStatus(str, Enum):

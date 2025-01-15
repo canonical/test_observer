@@ -84,6 +84,8 @@ def _expected_report_row(test_result: TestResult) -> list:
         artefact.track,
         artefact.series,
         artefact.repo,
+        artefact.os,
+        artefact.series,
         str(artefact.created_at),
         str(test_execution.id),
         test_execution.status.name,

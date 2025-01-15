@@ -39,7 +39,7 @@ jobs:
       - run: poetry install
       - run: poetry run black --check test_observer tests migrations scripts tasks
       - run: poetry run ruff test_observer tests migrations scripts tasks
-      - run: poetry run mypy --explicit-package-bases test_observer tests migrations scripts tasks
+      - run: poetry run mypy .
       - run: poetry run pytest
         env:
           TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres

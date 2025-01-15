@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# ruff: noqa: E501 Line too long
+# ruff: noqa
 
 from datetime import date, timedelta
 from textwrap import dedent
@@ -21,6 +21,7 @@ from test_observer.controllers.test_executions.models import (
     EndTestExecutionRequest,
     StartCharmTestExecutionRequest,
     StartDebTestExecutionRequest,
+    StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
 from test_observer.data_access.models import Artefact
@@ -264,6 +265,51 @@ START_TEST_EXECUTION_REQUESTS = [
         environment="juju=3.5 ubuntu=22.04 cloud=k8s",
         ci_link="http://example13",
         test_plan="com.canonical.solutions-qa::tbd",
+    ),
+    StartImageTestExecutionRequest(
+        name="noble-live-desktop-amd64",
+        os="ubuntu",
+        release="noble",
+        arch="amd64",
+        version="20240827",
+        sha256="e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
+        owner="foundations",
+        image_url=HttpUrl(
+            "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
+        ),
+        execution_stage=StageName.pending,
+        test_plan="image test plan",
+        environment="xps",
+    ),
+    StartImageTestExecutionRequest(
+        name="noble-live-desktop-amd64",
+        os="ubuntu",
+        release="noble",
+        arch="amd64",
+        version="20240827",
+        sha256="e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
+        owner="foundations",
+        image_url=HttpUrl(
+            "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
+        ),
+        execution_stage=StageName.pending,
+        test_plan="desktop image test plan",
+        environment="xps",
+    ),
+    StartImageTestExecutionRequest(
+        name="ubuntu-core-20-arm64-raspi",
+        os="ubuntu-core",
+        release="20",
+        arch="amd64+raspi",
+        version="20221025.4",
+        sha256="e94418aa109cf5886a50e828e98ac68361ea7e3ca1ab4aed2bbddc0a299b334f",
+        owner="snapd",
+        image_url=HttpUrl(
+            "https://cdimage.ubuntu.com/ubuntu-core/20/stable/20221025.4/ubuntu-core-20-arm64+raspi.img.xz"
+        ),
+        execution_stage=StageName.pending,
+        test_plan="core image test plan",
+        environment="rpi3",
     ),
 ]
 

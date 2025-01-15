@@ -129,6 +129,11 @@ class Artefact(Base):
     store: Mapped[str] = mapped_column(default="")
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+    os: Mapped[str] = mapped_column(String(200), default="")
+    release: Mapped[str] = mapped_column(String(200), default="")
+    sha256: Mapped[str] = mapped_column(String(200), default="")
+    owner: Mapped[str] = mapped_column(String(200), default="")
+    image_url: Mapped[str] = mapped_column(String(200), default="")
 
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(
@@ -149,7 +154,15 @@ class Artefact(Base):
             "name",
             "version",
             "track",
-            postgresql_where=column("track") != "",
+            postgresql_where=column("family") == FamilyName.snap.name,
+            unique=True,
+        ),
+        Index(
+            "unique_charm",
+            "name",
+            "version",
+            "track",
+            postgresql_where=column("family") == FamilyName.charm.name,
             unique=True,
         ),
         Index(
@@ -158,7 +171,13 @@ class Artefact(Base):
             "version",
             "series",
             "repo",
-            postgresql_where=(column("series") != "") & (column("repo") != ""),
+            postgresql_where=column("family") == FamilyName.deb.name,
+            unique=True,
+        ),
+        Index(
+            "unique_image",
+            "sha256",
+            postgresql_where=column("family") == FamilyName.image.name,
             unique=True,
         ),
     )
@@ -174,6 +193,11 @@ class Artefact(Base):
             "store",
             "series",
             "repo",
+            "os",
+            "release",
+            "sha256",
+            "owner",
+            "image_url",
             "due_date",
             "status",
         )

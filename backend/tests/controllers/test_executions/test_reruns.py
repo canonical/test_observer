@@ -3,8 +3,8 @@ from operator import itemgetter
 from typing import Any, TypeAlias
 
 import pytest
-from fastapi.testclient import TestClient
 from fastapi.encoders import jsonable_encoder
+from fastapi.testclient import TestClient
 from httpx import Response
 
 from test_observer.data_access.models import TestExecution
@@ -70,6 +70,11 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "store": test_execution.artefact_build.artefact.store,
                 "series": test_execution.artefact_build.artefact.series,
                 "repo": test_execution.artefact_build.artefact.repo,
+                "os": test_execution.artefact_build.artefact.os,
+                "release": test_execution.artefact_build.artefact.release,
+                "sha256": test_execution.artefact_build.artefact.sha256,
+                "image_url": test_execution.artefact_build.artefact.image_url,
+                "owner": test_execution.artefact_build.artefact.owner,
                 "stage": test_execution.artefact_build.artefact.stage,
                 "status": test_execution.artefact_build.artefact.status,
                 "assignee": test_execution.artefact_build.artefact.assignee,
