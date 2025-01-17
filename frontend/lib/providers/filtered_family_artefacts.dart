@@ -18,8 +18,8 @@ LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
 ) {
   final family = AppRoutes.familyFromUri(pageUri);
   final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
-  final filters =
-      emptyArtefactFilters.copyWithQueryParams(pageUri.queryParametersAll);
+  final filters = createEmptyArtefactFilters(family)
+      .copyWithQueryParams(pageUri.queryParametersAll);
   final searchValue =
       pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
 

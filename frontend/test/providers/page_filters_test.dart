@@ -30,7 +30,7 @@ void main() {
     expect(pageFilters.filters[0].name, 'Assignee');
     expect(
       pageFilters.filters[0].detectedOptions,
-      {dummyArtefact.assignee?.name},
+      {dummyArtefact.assignee.name},
     );
     expect(pageFilters.filters[1].name, 'Status');
     expect(

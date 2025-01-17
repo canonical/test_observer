@@ -34,6 +34,21 @@ class ArtefactPageInfoSection extends StatelessWidget {
           Text('series: ${artefact.series}', style: fontStyle),
         if (artefact.repo.isNotEmpty)
           Text('repo: ${artefact.repo}', style: fontStyle),
+        if (artefact.os.isNotEmpty)
+          Text('os: ${artefact.os}', style: fontStyle),
+        if (artefact.release.isNotEmpty)
+          Text('release: ${artefact.release}', style: fontStyle),
+        if (artefact.owner.isNotEmpty)
+          Text('owner: ${artefact.owner}', style: fontStyle),
+        if (artefact.sha256.isNotEmpty)
+          Text('sha256: ${artefact.sha256}', style: fontStyle),
+        if (artefact.imageUrl.isNotEmpty)
+          InlineUrlText(
+            leadingText: 'image link: ',
+            url: artefact.imageUrl,
+            urlText: artefact.imageUrl,
+            fontStyle: fontStyle,
+          ),
         if (bugLink.isNotBlank)
           InlineUrlText(
             leadingText: 'bug link: ',

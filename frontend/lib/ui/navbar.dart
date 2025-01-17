@@ -26,6 +26,7 @@ class Navbar extends StatelessWidget {
                 _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
                 _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
                 _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
+                _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
               ],
             ),
           ),
