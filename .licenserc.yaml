@@ -4,7 +4,7 @@ header:
     license:
       spdx-id: GPL-3.0-only
       copyright-owner: Canonical Ltd.
-      copyright-year: 2024
+      copyright-year: 2023
       software-name: Test Observer Frontend
       content: |
         Copyright (C) [year] [owner]
