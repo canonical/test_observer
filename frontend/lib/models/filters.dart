@@ -111,6 +111,7 @@ final emptyDebFilters = Filters<Artefact>(
     _artefactStatusFilter,
     _artefactDueDateFilter,
     _artefactSeriesFilter,
+    _artefactPocketFilter,
   ],
 );
 
@@ -201,4 +202,9 @@ Filter<Artefact> _artefactReleaseFilter = Filter<Artefact>(
 Filter<Artefact> _artefactOwnerFilter = Filter<Artefact>(
   name: 'Owner',
   extractOption: (artefact) => artefact.owner,
+);
+
+Filter<Artefact> _artefactPocketFilter = Filter<Artefact>(
+  name: 'Pocket',
+  extractOption: (artefact) => artefact.stage.name,
 );
