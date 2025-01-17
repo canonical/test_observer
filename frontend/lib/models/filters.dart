@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'artefact.dart';
 import 'artefact_environment.dart';
 import 'environment_review.dart';
+import 'family_name.dart';
 import 'filter.dart';
 
 part 'filters.freezed.dart';
@@ -80,6 +81,10 @@ class Filters<T> with _$Filters<T> {
     }
     return copyWith(filters: newFilters);
   }
+}
+
+Filters<Artefact> createEmptyArtefactFilters(FamilyName family) {
+  return emptyArtefactFilters;
 }
 
 final emptyArtefactFilters = Filters<Artefact>(
