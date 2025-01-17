@@ -1,23 +1,3 @@
-# Copyright 2023 Canonical Ltd.
-# All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Written by:
-#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-#        Omar Selo <omar.selo@canonical.com>
-
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import TypeVar
@@ -506,9 +486,9 @@ class ArtefactBuildEnvironmentReview(Base):
     __tablename__ = "artefact_build_environment_review"
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
-    review_decision: Mapped[
-        list[ArtefactBuildEnvironmentReviewDecision]
-    ] = mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    review_decision: Mapped[list[ArtefactBuildEnvironmentReviewDecision]] = (
+        mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    )
     review_comment: Mapped[str] = mapped_column(default="")
 
     environment_id: Mapped[int] = mapped_column(

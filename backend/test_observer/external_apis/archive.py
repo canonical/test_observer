@@ -1,24 +1,4 @@
-# Copyright 2023 Canonical Ltd.
-# All rights reserved.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Written by:
-#        Nadzeya Hutsko <nadzeya.hutsko@canonical.com>
-#        Jonathan Cave <jonathan.cave@canonical.com>
 """Functions for managing data from archive"""
-
 
 import gzip
 import logging
@@ -124,7 +104,8 @@ class ArchiveManager:
 
     def _decompress_data(self) -> None:
         """Decompress the downloaded data"""
-        with gzip.open(self.gz_filepath, "rb") as f_in, open(
-            self.decompressed_filepath, "wb"
-        ) as f_out:
+        with (
+            gzip.open(self.gz_filepath, "rb") as f_in,
+            open(self.decompressed_filepath, "wb") as f_out,
+        ):
             f_out.write(f_in.read())
