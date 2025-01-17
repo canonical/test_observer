@@ -87,12 +87,16 @@ Filters<Artefact> createEmptyArtefactFilters(FamilyName family) {
   switch (family) {
     case FamilyName.image:
       return emptyImageFilters;
-    default:
-      return emptyArtefactFilters;
+    case FamilyName.snap:
+      return emptySnapFilters;
+    case FamilyName.deb:
+      return emptyDebFilters;
+    case FamilyName.charm:
+      return emptyCharmFilters;
   }
 }
 
-final emptyArtefactFilters = Filters<Artefact>(
+final emptyCharmFilters = Filters<Artefact>(
   filters: [
     Filter<Artefact>(
       name: 'Assignee',
@@ -115,6 +119,72 @@ final emptyArtefactFilters = Filters<Artefact>(
         if (daysDueIn >= 7) return 'More than a week';
         return 'Within a week';
       },
+    ),
+    Filter<Artefact>(
+      name: 'Risk',
+      extractOption: (artefact) => artefact.stage.name,
+    ),
+  ],
+);
+
+final emptyDebFilters = Filters<Artefact>(
+  filters: [
+    Filter<Artefact>(
+      name: 'Assignee',
+      extractOption: (artefact) => artefact.assignee?.name,
+    ),
+    Filter<Artefact>(
+      name: 'Status',
+      extractOption: (artefact) => artefact.status.name,
+    ),
+    Filter<Artefact>(
+      name: 'Due date',
+      extractOption: (artefact) {
+        final now = DateTime.now();
+        final dueDate = artefact.dueDate;
+
+        if (dueDate == null) return 'No due date';
+        if (dueDate.isBefore(now)) return 'Overdue';
+
+        final daysDueIn = now.difference(dueDate).inDays;
+        if (daysDueIn >= 7) return 'More than a week';
+        return 'Within a week';
+      },
+    ),
+    Filter<Artefact>(
+      name: 'Series',
+      extractOption: (artefact) => artefact.series,
+    ),
+  ],
+);
+
+final emptySnapFilters = Filters<Artefact>(
+  filters: [
+    Filter<Artefact>(
+      name: 'Assignee',
+      extractOption: (artefact) => artefact.assignee?.name,
+    ),
+    Filter<Artefact>(
+      name: 'Status',
+      extractOption: (artefact) => artefact.status.name,
+    ),
+    Filter<Artefact>(
+      name: 'Due date',
+      extractOption: (artefact) {
+        final now = DateTime.now();
+        final dueDate = artefact.dueDate;
+
+        if (dueDate == null) return 'No due date';
+        if (dueDate.isBefore(now)) return 'Overdue';
+
+        final daysDueIn = now.difference(dueDate).inDays;
+        if (daysDueIn >= 7) return 'More than a week';
+        return 'Within a week';
+      },
+    ),
+    Filter<Artefact>(
+      name: 'Risk',
+      extractOption: (artefact) => artefact.stage.name,
     ),
   ],
 );
