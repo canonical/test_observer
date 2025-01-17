@@ -32,7 +32,6 @@ class ArtefactCard extends ConsumerWidget {
         ),
         child: Container(
           width: width,
-          height: height,
           padding: const EdgeInsets.all(Spacing.level4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -65,14 +64,13 @@ class ArtefactCard extends ConsumerWidget {
                       fontColor: YaruColors.red,
                     ),
                   const Spacer(),
-                  if (assignee != null)
-                    UserAvatar(
-                      user: assignee,
-                      allEnvironmentReviewsCount:
-                          artefact.allEnvironmentReviewsCount,
-                      completedEnvironmentReviewsCount:
-                          artefact.completedEnvironmentReviewsCount,
-                    ),
+                  UserAvatar(
+                    user: assignee,
+                    allEnvironmentReviewsCount:
+                        artefact.allEnvironmentReviewsCount,
+                    completedEnvironmentReviewsCount:
+                        artefact.completedEnvironmentReviewsCount,
+                  ),
                 ],
               ),
             ].intersperse(const SizedBox(height: Spacing.level2)).toList(),
