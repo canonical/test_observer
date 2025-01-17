@@ -36,3 +36,17 @@ header:
         extensions:
           - ".dart"
         comment_style_id: DoubleSlash
+  - paths:
+      - "backend/charm/src/*.py"
+    license:
+      spdx-id: Apache-2.0
+      copyright-owner: Canonical Ltd.
+      copyright-year: 2023
+      software-name: Test Observer Backend Charm
+  - paths:
+      - "frontend/charm/src/*.py"
+    license:
+      spdx-id: Apache-2.0
+      copyright-owner: Canonical Ltd.
+      copyright-year: 2023
+      software-name: Test Observer Frontend Charm
