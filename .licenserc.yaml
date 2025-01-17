@@ -1,5 +1,14 @@
 header:
   - paths:
+      - "backend/**/*.py"
+    license:
+      spdx-id: AGPL-3.0-only
+      copyright-owner: Canonical Ltd.
+      copyright-year: 2023
+      software-name: Test Observer Backend
+    paths-ignore:
+      - "backend/charm/**"
+  - paths:
       - "frontend/**/*.dart"
     license:
       spdx-id: GPL-3.0-only
