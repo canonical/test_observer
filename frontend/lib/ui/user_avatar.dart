@@ -14,12 +14,12 @@ const possibleColors = [
 class UserAvatar extends StatelessWidget {
   const UserAvatar({
     super.key,
-    required User? user,
+    required this.user,
     required this.allEnvironmentReviewsCount,
     required this.completedEnvironmentReviewsCount,
-  }) : _user = user;
+  });
 
-  final User? _user;
+  final User user;
   final int allEnvironmentReviewsCount;
   final int completedEnvironmentReviewsCount;
 
@@ -37,7 +37,16 @@ class UserAvatar extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          _avatar(context),
+          CircleAvatar(
+            backgroundColor: _avatarColor,
+            child: Text(
+              user.initials,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.apply(fontWeightDelta: 4),
+            ),
+          ),
           SizedBox(
             width: 43.0,
             height: 43.0,
@@ -53,33 +62,19 @@ class UserAvatar extends StatelessWidget {
     );
   }
 
-  Widget _avatar(BuildContext context) {
-    return CircleAvatar(
-      backgroundColor: _avatarColor,
-      child: Text(
-        _user?.initials ?? 'N/A',
-        style:
-            Theme.of(context).textTheme.labelLarge?.apply(fontWeightDelta: 4),
-      ),
-    );
-  }
-
   String get _tooltipMessage {
     String result = 'Completed: $completedEnvironmentReviewsCount / '
         '$allEnvironmentReviewsCount (${(ratioCompleted * 100).round()}%)';
-    if (_user == null) {
+    if (user.isEmpty) {
       result = 'No reviewer assigned\n$result';
     } else {
       result =
-          '${_user.name}\n${_user.launchpadHandle}\n${_user.launchpadEmail}\n$result';
+          '${user.name}\n${user.launchpadHandle}\n${user.launchpadEmail}\n$result';
     }
     return result;
   }
 
-  Color get _avatarColor {
-    if (_user == null) return Colors.grey;
-    return possibleColors[_user.id % possibleColors.length];
-  }
+  Color get _avatarColor => possibleColors[user.id % possibleColors.length];
 
   Color get _progressColor {
     final hsl = HSLColor.fromColor(_avatarColor);

@@ -31,7 +31,7 @@ class Artefact with _$Artefact {
     required int allEnvironmentReviewsCount,
     @JsonKey(name: 'completed_environment_reviews_count')
     required int completedEnvironmentReviewsCount,
-    User? assignee,
+    @Default(emptyUser) User assignee,
     @JsonKey(name: 'bug_link') required String bugLink,
     @JsonKey(name: 'due_date') DateTime? dueDate,
   }) = _Artefact;

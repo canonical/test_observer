@@ -69,12 +69,11 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
       return (a1, a2) => a1.status.name.compareTo(a2.status.name);
     case ArtefactSortingQuery.assignee:
       return (a1, a2) {
-        final a1Assignee = a1.assignee?.name;
-        final a2Assignee = a2.assignee?.name;
         // no assignee is always larger
-        if (a1Assignee == null) return 1;
-        if (a2Assignee == null) return -1;
-        return a1Assignee.compareTo(a2Assignee);
+        if (a1.assignee.isEmpty) return 1;
+        if (a2.assignee.isEmpty) return -1;
+
+        return a1.assignee.name.compareTo(a2.assignee.name);
       };
     case ArtefactSortingQuery.series:
       return (a1, a2) => a1.series.compareTo(a2.series);

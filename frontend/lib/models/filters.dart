@@ -100,7 +100,7 @@ final emptyCharmFilters = Filters<Artefact>(
   filters: [
     Filter<Artefact>(
       name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee?.name,
+      extractOption: (artefact) => artefact.assignee.name,
     ),
     Filter<Artefact>(
       name: 'Status',
@@ -131,7 +131,7 @@ final emptyDebFilters = Filters<Artefact>(
   filters: [
     Filter<Artefact>(
       name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee?.name,
+      extractOption: (artefact) => artefact.assignee.name,
     ),
     Filter<Artefact>(
       name: 'Status',
@@ -162,7 +162,7 @@ final emptySnapFilters = Filters<Artefact>(
   filters: [
     Filter<Artefact>(
       name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee?.name,
+      extractOption: (artefact) => artefact.assignee.name,
     ),
     Filter<Artefact>(
       name: 'Status',
@@ -205,7 +205,7 @@ final emptyImageFilters = Filters<Artefact>(
     ),
     Filter<Artefact>(
       name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee?.name,
+      extractOption: (artefact) => artefact.assignee.name,
     ),
     Filter<Artefact>(
       name: 'Status',

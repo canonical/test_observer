@@ -256,7 +256,7 @@ Widget _buildStatusCell(BuildContext context, Artefact artefact) {
 }
 
 Widget _buildAssigneeCell(BuildContext context, Artefact artefact) =>
-    Text(artefact.assignee?.name ?? '');
+    Text(artefact.assignee.name);
 
 Widget _buildOSCell(BuildContext context, Artefact artefact) =>
     Text(artefact.os);

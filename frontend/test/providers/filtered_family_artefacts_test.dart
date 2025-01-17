@@ -2,6 +2,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/family_name.dart';
+import 'package:testcase_dashboard/models/user.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/family_artefacts.dart';
 import 'package:testcase_dashboard/providers/filtered_family_artefacts.dart';
@@ -46,7 +47,7 @@ void main() {
       filteredFamilyArtefactsProvider(
         Uri(
           path: AppRoutes.snaps,
-          queryParameters: {'Assignee': firstArtefact.assignee!.name},
+          queryParameters: {'Assignee': firstArtefact.assignee.name},
         ),
       ),
     );
@@ -114,7 +115,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
       dummyArtefact,
       dummyArtefact.copyWith(
         id: 2,
-        assignee: null,
+        assignee: emptyUser,
         name: 'snapd',
         status: ArtefactStatus.approved,
       ),
