@@ -98,133 +98,39 @@ Filters<Artefact> createEmptyArtefactFilters(FamilyName family) {
 
 final emptyCharmFilters = Filters<Artefact>(
   filters: [
-    Filter<Artefact>(
-      name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee.name,
-    ),
-    Filter<Artefact>(
-      name: 'Status',
-      extractOption: (artefact) => artefact.status.name,
-    ),
-    Filter<Artefact>(
-      name: 'Due date',
-      extractOption: (artefact) {
-        final now = DateTime.now();
-        final dueDate = artefact.dueDate;
-
-        if (dueDate == null) return 'No due date';
-        if (dueDate.isBefore(now)) return 'Overdue';
-
-        final daysDueIn = now.difference(dueDate).inDays;
-        if (daysDueIn >= 7) return 'More than a week';
-        return 'Within a week';
-      },
-    ),
-    Filter<Artefact>(
-      name: 'Risk',
-      extractOption: (artefact) => artefact.stage.name,
-    ),
+    _artefactAssigneeFilter,
+    _artefactStatusFilter,
+    _artefactDueDateFilter,
+    _artefactRiskFilter,
   ],
 );
 
 final emptyDebFilters = Filters<Artefact>(
   filters: [
-    Filter<Artefact>(
-      name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee.name,
-    ),
-    Filter<Artefact>(
-      name: 'Status',
-      extractOption: (artefact) => artefact.status.name,
-    ),
-    Filter<Artefact>(
-      name: 'Due date',
-      extractOption: (artefact) {
-        final now = DateTime.now();
-        final dueDate = artefact.dueDate;
-
-        if (dueDate == null) return 'No due date';
-        if (dueDate.isBefore(now)) return 'Overdue';
-
-        final daysDueIn = now.difference(dueDate).inDays;
-        if (daysDueIn >= 7) return 'More than a week';
-        return 'Within a week';
-      },
-    ),
-    Filter<Artefact>(
-      name: 'Series',
-      extractOption: (artefact) => artefact.series,
-    ),
+    _artefactAssigneeFilter,
+    _artefactStatusFilter,
+    _artefactDueDateFilter,
+    _artefactSeriesFilter,
   ],
 );
 
 final emptySnapFilters = Filters<Artefact>(
   filters: [
-    Filter<Artefact>(
-      name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee.name,
-    ),
-    Filter<Artefact>(
-      name: 'Status',
-      extractOption: (artefact) => artefact.status.name,
-    ),
-    Filter<Artefact>(
-      name: 'Due date',
-      extractOption: (artefact) {
-        final now = DateTime.now();
-        final dueDate = artefact.dueDate;
-
-        if (dueDate == null) return 'No due date';
-        if (dueDate.isBefore(now)) return 'Overdue';
-
-        final daysDueIn = now.difference(dueDate).inDays;
-        if (daysDueIn >= 7) return 'More than a week';
-        return 'Within a week';
-      },
-    ),
-    Filter<Artefact>(
-      name: 'Risk',
-      extractOption: (artefact) => artefact.stage.name,
-    ),
+    _artefactAssigneeFilter,
+    _artefactStatusFilter,
+    _artefactDueDateFilter,
+    _artefactRiskFilter,
   ],
 );
 
 final emptyImageFilters = Filters<Artefact>(
   filters: [
-    Filter<Artefact>(
-      name: 'OS type',
-      extractOption: (artefact) => artefact.os,
-    ),
-    Filter<Artefact>(
-      name: 'Release',
-      extractOption: (artefact) => artefact.release,
-    ),
-    Filter<Artefact>(
-      name: 'Owner',
-      extractOption: (artefact) => artefact.owner,
-    ),
-    Filter<Artefact>(
-      name: 'Assignee',
-      extractOption: (artefact) => artefact.assignee.name,
-    ),
-    Filter<Artefact>(
-      name: 'Status',
-      extractOption: (artefact) => artefact.status.name,
-    ),
-    Filter<Artefact>(
-      name: 'Due date',
-      extractOption: (artefact) {
-        final now = DateTime.now();
-        final dueDate = artefact.dueDate;
-
-        if (dueDate == null) return 'No due date';
-        if (dueDate.isBefore(now)) return 'Overdue';
-
-        final daysDueIn = now.difference(dueDate).inDays;
-        if (daysDueIn >= 7) return 'More than a week';
-        return 'Within a week';
-      },
-    ),
+    _artefactOSFilter,
+    _artefactReleaseFilter,
+    _artefactOwnerFilter,
+    _artefactAssigneeFilter,
+    _artefactStatusFilter,
+    _artefactDueDateFilter,
   ],
 );
 
@@ -245,4 +151,54 @@ final emptyArtefactEnvironmentsFilters = Filters<ArtefactEnvironment>(
           environment.runsDescending.firstOrNull?.status.name,
     ),
   ],
+);
+
+Filter<Artefact> _artefactAssigneeFilter = Filter<Artefact>(
+  name: 'Assignee',
+  extractOption: (artefact) => artefact.assignee.name,
+);
+
+Filter<Artefact> _artefactStatusFilter = Filter<Artefact>(
+  name: 'Status',
+  extractOption: (artefact) => artefact.status.name,
+);
+
+Filter<Artefact> _artefactDueDateFilter = Filter<Artefact>(
+  name: 'Due date',
+  extractOption: (artefact) {
+    final now = DateTime.now();
+    final dueDate = artefact.dueDate;
+
+    if (dueDate == null) return 'No due date';
+    if (dueDate.isBefore(now)) return 'Overdue';
+
+    final daysDueIn = now.difference(dueDate).inDays;
+    if (daysDueIn >= 7) return 'More than a week';
+    return 'Within a week';
+  },
+);
+
+Filter<Artefact> _artefactRiskFilter = Filter<Artefact>(
+  name: 'Risk',
+  extractOption: (artefact) => artefact.stage.name,
+);
+
+Filter<Artefact> _artefactSeriesFilter = Filter<Artefact>(
+  name: 'Series',
+  extractOption: (artefact) => artefact.series,
+);
+
+Filter<Artefact> _artefactOSFilter = Filter<Artefact>(
+  name: 'OS type',
+  extractOption: (artefact) => artefact.os,
+);
+
+Filter<Artefact> _artefactReleaseFilter = Filter<Artefact>(
+  name: 'Release',
+  extractOption: (artefact) => artefact.release,
+);
+
+Filter<Artefact> _artefactOwnerFilter = Filter<Artefact>(
+  name: 'Owner',
+  extractOption: (artefact) => artefact.owner,
 );
