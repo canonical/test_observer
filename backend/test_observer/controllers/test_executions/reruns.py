@@ -91,4 +91,5 @@ def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
     db.commit()
 
 
-class _TestExecutionNotFound(ValueError): ...
+class _TestExecutionNotFound(ValueError):
+    ...
