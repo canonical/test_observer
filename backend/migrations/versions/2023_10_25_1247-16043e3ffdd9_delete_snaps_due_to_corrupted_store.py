@@ -1,3 +1,20 @@
+# Copyright (C) 2023 Canonical Ltd.
+#
+# This file is part of Test Observer Backend.
+#
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 """Delete snaps due to corrupted store
 
 Revision ID: 16043e3ffdd9
@@ -5,6 +22,7 @@ Revises: 0d23bbbe9ec8
 Create Date: 2023-10-25 12:47:01.958805+00:00
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 

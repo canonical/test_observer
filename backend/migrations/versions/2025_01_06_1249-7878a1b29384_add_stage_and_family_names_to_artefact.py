@@ -1,3 +1,20 @@
+# Copyright (C) 2023 Canonical Ltd.
+#
+# This file is part of Test Observer Backend.
+#
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 """Add stage and family names to artefact
 
 Revision ID: 7878a1b29384
@@ -5,6 +22,7 @@ Revises: 0e09759a33c3
 Create Date: 2025-01-06 12:49:42.039170+00:00
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql

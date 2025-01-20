@@ -1,3 +1,20 @@
+# Copyright (C) 2023 Canonical Ltd.
+#
+# This file is part of Test Observer Backend.
+#
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 """Rename user table to app_user
 
 Revision ID: bb2a51214402
@@ -5,6 +22,7 @@ Revises: c9851b127edc
 Create Date: 2024-01-12 10:40:00.596887+00:00
 
 """
+
 from alembic import op
 
 # revision identifiers, used by Alembic.

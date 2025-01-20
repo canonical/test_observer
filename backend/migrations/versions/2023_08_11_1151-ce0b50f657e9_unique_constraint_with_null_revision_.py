@@ -1,3 +1,20 @@
+# Copyright (C) 2023 Canonical Ltd.
+#
+# This file is part of Test Observer Backend.
+#
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 """Unique constraint with NULL revision for artefact_build
 
 Revision ID: ce0b50f657e9
@@ -5,6 +22,7 @@ Revises: 18b1066d92c3
 Create Date: 2023-08-11 11:51:06.475246+00:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
