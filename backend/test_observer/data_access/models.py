@@ -1,16 +1,19 @@
 # Copyright (C) 2023 Canonical Ltd.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, version 3.
+# This file is part of Test Observer Backend.
 #
-# This program is distributed in the hope that it will be useful,
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -500,9 +503,9 @@ class ArtefactBuildEnvironmentReview(Base):
     __tablename__ = "artefact_build_environment_review"
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
-    review_decision: Mapped[
-        list[ArtefactBuildEnvironmentReviewDecision]
-    ] = mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    review_decision: Mapped[list[ArtefactBuildEnvironmentReviewDecision]] = (
+        mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    )
     review_comment: Mapped[str] = mapped_column(default="")
 
     environment_id: Mapped[int] = mapped_column(

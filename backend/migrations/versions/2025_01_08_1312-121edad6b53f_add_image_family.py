@@ -1,16 +1,19 @@
 # Copyright (C) 2023 Canonical Ltd.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, version 3.
+# This file is part of Test Observer Backend.
 #
-# This program is distributed in the hope that it will be useful,
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 
 """Add image family
 
@@ -19,6 +22,7 @@ Revises: 7878a1b29384
 Create Date: 2025-01-08 13:12:05.831020+00:00
 
 """
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -93,7 +97,7 @@ def downgrade() -> None:
 
 def remove_image_family_enum_value():
     op.execute("ALTER TYPE familyname RENAME TO familyname_old")
-    op.execute("CREATE TYPE familyname AS " "ENUM('snap', 'deb', 'charm')")
+    op.execute("CREATE TYPE familyname AS ENUM('snap', 'deb', 'charm')")
     op.execute(
         "ALTER TABLE artefact ALTER COLUMN family TYPE "
         "familyname USING family::text::familyname"

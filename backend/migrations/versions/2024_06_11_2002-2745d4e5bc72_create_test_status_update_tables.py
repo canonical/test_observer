@@ -1,16 +1,19 @@
 # Copyright (C) 2023 Canonical Ltd.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, version 3.
+# This file is part of Test Observer Backend.
 #
-# This program is distributed in the hope that it will be useful,
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 
 """Create test status update tables
 
@@ -19,6 +22,7 @@ Revises: 33c0383ea9ca
 Create Date: 2024-06-11 20:02:00.064753+00:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -51,8 +55,7 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
     op.execute(
-        "ALTER TABLE test_execution ADD COLUMN "
-        "resource_url VARCHAR NOT NULL DEFAULT ''"
+        "ALTER TABLE test_execution ADD COLUMN resource_url VARCHAR NOT NULL DEFAULT ''"
     )
 
     with op.get_context().autocommit_block():
