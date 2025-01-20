@@ -18,6 +18,9 @@ class _Row extends StatelessWidget {
   const _Row.charm({super.key, required this.artefact})
       : columnsMetaData = _charmColumnsMetadata;
 
+  const _Row.image({super.key, required this.artefact})
+      : columnsMetaData = _imageColumnsMetadata;
+
   @override
   Widget build(BuildContext context) {
     return InkWell(

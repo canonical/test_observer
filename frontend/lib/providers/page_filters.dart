@@ -19,7 +19,7 @@ class PageFilters extends _$PageFilters {
           .values
           .toList();
 
-      return emptyArtefactFilters
+      return createEmptyArtefactFilters(family)
           .copyWithOptionsExtracted(artefacts)
           .copyWithQueryParams(pageUri.queryParametersAll);
     }

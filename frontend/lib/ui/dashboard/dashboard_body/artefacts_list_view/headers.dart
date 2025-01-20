@@ -11,6 +11,8 @@ class _Headers extends StatelessWidget {
 
   const _Headers.charms({super.key}) : columnsMetaData = _charmColumnsMetadata;
 
+  const _Headers.images({super.key}) : columnsMetaData = _imageColumnsMetadata;
+
   @override
   Widget build(BuildContext context) {
     final uri = AppRoutes.uriFromContext(context);

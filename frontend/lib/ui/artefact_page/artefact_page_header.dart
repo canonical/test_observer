@@ -22,13 +22,12 @@ class ArtefactPageHeader extends StatelessWidget {
         const SizedBox(width: Spacing.level4),
         ArtefactSignoffButton(artefact: artefact),
         const SizedBox(width: Spacing.level4),
-        if (assignee != null)
-          UserAvatar(
-            user: assignee,
-            allEnvironmentReviewsCount: artefact.allEnvironmentReviewsCount,
-            completedEnvironmentReviewsCount:
-                artefact.completedEnvironmentReviewsCount,
-          ),
+        UserAvatar(
+          user: assignee,
+          allEnvironmentReviewsCount: artefact.allEnvironmentReviewsCount,
+          completedEnvironmentReviewsCount:
+              artefact.completedEnvironmentReviewsCount,
+        ),
         const SizedBox(width: Spacing.level4),
         if (dueDate != null)
           Text(

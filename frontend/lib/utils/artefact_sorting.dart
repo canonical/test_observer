@@ -12,7 +12,10 @@ enum ArtefactSortingQuery {
   assignee,
   series,
   repo,
-  pocket
+  pocket,
+  os,
+  release,
+  owner,
 }
 
 void sortArtefacts(
@@ -66,12 +69,11 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
       return (a1, a2) => a1.status.name.compareTo(a2.status.name);
     case ArtefactSortingQuery.assignee:
       return (a1, a2) {
-        final a1Assignee = a1.assignee?.name;
-        final a2Assignee = a2.assignee?.name;
         // no assignee is always larger
-        if (a1Assignee == null) return 1;
-        if (a2Assignee == null) return -1;
-        return a1Assignee.compareTo(a2Assignee);
+        if (a1.assignee.isEmpty) return 1;
+        if (a2.assignee.isEmpty) return -1;
+
+        return a1.assignee.name.compareTo(a2.assignee.name);
       };
     case ArtefactSortingQuery.series:
       return (a1, a2) => a1.series.compareTo(a2.series);
@@ -79,5 +81,11 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
       return (a1, a2) => a1.repo.compareTo(a2.repo);
     case ArtefactSortingQuery.pocket:
       return (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
+    case ArtefactSortingQuery.os:
+      return (a1, a2) => a1.os.compareTo(a2.os);
+    case ArtefactSortingQuery.release:
+      return (a1, a2) => a1.release.compareTo(a2.release);
+    case ArtefactSortingQuery.owner:
+      return (a1, a2) => a1.owner.compareTo(a2.owner);
   }
 }

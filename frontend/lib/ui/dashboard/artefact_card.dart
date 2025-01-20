@@ -32,7 +32,6 @@ class ArtefactCard extends ConsumerWidget {
         ),
         child: Container(
           width: width,
-          height: height,
           padding: const EdgeInsets.all(Spacing.level4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -48,6 +47,10 @@ class ArtefactCard extends ConsumerWidget {
               if (artefact.series.isNotEmpty)
                 Text('series: ${artefact.series}'),
               if (artefact.repo.isNotEmpty) Text('repo: ${artefact.repo}'),
+              if (artefact.os.isNotEmpty) Text('os: ${artefact.os}'),
+              if (artefact.release.isNotEmpty)
+                Text('release: ${artefact.release}'),
+              if (artefact.owner.isNotEmpty) Text('owner: ${artefact.owner}'),
               Row(
                 children: [
                   VanillaChip(
@@ -61,14 +64,13 @@ class ArtefactCard extends ConsumerWidget {
                       fontColor: YaruColors.red,
                     ),
                   const Spacer(),
-                  if (assignee != null)
-                    UserAvatar(
-                      user: assignee,
-                      allEnvironmentReviewsCount:
-                          artefact.allEnvironmentReviewsCount,
-                      completedEnvironmentReviewsCount:
-                          artefact.completedEnvironmentReviewsCount,
-                    ),
+                  UserAvatar(
+                    user: assignee,
+                    allEnvironmentReviewsCount:
+                        artefact.allEnvironmentReviewsCount,
+                    completedEnvironmentReviewsCount:
+                        artefact.completedEnvironmentReviewsCount,
+                  ),
                 ],
               ),
             ].intersperse(const SizedBox(height: Spacing.level2)).toList(),

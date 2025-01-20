@@ -1,6 +1,15 @@
 import 'family_name.dart';
 
-enum StageName { edge, beta, candidate, stable, proposed, updates }
+enum StageName {
+  edge,
+  beta,
+  candidate,
+  stable,
+  proposed,
+  updates,
+  pending,
+  current
+}
 
 List<StageName> familyStages(FamilyName family) {
   switch (family) {
@@ -22,6 +31,11 @@ List<StageName> familyStages(FamilyName family) {
         StageName.beta,
         StageName.candidate,
         StageName.stable,
+      ];
+    case FamilyName.image:
+      return [
+        StageName.pending,
+        StageName.current,
       ];
   }
 }
