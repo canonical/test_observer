@@ -66,3 +66,4 @@ jobs:
           charm-path: "backend/charm"
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+          tag-prefix: "api"
