@@ -1,4 +1,5 @@
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
@@ -58,7 +59,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Upload charm to charmhub
-        uses: canonical/charming-actions/upload-charm@2.4.0
+        uses: canonical/charming-actions/upload-charm@2.6.3
         with:
           charm-path: "frontend/charm"
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
