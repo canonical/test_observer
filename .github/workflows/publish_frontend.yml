@@ -1,7 +1,6 @@
 on:
-  workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "fix-publish-frontend-workflow"]
     tags: ["v*.*.*"]
     paths:
       - 'frontend/**'
