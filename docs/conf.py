@@ -20,18 +20,16 @@ import ast
 #######################
 
 # Project name
-#
-# TODO: Update with the official name of your project or product
 
-project = "Documentation starter pack"
+project = "Test Observer"
 author = "Canonical Ltd."
 
 
 # Sidebar documentation title; best kept reasonably short
 #
-# TODO: To include a version number, add it here (hardcoded or automated).
+# To include a version number, add it here (hardcoded or automated).
 #
-# TODO: To disable the title, set to an empty string.
+# To disable the title, set to an empty string.
 
 html_title = project + " documentation"
 
@@ -41,23 +39,23 @@ html_title = project + " documentation"
 # Now, the starter pack uses CC-BY-SA as the license
 # and the current year as the copyright year.
 #
-# TODO: If your docs need another license, specify it instead of 'CC-BY-SA'.
+# If your docs need another license, specify it instead of 'CC-BY-SA'.
 #
-# TODO: If your documentation is a part of the code repository of your project,
-#       it inherits the code license instead; specify it instead of 'CC-BY-SA'.
+# If your documentation is a part of the code repository of your project,
+# it inherits the code license instead; specify it instead of 'CC-BY-SA'.
 #
-# NOTE: For static works, it is common to provide the first publication year.
-#       Another option is to provide both the first year of publication
-#       and the current year, especially for docs that frequently change,
-#       e.g. 2022–2023 (note the en-dash).
+# For static works, it is common to provide the first publication year.
+# Another option is to provide both the first year of publication
+# and the current year, especially for docs that frequently change,
+# e.g. 2022–2023 (note the en-dash).
 #
-#       A way to check a repo's creation date is to get a classic GitHub token
-#       with 'repo' permissions; see https://github.com/settings/tokens
-#       Next, use 'curl' and 'jq' to extract the date from the API's output:
+# A way to check a repo's creation date is to get a classic GitHub token
+# with 'repo' permissions; see https://github.com/settings/tokens
+# Next, use 'curl' and 'jq' to extract the date from the API's output:
 #
-#       curl -H 'Authorization: token <TOKEN>' \
-#         -H 'Accept: application/vnd.github.v3.raw' \
-#         https://api.github.com/repos/canonical/<REPO> | jq '.created_at'
+# curl -H 'Authorization: token <TOKEN>' \
+#   -H 'Accept: application/vnd.github.v3.raw' \
+#   https://api.github.com/repos/canonical/<REPO> | jq '.created_at'
 
 copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 
@@ -66,29 +64,29 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 #
 # TODO: Update with the official URL of your docs or leave empty if unsure.
 #
-# NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
-#       and is used by social media platforms; see https://ogp.me/
+# The Open Graph Protocol (OGP) enhances page display in a social graph
+# and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = "https://canonical-starter-pack.readthedocs-hosted.com/"
+ogp_site_url = ""
 
 
 # Preview name of the documentation website
 #
-# TODO: To use a different name for the project in previews, update as needed.
+# To use a different name for the project in previews, update as needed.
 
 ogp_site_name = project
 
 
 # Preview image URL
 #
-# TODO: To customise the preview image, update as needed.
+# To customise the preview image, update as needed.
 
 ogp_image = "https://assets.ubuntu.com/v1/253da317-image-document-ubuntudocs.svg"
 
 
 # Product favicon; shown in bookmarks, browser tabs, etc.
 
-# TODO: To customise the favicon, uncomment and update as needed.
+# To customise the favicon, uncomment and update as needed.
 
 # html_favicon = '.sphinx/_static/favicon.png'
 
@@ -99,58 +97,58 @@ ogp_image = "https://assets.ubuntu.com/v1/253da317-image-document-ubuntudocs.svg
 html_context = {
     # Product page URL; can be different from product docs URL
     #
-    # TODO: Change to your product website URL,
-    #       dropping the 'https://' prefix, e.g. 'ubuntu.com/lxd'.
+    # Change to your product website URL,
+    # dropping the 'https://' prefix, e.g. 'ubuntu.com/lxd'.
     #
-    # TODO: If there's no such website,
-    #       remove the {{ product_page }} link from the page header template
-    #       (usually .sphinx/_templates/header.html; also, see README.rst).
-    "product_page": "documentation.ubuntu.com",
+    # If there's no such website,
+    # remove the {{ product_page }} link from the page header template
+    # (usually .sphinx/_templates/header.html; also, see README.rst).
+    "product_page": "test-observer.canonical.com",
     # Product tag image; the orange part of your logo, shown in the page header
     #
-    # TODO: To add a tag image, uncomment and update as needed.
+    # To add a tag image, uncomment and update as needed.
     # 'product_tag': '_static/tag.png',
     # Your Discourse instance URL
     #
-    # TODO: Change to your Discourse instance URL or leave empty.
+    # Change to your Discourse instance URL or leave empty.
     #
-    # NOTE: If set, adding ':discourse: 123' to an .rst file
-    #       will add a link to Discourse topic 123 at the bottom of the page.
-    "discourse": "https://discourse.ubuntu.com",
+    # If set, adding ':discourse: 123' to an .rst file
+    # will add a link to Discourse topic 123 at the bottom of the page.
+    "discourse": "",
     # Your Mattermost channel URL
     #
-    # TODO: Change to your Mattermost channel URL or leave empty.
-    "mattermost": "https://chat.canonical.com/canonical/channels/documentation",
+    # Change to your Mattermost channel URL or leave empty.
+    "mattermost": "https://chat.canonical.com/canonical/channels/test-observer",
     # Your Matrix channel URL
     #
-    # TODO: Change to your Matrix channel URL or leave empty.
-    "matrix": "https://matrix.to/#/#documentation:ubuntu.com",
+    # Change to your Matrix channel URL or leave empty.
+    "matrix": "",
     # Your documentation GitHub repository URL
     #
-    # TODO: Change to your documentation GitHub repository URL or leave empty.
+    # Change to your documentation GitHub repository URL or leave empty.
     #
-    # NOTE: If set, links for viewing the documentation source files
-    #       and creating GitHub issues are added at the bottom of each page.
-    "github_url": "https://github.com/canonical/sphinx-docs-starter-pack",
+    # If set, links for viewing the documentation source files
+    # and creating GitHub issues are added at the bottom of each page.
+    "github_url": "https://github.com/canonical/test_observer",
     # Docs branch in the repo; used in links for viewing the source files
     #
-    # TODO: To customise the branch, uncomment and update as needed.
-    # 'github_version': 'main',
+    # To customise the branch, uncomment and update as needed.
+    'github_version': 'main',
     # Docs location in the repo; used in links for viewing the source files
     #
-    # TODO: To customise the directory, uncomment and update as needed.
+    # To customise the directory, uncomment and update as needed.
     "github_folder": "/docs/",
-    # TODO: To enable or disable the Previous / Next buttons at the bottom of pages
+    # To enable or disable the Previous / Next buttons at the bottom of pages
     # Valid options: none, prev, next, both
-    # "sequential_nav": "both",
-    # TODO: To enable listing contributors on individual pages, set to True
+    "sequential_nav": "none",
+    # To enable listing contributors on individual pages, set to True
     "display_contributors": False,
 }
 
 # Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897
 #
-# TODO: If your documentation is hosted on https://docs.ubuntu.com/,
-#       uncomment and update as needed.
+# If your documentation is hosted on https://docs.ubuntu.com/,
+# uncomment and update as needed.
 
 # slug = ''
 
@@ -171,8 +169,8 @@ templates_path = [".sphinx/_templates"]
 # To set up redirects in the Read the Docs project dashboard:
 # https://docs.readthedocs.io/en/stable/guides/redirects.html
 
-# NOTE: If undefined, set to None, or empty,
-#       the sphinx_reredirects extension will be disabled.
+# If undefined, set to None, or empty,
+# the sphinx_reredirects extension will be disabled.
 
 redirects = {}
 
@@ -262,14 +260,14 @@ rst_epilog = """
 
 # Feedback button at the top; enabled by default
 #
-# TODO: To disable the button, uncomment this.
+# To disable the button, uncomment this.
 
 # disable_feedback_button = True
 
 
 # Your manpage URL
 #
-# TODO: To enable manpage links, uncomment and update as needed.
+# To enable manpage links, uncomment and update as needed.
 #
 # NOTE: If set, adding ':manpage:' to an .rst file
 #       adds a link to the corresponding man section at the bottom of the page.
