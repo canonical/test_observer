@@ -4,9 +4,6 @@ import ast
 # Configuration for the Sphinx documentation builder.
 # All configuration specific to your project should be done in this file.
 #
-# If you're new to Sphinx and don't want any advanced or custom features,
-# just go through the items marked 'TODO'.
-#
 # A complete list of built-in Sphinx configuration values:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 #
