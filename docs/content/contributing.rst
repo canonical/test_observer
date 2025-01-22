@@ -1,8 +1,5 @@
 :orphan:
 
-.. TODO: Replace all mentions of ACME with your project name
-.. TODO: Update all sections containing TODOs; make sure no TODOs are left
-
 
 How to contribute
 =================
@@ -36,11 +33,7 @@ When contributing, you must abide by the
 Licence and copyright
 ---------------------
 
-.. TODO: Update with your license details or drop if excessive
-
-By default, all contributions to ACME are made under the AGPLv3 licence.
-See the `licence <https://github.com/canonical/ACME/blob/main/COPYING>`_
-in the ACME GitHub repository for details.
+By default, all contributions to Test Observer Backend are made under the AGPLv3 licence. See the [licence](https://github.com/canonical/test_observer/blob/main/backend/LICENSE) in the Test Observer GitHub repository for details. All contributions to Test Observer Frontend are made under the GPLv3 license. See the [licence](https://github.com/canonical/test_observer/blob/main/frontend/LICENSE) in the Test Observer GitHub repository for details.
 
 All contributors must sign the `Canonical contributor licence agreement
 <https://ubuntu.com/legal/contributors>`_,
@@ -49,48 +42,23 @@ The author of a change remains the copyright owner of their code
 (no copyright assignment occurs).
 
 
-Releases and versions
----------------------
-
-.. TODO: Add your release and versioning details or drop if excessive
-
-ACME uses `semantic versioning <https://semver.org/>`_;
-major releases occur once or twice a year.
-
-The release notes can be found `TODO: here <https://example.com>`_.
-
-
 Environment setup
 -----------------
 
-.. TODO: Update with your prerequisites or drop if excessive
-
-To work on the project, you need the following prerequisites:
-
-- `TODO: Prerequisite 1 <http://example.com>`_
-- `TODO: Prerequisite 2 <http://example.com>`_
-
-
-To install and configure these tools:
-
-.. code-block:: console
-
-   TODO: prerequisite command 1
-   TODO: prerequisite command 2
+To work on the backend, see the backend's [README](https://github.com/canonical/test_observer/blob/main/backend/README.md).
+To work on the frontend, see the frontend's [README](https://github.com/canonical/test_observer/blob/main/frontend/README.md)
 
 
 Submissions
 -----------
 
-.. TODO: Suggest your own PR process or drop if excessive
-
-If you want to address an issue or a bug in ACME,
+If you want to address an issue or a bug in Test Observer,
 notify in advance the people involved to avoid confusion;
 also, reference the issue or bug number when you submit the changes.
 
 - `Fork
   <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks>`_
-  our `GitHub repository <https://github.com/canonical/ACME>`_
+  our `GitHub repository <https://github.com/canonical/test_observer>`_
   and add the changes to your fork,
   properly structuring your commits,
   providing detailed commit messages
@@ -110,8 +78,6 @@ if approved, they will be eventually merged.
 Describing pull requests
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. TODO: Update with your own checklist or drop if excessive
-
 To be properly considered, reviewed and merged,
 your pull request must provide the following details:
 
@@ -129,51 +95,13 @@ your pull request must provide the following details:
   list the reasons and suggest steps to reverse the changes if necessary.
 
 
-Commit structure and messages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. TODO: Update with your own guidelines or drop if excessive
-
-Use separate commits for each logical change,
-and for changes to different components.
-Prefix your commit messages with names of components they affect,
-using the code tree structure,
-e.g. start a commit that updates the ACME service with ``ACME/service:``.
-
-Use `conventional commits <https://www.conventionalcommits.org/>`_
-to ensure consistency across the project:
-
-.. code-block:: none
-
-   Ensure correct permissions and ownership for the content mounts
-    
-    * Work around an ACME issue regarding empty dirs:
-      https://github.com/canonical/ACME/issues/12345
-    
-    * Ensure the source directory is owned by the user running a container.
-
-   Links:
-   - ...
-   - ...
-
-
-Such structure makes it easier to review contributions
-and simplifies porting fixes to other branches.
-
-
 Signing commits
 ~~~~~~~~~~~~~~~
-
-.. TODO: Update with your suggestions or drop if excessive
 
 To improve contribution tracking, we use the developer certificate of origin
 (`DCO 1.1 <https://developercertificate.org/>`_) and require signed commits
 (using the ``-S`` or ``--gpg-sign`` option) for all changes that go into the
-ACME project.
-
-.. code-block:: none
-
-   git commit -S -m "acme/component: updated life cycle diagram"
+Test Observer project.
 
 Signed commits will have a GPG, SSH, or S/MIME signature that is
 cryptographically verifiable, and will be marked with a "Verified" or
@@ -213,27 +141,6 @@ signatures" error when pushing your changes to the remote:
       [GitHub Docs - Adding a new SSH key to your account](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
       for more information.
 
-Code
-----
-
-Formatting and linting
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. TODO: Update with your linting configuration setup or drop if excessive
-
-ACME relies on these formatting and linting tools:
-
-- `TODO: Tool 1 <http://example.com>`_
-- `TODO: Tool 2 <http://example.com>`_
-
-
-To configure and run them:
-
-.. code-block:: console
-
-   TODO: lint command 1
-   TODO: lint command 2
-
 
 Structure
 ~~~~~~~~~
@@ -269,31 +176,18 @@ Structure
   This also improves consistency and readability.
 
 
-Best practices
-~~~~~~~~~~~~~~
-
-.. TODO: Update with your best practices or drop if excessive
-
-
 Tests
 -----
 
-.. TODO: Update with your testing framework details or drop if excessive
-
 All code contributions must include tests.
 
-To run the tests locally before submitting your changes:
-
-.. code-block:: console
-
-   TODO: test command 1
-   TODO: test command 2
+To run tests locally, frontend and backend directories.
 
 
 Documentation
 -------------
 
-ACME's documentation is stored in the ``DOCDIR`` directory of the repository.
+Test Observer's documentation is stored in the ``DOCDIR`` directory of the repository.
 It is based on the `Canonical starter pack
 <https://canonical-starter-pack.readthedocs-hosted.com/latest/>`_
 and hosted on `Read the Docs <https://about.readthedocs.com/>`_.
