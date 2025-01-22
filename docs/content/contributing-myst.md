@@ -55,10 +55,6 @@ To improve contribution tracking, we use the developer certificate of origin
 ([DCO 1.1](https://developercertificate.org/) and require signed commits (using
 the `-S` or `---gpg-sign` option) for all changes that go into the Test Observer project.
 
-```{code-block} none
-git commit -S -m "acme/component: updated life cycle diagram"
-```
-
 Signed commits will have a GPG, SSH, or S/MIME signature that is
 cryptographically verifiable, and will be marked with a "Verified" or
 "Partially verified" badge in GitHub. This verifies that you made the changes or
