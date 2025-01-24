@@ -16,5 +16,6 @@ jobs:
       with:
         fetch-depth: 0
     - uses: DavidAnson/markdownlint-cli2-action@v16
+      working-directory: docs
       with:
-        config: "docs/.sphinx/.markdownlint.json"
+        config: ".sphinx/.markdownlint.json"
