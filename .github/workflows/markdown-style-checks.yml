@@ -2,11 +2,13 @@ name: Markdown style checks
 
 on:
   push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - '*'
+    branches-ignore:
+      - 'main'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   markdown-lint:
@@ -16,6 +18,5 @@ jobs:
       with:
         fetch-depth: 0
     - uses: DavidAnson/markdownlint-cli2-action@v16
-      working-directory: docs
       with:
-        config: ".sphinx/.markdownlint.json"
+        config: "docs/.sphinx/.markdownlint.json"

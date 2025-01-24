@@ -11,9 +11,13 @@
 # succeed.
 name: Sphinx python dependency build checks
 on:
-- push
-- pull_request
-- workflow_dispatch
+  push:
+    branches-ignore:
+      - 'main'
+    paths:
+      - 'docs/**'
+      - '.github/workflows/sphinx-python-dependency-build-checks.yml'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
