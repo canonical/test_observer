@@ -12,3 +12,4 @@ Note that these docs may reference the online API docs which currently require C
    :maxdepth: 2
 
    content/how-to/index
+   content/explanation/index
