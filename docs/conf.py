@@ -181,6 +181,7 @@ redirects = {}
 
 linkcheck_ignore = [
     "http://127.0.0.1:8000",
+    # TO is currently behind a VPN so ignore link checks
     "https://test-observer.canonical.com/*",
     "https://test-observer-staging.canonical.com/*",
     "https://test-observer-api.canonical.com/*",
