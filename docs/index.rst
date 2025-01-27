@@ -5,8 +5,6 @@ Test Observer (TO) is a dashboard for viewing the results of tests run on differ
 
 Certification currently deploys an instance of TO that they used for reviewing Stable Release Updates (SRUs). Other teams also use this instance for their tests. You can visit the `frontend <https://test-observer.canonical.com/>`_ and view the `API docs <https://test-observer-api.canonical.com/docs>`_, although this currently requires Canonical VPN access. There's also a staging deployment of `frontend <https://test-observer-staging.canonical.com/>`_ and `API <https://test-observer-api-staging.canonical.com/docs>`_ that teams can use to test their integration.
 
-The Test Observer API documentation is available at https://test-observer-api.canonical.com/docs. While these docs are referenced throughout our documentation, accessing them requires Canonical VPN access.
-
 .. toctree::
    :hidden:
    :maxdepth: 2
