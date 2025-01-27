@@ -20,10 +20,12 @@ latexmk
 md
 otf
 plantuml
+SRU
 tex
 texlive
 TOC
 utils
+VPN
 WCAG
 xetex
 xindy

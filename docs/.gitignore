@@ -1,3 +1,5 @@
 _build
 venv
 .doctrees
+warnings.txt
+.wordlist.dic
