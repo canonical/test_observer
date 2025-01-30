@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     juju = {
-      version = "~> 0.7.0"
+      version = "~> 0.8.0"
       source  = "juju/juju"
     }
   }
@@ -34,7 +34,7 @@ variable "nginx_ingress_integrator_charm_whitelist_source_range" {
 locals {
   sentry_dsn_map = {
     production  = "https://dd931d36e0c24681aaeed6abd312c896@sentry.is.canonical.com//66"
-    stg     = "https://84a48d05b2444e47a7fa176b577bf85a@sentry.is.canonical.com//68",
+    stg         = "https://84a48d05b2444e47a7fa176b577bf85a@sentry.is.canonical.com//68",
     development = ""
   }
 }
@@ -49,8 +49,9 @@ resource "juju_application" "ingress" {
   trust = true
 
   charm {
-    name    = "nginx-ingress-integrator"
-    channel = "stable"
+    name     = "nginx-ingress-integrator"
+    channel  = "latest/stable"
+    revision = 59
   }
 
   config = {
@@ -65,9 +66,10 @@ resource "juju_application" "pg" {
   trust = true
 
   charm {
-    name    = "postgresql-k8s"
-    channel = "14/candidate"
-    series  = "jammy"
+    name     = "postgresql-k8s"
+    channel  = "14/candidate"
+    series   = "jammy"
+    revision = 247
   }
 }
 
@@ -83,7 +85,7 @@ resource "juju_application" "test-observer-api" {
 
   config = {
     hostname   = var.environment == "stg" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
-    port       = var.environment == "development" ? 30000 : 443
+    port       = var.environment == "development" ? 80 : 443
     sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
   }
 
@@ -113,8 +115,10 @@ resource "juju_application" "redis" {
   model = juju_model.test-observer.name
 
   charm {
-    name    = "redis-k8s"
-    channel = "latest/edge"
+    name     = "redis-k8s"
+    channel  = "latest/edge"
+    series   = "jammy"
+    revision = 27
   }
 }
 
