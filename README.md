@@ -9,6 +9,7 @@ Observe the status and state of certification tests for various artefacts
 - `terraform` 1.4.6 or later (`sudo snap install terraform --classic`)
 - `lxd` 5.19 or later (`sudo snap install lxd --channel=5.19/stable` or `sudo snap refresh lxd --channel=5.19/stable` if already installed) + `lxd init --auto` after install.
 - `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable --classic`)
+- `pre-commit` (`sudo apt install pre-commit`) for executing pre-commit hooks
 - optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
 
 ## Deploying a copy of the system with terraform / juju in microk8s
