@@ -1,9 +1,9 @@
 repos:
--   repo: local
+  - repo: local
     hooks:
-    - id: openapi-fetch-yaml
-      name: Fetch OpenAPI YAML
-      entry: backend/scripts/fetch_openapi_yaml.sh
-      language: script
-      always_run: true
-      pass_filenames: false
+      - id: openapi-fetch-yaml
+        name: Fetch OpenAPI schema
+        entry: backend/scripts/fetch_openapi_schema.sh
+        language: script
+        always_run: true
+        pass_filenames: false
