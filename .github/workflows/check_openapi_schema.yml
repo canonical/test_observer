@@ -1,4 +1,4 @@
-name: Ensure that the OpenAPI schema is up-to-date
+name: Ensure that OpenAPI schema in repository is up-to-date
 on:
   push:
     branches: [ main ]
@@ -26,12 +26,12 @@ jobs:
           with:
             poetry-version: "1.6.1"
         - run: poetry install
-        - name: Start FastAPI application
+        - name: Start the app
           run: poetry run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
           shell: bash
 
         - name: Fetch OpenAPI schema
           run: curl http://localhost:30000/v1/openapi.yaml -o fetched_openapi.yaml
 
-        - name: Compare with repository's openapi.yaml
+        - name: Compare with schema in repository
           run: diff fetched_openapi.yaml schemata/openapi.yaml
