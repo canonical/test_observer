@@ -10,8 +10,8 @@ if git diff --cached --name-only | grep --quiet "backend"; then
 
     for i in {1..5}; do
         if curl --output /dev/null --silent --head --fail "http://localhost:30000/openapi.json"; then
-            curl --silent http://localhost:30000/openapi.json -o schemas/openapi.json
-            git add schemas/openapi.json
+            curl --silent http://localhost:30000/openapi.json -o schemata/openapi.json
+            git add schemata/openapi.json
             echo "OpenAPI schema fetched."
             success=true
             break
