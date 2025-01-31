@@ -1,4 +1,4 @@
-name: Test API server
+name: Ensure that the OpenAPI schema is up-to-date
 on:
   push:
     branches: [ main ]
