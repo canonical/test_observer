@@ -1,0 +1,37 @@
+name: Test API server
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - backend/**
+      - ".github/workflows/check_openapi_schema.yaml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - server/**
+      - ".github/workflows/check_openapi_schema.yaml"
+
+jobs:
+    compare-openapi:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: backend
+        steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v5
+          with:
+            python-version: "3.10"
+        - uses: Gr1N/setup-poetry@12c727a3dcf8c1a548d8d041c9d5ef5cebb3ba2e
+          with:
+            poetry-version: "1.6.1"
+        - run: poetry install
+        - name: Start FastAPI application
+          run: poetry run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
+          shell: bash
+
+        - name: Fetch OpenAPI YAML
+          run: curl http://localhost:30000/v1/openapi.yaml -o fetched_openapi.yaml
+
+        - name: Compare with repository's openapi.yaml
+          run: diff fetched_openapi.yaml schemas/openapi.yamlcompare-openapi

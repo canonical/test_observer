@@ -5,13 +5,12 @@ if git diff --cached --name-only | grep --quiet "backend"; then
     poetry install >/dev/null 2>&1
 
     echo "Starting a transient copy of test-observer-api to fetch the OpenAPI schema..."
-    docker build -t test-observer-api . >/dev/null 2>&1
-    trap 'docker stop transient-test-observer-api >/dev/null 2>&1; docker rm transient-test-observer-api >/dev/null 2>&1' EXIT
-    docker run -d -p 30001:30000 --name transient-test-observer-api test-observer-api >/dev/null 2>&1
+    trap 'kill $(jobs -p)' EXIT
+    poetry run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
 
     for i in {1..5}; do
-        if curl --output /dev/null --silent --head --fail "http://localhost:30001/openapi.json"; then
-            curl --silent http://localhost:30001/openapi.json -o schemas/openapi.json
+        if curl --output /dev/null --silent --head --fail "http://localhost:30000/openapi.json"; then
+            curl --silent http://localhost:30000/openapi.json -o schemas/openapi.json
             git add schemas/openapi.json
             echo "OpenAPI schema fetched."
             success=true
