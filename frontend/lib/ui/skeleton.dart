@@ -18,7 +18,6 @@ import 'package:flutter/material.dart';
 
 import 'dashboard/find_shortcut.dart';
 import 'error_popup.dart';
-import 'footer.dart';
 import 'navbar.dart';
 
 class Skeleton extends StatelessWidget {
@@ -39,7 +38,6 @@ class Skeleton extends StatelessWidget {
               ],
             ),
           ),
-          bottomNavigationBar: const Footer(),
         ),
       ),
     );
