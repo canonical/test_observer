@@ -26,6 +26,8 @@ While technically not required to run the code, it helps to have dependencies in
 
 Linting is done using ruff, formatting using black and type checking using mypy. We have CI in place to make those checks, but it's probably a good idea to setup your editor to use these. Note that their settings are in `pyproject.toml`.
 
+The project uses `pre-commit` to auto generate OpenAPI schema file. To set it up just run `$ pre-commit install`.
+
 ### 4. Start the development environment
 
 Assuming that your microk8s cluster is running, you can start the development environment by simply running `$ skaffold dev --no-prune=false --cache-artifacts=false`. This command will build the docker images and push them to your microk8s registry, then apply your k8s manifest to start the cluster and pull those images. Additionally, skaffold will watch for file changes and either sync them directly inside the running containers or rebuild and redeploy k8s cluster for you automatically.
