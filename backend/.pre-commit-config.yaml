@@ -5,4 +5,5 @@ repos:
         name: Fetch OpenAPI schema
         entry: backend/scripts/fetch_openapi_schema.sh
         language: script
+        files: '.*'
         pass_filenames: false
