@@ -5,5 +5,4 @@ repos:
         name: Fetch OpenAPI schema
         entry: backend/scripts/fetch_openapi_schema.sh
         language: script
-        files: 'test_observer/.*\.py'
         pass_filenames: false
