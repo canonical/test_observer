@@ -10,7 +10,7 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 - Install [microk8s](https://microk8s.io/docs/getting-started) and setup permissions
 - Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary)
 - Install [Poetry](https://python-poetry.org/docs/#installation)
-- Install [pre-commit](https://pre-commit.com) (best done using `sudo apt install pre-commit`)
+- Install [pre-commit](https://pre-commit.com) (best done using `sudo apt install pre-commit`, followed by `pre-commit install` in the root of the repo)
 
 ### 2. Setup Skaffold and microk8s
 
