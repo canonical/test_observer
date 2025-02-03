@@ -9,7 +9,6 @@ Observe the status and state of certification tests for various artefacts
 - `terraform` 1.4.6 or later (`sudo snap install terraform --classic`)
 - `lxd` 5.19 or later (`sudo snap install lxd --channel=5.19/stable` or `sudo snap refresh lxd --channel=5.19/stable` if already installed) + `lxd init --auto` after install.
 - `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable --classic`)
-- `pre-commit` (`sudo apt install pre-commit`, followed by `pre-commit install` in the root of the repo) for executing pre-commit hooks
 - optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
 
 ## Deploying a copy of the system with terraform / juju in microk8s
@@ -73,23 +72,23 @@ Model                      Controller       Cloud/Region        Version  SLA    
 test-observer-development  juju-controller  microk8s/localhost  3.1.2    unsupported  15:38:51+03:00
 
 App       Version  Status  Scale  Charm                     Channel      Rev  Address         Exposed  Message
-api                active      1  test-observer-api         latest/edge   15  10.152.183.182  no       
+api                active      1  test-observer-api         latest/edge   15  10.152.183.182  no
 db        14.7     active      1  postgresql-k8s            14/stable     73  10.152.183.172  no       Primary
-frontend           active      1  test-observer-frontend    latest/edge    8  10.152.183.79   no       
+frontend           active      1  test-observer-frontend    latest/edge    8  10.152.183.79   no
 ingress   25.3.0   active      1  nginx-ingress-integrator  stable        59  10.152.183.103  no       Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
 
 Unit         Workload  Agent  Address       Ports  Message
-api/0*       active    idle   10.1.131.142         
+api/0*       active    idle   10.1.131.142
 db/0*        active    idle   10.1.131.132         Primary
-frontend/0*  active    idle   10.1.131.169         
+frontend/0*  active    idle   10.1.131.169
 ingress/0*   active    idle   10.1.131.167         Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
 
 Relation provider           Requirer                         Interface          Type     Message
-api:test-observer-rest-api  frontend:test-observer-rest-api  http               regular  
-db:database                 api:database                     postgresql_client  regular  
-db:database-peers           db:database-peers                postgresql_peers   peer     
-db:restart                  db:restart                       rolling_op         peer     
-ingress:nginx-route         api:nginx-route                  nginx-route        regular  
+api:test-observer-rest-api  frontend:test-observer-rest-api  http               regular
+db:database                 api:database                     postgresql_client  regular
+db:database-peers           db:database-peers                postgresql_peers   peer
+db:restart                  db:restart                       rolling_op         peer
+ingress:nginx-route         api:nginx-route                  nginx-route        regular
 ingress:nginx-route         frontend:nginx-route             nginx-route        regular
 ```
 
