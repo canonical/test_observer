@@ -1,7 +1,6 @@
 #!/bin/bash
 
-if git diff --cached --name-only | grep --quiet "backend"; then
-    cd backend
+# if git diff --cached --name-only | grep --quiet "backend"; then
     poetry install >/dev/null 2>&1
 
     echo "Starting a transient copy of test-observer-api to fetch the OpenAPI schema..."
@@ -23,4 +22,4 @@ if git diff --cached --name-only | grep --quiet "backend"; then
     if [ -z "$success" ]; then
         echo "Failed to fetch /openapi.json after multiple attempts."
     fi
-fi
+# fi
