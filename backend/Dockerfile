@@ -17,4 +17,6 @@ RUN pip3 install poetry && \
 
 COPY . .
 
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:30000/v1/version || exit 1
+
 CMD [ "uvicorn",  "test_observer.main:app", "--host", "0.0.0.0", "--port", "30000", "--reload" ]
