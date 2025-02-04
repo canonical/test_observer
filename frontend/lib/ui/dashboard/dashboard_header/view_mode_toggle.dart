@@ -29,16 +29,14 @@ class ViewModeToggle extends ConsumerWidget {
 
     if (viewMode == null) return const SizedBox.shrink();
 
-    return ToggleButtons(
-      isSelected: [
-        viewMode == ViewModes.list,
-        viewMode == ViewModes.dashboard,
+    return SegmentedButton(
+      segments: const [
+        ButtonSegment(value: ViewModes.list, icon: Icon(Icons.list)),
+        ButtonSegment(value: ViewModes.dashboard, icon: Icon(Icons.dashboard)),
       ],
-      children: const [Icon(Icons.list), Icon(Icons.dashboard)],
-      onPressed: (i) {
-        final selectedView = [ViewModes.list, ViewModes.dashboard][i];
-        ref.watch(viewModeProvider.notifier).set(selectedView);
-      },
+      selected: {viewMode},
+      onSelectionChanged: (selectedViewModes) =>
+          ref.watch(viewModeProvider.notifier).set(selectedViewModes.first),
     );
   }
 }
