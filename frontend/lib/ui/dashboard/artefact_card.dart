@@ -40,12 +40,6 @@ class ArtefactCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () => navigateToArtefactPage(context, artefact.id),
       child: Card(
-        margin: const EdgeInsets.all(0),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: Theme.of(context).colorScheme.outline),
-          borderRadius: BorderRadius.circular(2.25),
-        ),
         child: Container(
           width: width,
           padding: const EdgeInsets.all(Spacing.level4),

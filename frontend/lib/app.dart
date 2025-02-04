@@ -27,7 +27,14 @@ class App extends StatelessWidget {
     return MaterialApp.router(
       theme: ThemeData(
         scaffoldBackgroundColor: VanillaColors.backgroundNeutralDefault,
-        cardTheme: const CardTheme(color: VanillaColors.backgroundDefault),
+        cardTheme: const CardTheme(
+          margin: EdgeInsets.all(0),
+          elevation: 0,
+          color: VanillaColors.backgroundDefault,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: VanillaColors.borderDefault, width: 1.5),
+          ),
+        ),
       ),
       routerConfig: appRouter,
     );
