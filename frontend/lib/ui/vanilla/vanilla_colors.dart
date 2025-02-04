@@ -5,6 +5,7 @@ import 'dart:ui';
 class VanillaColors {
   static const backgroundActive = Color(0xffebebeb);
   static const backgroundDefault = Color(0xffffffff);
+  static const backgroundHover = Color(0xfff2f2f2);
   static const backgroundNeutralDefault = Color(0xfff2f2f2);
   static const borderDefault = Color(0x33000000);
   static const borderHighContrast = Color(0x8f000000);

@@ -38,11 +38,16 @@ class App extends StatelessWidget {
         segmentedButtonTheme: SegmentedButtonThemeData(
           selectedIcon: const SizedBox.shrink(),
           style: ButtonStyle(
-            iconColor: const WidgetStatePropertyAll(VanillaColors.textDefault),
+            foregroundColor:
+                const WidgetStatePropertyAll(VanillaColors.textDefault),
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
             backgroundColor: WidgetStateProperty.resolveWith<Color?>(
               (Set<WidgetState> states) {
                 if (states.contains(WidgetState.selected)) {
                   return VanillaColors.backgroundActive;
+                }
+                if (states.contains(WidgetState.hovered)) {
+                  return VanillaColors.backgroundHover;
                 }
                 return VanillaColors.backgroundDefault;
               },
