@@ -11,6 +11,7 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 - Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary)
 - Install [Poetry](https://python-poetry.org/docs/#installation)
 - Install [pre-commit](https://pre-commit.com) (best done using `sudo apt install pre-commit`, followed by `pre-commit install` in the `backend` directory)
+- Install [jq](https://github.com/jqlang/jq) (`sudo apt install jq`)
 
 ### 2. Setup Skaffold and microk8s
 
@@ -29,7 +30,7 @@ Linting is done using ruff, formatting using black and type checking using mypy.
 The project uses [pre-commit](https://pre-commit.com) to auto generate OpenAPI schema file. To set it up for your working copy of the repository:
 
 ```bash
-sudo apt install pre-commit
+sudo apt install pre-commit jq
 pre-commit install # in the `backend` directory
 ```
 

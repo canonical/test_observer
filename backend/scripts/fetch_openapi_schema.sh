@@ -1,6 +1,6 @@
 #!/bin/bash
 
-poetry install >/dev/null 2>&1
+poetry install
 
 echo "Starting a transient copy of test-observer-api to fetch the OpenAPI schema..."
 trap 'kill $(jobs -p)' EXIT
@@ -8,7 +8,7 @@ poetry run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
 
 for i in {1..5}; do
     if curl --output /dev/null --silent --head --fail "http://localhost:30000/openapi.json"; then
-        curl --silent http://localhost:30000/openapi.json -o schemata/openapi.json
+        curl --silent http://localhost:30000/openapi.json | jq > schemata/openapi.json
         git add schemata/openapi.json
         echo "OpenAPI schema fetched."
         success=true

@@ -1,1 +1,2735 @@
-{"openapi":"3.1.0","info":{"title":"FastAPI","version":"0.1.0"},"paths":{"/v1/version":{"get":{"summary":"Get Version","operationId":"get_version_v1_version_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/v1/test-executions/start-test":{"put":{"tags":["test-executions"],"summary":"Start Test Execution","operationId":"start_test_execution_v1_test_executions_start_test_put","requestBody":{"content":{"application/json":{"schema":{"oneOf":[{"$ref":"#/components/schemas/StartSnapTestExecutionRequest"},{"$ref":"#/components/schemas/StartDebTestExecutionRequest"},{"$ref":"#/components/schemas/StartCharmTestExecutionRequest"},{"$ref":"#/components/schemas/StartImageTestExecutionRequest"}],"title":"Request","discriminator":{"propertyName":"family","mapping":{"snap":"#/components/schemas/StartSnapTestExecutionRequest","deb":"#/components/schemas/StartDebTestExecutionRequest","charm":"#/components/schemas/StartCharmTestExecutionRequest","image":"#/components/schemas/StartImageTestExecutionRequest"}}}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/test-executions/{id}/test-results":{"get":{"tags":["test-executions","test-results"],"summary":"Get Test Results","operationId":"get_test_results_v1_test_executions__id__test_results_get","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","title":"Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/TestResultResponse"},"title":"Response Get Test Results V1 Test Executions  Id  Test Results Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["test-executions","test-results"],"summary":"Post Results","operationId":"post_results_v1_test_executions__id__test_results_post","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","title":"Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/TestResultRequest"},"title":"Request"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/test-executions/end-test":{"put":{"tags":["test-executions"],"summary":"End Test Execution","operationId":"end_test_execution_v1_test_executions_end_test_put","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/EndTestExecutionRequest"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/test-executions/{id}":{"patch":{"tags":["test-executions"],"summary":"Patch Test Execution","operationId":"patch_test_execution_v1_test_executions__id__patch","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","title":"Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TestExecutionsPatchRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TestExecutionDTO"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/test-executions/reruns":{"get":{"tags":["test-executions"],"summary":"Get Rerun Requests","operationId":"get_rerun_requests_v1_test_executions_reruns_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/PendingRerun"},"type":"array","title":"Response Get Rerun Requests V1 Test Executions Reruns Get"}}}}}},"post":{"tags":["test-executions"],"summary":"Create Rerun Requests","operationId":"create_rerun_requests_v1_test_executions_reruns_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/RerunRequest"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/PendingRerun"},"type":"array","title":"Response Create Rerun Requests V1 Test Executions Reruns Post"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["test-executions"],"summary":"Delete Rerun Requests","operationId":"delete_rerun_requests_v1_test_executions_reruns_delete","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/DeleteReruns"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/test-executions/{id}/status_update":{"put":{"tags":["test-executions"],"summary":"Put Status Update","operationId":"put_status_update_v1_test_executions__id__status_update_put","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","title":"Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/StatusUpdateRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"get":{"tags":["test-executions"],"summary":"Get Status Update","operationId":"get_status_update_v1_test_executions__id__status_update_get","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","title":"Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/TestEventDTO"},"title":"Response Get Status Update V1 Test Executions  Id  Status Update Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/artefacts/{artefact_id}/environment-reviews":{"get":{"tags":["artefacts","environment-reviews"],"summary":"Get Environment Reviews","operationId":"get_environment_reviews_v1_artefacts__artefact_id__environment_reviews_get","parameters":[{"name":"artefact_id","in":"path","required":true,"schema":{"type":"integer","title":"Artefact Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/ArtefactBuildEnvironmentReviewDTO"},"title":"Response Get Environment Reviews V1 Artefacts  Artefact Id  Environment Reviews Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/artefacts/{artefact_id}/environment-reviews/{review_id}":{"patch":{"tags":["artefacts","environment-reviews"],"summary":"Update Environment Review","operationId":"update_environment_review_v1_artefacts__artefact_id__environment_reviews__review_id__patch","parameters":[{"name":"artefact_id","in":"path","required":true,"schema":{"type":"integer","title":"Artefact Id"}},{"name":"review_id","in":"path","required":true,"schema":{"type":"integer","title":"Review Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/EnvironmentReviewPatch"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArtefactBuildEnvironmentReviewDTO"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/artefacts/{artefact_id}/builds":{"get":{"tags":["artefacts","artefact-builds"],"summary":"Get Artefact Builds","description":"Get latest artefact builds of an artefact together with their test executions","operationId":"get_artefact_builds_v1_artefacts__artefact_id__builds_get","parameters":[{"name":"artefact_id","in":"path","required":true,"schema":{"type":"integer","title":"Artefact Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/ArtefactBuildDTO"},"title":"Response Get Artefact Builds V1 Artefacts  Artefact Id  Builds Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/artefacts":{"get":{"tags":["artefacts"],"summary":"Get Artefacts","description":"Get latest artefacts optionally by family","operationId":"get_artefacts_v1_artefacts_get","parameters":[{"name":"family","in":"query","required":false,"schema":{"anyOf":[{"$ref":"#/components/schemas/FamilyName"},{"type":"null"}],"title":"Family"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/ArtefactDTO"},"title":"Response Get Artefacts V1 Artefacts Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/artefacts/{artefact_id}":{"get":{"tags":["artefacts"],"summary":"Get Artefact","operationId":"get_artefact_v1_artefacts__artefact_id__get","parameters":[{"name":"artefact_id","in":"path","required":true,"schema":{"type":"integer","title":"Artefact Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArtefactDTO"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"patch":{"tags":["artefacts"],"summary":"Patch Artefact","operationId":"patch_artefact_v1_artefacts__artefact_id__patch","parameters":[{"name":"artefact_id","in":"path","required":true,"schema":{"type":"integer","title":"Artefact Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArtefactPatch"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArtefactDTO"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/artefacts/{artefact_id}/versions":{"get":{"tags":["artefacts"],"summary":"Get Artefact Versions","operationId":"get_artefact_versions_v1_artefacts__artefact_id__versions_get","parameters":[{"name":"artefact_id","in":"path","required":true,"schema":{"type":"integer","title":"Artefact Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/ArtefactVersionDTO"},"title":"Response Get Artefact Versions V1 Artefacts  Artefact Id  Versions Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/reports/test-results":{"get":{"tags":["reports"],"summary":"Get Testresults Report","description":"Returns a csv report detailing all artefacts within a given date range. Together\nwith their test executions and test results in csv format.","operationId":"get_testresults_report_v1_reports_test_results_get","parameters":[{"name":"start_date","in":"query","required":false,"schema":{"type":"string","format":"date-time","default":"0001-01-01T00:00:00","title":"Start Date"}},{"name":"end_date","in":"query","required":false,"schema":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"End Date"}}],"responses":{"200":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/reports/test-executions":{"get":{"tags":["reports"],"summary":"Get Test Execution Reports","description":"Returns a csv report detailing all test executions within a given date range.\nTogether with their artefact and environment details in csv format.","operationId":"get_test_execution_reports_v1_reports_test_executions_get","parameters":[{"name":"start_date","in":"query","required":false,"schema":{"type":"string","format":"date-time","default":"0001-01-01T00:00:00","title":"Start Date"}},{"name":"end_date","in":"query","required":false,"schema":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"End Date"}}],"responses":{"200":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/test-cases/reported-issues":{"get":{"tags":["test-cases"],"summary":"Get Reported Issues","operationId":"get_reported_issues_v1_test_cases_reported_issues_get","parameters":[{"name":"template_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Template Id"}},{"name":"case_name","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Case Name"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/TestReportedIssueResponse"},"title":"Response Get Reported Issues V1 Test Cases Reported Issues Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["test-cases"],"summary":"Create Reported Issue","operationId":"create_reported_issue_v1_test_cases_reported_issues_post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TestReportedIssueRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TestReportedIssueResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/test-cases/reported-issues/{issue_id}":{"put":{"tags":["test-cases"],"summary":"Update Reported Issue","operationId":"update_reported_issue_v1_test_cases_reported_issues__issue_id__put","parameters":[{"name":"issue_id","in":"path","required":true,"schema":{"type":"integer","title":"Issue Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TestReportedIssueRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TestReportedIssueResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["test-cases"],"summary":"Delete Reported Issue","operationId":"delete_reported_issue_v1_test_cases_reported_issues__issue_id__delete","parameters":[{"name":"issue_id","in":"path","required":true,"schema":{"type":"integer","title":"Issue Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/environments/reported-issues":{"get":{"tags":["environments"],"summary":"Get Reported Issues","operationId":"get_reported_issues_v1_environments_reported_issues_get","parameters":[{"name":"is_confirmed","in":"query","required":false,"schema":{"anyOf":[{"type":"boolean"},{"type":"null"}],"title":"Is Confirmed"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/EnvironmentReportedIssueResponse"},"title":"Response Get Reported Issues V1 Environments Reported Issues Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["environments"],"summary":"Create Reported Issue","operationId":"create_reported_issue_v1_environments_reported_issues_post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/EnvironmentReportedIssueRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/EnvironmentReportedIssueResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/v1/environments/reported-issues/{issue_id}":{"put":{"tags":["environments"],"summary":"Update Reported Issue","operationId":"update_reported_issue_v1_environments_reported_issues__issue_id__put","parameters":[{"name":"issue_id","in":"path","required":true,"schema":{"type":"integer","title":"Issue Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/EnvironmentReportedIssueRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/EnvironmentReportedIssueResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["environments"],"summary":"Delete Reported Issue","operationId":"delete_reported_issue_v1_environments_reported_issues__issue_id__delete","parameters":[{"name":"issue_id","in":"path","required":true,"schema":{"type":"integer","title":"Issue Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/":{"get":{"summary":"Root","operationId":"root__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/sentry-debug":{"get":{"summary":"Trigger Error","operationId":"trigger_error_sentry_debug_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}}},"components":{"schemas":{"ArtefactBuildDTO":{"properties":{"id":{"type":"integer","title":"Id"},"architecture":{"type":"string","title":"Architecture"},"revision":{"anyOf":[{"type":"integer"},{"type":"null"}],"title":"Revision"},"test_executions":{"items":{"$ref":"#/components/schemas/TestExecutionDTO"},"type":"array","title":"Test Executions"}},"type":"object","required":["id","architecture","revision","test_executions"],"title":"ArtefactBuildDTO"},"ArtefactBuildEnvironmentReviewDTO":{"properties":{"id":{"type":"integer","title":"Id"},"review_decision":{"items":{"$ref":"#/components/schemas/ArtefactBuildEnvironmentReviewDecision"},"type":"array","title":"Review Decision"},"review_comment":{"type":"string","title":"Review Comment"},"environment":{"$ref":"#/components/schemas/EnvironmentDTO"},"artefact_build":{"$ref":"#/components/schemas/ArtefactBuildMinimalDTO"}},"type":"object","required":["id","review_decision","review_comment","environment","artefact_build"],"title":"ArtefactBuildEnvironmentReviewDTO"},"ArtefactBuildEnvironmentReviewDecision":{"type":"string","enum":["REJECTED","APPROVED_INCONSISTENT_TEST","APPROVED_UNSTABLE_PHYSICAL_INFRA","APPROVED_CUSTOMER_PREREQUISITE_FAIL","APPROVED_FAULTY_HARDWARE","APPROVED_ALL_TESTS_PASS"],"title":"ArtefactBuildEnvironmentReviewDecision"},"ArtefactBuildMinimalDTO":{"properties":{"id":{"type":"integer","title":"Id"},"architecture":{"type":"string","title":"Architecture"},"revision":{"anyOf":[{"type":"integer"},{"type":"null"}],"title":"Revision"}},"type":"object","required":["id","architecture","revision"],"title":"ArtefactBuildMinimalDTO"},"ArtefactDTO":{"properties":{"id":{"type":"integer","title":"Id"},"name":{"type":"string","title":"Name"},"version":{"type":"string","title":"Version"},"track":{"type":"string","title":"Track"},"store":{"type":"string","title":"Store"},"series":{"type":"string","title":"Series"},"repo":{"type":"string","title":"Repo"},"os":{"type":"string","title":"Os"},"release":{"type":"string","title":"Release"},"owner":{"type":"string","title":"Owner"},"sha256":{"type":"string","title":"Sha256"},"image_url":{"type":"string","title":"Image Url"},"stage":{"type":"string","title":"Stage"},"status":{"$ref":"#/components/schemas/ArtefactStatus"},"assignee":{"anyOf":[{"$ref":"#/components/schemas/UserDTO"},{"type":"null"}]},"due_date":{"anyOf":[{"type":"string","format":"date"},{"type":"null"}],"title":"Due Date"},"bug_link":{"type":"string","title":"Bug Link"},"all_environment_reviews_count":{"type":"integer","title":"All Environment Reviews Count"},"completed_environment_reviews_count":{"type":"integer","title":"Completed Environment Reviews Count"}},"type":"object","required":["id","name","version","track","store","series","repo","os","release","owner","sha256","image_url","stage","status","assignee","due_date","bug_link","all_environment_reviews_count","completed_environment_reviews_count"],"title":"ArtefactDTO"},"ArtefactPatch":{"properties":{"status":{"$ref":"#/components/schemas/ArtefactStatus"}},"type":"object","required":["status"],"title":"ArtefactPatch"},"ArtefactStatus":{"type":"string","enum":["APPROVED","MARKED_AS_FAILED","UNDECIDED"],"title":"ArtefactStatus"},"ArtefactVersionDTO":{"properties":{"version":{"type":"string","title":"Version"},"artefact_id":{"type":"integer","title":"Artefact Id"}},"type":"object","required":["version","artefact_id"],"title":"ArtefactVersionDTO"},"C3TestResult":{"properties":{"name":{"type":"string","title":"Name"},"template_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Template Id"},"status":{"$ref":"#/components/schemas/C3TestResultStatus"},"category":{"type":"string","title":"Category"},"comment":{"type":"string","title":"Comment"},"io_log":{"type":"string","title":"Io Log"}},"type":"object","required":["name","status","category","comment","io_log"],"title":"C3TestResult"},"C3TestResultStatus":{"type":"string","enum":["pass","fail","skip"],"title":"C3TestResultStatus"},"DeleteReruns":{"properties":{"test_execution_ids":{"items":{"type":"integer"},"type":"array","uniqueItems":true,"title":"Test Execution Ids"}},"type":"object","required":["test_execution_ids"],"title":"DeleteReruns"},"EndTestExecutionRequest":{"properties":{"ci_link":{"type":"string","title":"Ci Link"},"c3_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"C3 Link"},"checkbox_version":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Checkbox Version"},"test_results":{"items":{"$ref":"#/components/schemas/C3TestResult"},"type":"array","title":"Test Results"}},"type":"object","required":["ci_link","test_results"],"title":"EndTestExecutionRequest"},"EnvironmentDTO":{"properties":{"id":{"type":"integer","title":"Id"},"name":{"type":"string","title":"Name"},"architecture":{"type":"string","title":"Architecture"}},"type":"object","required":["id","name","architecture"],"title":"EnvironmentDTO"},"EnvironmentReportedIssueRequest":{"properties":{"environment_name":{"type":"string","title":"Environment Name"},"description":{"type":"string","title":"Description"},"url":{"anyOf":[{"type":"string","maxLength":2083,"minLength":1,"format":"uri"},{"type":"null"}],"title":"Url"},"is_confirmed":{"type":"boolean","title":"Is Confirmed"}},"type":"object","required":["environment_name","description","is_confirmed"],"title":"EnvironmentReportedIssueRequest"},"EnvironmentReportedIssueResponse":{"properties":{"id":{"type":"integer","title":"Id"},"environment_name":{"type":"string","title":"Environment Name"},"description":{"type":"string","title":"Description"},"url":{"anyOf":[{"type":"string","maxLength":2083,"minLength":1,"format":"uri"},{"type":"null"}],"title":"Url"},"is_confirmed":{"type":"boolean","title":"Is Confirmed"},"created_at":{"type":"string","format":"date-time","title":"Created At"},"updated_at":{"type":"string","format":"date-time","title":"Updated At"}},"type":"object","required":["id","environment_name","description","url","is_confirmed","created_at","updated_at"],"title":"EnvironmentReportedIssueResponse"},"EnvironmentReviewPatch":{"properties":{"review_decision":{"anyOf":[{"items":{"$ref":"#/components/schemas/ArtefactBuildEnvironmentReviewDecision"},"type":"array"},{"type":"null"}],"title":"Review Decision"},"review_comment":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Review Comment"}},"type":"object","title":"EnvironmentReviewPatch"},"FamilyName":{"type":"string","enum":["snap","deb","charm","image"],"title":"FamilyName"},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"PendingRerun":{"properties":{"test_execution_id":{"type":"integer","title":"Test Execution Id"},"ci_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Ci Link"},"family":{"$ref":"#/components/schemas/FamilyName"},"test_execution":{"$ref":"#/components/schemas/TestExecutionDTO"},"artefact":{"$ref":"#/components/schemas/ArtefactDTO"},"artefact_build":{"$ref":"#/components/schemas/ArtefactBuildMinimalDTO"}},"type":"object","required":["test_execution_id","ci_link","family","test_execution","artefact","artefact_build"],"title":"PendingRerun"},"PreviousTestResult":{"properties":{"status":{"$ref":"#/components/schemas/TestResultStatus"},"version":{"type":"string","title":"Version"},"artefact_id":{"type":"integer","title":"Artefact Id"}},"type":"object","required":["status","version","artefact_id"],"title":"PreviousTestResult"},"RerunRequest":{"properties":{"test_execution_ids":{"items":{"type":"integer"},"type":"array","uniqueItems":true,"title":"Test Execution Ids"}},"type":"object","required":["test_execution_ids"],"title":"RerunRequest"},"StartCharmTestExecutionRequest":{"properties":{"name":{"type":"string","title":"Name"},"version":{"type":"string","title":"Version"},"arch":{"type":"string","title":"Arch"},"environment":{"type":"string","title":"Environment"},"ci_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Ci Link"},"test_plan":{"type":"string","maxLength":200,"title":"Test Plan"},"initial_status":{"allOf":[{"$ref":"#/components/schemas/TestExecutionStatus"}],"default":"IN_PROGRESS"},"family":{"type":"string","enum":["charm"],"const":"charm","title":"Family"},"revision":{"type":"integer","title":"Revision"},"track":{"type":"string","title":"Track"},"execution_stage":{"type":"string","enum":["edge","beta","candidate","stable"],"title":"Execution Stage"}},"type":"object","required":["name","version","arch","environment","test_plan","family","revision","track","execution_stage"],"title":"StartCharmTestExecutionRequest"},"StartDebTestExecutionRequest":{"properties":{"name":{"type":"string","title":"Name"},"version":{"type":"string","title":"Version"},"arch":{"type":"string","title":"Arch"},"environment":{"type":"string","title":"Environment"},"ci_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Ci Link"},"test_plan":{"type":"string","maxLength":200,"title":"Test Plan"},"initial_status":{"allOf":[{"$ref":"#/components/schemas/TestExecutionStatus"}],"default":"IN_PROGRESS"},"family":{"type":"string","enum":["deb"],"const":"deb","title":"Family"},"series":{"type":"string","title":"Series"},"repo":{"type":"string","title":"Repo"},"execution_stage":{"type":"string","enum":["proposed","updates"],"title":"Execution Stage"}},"type":"object","required":["name","version","arch","environment","test_plan","family","series","repo","execution_stage"],"title":"StartDebTestExecutionRequest"},"StartImageTestExecutionRequest":{"properties":{"name":{"type":"string","title":"Name"},"version":{"type":"string","title":"Version"},"arch":{"type":"string","title":"Arch"},"environment":{"type":"string","title":"Environment"},"ci_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Ci Link"},"test_plan":{"type":"string","maxLength":200,"title":"Test Plan"},"initial_status":{"allOf":[{"$ref":"#/components/schemas/TestExecutionStatus"}],"default":"IN_PROGRESS"},"family":{"type":"string","enum":["image"],"const":"image","title":"Family","default":"image"},"execution_stage":{"type":"string","enum":["pending","current"],"title":"Execution Stage"},"os":{"type":"string","title":"Os"},"release":{"type":"string","title":"Release"},"sha256":{"type":"string","title":"Sha256"},"owner":{"type":"string","title":"Owner"},"image_url":{"type":"string","maxLength":2083,"minLength":1,"format":"uri","title":"Image Url"}},"type":"object","required":["name","version","arch","environment","test_plan","execution_stage","os","release","sha256","owner","image_url"],"title":"StartImageTestExecutionRequest"},"StartSnapTestExecutionRequest":{"properties":{"name":{"type":"string","title":"Name"},"version":{"type":"string","title":"Version"},"arch":{"type":"string","title":"Arch"},"environment":{"type":"string","title":"Environment"},"ci_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Ci Link"},"test_plan":{"type":"string","maxLength":200,"title":"Test Plan"},"initial_status":{"allOf":[{"$ref":"#/components/schemas/TestExecutionStatus"}],"default":"IN_PROGRESS"},"family":{"type":"string","enum":["snap"],"const":"snap","title":"Family"},"revision":{"type":"integer","title":"Revision"},"track":{"type":"string","title":"Track"},"store":{"type":"string","title":"Store"},"execution_stage":{"type":"string","enum":["edge","beta","candidate","stable"],"title":"Execution Stage"}},"type":"object","required":["name","version","arch","environment","test_plan","family","revision","track","store","execution_stage"],"title":"StartSnapTestExecutionRequest"},"StatusUpdateRequest":{"properties":{"events":{"items":{"$ref":"#/components/schemas/TestEventDTO"},"type":"array","title":"Events"}},"type":"object","required":["events"],"title":"StatusUpdateRequest"},"TestEventDTO":{"properties":{"event_name":{"type":"string","title":"Event Name"},"timestamp":{"type":"string","format":"date-time","title":"Timestamp"},"detail":{"type":"string","title":"Detail"}},"type":"object","required":["event_name","timestamp","detail"],"title":"TestEventDTO"},"TestExecutionDTO":{"properties":{"id":{"type":"integer","title":"Id"},"ci_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Ci Link"},"c3_link":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"C3 Link"},"environment":{"$ref":"#/components/schemas/EnvironmentDTO"},"status":{"$ref":"#/components/schemas/TestExecutionStatus"},"test_plan":{"type":"string","title":"Test Plan"},"is_rerun_requested":{"type":"boolean","title":"Is Rerun Requested","readOnly":true}},"type":"object","required":["id","ci_link","c3_link","environment","status","test_plan","is_rerun_requested"],"title":"TestExecutionDTO"},"TestExecutionStatus":{"type":"string","enum":["NOT_STARTED","IN_PROGRESS","PASSED","FAILED","NOT_TESTED","ENDED_PREMATURELY"],"title":"TestExecutionStatus"},"TestExecutionsPatchRequest":{"properties":{"c3_link":{"anyOf":[{"type":"string","maxLength":2083,"minLength":1,"format":"uri"},{"type":"null"}],"title":"C3 Link"},"ci_link":{"anyOf":[{"type":"string","maxLength":2083,"minLength":1,"format":"uri"},{"type":"null"}],"title":"Ci Link"},"status":{"anyOf":[{"$ref":"#/components/schemas/TestExecutionStatus"},{"type":"string","enum":["COMPLETED"],"const":"COMPLETED"},{"type":"null"}],"title":"Status"}},"type":"object","title":"TestExecutionsPatchRequest"},"TestReportedIssueRequest":{"properties":{"template_id":{"type":"string","title":"Template Id","default":""},"case_name":{"type":"string","title":"Case Name","default":""},"description":{"type":"string","title":"Description"},"url":{"type":"string","maxLength":2083,"minLength":1,"format":"uri","title":"Url"}},"type":"object","required":["description","url"],"title":"TestReportedIssueRequest"},"TestReportedIssueResponse":{"properties":{"id":{"type":"integer","title":"Id"},"template_id":{"type":"string","title":"Template Id","default":""},"case_name":{"type":"string","title":"Case Name","default":""},"description":{"type":"string","title":"Description"},"url":{"type":"string","maxLength":2083,"minLength":1,"format":"uri","title":"Url"},"created_at":{"type":"string","format":"date-time","title":"Created At"},"updated_at":{"type":"string","format":"date-time","title":"Updated At"}},"type":"object","required":["id","description","url","created_at","updated_at"],"title":"TestReportedIssueResponse"},"TestResultRequest":{"properties":{"name":{"type":"string","title":"Name"},"status":{"$ref":"#/components/schemas/TestResultStatus"},"template_id":{"type":"string","title":"Template Id","default":""},"category":{"type":"string","title":"Category","default":""},"comment":{"type":"string","title":"Comment","default":""},"io_log":{"type":"string","title":"Io Log","default":""}},"type":"object","required":["name","status"],"title":"TestResultRequest"},"TestResultResponse":{"properties":{"id":{"type":"integer","title":"Id"},"name":{"type":"string","title":"Name"},"category":{"type":"string","title":"Category"},"template_id":{"type":"string","title":"Template Id"},"status":{"$ref":"#/components/schemas/TestResultStatus"},"comment":{"type":"string","title":"Comment"},"io_log":{"type":"string","title":"Io Log"},"previous_results":{"items":{"$ref":"#/components/schemas/PreviousTestResult"},"type":"array","title":"Previous Results","description":"The last 10 test results matched with the current test execution. The items are sorted in descending order, the first test result is the most recent, while the last one is the oldest one.","default":[]}},"type":"object","required":["id","name","category","template_id","status","comment","io_log"],"title":"TestResultResponse"},"TestResultStatus":{"type":"string","enum":["PASSED","FAILED","SKIPPED"],"title":"TestResultStatus"},"UserDTO":{"properties":{"id":{"type":"integer","title":"Id"},"launchpad_handle":{"type":"string","title":"Launchpad Handle"},"launchpad_email":{"type":"string","title":"Launchpad Email"},"name":{"type":"string","title":"Name"}},"type":"object","required":["id","launchpad_handle","launchpad_email","name"],"title":"UserDTO"},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"}}}}
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Test Observer",
+    "description": "Test Observer API (see https://github.com/canonical/test_observer)",
+    "license": {
+      "name": "GNU Affero General Public License v3",
+      "url": "https://raw.githubusercontent.com/canonical/test_observer/refs/heads/main/backend/LICENSE"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/version": {
+      "get": {
+        "summary": "Get Version",
+        "operationId": "get_version_v1_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/start-test": {
+      "put": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Start Test Execution",
+        "operationId": "start_test_execution_v1_test_executions_start_test_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/StartSnapTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartDebTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartCharmTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartImageTestExecutionRequest"
+                  }
+                ],
+                "title": "Request",
+                "discriminator": {
+                  "propertyName": "family",
+                  "mapping": {
+                    "snap": "#/components/schemas/StartSnapTestExecutionRequest",
+                    "deb": "#/components/schemas/StartDebTestExecutionRequest",
+                    "charm": "#/components/schemas/StartCharmTestExecutionRequest",
+                    "image": "#/components/schemas/StartImageTestExecutionRequest"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/{id}/test-results": {
+      "get": {
+        "tags": [
+          "test-executions",
+          "test-results"
+        ],
+        "summary": "Get Test Results",
+        "operationId": "get_test_results_v1_test_executions__id__test_results_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestResultResponse"
+                  },
+                  "title": "Response Get Test Results V1 Test Executions  Id  Test Results Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "test-executions",
+          "test-results"
+        ],
+        "summary": "Post Results",
+        "operationId": "post_results_v1_test_executions__id__test_results_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TestResultRequest"
+                },
+                "title": "Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/end-test": {
+      "put": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "End Test Execution",
+        "operationId": "end_test_execution_v1_test_executions_end_test_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndTestExecutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/{id}": {
+      "patch": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Patch Test Execution",
+        "operationId": "patch_test_execution_v1_test_executions__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionsPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/reruns": {
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Get Rerun Requests",
+        "operationId": "get_rerun_requests_v1_test_executions_reruns_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PendingRerun"
+                  },
+                  "type": "array",
+                  "title": "Response Get Rerun Requests V1 Test Executions Reruns Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Create Rerun Requests",
+        "operationId": "create_rerun_requests_v1_test_executions_reruns_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PendingRerun"
+                  },
+                  "type": "array",
+                  "title": "Response Create Rerun Requests V1 Test Executions Reruns Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Delete Rerun Requests",
+        "operationId": "delete_rerun_requests_v1_test_executions_reruns_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteReruns"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/{id}/status_update": {
+      "put": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Put Status Update",
+        "operationId": "put_status_update_v1_test_executions__id__status_update_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Get Status Update",
+        "operationId": "get_status_update_v1_test_executions__id__status_update_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestEventDTO"
+                  },
+                  "title": "Response Get Status Update V1 Test Executions  Id  Status Update Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/{artefact_id}/environment-reviews": {
+      "get": {
+        "tags": [
+          "artefacts",
+          "environment-reviews"
+        ],
+        "summary": "Get Environment Reviews",
+        "operationId": "get_environment_reviews_v1_artefacts__artefact_id__environment_reviews_get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDTO"
+                  },
+                  "title": "Response Get Environment Reviews V1 Artefacts  Artefact Id  Environment Reviews Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/{artefact_id}/environment-reviews/{review_id}": {
+      "patch": {
+        "tags": [
+          "artefacts",
+          "environment-reviews"
+        ],
+        "summary": "Update Environment Review",
+        "operationId": "update_environment_review_v1_artefacts__artefact_id__environment_reviews__review_id__patch",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          },
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvironmentReviewPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/{artefact_id}/builds": {
+      "get": {
+        "tags": [
+          "artefacts",
+          "artefact-builds"
+        ],
+        "summary": "Get Artefact Builds",
+        "description": "Get latest artefact builds of an artefact together with their test executions",
+        "operationId": "get_artefact_builds_v1_artefacts__artefact_id__builds_get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactBuildDTO"
+                  },
+                  "title": "Response Get Artefact Builds V1 Artefacts  Artefact Id  Builds Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefacts",
+        "description": "Get latest artefacts optionally by family",
+        "operationId": "get_artefacts_v1_artefacts_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FamilyName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactDTO"
+                  },
+                  "title": "Response Get Artefacts V1 Artefacts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/{artefact_id}": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact",
+        "operationId": "get_artefact_v1_artefacts__artefact_id__get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Patch Artefact",
+        "operationId": "patch_artefact_v1_artefacts__artefact_id__patch",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/{artefact_id}/versions": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact Versions",
+        "operationId": "get_artefact_versions_v1_artefacts__artefact_id__versions_get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactVersionDTO"
+                  },
+                  "title": "Response Get Artefact Versions V1 Artefacts  Artefact Id  Versions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/test-results": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Testresults Report",
+        "description": "Returns a csv report detailing all artefacts within a given date range. Together\nwith their test executions and test results in csv format.",
+        "operationId": "get_testresults_report_v1_reports_test_results_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "default": "0001-01-01T00:00:00",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/test-executions": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Test Execution Reports",
+        "description": "Returns a csv report detailing all test executions within a given date range.\nTogether with their artefact and environment details in csv format.",
+        "operationId": "get_test_execution_reports_v1_reports_test_executions_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "default": "0001-01-01T00:00:00",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-cases/reported-issues": {
+      "get": {
+        "tags": [
+          "test-cases"
+        ],
+        "summary": "Get Reported Issues",
+        "operationId": "get_reported_issues_v1_test_cases_reported_issues_get",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Template Id"
+            }
+          },
+          {
+            "name": "case_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Case Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestReportedIssueResponse"
+                  },
+                  "title": "Response Get Reported Issues V1 Test Cases Reported Issues Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "test-cases"
+        ],
+        "summary": "Create Reported Issue",
+        "operationId": "create_reported_issue_v1_test_cases_reported_issues_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestReportedIssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestReportedIssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-cases/reported-issues/{issue_id}": {
+      "put": {
+        "tags": [
+          "test-cases"
+        ],
+        "summary": "Update Reported Issue",
+        "operationId": "update_reported_issue_v1_test_cases_reported_issues__issue_id__put",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestReportedIssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestReportedIssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "test-cases"
+        ],
+        "summary": "Delete Reported Issue",
+        "operationId": "delete_reported_issue_v1_test_cases_reported_issues__issue_id__delete",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/environments/reported-issues": {
+      "get": {
+        "tags": [
+          "environments"
+        ],
+        "summary": "Get Reported Issues",
+        "operationId": "get_reported_issues_v1_environments_reported_issues_get",
+        "parameters": [
+          {
+            "name": "is_confirmed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Confirmed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvironmentReportedIssueResponse"
+                  },
+                  "title": "Response Get Reported Issues V1 Environments Reported Issues Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "environments"
+        ],
+        "summary": "Create Reported Issue",
+        "operationId": "create_reported_issue_v1_environments_reported_issues_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvironmentReportedIssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentReportedIssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/environments/reported-issues/{issue_id}": {
+      "put": {
+        "tags": [
+          "environments"
+        ],
+        "summary": "Update Reported Issue",
+        "operationId": "update_reported_issue_v1_environments_reported_issues__issue_id__put",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvironmentReportedIssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentReportedIssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "environments"
+        ],
+        "summary": "Delete Reported Issue",
+        "operationId": "delete_reported_issue_v1_environments_reported_issues__issue_id__delete",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sentry-debug": {
+      "get": {
+        "summary": "Trigger Error",
+        "operationId": "trigger_error_sentry_debug_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArtefactBuildDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "test_executions": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionDTO"
+            },
+            "type": "array",
+            "title": "Test Executions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "architecture",
+          "revision",
+          "test_executions"
+        ],
+        "title": "ArtefactBuildDTO"
+      },
+      "ArtefactBuildEnvironmentReviewDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "review_decision": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDecision"
+            },
+            "type": "array",
+            "title": "Review Decision"
+          },
+          "review_comment": {
+            "type": "string",
+            "title": "Review Comment"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDTO"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalDTO"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "review_decision",
+          "review_comment",
+          "environment",
+          "artefact_build"
+        ],
+        "title": "ArtefactBuildEnvironmentReviewDTO"
+      },
+      "ArtefactBuildEnvironmentReviewDecision": {
+        "type": "string",
+        "enum": [
+          "REJECTED",
+          "APPROVED_INCONSISTENT_TEST",
+          "APPROVED_UNSTABLE_PHYSICAL_INFRA",
+          "APPROVED_CUSTOMER_PREREQUISITE_FAIL",
+          "APPROVED_FAULTY_HARDWARE",
+          "APPROVED_ALL_TESTS_PASS"
+        ],
+        "title": "ArtefactBuildEnvironmentReviewDecision"
+      },
+      "ArtefactBuildMinimalDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "architecture",
+          "revision"
+        ],
+        "title": "ArtefactBuildMinimalDTO"
+      },
+      "ArtefactDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "store": {
+            "type": "string",
+            "title": "Store"
+          },
+          "series": {
+            "type": "string",
+            "title": "Series"
+          },
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "os": {
+            "type": "string",
+            "title": "Os"
+          },
+          "release": {
+            "type": "string",
+            "title": "Release"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "image_url": {
+            "type": "string",
+            "title": "Image Url"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArtefactStatus"
+          },
+          "assignee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "bug_link": {
+            "type": "string",
+            "title": "Bug Link"
+          },
+          "all_environment_reviews_count": {
+            "type": "integer",
+            "title": "All Environment Reviews Count"
+          },
+          "completed_environment_reviews_count": {
+            "type": "integer",
+            "title": "Completed Environment Reviews Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "track",
+          "store",
+          "series",
+          "repo",
+          "os",
+          "release",
+          "owner",
+          "sha256",
+          "image_url",
+          "stage",
+          "status",
+          "assignee",
+          "due_date",
+          "bug_link",
+          "all_environment_reviews_count",
+          "completed_environment_reviews_count"
+        ],
+        "title": "ArtefactDTO"
+      },
+      "ArtefactPatch": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ArtefactStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ArtefactPatch"
+      },
+      "ArtefactStatus": {
+        "type": "string",
+        "enum": [
+          "APPROVED",
+          "MARKED_AS_FAILED",
+          "UNDECIDED"
+        ],
+        "title": "ArtefactStatus"
+      },
+      "ArtefactVersionDTO": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "artefact_id": {
+            "type": "integer",
+            "title": "Artefact Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "artefact_id"
+        ],
+        "title": "ArtefactVersionDTO"
+      },
+      "C3TestResult": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/C3TestResultStatus"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "comment": {
+            "type": "string",
+            "title": "Comment"
+          },
+          "io_log": {
+            "type": "string",
+            "title": "Io Log"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "status",
+          "category",
+          "comment",
+          "io_log"
+        ],
+        "title": "C3TestResult"
+      },
+      "C3TestResultStatus": {
+        "type": "string",
+        "enum": [
+          "pass",
+          "fail",
+          "skip"
+        ],
+        "title": "C3TestResultStatus"
+      },
+      "DeleteReruns": {
+        "properties": {
+          "test_execution_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Test Execution Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_execution_ids"
+        ],
+        "title": "DeleteReruns"
+      },
+      "EndTestExecutionRequest": {
+        "properties": {
+          "ci_link": {
+            "type": "string",
+            "title": "Ci Link"
+          },
+          "c3_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "C3 Link"
+          },
+          "checkbox_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkbox Version"
+          },
+          "test_results": {
+            "items": {
+              "$ref": "#/components/schemas/C3TestResult"
+            },
+            "type": "array",
+            "title": "Test Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ci_link",
+          "test_results"
+        ],
+        "title": "EndTestExecutionRequest"
+      },
+      "EnvironmentDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "architecture"
+        ],
+        "title": "EnvironmentDTO"
+      },
+      "EnvironmentReportedIssueRequest": {
+        "properties": {
+          "environment_name": {
+            "type": "string",
+            "title": "Environment Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "is_confirmed": {
+            "type": "boolean",
+            "title": "Is Confirmed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "environment_name",
+          "description",
+          "is_confirmed"
+        ],
+        "title": "EnvironmentReportedIssueRequest"
+      },
+      "EnvironmentReportedIssueResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "environment_name": {
+            "type": "string",
+            "title": "Environment Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "is_confirmed": {
+            "type": "boolean",
+            "title": "Is Confirmed"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "environment_name",
+          "description",
+          "url",
+          "is_confirmed",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EnvironmentReportedIssueResponse"
+      },
+      "EnvironmentReviewPatch": {
+        "properties": {
+          "review_decision": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDecision"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Decision"
+          },
+          "review_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Comment"
+          }
+        },
+        "type": "object",
+        "title": "EnvironmentReviewPatch"
+      },
+      "FamilyName": {
+        "type": "string",
+        "enum": [
+          "snap",
+          "deb",
+          "charm",
+          "image"
+        ],
+        "title": "FamilyName"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PendingRerun": {
+        "properties": {
+          "test_execution_id": {
+            "type": "integer",
+            "title": "Test Execution Id"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/TestExecutionDTO"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/ArtefactDTO"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalDTO"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_execution_id",
+          "ci_link",
+          "family",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "PendingRerun"
+      },
+      "PreviousTestResult": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/TestResultStatus"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "artefact_id": {
+            "type": "integer",
+            "title": "Artefact Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "artefact_id"
+        ],
+        "title": "PreviousTestResult"
+      },
+      "RerunRequest": {
+        "properties": {
+          "test_execution_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Test Execution Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_execution_ids"
+        ],
+        "title": "RerunRequest"
+      },
+      "StartCharmTestExecutionRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "test_plan": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Test Plan"
+          },
+          "initial_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionStatus"
+              }
+            ],
+            "default": "IN_PROGRESS"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "charm"
+            ],
+            "const": "charm",
+            "title": "Family"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "execution_stage": {
+            "type": "string",
+            "enum": [
+              "edge",
+              "beta",
+              "candidate",
+              "stable"
+            ],
+            "title": "Execution Stage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "arch",
+          "environment",
+          "test_plan",
+          "family",
+          "revision",
+          "track",
+          "execution_stage"
+        ],
+        "title": "StartCharmTestExecutionRequest"
+      },
+      "StartDebTestExecutionRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "test_plan": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Test Plan"
+          },
+          "initial_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionStatus"
+              }
+            ],
+            "default": "IN_PROGRESS"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "deb"
+            ],
+            "const": "deb",
+            "title": "Family"
+          },
+          "series": {
+            "type": "string",
+            "title": "Series"
+          },
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "execution_stage": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "updates"
+            ],
+            "title": "Execution Stage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "arch",
+          "environment",
+          "test_plan",
+          "family",
+          "series",
+          "repo",
+          "execution_stage"
+        ],
+        "title": "StartDebTestExecutionRequest"
+      },
+      "StartImageTestExecutionRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "test_plan": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Test Plan"
+          },
+          "initial_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionStatus"
+              }
+            ],
+            "default": "IN_PROGRESS"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "image"
+            ],
+            "const": "image",
+            "title": "Family",
+            "default": "image"
+          },
+          "execution_stage": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "current"
+            ],
+            "title": "Execution Stage"
+          },
+          "os": {
+            "type": "string",
+            "title": "Os"
+          },
+          "release": {
+            "type": "string",
+            "title": "Release"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "image_url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Image Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "arch",
+          "environment",
+          "test_plan",
+          "execution_stage",
+          "os",
+          "release",
+          "sha256",
+          "owner",
+          "image_url"
+        ],
+        "title": "StartImageTestExecutionRequest"
+      },
+      "StartSnapTestExecutionRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "test_plan": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Test Plan"
+          },
+          "initial_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionStatus"
+              }
+            ],
+            "default": "IN_PROGRESS"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "snap"
+            ],
+            "const": "snap",
+            "title": "Family"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "store": {
+            "type": "string",
+            "title": "Store"
+          },
+          "execution_stage": {
+            "type": "string",
+            "enum": [
+              "edge",
+              "beta",
+              "candidate",
+              "stable"
+            ],
+            "title": "Execution Stage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "arch",
+          "environment",
+          "test_plan",
+          "family",
+          "revision",
+          "track",
+          "store",
+          "execution_stage"
+        ],
+        "title": "StartSnapTestExecutionRequest"
+      },
+      "StatusUpdateRequest": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TestEventDTO"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "StatusUpdateRequest"
+      },
+      "TestEventDTO": {
+        "properties": {
+          "event_name": {
+            "type": "string",
+            "title": "Event Name"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_name",
+          "timestamp",
+          "detail"
+        ],
+        "title": "TestEventDTO"
+      },
+      "TestExecutionDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "c3_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "C3 Link"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDTO"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestExecutionStatus"
+          },
+          "test_plan": {
+            "type": "string",
+            "title": "Test Plan"
+          },
+          "is_rerun_requested": {
+            "type": "boolean",
+            "title": "Is Rerun Requested",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ci_link",
+          "c3_link",
+          "environment",
+          "status",
+          "test_plan",
+          "is_rerun_requested"
+        ],
+        "title": "TestExecutionDTO"
+      },
+      "TestExecutionStatus": {
+        "type": "string",
+        "enum": [
+          "NOT_STARTED",
+          "IN_PROGRESS",
+          "PASSED",
+          "FAILED",
+          "NOT_TESTED",
+          "ENDED_PREMATURELY"
+        ],
+        "title": "TestExecutionStatus"
+      },
+      "TestExecutionsPatchRequest": {
+        "properties": {
+          "c3_link": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "C3 Link"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionStatus"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "COMPLETED"
+                ],
+                "const": "COMPLETED"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "title": "TestExecutionsPatchRequest"
+      },
+      "TestReportedIssueRequest": {
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "title": "Template Id",
+            "default": ""
+          },
+          "case_name": {
+            "type": "string",
+            "title": "Case Name",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "url"
+        ],
+        "title": "TestReportedIssueRequest"
+      },
+      "TestReportedIssueResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "template_id": {
+            "type": "string",
+            "title": "Template Id",
+            "default": ""
+          },
+          "case_name": {
+            "type": "string",
+            "title": "Case Name",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "description",
+          "url",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TestReportedIssueResponse"
+      },
+      "TestResultRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestResultStatus"
+          },
+          "template_id": {
+            "type": "string",
+            "title": "Template Id",
+            "default": ""
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "default": ""
+          },
+          "comment": {
+            "type": "string",
+            "title": "Comment",
+            "default": ""
+          },
+          "io_log": {
+            "type": "string",
+            "title": "Io Log",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "title": "TestResultRequest"
+      },
+      "TestResultResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "template_id": {
+            "type": "string",
+            "title": "Template Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestResultStatus"
+          },
+          "comment": {
+            "type": "string",
+            "title": "Comment"
+          },
+          "io_log": {
+            "type": "string",
+            "title": "Io Log"
+          },
+          "previous_results": {
+            "items": {
+              "$ref": "#/components/schemas/PreviousTestResult"
+            },
+            "type": "array",
+            "title": "Previous Results",
+            "description": "The last 10 test results matched with the current test execution. The items are sorted in descending order, the first test result is the most recent, while the last one is the oldest one.",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "template_id",
+          "status",
+          "comment",
+          "io_log"
+        ],
+        "title": "TestResultResponse"
+      },
+      "TestResultStatus": {
+        "type": "string",
+        "enum": [
+          "PASSED",
+          "FAILED",
+          "SKIPPED"
+        ],
+        "title": "TestResultStatus"
+      },
+      "UserDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "launchpad_handle": {
+            "type": "string",
+            "title": "Launchpad Handle"
+          },
+          "launchpad_email": {
+            "type": "string",
+            "title": "Launchpad Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "launchpad_handle",
+          "launchpad_email",
+          "name"
+        ],
+        "title": "UserDTO"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
