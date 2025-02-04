@@ -17,7 +17,6 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru/widgets.dart';
 
 import '../../providers/family_artefacts.dart';
 import '../../providers/artefact_side_filters_visibility.dart';
@@ -57,8 +56,8 @@ class Dashboard extends ConsumerWidget {
               builder: (_, __) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  YaruOptionButton(
-                    child: const Icon(Icons.filter_alt),
+                  IconButton(
+                    icon: const Icon(Icons.filter_alt),
                     onPressed: () => ref
                         .read(artefactSideFiltersVisibilityProvider.notifier)
                         .set(!showFilters),
