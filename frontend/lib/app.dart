@@ -35,6 +35,28 @@ class App extends StatelessWidget {
             side: BorderSide(color: VanillaColors.borderDefault, width: 1.5),
           ),
         ),
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          selectedIcon: const SizedBox.shrink(),
+          style: ButtonStyle(
+            iconColor: const WidgetStatePropertyAll(VanillaColors.textDefault),
+            backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+              (Set<WidgetState> states) {
+                if (states.contains(WidgetState.selected)) {
+                  return VanillaColors.backgroundActive;
+                }
+                return VanillaColors.backgroundDefault;
+              },
+            ),
+            shape: const WidgetStatePropertyAll(
+              RoundedRectangleBorder(
+                side: BorderSide(
+                  color: VanillaColors.borderHighContrast,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       routerConfig: appRouter,
     );
