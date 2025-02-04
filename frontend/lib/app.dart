@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-import 'package:yaru/yaru.dart';
 
 import 'routing.dart';
 
@@ -24,19 +23,8 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return YaruTheme(
-      builder: (context, yaru, child) {
-        final colorScheme = yaru.theme?.colorScheme.copyWith(
-          surfaceContainerHigh: Colors.white, // search bars color
-          surfaceContainerLow: Colors.white, // cards color
-        );
-        final theme = yaru.theme?.copyWith(colorScheme: colorScheme);
-
-        return MaterialApp.router(
-          theme: theme,
-          routerConfig: appRouter,
-        );
-      },
+    return MaterialApp.router(
+      routerConfig: appRouter,
     );
   }
 }
