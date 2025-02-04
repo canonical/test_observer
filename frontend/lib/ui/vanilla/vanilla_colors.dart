@@ -1,5 +1,8 @@
 import 'dart:ui';
 
+// Colors follow Vanilla color naming convention found in the repo below
+// https://github.com/canonical/vanilla-framework/tree/main/tokens/color/light
 class VanillaColors {
-  static const Color background = Color(0xfff3f3f3);
+  static const backgroundDefault = Color(0xffffffff);
+  static const backgroundNeutralDefault = Color(0xfff2f2f2);
 }

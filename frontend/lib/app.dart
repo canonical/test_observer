@@ -26,7 +26,8 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       theme: ThemeData(
-        scaffoldBackgroundColor: VanillaColors.background,
+        scaffoldBackgroundColor: VanillaColors.backgroundNeutralDefault,
+        cardTheme: const CardTheme(color: VanillaColors.backgroundDefault),
       ),
       routerConfig: appRouter,
     );
