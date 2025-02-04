@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -e
-poetry install >/dev/null 2>&1
+poetry install
 
 echo "Starting a transient copy of test-observer-api to fetch the OpenAPI schema..."
 trap 'kill $(jobs -p)' EXIT
