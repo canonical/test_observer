@@ -21,6 +21,7 @@ import 'package:yaru/widgets.dart';
 import '../../models/environment_review.dart';
 import '../../providers/review_environment.dart';
 import '../spacing.dart';
+import '../vanilla/vanilla_button.dart';
 import '../vanilla/vanilla_text_input.dart';
 
 class EnvironmentReviewPopOver extends ConsumerStatefulWidget {
@@ -124,7 +125,8 @@ class EnvironmentReviewPopOverState
           hintText: 'Insert review comment',
         ),
         const SizedBox(height: Spacing.level3),
-        ElevatedButton(
+        VanillaButton(
+          type: VanillaButtonType.positive,
           onPressed: () {
             ref.read(reviewEnvironmentProvider.notifier).review(
                   widget.environmentReview.copyWith(

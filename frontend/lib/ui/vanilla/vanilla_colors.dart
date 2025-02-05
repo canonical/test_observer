@@ -24,4 +24,8 @@ class VanillaColors {
   static const borderInformation = baseInformation;
   static const borderNeutral = Color.fromRGBO(0, 0, 0, 0.56);
   static const textDefault = Color(0xff000000);
+  static const textButtonPositive = Color(0xffffffff);
+  static const textButtonNegative = Color(0xffffffff);
+  static const buttonPositiveHover = Color(0xff0c6d1a);
+  static const buttonNegativeHover = Color(0xffb01326);
 }

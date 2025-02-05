@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/environment.dart';
 import '../../../providers/environments_issues.dart';
 import '../../expandable.dart';
+import '../../vanilla/vanilla_button.dart';
 import 'environment_issue_form.dart';
 import 'environment_issue_list_item.dart';
 
@@ -50,7 +51,7 @@ class EnvironmentIssuesExpandable extends ConsumerWidget {
         children: [
           Text('Reported Environment Issues (${issues.length})'),
           const Spacer(),
-          TextButton(
+          VanillaButton(
             onPressed: () => showEnvironmentIssueCreateDialog(
               context: context,
               environment: environment,

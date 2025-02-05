@@ -23,6 +23,7 @@ import '../../providers/page_filters.dart';
 import '../../providers/search_value.dart';
 import '../../routing.dart';
 import '../expandable.dart';
+import '../vanilla/vanilla_button.dart';
 import 'page_search_bar.dart';
 import '../spacing.dart';
 
@@ -57,7 +58,7 @@ class PageFiltersView extends ConsumerWidget {
           if (i == filters.filters.length + 1) {
             return SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: VanillaButton(
                 onPressed: () =>
                     submitFilters(ref, searchQuery, pageUri, context),
                 child: const Text('Apply'),

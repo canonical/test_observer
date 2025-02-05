@@ -18,6 +18,8 @@ import 'package:flutter/material.dart';
 
 import '../../../models/test_issue.dart';
 import '../../inline_url_text.dart';
+import '../../spacing.dart';
+import '../../vanilla/vanilla_button.dart';
 import 'test_issue_form.dart';
 
 class TestIssueListItem extends StatelessWidget {
@@ -40,7 +42,8 @@ class TestIssueListItem extends StatelessWidget {
             urlText: 'URL',
             fontStyle: Theme.of(context).textTheme.bodyMedium,
           ),
-          TextButton(
+          const SizedBox(width: Spacing.level4),
+          VanillaButton(
             onPressed: () =>
                 showTestIssueUpdateDialog(context: context, issue: issue),
             child: const Text('edit'),

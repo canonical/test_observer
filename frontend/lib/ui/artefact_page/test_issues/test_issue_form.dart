@@ -23,6 +23,7 @@ import '../../../models/test_issue.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/tests_issues.dart';
 import '../../spacing.dart';
+import '../../vanilla/vanilla_button.dart';
 import '../../vanilla/vanilla_text_input.dart';
 
 void showTestIssueUpdateDialog({
@@ -155,8 +156,6 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
 
   @override
   Widget build(BuildContext context) {
-    final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
-
     return Form(
       key: _formKey,
       child: SizedBox(
@@ -186,27 +185,24 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
             const SizedBox(height: Spacing.level4),
             Row(
               children: [
-                TextButton(
+                VanillaButton(
                   onPressed: () => context.pop(),
-                  child: Text(
-                    'cancel',
-                    style: buttonFontStyle?.apply(color: Colors.grey),
-                  ),
+                  child: const Text('cancel'),
                 ),
                 const Spacer(),
                 if (widget.onDelete != null)
-                  TextButton(
+                  VanillaButton(
+                    type: VanillaButtonType.negative,
                     onPressed: () {
                       widget.onDelete
                           ?.call()
                           .then((didDelete) => context.pop());
                     },
-                    child: Text(
-                      'delete',
-                      style: buttonFontStyle?.apply(color: Colors.red),
-                    ),
+                    child: const Text('delete'),
                   ),
-                TextButton(
+                const SizedBox(width: Spacing.level3),
+                VanillaButton(
+                  type: VanillaButtonType.positive,
                   onPressed: () {
                     if (_formKey.currentState?.validate() == true) {
                       widget.onSubmit(
@@ -216,10 +212,7 @@ class _TestIssueFormState extends ConsumerState<_TestIssueForm> {
                       context.pop();
                     }
                   },
-                  child: Text(
-                    'submit',
-                    style: buttonFontStyle?.apply(color: Colors.black),
-                  ),
+                  child: const Text('submit'),
                 ),
               ],
             ),
@@ -248,13 +241,14 @@ class _DeleteTestIssueConfirmationDialog extends ConsumerWidget {
       title: const Text('Are you sure you want to delete this issue?'),
       content: Text(message),
       actions: [
-        TextButton(
+        VanillaButton(
           onPressed: () {
             context.pop(false);
           },
           child: const Text('No'),
         ),
-        TextButton(
+        VanillaButton(
+          type: VanillaButtonType.negative,
           onPressed: () {
             ref.read(testsIssuesProvider.notifier).deleteIssue(issue.id);
             context.pop(true);
