@@ -29,4 +29,8 @@ class VanillaColors {
   static const textButtonNegative = Color(0xffffffff);
   static const buttonPositiveHover = Color(0xff0c6d1a);
   static const buttonNegativeHover = Color(0xffb01326);
+  static const darkBackgroundDefault = Color(0xff262626);
+  static const darkBackgroundHover = Color.fromRGBO(255, 255, 255, 0.05);
+  static const darkTextDefault = Color(0xffffffff);
+  static const darkBorderHighlight = Color(0xffffffff);
 }
