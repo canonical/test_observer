@@ -65,13 +65,16 @@ class ArtefactCard extends ConsumerWidget {
                 children: [
                   VanillaChip(
                     text: artefact.status.name,
-                    fontColor: artefact.status.color,
+                    type: switch (artefact.status) {
+                      ArtefactStatus.approved => VanillaChipType.positive,
+                      ArtefactStatus.rejected => VanillaChipType.negative,
+                      _ => VanillaChipType.normal,
+                    },
                   ),
-                  const Spacer(),
                   if (dueDate != null)
                     VanillaChip(
                       text: 'Due $dueDate',
-                      fontColor: YaruColors.red,
+                      type: VanillaChipType.information,
                     ),
                   const Spacer(),
                   UserAvatar(

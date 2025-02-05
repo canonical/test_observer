@@ -16,18 +16,66 @@
 
 import 'package:flutter/material.dart';
 
+import 'vanilla_colors.dart';
+
 class VanillaChip extends StatelessWidget {
-  const VanillaChip({super.key, required this.text, this.fontColor});
+  const VanillaChip({
+    super.key,
+    required this.text,
+    this.type = VanillaChipType.normal,
+  });
 
   final String text;
-  final Color? fontColor;
+  final VanillaChipType type;
 
   @override
   Widget build(BuildContext context) {
-    final fontStyle = Theme.of(context).textTheme.labelMedium;
     return Chip(
-      label: Text(text, style: fontStyle?.apply(color: fontColor)),
+      label: Text(
+        text,
+        style: Theme.of(context).textTheme.labelMedium,
+      ),
       shape: const StadiumBorder(),
+      backgroundColor: type.color,
+      side: BorderSide(color: type.borderColor),
     );
+  }
+}
+
+enum VanillaChipType {
+  normal,
+  positive,
+  negative,
+  caution,
+  information;
+
+  Color get color {
+    switch (this) {
+      case normal:
+        return VanillaColors.backgroundNeutralDefault;
+      case positive:
+        return VanillaColors.backgroundPositiveDefault;
+      case negative:
+        return VanillaColors.backgroundNegativeDefault;
+      case caution:
+        return VanillaColors.backgroundCautionDefault;
+      case information:
+        return VanillaColors.backgroundInformationDefault;
+    }
+  }
+
+  Color get borderColor {
+    switch (this) {
+      case normal:
+        return VanillaColors.borderNeutral;
+      case positive:
+        return VanillaColors.borderPositive;
+      case negative:
+        return VanillaColors.borderNegative;
+      case caution:
+        return VanillaColors.borderCaution;
+      case information:
+        return VanillaColors.borderInformation;
+    }
   }
 }
