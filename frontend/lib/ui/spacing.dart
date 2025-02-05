@@ -22,5 +22,5 @@ class Spacing {
   static const level5 = 32.0;
   static const level6 = 64.0;
 
-  static const pageHorizontalPadding = 180.0;
+  static const pageHorizontalPadding = 120.0;
 }
