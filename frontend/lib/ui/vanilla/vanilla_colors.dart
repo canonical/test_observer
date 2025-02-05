@@ -15,6 +15,7 @@ class VanillaColors {
   static const backgroundInformationDefault = Color.fromRGBO(0, 99, 199, 0.1);
   static const backgroundNegativeDefault = Color.fromRGBO(199, 0, 20, 0.1);
   static const backgroundNeutralDefault = Color(0xfff2f2f2);
+  static const backgroundOverlay = Color.fromRGBO(17, 17, 17, 0.85);
   static const backgroundPositiveDefault = Color.fromRGBO(10, 189, 37, 0.1);
   static const borderDefault = Color.fromRGBO(0, 0, 0, 0.2);
   static const borderHighContrast = Color.fromRGBO(0, 0, 0, 0.56);

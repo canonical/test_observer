@@ -22,6 +22,7 @@ import '../../../models/test_execution.dart';
 import '../../../providers/artefact_builds.dart';
 import '../../../routing.dart';
 import '../../vanilla/vanilla_button.dart';
+import '../../vanilla/vanilla_modal.dart';
 
 class RerunButton extends ConsumerWidget {
   const RerunButton({super.key, required this.testExecution});
@@ -35,7 +36,7 @@ class RerunButton extends ConsumerWidget {
 
     final handlePress = testExecution.isRerunRequested
         ? null
-        : () => showDialog(
+        : () => showVanillaModal(
               context: context,
               builder: (_) => _RerunConfirmationDialog(
                 artefactId: artefactId,
@@ -64,7 +65,7 @@ class _RerunConfirmationDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AlertDialog(
+    return VanillaModal(
       title: const Text(
         'Are you sure you want to rerun this environment?',
       ),
