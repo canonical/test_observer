@@ -38,12 +38,11 @@ class App extends StatelessWidget {
           return VanillaColors.backgroundDefault;
         },
       ),
-      shape: const WidgetStatePropertyAll(
-        RoundedRectangleBorder(
-          side: BorderSide(
-            color: VanillaColors.borderHighContrast,
-            width: 1.5,
-          ),
+      shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+      side: const WidgetStatePropertyAll(
+        BorderSide(
+          color: VanillaColors.borderHighContrast,
+          width: 1,
         ),
       ),
     );
@@ -64,6 +63,25 @@ class App extends StatelessWidget {
           style: buttonStyle,
         ),
         iconButtonTheme: IconButtonThemeData(style: buttonStyle),
+        checkboxTheme: CheckboxThemeData(
+          splashRadius: 0,
+          fillColor: WidgetStateProperty.resolveWith<Color?>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return VanillaColors.backgroundCheckboxChecked;
+              }
+              if (states.contains(WidgetState.hovered)) {
+                return VanillaColors.backgroundHover;
+              }
+              return VanillaColors.backgroundDefault;
+            },
+          ),
+          shape: const RoundedRectangleBorder(),
+          side: const BorderSide(
+            color: VanillaColors.borderHighContrast,
+            width: 1,
+          ),
+        ),
       ),
       routerConfig: appRouter,
     );

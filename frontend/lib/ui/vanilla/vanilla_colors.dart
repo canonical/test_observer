@@ -4,6 +4,7 @@ import 'dart:ui';
 // https://github.com/canonical/vanilla-framework/tree/main/tokens/color/light
 class VanillaColors {
   static const backgroundActive = Color(0xffebebeb);
+  static const backgroundCheckboxChecked = Color(0xff0066cc);
   static const backgroundDefault = Color(0xffffffff);
   static const backgroundHover = Color(0xfff2f2f2);
   static const backgroundNeutralDefault = Color(0xfff2f2f2);
