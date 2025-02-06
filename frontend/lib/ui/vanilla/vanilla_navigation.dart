@@ -76,8 +76,11 @@ class VanillaNavigationButton extends StatelessWidget {
 }
 
 class VanillaNavigationTitle extends StatelessWidget {
-  const VanillaNavigationTitle(
-      {super.key, required this.title, this.onPressed});
+  const VanillaNavigationTitle({
+    super.key,
+    required this.title,
+    this.onPressed,
+  });
 
   final String title;
   final void Function()? onPressed;
@@ -97,6 +100,40 @@ class VanillaNavigationTitle extends StatelessWidget {
                 ?.apply(color: VanillaColors.darkTextDefault),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class VanillaNavigationDropdown extends StatelessWidget {
+  const VanillaNavigationDropdown({
+    super.key,
+    required this.menuChildren,
+    required this.child,
+  });
+
+  final List<Widget> menuChildren;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: navigationBarHeight,
+      child: SubmenuButton(
+        style: const ButtonStyle(
+          padding: WidgetStatePropertyAll(EdgeInsets.all(Spacing.level4)),
+          foregroundColor:
+              WidgetStatePropertyAll(VanillaColors.darkTextDefault),
+          overlayColor:
+              WidgetStatePropertyAll(VanillaColors.darkBackgroundHover),
+        ),
+        menuStyle: const MenuStyle(
+          shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+          backgroundColor:
+              WidgetStatePropertyAll(VanillaColors.darkBackgroundDefault),
+        ),
+        menuChildren: menuChildren,
+        child: child,
       ),
     );
   }

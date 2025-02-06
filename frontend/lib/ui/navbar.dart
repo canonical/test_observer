@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../routing.dart';
 import 'vanilla/vanilla_navigation.dart';
@@ -35,6 +36,16 @@ class Navbar extends StatelessWidget {
         const _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
         const _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
         const _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
+        VanillaNavigationDropdown(
+          menuChildren: [
+            VanillaNavigationButton(
+              child: const Text('Source Code'),
+              onPressed: () =>
+                  launchUrlString('https://github.com/canonical/test_observer'),
+            ),
+          ],
+          child: const Text('Help'),
+        ),
       ],
     );
   }
