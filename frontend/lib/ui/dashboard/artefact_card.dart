@@ -17,7 +17,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
-import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
 import '../../routing.dart';
