@@ -32,6 +32,7 @@ class Artefact with _$Artefact {
     required int id,
     required String name,
     required String version,
+    required String family,
     @Default('') String track,
     @Default('') String store,
     @Default('') String series,
