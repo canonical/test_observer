@@ -1352,6 +1352,82 @@
   },
   "components": {
     "schemas": {
+      "ArtefactBuildEnvironmentReviewDecision": {
+        "type": "string",
+        "enum": [
+          "REJECTED",
+          "APPROVED_INCONSISTENT_TEST",
+          "APPROVED_UNSTABLE_PHYSICAL_INFRA",
+          "APPROVED_CUSTOMER_PREREQUISITE_FAIL",
+          "APPROVED_FAULTY_HARDWARE",
+          "APPROVED_ALL_TESTS_PASS"
+        ],
+        "title": "ArtefactBuildEnvironmentReviewDecision"
+      },
+      "ArtefactBuildEnvironmentReviewResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "review_decision": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDecision"
+            },
+            "type": "array",
+            "title": "Review Decision"
+          },
+          "review_comment": {
+            "type": "string",
+            "title": "Review Comment"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentResponse"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "review_decision",
+          "review_comment",
+          "environment",
+          "artefact_build"
+        ],
+        "title": "ArtefactBuildEnvironmentReviewResponse"
+      },
+      "ArtefactBuildMinimalResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "architecture",
+          "revision"
+        ],
+        "title": "ArtefactBuildMinimalResponse"
+      },
       "ArtefactBuildResponse": {
         "properties": {
           "id": {
@@ -1390,81 +1466,17 @@
         ],
         "title": "ArtefactBuildResponse"
       },
-      "ArtefactBuildEnvironmentReviewResponse": {
+      "ArtefactPatch": {
         "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "review_decision": {
-            "items": {
-              "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDecision"
-            },
-            "type": "array",
-            "title": "Review Decision"
-          },
-          "review_comment": {
-            "type": "string",
-            "title": "Review Comment"
-          },
-          "environment": {
-            "$ref": "#/components/schemas/EnvironmentResponse"
-          },
-          "artefact_build": {
-            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          "status": {
+            "$ref": "#/components/schemas/ArtefactStatus"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "review_decision",
-          "review_comment",
-          "environment",
-          "artefact_build"
+          "status"
         ],
-        "title": "ArtefactBuildEnvironmentReviewResponse"
-      },
-      "ArtefactBuildEnvironmentReviewDecision": {
-        "type": "string",
-        "enum": [
-          "REJECTED",
-          "APPROVED_INCONSISTENT_TEST",
-          "APPROVED_UNSTABLE_PHYSICAL_INFRA",
-          "APPROVED_CUSTOMER_PREREQUISITE_FAIL",
-          "APPROVED_FAULTY_HARDWARE",
-          "APPROVED_ALL_TESTS_PASS"
-        ],
-        "title": "ArtefactBuildEnvironmentReviewDecision"
-      },
-      "ArtefactBuildMinimalResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "architecture": {
-            "type": "string",
-            "title": "Architecture"
-          },
-          "revision": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Revision"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "architecture",
-          "revision"
-        ],
-        "title": "ArtefactBuildMinimalResponse"
+        "title": "ArtefactPatch"
       },
       "ArtefactResponse": {
         "properties": {
@@ -1581,18 +1593,6 @@
           "completed_environment_reviews_count"
         ],
         "title": "ArtefactResponse"
-      },
-      "ArtefactPatch": {
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/ArtefactStatus"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "title": "ArtefactPatch"
       },
       "ArtefactStatus": {
         "type": "string",
@@ -1733,29 +1733,6 @@
         ],
         "title": "EndTestExecutionRequest"
       },
-      "EnvironmentResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "architecture": {
-            "type": "string",
-            "title": "Architecture"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "architecture"
-        ],
-        "title": "EnvironmentResponse"
-      },
       "EnvironmentReportedIssueRequest": {
         "properties": {
           "environment_name": {
@@ -1847,6 +1824,29 @@
           "updated_at"
         ],
         "title": "EnvironmentReportedIssueResponse"
+      },
+      "EnvironmentResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "architecture"
+        ],
+        "title": "EnvironmentResponse"
       },
       "EnvironmentReviewPatch": {
         "properties": {
