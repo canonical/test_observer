@@ -54,7 +54,6 @@ class App extends StatelessWidget {
           selectedIcon: const SizedBox.shrink(),
           style: buttonStyle,
         ),
-        iconButtonTheme: IconButtonThemeData(style: buttonStyle),
         checkboxTheme: CheckboxThemeData(
           splashRadius: 0,
           fillColor: WidgetStateProperty.resolveWith<Color?>(

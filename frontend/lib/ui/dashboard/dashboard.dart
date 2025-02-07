@@ -24,6 +24,7 @@ import '../../routing.dart';
 import '../blocking_provider_preloader.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
+import '../vanilla/vanilla_icon_button.dart';
 import 'dashboard_body/dashboard_body.dart';
 import 'dashboard_header/dashboard_header.dart';
 
@@ -56,7 +57,7 @@ class Dashboard extends ConsumerWidget {
               builder: (_, __) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
+                  VanillaIconButton(
                     icon: const Icon(Icons.filter_alt),
                     onPressed: () => ref
                         .read(artefactSideFiltersVisibilityProvider.notifier)
