@@ -6,7 +6,7 @@ Here is a list of terms used by Test Observer (TO) and what they mean.
 Artefact
 --------
 
-An artefact is the thing under test for instance a particular snap or image. At its core an artefact has a name, a version, a family and a stage. Artefacts also have other attributes that are specific to their families (e.g. track is specific to snaps and charms).
+An artefact is the thing under test, for instance a particular snap or image. An artefact has a name, a version, a family and a stage. Artefacts also have other attributes that are specific to their families (e.g. track is specific to snaps and charms).
 
 Family
 ------
