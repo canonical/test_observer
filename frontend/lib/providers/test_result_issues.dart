@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:dartx/dartx.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/test_issue.dart';
@@ -25,7 +26,7 @@ part 'test_result_issues.g.dart';
 
 @riverpod
 Future<List<TestIssue>> testResultIssues(
-  TestResultIssuesRef ref,
+  Ref ref,
   TestResult testResult,
 ) {
   return ref.watch(

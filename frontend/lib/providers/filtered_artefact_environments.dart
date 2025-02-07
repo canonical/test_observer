@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:dartx/dartx.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact_environment.dart';
@@ -26,7 +27,7 @@ part 'filtered_artefact_environments.g.dart';
 
 @riverpod
 Future<List<ArtefactEnvironment>> filteredArtefactEnvironments(
-  FilteredArtefactEnvironmentsRef ref,
+  Ref ref,
   Uri pageUri,
 ) async {
   final artefactId = AppRoutes.artefactIdFromUri(pageUri);

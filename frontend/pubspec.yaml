@@ -5,35 +5,35 @@ version: 1.0.0+1
 environment:
   sdk: ">=3.6.0 <4.0.0"
 dependencies:
-  dartx: ^1.1.0
-  dio: ^5.1.2
+  dartx: ^1.2.0
+  dio: ^5.8.0+1
   dio_smart_retry: ^6.0.0
   flutter:
     sdk: flutter
-  flutter_riverpod: ^2.3.6
-  freezed_annotation: ^2.2.0
+  flutter_riverpod: ^2.6.1
+  freezed_annotation: ^2.4.4
   go_router: ^11.1.4
   intersperse: ^2.0.0
-  json_annotation: ^4.8.1
+  json_annotation: ^4.9.0
   popover: ^0.3.1
-  riverpod_annotation: ^2.1.1
-  shared_preferences: ^2.2.3
-  url_launcher: ^6.1.10
+  riverpod_annotation: ^2.6.1
+  shared_preferences: ^2.5.1
+  url_launcher: ^6.3.1
   yaru: ^4.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  web_benchmarks: ^2.0.0
-  flutter_lints: ^2.0.0
-  dependency_validator: ^3.2.2
-  build_runner: ^2.3.3
-  freezed: ^2.4.5
-  custom_lint: ^0.5.3
-  riverpod_lint: ^2.1.1
-  riverpod_generator: ^2.3.3
-  json_serializable: ^6.6.2
-  test: ^1.24.3
-  mocktail: ^1.0.3
+  web_benchmarks: ^2.0.2
+  flutter_lints: ^2.0.3
+  dependency_validator: ^3.2.3
+  build_runner: ^2.4.14
+  freezed: ^2.5.7
+  custom_lint: ^0.7.0
+  riverpod_lint: ^2.6.3
+  riverpod_generator: ^2.6.3
+  json_serializable: ^6.9.0
+  test: ^1.25.8
+  mocktail: ^1.0.4
   integration_test:
     sdk: flutter
 flutter:

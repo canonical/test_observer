@@ -17,6 +17,7 @@
 import 'dart:collection';
 
 import 'package:dartx/dartx.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
@@ -29,7 +30,7 @@ part 'filtered_family_artefacts.g.dart';
 
 @riverpod
 LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
-  FilteredFamilyArtefactsRef ref,
+  Ref ref,
   Uri pageUri,
 ) {
   final family = AppRoutes.familyFromUri(pageUri);
