@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/view_modes.dart';
 import '../../../providers/view_mode.dart';
+import '../../vanilla/vanilla_segmented_button.dart';
 
 class ViewModeToggle extends ConsumerWidget {
   const ViewModeToggle({super.key});
@@ -29,7 +30,7 @@ class ViewModeToggle extends ConsumerWidget {
 
     if (viewMode == null) return const SizedBox.shrink();
 
-    return SegmentedButton(
+    return VanillaSegmentedButton(
       segments: const [
         ButtonSegment(value: ViewModes.list, icon: Icon(Icons.list)),
         ButtonSegment(value: ViewModes.dashboard, icon: Icon(Icons.dashboard)),

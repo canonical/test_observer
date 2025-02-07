@@ -50,10 +50,6 @@ class App extends StatelessWidget {
     return MaterialApp.router(
       theme: ThemeData(
         scaffoldBackgroundColor: VanillaColors.backgroundNeutralDefault,
-        segmentedButtonTheme: SegmentedButtonThemeData(
-          selectedIcon: const SizedBox.shrink(),
-          style: buttonStyle,
-        ),
         checkboxTheme: CheckboxThemeData(
           splashRadius: 0,
           fillColor: WidgetStateProperty.resolveWith<Color?>(
