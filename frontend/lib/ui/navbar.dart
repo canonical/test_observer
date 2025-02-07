@@ -26,29 +26,73 @@ class Navbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return VanillaNavigation(
-      children: [
-        VanillaNavigationTitle(
-          title: 'Canonical Test Observer',
-          onPressed: () => context.go('/'),
-        ),
-        const _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
-        const _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
-        const _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
-        const _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
-        const Spacer(),
-        VanillaNavigationDropdown(
-          menuChildren: [
-            VanillaNavigationButton(
-              child: const Text('Source Code'),
-              onPressed: () =>
-                  launchUrlString('https://github.com/canonical/test_observer'),
-            ),
-          ],
-          child: const Text('Help'),
-        ),
-      ],
-    );
+    final windowSize = MediaQuery.sizeOf(context);
+
+    if (windowSize.width > 1150) {
+      return VanillaNavigation(
+        children: [
+          VanillaNavigationTitle(
+            title: 'Canonical Test Observer',
+            onPressed: () => context.go('/'),
+          ),
+          const _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
+          const _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
+          const _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
+          const _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
+          const Spacer(),
+          VanillaNavigationDropdown(
+            menuChildren: [
+              VanillaNavigationButton(
+                child: const Text('Source Code'),
+                onPressed: () => launchUrlString(
+                    'https://github.com/canonical/test_observer'),
+              ),
+            ],
+            child: const Text('Help'),
+          ),
+        ],
+      );
+    } else {
+      return VanillaNavigation(
+        children: [
+          VanillaNavigationTitle(
+            title: 'Canonical Test Observer',
+            onPressed: () => context.go('/'),
+          ),
+          VanillaNavigationDropdown(
+            menuChildren: [
+              VanillaNavigationButton(
+                onPressed: () => context.go(AppRoutes.snaps),
+                child: const Text('Snap Testing'),
+              ),
+              VanillaNavigationButton(
+                onPressed: () => context.go(AppRoutes.debs),
+                child: const Text('Deb Testing'),
+              ),
+              VanillaNavigationButton(
+                onPressed: () => context.go(AppRoutes.charms),
+                child: const Text('Charm Testing'),
+              ),
+              VanillaNavigationButton(
+                onPressed: () => context.go(AppRoutes.images),
+                child: const Text('Image Testing'),
+              ),
+              VanillaNavigationDropdown(
+                menuChildren: [
+                  VanillaNavigationButton(
+                    child: const Text('Source Code'),
+                    onPressed: () => launchUrlString(
+                        'https://github.com/canonical/test_observer'),
+                  ),
+                ],
+                child: const Text('Help'),
+              ),
+            ],
+            child: const Text('Menu'),
+          ),
+        ],
+      );
+    }
   }
 }
 
