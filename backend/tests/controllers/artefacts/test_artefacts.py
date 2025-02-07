@@ -279,6 +279,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "sha256": artefact.sha256,
         "image_url": artefact.image_url,
         "status": artefact.status,
+        "family": artefact.family,
         "assignee": None,
         "due_date": (
             artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
