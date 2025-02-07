@@ -218,7 +218,8 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
           VanillaButton(
             type: VanillaButtonType.negative,
             onPressed: () {
-              widget.onDelete?.call().then((didDelete) => context.pop());
+              widget.onDelete?.call();
+              context.pop();
             },
             child: const Text('delete'),
           ),

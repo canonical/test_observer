@@ -17,9 +17,7 @@ class VanillaNavigation extends StatelessWidget {
           const EdgeInsets.symmetric(horizontal: Spacing.pageHorizontalPadding),
       color: VanillaColors.darkBackgroundDefault,
       height: navigationBarHeight,
-      child: Row(
-        children: children,
-      ),
+      child: Row(children: children),
     );
   }
 }

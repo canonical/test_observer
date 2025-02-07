@@ -40,15 +40,18 @@ class Navbar extends StatelessWidget {
           const _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
           const _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
           const Spacer(),
-          VanillaNavigationDropdown(
-            menuChildren: [
-              VanillaNavigationButton(
-                child: const Text('Source Code'),
-                onPressed: () => launchUrlString(
-                    'https://github.com/canonical/test_observer'),
-              ),
-            ],
-            child: const Text('Help'),
+          IntrinsicWidth(
+            child: VanillaNavigationDropdown(
+              menuChildren: [
+                VanillaNavigationButton(
+                  child: const Text('Source Code'),
+                  onPressed: () => launchUrlString(
+                    'https://github.com/canonical/test_observer',
+                  ),
+                ),
+              ],
+              child: const Text('Help'),
+            ),
           ),
         ],
       );
@@ -59,36 +62,39 @@ class Navbar extends StatelessWidget {
             title: 'Canonical Test Observer',
             onPressed: () => context.go('/'),
           ),
-          VanillaNavigationDropdown(
-            menuChildren: [
-              VanillaNavigationButton(
-                onPressed: () => context.go(AppRoutes.snaps),
-                child: const Text('Snap Testing'),
-              ),
-              VanillaNavigationButton(
-                onPressed: () => context.go(AppRoutes.debs),
-                child: const Text('Deb Testing'),
-              ),
-              VanillaNavigationButton(
-                onPressed: () => context.go(AppRoutes.charms),
-                child: const Text('Charm Testing'),
-              ),
-              VanillaNavigationButton(
-                onPressed: () => context.go(AppRoutes.images),
-                child: const Text('Image Testing'),
-              ),
-              VanillaNavigationDropdown(
-                menuChildren: [
-                  VanillaNavigationButton(
-                    child: const Text('Source Code'),
-                    onPressed: () => launchUrlString(
-                        'https://github.com/canonical/test_observer'),
-                  ),
-                ],
-                child: const Text('Help'),
-              ),
-            ],
-            child: const Text('Menu'),
+          IntrinsicWidth(
+            child: VanillaNavigationDropdown(
+              menuChildren: [
+                VanillaNavigationButton(
+                  onPressed: () => context.go(AppRoutes.snaps),
+                  child: const Text('Snap Testing'),
+                ),
+                VanillaNavigationButton(
+                  onPressed: () => context.go(AppRoutes.debs),
+                  child: const Text('Deb Testing'),
+                ),
+                VanillaNavigationButton(
+                  onPressed: () => context.go(AppRoutes.charms),
+                  child: const Text('Charm Testing'),
+                ),
+                VanillaNavigationButton(
+                  onPressed: () => context.go(AppRoutes.images),
+                  child: const Text('Image Testing'),
+                ),
+                VanillaNavigationDropdown(
+                  menuChildren: [
+                    VanillaNavigationButton(
+                      child: const Text('Source Code'),
+                      onPressed: () => launchUrlString(
+                        'https://github.com/canonical/test_observer',
+                      ),
+                    ),
+                  ],
+                  child: const Text('Help'),
+                ),
+              ],
+              child: const Text('Menu'),
+            ),
           ),
         ],
       );

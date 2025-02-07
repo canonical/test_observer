@@ -32,7 +32,7 @@ class ErrorPopup extends ConsumerWidget {
         showVanillaModal(
           context: context,
           builder: (context) => PopScope(
-            onPopInvoked: (_) =>
+            onPopInvokedWithResult: (_, __) =>
                 ref.read(globalErrorMessageProvider.notifier).set(''),
             child: VanillaModal(
               title: const Text('Error'),
