@@ -26,13 +26,13 @@ from test_observer.data_access.models import (
 )
 
 from .models import (
-    ArtefactBuildDTO,
+    ArtefactBuildResponse,
 )
 
 router = APIRouter(tags=["artefact-builds"])
 
 
-@router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildDTO])
+@router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildResponse])
 def get_artefact_builds(
     artefact: Artefact = Depends(
         ArtefactRetriever(
