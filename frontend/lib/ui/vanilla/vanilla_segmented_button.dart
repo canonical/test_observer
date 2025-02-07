@@ -19,11 +19,12 @@ import 'package:flutter/material.dart';
 import 'vanilla_colors.dart';
 
 class VanillaSegmentedButton extends StatelessWidget {
-  const VanillaSegmentedButton(
-      {super.key,
-      required this.segments,
-      required this.selected,
-      this.onSelectionChanged});
+  const VanillaSegmentedButton({
+    super.key,
+    required this.segments,
+    required this.selected,
+    this.onSelectionChanged,
+  });
 
   final List<ButtonSegment> segments;
   final Set<dynamic> selected;
