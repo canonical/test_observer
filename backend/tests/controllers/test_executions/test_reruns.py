@@ -103,6 +103,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "completed_environment_reviews_count": (
                     test_execution.artefact_build.artefact.completed_environment_reviews_count
                 ),
+                "family": test_execution.artefact_build.artefact.family,
             },
             "artefact_build": {
                 "id": test_execution.artefact_build.id,
