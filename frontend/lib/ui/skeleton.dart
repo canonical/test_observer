@@ -34,7 +34,13 @@ class Skeleton extends StatelessWidget {
             child: Column(
               children: [
                 const Navbar(),
-                Expanded(child: body),
+                Expanded(
+                  child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints.loose(const Size.fromWidth(1800)),
+                    child: body,
+                  ),
+                ),
               ],
             ),
           ),
