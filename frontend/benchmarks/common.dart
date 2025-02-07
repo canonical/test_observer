@@ -61,6 +61,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
       name: 'artefact',
       version: '1',
       track: 'latest',
+      family: 'snap',
       store: 'ubuntu',
       series: '',
       repo: '',
