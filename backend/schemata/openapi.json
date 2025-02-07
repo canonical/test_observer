@@ -1532,6 +1532,10 @@
             "type": "string",
             "title": "Stage"
           },
+          "family": {
+            "type": "string",
+            "title": "Family"
+          },
           "status": {
             "$ref": "#/components/schemas/ArtefactStatus"
           },
@@ -1585,6 +1589,7 @@
           "sha256",
           "image_url",
           "stage",
+          "family",
           "status",
           "assignee",
           "due_date",

@@ -59,6 +59,7 @@ class ArtefactResponse(BaseModel):
     sha256: str
     image_url: str
     stage: str
+    family: str
     status: ArtefactStatus
     assignee: UserResponse | None
     due_date: date | None
