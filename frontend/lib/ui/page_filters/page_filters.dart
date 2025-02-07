@@ -42,40 +42,43 @@ class PageFiltersView extends ConsumerWidget {
         pageUri.queryParameters[CommonQueryParameters.searchQuery];
     final filters = ref.watch(pageFiltersProvider(pageUri));
 
-    return SizedBox(
-      width: width,
-      child: ListView.separated(
-        shrinkWrap: true,
-        itemBuilder: (_, i) {
-          if (i == 0) {
-            return PageSearchBar(
-              hintText: searchHint,
-              onSubmitted: (_) =>
-                  submitFilters(ref, searchQuery, pageUri, context),
-            );
-          }
-
-          if (i == filters.filters.length + 1) {
-            return SizedBox(
-              width: double.infinity,
-              child: VanillaButton(
-                onPressed: () =>
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.level4),
+      child: SizedBox(
+        width: width,
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemBuilder: (_, i) {
+            if (i == 0) {
+              return PageSearchBar(
+                hintText: searchHint,
+                onSubmitted: (_) =>
                     submitFilters(ref, searchQuery, pageUri, context),
-                child: const Text('Apply'),
-              ),
-            );
-          }
+              );
+            }
 
-          return _SideFilter(
-            filter: filters.filters[i - 1],
-            onOptionChanged: ref
-                .read(pageFiltersProvider(pageUri).notifier)
-                .handleFilterOptionChange,
-          );
-        },
-        separatorBuilder: (_, __) =>
-            const SizedBox(height: spacingBetweenFilters),
-        itemCount: filters.filters.length + 2,
+            if (i == filters.filters.length + 1) {
+              return SizedBox(
+                width: double.infinity,
+                child: VanillaButton(
+                  onPressed: () =>
+                      submitFilters(ref, searchQuery, pageUri, context),
+                  child: const Text('Apply'),
+                ),
+              );
+            }
+
+            return _SideFilter(
+              filter: filters.filters[i - 1],
+              onOptionChanged: ref
+                  .read(pageFiltersProvider(pageUri).notifier)
+                  .handleFilterOptionChange,
+            );
+          },
+          separatorBuilder: (_, __) =>
+              const SizedBox(height: spacingBetweenFilters),
+          itemCount: filters.filters.length + 2,
+        ),
       ),
     );
   }
