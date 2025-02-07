@@ -24,6 +24,7 @@ import '../../../models/environment_issue.dart';
 import '../../../providers/environments_issues.dart';
 import '../../spacing.dart';
 import '../../vanilla/vanilla_button.dart';
+import '../../vanilla/vanilla_checkbox.dart';
 import '../../vanilla/vanilla_modal.dart';
 import '../../vanilla/vanilla_text_input.dart';
 
@@ -185,7 +186,7 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
                 children: [
                   const Text('Needs confirmation'),
                   const SizedBox(width: Spacing.level2),
-                  Checkbox(
+                  VanillaCheckbox(
                     value: !_isConfirmed,
                     onChanged: (value) {
                       if (value != null) {

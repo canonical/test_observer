@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'dashboard/find_shortcut.dart';
 import 'error_popup.dart';
 import 'navbar.dart';
+import 'vanilla/vanilla_colors.dart';
 
 class Skeleton extends StatelessWidget {
   const Skeleton({super.key, required this.body});
@@ -30,6 +31,7 @@ class Skeleton extends StatelessWidget {
     return FindShortcut(
       child: SelectionArea(
         child: Scaffold(
+          backgroundColor: VanillaColors.backgroundNeutralDefault,
           body: ErrorPopup(
             child: Column(
               children: [

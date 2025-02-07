@@ -24,6 +24,7 @@ import '../../providers/search_value.dart';
 import '../../routing.dart';
 import '../expandable.dart';
 import '../vanilla/vanilla_button.dart';
+import '../vanilla/vanilla_checkbox.dart';
 import 'page_search_bar.dart';
 import '../spacing.dart';
 
@@ -125,7 +126,7 @@ class _SideFilter extends StatelessWidget {
         for (final option in filter.detectedOptions)
           Row(
             children: [
-              Checkbox(
+              VanillaCheckbox(
                 value: filter.selectedOptions.contains(option),
                 onChanged: (newValue) {
                   if (newValue != null) {

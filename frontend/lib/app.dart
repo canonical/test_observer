@@ -17,60 +17,12 @@
 import 'package:flutter/material.dart';
 
 import 'routing.dart';
-import 'ui/vanilla/vanilla_colors.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final buttonStyle = ButtonStyle(
-      foregroundColor: const WidgetStatePropertyAll(VanillaColors.textDefault),
-      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-      backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-        (Set<WidgetState> states) {
-          if (states.contains(WidgetState.selected)) {
-            return VanillaColors.backgroundActive;
-          }
-          if (states.contains(WidgetState.hovered)) {
-            return VanillaColors.backgroundHover;
-          }
-          return VanillaColors.backgroundDefault;
-        },
-      ),
-      shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
-      side: const WidgetStatePropertyAll(
-        BorderSide(
-          color: VanillaColors.borderHighContrast,
-          width: 1,
-        ),
-      ),
-    );
-
-    return MaterialApp.router(
-      theme: ThemeData(
-        scaffoldBackgroundColor: VanillaColors.backgroundNeutralDefault,
-        checkboxTheme: CheckboxThemeData(
-          splashRadius: 0,
-          fillColor: WidgetStateProperty.resolveWith<Color?>(
-            (Set<WidgetState> states) {
-              if (states.contains(WidgetState.selected)) {
-                return VanillaColors.backgroundCheckboxChecked;
-              }
-              if (states.contains(WidgetState.hovered)) {
-                return VanillaColors.backgroundHover;
-              }
-              return VanillaColors.backgroundDefault;
-            },
-          ),
-          shape: const RoundedRectangleBorder(),
-          side: const BorderSide(
-            color: VanillaColors.borderHighContrast,
-            width: 1,
-          ),
-        ),
-      ),
-      routerConfig: appRouter,
-    );
+    return MaterialApp.router(routerConfig: appRouter);
   }
 }
