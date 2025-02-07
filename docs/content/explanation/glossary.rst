@@ -35,4 +35,9 @@ The name of a particular grouping of tests. This is useful if you want to logica
 Test Execution
 --------------
 
-An execution of a test plan on an artefact under a particular environment.
+An execution of a test plan on an artefact under a particular environment. It can contain many test results.
+
+Test Result
+-----------
+
+Includes the name and status (PASSED, FAILED, or SKIPPED) of a test. Additionally, it optionally can have logs and other useful bits of information.
