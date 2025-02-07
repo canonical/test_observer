@@ -50,14 +50,6 @@ class App extends StatelessWidget {
     return MaterialApp.router(
       theme: ThemeData(
         scaffoldBackgroundColor: VanillaColors.backgroundNeutralDefault,
-        cardTheme: const CardTheme(
-          margin: EdgeInsets.all(0),
-          elevation: 0,
-          color: VanillaColors.backgroundDefault,
-          shape: RoundedRectangleBorder(
-            side: BorderSide(color: VanillaColors.borderDefault, width: 1.5),
-          ),
-        ),
         segmentedButtonTheme: SegmentedButtonThemeData(
           selectedIcon: const SizedBox.shrink(),
           style: buttonStyle,

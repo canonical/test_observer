@@ -22,6 +22,7 @@ import '../../models/artefact.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import '../user_avatar.dart';
+import '../vanilla/vanilla_card.dart';
 import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
@@ -38,7 +39,7 @@ class ArtefactCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () => navigateToArtefactPage(context, artefact.id),
-      child: Card(
+      child: VanillaCard(
         child: Container(
           width: width,
           padding: const EdgeInsets.all(Spacing.level4),
