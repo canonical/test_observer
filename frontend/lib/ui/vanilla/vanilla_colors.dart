@@ -12,6 +12,7 @@ class VanillaColors {
   static const backgroundCheckboxChecked = Color(0xff0066cc);
   static const backgroundDefault = Color(0xffffffff);
   static const backgroundHover = Color(0xfff2f2f2);
+  static const backgroundInput = Color(0xfff5f5f5);
   static const backgroundInformationDefault = Color.fromRGBO(0, 99, 199, 0.1);
   static const backgroundNegativeDefault = Color.fromRGBO(199, 0, 20, 0.1);
   static const backgroundNeutralDefault = Color(0xfff2f2f2);

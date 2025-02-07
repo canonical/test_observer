@@ -17,6 +17,8 @@
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 
+import 'vanilla_colors.dart';
+
 class VanillaSearchBar extends StatefulWidget {
   const VanillaSearchBar({
     super.key,
@@ -75,6 +77,8 @@ class _VanillaSearchBarState extends State<VanillaSearchBar> {
               .bodyLarge
               ?.apply(color: YaruColors.warmGrey),
         ),
+        backgroundColor:
+            const WidgetStatePropertyAll(VanillaColors.backgroundInput),
         focusNode: widget.focusNode,
         elevation: const WidgetStatePropertyAll(0),
         shape: WidgetStatePropertyAll(LinearBorder.bottom()),
