@@ -12,19 +12,12 @@ class VanillaNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: Spacing.pageHorizontalPadding),
+      color: VanillaColors.darkBackgroundDefault,
       height: navigationBarHeight,
-      width: double.infinity,
-      child: MenuBar(
-        style: const MenuStyle(
-          padding: WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: Spacing.pageHorizontalPadding),
-          ),
-          shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
-          elevation: WidgetStatePropertyAll(0),
-          backgroundColor:
-              WidgetStatePropertyAll(VanillaColors.darkBackgroundDefault),
-        ),
+      child: Row(
         children: children,
       ),
     );

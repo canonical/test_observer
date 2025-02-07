@@ -36,6 +36,7 @@ class Navbar extends StatelessWidget {
         const _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
         const _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
         const _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
+        const Spacer(),
         VanillaNavigationDropdown(
           menuChildren: [
             VanillaNavigationButton(
