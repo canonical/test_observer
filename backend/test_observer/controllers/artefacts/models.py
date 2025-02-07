@@ -34,7 +34,7 @@ from test_observer.data_access.models_enums import (
 )
 
 
-class UserDTO(BaseModel):
+class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -43,7 +43,7 @@ class UserDTO(BaseModel):
     name: str
 
 
-class ArtefactDTO(BaseModel):
+class ArtefactResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -60,14 +60,14 @@ class ArtefactDTO(BaseModel):
     image_url: str
     stage: str
     status: ArtefactStatus
-    assignee: UserDTO | None
+    assignee: UserResponse | None
     due_date: date | None
     bug_link: str
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
 
 
-class EnvironmentDTO(BaseModel):
+class EnvironmentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -75,7 +75,7 @@ class EnvironmentDTO(BaseModel):
     architecture: str
 
 
-class TestExecutionDTO(BaseModel):
+class TestExecutionResponse(BaseModel):
     __test__ = False
 
     model_config = ConfigDict(from_attributes=True)
@@ -83,7 +83,7 @@ class TestExecutionDTO(BaseModel):
     id: int
     ci_link: str | None
     c3_link: str | None
-    environment: EnvironmentDTO
+    environment: EnvironmentResponse
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
     test_plan: str
@@ -93,25 +93,25 @@ class TestExecutionDTO(BaseModel):
         return bool(self.rerun_request)
 
 
-class ArtefactBuildDTO(BaseModel):
+class ArtefactBuildResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     architecture: str
     revision: int | None
-    test_executions: list[TestExecutionDTO]
+    test_executions: list[TestExecutionResponse]
 
 
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus
 
 
-class ArtefactVersionDTO(BaseModel):
+class ArtefactVersionResponse(BaseModel):
     version: str
     artefact_id: int = Field(validation_alias=AliasPath("id"))
 
 
-class ArtefactBuildMinimalDTO(BaseModel):
+class ArtefactBuildMinimalResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -119,12 +119,12 @@ class ArtefactBuildMinimalDTO(BaseModel):
     revision: int | None
 
 
-class ArtefactBuildEnvironmentReviewDTO(BaseModel):
+class ArtefactBuildEnvironmentReviewResponse(BaseModel):
     id: int
     review_decision: list[ArtefactBuildEnvironmentReviewDecision]
     review_comment: str
-    environment: EnvironmentDTO
-    artefact_build: ArtefactBuildMinimalDTO
+    environment: EnvironmentResponse
+    artefact_build: ArtefactBuildMinimalResponse
 
 
 class EnvironmentReviewPatch(BaseModel):

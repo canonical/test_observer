@@ -34,9 +34,9 @@ from .logic import (
     is_there_a_rejected_environment,
 )
 from .models import (
-    ArtefactDTO,
+    ArtefactResponse,
     ArtefactPatch,
-    ArtefactVersionDTO,
+    ArtefactVersionResponse,
 )
 
 router = APIRouter(tags=["artefacts"])
@@ -44,7 +44,7 @@ router.include_router(environment_reviews.router)
 router.include_router(builds.router)
 
 
-@router.get("", response_model=list[ArtefactDTO])
+@router.get("", response_model=list[ArtefactResponse])
 def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
     artefacts = []
@@ -69,7 +69,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
     return artefacts
 
 
-@router.get("/{artefact_id}", response_model=ArtefactDTO)
+@router.get("/{artefact_id}", response_model=ArtefactResponse)
 def get_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
@@ -82,7 +82,7 @@ def get_artefact(
     return artefact
 
 
-@router.patch("/{artefact_id}", response_model=ArtefactDTO)
+@router.patch("/{artefact_id}", response_model=ArtefactResponse)
 def patch_artefact(
     request: ArtefactPatch,
     db: Session = Depends(get_db),
@@ -121,7 +121,7 @@ def _validate_artefact_status(
         )
 
 
-@router.get("/{artefact_id}/versions", response_model=list[ArtefactVersionDTO])
+@router.get("/{artefact_id}/versions", response_model=list[ArtefactVersionResponse])
 def get_artefact_versions(
     artefact: Artefact = Depends(ArtefactRetriever()), db: Session = Depends(get_db)
 ):

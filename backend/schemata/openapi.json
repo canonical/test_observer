@@ -261,7 +261,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestExecutionDTO"
+                  "$ref": "#/components/schemas/TestExecutionResponse"
                 }
               }
             }
@@ -458,7 +458,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TestEventDTO"
+                    "$ref": "#/components/schemas/TestEventResponse"
                   },
                   "title": "Response Get Status Update V1 Test Executions  Id  Status Update Get"
                 }
@@ -505,7 +505,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDTO"
+                    "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewResponse"
                   },
                   "title": "Response Get Environment Reviews V1 Artefacts  Artefact Id  Environment Reviews Get"
                 }
@@ -569,7 +569,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewDTO"
+                  "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewResponse"
                 }
               }
             }
@@ -615,7 +615,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ArtefactBuildDTO"
+                    "$ref": "#/components/schemas/ArtefactBuildResponse"
                   },
                   "title": "Response Get Artefact Builds V1 Artefacts  Artefact Id  Builds Get"
                 }
@@ -669,7 +669,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ArtefactDTO"
+                    "$ref": "#/components/schemas/ArtefactResponse"
                   },
                   "title": "Response Get Artefacts V1 Artefacts Get"
                 }
@@ -713,7 +713,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArtefactDTO"
+                  "$ref": "#/components/schemas/ArtefactResponse"
                 }
               }
             }
@@ -763,7 +763,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArtefactDTO"
+                  "$ref": "#/components/schemas/ArtefactResponse"
                 }
               }
             }
@@ -807,7 +807,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ArtefactVersionDTO"
+                    "$ref": "#/components/schemas/ArtefactVersionResponse"
                   },
                   "title": "Response Get Artefact Versions V1 Artefacts  Artefact Id  Versions Get"
                 }
@@ -1352,7 +1352,7 @@
   },
   "components": {
     "schemas": {
-      "ArtefactBuildDTO": {
+      "ArtefactBuildResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -1375,7 +1375,7 @@
           },
           "test_executions": {
             "items": {
-              "$ref": "#/components/schemas/TestExecutionDTO"
+              "$ref": "#/components/schemas/TestExecutionResponse"
             },
             "type": "array",
             "title": "Test Executions"
@@ -1388,9 +1388,9 @@
           "revision",
           "test_executions"
         ],
-        "title": "ArtefactBuildDTO"
+        "title": "ArtefactBuildResponse"
       },
-      "ArtefactBuildEnvironmentReviewDTO": {
+      "ArtefactBuildEnvironmentReviewResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -1408,10 +1408,10 @@
             "title": "Review Comment"
           },
           "environment": {
-            "$ref": "#/components/schemas/EnvironmentDTO"
+            "$ref": "#/components/schemas/EnvironmentResponse"
           },
           "artefact_build": {
-            "$ref": "#/components/schemas/ArtefactBuildMinimalDTO"
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
           }
         },
         "type": "object",
@@ -1422,7 +1422,7 @@
           "environment",
           "artefact_build"
         ],
-        "title": "ArtefactBuildEnvironmentReviewDTO"
+        "title": "ArtefactBuildEnvironmentReviewResponse"
       },
       "ArtefactBuildEnvironmentReviewDecision": {
         "type": "string",
@@ -1436,7 +1436,7 @@
         ],
         "title": "ArtefactBuildEnvironmentReviewDecision"
       },
-      "ArtefactBuildMinimalDTO": {
+      "ArtefactBuildMinimalResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -1464,9 +1464,9 @@
           "architecture",
           "revision"
         ],
-        "title": "ArtefactBuildMinimalDTO"
+        "title": "ArtefactBuildMinimalResponse"
       },
-      "ArtefactDTO": {
+      "ArtefactResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -1526,7 +1526,7 @@
           "assignee": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/UserDTO"
+                "$ref": "#/components/schemas/UserResponse"
               },
               {
                 "type": "null"
@@ -1580,7 +1580,7 @@
           "all_environment_reviews_count",
           "completed_environment_reviews_count"
         ],
-        "title": "ArtefactDTO"
+        "title": "ArtefactResponse"
       },
       "ArtefactPatch": {
         "properties": {
@@ -1603,7 +1603,7 @@
         ],
         "title": "ArtefactStatus"
       },
-      "ArtefactVersionDTO": {
+      "ArtefactVersionResponse": {
         "properties": {
           "version": {
             "type": "string",
@@ -1619,7 +1619,7 @@
           "version",
           "artefact_id"
         ],
-        "title": "ArtefactVersionDTO"
+        "title": "ArtefactVersionResponse"
       },
       "C3TestResult": {
         "properties": {
@@ -1733,7 +1733,7 @@
         ],
         "title": "EndTestExecutionRequest"
       },
-      "EnvironmentDTO": {
+      "EnvironmentResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -1754,7 +1754,7 @@
           "name",
           "architecture"
         ],
-        "title": "EnvironmentDTO"
+        "title": "EnvironmentResponse"
       },
       "EnvironmentReportedIssueRequest": {
         "properties": {
@@ -1923,13 +1923,13 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "test_execution": {
-            "$ref": "#/components/schemas/TestExecutionDTO"
+            "$ref": "#/components/schemas/TestExecutionResponse"
           },
           "artefact": {
-            "$ref": "#/components/schemas/ArtefactDTO"
+            "$ref": "#/components/schemas/ArtefactResponse"
           },
           "artefact_build": {
-            "$ref": "#/components/schemas/ArtefactBuildMinimalDTO"
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
           }
         },
         "type": "object",
@@ -2337,7 +2337,7 @@
         "properties": {
           "events": {
             "items": {
-              "$ref": "#/components/schemas/TestEventDTO"
+              "$ref": "#/components/schemas/TestEventResponse"
             },
             "type": "array",
             "title": "Events"
@@ -2349,7 +2349,7 @@
         ],
         "title": "StatusUpdateRequest"
       },
-      "TestEventDTO": {
+      "TestEventResponse": {
         "properties": {
           "event_name": {
             "type": "string",
@@ -2371,9 +2371,9 @@
           "timestamp",
           "detail"
         ],
-        "title": "TestEventDTO"
+        "title": "TestEventResponse"
       },
-      "TestExecutionDTO": {
+      "TestExecutionResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -2402,7 +2402,7 @@
             "title": "C3 Link"
           },
           "environment": {
-            "$ref": "#/components/schemas/EnvironmentDTO"
+            "$ref": "#/components/schemas/EnvironmentResponse"
           },
           "status": {
             "$ref": "#/components/schemas/TestExecutionStatus"
@@ -2427,7 +2427,7 @@
           "test_plan",
           "is_rerun_requested"
         ],
-        "title": "TestExecutionDTO"
+        "title": "TestExecutionResponse"
       },
       "TestExecutionStatus": {
         "type": "string",
@@ -2669,7 +2669,7 @@
         ],
         "title": "TestResultStatus"
       },
-      "UserDTO": {
+      "UserResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -2695,7 +2695,7 @@
           "launchpad_email",
           "name"
         ],
-        "title": "UserDTO"
+        "title": "UserResponse"
       },
       "ValidationError": {
         "properties": {

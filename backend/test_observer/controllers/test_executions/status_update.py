@@ -26,7 +26,7 @@ from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.setup import get_db
 
 from .logic import delete_previous_test_events
-from .models import StatusUpdateRequest, TestEventDTO
+from .models import StatusUpdateRequest, TestEventResponse
 from .testflinger_event_parser import TestflingerEventParser
 
 router = APIRouter()
@@ -67,7 +67,7 @@ def put_status_update(
     db.commit()
 
 
-@router.get("/{id}/status_update", response_model=list[TestEventDTO])
+@router.get("/{id}/status_update", response_model=list[TestEventResponse])
 def get_status_update(id: int, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,

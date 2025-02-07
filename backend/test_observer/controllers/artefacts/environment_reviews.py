@@ -28,7 +28,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.setup import get_db
 
 from .models import (
-    ArtefactBuildEnvironmentReviewDTO,
+    ArtefactBuildEnvironmentReviewResponse,
     EnvironmentReviewPatch,
 )
 
@@ -37,7 +37,7 @@ router = APIRouter(tags=["environment-reviews"])
 
 @router.get(
     "/{artefact_id}/environment-reviews",
-    response_model=list[ArtefactBuildEnvironmentReviewDTO],
+    response_model=list[ArtefactBuildEnvironmentReviewResponse],
 )
 def get_environment_reviews(
     artefact: Artefact = Depends(
@@ -57,7 +57,7 @@ def get_environment_reviews(
 
 @router.patch(
     "/{artefact_id}/environment-reviews/{review_id}",
-    response_model=ArtefactBuildEnvironmentReviewDTO,
+    response_model=ArtefactBuildEnvironmentReviewResponse,
 )
 def update_environment_review(
     artefact_id: int,
