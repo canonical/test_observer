@@ -9,5 +9,5 @@ Certification currently deploys an instance of TO that they used for reviewing S
    :hidden:
    :maxdepth: 2
 
-   content/how-to/index
-   content/explanation/index
+   how-to/index
+   explanation/index
