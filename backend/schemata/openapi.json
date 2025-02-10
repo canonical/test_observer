@@ -2422,6 +2422,11 @@
             "type": "string",
             "title": "Test Plan"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
           "is_rerun_requested": {
             "type": "boolean",
             "title": "Is Rerun Requested",
@@ -2436,6 +2441,7 @@
           "environment",
           "status",
           "test_plan",
+          "created_at",
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponse"
