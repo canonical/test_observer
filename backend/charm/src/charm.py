@@ -197,9 +197,6 @@ class TestObserverBackendCharm(CharmBase):
             "CELERY_BROKER_URL": self._celery_broker_url,
             "ADMIN_CLIENT_ID": self.config["admin_client_id"],
             "ADMIN_CLIENT_SECRET": self.config["admin_client_secret"],
-            "TOKEN_SIGNING_SECRET": self.config["token_signing_secret"],
-            "TOKEN_SIGNING_ALGORITHM": self.config["token_signing_algorithm"],
-            "TOKEN_EXPIRY": self.config["token_expiry"],
         }
         env.update(self._postgres_relation_data())
         return env

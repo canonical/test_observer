@@ -103,7 +103,7 @@ def patch_artefact(
     db.commit()
     return artefact
 
-@router.patch("/{artefact_id}/archive", response_model=ArtefactResponse, depends=[Depends(has_admin_credentials)])
+@router.post("/{artefact_id}/archive", response_model=ArtefactResponse, depends=[Depends(has_admin_credentials)])
 def archive_artefact(
     db: Session = Depends(get_db),
     artefact: Artefact = Depends(

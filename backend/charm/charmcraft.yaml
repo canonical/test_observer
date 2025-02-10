@@ -62,20 +62,6 @@ config:
       type: string
       description: Admin API client secret
 
-    token_signing_secret:
-      type: string
-      description: Secret used to sign JWT tokens
-
-    token_signing_algorithm:
-      type: string
-      description: Algorithm used to sign JWT tokens
-      default: HS256
-
-    token_expiry:
-      type: string
-      description: Expiry period for JWT tokens in minutes
-      default: "60"
-
 containers:
   api:
     resource: api-image
