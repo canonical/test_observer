@@ -25,7 +25,7 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 
 While technically not required to run the code, it helps to have dependencies installed on host system to get code completions and linting. To do that just run `$ poetry install`. Note that poetry will create a virtual environment for you, but if you want poetry to create that virtual environment inside this project's directory just run `$ poetry config virtualenvs.in-project true` before installing dependencies.
 
-Linting is done using ruff, formatting using black and type checking using mypy. We have CI in place to make those checks, but it's probably a good idea to setup your editor to use these. Note that their settings are in `pyproject.toml`.
+Linting and formatting checks are done using ruff, and type checking using mypy. We have CI in place to make those checks, but it's probably a good idea to setup your editor to use these. Note that their settings are in `pyproject.toml`.
 
 The project uses [pre-commit](https://pre-commit.com) to auto generate OpenAPI schema file. To set it up for your working copy of the repository:
 
