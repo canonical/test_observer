@@ -89,6 +89,7 @@ class TestExecutionResponse(BaseModel):
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
     test_plan: str
+    created_at: datetime
 
     @computed_field
     def is_rerun_requested(self) -> bool:
