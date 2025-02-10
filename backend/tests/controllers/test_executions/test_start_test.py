@@ -239,7 +239,7 @@ class TestFamilyIndependentTests:
         assert artefact.release == request.get("release", "")
         assert artefact.sha256 == request.get("sha256", "")
         assert artefact.owner == request.get("owner", "")
-        assert artefact.image_url == request.get("image_url", 'https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso')
+        assert artefact.image_url == request.get("image_url", '')
         assert artefact.store == request.get("store", "")
         assert artefact.track == request.get("track", "")
         assert artefact.series == request.get("series", "")
