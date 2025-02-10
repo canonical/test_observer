@@ -49,6 +49,12 @@ class Navbar extends StatelessWidget {
                     'https://github.com/canonical/test_observer',
                   ),
                 ),
+                VanillaNavigationButton(
+                  child: const Text('Docs'),
+                  onPressed: () => launchUrlString(
+                    'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                  ),
+                ),
               ],
               child: const Text('Help'),
             ),
