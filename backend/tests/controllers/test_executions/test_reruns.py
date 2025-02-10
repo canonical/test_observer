@@ -108,6 +108,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "created_at": (
                     test_execution.artefact_build.artefact.created_at.isoformat()
                 ),
+                "family": test_execution.artefact_build.artefact.family,
             },
             "artefact_build": {
                 "id": test_execution.artefact_build.id,
