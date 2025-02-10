@@ -33,6 +33,7 @@ const dummyArtefact = Artefact(
   id: 1,
   name: 'core',
   version: '16-2.61',
+  family: 'snap',
   track: 'latest',
   store: 'ubuntu',
   series: '',

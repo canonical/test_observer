@@ -30,9 +30,9 @@ from pydantic import (
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.controllers.artefacts.models import (
-    ArtefactBuildMinimalDTO,
-    ArtefactDTO,
-    TestExecutionDTO,
+    ArtefactBuildMinimalResponse,
+    ArtefactResponse,
+    TestExecutionResponse,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -175,13 +175,13 @@ class PendingRerun(BaseModel):
             "test_execution", "artefact_build", "artefact", "family"
         )
     )
-    test_execution: TestExecutionDTO = Field(
+    test_execution: TestExecutionResponse = Field(
         validation_alias=AliasPath("test_execution")
     )
-    artefact: ArtefactDTO = Field(
+    artefact: ArtefactResponse = Field(
         validation_alias=AliasPath("test_execution", "artefact_build", "artefact")
     )
-    artefact_build: ArtefactBuildMinimalDTO = Field(
+    artefact_build: ArtefactBuildMinimalResponse = Field(
         validation_alias=AliasPath("test_execution", "artefact_build")
     )
 
@@ -190,11 +190,11 @@ class DeleteReruns(BaseModel):
     test_execution_ids: set[int]
 
 
-class TestEventDTO(BaseModel):
+class TestEventResponse(BaseModel):
     event_name: str
     timestamp: datetime
     detail: str
 
 
 class StatusUpdateRequest(BaseModel):
-    events: list[TestEventDTO]
+    events: list[TestEventResponse]

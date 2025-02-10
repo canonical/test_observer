@@ -18,7 +18,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.artefacts.models import TestExecutionDTO
+from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
@@ -28,7 +28,7 @@ from .models import TestExecutionsPatchRequest
 router = APIRouter()
 
 
-@router.patch("/{id}", response_model=TestExecutionDTO)
+@router.patch("/{id}", response_model=TestExecutionResponse)
 def patch_test_execution(
     id: int,
     request: TestExecutionsPatchRequest,
