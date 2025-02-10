@@ -1561,6 +1561,11 @@
             ],
             "title": "Due Date"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
           "bug_link": {
             "type": "string",
             "title": "Bug Link"
@@ -1593,6 +1598,7 @@
           "status",
           "assignee",
           "due_date",
+          "created_at",
           "bug_link",
           "all_environment_reviews_count",
           "completed_environment_reviews_count"
