@@ -39,6 +39,8 @@ from .models import (
     ArtefactVersionResponse,
 )
 
+from test_observer.auth import has_admin_credentials
+
 router = APIRouter(tags=["artefacts"])
 router.include_router(environment_reviews.router)
 router.include_router(builds.router)
@@ -94,12 +96,27 @@ def patch_artefact(
         )
     ),
 ):
-    _validate_artefact_status(artefact.latest_builds, request.status)
+    status = request.status.to_artefact_status()
+    _validate_artefact_status(artefact.latest_builds, status)
 
-    artefact.status = request.status
+    artefact.status = status
     db.commit()
     return artefact
 
+@router.patch("/{artefact_id}/archive", response_model=ArtefactResponse, depends=[Depends(has_admin_credentials)])
+def archive_artefact(
+    db: Session = Depends(get_db),
+    artefact: Artefact = Depends(
+        ArtefactRetriever(
+            selectinload(Artefact.builds).selectinload(
+                ArtefactBuild.environment_reviews
+            )
+        )
+    ),
+):
+    artefact.status = ArtefactStatus.ARCHIVED
+    db.commit()
+    return artefact
 
 def _validate_artefact_status(
     builds: list[ArtefactBuild], status: ArtefactStatus

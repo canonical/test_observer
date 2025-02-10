@@ -30,6 +30,7 @@ from pydantic import (
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
+    ArtefactStatusPatchOptions,
     TestExecutionStatus,
 )
 
@@ -106,7 +107,7 @@ class ArtefactBuildResponse(BaseModel):
 
 
 class ArtefactPatch(BaseModel):
-    status: ArtefactStatus
+    status: ArtefactStatusPatchOptions
 
 
 class ArtefactVersionResponse(BaseModel):

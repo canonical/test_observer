@@ -72,11 +72,19 @@ class ArtefactBuildEnvironmentReviewDecision(str, Enum):
     APPROVED_ALL_TESTS_PASS = "APPROVED_ALL_TESTS_PASS"
 
 
-class ArtefactStatus(str, Enum):
+class ArtefactStatusPatchOptions(str, Enum):
     APPROVED = "APPROVED"
-    MARKED_AS_FAILED = "MARKED_AS_FAILED"
+    MARKED_AS_FAILED = "MARKED_AS_FAILED" # TODO: Rename as FAILED in v2 API
     UNDECIDED = "UNDECIDED"
 
+    def to_artefact_status(self):
+        return ArtefactStatus(self.value)
+
+class ArtefactStatus(str, Enum):
+    APPROVED = "APPROVED"
+    MARKED_AS_FAILED = "MARKED_AS_FAILED" # TODO: Rename as FAILED in v2 API
+    UNDECIDED = "UNDECIDED"
+    ARCHIVED = "ARCHIVED"
 
 class TestResultStatus(str, Enum):
     __test__ = False
