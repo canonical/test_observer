@@ -152,7 +152,8 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
     assert response.status_code == 200
     assert artefact.status == ArtefactStatus.APPROVED
 
-def test_artefact_archival_without_credentials(test_client: TestClient, generator: DataGenerator):
+def test_artefact_archival_without_credentials(
+        test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
 
     response = test_client.post(
