@@ -24,7 +24,6 @@ from test_observer.data_access.setup import get_db
 from . import environments, reports, test_cases, test_executions
 from .application import version
 from .artefacts import artefacts
-from ..auth import auth
 
 router = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
