@@ -19,6 +19,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
+from os import setenv
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Artefact, TestExecution
@@ -151,6 +152,43 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
     assert response.status_code == 200
     assert artefact.status == ArtefactStatus.APPROVED
 
+def test_artefact_archival_without_credentials(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.candidate)
+
+    response = test_client.post(
+        f"/v1/artefacts/{artefact.id}/archive",
+    )
+
+    assert response.status_code == 403
+
+def test_artefact_archival_with_invalid_admin_credentials(
+    test_client: TestClient, generator: DataGenerator
+):
+    setenv("ADMIN_CLIENT_ID", "herp")
+    setenv("ADMIN_CLIENT_SECRET", "derp")
+
+    artefact = generator.gen_artefact(StageName.candidate)
+
+    response = test_client.post(
+        f"/v1/artefacts/{artefact.id}/archive",
+        auth=("foo", "bar"),
+    )
+
+    assert response.status_code == 401
+
+def test_artefact_archival(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.candidate)
+
+    setenv("ADMIN_CLIENT_ID", "x")
+    setenv("ADMIN_CLIENT_SECRET", "y")
+
+    response = test_client.post(
+        f"/v1/artefacts/{artefact.id}/archive",
+        auth=("x", "y"),
+    )
+
+    assert response.status_code == 200
+    assert artefact.status == ArtefactStatus.ARCHIVED
 
 def test_artefact_signoff_disallow_approve(
     test_client: TestClient, generator: DataGenerator
