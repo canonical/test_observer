@@ -19,7 +19,6 @@ from fastapi.security import HTTPBasicCredentials
 from typing import Annotated
 
 from os import getenv
-import logging
 import secrets
 
 router = APIRouter(tags=["auth"])
