@@ -10,30 +10,42 @@ It is recommended to install the pre-requisites on a VM rather than your host ma
 sudo snap install multipass
 ```
 
-Then launch the "charm-dev" VM blueprint that comes pre-setup with required tools (this will take a while):
+Then launch a new VM instance using (this will take a while):
 
 ```bash
-multipass launch --mount $HOME charm-dev
+multipass launch noble --disk 50G --memory 4G --cpus 2 --mount <root-project-directory>  --name juju-dev
 ```
 
-Note the home mount to access the project files in the VM.
+Feel free to modify the storage, memory, cpu limits and VM name. Note the mount to access the project files in the VM.
 
-Once the VM initialization has been completed, you will need to enable microk8s ingress there:
+Once the initialization has been completed, you need to setup the environment.
+
+The easiest way to do that is to install [concierge](https://snapcraft.io/concierge):
 
 ```bash
-multipass exec charm-dev -- sudo microk8s enable ingress
+multipass exec juju-dev -- sudo snap install concierge --classic
 ```
 
-Then install terraform:
+Then use it to install requirements and setup the requirements:
 
 ```bash
-multipass exec charm-dev -- sudo snap install terraform --classic
+multipass exec juju-dev -- sudo concierge prepare -p dev --extra-snaps terraform
 ```
 
-And initialize it:
+Optionally, create a snapshot of the VM to revert back to it easily in case it breaks:
 
 ```bash
-multipass exec charm-dev -- terraform init
+multipass snapshot juju-dev
+```
+
+## Initialize
+
+Now that everything has been setup, you can initialize the project's terraform.
+
+In the terraform directory on your host machine, run:
+
+```bash
+multipass exec juju-dev -- terraform init
 ```
 
 ## Deploy
@@ -41,19 +53,19 @@ multipass exec charm-dev -- terraform init
 You can deploy everything using terraform by running:
 
 ```bash
-multipass exec charm-dev -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform apply -auto-approve
+multipass exec juju-dev -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform apply -auto-approve
 ```
 
 Then wait for the deployment to settle and all the statuses to become active. You can watch the statuses via:
 
 ```bash
-multipass exec charm-dev -- JUJU_MODEL=test-observer-development juju status --storage --relations --watch 5s
+multipass exec juju-dev -- JUJU_MODEL=test-observer-development juju status --storage --relations --watch 5s
 ```
 
-Look at the IPv4 addresses of your charm-dev vm through:
+Look at the IPv4 addresses of your juju-dev vm through:
 
 ```bash
-multipass info charm-dev
+multipass info juju-dev
 ```
 
 One of these connect to the ingress enabled inside the VM. To figure out which one try the following command on each IP address until you get response:
@@ -75,25 +87,25 @@ After that you should be able to get to TO frontend on your host machine's brows
 To take everything down you can start with terraform:
 
 ```bash
-multipass exec charm-dev -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform destroy --auto-approve
+multipass exec juju-dev -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform destroy --auto-approve
 ```
 
 The above step can take a while and may even get stuck with some applications in error state. You can watch it through:
 
 ```bash
-multipass exec charm-dev -- JUJU_MODEL=test-observer-development juju status --storage --relations --watch 5s
+multipass exec juju-dev -- JUJU_MODEL=test-observer-development juju status --storage --relations --watch 5s
 ```
 
 To forcefully remove applications stuck in error state:
 
 ```bash
-multipass exec charm-dev -- JUJU_MODEL=test-observer-development juju remove-application <application-name> --destroy-storage --force
+multipass exec juju-dev -- JUJU_MODEL=test-observer-development juju remove-application <application-name> --destroy-storage --force
 ```
 
 Once everything is down and the juju model has been deleted you can stop the multipass VM:
 
 ```bash
-multipass stop charm-dev
+multipass stop juju-dev
 ```
 
 ## Developing the charm
