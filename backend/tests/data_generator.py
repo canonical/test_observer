@@ -119,7 +119,9 @@ class DataGenerator:
         sha256: str = "e71fb5681e63330445eec6fc3fe043f36"
         "5289c2e595e3ceeac08fbeccfb9a957",
         owner: str = "foundations",
-        image_url: str = "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso",
+        image_url: str = (
+            "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
+        ),
         created_at: datetime | None = None,
         status: ArtefactStatus = ArtefactStatus.UNDECIDED,
         bug_link: str = "",

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import (
@@ -63,6 +63,7 @@ class ArtefactResponse(BaseModel):
     status: ArtefactStatus
     assignee: UserResponse | None
     due_date: date | None
+    created_at: datetime
     bug_link: str
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
@@ -88,6 +89,7 @@ class TestExecutionResponse(BaseModel):
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
     test_plan: str
+    created_at: datetime
 
     @computed_field
     def is_rerun_requested(self) -> bool:
