@@ -62,6 +62,7 @@ class PageFiltersView extends ConsumerWidget {
               return SizedBox(
                 width: double.infinity,
                 child: VanillaButton(
+                  type: VanillaButtonType.positive,
                   onPressed: () =>
                       submitFilters(ref, searchQuery, pageUri, context),
                   child: const Text('Apply'),
