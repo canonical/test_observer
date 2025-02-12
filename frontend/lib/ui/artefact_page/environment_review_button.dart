@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-import 'package:yaru/yaru.dart';
 import 'package:popover/popover.dart';
 
 import '../../models/environment_review.dart';
