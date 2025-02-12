@@ -1561,6 +1561,11 @@
             ],
             "title": "Due Date"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
           "bug_link": {
             "type": "string",
             "title": "Bug Link"
@@ -1593,6 +1598,7 @@
           "status",
           "assignee",
           "due_date",
+          "created_at",
           "bug_link",
           "all_environment_reviews_count",
           "completed_environment_reviews_count"
@@ -1699,12 +1705,18 @@
         "properties": {
           "ci_link": {
             "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
             "title": "Ci Link"
           },
           "c3_link": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
               },
               {
                 "type": "null"
@@ -2008,7 +2020,10 @@
           "ci_link": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
               },
               {
                 "type": "null"
@@ -2022,18 +2037,11 @@
             "title": "Test Plan"
           },
           "initial_status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TestExecutionStatus"
-              }
-            ],
+            "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
           "family": {
             "type": "string",
-            "enum": [
-              "charm"
-            ],
             "const": "charm",
             "title": "Family"
           },
@@ -2091,7 +2099,10 @@
           "ci_link": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
               },
               {
                 "type": "null"
@@ -2105,18 +2116,11 @@
             "title": "Test Plan"
           },
           "initial_status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TestExecutionStatus"
-              }
-            ],
+            "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
           "family": {
             "type": "string",
-            "enum": [
-              "deb"
-            ],
             "const": "deb",
             "title": "Family"
           },
@@ -2172,7 +2176,10 @@
           "ci_link": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
               },
               {
                 "type": "null"
@@ -2186,18 +2193,11 @@
             "title": "Test Plan"
           },
           "initial_status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TestExecutionStatus"
-              }
-            ],
+            "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
           "family": {
             "type": "string",
-            "enum": [
-              "image"
-            ],
             "const": "image",
             "title": "Family",
             "default": "image"
@@ -2271,7 +2271,10 @@
           "ci_link": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
               },
               {
                 "type": "null"
@@ -2285,18 +2288,11 @@
             "title": "Test Plan"
           },
           "initial_status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TestExecutionStatus"
-              }
-            ],
+            "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
           "family": {
             "type": "string",
-            "enum": [
-              "snap"
-            ],
             "const": "snap",
             "title": "Family"
           },
@@ -2416,6 +2412,11 @@
             "type": "string",
             "title": "Test Plan"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
           "is_rerun_requested": {
             "type": "boolean",
             "title": "Is Rerun Requested",
@@ -2430,6 +2431,7 @@
           "environment",
           "status",
           "test_plan",
+          "created_at",
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponse"
@@ -2483,9 +2485,6 @@
               },
               {
                 "type": "string",
-                "enum": [
-                  "COMPLETED"
-                ],
                 "const": "COMPLETED"
               },
               {
