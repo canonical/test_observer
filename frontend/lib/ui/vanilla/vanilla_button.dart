@@ -39,15 +39,8 @@ class VanillaButton extends StatelessWidget {
       onPressed: onPressed,
       style: ButtonStyle(
         foregroundColor: WidgetStatePropertyAll(type.textColor),
-        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-        backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-          (Set<WidgetState> states) {
-            if (states.contains(WidgetState.hovered)) {
-              return type.backgroundHoverColor;
-            }
-            return type.backgroundColor;
-          },
-        ),
+        overlayColor: WidgetStatePropertyAll(type.backgroundHoverColor),
+        backgroundColor: WidgetStatePropertyAll(type.backgroundColor),
         shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
         side: WidgetStatePropertyAll(
           BorderSide(color: type.borderColor, width: 1),
@@ -61,7 +54,8 @@ class VanillaButton extends StatelessWidget {
 enum VanillaButtonType {
   normal,
   positive,
-  negative;
+  negative,
+  base;
 
   Color get backgroundColor {
     switch (this) {
@@ -71,6 +65,8 @@ enum VanillaButtonType {
         return VanillaColors.basePositive;
       case negative:
         return VanillaColors.baseNegative;
+      case base:
+        return Colors.transparent;
     }
   }
 
@@ -82,6 +78,8 @@ enum VanillaButtonType {
         return VanillaColors.textButtonPositive;
       case negative:
         return VanillaColors.textButtonNegative;
+      case base:
+        return VanillaColors.textDefault;
     }
   }
 
@@ -93,6 +91,8 @@ enum VanillaButtonType {
         return VanillaColors.basePositive;
       case negative:
         return VanillaColors.baseNegative;
+      case base:
+        return Colors.transparent;
     }
   }
 
@@ -104,6 +104,8 @@ enum VanillaButtonType {
         return VanillaColors.buttonPositiveHover;
       case negative:
         return VanillaColors.buttonNegativeHover;
+      case base:
+        return VanillaColors.backgroundHover;
     }
   }
 }
