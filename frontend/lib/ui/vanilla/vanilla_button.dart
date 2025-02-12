@@ -60,7 +60,7 @@ enum VanillaButtonType {
   Color get backgroundColor {
     switch (this) {
       case normal:
-        return VanillaColors.backgroundDefault;
+        return Colors.transparent;
       case positive:
         return VanillaColors.basePositive;
       case negative:
