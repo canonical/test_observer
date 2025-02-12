@@ -40,6 +40,7 @@ class TestIssuesExpandable extends ConsumerWidget {
           Text('Reported Test Issues (${issues.length})'),
           const Spacer(),
           VanillaButton(
+            type: VanillaButtonType.base,
             onPressed: () => showTestIssueCreateDialog(
               context: context,
               testResult: testResult,

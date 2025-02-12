@@ -47,6 +47,7 @@ class RerunButton extends ConsumerWidget {
     return Tooltip(
       message: testExecution.isRerunRequested ? 'Already requested' : '',
       child: VanillaButton(
+        type: VanillaButtonType.base,
         onPressed: handlePress,
         child: const Text('rerun'),
       ),

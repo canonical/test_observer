@@ -52,6 +52,7 @@ class EnvironmentIssuesExpandable extends ConsumerWidget {
           Text('Reported Environment Issues (${issues.length})'),
           const Spacer(),
           VanillaButton(
+            type: VanillaButtonType.base,
             onPressed: () => showEnvironmentIssueCreateDialog(
               context: context,
               environment: environment,
