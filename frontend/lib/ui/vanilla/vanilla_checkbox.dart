@@ -36,7 +36,7 @@ class VanillaCheckbox extends StatelessWidget {
           if (states.contains(WidgetState.hovered)) {
             return VanillaColors.backgroundHover;
           }
-          return VanillaColors.backgroundDefault;
+          return Colors.transparent;
         },
       ),
       shape: const RoundedRectangleBorder(),
