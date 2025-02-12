@@ -71,6 +71,7 @@ class ArtefactCard extends ConsumerWidget {
                       _ => VanillaChipType.normal,
                     },
                   ),
+                  const SizedBox(width: Spacing.level2),
                   if (dueDate != null)
                     VanillaChip(
                       text: 'Due $dueDate',
