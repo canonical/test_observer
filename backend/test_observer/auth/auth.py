@@ -24,21 +24,27 @@ import secrets
 router = APIRouter(tags=["auth"])
 
 security = HTTPBasic()
+def get_admin_credentials():
+    return {
+        "client_id": getenv("ADMIN_CLIENT_ID"),
+        "client_secret": getenv("ADMIN_CLIENT_SECRET"),
+    }
 
 def has_admin_credentials(
-        credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
-    correct_username = (
-        secrets.compare_digest(credentials.username, getenv("ADMIN_CLIENT_ID"))
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+    admin_credentials: dict = Depends(get_admin_credentials)
+):
+    correct_username = secrets.compare_digest(
+        credentials.username, admin_credentials["client_id"]
     )
-    correct_password = (
-        secrets.compare_digest(credentials.password, getenv("ADMIN_CLIENT_SECRET"))
+    correct_password = secrets.compare_digest(
+        credentials.password, admin_credentials["client_secret"]
     )
 
     if not (correct_username and correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
-            # Ensures the client prompts for credentials
             headers={"WWW-Authenticate": "Basic"},
         )
     return credentials.username
