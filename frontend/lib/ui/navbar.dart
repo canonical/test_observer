@@ -32,7 +32,7 @@ class Navbar extends StatelessWidget {
       return VanillaNavigation(
         children: [
           VanillaNavigationTitle(
-            title: 'Canonical Test Observer',
+            title: 'Test Observer',
             onPressed: () => context.go('/'),
           ),
           const _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
@@ -65,7 +65,7 @@ class Navbar extends StatelessWidget {
       return VanillaNavigation(
         children: [
           VanillaNavigationTitle(
-            title: 'Canonical Test Observer',
+            title: 'Test Observer',
             onPressed: () => context.go('/'),
           ),
           IntrinsicWidth(
