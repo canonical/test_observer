@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright (C) 2023-2025 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -17,12 +17,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
-import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import '../user_avatar.dart';
+import '../vanilla/vanilla_card.dart';
 import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
@@ -39,13 +39,7 @@ class ArtefactCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () => navigateToArtefactPage(context, artefact.id),
-      child: Card(
-        margin: const EdgeInsets.all(0),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: Theme.of(context).colorScheme.outline),
-          borderRadius: BorderRadius.circular(2.25),
-        ),
+      child: VanillaCard(
         child: Container(
           width: width,
           padding: const EdgeInsets.all(Spacing.level4),
@@ -71,13 +65,17 @@ class ArtefactCard extends ConsumerWidget {
                 children: [
                   VanillaChip(
                     text: artefact.status.name,
-                    fontColor: artefact.status.color,
+                    type: switch (artefact.status) {
+                      ArtefactStatus.approved => VanillaChipType.positive,
+                      ArtefactStatus.rejected => VanillaChipType.negative,
+                      _ => VanillaChipType.normal,
+                    },
                   ),
-                  const Spacer(),
+                  const SizedBox(width: Spacing.level2),
                   if (dueDate != null)
                     VanillaChip(
                       text: 'Due $dueDate',
-                      fontColor: YaruColors.red,
+                      type: VanillaChipType.information,
                     ),
                   const Spacer(),
                   UserAvatar(

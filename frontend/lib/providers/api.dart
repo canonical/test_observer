@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright (C) 2023-2025 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -21,6 +21,7 @@ import 'dart:js_util' as js_util;
 
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../repositories/api_repository.dart';
@@ -29,7 +30,7 @@ import 'global_error_message.dart';
 part 'api.g.dart';
 
 @riverpod
-ApiRepository api(ApiRef ref) {
+ApiRepository api(Ref ref) {
   final baseUrl = js_util.getProperty<String>(window, 'testObserverAPIBaseURI');
   final dio = Dio(BaseOptions(baseUrl: baseUrl));
   dio.interceptors.add(RetryInterceptor(dio: dio));

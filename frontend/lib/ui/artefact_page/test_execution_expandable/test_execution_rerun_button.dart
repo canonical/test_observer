@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright (C) 2023-2025 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -21,6 +21,8 @@ import 'package:go_router/go_router.dart';
 import '../../../models/test_execution.dart';
 import '../../../providers/artefact_builds.dart';
 import '../../../routing.dart';
+import '../../vanilla/vanilla_button.dart';
+import '../../vanilla/vanilla_modal.dart';
 
 class RerunButton extends ConsumerWidget {
   const RerunButton({super.key, required this.testExecution});
@@ -34,7 +36,7 @@ class RerunButton extends ConsumerWidget {
 
     final handlePress = testExecution.isRerunRequested
         ? null
-        : () => showDialog(
+        : () => showVanillaModal(
               context: context,
               builder: (_) => _RerunConfirmationDialog(
                 artefactId: artefactId,
@@ -44,7 +46,8 @@ class RerunButton extends ConsumerWidget {
 
     return Tooltip(
       message: testExecution.isRerunRequested ? 'Already requested' : '',
-      child: TextButton(
+      child: VanillaButton(
+        type: VanillaButtonType.base,
         onPressed: handlePress,
         child: const Text('rerun'),
       ),
@@ -63,12 +66,13 @@ class _RerunConfirmationDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AlertDialog(
+    return VanillaModal(
       title: const Text(
         'Are you sure you want to rerun this environment?',
       ),
       actions: [
-        TextButton(
+        VanillaButton(
+          type: VanillaButtonType.positive,
           autofocus: true,
           onPressed: () {
             ref
@@ -78,7 +82,7 @@ class _RerunConfirmationDialog extends ConsumerWidget {
           },
           child: const Text('yes'),
         ),
-        TextButton(
+        VanillaButton(
           onPressed: () => context.pop(),
           child: const Text('no'),
         ),
