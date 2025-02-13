@@ -53,16 +53,17 @@ class UserAvatar extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CircleAvatar(
-            backgroundColor: _avatarColor,
-            child: Text(
-              user.initials,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.apply(fontWeightDelta: 4),
+          if (!user.isEmpty)
+            CircleAvatar(
+              backgroundColor: _avatarColor,
+              child: Text(
+                user.initials,
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.apply(fontWeightDelta: 4),
+              ),
             ),
-          ),
           SizedBox(
             width: 43.0,
             height: 43.0,
