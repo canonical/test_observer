@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright (C) 2023-2025 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/view_modes.dart';
 import '../../../providers/view_mode.dart';
+import '../../vanilla/vanilla_segmented_button.dart';
 
 class ViewModeToggle extends ConsumerWidget {
   const ViewModeToggle({super.key});
@@ -29,16 +30,14 @@ class ViewModeToggle extends ConsumerWidget {
 
     if (viewMode == null) return const SizedBox.shrink();
 
-    return ToggleButtons(
-      isSelected: [
-        viewMode == ViewModes.list,
-        viewMode == ViewModes.dashboard,
+    return VanillaSegmentedButton(
+      segments: const [
+        ButtonSegment(value: ViewModes.list, icon: Icon(Icons.list)),
+        ButtonSegment(value: ViewModes.dashboard, icon: Icon(Icons.dashboard)),
       ],
-      children: const [Icon(Icons.list), Icon(Icons.dashboard)],
-      onPressed: (i) {
-        final selectedView = [ViewModes.list, ViewModes.dashboard][i];
-        ref.watch(viewModeProvider.notifier).set(selectedView);
-      },
+      selected: {viewMode},
+      onSelectionChanged: (selectedViewModes) =>
+          ref.watch(viewModeProvider.notifier).set(selectedViewModes.first),
     );
   }
 }

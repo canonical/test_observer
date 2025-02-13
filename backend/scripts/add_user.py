@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2023-2025 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #

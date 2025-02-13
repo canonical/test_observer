@@ -4,7 +4,7 @@ header:
     license:
       spdx-id: AGPL-3.0-only
       copyright-owner: Canonical Ltd.
-      copyright-year: 2023
+      copyright-year: 2023-2025
       software-name: Test Observer Backend
       content: |
         Copyright (C) [year] [owner]
@@ -29,7 +29,7 @@ header:
     license:
       spdx-id: GPL-3.0-only
       copyright-owner: Canonical Ltd.
-      copyright-year: 2023
+      copyright-year: 2023-2025
       software-name: Test Observer Frontend
       content: |
         Copyright (C) [year] [owner]
@@ -58,7 +58,7 @@ header:
     license:
       spdx-id: Apache-2.0
       copyright-owner: Canonical Ltd.
-      copyright-year: 2023
+      copyright-year: 2023-2025
       software-name: Test Observer Backend Charm
   - paths:
       - "frontend/charm/src/**/*.py"
@@ -66,5 +66,5 @@ header:
     license:
       spdx-id: Apache-2.0
       copyright-owner: Canonical Ltd.
-      copyright-year: 2023
+      copyright-year: 2023-2025
       software-name: Test Observer Frontend Charm
