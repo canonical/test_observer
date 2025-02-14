@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:dartx/dartx.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact_environment.dart';
@@ -26,7 +25,7 @@ part 'artefact_environments.g.dart';
 
 @riverpod
 Future<List<ArtefactEnvironment>> artefactEnvironments(
-  Ref ref,
+  ArtefactEnvironmentsRef ref,
   int artefactId,
 ) async {
   final environmentReviews =

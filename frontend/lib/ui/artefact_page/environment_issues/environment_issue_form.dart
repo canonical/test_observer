@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -23,27 +23,34 @@ import '../../../models/environment.dart';
 import '../../../models/environment_issue.dart';
 import '../../../providers/environments_issues.dart';
 import '../../spacing.dart';
-import '../../vanilla/vanilla_button.dart';
-import '../../vanilla/vanilla_checkbox.dart';
-import '../../vanilla/vanilla_modal.dart';
 import '../../vanilla/vanilla_text_input.dart';
 
 void showEnvironmentIssueUpdateDialog({
   required BuildContext context,
   required EnvironmentIssue issue,
 }) =>
-    showVanillaModal(
+    showDialog(
       context: context,
-      builder: (_) => _EnvironmentIssueUpdateForm(issue: issue),
+      builder: (_) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: _EnvironmentIssueUpdateForm(issue: issue),
+        ),
+      ),
     );
 
 void showEnvironmentIssueCreateDialog({
   required BuildContext context,
   required Environment environment,
 }) =>
-    showVanillaModal(
+    showDialog(
       context: context,
-      builder: (_) => _EnvironmentIssueCreateForm(environment: environment),
+      builder: (_) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: _EnvironmentIssueCreateForm(environment: environment),
+        ),
+      ),
     );
 
 class _EnvironmentIssueUpdateForm extends ConsumerWidget {
@@ -68,7 +75,7 @@ class _EnvironmentIssueUpdateForm extends ConsumerWidget {
               ),
             );
       },
-      onDelete: () => showVanillaModal<bool>(
+      onDelete: () => showDialog<bool>(
         context: context,
         builder: (_) => _DeleteEnvironmentIssueConfirmationDialog(
           issue: issue,
@@ -145,100 +152,111 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
 
   @override
   Widget build(BuildContext context) {
-    return VanillaModal(
-      title: const Text('Report Issue'),
-      content: Form(
-        key: _formKey,
-        child: SizedBox(
-          width: 700,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.formSubtitle),
-              const SizedBox(height: Spacing.level3),
-              VanillaTextInput(
-                label: 'Url',
-                controller: _urlController,
-                validator: (url) {
-                  if ((url == null || url.isEmpty) && _isConfirmed) {
-                    return 'Confirmed environment issues must have a URL';
-                  }
+    final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
 
-                  if (url != null && url.isNotEmpty) {
-                    return validateIssueUrl(url);
-                  }
+    return Form(
+      key: _formKey,
+      child: SizedBox(
+        width: 700,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Report Issue', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: Spacing.level4),
+            Text(widget.formSubtitle),
+            const SizedBox(height: Spacing.level3),
+            VanillaTextInput(
+              label: 'Url',
+              controller: _urlController,
+              validator: (url) {
+                if ((url == null || url.isEmpty) && _isConfirmed) {
+                  return 'Confirmed environment issues must have a URL';
+                }
 
-                  return null;
-                },
-              ),
-              const SizedBox(height: Spacing.level3),
-              VanillaTextInput(
-                label: 'Description',
-                multiline: true,
-                controller: _descriptionController,
-                validator: (url) => url == null || url.isEmpty
-                    ? 'Must provide a description of the issue'
-                    : null,
-              ),
-              const SizedBox(height: Spacing.level4),
-              Row(
-                children: [
-                  const Text('Needs confirmation'),
-                  const SizedBox(width: Spacing.level2),
-                  VanillaCheckbox(
-                    value: !_isConfirmed,
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _isConfirmed = !value;
-                        });
-                      }
+                if (url != null && url.isNotEmpty) return validateIssueUrl(url);
+
+                return null;
+              },
+            ),
+            const SizedBox(height: Spacing.level3),
+            VanillaTextInput(
+              label: 'Description',
+              multiline: true,
+              controller: _descriptionController,
+              validator: (url) => url == null || url.isEmpty
+                  ? 'Must provide a description of the issue'
+                  : null,
+            ),
+            const SizedBox(height: Spacing.level4),
+            Row(
+              children: [
+                const Text('Needs confirmation'),
+                const SizedBox(width: Spacing.level2),
+                Checkbox(
+                  value: !_isConfirmed,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _isConfirmed = !value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(width: Spacing.level2),
+                Text(
+                  '(Does this issue require certlab\'s confirmation?)',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: Spacing.level4),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => context.pop(),
+                  child: Text(
+                    'cancel',
+                    style: buttonFontStyle?.apply(color: Colors.grey),
+                  ),
+                ),
+                const Spacer(),
+                if (widget.onDelete != null)
+                  TextButton(
+                    onPressed: () {
+                      widget.onDelete
+                          ?.call()
+                          .then((didDelete) => context.pop());
                     },
+                    child: Text(
+                      'delete',
+                      style: buttonFontStyle?.apply(color: Colors.red),
+                    ),
                   ),
-                  const SizedBox(width: Spacing.level2),
-                  Text(
-                    '(Does this issue require certlab\'s confirmation?)',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.grey),
+                TextButton(
+                  onPressed: () {
+                    if (_formKey.currentState?.validate() == true) {
+                      widget.onSubmit(
+                        _urlController.text,
+                        _descriptionController.text,
+                        _isConfirmed,
+                      );
+                      context.pop();
+                    }
+                  },
+                  child: Text(
+                    'submit',
+                    style: buttonFontStyle?.apply(color: Colors.black),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        VanillaButton(
-          onPressed: () => context.pop(),
-          child: const Text('cancel'),
-        ),
-        if (widget.onDelete != null)
-          VanillaButton(
-            type: VanillaButtonType.negative,
-            onPressed: () {
-              widget.onDelete?.call();
-              context.pop();
-            },
-            child: const Text('delete'),
-          ),
-        VanillaButton(
-          type: VanillaButtonType.positive,
-          onPressed: () {
-            if (_formKey.currentState?.validate() == true) {
-              widget.onSubmit(
-                _urlController.text,
-                _descriptionController.text,
-                _isConfirmed,
-              );
-              context.pop();
-            }
-          },
-          child: const Text('submit'),
-        ),
-      ],
     );
   }
 }
@@ -250,21 +268,20 @@ class _DeleteEnvironmentIssueConfirmationDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return VanillaModal(
+    return AlertDialog(
       title: const Text('Are you sure you want to delete this issue?'),
       content: Text(
         'Note that this will remove the issue for'
         ' runs of environment ${issue.environmentName}',
       ),
       actions: [
-        VanillaButton(
+        TextButton(
           onPressed: () {
             context.pop(false);
           },
           child: const Text('No'),
         ),
-        VanillaButton(
-          type: VanillaButtonType.negative,
+        TextButton(
           onPressed: () {
             ref.read(environmentsIssuesProvider.notifier).deleteIssue(issue.id);
             context.pop(true);

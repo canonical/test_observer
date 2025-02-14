@@ -28,10 +28,3 @@ custom_lint.log
 
 # Benchmark results
 benchmarks/*.json
-
-# Platforms we don't target
-ios
-linux
-macos
-windows
-android

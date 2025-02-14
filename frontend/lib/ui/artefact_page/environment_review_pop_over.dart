@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -21,7 +21,6 @@ import 'package:yaru/widgets.dart';
 import '../../models/environment_review.dart';
 import '../../providers/review_environment.dart';
 import '../spacing.dart';
-import '../vanilla/vanilla_button.dart';
 import '../vanilla/vanilla_text_input.dart';
 
 class EnvironmentReviewPopOver extends ConsumerStatefulWidget {
@@ -125,8 +124,7 @@ class EnvironmentReviewPopOverState
           hintText: 'Insert review comment',
         ),
         const SizedBox(height: Spacing.level3),
-        VanillaButton(
-          type: VanillaButtonType.positive,
+        ElevatedButton(
           onPressed: () {
             ref.read(reviewEnvironmentProvider.notifier).review(
                   widget.environmentReview.copyWith(
