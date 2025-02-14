@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -17,14 +17,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yaru/widgets.dart';
 
 import '../../models/filter.dart';
 import '../../providers/page_filters.dart';
 import '../../providers/search_value.dart';
 import '../../routing.dart';
 import '../expandable.dart';
-import '../vanilla/vanilla_button.dart';
-import '../vanilla/vanilla_checkbox.dart';
 import 'page_search_bar.dart';
 import '../spacing.dart';
 
@@ -43,44 +42,40 @@ class PageFiltersView extends ConsumerWidget {
         pageUri.queryParameters[CommonQueryParameters.searchQuery];
     final filters = ref.watch(pageFiltersProvider(pageUri));
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Spacing.level4),
-      child: SizedBox(
-        width: width,
-        child: ListView.separated(
-          shrinkWrap: true,
-          itemBuilder: (_, i) {
-            if (i == 0) {
-              return PageSearchBar(
-                hintText: searchHint,
-                onSubmitted: (_) =>
-                    submitFilters(ref, searchQuery, pageUri, context),
-              );
-            }
-
-            if (i == filters.filters.length + 1) {
-              return SizedBox(
-                width: double.infinity,
-                child: VanillaButton(
-                  type: VanillaButtonType.positive,
-                  onPressed: () =>
-                      submitFilters(ref, searchQuery, pageUri, context),
-                  child: const Text('Apply'),
-                ),
-              );
-            }
-
-            return _SideFilter(
-              filter: filters.filters[i - 1],
-              onOptionChanged: ref
-                  .read(pageFiltersProvider(pageUri).notifier)
-                  .handleFilterOptionChange,
+    return SizedBox(
+      width: width,
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemBuilder: (_, i) {
+          if (i == 0) {
+            return PageSearchBar(
+              hintText: searchHint,
+              onSubmitted: (_) =>
+                  submitFilters(ref, searchQuery, pageUri, context),
             );
-          },
-          separatorBuilder: (_, __) =>
-              const SizedBox(height: spacingBetweenFilters),
-          itemCount: filters.filters.length + 2,
-        ),
+          }
+
+          if (i == filters.filters.length + 1) {
+            return SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () =>
+                    submitFilters(ref, searchQuery, pageUri, context),
+                child: const Text('Apply'),
+              ),
+            );
+          }
+
+          return _SideFilter(
+            filter: filters.filters[i - 1],
+            onOptionChanged: ref
+                .read(pageFiltersProvider(pageUri).notifier)
+                .handleFilterOptionChange,
+          );
+        },
+        separatorBuilder: (_, __) =>
+            const SizedBox(height: spacingBetweenFilters),
+        itemCount: filters.filters.length + 2,
       ),
     );
   }
@@ -127,7 +122,7 @@ class _SideFilter extends StatelessWidget {
         for (final option in filter.detectedOptions)
           Row(
             children: [
-              VanillaCheckbox(
+              YaruCheckbox(
                 value: filter.selectedOptions.contains(option),
                 onChanged: (newValue) {
                   if (newValue != null) {

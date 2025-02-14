@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -18,8 +18,8 @@ import 'package:flutter/material.dart';
 
 import 'dashboard/find_shortcut.dart';
 import 'error_popup.dart';
+import 'footer.dart';
 import 'navbar.dart';
-import 'vanilla/vanilla_colors.dart';
 
 class Skeleton extends StatelessWidget {
   const Skeleton({super.key, required this.body});
@@ -31,21 +31,15 @@ class Skeleton extends StatelessWidget {
     return FindShortcut(
       child: SelectionArea(
         child: Scaffold(
-          backgroundColor: VanillaColors.backgroundNeutralDefault,
           body: ErrorPopup(
             child: Column(
               children: [
                 const Navbar(),
-                Expanded(
-                  child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints.loose(const Size.fromWidth(1800)),
-                    child: body,
-                  ),
-                ),
+                Expanded(child: body),
               ],
             ),
           ),
+          bottomNavigationBar: const Footer(),
         ),
       ),
     );

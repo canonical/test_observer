@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/test_event.dart';
@@ -24,7 +23,7 @@ part 'test_events.g.dart';
 
 @riverpod
 Future<List<TestEvent>> testEvents(
-  Ref ref,
+  TestEventsRef ref,
   int testExecutionId,
 ) async {
   final api = ref.watch(apiProvider);

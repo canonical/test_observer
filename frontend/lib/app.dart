@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -26,8 +26,14 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return YaruTheme(
       builder: (context, yaru, child) {
+        final colorScheme = yaru.theme?.colorScheme.copyWith(
+          surfaceContainerHigh: Colors.white, // search bars color
+          surfaceContainerLow: Colors.white, // cards color
+        );
+        final theme = yaru.theme?.copyWith(colorScheme: colorScheme);
+
         return MaterialApp.router(
-          theme: ThemeData(textTheme: yaru.theme?.textTheme),
+          theme: theme,
           routerConfig: appRouter,
         );
       },
