@@ -18,6 +18,7 @@
 """Fixtures for testing"""
 
 from os import environ
+from typing import Dict
 
 import pytest
 from alembic import command
@@ -30,6 +31,7 @@ from sqlalchemy_utils import (  # type: ignore
     drop_database,
 )
 
+from test_observer.auth.auth import get_admin_credentials
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.setup import get_db
@@ -89,9 +91,10 @@ def db_session(db_engine: Engine):
 
 
 @pytest.fixture(scope="function")
-def test_client(db_session: Session) -> TestClient:
+def test_client(db_session: Session, admin_credentials: Dict[str, str]) -> TestClient:
     """Create a test http client"""
     app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_admin_credentials] = lambda: admin_credentials
     return TestClient(app)
 
 
