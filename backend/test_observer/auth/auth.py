@@ -23,7 +23,8 @@ import secrets
 
 router = APIRouter(tags=["auth"])
 
-security = HTTPBasic()
+basic_auth = HTTPBasic()
+
 def get_admin_credentials():
     return {
         "client_id": getenv("ADMIN_CLIENT_ID"),
@@ -31,15 +32,11 @@ def get_admin_credentials():
     }
 
 def has_admin_credentials(
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+    credentials: Annotated[HTTPBasicCredentials, Depends(basic_auth)],
     admin_credentials: dict = Depends(get_admin_credentials)
 ):
-    correct_username = secrets.compare_digest(
-        credentials.username, admin_credentials["client_id"]
-    )
-    correct_password = secrets.compare_digest(
-        credentials.password, admin_credentials["client_secret"]
-    )
+    correct_username = credentials.username == admin_credentials["client_id"]
+    correct_password = credentials.password == admin_credentials["client_secret"]
 
     if not (correct_username and correct_password):
         raise HTTPException(
