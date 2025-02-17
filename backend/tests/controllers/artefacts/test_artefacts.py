@@ -19,7 +19,6 @@ from datetime import date, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
-from os import setenv
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Artefact, TestExecution
@@ -31,6 +30,13 @@ from test_observer.data_access.models_enums import (
 )
 from tests.data_generator import DataGenerator
 
+from test_observer.auth.auth import get_admin_credentials
+
+def override_get_admin_credentials():
+    return {
+        "client_id": "x",
+        "client_secret": "y",
+    }
 
 def test_get_latest_artefacts_by_family(
     generator: DataGenerator, test_client: TestClient
@@ -165,8 +171,10 @@ def test_artefact_archival_without_credentials(
 def test_artefact_archival_with_invalid_admin_credentials(
     test_client: TestClient, generator: DataGenerator
 ):
-    setenv("ADMIN_CLIENT_ID", "herp")
-    setenv("ADMIN_CLIENT_SECRET", "derp")
+    test_client.app.dependency_overrides[get_admin_credentials] = lambda: {
+        "client_id": "herp",
+        "client_secret": "derp",
+    }
 
     artefact = generator.gen_artefact(StageName.candidate)
 
@@ -178,10 +186,9 @@ def test_artefact_archival_with_invalid_admin_credentials(
     assert response.status_code == 401
 
 def test_artefact_archival(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.candidate)
+    test_client.app.dependency_overrides[get_admin_credentials] = override_get_admin_credentials
 
-    setenv("ADMIN_CLIENT_ID", "x")
-    setenv("ADMIN_CLIENT_SECRET", "y")
+    artefact = generator.gen_artefact(StageName.candidate)
 
     response = test_client.post(
         f"/v1/artefacts/{artefact.id}/archive",
