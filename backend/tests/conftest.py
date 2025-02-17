@@ -18,7 +18,6 @@
 """Fixtures for testing"""
 
 from os import environ
-from typing import Dict
 
 import pytest
 from alembic import command
@@ -91,7 +90,7 @@ def db_session(db_engine: Engine):
 
 
 @pytest.fixture(scope="function")
-def test_client(db_session: Session, admin_credentials: Dict[str, str]) -> TestClient:
+def test_client(db_session: Session, admin_credentials: dict[str, str]) -> TestClient:
     """Create a test http client"""
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_admin_credentials] = lambda: admin_credentials
