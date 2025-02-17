@@ -8,4 +8,4 @@ Certification currently deploys an instance of TO that they used for reviewing S
 
 For development look at the [backend](/backend/README.md) and [frontend](/frontend/README.md).
 
-To run via Terraform, juju and charms simulating production and staging environments, look at [terraform](README.md)
+To run the whole system (backend + frontend + pg at the time of writing) via Terraform, juju and charms simulating production and staging environments, use [terraform](/terraform/README.md)
