@@ -186,7 +186,9 @@ def test_artefact_archival_with_invalid_admin_credentials(
     assert response.status_code == 401
 
 def test_artefact_archival(test_client: TestClient, generator: DataGenerator):
-    test_client.app.dependency_overrides[get_admin_credentials] = override_get_admin_credentials
+    test_client.app.dependency_overrides[get_admin_credentials] = (
+        override_get_admin_credentials
+    )
 
     artefact = generator.gen_artefact(StageName.candidate)
 
