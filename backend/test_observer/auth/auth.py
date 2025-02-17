@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter, HTTPException, Depends, HTTPBasic, status
-from fastapi.security import HTTPBasicCredentials
+from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBasicCredentials, HTTPBasic
 from typing import Annotated
 
 from os import getenv

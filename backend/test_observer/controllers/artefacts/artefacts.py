@@ -39,7 +39,7 @@ from .models import (
     ArtefactVersionResponse,
 )
 
-from test_observer.auth import has_admin_credentials
+from test_observer.auth.auth import has_admin_credentials
 
 router = APIRouter(tags=["artefacts"])
 router.include_router(environment_reviews.router)
@@ -106,7 +106,7 @@ def patch_artefact(
 @router.post(
         "/{artefact_id}/archive",
         response_model=ArtefactResponse,
-        depends=[Depends(has_admin_credentials)])
+        dependencies=[Depends(has_admin_credentials)])
 def archive_artefact(
     db: Session = Depends(get_db),
     artefact: Artefact = Depends(
