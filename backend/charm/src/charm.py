@@ -195,6 +195,8 @@ class TestObserverBackendCharm(CharmBase):
         env = {
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
+            "ADMIN_CLIENT_ID": self.config["admin_client_id"],
+            "ADMIN_CLIENT_SECRET": self.config["admin_client_secret"],
         }
         env.update(self._postgres_relation_data())
         return env
