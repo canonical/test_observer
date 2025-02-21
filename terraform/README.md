@@ -2,7 +2,9 @@
 
 Local Juju and charm deployment via microk8s and terraform.
 
-## Setup
+## Setup a juju environment
+
+Setup an environment to use for any juju deployment.
 
 It is recommended to install the pre-requisites on a VM rather than your host machine. To do so, first install multipass:
 
@@ -13,59 +15,41 @@ sudo snap install multipass
 Then launch a new VM instance using (this will take a while):
 
 ```bash
-multipass launch noble --disk 50G --memory 4G --cpus 2 --mount <root-project-directory>  --name juju-dev
+multipass launch noble --disk 50G --memory 4G --cpus 2 --name test-observer-juju --mount /path/to/test_observer:/home/ubuntu/test_observer --cloud-init cloud-init.yaml --timeout 1800
 ```
 
-Feel free to modify the storage, memory, cpu limits and VM name. Note the mount to access the project files in the VM.
+Feel free to increase the storage, memory, cpu limits and VM name.
 
-Once the initialization has been completed, you need to setup the environment.
-
-The easiest way to do that is to install [concierge](https://snapcraft.io/concierge):
-
-```bash
-multipass exec juju-dev -- sudo snap install concierge --classic
-```
-
-Then use it to install requirements and setup the requirements:
-
-```bash
-multipass exec juju-dev -- sudo concierge prepare -p dev --extra-snaps terraform
-```
-
-Optionally, create a snapshot of the VM to revert back to it easily in case it breaks:
-
-```bash
-multipass snapshot juju-dev
-```
-
-## Initialize
+## Initialize project's terraform
 
 Now that everything has been setup, you can initialize the project's terraform.
 
 In the terraform directory on your host machine, run:
 
 ```bash
-multipass exec juju-dev -- terraform init
+multipass exec test-observer-juju -- terraform init
 ```
 
-## Deploy
+## Deploy everything
 
-You can deploy everything using terraform by running:
+In the terraform directory on your host machine, run:
 
 ```bash
-multipass exec juju-dev -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform apply -auto-approve
+multipass exec test-observer-juju -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform apply -auto-approve
 ```
 
 Then wait for the deployment to settle and all the statuses to become active. You can watch the statuses via:
 
 ```bash
-multipass exec juju-dev -- JUJU_MODEL=test-observer-development juju status --storage --relations --watch 5s
+multipass exec test-observer-juju -- juju status --storage --relations --watch 5s
 ```
 
-Look at the IPv4 addresses of your juju-dev vm through:
+## Connect to your deployment
+
+Look at the IPv4 addresses of your test-observer-juju vm through:
 
 ```bash
-multipass info juju-dev
+multipass info test-observer-juju
 ```
 
 One of these connect to the ingress enabled inside the VM. To figure out which one try the following command on each IP address until you get response:
@@ -87,25 +71,25 @@ After that you should be able to get to TO frontend on your host machine's brows
 To take everything down you can start with terraform:
 
 ```bash
-multipass exec juju-dev -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform destroy --auto-approve
+multipass exec test-observer-juju -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform destroy --auto-approve
 ```
 
 The above step can take a while and may even get stuck with some applications in error state. You can watch it through:
 
 ```bash
-multipass exec juju-dev -- JUJU_MODEL=test-observer-development juju status --storage --relations --watch 5s
+multipass exec test-observer-juju -- juju status --storage --relations --watch 5s
 ```
 
 To forcefully remove applications stuck in error state:
 
 ```bash
-multipass exec juju-dev -- JUJU_MODEL=test-observer-development juju remove-application <application-name> --destroy-storage --force
+multipass exec test-observer-juju -- juju remove-application <application-name> --destroy-storage --force
 ```
 
 Once everything is down and the juju model has been deleted you can stop the multipass VM:
 
 ```bash
-multipass stop juju-dev
+multipass stop test-observer-juju
 ```
 
 ## Developing the charm
