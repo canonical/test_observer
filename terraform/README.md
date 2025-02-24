@@ -18,7 +18,7 @@ Then launch a new VM instance using (this will take a while):
 multipass launch noble --disk 50G --memory 4G --cpus 2 --name test-observer-juju --mount /path/to/test_observer:/home/ubuntu/test_observer --cloud-init /path/to/test_observer/terraform/cloud-init.yaml --timeout 1800
 ```
 
-Feel free to increase the storage, memory, cpu limits and VM name.
+Feel free to increase the storage, memory, cpu limits or change the VM name.
 
 ## Initialize project's terraform
 
