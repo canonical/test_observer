@@ -22,7 +22,7 @@ Feel free to increase the storage, memory, cpu limits or change the VM name.
 
 ## Initialize project's terraform
 
-Now that everything has been setup, you can initialize the project's terraform.
+Now that everything has been set up, you can initialize the project's terraform.
 
 In the terraform directory on your host machine, run:
 
@@ -60,18 +60,18 @@ curl --connect-to ::<ip-address> http://test-observer-api.local
 
 Once you find the IP address add the following entry to your host machine's `/etc/hosts` file:
 
-```bash
+```text
 <ip-address>   test-observer.local test-observer-api.local
 ```
 
-After that you should be able to get to TO frontend on your host machine's browser through the url test-observer.local. You should also be able to access the API through test-observer-api.local.
+After that you should be able to get to TO frontend on your host machine's browser through the url `http://test-observer.local`. You should also be able to access the API through `http://test-observer-api.local`.
 
 ## Teardown
 
 To take everything down you can start with terraform:
 
 ```bash
-multipass exec test-observer-juju -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform destroy --auto-approve
+multipass exec test-observer-juju -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform destroy -auto-approve
 ```
 
 The above step can take a while and may even get stuck with some applications in error state. You can watch it through:
@@ -90,6 +90,12 @@ Once everything is down and the juju model has been deleted you can stop the mul
 
 ```bash
 multipass stop test-observer-juju
+```
+
+Optionally, delete the VM:
+
+```bash
+multipass delete --purge test-observer-juju
 ```
 
 ## Developing the charm
