@@ -66,6 +66,7 @@ resource "juju_application" "pg" {
     name     = "postgresql-k8s"
     channel  = "14/stable"
     base     = "ubuntu@22.04"
+    revision = 281
   }
 }
 
@@ -113,7 +114,7 @@ resource "juju_application" "redis" {
   charm {
     name     = "redis-k8s"
     channel  = "latest/edge"
-    base     = "ubuntu@22.04"
+    base     = "ubuntu@20.04"
     revision = 27
   }
 }
