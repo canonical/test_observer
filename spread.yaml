@@ -93,7 +93,7 @@ path: /root/proj
 
 prepare: |
   snap refresh --hold
-  if systemctl is-enabled unattended-upgrades.service; then
+  if systemctl is-active unattended-upgrades.service; then
     systemctl stop unattended-upgrades.service
     systemctl mask unattended-upgrades.service
   fi
