@@ -82,7 +82,7 @@ jobs:
       - name: Generate matrix list
         id: suites
         run: |
-          list="$(charmcraft test --list github-ci | sed "s|github-ci:ubuntu-24.04:tests/spread/||g" | jq -r -ncR '[inputs | select(length>0)]')"
+          list="$(charmcraft test --list github-ci | sed "s|github-ci:ubuntu-24.04:spread/||g" | jq -r -ncR '[inputs | select(length>0)]')"
           echo "suites=$list"
           echo "suites=$list" >> $GITHUB_OUTPUT
         working-directory: charm
