@@ -17,5 +17,5 @@ runcmd:
   - microk8s enable dns
   - microk8s enable hostpath-storage
   - microk8s enable ingress
-  - sudo -u ubuntu juju bootstrap microk8s microk8s-controller
-  - sudo -u ubuntu juju add-model test-observer-development
+  - sudo -i -u ubuntu snap run juju bootstrap microk8s microk8s-controller
+  - sudo -i -u ubuntu snap run juju add-model test-observer-development
