@@ -102,11 +102,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Download charm artifact
+      - name: Download backend charm artifact
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
         with:
           name: charm
-          path: ${{ github.workspace }}/charm
+          path: ${{ github.workspace }}/backend/charm
+      
+      - name: Download frontend charm artifact
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        with:
+          name: charm
+          path: ${{ github.workspace }}/frontend/charm
   
       - name: Setup LXD
         uses: canonical/setup-lxd@main
