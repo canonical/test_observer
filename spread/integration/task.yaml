@@ -1,6 +1,8 @@
 summary: Run the charm integration test
 
 execute: |
+  pipx install git+https://github.com/canonical/juju-k8s-crashdump.git
+
   backend_oci_image="$(cat ../../backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
   frontend_oci_image="$(cat ../../frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
   juju deploy "$PWD/../../backend/charm/test-observer-api_ubuntu-22.04-amd64.charm" api --resource api-image="${backend_oci_image}" --config hostname=test-observer-api.test
@@ -21,6 +23,12 @@ execute: |
 
   juju wait-for application frontend --timeout=30m
   juju wait-for application api --timeout=30m
+
+  microk8s config > kube-config
+  pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s
+
+artifacts:
+  - juju-k8s-crashdump
 
 restore: |
   if [[ -z "${CI:-}" ]]; then

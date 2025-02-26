@@ -129,4 +129,10 @@ jobs:
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
           name: charmcraft-logs
-          path: /home/runner/.local/state/charmcraft/log/*
+          path: /home/ubuntu/.local/state/charmcraft/log/*
+      
+      - name: Upload spread artifacts
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
+        with:
+          name: spread-artifacts
+          path: ./artifacts
