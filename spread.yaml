@@ -100,7 +100,7 @@ prepare: |
 
   snap install --classic concierge
 
-  concierge prepare --trace -p microk8s --extra-snaps astral-uv
+  concierge prepare --trace -p microk8s --extra-snaps astral-uv --extra-snaps juju-crashdump
 
   pushd "$SPREAD_PATH"
   chown $(id -u):$(id -g) $PWD/backend/charm/test-observer-api_ubuntu-22.04-amd64.charm

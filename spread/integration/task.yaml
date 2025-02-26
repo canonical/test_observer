@@ -21,8 +21,13 @@ execute: |
   juju relate api redis
   juju relate api frontend
 
-  juju wait-for application frontend --timeout=30m
+  juju wait-for application frontend --timeout=30m | juju-crashdump
+  juju show-status-log frontend/0
+
   juju wait-for application api --timeout=30m
+  juju show-status-log api/0
+
+  juju debug-log --level=DEBUG
 
   microk8s config > kube-config
   pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s

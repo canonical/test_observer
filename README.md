@@ -27,7 +27,7 @@ charmcraft.spread -v lxd
 
 ### Jump into a `spread` provided shell environment
 
-You can jump into a `spread` provided environment for the test execution either before, instead of the test task, or after a test task has been executed (you could also combine this choosing to run only a specific test scenario).
+To debug the charm integration tests, you can jump into a `spread` provided environment for the test execution either before, instead of the test task, or after a test task has been executed (you could also combine this choosing to run only a specific test scenario).
 
 ```bash
 # open a shell to the execution environment _before_ executing each test task 
