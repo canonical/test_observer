@@ -128,11 +128,11 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
-          name: charmcraft-logs
+          name: charmcraft-logs-${{ matrix.suite }}
           path: /home/ubuntu/.local/state/charmcraft/log/*
       
       - name: Upload spread artifacts
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
-          name: spread-artifacts
+          name: spread-artifacts-${{ matrix.suite }}
           path: ./artifacts
