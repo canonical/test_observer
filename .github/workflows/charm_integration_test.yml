@@ -1,4 +1,4 @@
-name: Integration Test
+name: Charm integration tests
 
 on:
   workflow_call:
