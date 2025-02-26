@@ -1,0 +1,25 @@
+summary: Run the charm integration test
+
+execute: |
+  backend_oci_image="$(cat ./backend/charm/metadata.yaml | yq '.resources.proxy-image.upstream-source')"
+  frontend_oci_image="$(cat ./frontend/charm/metadata.yaml | yq '.resources.proxy-image.upstream-source')"
+  juju deploy "$PWD/../../../test-observer-api_amd64.charm" proxy --resource proxy-image="${backend_oci_image}"
+  juju deploy "$PWD/../../../test-observer-frontend_amd64.charm" proxy --resource proxy-image="${frontend_oci_image}"
+
+  # juju config proxy log-level=info
+  # juju config proxy endpoint-allow-list='GET:/api/v3/pets'
+  # juju config proxy openapi-schema-url='https://api.example.com/api/v2/openapi'
+  # juju config proxy origin-base-url='https://api.example.com'
+  # juju config proxy fixed-request-headers='Authorization|X-Custom-Header'
+  # juju config proxy auth-endpoint-url='https://auth.example.com/o/token/'
+  # juju config proxy client-id='your-client-id'
+  # juju config proxy client-secret='your-client-secret'
+  # juju config proxy auth-scope='your-auth-scope'
+
+  # juju wait-for application proxy
+
+restore: |
+  if [[ -z "${CI:-}" ]]; then
+    juju destroy-model --no-prompt --destroy-storage testing
+    juju add-model testing
+  fi
