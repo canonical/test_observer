@@ -114,7 +114,7 @@ resource "juju_application" "redis" {
   charm {
     name     = "redis-k8s"
     channel  = "latest/edge"
-    base     = "ubuntu@20.04"
+    base     = "ubuntu@22.04"
     revision = 27
   }
 }
