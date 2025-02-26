@@ -124,14 +124,23 @@ jobs:
         run: |
           charmcraft test -v "github-ci:ubuntu-24.04:tests/spread/${{ matrix.suite }}"
       
+      - name: Sanitize suite name
+        if: failure()
+        id: sanitize
+        run: |
+          SANITIZED_SUITE=$(echo "${{ matrix.suite }}" | tr ':/' '-')
+          echo "sanitized_suite=$SANITIZED_SUITE" >> $GITHUB_OUTPUT
+
       - name: Upload charmcraft logs
+        if: failure()
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
-          name: charmcraft-logs-${{ matrix.suite }}
+          name: charmcraft-logs-${{ steps.sanitize.outputs.sanitized_suite }}
           path: /home/ubuntu/.local/state/charmcraft/log/*
       
       - name: Upload spread artifacts
+        if: failure()
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
         with:
-          name: spread-artifacts-${{ matrix.suite }}
+          name: spread-artifacts-${{ steps.sanitize.outputs.sanitized_suite }}
           path: ./artifacts
