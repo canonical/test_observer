@@ -103,8 +103,8 @@ prepare: |
   concierge prepare --trace -p microk8s --extra-snaps astral-uv
 
   pushd "$SPREAD_PATH"
-  chown $(id -u):$(id -g) $PWD/test-observer-api_amd64.charm
-  chown $(id -u):$(id -g) $PWD/test-observer-frontend_amd64.charm
+  chown $(id -u):$(id -g) $PWD/backend/charm/test-observer-api_ubuntu-22.04-amd64.charm
+  chown $(id -u):$(id -g) $PWD/frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm
 
 restore: |
   if [[ -z "${CI:-}" ]]; then

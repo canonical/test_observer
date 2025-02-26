@@ -3,8 +3,8 @@ summary: Run the charm integration test
 execute: |
   backend_oci_image="$(cat ./backend/charm/metadata.yaml | yq '.resources.proxy-image.upstream-source')"
   frontend_oci_image="$(cat ./frontend/charm/metadata.yaml | yq '.resources.proxy-image.upstream-source')"
-  juju deploy "$PWD/../../../test-observer-api_amd64.charm" proxy --resource proxy-image="${backend_oci_image}"
-  juju deploy "$PWD/../../../test-observer-frontend_amd64.charm" proxy --resource proxy-image="${frontend_oci_image}"
+  juju deploy "$PWD/../../../test-observer-api_ubuntu-22.04-amd64.charm" proxy --resource proxy-image="${backend_oci_image}"
+  juju deploy "$PWD/../../../test-observer-frontend_ubuntu-22.04-amd64.charm" proxy --resource proxy-image="${frontend_oci_image}"
 
   # juju config proxy log-level=info
   # juju config proxy endpoint-allow-list='GET:/api/v3/pets'
