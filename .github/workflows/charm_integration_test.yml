@@ -85,7 +85,6 @@ jobs:
           list="$(charmcraft test --list github-ci | sed "s|github-ci:ubuntu-24.04:spread/||g" | jq -r -ncR '[inputs | select(length>0)]')"
           echo "suites=$list"
           echo "suites=$list" >> $GITHUB_OUTPUT
-        working-directory: charm
 
   integration-test:
     name: Spread (${{ matrix.suite }})
@@ -118,7 +117,6 @@ jobs:
       - name: Run integration tests
         run: |
           charmcraft test -v "github-ci:ubuntu-24.04:tests/spread/${{ matrix.suite }}"
-        working-directory: charm
       
       - name: Upload charmcraft logs
         if: failure()
