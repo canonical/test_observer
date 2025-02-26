@@ -98,6 +98,9 @@ prepare: |
     systemctl mask unattended-upgrades.service
   fi
 
+  apt update
+  apt install -y pipx
+
   snap install --classic concierge
 
   concierge prepare --trace -p microk8s --extra-snaps astral-uv --extra-snaps juju-crashdump
