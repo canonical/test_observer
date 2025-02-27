@@ -15,21 +15,24 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../providers/artefact.dart';
+import '../../providers/artefact_page_side_visibility.dart';
 import '../blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'artefact_page_body.dart';
 import 'artefact_page_header.dart';
 import 'artefact_page_side.dart';
 
-class ArtefactPage extends StatelessWidget {
+class ArtefactPage extends ConsumerWidget {
   const ArtefactPage({super.key, required this.artefactId});
 
   final int artefactId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.only(
         left: Spacing.pageHorizontalPadding,
@@ -38,21 +41,36 @@ class ArtefactPage extends StatelessWidget {
       ),
       child: BlockingProviderPreloader(
         provider: artefactProvider(artefactId),
-        builder: (_, artefact) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ArtefactPageHeader(artefact: artefact),
-            const SizedBox(height: Spacing.level4),
-            Expanded(
-              child: Row(
-                children: [
-                  ArtefactPageSide(artefact: artefact),
-                  Expanded(child: ArtefactPageBody(artefact: artefact)),
-                ],
+        builder: (_, artefact) {
+          final showSide = ref.watch(artefactPageSideVisibilityProvider);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ArtefactPageHeader(artefact: artefact),
+              const SizedBox(height: Spacing.level4),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    YaruOptionButton(
+                      child: const Icon(Icons.filter_alt),
+                      onPressed: () => ref
+                          .read(artefactPageSideVisibilityProvider.notifier)
+                          .set(!showSide),
+                    ),
+                    const SizedBox(width: Spacing.level2),
+                    Visibility(
+                      visible: showSide,
+                      maintainState: true,
+                      child: ArtefactPageSide(artefact: artefact),
+                    ),
+                    Expanded(child: ArtefactPageBody(artefact: artefact)),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }
