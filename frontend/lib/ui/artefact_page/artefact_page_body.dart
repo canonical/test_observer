@@ -28,6 +28,7 @@ import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'environment_expandable.dart';
+import 'rerun_filtered_environments_button.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -61,6 +62,8 @@ class ArtefactPageBody extends ConsumerWidget {
             _ArtefactEnvironmentsStatusSummary(
               artefactEnvironments: environments,
             ),
+            const Spacer(),
+            const RerunFilteredEnvironmentsButton(),
           ],
         ),
         NonBlockingProviderPreloader(
