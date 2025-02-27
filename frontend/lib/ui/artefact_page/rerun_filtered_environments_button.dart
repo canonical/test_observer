@@ -64,7 +64,7 @@ class _ConfirmationDialog extends ConsumerWidget {
     return AlertDialog(
       scrollable: true,
       title: Text(
-        'Are you sure you want to rerun the following'
+        'Are you sure you want to rerun the last run made on the following'
         ' ${testExecutions.length} environments?',
       ),
       content: Column(
