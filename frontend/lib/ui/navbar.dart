@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
 import '../routing.dart';
@@ -36,13 +37,74 @@ class Navbar extends StatelessWidget {
         children: [
           Image.asset('assets/canonical.png'),
           const SizedBox(width: Spacing.level4),
-          const Expanded(
+          Expanded(
             child: Row(
               children: [
-                _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
-                _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
-                _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
-                _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
+                const _NavbarEntry(
+                  title: 'Snap Testing',
+                  route: AppRoutes.snaps,
+                ),
+                const _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
+                const _NavbarEntry(
+                  title: 'Charm Testing',
+                  route: AppRoutes.charms,
+                ),
+                const _NavbarEntry(
+                  title: 'Image Testing',
+                  route: AppRoutes.images,
+                ),
+                const Spacer(),
+                IntrinsicWidth(
+                  child: SizedBox(
+                    height: 57,
+                    child: SubmenuButton(
+                      menuStyle: const MenuStyle(
+                        shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+                        backgroundColor:
+                            WidgetStatePropertyAll(YaruColors.coolGrey),
+                      ),
+                      menuChildren: [
+                        SizedBox(
+                          height: 57,
+                          child: MenuItemButton(
+                            child: Text(
+                              'Docs',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.apply(color: Colors.white),
+                            ),
+                            onPressed: () => launchUrlString(
+                              'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 57,
+                          child: MenuItemButton(
+                            child: Text(
+                              'Source Code',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.apply(color: Colors.white),
+                            ),
+                            onPressed: () => launchUrlString(
+                              'https://github.com/canonical/test_observer',
+                            ),
+                          ),
+                        ),
+                      ],
+                      child: Text(
+                        'Help',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.apply(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
