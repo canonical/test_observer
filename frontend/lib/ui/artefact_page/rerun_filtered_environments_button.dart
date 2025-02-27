@@ -80,6 +80,7 @@ class _ConfirmationDialog extends ConsumerWidget {
           child: const Text('yes'),
         ),
         TextButton(
+          autofocus: true,
           onPressed: () => context.pop(),
           child: const Text('no'),
         ),
