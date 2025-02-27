@@ -54,61 +54,84 @@ class Navbar extends StatelessWidget {
                   route: AppRoutes.images,
                 ),
                 const Spacer(),
-                IntrinsicWidth(
-                  child: SizedBox(
-                    height: 57,
-                    child: SubmenuButton(
-                      menuStyle: const MenuStyle(
-                        shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
-                        backgroundColor:
-                            WidgetStatePropertyAll(YaruColors.coolGrey),
-                      ),
-                      menuChildren: [
-                        SizedBox(
-                          height: 57,
-                          child: MenuItemButton(
-                            child: Text(
-                              'Docs',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.apply(color: Colors.white),
-                            ),
-                            onPressed: () => launchUrlString(
-                              'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 57,
-                          child: MenuItemButton(
-                            child: Text(
-                              'Source Code',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.apply(color: Colors.white),
-                            ),
-                            onPressed: () => launchUrlString(
-                              'https://github.com/canonical/test_observer',
-                            ),
-                          ),
-                        ),
-                      ],
-                      child: Text(
-                        'Help',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.apply(color: Colors.white),
+                _NavbarDropdownEntry(
+                  label: 'Help',
+                  dropdownChildren: [
+                    _NavbarDropdownItem(
+                      label: 'Docs',
+                      onPressed: () => launchUrlString(
+                        'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
                       ),
                     ),
-                  ),
+                    _NavbarDropdownItem(
+                      label: 'Source Code',
+                      onPressed: () => launchUrlString(
+                        'https://github.com/canonical/test_observer',
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NavbarDropdownEntry extends StatelessWidget {
+  const _NavbarDropdownEntry({
+    required this.dropdownChildren,
+    required this.label,
+  });
+
+  final String label;
+  final List<Widget> dropdownChildren;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicWidth(
+      child: SizedBox(
+        height: 57,
+        child: SubmenuButton(
+          menuStyle: const MenuStyle(
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+            backgroundColor: WidgetStatePropertyAll(YaruColors.coolGrey),
+          ),
+          menuChildren: dropdownChildren,
+          child: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.apply(color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavbarDropdownItem extends StatelessWidget {
+  const _NavbarDropdownItem({required this.label, this.onPressed});
+
+  final String label;
+  final void Function()? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 57,
+      child: MenuItemButton(
+        onPressed: onPressed,
+        child: Text(
+          label,
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.apply(color: Colors.white),
+        ),
       ),
     );
   }
