@@ -27,54 +27,66 @@ class Navbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.pageHorizontalPadding,
-      ),
+    return ColoredBox(
       color: YaruColors.coolGrey,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Image.asset('assets/canonical.png'),
-          const SizedBox(width: Spacing.level4),
-          Expanded(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints.loose(
+            const Size.fromWidth(Spacing.maxPageContentWidth),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.pageHorizontalPadding,
+            ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const _NavbarEntry(
-                  title: 'Snap Testing',
-                  route: AppRoutes.snaps,
-                ),
-                const _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
-                const _NavbarEntry(
-                  title: 'Charm Testing',
-                  route: AppRoutes.charms,
-                ),
-                const _NavbarEntry(
-                  title: 'Image Testing',
-                  route: AppRoutes.images,
-                ),
-                const Spacer(),
-                _NavbarDropdownEntry(
-                  label: 'Help',
-                  dropdownChildren: [
-                    _NavbarDropdownItem(
-                      label: 'Docs',
-                      onPressed: () => launchUrlString(
-                        'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                Image.asset('assets/canonical.png'),
+                const SizedBox(width: Spacing.level4),
+                Expanded(
+                  child: Row(
+                    children: [
+                      const _NavbarEntry(
+                        title: 'Snap Testing',
+                        route: AppRoutes.snaps,
                       ),
-                    ),
-                    _NavbarDropdownItem(
-                      label: 'Source Code',
-                      onPressed: () => launchUrlString(
-                        'https://github.com/canonical/test_observer',
+                      const _NavbarEntry(
+                        title: 'Deb Testing',
+                        route: AppRoutes.debs,
                       ),
-                    ),
-                  ],
+                      const _NavbarEntry(
+                        title: 'Charm Testing',
+                        route: AppRoutes.charms,
+                      ),
+                      const _NavbarEntry(
+                        title: 'Image Testing',
+                        route: AppRoutes.images,
+                      ),
+                      const Spacer(),
+                      _NavbarDropdownEntry(
+                        label: 'Help',
+                        dropdownChildren: [
+                          _NavbarDropdownItem(
+                            label: 'Docs',
+                            onPressed: () => launchUrlString(
+                              'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                            ),
+                          ),
+                          _NavbarDropdownItem(
+                            label: 'Source Code',
+                            onPressed: () => launchUrlString(
+                              'https://github.com/canonical/test_observer',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'dashboard/find_shortcut.dart';
 import 'error_popup.dart';
 import 'navbar.dart';
+import 'spacing.dart';
 
 class Skeleton extends StatelessWidget {
   const Skeleton({super.key, required this.body});
@@ -36,8 +37,9 @@ class Skeleton extends StatelessWidget {
                 const Navbar(),
                 Expanded(
                   child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints.loose(const Size.fromWidth(1800)),
+                    constraints: BoxConstraints.loose(
+                      const Size.fromWidth(Spacing.maxPageContentWidth),
+                    ),
                     child: body,
                   ),
                 ),

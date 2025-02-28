@@ -23,4 +23,5 @@ class Spacing {
   static const level6 = 64.0;
 
   static const pageHorizontalPadding = level5;
+  static const maxPageContentWidth = 1800.0;
 }
