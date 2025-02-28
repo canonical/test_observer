@@ -22,71 +22,69 @@ import 'package:yaru/yaru.dart';
 import '../routing.dart';
 import 'spacing.dart';
 
+const _navbarHeight = 57.0;
+
 class Navbar extends StatelessWidget {
   const Navbar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
+    return Container(
+      alignment: Alignment.center,
       color: YaruColors.coolGrey,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints.loose(
-            const Size.fromWidth(Spacing.maxPageContentWidth),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.pageHorizontalPadding,
-            ),
+      constraints: BoxConstraints.loose(
+        const Size.fromWidth(Spacing.maxPageContentWidth),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.pageHorizontalPadding,
+      ),
+      height: _navbarHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Image.asset('assets/canonical.png'),
+          const SizedBox(width: Spacing.level4),
+          Expanded(
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Image.asset('assets/canonical.png'),
-                const SizedBox(width: Spacing.level4),
-                Expanded(
-                  child: Row(
-                    children: [
-                      const _NavbarEntry(
-                        title: 'Snap Testing',
-                        route: AppRoutes.snaps,
+                const _NavbarEntry(
+                  title: 'Snap Testing',
+                  route: AppRoutes.snaps,
+                ),
+                const _NavbarEntry(
+                  title: 'Deb Testing',
+                  route: AppRoutes.debs,
+                ),
+                const _NavbarEntry(
+                  title: 'Charm Testing',
+                  route: AppRoutes.charms,
+                ),
+                const _NavbarEntry(
+                  title: 'Image Testing',
+                  route: AppRoutes.images,
+                ),
+                const Spacer(),
+                _NavbarDropdownEntry(
+                  label: 'Help',
+                  dropdownChildren: [
+                    _NavbarDropdownItem(
+                      label: 'Docs',
+                      onPressed: () => launchUrlString(
+                        'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
                       ),
-                      const _NavbarEntry(
-                        title: 'Deb Testing',
-                        route: AppRoutes.debs,
+                    ),
+                    _NavbarDropdownItem(
+                      label: 'Source Code',
+                      onPressed: () => launchUrlString(
+                        'https://github.com/canonical/test_observer',
                       ),
-                      const _NavbarEntry(
-                        title: 'Charm Testing',
-                        route: AppRoutes.charms,
-                      ),
-                      const _NavbarEntry(
-                        title: 'Image Testing',
-                        route: AppRoutes.images,
-                      ),
-                      const Spacer(),
-                      _NavbarDropdownEntry(
-                        label: 'Help',
-                        dropdownChildren: [
-                          _NavbarDropdownItem(
-                            label: 'Docs',
-                            onPressed: () => launchUrlString(
-                              'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
-                            ),
-                          ),
-                          _NavbarDropdownItem(
-                            label: 'Source Code',
-                            onPressed: () => launchUrlString(
-                              'https://github.com/canonical/test_observer',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -105,7 +103,7 @@ class _NavbarDropdownEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     return IntrinsicWidth(
       child: SizedBox(
-        height: 57,
+        height: _navbarHeight,
         child: SubmenuButton(
           menuStyle: const MenuStyle(
             shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
@@ -134,7 +132,7 @@ class _NavbarDropdownItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 57,
+      height: _navbarHeight,
       child: MenuItemButton(
         onPressed: onPressed,
         child: Text(
