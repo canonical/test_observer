@@ -3,10 +3,12 @@ summary: Run the charm integration test
 execute: |
   pipx install git+https://github.com/canonical/juju-k8s-crashdump.git
 
-  backend_oci_image="$(cat ../../backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
-  frontend_oci_image="$(cat ../../frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
-  juju deploy "$PWD/../../backend/charm/test-observer-api_ubuntu-22.04-amd64.charm" api --resource api-image="${backend_oci_image}" --config hostname=test-observer-api.test
-  juju deploy "$PWD/../../frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm" frontend --resource frontend-image="${frontend_oci_image}" --config hostname=test-observer-frontend.test --config test-observer-api-scheme='http://'
+  juju deploy "$PWD/../../backend/charm/test-observer-api_ubuntu-22.04-amd64.charm" api \
+  --config hostname=test-observer-api.test
+
+  juju deploy "$PWD/../../frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm" frontend \
+  --config hostname=test-observer-frontend.test \
+  --config test-observer-api-scheme='http://'
 
   juju deploy nginx-ingress-integrator --channel=latest/stable --revision=59 ingress
   juju trust ingress --scope=cluster
