@@ -50,10 +50,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Setup LXD
-        uses: canonical/setup-lxd@main
+        uses: canonical/setup-lxd@v0.1.2
+        with:
+          channel: 5.21/stable
 
       - name: Install charmcraft
-        run: sudo snap install charmcraft --classic
+        run: sudo snap install charmcraft --channel=3.x/stable --classic
 
       - name: Cache wheels
         id: cache-wheels
@@ -85,7 +87,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install charmcraft
-        run: sudo snap install charmcraft --classic
+        run: sudo snap install charmcraft --channel=3.x/stable --classic
 
       - name: Generate matrix list
         id: suites
@@ -124,10 +126,12 @@ jobs:
           path: ${{ github.workspace }}/frontend/charm
   
       - name: Setup LXD
-        uses: canonical/setup-lxd@main
+        uses: canonical/setup-lxd@v0.1.2
+        with:
+          channel: 5.21/stable
 
       - name: Install charmcraft
-        run: sudo snap install charmcraft --classic
+        run: sudo snap install charmcraft --channel=3.x/stable --classic
 
       - name: Run integration tests
         run: |
