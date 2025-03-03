@@ -19,7 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/artefact_page_side_visibility.dart';
-import '../../providers/artefact_side_filters_visibility.dart';
+import '../../providers/dashboard_page_side_visibility.dart';
 import '../../routing.dart';
 import '../page_filters/page_search_bar.dart';
 
@@ -43,7 +43,7 @@ class FindShortcut extends ConsumerWidget {
             makeFiltersVisibile: isOnDashboardPage || isOnArtefactPage
                 ? () => isOnDashboardPage
                     ? ref
-                        .read(artefactSideFiltersVisibilityProvider.notifier)
+                        .read(dashboardPageSideVisibilityProvider.notifier)
                         .set(true)
                     : ref
                         .read(artefactPageSideVisibilityProvider.notifier)
