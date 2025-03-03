@@ -16,10 +16,10 @@
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'artefact_side_filters_visibility.g.dart';
+part 'dashboard_page_side_visibility.g.dart';
 
 @riverpod
-class ArtefactSideFiltersVisibility extends _$ArtefactSideFiltersVisibility {
+class DashboardPageSideVisibility extends _$DashboardPageSideVisibility {
   @override
   bool build() {
     return false;

@@ -18,7 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/artefact_side_filters_visibility.dart';
+import '../../providers/artefact_page_side_visibility.dart';
+import '../../providers/dashboard_page_side_visibility.dart';
 import '../../routing.dart';
 import '../page_filters/page_search_bar.dart';
 
@@ -29,8 +30,9 @@ class FindShortcut extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final shouldMakeFiltersVisible =
-        AppRoutes.isDashboardPage(AppRoutes.uriFromContext(context));
+    final pageUri = AppRoutes.uriFromContext(context);
+    final isOnDashboardPage = AppRoutes.isDashboardPage(pageUri);
+    final isOnArtefactPage = AppRoutes.isArtefactPage(pageUri);
     const shortcut = SingleActivator(LogicalKeyboardKey.keyF, control: true);
 
     return Shortcuts(
@@ -38,10 +40,14 @@ class FindShortcut extends ConsumerWidget {
       child: Actions(
         actions: {
           FindIntent: FindAction(
-            makeFiltersVisibile: shouldMakeFiltersVisible
-                ? () => ref
-                    .read(artefactSideFiltersVisibilityProvider.notifier)
-                    .set(true)
+            makeFiltersVisibile: isOnDashboardPage || isOnArtefactPage
+                ? () => isOnDashboardPage
+                    ? ref
+                        .read(dashboardPageSideVisibilityProvider.notifier)
+                        .set(true)
+                    : ref
+                        .read(artefactPageSideVisibilityProvider.notifier)
+                        .set(true)
                 : () {},
           ),
         },

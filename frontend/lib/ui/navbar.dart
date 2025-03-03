@@ -16,10 +16,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
 import '../routing.dart';
 import 'spacing.dart';
+
+const _navbarHeight = 57.0;
 
 class Navbar extends StatelessWidget {
   const Navbar({super.key});
@@ -27,26 +30,120 @@ class Navbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.pageHorizontalPadding,
-      ),
       color: YaruColors.coolGrey,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Image.asset('assets/canonical.png'),
-          const SizedBox(width: Spacing.level4),
-          const Expanded(
-            child: Row(
-              children: [
-                _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
-                _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
-                _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
-                _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
-              ],
+      alignment: Alignment.center,
+      height: _navbarHeight,
+      child: Container(
+        constraints: BoxConstraints.loose(
+          const Size.fromWidth(Spacing.maxPageContentWidth),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.pageHorizontalPadding,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Image.asset('assets/canonical.png'),
+            const SizedBox(width: Spacing.level4),
+            Expanded(
+              child: Row(
+                children: [
+                  const _NavbarEntry(
+                    title: 'Snap Testing',
+                    route: AppRoutes.snaps,
+                  ),
+                  const _NavbarEntry(
+                    title: 'Deb Testing',
+                    route: AppRoutes.debs,
+                  ),
+                  const _NavbarEntry(
+                    title: 'Charm Testing',
+                    route: AppRoutes.charms,
+                  ),
+                  const _NavbarEntry(
+                    title: 'Image Testing',
+                    route: AppRoutes.images,
+                  ),
+                  const Spacer(),
+                  _NavbarDropdownEntry(
+                    label: 'Help',
+                    dropdownChildren: [
+                      _NavbarDropdownItem(
+                        label: 'Docs',
+                        onPressed: () => launchUrlString(
+                          'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                        ),
+                      ),
+                      _NavbarDropdownItem(
+                        label: 'Source Code',
+                        onPressed: () => launchUrlString(
+                          'https://github.com/canonical/test_observer',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavbarDropdownEntry extends StatelessWidget {
+  const _NavbarDropdownEntry({
+    required this.dropdownChildren,
+    required this.label,
+  });
+
+  final String label;
+  final List<Widget> dropdownChildren;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicWidth(
+      child: SizedBox(
+        height: _navbarHeight,
+        child: SubmenuButton(
+          menuStyle: const MenuStyle(
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+            backgroundColor: WidgetStatePropertyAll(YaruColors.coolGrey),
           ),
-        ],
+          menuChildren: dropdownChildren,
+          child: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.apply(color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavbarDropdownItem extends StatelessWidget {
+  const _NavbarDropdownItem({required this.label, this.onPressed});
+
+  final String label;
+  final void Function()? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _navbarHeight,
+      child: MenuItemButton(
+        onPressed: onPressed,
+        child: Text(
+          label,
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.apply(color: Colors.white),
+        ),
       ),
     );
   }

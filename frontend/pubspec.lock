@@ -659,10 +659,10 @@ packages:
     dependency: "direct main"
     description:
       name: popover
-      sha256: "6a0928ccdcf12d46b407372b644a0d94400b316d0ee072a19dcef03c2bb88c3f"
+      sha256: "5cba40e04115cbbf15c35e00767b91e8bf3f769763a34beb2f8a1b9e8b5fc876"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.9"
+    version: "0.3.0+1"
   process:
     dependency: transitive
     description:
