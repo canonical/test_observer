@@ -13,12 +13,6 @@ on:
       - v*
  
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
-
-  pull_request_review:
-    types: [submitted]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -77,7 +71,6 @@ jobs:
           path: "${{ matrix.charm }}/charm/*.charm"
 
   define-matrix:
-    if: github.event_name == 'push' || github.event.review.state == 'approved'
     name: Define spread matrix
     runs-on: ubuntu-24.04
     outputs:
@@ -97,7 +90,6 @@ jobs:
           echo "suites=$list" >> $GITHUB_OUTPUT
 
   integration-test:
-    if: github.event_name == 'push' || github.event.review.state == 'approved'
     name: Spread (${{ matrix.suite }})
     
     runs-on: [self-hosted, linux, large, noble, x64]
