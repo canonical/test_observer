@@ -122,9 +122,6 @@ jobs:
         with:
           channel: 5.21/stable
 
-      - name: Install charmcraft
-        run: sudo snap install charmcraft --channel=3.x/stable --classic
-
       - name: Install spread
         run: sudo snap install spread --devmode
 
