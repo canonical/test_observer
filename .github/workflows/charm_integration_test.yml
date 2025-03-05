@@ -85,7 +85,7 @@ jobs:
       - name: Generate matrix list
         id: suites
         run: |
-          list="$(charmcraft test --list github-ci | sed "s|github-ci:ubuntu-24.04:spread/||g" | jq -r -ncR '[inputs | select(length>0)]')"
+          list="$(spread --list github-ci | sed "s|github-ci:ubuntu-24.04:spread/||g" | jq -r -ncR '[inputs | select(length>0)]')"
           echo "suites=$list"
           echo "suites=$list" >> $GITHUB_OUTPUT
 
@@ -125,9 +125,12 @@ jobs:
       - name: Install charmcraft
         run: sudo snap install charmcraft --channel=3.x/stable --classic
 
+      - name: Install spread
+        run: sudo snap install spread --devmode
+
       - name: Run integration tests
         run: |
-          charmcraft test -v "github-ci:ubuntu-24.04:spread/${{ matrix.suite }}"
+          spread -v "github-ci:ubuntu-24.04:spread/${{ matrix.suite }}"
       
       - name: Sanitize suite name
         if: failure()
