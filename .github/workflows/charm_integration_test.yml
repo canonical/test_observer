@@ -122,9 +122,15 @@ jobs:
         with:
           channel: 5.21/stable
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+  
       - name: Install spread
-        run: sudo snap install spread --devmode # --devmode to allow spread tests to call other snaps
-
+        run: |
+          go install github.com/snapcore/spread/cmd/spread@latest
+  
       - name: Run integration tests
         run: |
           spread -v "github-ci:ubuntu-24.04:spread/${{ matrix.suite }}"
