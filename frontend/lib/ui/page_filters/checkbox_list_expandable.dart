@@ -13,7 +13,7 @@ class CheckboxListExpandable extends StatelessWidget {
 
   final String title;
   final List<({String name, bool isSelected})> options;
-  final Function(String, bool) onChanged;
+  final Function(String option, bool isSelected) onChanged;
 
   @override
   Widget build(BuildContext context) {
