@@ -8,12 +8,12 @@ execute: |
 
   juju deploy "$PWD/../../backend/charm/test-observer-api_ubuntu-22.04-amd64.charm" api \
   --config hostname=test-observer-api.test \
-  --resource frontend-image="${backend_oci_image}"
+  --resource api-image="${backend_oci_image}"
 
   juju deploy "$PWD/../../frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm" frontend \
   --config hostname=test-observer-frontend.test \
   --config test-observer-api-scheme='http://' \
-  --resource api-image="${frontend_oci_image}"
+  --resource frontend-image="${frontend_oci_image}"
 
   juju deploy nginx-ingress-integrator --channel=latest/stable --revision=59 ingress
   juju trust ingress --scope=cluster
