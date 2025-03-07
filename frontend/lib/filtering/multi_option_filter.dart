@@ -1,5 +1,5 @@
-class MultiSelectFilter<T> {
-  const MultiSelectFilter({
+class MultiOptionFilter<T> {
+  const MultiOptionFilter({
     required this.name,
     required this.filter,
     required this.extractOptions,

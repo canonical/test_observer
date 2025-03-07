@@ -1,9 +1,9 @@
 import 'package:dartx/dartx.dart';
 
 import '../models/enriched_test_execution.dart';
-import 'multi_select_filter.dart';
+import 'multi_option_filter.dart';
 
-final testPlanNameFilter = MultiSelectFilter(
+final testPlanNameFilter = MultiOptionFilter(
   name: 'Test Plan',
   extractOptions: (List<EnrichedTestExecution> enrichedExecutions) =>
       enrichedExecutions.map((ee) => ee.testExecution.testPlan).toSet(),
