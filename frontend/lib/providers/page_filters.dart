@@ -67,7 +67,7 @@ class PageFilters extends _$PageFilters {
     final result = <FilterState>[];
     for (var filter in filters) {
       final selectedOptions = (queryParams[filter.name] ?? []).toSet();
-      final allOptions = filter.extractOptions(items);
+      final allOptions = filter.extractOptions(items).sorted();
       result.add(
         (
           name: filter.name,
