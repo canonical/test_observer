@@ -43,10 +43,10 @@ class FiltersState extends _$FiltersState {
     throw Exception('Called filtersStateProvider in unknown page $pageUri');
   }
 
-  List<FilterState> _createFiltersState(
-    List<MultiOptionFilter> filters,
+  List<FilterState> _createFiltersState<T>(
+    List<MultiOptionFilter<T>> filters,
     Map<String, List<String>> queryParams,
-    List items,
+    List<T> items,
   ) {
     final result = <FilterState>[];
     for (var filter in filters) {
