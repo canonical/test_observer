@@ -68,8 +68,8 @@ void main() {
       pageFiltersProvider(Uri(path: '${AppRoutes.snaps}/$artefactId')),
     );
 
-    expect(filters[0].name, 'Test plan');
-    expect(filters[0].options, [(name: 'test plan', isSelected: false)]);
+    expect(filters[0].name, 'Review status');
+    expect(filters[0].options, [(name: 'Undecided', isSelected: false)]);
   });
 }
 
