@@ -7,10 +7,9 @@ import 'enriched_test_executions.dart';
 
 part 'filters_state.g.dart';
 
-typedef FilterState = ({
-  String name,
-  List<({String name, bool isSelected})> options
-});
+typedef FilterOptionState = ({String name, bool isSelected});
+
+typedef FilterState = ({String name, List<FilterOptionState> options});
 
 @riverpod
 class FiltersState extends _$FiltersState {
