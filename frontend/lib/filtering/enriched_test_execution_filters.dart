@@ -29,14 +29,6 @@ final environmentReviewFilter = createMultiOptionFilterFromExtractor(
   },
 );
 
-final testPlanNameFilter = createMultiOptionFilterFromExtractor(
-  'Test plan',
-  (EnrichedTestExecution ee) {
-    final testPlan = ee.testExecution.testPlan;
-    return testPlan.isEmpty ? 'Unknown' : testPlan;
-  },
-);
-
 final testPlanLastStatusFilter = Filter<EnrichedTestExecution>(
   name: 'Plans whose last run',
   extractOptions: (items) {
@@ -70,5 +62,4 @@ final testPlanLastStatusFilter = Filter<EnrichedTestExecution>(
 final enrichedTestExecutionFilters = [
   environmentReviewFilter,
   testPlanLastStatusFilter,
-  testPlanNameFilter,
 ];
