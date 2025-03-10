@@ -22,7 +22,7 @@ import '../filtering/enriched_test_execution_filters.dart';
 import '../routing.dart';
 import 'enriched_test_executions.dart';
 import 'family_artefacts.dart';
-import '../filtering/multi_option_filter.dart';
+import '../filtering/filter.dart';
 
 part 'page_filters.g.dart';
 
@@ -60,7 +60,7 @@ class PageFilters extends _$PageFilters {
   }
 
   List<FilterState> _createFiltersState<T>(
-    List<MultiOptionFilter<T>> filters,
+    List<Filter<T>> filters,
     Map<String, List<String>> queryParams,
     List<T> items,
   ) {

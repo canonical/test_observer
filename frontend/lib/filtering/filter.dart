@@ -14,23 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:dartx/dartx.dart';
 
-part 'filter.freezed.dart';
+class Filter<T> {
+  const Filter({
+    required this.name,
+    required this.filter,
+    required this.extractOptions,
+  });
 
-@freezed
-class Filter<T> with _$Filter<T> {
-  const Filter._();
-
-  const factory Filter({
-    required String name,
-    required String? Function(T) extractOption,
-    @Default(<String>{}) Set<String> selectedOptions,
-    @Default(<String>[]) List<String> detectedOptions,
-  }) = _Filter<T>;
-
-  bool doesObjectPassFilter(T object) {
-    return selectedOptions.isEmpty ||
-        selectedOptions.contains(extractOption(object));
-  }
+  final String name;
+  final List<T> Function(List<T> items, Set<String> options) filter;
+  final Set<String> Function(List<T> items) extractOptions;
 }
+
+Filter<T> createMultiOptionFilterFromExtractor<T>(
+  String name,
+  String Function(T) extractOption,
+) =>
+    Filter(
+      name: name,
+      extractOptions: (items) => items.map(extractOption).toSet(),
+      filter: (items, options) => items
+          .filter((item) => options.contains(extractOption(item)))
+          .toList(),
+    );

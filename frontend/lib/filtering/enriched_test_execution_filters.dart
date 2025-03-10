@@ -18,7 +18,7 @@ import 'package:dartx/dartx.dart';
 
 import '../models/enriched_test_execution.dart';
 import '../models/environment_review.dart';
-import 'multi_option_filter.dart';
+import 'filter.dart';
 
 final environmentReviewFilter = createMultiOptionFilterFromExtractor(
   'Review status',
@@ -37,7 +37,7 @@ final testPlanNameFilter = createMultiOptionFilterFromExtractor(
   },
 );
 
-final testPlanLastStatusFilter = MultiOptionFilter<EnrichedTestExecution>(
+final testPlanLastStatusFilter = Filter<EnrichedTestExecution>(
   name: 'Plans whose last run',
   extractOptions: (items) {
     final groups = items
