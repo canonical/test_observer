@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../providers/filters_state.dart';
+import '../../providers/page_filters.dart';
 import '../../providers/search_value.dart';
 import '../../routing.dart';
 import 'checkbox_list_expandable.dart';
@@ -38,7 +38,7 @@ class PageFiltersView extends ConsumerWidget {
     final pageUri = AppRoutes.uriFromContext(context);
     final searchQuery =
         pageUri.queryParameters[CommonQueryParameters.searchQuery];
-    final filters = ref.watch(filtersStateProvider(pageUri));
+    final filters = ref.watch(pageFiltersProvider(pageUri));
 
     void submitFilters() {
       final sortBy = pageUri.queryParameters[CommonQueryParameters.sortBy];
@@ -48,7 +48,7 @@ class PageFiltersView extends ConsumerWidget {
       final queryParams = {
         if (searchValue.isNotEmpty)
           CommonQueryParameters.searchQuery: searchValue,
-        ...ref.read(filtersStateProvider(pageUri).notifier).toQueryParams(),
+        ...ref.read(pageFiltersProvider(pageUri).notifier).toQueryParams(),
         if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
         if (sortDirection != null)
           CommonQueryParameters.sortDirection: sortDirection,
@@ -84,7 +84,7 @@ class PageFiltersView extends ConsumerWidget {
             title: filters[i - 1].name,
             options: filters[i - 1].options,
             onChanged: (option, isSelected) => ref
-                .read(filtersStateProvider(pageUri).notifier)
+                .read(pageFiltersProvider(pageUri).notifier)
                 .onChanged(filters[i - 1].name, option, isSelected),
           );
         },

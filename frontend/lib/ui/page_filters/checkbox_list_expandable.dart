@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 
-import '../../providers/filters_state.dart';
+import '../../providers/page_filters.dart';
 import '../expandable.dart';
 
 class CheckboxListExpandable extends StatelessWidget {
