@@ -68,7 +68,7 @@ void main() {
       pageFiltersProvider(Uri(path: '${AppRoutes.snaps}/$artefactId')),
     );
 
-    expect(filters[0].name, 'Test Plan');
+    expect(filters[0].name, 'Test plan');
     expect(filters[0].options, [(name: 'test plan', isSelected: false)]);
   });
 }
