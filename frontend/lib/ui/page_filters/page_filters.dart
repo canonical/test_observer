@@ -17,13 +17,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:yaru/widgets.dart';
 
-import '../../models/filter.dart';
-import '../../providers/page_filters.dart';
+import '../../providers/filters_state.dart';
 import '../../providers/search_value.dart';
 import '../../routing.dart';
-import '../expandable.dart';
+import 'checkbox_list_expandable.dart';
 import 'page_search_bar.dart';
 import '../spacing.dart';
 
@@ -40,7 +38,25 @@ class PageFiltersView extends ConsumerWidget {
     final pageUri = AppRoutes.uriFromContext(context);
     final searchQuery =
         pageUri.queryParameters[CommonQueryParameters.searchQuery];
-    final filters = ref.watch(pageFiltersProvider(pageUri));
+    final filters = ref.watch(filtersStateProvider(pageUri)).value ?? [];
+
+    void submitFilters() {
+      final sortBy = pageUri.queryParameters[CommonQueryParameters.sortBy];
+      final sortDirection =
+          pageUri.queryParameters[CommonQueryParameters.sortDirection];
+      final searchValue = ref.read(searchValueProvider(searchQuery)).trim();
+      final queryParams = {
+        if (searchValue.isNotEmpty)
+          CommonQueryParameters.searchQuery: searchValue,
+        ...FiltersState.toQueryParams(filters),
+        if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
+        if (sortDirection != null)
+          CommonQueryParameters.sortDirection: sortDirection,
+      };
+      context.go(
+        pageUri.replace(queryParameters: queryParams).toString(),
+      );
+    }
 
     return SizedBox(
       width: width,
@@ -50,90 +66,32 @@ class PageFiltersView extends ConsumerWidget {
           if (i == 0) {
             return PageSearchBar(
               hintText: searchHint,
-              onSubmitted: (_) =>
-                  submitFilters(ref, searchQuery, pageUri, context),
+              onSubmitted: (_) => submitFilters(),
             );
           }
 
-          if (i == filters.filters.length + 1) {
+          if (i == filters.length + 1) {
             return SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () =>
-                    submitFilters(ref, searchQuery, pageUri, context),
+                onPressed: () => submitFilters(),
                 child: const Text('Apply'),
               ),
             );
           }
 
-          return _SideFilter(
-            filter: filters.filters[i - 1],
-            onOptionChanged: ref
-                .read(pageFiltersProvider(pageUri).notifier)
-                .handleFilterOptionChange,
+          return CheckboxListExpandable(
+            title: filters[i - 1].name,
+            options: filters[i - 1].options,
+            onChanged: (option, isSelected) => ref
+                .read(filtersStateProvider(pageUri).notifier)
+                .onChanged(filters[i - 1].name, option, isSelected),
           );
         },
         separatorBuilder: (_, __) =>
             const SizedBox(height: spacingBetweenFilters),
-        itemCount: filters.filters.length + 2,
+        itemCount: filters.length + 2,
       ),
-    );
-  }
-
-  void submitFilters(
-    WidgetRef ref,
-    String? searchQuery,
-    Uri pageUri,
-    BuildContext context,
-  ) {
-    final sortBy = pageUri.queryParameters[CommonQueryParameters.sortBy];
-    final sortDirection =
-        pageUri.queryParameters[CommonQueryParameters.sortDirection];
-    final searchValue = ref.read(searchValueProvider(searchQuery)).trim();
-    final queryParams = {
-      if (searchValue.isNotEmpty)
-        CommonQueryParameters.searchQuery: searchValue,
-      ...ref.read(pageFiltersProvider(pageUri)).toQueryParams(),
-      if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
-      if (sortDirection != null)
-        CommonQueryParameters.sortDirection: sortDirection,
-    };
-    context.go(
-      pageUri.replace(queryParameters: queryParams).toString(),
-    );
-  }
-}
-
-class _SideFilter extends StatelessWidget {
-  const _SideFilter({required this.filter, required this.onOptionChanged});
-
-  final Filter filter;
-  final Function(String, String, bool) onOptionChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expandable(
-      initiallyExpanded: true,
-      title: Text(
-        filter.name,
-        style: Theme.of(context).textTheme.headlineSmall,
-      ),
-      children: [
-        for (final option in filter.detectedOptions)
-          Row(
-            children: [
-              YaruCheckbox(
-                value: filter.selectedOptions.contains(option),
-                onChanged: (newValue) {
-                  if (newValue != null) {
-                    onOptionChanged(filter.name, option, newValue);
-                  }
-                },
-              ),
-              Text(option),
-            ],
-          ),
-      ],
     );
   }
 }
