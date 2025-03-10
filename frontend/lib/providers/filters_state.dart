@@ -1,9 +1,12 @@
 import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../filtering/artefact_filters.dart';
 import '../filtering/enriched_test_execution_filters.dart';
 import '../routing.dart';
 import 'enriched_test_executions.dart';
+import 'family_artefacts.dart';
+import '../filtering/multi_option_filter.dart';
 
 part 'filters_state.g.dart';
 
@@ -15,15 +18,40 @@ typedef FilterState = ({String name, List<FilterOptionState> options});
 class FiltersState extends _$FiltersState {
   @override
   Future<List<FilterState>> build(Uri pageUri) async {
-    final result = <FilterState>[];
-    final artefactId = AppRoutes.artefactIdFromUri(pageUri);
     final queryParams = pageUri.queryParametersAll;
-    final enrichedExecutions =
-        await ref.watch(enrichedTestExecutionsProvider(artefactId).future);
+    if (AppRoutes.isDashboardPage(pageUri)) {
+      final family = AppRoutes.familyFromUri(pageUri);
+      final artefacts = await ref.watch(familyArtefactsProvider(family).future);
+      return _createFiltersState(
+        getArtefactFiltersFor(family),
+        queryParams,
+        artefacts.values.toList(),
+      );
+    }
 
-    for (var filter in enrichedTestExecutionFilters) {
+    if (AppRoutes.isArtefactPage(pageUri)) {
+      final artefactId = AppRoutes.artefactIdFromUri(pageUri);
+      final enrichedExecutions =
+          await ref.watch(enrichedTestExecutionsProvider(artefactId).future);
+      return _createFiltersState(
+        enrichedTestExecutionFilters,
+        queryParams,
+        enrichedExecutions,
+      );
+    }
+
+    throw Exception('Called filtersStateProvider in unknown page $pageUri');
+  }
+
+  List<FilterState> _createFiltersState(
+    List<MultiOptionFilter> filters,
+    Map<String, List<String>> queryParams,
+    List items,
+  ) {
+    final result = <FilterState>[];
+    for (var filter in filters) {
       final selectedOptions = (queryParams[filter.name] ?? []).toSet();
-      final allOptions = filter.extractOptions(enrichedExecutions);
+      final allOptions = filter.extractOptions(items);
       result.add(
         (
           name: filter.name,
@@ -38,7 +66,6 @@ class FiltersState extends _$FiltersState {
         ),
       );
     }
-
     return result;
   }
 
