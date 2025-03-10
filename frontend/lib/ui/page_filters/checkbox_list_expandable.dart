@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 
+import '../../providers/filters_state.dart';
 import '../expandable.dart';
 
 class CheckboxListExpandable extends StatelessWidget {
@@ -12,8 +13,8 @@ class CheckboxListExpandable extends StatelessWidget {
   });
 
   final String title;
-  final List<({String name, bool isSelected})> options;
-  final Function(String option, bool isSelected) onChanged;
+  final List<FilterOptionState> options;
+  final Function(String optionName, bool isSelected) onChanged;
 
   @override
   Widget build(BuildContext context) {
