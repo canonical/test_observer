@@ -19,6 +19,8 @@ class CheckboxListExpandable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expandable(
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: EdgeInsets.zero,
       initiallyExpanded: true,
       title: Text(
         title,
