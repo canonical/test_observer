@@ -38,7 +38,7 @@ class PageFiltersView extends ConsumerWidget {
     final pageUri = AppRoutes.uriFromContext(context);
     final searchQuery =
         pageUri.queryParameters[CommonQueryParameters.searchQuery];
-    final filters = ref.watch(filtersStateProvider(pageUri)).value ?? [];
+    final filters = ref.watch(filtersStateProvider(pageUri));
 
     void submitFilters() {
       final sortBy = pageUri.queryParameters[CommonQueryParameters.sortBy];
@@ -48,7 +48,7 @@ class PageFiltersView extends ConsumerWidget {
       final queryParams = {
         if (searchValue.isNotEmpty)
           CommonQueryParameters.searchQuery: searchValue,
-        ...FiltersState.toQueryParams(filters),
+        ...ref.read(filtersStateProvider(pageUri).notifier).toQueryParams(),
         if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
         if (sortDirection != null)
           CommonQueryParameters.sortDirection: sortDirection,

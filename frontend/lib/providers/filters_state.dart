@@ -17,11 +17,11 @@ typedef FilterState = ({String name, List<FilterOptionState> options});
 @riverpod
 class FiltersState extends _$FiltersState {
   @override
-  Future<List<FilterState>> build(Uri pageUri) async {
+  List<FilterState> build(Uri pageUri) {
     final queryParams = pageUri.queryParametersAll;
     if (AppRoutes.isDashboardPage(pageUri)) {
       final family = AppRoutes.familyFromUri(pageUri);
-      final artefacts = await ref.watch(familyArtefactsProvider(family).future);
+      final artefacts = ref.watch(familyArtefactsProvider(family)).value ?? {};
       return _createFiltersState(
         getArtefactFiltersFor(family),
         queryParams,
@@ -32,7 +32,7 @@ class FiltersState extends _$FiltersState {
     if (AppRoutes.isArtefactPage(pageUri)) {
       final artefactId = AppRoutes.artefactIdFromUri(pageUri);
       final enrichedExecutions =
-          await ref.watch(enrichedTestExecutionsProvider(artefactId).future);
+          ref.watch(enrichedTestExecutionsProvider(artefactId)).value ?? [];
       return _createFiltersState(
         enrichedTestExecutionFilters,
         queryParams,
@@ -69,40 +69,35 @@ class FiltersState extends _$FiltersState {
     return result;
   }
 
-  Future<void> onChanged(
+  void onChanged(
     String filterName,
     String optionName,
     bool isSelected,
-  ) async {
-    final filters = await future;
-    state = AsyncData(
-      filters.map((filter) {
-        if (filter.name != filterName) {
-          return filter;
-        }
-        return (
-          name: filterName,
-          options: filter.options
-              .map(
-                (option) => (
-                  name: option.name,
-                  isSelected:
-                      option.name == optionName ? isSelected : option.isSelected
-                ),
-              )
-              .toList(),
-        );
-      }).toList(),
-    );
+  ) {
+    state = state.map((filter) {
+      if (filter.name != filterName) {
+        return filter;
+      }
+      return (
+        name: filterName,
+        options: filter.options
+            .map(
+              (option) => (
+                name: option.name,
+                isSelected:
+                    option.name == optionName ? isSelected : option.isSelected
+              ),
+            )
+            .toList(),
+      );
+    }).toList();
   }
 
-  static Map<String, List<String>> toQueryParams(List<FilterState> filters) {
-    return {
-      for (var filter in filters)
-        filter.name: filter.options
-            .filter((option) => option.isSelected)
-            .map((option) => option.name)
-            .toList(),
-    };
-  }
+  Map<String, List<String>> toQueryParams() => ({
+        for (var filter in state)
+          filter.name: filter.options
+              .filter((option) => option.isSelected)
+              .map((option) => option.name)
+              .toList(),
+      });
 }
