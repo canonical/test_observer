@@ -1,19 +1,9 @@
-import 'package:dartx/dartx.dart';
-
 import '../models/enriched_test_execution.dart';
 import 'multi_option_filter.dart';
 
-final testPlanNameFilter = MultiOptionFilter(
-  name: 'Test Plan',
-  extractOptions: (List<EnrichedTestExecution> enrichedExecutions) =>
-      enrichedExecutions.map((ee) => ee.testExecution.testPlan).toSet(),
-  filter: (
-    List<EnrichedTestExecution> enrichedExecutions,
-    Set<String> names,
-  ) =>
-      enrichedExecutions
-          .filter((ee) => names.contains(ee.testExecution.testPlan))
-          .toList(),
+final testPlanNameFilter = createMultiOptionFilterFromExtractor(
+  'Test Plan',
+  (EnrichedTestExecution ee) => ee.testExecution.testPlan,
 );
 
 final enrichedTestExecutionFilters = [
