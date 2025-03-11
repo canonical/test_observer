@@ -18,6 +18,7 @@ import 'package:dartx/dartx.dart';
 
 import '../models/enriched_test_execution.dart';
 import '../models/environment_review.dart';
+import '../models/test_execution.dart';
 import 'filter.dart';
 
 final environmentReviewFilter = createFilterFromExtractor(
@@ -59,7 +60,16 @@ final testPlanLastStatusFilter = Filter<EnrichedTestExecution>(
   },
 );
 
+final testPlanNameFilter = createFilterFromExtractor<EnrichedTestExecution>(
+  'Test plan',
+  (ee) {
+    final testPlan = ee.testExecution.testPlan;
+    return testPlan.isEmpty ? TestExecution.defaultTestPlanName : testPlan;
+  },
+);
+
 final enrichedTestExecutionFilters = [
   environmentReviewFilter,
   testPlanLastStatusFilter,
+  testPlanNameFilter,
 ];

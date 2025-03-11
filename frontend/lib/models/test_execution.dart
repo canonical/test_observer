@@ -27,6 +27,7 @@ part 'test_execution.g.dart';
 class TestExecution with _$TestExecution {
   static const String reviewCommentJsonKey = 'review_comment';
   static const String reviewDecisionJsonKey = 'review_decision';
+  static const String defaultTestPlanName = 'unknown';
 
   const factory TestExecution({
     required int id,

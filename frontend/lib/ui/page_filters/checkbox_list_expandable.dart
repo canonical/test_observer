@@ -54,7 +54,19 @@ class CheckboxListExpandable extends StatelessWidget {
                   }
                 },
               ),
-              Text(option.name),
+              Flexible(
+                child: Tooltip(
+                  message: option.name,
+                  child: Text(
+                    option.name.contains('::')
+                        ? option.name
+                            .substring(option.name.lastIndexOf('::') + 2)
+                        : option.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
             ],
           ),
       ],
