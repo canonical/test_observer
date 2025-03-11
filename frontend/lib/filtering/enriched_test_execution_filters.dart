@@ -20,7 +20,7 @@ import '../models/enriched_test_execution.dart';
 import '../models/environment_review.dart';
 import 'filter.dart';
 
-final environmentReviewFilter = createMultiOptionFilterFromExtractor(
+final environmentReviewFilter = createFilterFromExtractor(
   'Review status',
   (EnrichedTestExecution ee) => switch (ee.environmentReview.reviewDecision) {
     [] => 'Undecided',

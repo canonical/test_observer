@@ -49,17 +49,17 @@ List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
         ],
     };
 
-final _artefactAssigneeFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactAssigneeFilter = createFilterFromExtractor<Artefact>(
   'Assignee',
   (artefact) => artefact.assignee.name,
 );
 
-final _artefactStatusFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactStatusFilter = createFilterFromExtractor<Artefact>(
   'Status',
   (artefact) => artefact.status.name,
 );
 
-final _artefactDueDateFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactDueDateFilter = createFilterFromExtractor<Artefact>(
   'Due date',
   (artefact) {
     final now = DateTime.now();
@@ -74,32 +74,32 @@ final _artefactDueDateFilter = createMultiOptionFilterFromExtractor<Artefact>(
   },
 );
 
-final _artefactRiskFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactRiskFilter = createFilterFromExtractor<Artefact>(
   'Risk',
   (artefact) => artefact.stage.name,
 );
 
-final _artefactSeriesFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactSeriesFilter = createFilterFromExtractor<Artefact>(
   'Series',
   (artefact) => artefact.series,
 );
 
-final _artefactOSFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactOSFilter = createFilterFromExtractor<Artefact>(
   'OS type',
   (artefact) => artefact.os,
 );
 
-final _artefactReleaseFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactReleaseFilter = createFilterFromExtractor<Artefact>(
   'Release',
   (artefact) => artefact.release,
 );
 
-final _artefactOwnerFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactOwnerFilter = createFilterFromExtractor<Artefact>(
   'Owner',
   (artefact) => artefact.owner,
 );
 
-final _artefactPocketFilter = createMultiOptionFilterFromExtractor<Artefact>(
+final _artefactPocketFilter = createFilterFromExtractor<Artefact>(
   'Pocket',
   (artefact) => artefact.stage.name,
 );

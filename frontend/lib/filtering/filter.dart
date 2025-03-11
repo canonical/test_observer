@@ -28,7 +28,7 @@ class Filter<T> {
   final Set<String> Function(List<T> items) extractOptions;
 }
 
-Filter<T> createMultiOptionFilterFromExtractor<T>(
+Filter<T> createFilterFromExtractor<T>(
   String name,
   String Function(T) extractOption,
 ) =>
