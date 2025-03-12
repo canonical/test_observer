@@ -31,6 +31,37 @@ variable "nginx_ingress_integrator_charm_whitelist_source_range" {
   default     = ""
 }
 
+variable "backups_s3_endpoint" {
+  description = "Database backups s3-integrator endpoint"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_region" {
+  description = "Database backups s3-integrator region"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_bucket" {
+  description = "Database backups s3-integrator bucket"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_path" {
+  description = "Database backups s3-integrator path"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_uri_style" {
+  description = "Database backups s3-integrator uri_style"
+  type        = string
+  default     = "path"
+}
+
+
 locals {
   sentry_dsn_map = {
     production  = "https://dd931d36e0c24681aaeed6abd312c896@sentry.is.canonical.com//66"
@@ -116,6 +147,38 @@ resource "juju_application" "redis" {
     channel  = "latest/edge"
     base     = "ubuntu@22.04"
     revision = 27
+  }
+}
+
+resource "juju_application" "s3-integrator" {
+  name  = "backups-s3-integrator"
+  model = local.juju_model
+
+  charm {
+    name     = "s3-integrator"
+    channel  = "latest/stable"
+    revision = 77
+    base     = "ubuntu@22.04"
+  }
+
+  config = {
+    endpoint     = var.backups_s3_endpoint
+    region       = var.backups_s3_region
+    bucket       = var.backups_s3_bucket
+    path         = var.backups_s3_path
+    s3-uri-style = var.backups_s3_uri_style
+  }
+}
+
+resource "juju_integration" "db-backups" {
+  model = local.juju_model
+
+  application {
+    name = juju_application.pg.name
+  }
+
+  application {
+    name = juju_application.s3-integrator.name
   }
 }
 
