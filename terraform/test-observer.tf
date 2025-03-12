@@ -131,6 +131,18 @@ resource "juju_application" "s3-integrator" {
   }
 }
 
+resource "juju_integration" "db-backups" {
+  model = local.juju_model
+
+  application {
+    name = juju_application.pg.name
+  }
+
+  application {
+    name = juju_application.s3-integrator.name
+  }
+}
+
 resource "juju_integration" "test-observer-api-database-access" {
   model = local.juju_model
 
