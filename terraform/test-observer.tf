@@ -119,6 +119,18 @@ resource "juju_application" "redis" {
   }
 }
 
+resource "juju_application" "s3-integrator" {
+  name  = "s3-integrator"
+  model = local.juju_model
+
+  charm {
+    name     = "s3-integrator"
+    channel  = "latest/stable"
+    revision = 77
+    base     = "ubuntu@22.04"
+  }
+}
+
 resource "juju_integration" "test-observer-api-database-access" {
   model = local.juju_model
 
