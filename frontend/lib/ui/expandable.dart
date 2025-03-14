@@ -24,18 +24,23 @@ class Expandable extends StatelessWidget {
     required this.title,
     required this.children,
     this.initiallyExpanded = false,
+    this.tilePadding,
+    this.childrenPadding = const EdgeInsets.only(left: Spacing.level4),
   });
 
   final List<Widget> children;
   final Widget title;
   final bool initiallyExpanded;
+  final EdgeInsetsGeometry? tilePadding;
+  final EdgeInsetsGeometry childrenPadding;
 
   @override
   Widget build(BuildContext context) {
     return ExpansionTile(
+      tilePadding: tilePadding,
       expansionAnimationStyle: AnimationStyle.noAnimation,
       controlAffinity: ListTileControlAffinity.leading,
-      childrenPadding: const EdgeInsets.only(left: Spacing.level4),
+      childrenPadding: childrenPadding,
       shape: const Border(),
       collapsedShape: const Border(),
       title: title,

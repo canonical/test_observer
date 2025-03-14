@@ -18,9 +18,7 @@ import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact_environment.dart';
-import '../models/filters.dart';
-import '../routing.dart';
-import 'artefact_environments.dart';
+import 'filtered_enriched_test_executions.dart';
 
 part 'filtered_artefact_environments.g.dart';
 
@@ -29,27 +27,18 @@ Future<List<ArtefactEnvironment>> filteredArtefactEnvironments(
   FilteredArtefactEnvironmentsRef ref,
   Uri pageUri,
 ) async {
-  final artefactId = AppRoutes.artefactIdFromUri(pageUri);
-  final filters = emptyArtefactEnvironmentsFilters
-      .copyWithQueryParams(pageUri.queryParametersAll);
-  final searchValue =
-      pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
-
-  final environments =
-      await ref.watch(artefactEnvironmentsProvider(artefactId).future);
-
-  return environments
-      .filter(
-        (environment) =>
-            filters.doesObjectPassFilters(environment) &&
-            _passesSearch(environment, searchValue),
+  final enrichedExecutions =
+      await ref.watch(filteredEnrichedTestExecutionsProvider(pageUri).future);
+  final groupedEnrichedExecutions =
+      enrichedExecutions.groupBy((ee) => ee.environmentReview);
+  return groupedEnrichedExecutions
+      .mapEntries(
+        (entry) => ArtefactEnvironment(
+          review: entry.key,
+          runsDescending: entry.value
+              .map((ee) => ee.testExecution)
+              .sortedByDescending((te) => te.id),
+        ),
       )
       .toList();
-}
-
-bool _passesSearch(
-  ArtefactEnvironment environment,
-  String searchValue,
-) {
-  return environment.name.toLowerCase().contains(searchValue.toLowerCase());
 }

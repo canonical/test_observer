@@ -14,48 +14,43 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'dart:collection';
-
 import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../filtering/artefact_filters.dart';
-import '../models/artefact.dart';
+import '../filtering/enriched_test_execution_filters.dart';
+import '../models/enriched_test_execution.dart';
 import '../routing.dart';
-import '../utils/artefact_sorting.dart';
-import 'family_artefacts.dart';
+import 'enriched_test_executions.dart';
 
-part 'filtered_family_artefacts.g.dart';
+part 'filtered_enriched_test_executions.g.dart';
 
 @riverpod
-LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
-  FilteredFamilyArtefactsRef ref,
+Future<List<EnrichedTestExecution>> filteredEnrichedTestExecutions(
+  FilteredEnrichedTestExecutionsRef ref,
   Uri pageUri,
-) {
-  final family = AppRoutes.familyFromUri(pageUri);
+) async {
+  final artefactId = AppRoutes.artefactIdFromUri(pageUri);
   final searchValue =
       pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
   final parameters = pageUri.queryParametersAll;
 
-  var artefacts =
-      ref.watch(familyArtefactsProvider(family)).value?.values.toList() ?? [];
+  List<EnrichedTestExecution> result =
+      await ref.watch(enrichedTestExecutionsProvider(artefactId).future);
 
-  for (var filter in getArtefactFiltersFor(family)) {
+  for (var filter in enrichedTestExecutionFilters) {
     final filterOptions = parameters[filter.name];
     if (filterOptions != null) {
-      artefacts = filter.filter(artefacts, filterOptions.toSet());
+      result = filter.filter(result, filterOptions.toSet());
     }
   }
 
-  artefacts = artefacts
-      .filter((a) => a.name.toLowerCase().contains(searchValue.toLowerCase()))
+  result = result
+      .filter(
+        (ee) => ee.testExecution.environment.name
+            .toLowerCase()
+            .contains(searchValue.toLowerCase()),
+      )
       .toList();
 
-  sortArtefacts(pageUri.queryParameters, artefacts);
-
-  return LinkedHashMap.fromIterable(
-    artefacts,
-    key: (a) => a.id,
-    value: (a) => a,
-  );
+  return result;
 }

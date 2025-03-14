@@ -21,7 +21,7 @@ import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/environment_review.dart';
 import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/providers/api.dart';
-import 'package:testcase_dashboard/providers/artefact_environments.dart';
+import 'package:testcase_dashboard/providers/enriched_test_executions.dart';
 import 'package:testcase_dashboard/providers/family_artefacts.dart';
 import 'package:testcase_dashboard/providers/page_filters.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
@@ -37,21 +37,21 @@ void main() {
     );
     const family = FamilyName.snap;
 
-    // Wait on artefacts to load cause artefactFiltersProvider uses requireValue
+    // Wait on artefacts to load because pageFiltersProvider uses .value
     await container.read(familyArtefactsProvider(family).future);
 
-    final pageFilters =
+    final filters =
         container.read(pageFiltersProvider(Uri(path: AppRoutes.snaps)));
 
-    expect(pageFilters.filters[0].name, 'Assignee');
+    expect(filters[0].name, 'Assignee');
     expect(
-      pageFilters.filters[0].detectedOptions,
-      {dummyArtefact.assignee.name},
+      filters[0].options,
+      [(name: dummyArtefact.assignee.name, isSelected: false)],
     );
-    expect(pageFilters.filters[1].name, 'Status');
+    expect(filters[1].name, 'Status');
     expect(
-      pageFilters.filters[1].detectedOptions,
-      {dummyArtefact.status.name},
+      filters[1].options,
+      [(name: dummyArtefact.status.name, isSelected: false)],
     );
   });
 
@@ -61,15 +61,15 @@ void main() {
     );
     const artefactId = 1;
 
-    // Wait on to load cause filters uses requireValue
-    await container.read(artefactEnvironmentsProvider(artefactId).future);
+    // Wait on to load because pageFiltersProvider uses .value
+    await container.read(enrichedTestExecutionsProvider(artefactId).future);
 
-    final pageFilters = container.read(
+    final filters = container.read(
       pageFiltersProvider(Uri(path: '${AppRoutes.snaps}/$artefactId')),
     );
 
-    expect(pageFilters.filters[0].name, 'Review status');
-    expect(pageFilters.filters[0].detectedOptions, {'Undecided'});
+    expect(filters[0].name, 'Review status');
+    expect(filters[0].options, [(name: 'Undecided', isSelected: false)]);
   });
 }
 
