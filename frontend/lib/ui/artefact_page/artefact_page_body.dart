@@ -16,8 +16,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
+import '../../models/artefact_environment.dart';
+import '../../models/test_execution.dart';
 import '../../providers/environments_issues.dart';
 import '../../providers/filtered_artefact_environments.dart';
 import '../../providers/tests_issues.dart';
@@ -55,6 +58,10 @@ class ArtefactPageBody extends ConsumerWidget {
               'Environments',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            const SizedBox(width: Spacing.level4),
+            _ArtefactEnvironmentsStatusSummary(
+              artefactEnvironments: environments,
+            ),
             const Spacer(),
             const RerunFilteredPlansButton(),
           ],
@@ -79,5 +86,55 @@ class ArtefactPageBody extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+class _ArtefactEnvironmentsStatusSummary extends StatelessWidget {
+  const _ArtefactEnvironmentsStatusSummary({
+    required this.artefactEnvironments,
+  });
+
+  final Iterable<ArtefactEnvironment> artefactEnvironments;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: _latestExecutionStatusCounts(artefactEnvironments)
+          .entries
+          .map<Widget>(
+            (entry) => Row(
+              children: [
+                entry.key.icon,
+                const SizedBox(width: Spacing.level2),
+                Text(
+                  entry.value.toString(),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
+          )
+          .intersperse(const SizedBox(width: Spacing.level4))
+          .toList(),
+    );
+  }
+
+  Map<TestExecutionStatus, int> _latestExecutionStatusCounts(
+    Iterable<ArtefactEnvironment> artefactEnvironments,
+  ) {
+    final counts = {
+      TestExecutionStatus.notStarted: 0,
+      TestExecutionStatus.notTested: 0,
+      TestExecutionStatus.inProgress: 0,
+      TestExecutionStatus.endedPrematurely: 0,
+      TestExecutionStatus.failed: 0,
+      TestExecutionStatus.passed: 0,
+    };
+
+    for (final artefactEnvironment in artefactEnvironments) {
+      final status = artefactEnvironment.runsDescending.first.status;
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+
+    return counts;
   }
 }
