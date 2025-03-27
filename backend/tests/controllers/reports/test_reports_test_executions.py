@@ -40,6 +40,7 @@ EXPECTED_COLUMN_NAMES = [
     "Artefact.track",
     "Artefact.series",
     "Artefact.repo",
+    "Artefact.os",
     "TestExecution.id",
     "TestExecution.status",
     "TestExecution.ci_link",
