@@ -162,7 +162,6 @@ def _expected_report_row(
         artefact.series,
         artefact.repo,
         artefact.os,
-        artefact.series,
         str(test_execution.id),
         test_execution.status.name,
         "" if not test_execution.ci_link else test_execution.ci_link,
