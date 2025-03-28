@@ -33,7 +33,6 @@ router.include_router(reports.router, prefix="/v1/reports")
 router.include_router(test_cases.router, prefix="/v1/test-cases")
 router.include_router(environments.router, prefix="/v1/environments")
 
-
 @router.get("/")
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
