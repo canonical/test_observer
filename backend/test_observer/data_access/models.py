@@ -27,6 +27,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     column,
+    Boolean,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.engine.default import DefaultExecutionContext
@@ -120,6 +121,7 @@ class Artefact(Base):
     due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
     bug_link: Mapped[str] = mapped_column(default="")
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     # Family specific fields
     track: Mapped[str] = mapped_column(default="")
