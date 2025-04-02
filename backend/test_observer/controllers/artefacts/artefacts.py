@@ -100,7 +100,8 @@ def patch_artefact(
         artefact.status = request.status
     if request.archived is not None:
         artefact.archived = request.archived
-    
+    if request.stage is not None:
+        artefact.stage = request.stage
     db.commit()
     return artefact
 

@@ -109,6 +109,7 @@ class ArtefactBuildResponse(BaseModel):
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus | None = None
     archived: bool | None = None
+    stage: str | None = None
 
 
 class ArtefactVersionResponse(BaseModel):
