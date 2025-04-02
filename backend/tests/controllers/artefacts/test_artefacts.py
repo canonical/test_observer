@@ -272,6 +272,34 @@ def test_artefact_promote(test_client: TestClient, generator: DataGenerator):
     assert artefact.stage == StageName.stable
 
 
+def test_artefact_promote_invalid_stage(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact(family=FamilyName.charm)
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"stage": StageName.current},
+    )
+
+    assert response.status_code == 400
+
+
+def test_artefact_promote_unknown_stage(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"stage": "unknown"},
+    )
+
+    assert response.status_code > 400
+
+
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
     artefact1 = generator.gen_artefact(StageName.beta, version="1")
     artefact2 = generator.gen_artefact(StageName.beta, version="2")

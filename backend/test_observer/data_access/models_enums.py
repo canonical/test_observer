@@ -52,6 +52,30 @@ class StageName(str, Enum):
         return self._compare(other) >= 0
 
 
+family_stages: dict[FamilyName, list[StageName]] = {
+    FamilyName.snap: [
+        StageName.edge,
+        StageName.beta,
+        StageName.candidate,
+        StageName.stable,
+    ],
+    FamilyName.deb: [
+        StageName.proposed,
+        StageName.updates,
+    ],
+    FamilyName.charm: [
+        StageName.edge, 
+        StageName.beta, 
+        StageName.candidate, 
+        StageName.stable,
+    ],
+    FamilyName.image: [
+        StageName.pending, 
+        StageName.current,
+    ],
+}
+
+
 class TestExecutionStatus(str, Enum):
     __test__ = False
 

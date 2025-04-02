@@ -24,7 +24,12 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
 )
-from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
+from test_observer.data_access.models_enums import (
+    ArtefactStatus,
+    FamilyName,
+    StageName,
+    family_stages,
+)
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
@@ -96,11 +101,11 @@ def patch_artefact(
 ):
     if request.status is not None:
         _validate_artefact_status(artefact.latest_builds, request.status)
-
         artefact.status = request.status
     if request.archived is not None:
         artefact.archived = request.archived
     if request.stage is not None:
+        _validate_artefact_stage(artefact, request.stage)
         artefact.stage = request.stage
     db.commit()
     return artefact
@@ -123,6 +128,15 @@ def _validate_artefact_status(
         raise HTTPException(
             400,
             detail="At least one test execution needs to be rejected",
+        )
+
+
+def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
+    ...
+    if stage not in family_stages[artefact.family]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Stage {stage} is invalid for artefact family {artefact.family}",
         )
 
 
