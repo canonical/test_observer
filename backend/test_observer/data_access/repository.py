@@ -94,7 +94,7 @@ def get_artefacts_by_family(
                 .where(
                     and_(
                         Artefact.family == family,
-                        Artefact.archived == False,
+                        Artefact.archived.is_(False),
                     ),
                 )
             )
