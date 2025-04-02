@@ -1492,13 +1492,12 @@
           "stage": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/StageName"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Stage"
+            ]
           }
         },
         "type": "object",
@@ -2029,6 +2028,20 @@
           "test_execution_ids"
         ],
         "title": "RerunRequest"
+      },
+      "StageName": {
+        "type": "string",
+        "enum": [
+          "proposed",
+          "updates",
+          "edge",
+          "beta",
+          "candidate",
+          "stable",
+          "pending",
+          "current"
+        ],
+        "title": "StageName"
       },
       "StartCharmTestExecutionRequest": {
         "properties": {
