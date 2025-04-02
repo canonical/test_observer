@@ -199,6 +199,7 @@ class Artefact(Base):
             "image_url",
             "due_date",
             "status",
+            "archived",
         )
 
     @hybrid_property
