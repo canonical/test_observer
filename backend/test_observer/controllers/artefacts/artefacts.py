@@ -94,9 +94,13 @@ def patch_artefact(
         )
     ),
 ):
-    _validate_artefact_status(artefact.latest_builds, request.status)
+    if request.status is not None:
+        _validate_artefact_status(artefact.latest_builds, request.status)
 
-    artefact.status = request.status
+        artefact.status = request.status
+    if request.archived is not None:
+        artefact.archived = request.archived
+    
     db.commit()
     return artefact
 

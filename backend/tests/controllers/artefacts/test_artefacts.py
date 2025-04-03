@@ -236,6 +236,30 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     assert response.status_code == 400
 
 
+def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.candidate, archived=False)
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"archived": True},
+    )
+
+    assert response.status_code == 200
+    assert artefact.archived
+
+
+def test_artefact_unarchive(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.candidate, archived=True)
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"archived": False},
+    )
+
+    assert response.status_code == 200
+    assert not artefact.archived
+
+
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
     artefact1 = generator.gen_artefact(StageName.beta, version="1")
     artefact2 = generator.gen_artefact(StageName.beta, version="2")
@@ -279,6 +303,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "sha256": artefact.sha256,
         "image_url": artefact.image_url,
         "status": artefact.status,
+        "archived": artefact.archived,
         "family": artefact.family,
         "assignee": None,
         "due_date": (

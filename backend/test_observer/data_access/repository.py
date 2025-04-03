@@ -89,27 +89,14 @@ def get_artefacts_by_family(
             )
 
         case FamilyName.charm:
-            subquery = (
-                base_query.join(ArtefactBuild)
-                .add_columns(Artefact.track, ArtefactBuild.architecture)
-                .group_by(Artefact.track, ArtefactBuild.architecture)
-                .subquery()
-            )
-
             query = (
                 session.query(Artefact)
-                .join(ArtefactBuild)
-                .join(
-                    subquery,
+                .where(
                     and_(
-                        Artefact.stage == subquery.c.stage,
-                        Artefact.name == subquery.c.name,
-                        Artefact.created_at == subquery.c.max_created,
-                        Artefact.track == subquery.c.track,
-                        ArtefactBuild.architecture == subquery.c.architecture,
+                        Artefact.family == family,
+                        Artefact.archived.is_(False),
                     ),
                 )
-                .distinct()
             )
 
         case FamilyName.image:

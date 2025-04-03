@@ -61,6 +61,7 @@ class ArtefactResponse(BaseModel):
     stage: str
     family: str
     status: ArtefactStatus
+    archived: bool
     assignee: UserResponse | None
     due_date: date | None
     created_at: datetime
@@ -106,7 +107,8 @@ class ArtefactBuildResponse(BaseModel):
 
 
 class ArtefactPatch(BaseModel):
-    status: ArtefactStatus
+    status: ArtefactStatus | None = None
+    archived: bool | None = None
 
 
 class ArtefactVersionResponse(BaseModel):
