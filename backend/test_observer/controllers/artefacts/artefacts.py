@@ -18,6 +18,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
+from typing import get_args
 
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
@@ -28,7 +29,10 @@ from test_observer.data_access.models_enums import (
     ArtefactStatus,
     FamilyName,
     StageName,
-    family_stages,
+    SnapStage,
+    DebStage,
+    CharmStage,
+    ImageStage,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
@@ -132,8 +136,17 @@ def _validate_artefact_status(
 
 
 def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
-    ...
-    if stage not in family_stages[artefact.family]:
+    match artefact.family:
+        case FamilyName.snap:
+            stages = get_args(SnapStage)
+        case FamilyName.deb:
+            stages = get_args(DebStage)
+        case FamilyName.charm:
+            stages = get_args(CharmStage)
+        case FamilyName.image:
+            stages = get_args(ImageStage)
+    
+    if stage not in stages:
         raise HTTPException(
             status_code=400,
             detail=f"Stage {stage} is invalid for artefact family {artefact.family}",
@@ -151,6 +164,5 @@ def get_artefact_versions(
         .where(Artefact.series == artefact.series)
         .where(Artefact.repo == artefact.repo)
         .where(Artefact.os == artefact.os)
-        .where(Artefact.series == artefact.series)
         .order_by(Artefact.id.desc())
     )

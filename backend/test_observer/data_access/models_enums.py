@@ -16,6 +16,7 @@
 
 
 from enum import Enum
+from typing import Literal
 
 
 class FamilyName(str, Enum):
@@ -46,34 +47,29 @@ class StageName(str, Enum):
         return self._compare(other) <= 0
 
     def __gt__(self, other: str) -> bool:
-        return self._compare(other) > 1
+        return self._compare(other) > 0
 
     def __ge__(self, other: str) -> bool:
         return self._compare(other) >= 0
 
 
-family_stages: dict[FamilyName, list[StageName]] = {
-    FamilyName.snap: [
-        StageName.edge,
-        StageName.beta,
-        StageName.candidate,
-        StageName.stable,
-    ],
-    FamilyName.deb: [
-        StageName.proposed,
-        StageName.updates,
-    ],
-    FamilyName.charm: [
-        StageName.edge, 
-        StageName.beta, 
-        StageName.candidate, 
-        StageName.stable,
-    ],
-    FamilyName.image: [
-        StageName.pending, 
-        StageName.current,
-    ],
-}
+SnapStage = Literal[
+    StageName.edge,
+    StageName.beta,
+    StageName.candidate,
+    StageName.stable
+]
+
+DebStage = Literal[StageName.proposed, StageName.updates]
+
+CharmStage = Literal[
+    StageName.edge,
+    StageName.beta,
+    StageName.candidate,
+    StageName.stable
+]
+
+ImageStage = Literal[StageName.pending, StageName.current]
 
 
 class TestExecutionStatus(str, Enum):

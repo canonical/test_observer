@@ -36,7 +36,10 @@ from test_observer.controllers.artefacts.models import (
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
-    StageName,
+    SnapStage,
+    DebStage,
+    CharmStage,
+    ImageStage,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -64,30 +67,26 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
-    execution_stage: Literal[
-        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
-    ]
+    execution_stage: SnapStage
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.deb]
     series: str
     repo: str
-    execution_stage: Literal[StageName.proposed, StageName.updates]
+    execution_stage: DebStage
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.charm]
     revision: int
     track: str
-    execution_stage: Literal[
-        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
-    ]
+    execution_stage: CharmStage
 
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.image] = FamilyName.image
-    execution_stage: Literal[StageName.pending, StageName.current]
+    execution_stage: ImageStage
     os: str
     release: str
     sha256: str
