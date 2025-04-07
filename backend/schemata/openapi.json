@@ -1714,6 +1714,24 @@
         ],
         "title": "C3TestResultStatus"
       },
+      "CharmStage": {
+        "type": "string",
+        "enum": [
+          "edge",
+          "beta",
+          "candidate",
+          "stable"
+        ],
+        "title": "CharmStage"
+      },
+      "DebStage": {
+        "type": "string",
+        "enum": [
+          "proposed",
+          "updates"
+        ],
+        "title": "DebStage"
+      },
       "DeleteReruns": {
         "properties": {
           "test_execution_ids": {
@@ -1949,6 +1967,14 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ImageStage": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "current"
+        ],
+        "title": "ImageStage"
+      },
       "PendingRerun": {
         "properties": {
           "test_execution_id": {
@@ -2029,6 +2055,16 @@
         ],
         "title": "RerunRequest"
       },
+      "SnapStage": {
+        "type": "string",
+        "enum": [
+          "edge",
+          "beta",
+          "candidate",
+          "stable"
+        ],
+        "title": "SnapStage"
+      },
       "StageName": {
         "type": "string",
         "enum": [
@@ -2098,14 +2134,7 @@
             "title": "Track"
           },
           "execution_stage": {
-            "type": "string",
-            "enum": [
-              "edge",
-              "beta",
-              "candidate",
-              "stable"
-            ],
-            "title": "Execution Stage"
+            "$ref": "#/components/schemas/CharmStage"
           }
         },
         "type": "object",
@@ -2177,12 +2206,7 @@
             "title": "Repo"
           },
           "execution_stage": {
-            "type": "string",
-            "enum": [
-              "proposed",
-              "updates"
-            ],
-            "title": "Execution Stage"
+            "$ref": "#/components/schemas/DebStage"
           }
         },
         "type": "object",
@@ -2247,12 +2271,7 @@
             "default": "image"
           },
           "execution_stage": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "current"
-            ],
-            "title": "Execution Stage"
+            "$ref": "#/components/schemas/ImageStage"
           },
           "os": {
             "type": "string",
@@ -2353,14 +2372,7 @@
             "title": "Store"
           },
           "execution_stage": {
-            "type": "string",
-            "enum": [
-              "edge",
-              "beta",
-              "candidate",
-              "stable"
-            ],
-            "title": "Execution Stage"
+            "$ref": "#/components/schemas/SnapStage"
           }
         },
         "type": "object",

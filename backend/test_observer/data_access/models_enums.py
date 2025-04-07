@@ -16,7 +16,6 @@
 
 
 from enum import Enum
-from typing import Literal
 
 
 class FamilyName(str, Enum):
@@ -53,23 +52,28 @@ class StageName(str, Enum):
         return self._compare(other) >= 0
 
 
-SnapStage = Literal[
-    StageName.edge,
-    StageName.beta,
-    StageName.candidate,
-    StageName.stable
-]
+class SnapStage(str, Enum):
+    edge = StageName.edge.value
+    beta = StageName.beta.value
+    candidate = StageName.candidate.value
+    stable = StageName.stable.value
 
-DebStage = Literal[StageName.proposed, StageName.updates]
 
-CharmStage = Literal[
-    StageName.edge,
-    StageName.beta,
-    StageName.candidate,
-    StageName.stable
-]
+class DebStage(str, Enum):
+    proposed = StageName.proposed.value
+    updates = StageName.updates.value
 
-ImageStage = Literal[StageName.pending, StageName.current]
+
+class CharmStage(str, Enum):
+    edge = StageName.edge.value
+    beta = StageName.beta.value
+    candidate = StageName.candidate.value
+    stable = StageName.stable.value
+
+
+class ImageStage(str, Enum):
+    pending = StageName.pending.value
+    current = StageName.current.value
 
 
 class TestExecutionStatus(str, Enum):
