@@ -4,6 +4,7 @@ import logging
 import os
 
 from datetime import datetime, timedelta
+from collections.abc import Iterable
 
 import requests
 
@@ -16,17 +17,19 @@ logging.basicConfig(
 )
 
 
-def _validate_date(date_str):
+def _validate_date(date_str: str) -> datetime:
     """Validates the date format and returns a datetime object."""
     try:
         return datetime.strptime(date_str, DATE_FORMAT)
-    except ValueError:
+    except ValueError as err:
         raise argparse.ArgumentTypeError(
             f"Date '{date_str}' is not in the correct format: {DATE_FORMAT}"
-        )
+        ) from err
 
 
-def _save_test_results_report_data(date_string, test_results):
+def _save_test_results_report_data(
+    date_string: str, test_results: requests.Response
+) -> None:
     if not os.path.exists("test-results-reports"):
         os.makedirs("test-results-reports")
 
@@ -37,7 +40,7 @@ def _save_test_results_report_data(date_string, test_results):
     logging.info(f"Test results report data for {date_string} saved to {file_name}")
 
 
-def _fetch_test_results_report_data(date):
+def _fetch_test_results_report_data(date: datetime) -> None:
     date_string = date.strftime(DATE_FORMAT)
     if os.path.exists(f"test-results-reports/{date_string}.csv"):
         logging.info(f"Test results report data for {date_string} already exists.")
@@ -53,19 +56,17 @@ def _fetch_test_results_report_data(date):
     _save_test_results_report_data(date_string, test_results)
 
 
-def get_test_results_report_data(date):
+def get_test_results_report_data(date: datetime) -> Iterable[dict]:
     _fetch_test_results_report_data(date)
 
     date_string = date.strftime(DATE_FORMAT)
     file_name = f"test-results-reports/{date_string}.csv"
     logging.info(f"Reading test results report data from {file_name}")
-    with open(file_name, "r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            yield row
+    with open(file_name) as file:
+        yield from csv.DictReader(file)
 
 
-def write_data_summary(test_results_summary, output_file):
+def write_data_summary(test_results_summary: dict, output_file: str) -> None:
     with open(output_file, "w") as f:
         summary_writer = csv.writer(f)
         summary_writer.writerow(["Test Identifier", "ALL", "FAIL", "PASS", "SKIP"])
@@ -82,7 +83,7 @@ def write_data_summary(test_results_summary, output_file):
             )
 
 
-def main(start_date, end_date, output_file):
+def main(start_date: datetime, end_date: datetime, output_file: str) -> None:
     test_results_summary = {}
 
     current_date = start_date
@@ -154,5 +155,5 @@ if __name__ == "__main__":
 
     main(start_date, end_date, args.output_file)
     logging.info(
-        f"Test results report data for {args.start_date} to {args.end_date} saved to {args.output_file}"
+        f"Report for {args.start_date} to {args.end_date} saved to {args.output_file}"
     )
