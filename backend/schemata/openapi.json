@@ -1469,13 +1469,28 @@
       "ArtefactPatch": {
         "properties": {
           "status": {
-            "$ref": "#/components/schemas/ArtefactStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArtefactStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived"
           }
         },
         "type": "object",
-        "required": [
-          "status"
-        ],
         "title": "ArtefactPatch"
       },
       "ArtefactResponse": {
@@ -1539,6 +1554,10 @@
           "status": {
             "$ref": "#/components/schemas/ArtefactStatus"
           },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          },
           "assignee": {
             "anyOf": [
               {
@@ -1596,6 +1615,7 @@
           "stage",
           "family",
           "status",
+          "archived",
           "assignee",
           "due_date",
           "created_at",

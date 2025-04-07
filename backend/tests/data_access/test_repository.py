@@ -78,62 +78,38 @@ def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGene
 def test_get_artefacts_by_family_charm_unique(
     db_session: Session, generator: DataGenerator
 ):
-    """For latest charms, artefacts should be unique on name, track, and version"""
+    """For charms, artefacts should be returned using the archived field"""
     # Arrange
     specs = [
-        ("name-1", "track-1", "version-1"),
-        ("name-2", "track-1", "version-1"),
-        ("name-1", "track-2", "version-1"),
-        ("name-1", "track-1", "version-2"),
+        ("name-1", "1", False),
+        ("name-1", "2", True),
+        ("name-2", "3", False),
     ]
-    for name, track, version in specs:
+    for name, version, archived in specs:
         artefact = generator.gen_artefact(
             StageName.edge,
             family=FamilyName.charm,
             name=name,
             version=version,
-            track=track,
+            archived=archived,
             created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
         )
         generator.gen_artefact_build(
             artefact,
             "arch-1",
         )
+    expected_artefacts = {specs[0], specs[2]}
 
     # Act
     artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
 
     # Assert
-    assert len(artefacts) == 4
-
-
-def test_get_artefacts_by_family_charm_all_architectures(
-    db_session: Session, generator: DataGenerator
-):
-    """For latest charms, artefacts should return all known architectures"""
-    # Arrange
-    specs = [
-        ("version-3", "arch-1", 0),
-        ("version-2", "arch-1", -1),
-        ("version-1", "arch-2", -2),
-    ]
-    for version, arch, day in specs:
-        artefact = generator.gen_artefact(
-            StageName.edge,
-            family=FamilyName.charm,
-            name="name",
-            version=version,
-            track="track",
-            created_at=datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=day),
+    assert len(artefacts) == len(expected_artefacts)
+    assert {
+        (
+            artefact.name,
+            artefact.version,
+            artefact.archived,
         )
-        generator.gen_artefact_build(
-            artefact,
-            arch,
-        )
-
-    # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
-
-    # Assert
-    assert len(artefacts) == 2
-    assert {artefact.version for artefact in artefacts} == {"version-3", "version-1"}
+        for artefact in artefacts
+    } == expected_artefacts
