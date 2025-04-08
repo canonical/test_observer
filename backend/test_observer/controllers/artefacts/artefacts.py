@@ -163,5 +163,6 @@ def get_artefact_versions(
         .where(Artefact.series == artefact.series)
         .where(Artefact.repo == artefact.repo)
         .where(Artefact.os == artefact.os)
+        .where(Artefact.release == artefact.release)
         .order_by(Artefact.id.desc())
     )
