@@ -117,7 +117,9 @@ def write_data_summary(test_results_summary: dict, output_file: str) -> None:
 
 
 def main(start_date: datetime, end_date: datetime, output_file: str) -> None:
-    test_results_summary = defaultdict(lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy())
+    test_results_summary: dict = defaultdict(
+        lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy()
+    )
 
     current_date = start_date
     while current_date <= end_date:
