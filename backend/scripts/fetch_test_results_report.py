@@ -15,7 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+from collections import defaultdict
 import csv
+import io
 import logging
 import os
 from collections.abc import Iterable
@@ -25,11 +27,26 @@ import requests
 
 DATE_FORMAT = "%Y-%m-%d"
 TO_API_URL = os.environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
+EMPTY_TEST_RESULT_STATUS_COUNT = {
+    "FAILED": 0,
+    "PASSED": 0,
+    "SKIPPED": 0,
+}
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+
+
+def _is_test_result_relevant(test_result: dict) -> bool:
+    if "mir" in test_result["TestCase.name"]:
+        return False
+
+    if test_result["Artefact.family"] not in ["snap", "deb"]:
+        return False
+
+    return True
 
 
 def _validate_date(date_str: str) -> datetime:
@@ -43,7 +60,7 @@ def _validate_date(date_str: str) -> datetime:
 
 
 def _save_test_results_report_data(
-    date_string: str, test_results: requests.Response
+    date_string: str, test_results_response: requests.Response
 ) -> None:
     if not os.path.exists("test-results-reports"):
         os.makedirs("test-results-reports")
@@ -51,34 +68,31 @@ def _save_test_results_report_data(
     file_name = f"test-results-reports/{date_string}.csv"
     logging.info(f"Saving test results report data to {file_name}")
     with open(file_name, "w") as file:
-        file.write(test_results.text)
+        file.write(test_results_response.text)
     logging.info(f"Test results report data for {date_string} saved to {file_name}")
 
 
-def _fetch_test_results_report_data(date: datetime) -> None:
-    date_string = date.strftime(DATE_FORMAT)
-    if os.path.exists(f"test-results-reports/{date_string}.csv"):
-        logging.info(f"Test results report data for {date_string} already exists.")
-        return
-
-    logging.info(f"Fetching test results report data for {date_string}.")
-
-    next_date_string = (date + timedelta(days=1)).strftime(DATE_FORMAT)
-    test_results = requests.get(
-        f"{TO_API_URL}/v1/reports/test-results?start_date={date_string}T00:00:00&end_date={next_date_string}T00:00:00"
-    )
-    test_results.raise_for_status()
-    _save_test_results_report_data(date_string, test_results)
+def _read_test_results_report_data(date_string: str) -> Iterable[dict]:
+    file_name = f"test-results-reports/{date_string}.csv"
+    with open(file_name) as file:
+        yield from csv.DictReader(file)
 
 
 def get_test_results_report_data(date: datetime) -> Iterable[dict]:
-    _fetch_test_results_report_data(date)
-
     date_string = date.strftime(DATE_FORMAT)
-    file_name = f"test-results-reports/{date_string}.csv"
-    logging.info(f"Reading test results report data from {file_name}")
-    with open(file_name) as file:
-        yield from csv.DictReader(file)
+    if os.path.exists(f"test-results-reports/{date_string}.csv"):
+        logging.info(f"Test results report data for {date_string} already exists.")
+        yield from _read_test_results_report_data(date_string)
+    else:
+        logging.info(f"Fetching test results report data for {date_string}.")
+        next_date_string = (date + timedelta(days=1)).strftime(DATE_FORMAT)
+        test_results_response = requests.get(
+            f"{TO_API_URL}/v1/reports/test-results?start_date={date_string}T00:00:00&end_date={next_date_string}T00:00:00",
+            timeout=120,
+        )
+        test_results_response.raise_for_status()
+        _save_test_results_report_data(date_string, test_results_response)
+        yield from csv.DictReader(io.StringIO(test_results_response.text))
 
 
 def write_data_summary(test_results_summary: dict, output_file: str) -> None:
@@ -97,41 +111,39 @@ def write_data_summary(test_results_summary: dict, output_file: str) -> None:
                 ]
             )
 
+    logging.info(
+        f"Report for {args.start_date} to {args.end_date} saved to {args.output_file}"
+    )
+
 
 def main(start_date: datetime, end_date: datetime, output_file: str) -> None:
-    test_results_summary = {}
+    test_results_summary = defaultdict(lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy())
 
     current_date = start_date
     while current_date <= end_date:
-        current_date_file = get_test_results_report_data(current_date)
-
-        for row in current_date_file:
-            test_identifier = (
-                row["TestCase.template_id"]
-                if row["TestCase.template_id"]
-                else row["TestCase.name"]
-            )
-
-            if "mir" in test_identifier:
+        current_date_results = get_test_results_report_data(current_date)
+        for test_result in current_date_results:
+            if not _is_test_result_relevant(test_result):
                 continue
 
-            if test_identifier not in test_results_summary:
-                test_results_summary[test_identifier] = {
-                    "PASSED": 0,
-                    "SKIPPED": 0,
-                    "FAILED": 0,
-                }
-
-            test_results_summary[test_identifier][row["TestResult.status"]] += 1
+            test_identifier = (
+                test_result["TestCase.template_id"]
+                if test_result["TestCase.template_id"]
+                else test_result["TestCase.name"]
+            )
+            test_results_summary[test_identifier][test_result["TestResult.status"]] += 1
 
         current_date = current_date + timedelta(days=1)
 
     write_data_summary(test_results_summary, output_file)
 
 
-example_usage = """Example:
+example_usage = (
+    """Example:
 
-  python %(prog)s 2024-10-01 2024-10-31 test_results_report.csv"""
+  python %(prog)s --start_date 2024-10-01 --end_date 2024-10-31 """
+    "--output_file test_results_report.csv"
+)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -140,10 +152,18 @@ if __name__ == "__main__":
         epilog=example_usage,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("start_date", help="Start date, format: YYYY-MM-DD", type=str)
-    parser.add_argument("end_date", help="End date, format: YYYY-MM-DD", type=str)
     parser.add_argument(
-        "output_file", help="Output file for the test results report", type=str
+        "--start_date", help="Start date, format: YYYY-MM-DD", required=True, type=str
+    )
+    parser.add_argument(
+        "--end_date",
+        help="End date, format: YYYY-MM-DD",
+        required=False,
+        default=datetime.now().strftime(DATE_FORMAT),
+        type=str,
+    )
+    parser.add_argument(
+        "--output_file", help="Output file for the test results report", type=str
     )
 
     args = parser.parse_args()
@@ -156,19 +176,9 @@ if __name__ == "__main__":
             f"Start date '{start_date}' must be before end date '{end_date}'"
         )
 
-    today = datetime.now()
-    today = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    if end_date >= today:
-        raise argparse.ArgumentTypeError(
-            f"End date '{end_date}' must be before today '{today}'"
-        )
-
     if os.path.exists(args.output_file):
         raise argparse.ArgumentTypeError(
             f"Output file '{args.output_file}' already exists"
         )
 
     main(start_date, end_date, args.output_file)
-    logging.info(
-        f"Report for {args.start_date} to {args.end_date} saved to {args.output_file}"
-    )
