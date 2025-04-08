@@ -46,10 +46,34 @@ class StageName(str, Enum):
         return self._compare(other) <= 0
 
     def __gt__(self, other: str) -> bool:
-        return self._compare(other) > 1
+        return self._compare(other) > 0
 
     def __ge__(self, other: str) -> bool:
         return self._compare(other) >= 0
+
+
+class SnapStage(str, Enum):
+    edge = StageName.edge.value
+    beta = StageName.beta.value
+    candidate = StageName.candidate.value
+    stable = StageName.stable.value
+
+
+class DebStage(str, Enum):
+    proposed = StageName.proposed.value
+    updates = StageName.updates.value
+
+
+class CharmStage(str, Enum):
+    edge = StageName.edge.value
+    beta = StageName.beta.value
+    candidate = StageName.candidate.value
+    stable = StageName.stable.value
+
+
+class ImageStage(str, Enum):
+    pending = StageName.pending.value
+    current = StageName.current.value
 
 
 class TestExecutionStatus(str, Enum):
