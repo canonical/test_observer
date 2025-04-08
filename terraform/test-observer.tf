@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     juju = {
-      version = "~> 0.10.1"
+      version = "~> 0.20.0"
       source  = "juju/juju"
     }
   }
@@ -9,8 +9,24 @@ terraform {
 
 provider "juju" {}
 
+resource "juju_secret" "lego_creds" {
+  name = "lego-creds"
+  model = var.juju_model
+  value = {
+    httpreq-endpoint = "https://lego-certs.canonical.com"
+    httpreq-username = local.httpreq_username
+    httpreq-password = local.httpreq_password
+  }
+  info = "Credentials for lego charms"
+}
+
 variable "environment" {
   description = "The environment to deploy to (development, stg, production)"
+}
+
+variable "config_dir" {
+  description = "Directory containing config files"
+  type = string
 }
 
 variable "tls_secret_name" {
@@ -49,6 +65,12 @@ variable "backups_s3_bucket" {
   default     = ""
 }
 
+variable "restoring_backups_s3_bucket" {
+  description = "Database backups s3-integrator bucket"
+  type        = string
+  default     = ""
+}
+
 variable "backups_s3_path" {
   description = "Database backups s3-integrator path"
   type        = string
@@ -68,18 +90,19 @@ locals {
     stg         = "https://84a48d05b2444e47a7fa176b577bf85a@sentry.is.canonical.com//68",
     development = ""
   }
-  juju_model = "test-observer-${var.environment}"
+  httpreq_username = file("${var.config_dir}/httpreq_username")
+  httpreq_password = file("${var.config_dir}/httpreq_password")
 }
 
-resource "juju_application" "ingress" {
-  name  = "ingress"
-  model = local.juju_model
+resource "juju_application" "api_ingress" {
+  name  = "api-ingress"
+  model = var.juju_model
   trust = true
 
   charm {
     name     = "nginx-ingress-integrator"
     channel  = "latest/stable"
-    revision = 59
+    revision = 153
   }
 
   config = {
@@ -88,35 +111,101 @@ resource "juju_application" "ingress" {
   }
 }
 
+resource "juju_application" "frontend_ingress" {
+  name  = "frontend-ingress"
+  model = var.juju_model
+  trust = true
+
+  charm {
+    name     = "nginx-ingress-integrator"
+    channel  = "latest/stable"
+    revision = 153
+  }
+
+  config = {
+    tls-secret-name        = var.tls_secret_name
+    whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
+  }
+}
+
+resource "juju_application" "api_ingress_lego" {
+  name = "api-ingress-lego"
+  model = var.juju_model
+  trust = true
+
+  charm {
+    name = "lego"
+    channel = "4/stable"
+  }
+
+  config = {
+    server = "https://lego-certs.canonical.com"
+    email = "is-admin@canonical.com"
+    plugin = "httpreq"
+    plugin-config-secret-id = juju_secret.lego_creds.secret_id
+  }
+}
+
+resource "juju_application" "frontend_ingress_lego" {
+  name = "frontend-ingress-lego"
+  model = var.juju_model
+  trust = true
+
+  charm {
+    name = "lego"
+    channel = "4/stable"
+  }
+
+  config = {
+    server = "https://lego-certs.canonical.com"
+    email = "is-admin@canonical.com"
+    plugin = "httpreq"
+    plugin-config-secret-id = juju_secret.lego_creds.secret_id
+  }
+}
+
+resource "juju_access_secret" "lego_creds_access" {
+  applications = [
+    juju_application.api_ingress_lego.name,
+    juju_application.frontend_ingress_lego.name,
+  ]
+  model = var.juju_model
+  secret_id = juju_secret.lego_creds.secret_id
+}
+
 resource "juju_application" "pg" {
   name  = "db"
-  model = local.juju_model
+  model = var.juju_model
   trust = true
 
   charm {
     name     = "postgresql-k8s"
     channel  = "14/stable"
     base     = "ubuntu@22.04"
-    revision = 281
+    revision = 495
+  }
+
+  storage_directives = {
+    pgdata = "50G"
   }
 }
 
 resource "juju_application" "backup-restoring-db" {
   name  = "backup-restoring-db"
-  model = local.juju_model
+  model = var.juju_model
   trust = true
 
   charm {
     name     = "postgresql-k8s"
     channel  = "14/stable"
     base     = "ubuntu@22.04"
-    revision = 281
+    revision = 495
   }
 }
 
 resource "juju_application" "test-observer-api" {
   name  = "api"
-  model = local.juju_model
+  model = var.juju_model
 
   charm {
     name    = "test-observer-api"
@@ -135,7 +224,7 @@ resource "juju_application" "test-observer-api" {
 
 resource "juju_application" "test-observer-frontend" {
   name  = "frontend"
-  model = local.juju_model
+  model = var.juju_model
 
   charm {
     name    = "test-observer-frontend"
@@ -153,7 +242,7 @@ resource "juju_application" "test-observer-frontend" {
 
 resource "juju_application" "redis" {
   name  = "redis"
-  model = local.juju_model
+  model = var.juju_model
 
   charm {
     name     = "redis-k8s"
@@ -163,9 +252,9 @@ resource "juju_application" "redis" {
   }
 }
 
-resource "juju_application" "s3-integrator" {
-  name  = "backups-s3-integrator"
-  model = local.juju_model
+resource "juju_application" "main-s3-integrator" {
+  name  = "main-s3-integrator"
+  model = var.juju_model
 
   charm {
     name     = "s3-integrator"
@@ -183,32 +272,52 @@ resource "juju_application" "s3-integrator" {
   }
 }
 
+resource "juju_application" "backups-s3-integrator" {
+  name = "backup-s3-integrator"
+  model = var.juju_model
+
+  charm {
+    name     = "s3-integrator"
+    channel  = "latest/stable"
+    revision = 77
+    base     = "ubuntu@22.04"
+  }
+
+  config = {
+    endpoint     = var.backups_s3_endpoint
+    region       = var.backups_s3_region
+    bucket       = var.restoring_backups_s3_bucket
+    path         = var.backups_s3_path
+    s3-uri-style = var.backups_s3_uri_style
+  }
+}
+
 resource "juju_integration" "db-backups" {
-  model = local.juju_model
+  model = var.juju_model
 
   application {
     name = juju_application.pg.name
   }
 
   application {
-    name = juju_application.s3-integrator.name
+    name = juju_application.main-s3-integrator.name
   }
 }
 
 resource "juju_integration" "db-backups-restore" {
-  model = local.juju_model
+  model = var.juju_model
 
   application {
     name = juju_application.backup-restoring-db.name
   }
 
   application {
-    name = juju_application.s3-integrator.name
+    name = juju_application.backups-s3-integrator.name
   }
 }
 
 resource "juju_integration" "test-observer-api-database-access" {
-  model = local.juju_model
+  model = var.juju_model
 
   application {
     name = juju_application.test-observer-api.name
@@ -220,7 +329,7 @@ resource "juju_integration" "test-observer-api-database-access" {
 }
 
 resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
-  model = local.juju_model
+  model = var.juju_model
 
   application {
     name = juju_application.test-observer-api.name
@@ -232,33 +341,55 @@ resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
 }
 
 resource "juju_integration" "test-observer-frontend-ingress" {
-  model = local.juju_model
+  model = var.juju_model
 
   application {
     name = juju_application.test-observer-frontend.name
   }
 
   application {
-    name = juju_application.ingress.name
+    name = juju_application.frontend_ingress.name
   }
 }
 
-
 resource "juju_integration" "test-observer-api-ingress" {
-  model = local.juju_model
+  model = var.juju_model
 
   application {
     name = juju_application.test-observer-api.name
   }
 
   application {
-    name = juju_application.ingress.name
+    name = juju_application.api_ingress.name
   }
 }
 
+resource "juju_integration" "test-observer-api-ingress-lego" {
+  model = var.juju_model
+
+  application {
+    name = juju_application.api_ingress.name
+  }
+
+  application {
+    name = juju_application.api_ingress_lego.name
+  }
+}
+
+resource "juju_integration" "test-observer-fronted-ingress-lego" {
+  model = var.juju_model
+
+  application {
+    name = juju_application.frontend_ingress.name
+  }
+
+  application {
+    name = juju_application.frontend_ingress_lego.name
+  }
+}
 
 resource "juju_integration" "test-observer-redis-access" {
-  model = local.juju_model
+  model = var.juju_model
 
   application {
     name = juju_application.test-observer-api.name
