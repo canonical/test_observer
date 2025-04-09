@@ -25,14 +25,11 @@ from tests.data_generator import DataGenerator
 from fastapi.testclient import TestClient
 
 
-def _run_script(input_params: list[str], test_client: TestClient):
-    my_env = os.environ.copy()
-    my_env["TO_API_URL"] = f"{test_client.base_url}"
+def _run_script(input_params: list[str]):
     process = subprocess.Popen(
         ["python3", "scripts/fetch_test_results_report.py"] + input_params,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        env=my_env,
     )
     stdout, stderr = process.communicate()
     return stdout, stderr
@@ -58,19 +55,19 @@ def _verify_csv_file(file_name):
         ]
 
 
-def test_fetch_test_results_report_missing_start_date(test_client: TestClient):
-    _, stderr = _run_script([], test_client)
+def test_fetch_test_results_report_missing_start_date():
+    _, stderr = _run_script([])
     assert "error: the following arguments are required: --start_date" in str(stderr)
 
 
-def test_fetch_test_results_report_missing_output_file(test_client: TestClient):
-    _, stderr = _run_script(["--start_date", "2023-01-01"], test_client)
+def test_fetch_test_results_report_missing_output_file():
+    _, stderr = _run_script(["--start_date", "2023-01-01"])
     assert "error: the following arguments are required: --output_file" in str(stderr)
 
 
-def test_fetch_test_results_report_invalid_start_date(test_client: TestClient):
+def test_fetch_test_results_report_invalid_start_date():
     _, stderr = _run_script(
-        ["--start_date", "2023.01.15", "--output_file", "output.csv"], test_client
+        ["--start_date", "2023.01.15", "--output_file", "output.csv"]
     )
     assert "Date 2023.01.15 is not in the correct format: %Y-%m-%d" in str(stderr)
 
