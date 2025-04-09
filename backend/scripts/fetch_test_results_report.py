@@ -20,8 +20,12 @@ import csv
 import io
 import logging
 import os
+import httpx
 from collections.abc import Iterable
 from datetime import datetime, timedelta
+
+from fastapi.testclient import TestClient
+
 
 import requests
 
@@ -55,12 +59,12 @@ def _validate_date(date_str: str) -> datetime:
         return datetime.strptime(date_str, DATE_FORMAT)
     except ValueError as err:
         raise argparse.ArgumentTypeError(
-            f"Date '{date_str}' is not in the correct format: {DATE_FORMAT}"
+            f"Date {date_str} is not in the correct format: {DATE_FORMAT}"
         ) from err
 
 
 def _save_test_results_report_data(
-    date_string: str, test_results_response: requests.Response
+    date_string: str, test_results_response: httpx._models.Response | requests.Response
 ) -> None:
     if not os.path.exists("test-results-reports"):
         os.makedirs("test-results-reports")
@@ -78,7 +82,9 @@ def _read_test_results_report_data(date_string: str) -> Iterable[dict]:
         yield from csv.DictReader(file)
 
 
-def get_test_results_report_data(date: datetime) -> Iterable[dict]:
+def get_test_results_report_data(
+    date: datetime, client: TestClient | requests.Session
+) -> Iterable[dict]:
     date_string = date.strftime(DATE_FORMAT)
     if os.path.exists(f"test-results-reports/{date_string}.csv"):
         logging.info(f"Test results report data for {date_string} already exists.")
@@ -86,8 +92,12 @@ def get_test_results_report_data(date: datetime) -> Iterable[dict]:
     else:
         logging.info(f"Fetching test results report data for {date_string}.")
         next_date_string = (date + timedelta(days=1)).strftime(DATE_FORMAT)
-        test_results_response = requests.get(
-            f"{TO_API_URL}/v1/reports/test-results?start_date={date_string}T00:00:00&end_date={next_date_string}T00:00:00",
+        test_results_response = client.get(
+            f"{TO_API_URL}/v1/reports/test-results",
+            params={
+                "start_date": f"{date_string}T00:00:00",
+                "end_date": f"{next_date_string}T00:00:00",
+            },
             timeout=120,
         )
         test_results_response.raise_for_status()
@@ -111,19 +121,22 @@ def write_data_summary(test_results_summary: dict, output_file: str) -> None:
                 ]
             )
 
-    logging.info(
-        f"Report for {args.start_date} to {args.end_date} saved to {args.output_file}"
-    )
+    logging.info(f"Report saved to {output_file}")
 
 
-def main(start_date: datetime, end_date: datetime, output_file: str) -> None:
+def fetch_test_results_report(
+    start_date: datetime,
+    end_date: datetime,
+    output_file: str,
+    client: TestClient | requests.Session,
+) -> None:
     test_results_summary: dict = defaultdict(
         lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy()
     )
 
     current_date = start_date
     while current_date <= end_date:
-        current_date_results = get_test_results_report_data(current_date)
+        current_date_results = get_test_results_report_data(current_date, client)
         for test_result in current_date_results:
             if not _is_test_result_relevant(test_result):
                 continue
@@ -165,7 +178,10 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
-        "--output_file", help="Output file for the test results report", type=str
+        "--output_file",
+        help="Output file for the test results report",
+        required=True,
+        type=str,
     )
 
     args = parser.parse_args()
@@ -183,4 +199,6 @@ if __name__ == "__main__":
             f"Output file '{args.output_file}' already exists"
         )
 
-    main(start_date, end_date, args.output_file)
+    fetch_test_results_report(
+        start_date, end_date, args.output_file, requests.Session()
+    )
