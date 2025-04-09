@@ -25,7 +25,7 @@ from tests.data_generator import DataGenerator
 from fastapi.testclient import TestClient
 
 
-def _run_script(input_params: list[str]):
+def _run_script(input_params: list[str]) -> tuple[bytes, bytes]:
     process = subprocess.Popen(
         ["python3", "scripts/fetch_test_results_report.py"] + input_params,
         stdout=subprocess.PIPE,
@@ -35,7 +35,7 @@ def _run_script(input_params: list[str]):
     return stdout, stderr
 
 
-def _clean_files_created(output_file_name):
+def _clean_files_created(output_file_name: str) -> None:
     if os.path.exists(output_file_name):
         os.remove(output_file_name)
 
@@ -45,9 +45,9 @@ def _clean_files_created(output_file_name):
         os.rmdir("test-results-reports")
 
 
-def _verify_csv_file(file_name):
+def _verify_csv_file(file_name: str) -> None:
     assert os.path.exists(file_name)
-    with open(file_name, "r") as output_file:
+    with open(file_name) as output_file:
         lines = output_file.readlines()
         assert lines == [
             "Test Identifier,ALL,FAIL,PASS,SKIP\n",
