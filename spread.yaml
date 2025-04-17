@@ -4,13 +4,14 @@ workers: 1
 
 environment:
   CI: "$(HOST: echo $CI)"
+  CONCIERGE_JUJU_CHANNEL/juju_3_5: 3.5/stable
   CONCIERGE_JUJU_CHANNEL/juju_3_6: 3.6/stable
 
 backends:
   lxd:
     type: adhoc
     allocate: |
-      BASE="${BASE:-jammy}"
+      BASE="${BASE:-noble}"
       VM_NAME="${VM_NAME:-ubuntu-${BASE}-${RANDOM}}"
       DISK="${DISK:-20}"
       CPU="${CPU:-4}"
@@ -44,7 +45,7 @@ backends:
       lxc delete -f $instance_name
 
     systems:
-      - ubuntu-22.04:
+      - ubuntu-24.04:
           username: spread
           workers: 1
 
@@ -68,7 +69,7 @@ backends:
       sudo rm -f /etc/sudoers.d/99-spread-user
 
     systems:
-      - ubuntu-22.04:
+      - ubuntu-24.04:
           username: spread
           workers: 1
 
@@ -97,16 +98,16 @@ prepare: |
     systemctl mask unattended-upgrades.service
   fi
 
+  apt update
+  apt install -y pipx
+
   snap install --classic concierge
-  concierge prepare --trace -p microk8s
 
-  charmcraft pack --destructive-mode --verbose -p backend/charm
-  chown $(id -u):$(id -g) test-observer-api_ubuntu-22.04-amd64.charm
-  mv test-observer-api_ubuntu-22.04-amd64.charm backend/charm/test-observer-api_ubuntu-22.04-amd64.charm
+  concierge prepare --trace -p microk8s --extra-snaps astral-uv --extra-snaps juju-crashdump
 
-  charmcraft pack --destructive-mode --verbose -p frontend/charm
-  chown $(id -u):$(id -g) test-observer-frontend_ubuntu-22.04-amd64.charm
-  mv test-observer-frontend_ubuntu-22.04-amd64.charm frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm
+  pushd "$SPREAD_PATH"
+  chown $(id -u):$(id -g) $PWD/backend/charm/test-observer-api_ubuntu-22.04-amd64.charm
+  chown $(id -u):$(id -g) $PWD/frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm
 
 restore: |
   if [[ -z "${CI:-}" ]]; then

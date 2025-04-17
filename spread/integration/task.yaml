@@ -1,19 +1,16 @@
 summary: Run the charm integration test
 
-systems:
-  - ubuntu-22.04
-
 execute: |
-  cd $SPREAD_PATH
+  pipx install git+https://github.com/canonical/juju-k8s-crashdump.git
 
-  backend_oci_image="$(cat backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
-  frontend_oci_image="$(cat frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
+  backend_oci_image="$(cat ../../backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
+  frontend_oci_image="$(cat ../../frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
 
-  juju deploy ./backend/charm/test-observer-api_ubuntu-22.04-amd64.charm api \
+  juju deploy "$PWD/../../backend/charm/test-observer-api_ubuntu-22.04-amd64.charm" api \
   --config hostname=test-observer-api.test \
   --resource api-image="${backend_oci_image}"
 
-  juju deploy ./frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm frontend \
+  juju deploy "$PWD/../../frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm" frontend \
   --config hostname=test-observer-frontend.test \
   --config test-observer-api-scheme='http://' \
   --resource frontend-image="${frontend_oci_image}"
@@ -31,13 +28,19 @@ execute: |
   juju relate api redis
   juju relate api frontend
 
-  juju wait-for application frontend --timeout=30m
+  juju wait-for application frontend --timeout=30m | juju-crashdump
   juju show-status-log frontend/0
 
   juju wait-for application api --timeout=30m
   juju show-status-log api/0
 
   juju debug-log --level=DEBUG
+
+  microk8s config > kube-config
+  pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s
+
+artifacts:
+  - juju-k8s-crashdump
 
 restore: |
   if [[ -z "${CI:-}" ]]; then
