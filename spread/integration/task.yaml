@@ -34,9 +34,9 @@ execute: |
   juju wait-for application api --timeout=30m
   juju show-status-log api/0
 
-  juju run api/leader add-user launchpad-email=omar.selo@canonical.com --wait 180
+  juju run api/leader add-user launchpad-email=omar.selo@canonical.com --wait 3m
 
-  PGPASSWORD=$(juju run db/leader get-password --wait 180 | grep password | awk '{print $2;}')
+  PGPASSWORD=$(juju run db/leader get-password --wait 3m | grep password | awk '{print $2;}')
   PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
   PGUSER=operator
   PGDATABASE=test_observer_db
