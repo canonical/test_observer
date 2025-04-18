@@ -45,10 +45,12 @@ router = APIRouter()
 class StartTestExecutionController:
     def __init__(
         self,
-        request: StartSnapTestExecutionRequest
-        | StartDebTestExecutionRequest
-        | StartCharmTestExecutionRequest
-        | StartImageTestExecutionRequest = Body(discriminator="family"),
+        request: (
+            StartSnapTestExecutionRequest
+            | StartDebTestExecutionRequest
+            | StartCharmTestExecutionRequest
+            | StartImageTestExecutionRequest
+        ) = Body(discriminator="family"),
         db: Session = Depends(get_db),
     ):
         self.request = request
@@ -128,6 +130,7 @@ class StartTestExecutionController:
                 "family": self.request.family,
                 "store": getattr(self.request, "store", ""),
                 "track": getattr(self.request, "track", ""),
+                "branch": getattr(self.request, "branch", ""),
                 "series": getattr(self.request, "series", ""),
                 "repo": getattr(self.request, "repo", ""),
                 "os": getattr(self.request, "os", ""),

@@ -123,9 +123,11 @@ class Artefact(Base):
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
+    # Snap specific fields
+    store: Mapped[str] = mapped_column(default="")
+
     # Snap and Charm specific fields
     track: Mapped[str] = mapped_column(default="")
-    store: Mapped[str] = mapped_column(default="")
     branch: Mapped[str] = mapped_column(String(200), default="")
 
     # Deb specific fields
