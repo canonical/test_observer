@@ -46,6 +46,8 @@ class ArtefactPageInfoSection extends StatelessWidget {
           Text('track: ${artefact.track}', style: fontStyle),
         if (artefact.store.isNotEmpty)
           Text('store: ${artefact.store}', style: fontStyle),
+        if (artefact.branch.isNotEmpty)
+          Text('branch: ${artefact.branch}', style: fontStyle),
         if (artefact.series.isNotEmpty)
           Text('series: ${artefact.series}', style: fontStyle),
         if (artefact.repo.isNotEmpty)
