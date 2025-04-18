@@ -243,7 +243,7 @@ class TestFamilyIndependentTests:
         assert artefact.release == request.get("release", "")
         assert artefact.sha256 == request.get("sha256", "")
         assert artefact.owner == request.get("owner", "")
-        assert artefact.image_url == str(request.get("image_url", ''))
+        assert artefact.image_url == str(request.get("image_url", ""))
         assert artefact.store == request.get("store", "")
         assert artefact.track == request.get("track", "")
         assert artefact.series == request.get("series", "")
@@ -410,3 +410,19 @@ def test_validates_stage_for_charms(execute: Execute, invalid_stage: StageName):
     response = execute({**charm_test_request, "execution_stage": invalid_stage})
 
     assert response.status_code == 422
+
+
+def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session):
+    response = execute(snap_test_request)
+    te1 = db_session.get(TestExecution, response.json()["id"])
+
+    request_with_branch = {
+        **snap_test_request,
+        "branch": "test-branch",
+        "ci_link": "http://someother.link",
+    }
+    response = execute(request_with_branch)
+    te2 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te2
+    assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
