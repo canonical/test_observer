@@ -49,6 +49,12 @@ const _snapColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStageCell,
   ),
   (
+    name: 'Branch',
+    queryParam: ArtefactSortingQuery.branch,
+    flex: 1,
+    cellBuilder: _buildBranchCell,
+  ),
+  (
     name: 'Due date',
     queryParam: ArtefactSortingQuery.dueDate,
     flex: 1,
@@ -157,6 +163,12 @@ const _charmColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStageCell,
   ),
   (
+    name: 'Branch',
+    queryParam: ArtefactSortingQuery.branch,
+    flex: 1,
+    cellBuilder: _buildBranchCell,
+  ),
+  (
     name: 'Due date',
     queryParam: ArtefactSortingQuery.dueDate,
     flex: 1,
@@ -250,6 +262,9 @@ Widget _buildTrackCell(BuildContext context, Artefact artefact) =>
 
 Widget _buildStageCell(BuildContext context, Artefact artefact) =>
     Text(artefact.stage.name);
+
+Widget _buildBranchCell(BuildContext context, Artefact artefact) =>
+    Text(artefact.branch);
 
 Widget _buildSeriesCell(BuildContext context, Artefact artefact) =>
     Text(artefact.series);

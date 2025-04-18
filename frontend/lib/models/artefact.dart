@@ -35,6 +35,7 @@ class Artefact with _$Artefact {
     required String family,
     @Default('') String track,
     @Default('') String store,
+    @Default('') String branch,
     @Default('') String series,
     @Default('') String repo,
     @Default('') String os,

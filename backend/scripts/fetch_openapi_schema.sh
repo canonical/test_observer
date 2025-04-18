@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd backend
+
 poetry install
 
 echo "Starting a transient copy of test-observer-api to fetch the OpenAPI schema..."

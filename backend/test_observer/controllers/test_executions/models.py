@@ -67,6 +67,7 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
+    branch: str | None = ""
     execution_stage: SnapStage
 
 
@@ -81,6 +82,7 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.charm]
     revision: int
     track: str
+    branch: str | None = ""
     execution_stage: CharmStage
 
 

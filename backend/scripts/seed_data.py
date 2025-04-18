@@ -41,7 +41,13 @@ from test_observer.controllers.test_executions.models import (
     StartSnapTestExecutionRequest,
 )
 from test_observer.data_access.models import Artefact
-from test_observer.data_access.models_enums import FamilyName, SnapStage, DebStage, CharmStage, ImageStage
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    SnapStage,
+    DebStage,
+    CharmStage,
+    ImageStage,
+)
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
 from tests.fake_launchpad_api import FakeLaunchpadAPI
@@ -61,6 +67,7 @@ START_TEST_EXECUTION_REQUESTS = [
         revision=1,
         track="22",
         store="ubuntu",
+        branch="test-branch",
         arch="armhf",
         execution_stage=SnapStage.beta,
         environment="rpi2",

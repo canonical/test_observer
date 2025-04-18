@@ -86,6 +86,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "version": test_execution.artefact_build.artefact.version,
                 "track": test_execution.artefact_build.artefact.track,
                 "store": test_execution.artefact_build.artefact.store,
+                "branch": test_execution.artefact_build.artefact.branch,
                 "series": test_execution.artefact_build.artefact.series,
                 "repo": test_execution.artefact_build.artefact.repo,
                 "os": test_execution.artefact_build.artefact.os,

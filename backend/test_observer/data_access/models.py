@@ -123,11 +123,18 @@ class Artefact(Base):
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
-    # Family specific fields
-    track: Mapped[str] = mapped_column(default="")
+    # Snap specific fields
     store: Mapped[str] = mapped_column(default="")
+
+    # Snap and Charm specific fields
+    track: Mapped[str] = mapped_column(default="")
+    branch: Mapped[str] = mapped_column(String(200), default="")
+
+    # Deb specific fields
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+
+    # Image specific fields
     os: Mapped[str] = mapped_column(String(200), default="")
     release: Mapped[str] = mapped_column(String(200), default="")
     sha256: Mapped[str] = mapped_column(String(200), default="")
@@ -153,6 +160,7 @@ class Artefact(Base):
             "name",
             "version",
             "track",
+            "branch",
             postgresql_where=column("family") == FamilyName.snap.name,
             unique=True,
         ),
@@ -161,6 +169,7 @@ class Artefact(Base):
             "name",
             "version",
             "track",
+            "branch",
             postgresql_where=column("family") == FamilyName.charm.name,
             unique=True,
         ),
@@ -506,9 +515,9 @@ class ArtefactBuildEnvironmentReview(Base):
     __tablename__ = "artefact_build_environment_review"
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
-    review_decision: Mapped[
-        list[ArtefactBuildEnvironmentReviewDecision]
-    ] = mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    review_decision: Mapped[list[ArtefactBuildEnvironmentReviewDecision]] = (
+        mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    )
     review_comment: Mapped[str] = mapped_column(default="")
 
     environment_id: Mapped[int] = mapped_column(
