@@ -334,6 +334,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "version": artefact.version,
         "track": artefact.track,
         "store": artefact.store,
+        "branch": artefact.branch,
         "series": artefact.series,
         "repo": artefact.repo,
         "stage": artefact.stage,
