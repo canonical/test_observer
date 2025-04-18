@@ -72,8 +72,8 @@ def test_get_artefacts_treats_branches_as_unique(
     test_client: TestClient,
     generator: DataGenerator,
 ):
-    a1 = generator.gen_artefact(StageName.beta)
-    a2 = generator.gen_artefact(StageName.beta, branch="test-branch")
+    generator.gen_artefact(StageName.beta)
+    generator.gen_artefact(StageName.beta, branch="test-branch")
 
     response = test_client.get("/v1/artefacts")
 

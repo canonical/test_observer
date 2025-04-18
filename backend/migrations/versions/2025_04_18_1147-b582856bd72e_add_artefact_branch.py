@@ -44,13 +44,13 @@ def downgrade() -> None:
     op.drop_column("artefact", "branch")
 
 
-def _add_branch_column():
+def _add_branch_column() -> None:
     op.add_column("artefact", sa.Column("branch", sa.String(length=200)))
     op.execute("UPDATE artefact SET branch = '' WHERE branch is NULL")
     op.alter_column("artefact", "branch", nullable=False)
 
 
-def _change_unique_constraints():
+def _change_unique_constraints() -> None:
     op.drop_index("unique_snap", "artefact")
     op.drop_index("unique_charm", "artefact")
 
@@ -70,7 +70,7 @@ def _change_unique_constraints():
     )
 
 
-def _revert_unique_constraints():
+def _revert_unique_constraints() -> None:
     op.drop_index("unique_snap", "artefact")
     op.drop_index("unique_charm", "artefact")
 
@@ -88,4 +88,3 @@ def _revert_unique_constraints():
         unique=True,
         postgresql_where=sa.text("family = 'charm'"),
     )
-    # ### end Alembic commands ###
