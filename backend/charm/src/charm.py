@@ -297,7 +297,7 @@ class TestObserverBackendCharm(CharmBase):
     def _on_delete_artefact_action(self, event) -> None:
         artefact_id = event.params["artefact-id"]
         process = self.api_container.exec(
-            command=["python", "scripts/delete_artefact.py", str(artefact_id)],
+            command=["python", "-m", "scripts.delete_artefact", str(artefact_id)],
             working_dir="/home/app",
             environment=self._app_environment,
         )
@@ -310,7 +310,7 @@ class TestObserverBackendCharm(CharmBase):
     def _on_add_user_action(self, event) -> None:
         launchpad_email = event.params["launchpad-email"]
         process = self.api_container.exec(
-            command=["python", "scripts/add_user.py", launchpad_email],
+            command=["python", "-m", "scripts.add_user", launchpad_email],
             working_dir="/home/app",
             environment=self._app_environment,
         )
@@ -324,7 +324,7 @@ class TestObserverBackendCharm(CharmBase):
         artefact_id = event.params["artefact-id"]
         user_id = event.params["user-id"]
         process = self.api_container.exec(
-            command=["python", "scripts/change_assignee.py", str(artefact_id), str(user_id)],
+            command=["python", "-m", "scripts.change_assignee", str(artefact_id), str(user_id)],
             working_dir="/home/app",
             environment=self._app_environment,
         )

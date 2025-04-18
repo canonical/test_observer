@@ -34,6 +34,15 @@ execute: |
   juju wait-for application api --timeout=30m
   juju show-status-log api/0
 
+  juju run api/leader add-user launchpad-email=omar.selo@canonical.com --wait 3m
+
+  PGPASSWORD=$(juju run db/leader get-password --wait 3m | grep password | awk '{print $2;}')
+  PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
+  PGUSER=operator
+  PGDATABASE=test_observer_db
+
+  juju ssh --container postgresql db/leader "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where launchpad_email='omar.selo@canonical.com'\"" | grep omar-selo
+
   juju debug-log --level=DEBUG
 
   microk8s config > kube-config
