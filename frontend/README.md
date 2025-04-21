@@ -4,12 +4,25 @@ The frontend of Test Observer is a web application developed in Flutter.
 
 ## Setup
 
-Follow official flutter installation [instructions](https://docs.flutter.dev/get-started/install/linux).
+Install flutter snap:
+
+```bash
+$ sudo snap install flutter --classic
+```
+
+Change flutter to the version used in production:
+
+```bash
+$ cd ~/snap/flutter/common/flutter
+$ flutter checkout 3.22.3
+```
 
 Then install dependencies via:
 ```bash
 $ flutter pub get
 ```
+
+And finally, make sure to install chrome.
 
 ## Run
 

@@ -1525,6 +1525,10 @@
             "type": "string",
             "title": "Store"
           },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
           "series": {
             "type": "string",
             "title": "Series"
@@ -1615,6 +1619,7 @@
           "version",
           "track",
           "store",
+          "branch",
           "series",
           "repo",
           "os",
@@ -2133,6 +2138,11 @@
             "type": "string",
             "title": "Track"
           },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
+          },
           "execution_stage": {
             "$ref": "#/components/schemas/CharmStage"
           }
@@ -2370,6 +2380,11 @@
           "store": {
             "type": "string",
             "title": "Store"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
           },
           "execution_stage": {
             "$ref": "#/components/schemas/SnapStage"

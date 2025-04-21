@@ -47,10 +47,7 @@ def _is_test_result_relevant(test_result: dict) -> bool:
     if "mir" in test_result["TestCase.name"]:
         return False
 
-    if test_result["Artefact.family"] not in ["snap", "deb"]:
-        return False
-
-    return True
+    return test_result["Artefact.family"] in ["snap", "deb"]
 
 
 def _validate_date(date_str: str) -> datetime:
