@@ -2139,14 +2139,7 @@
             "title": "Track"
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Branch",
             "default": ""
           },
@@ -2389,14 +2382,7 @@
             "title": "Store"
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Branch",
             "default": ""
           },
