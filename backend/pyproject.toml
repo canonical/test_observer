@@ -39,7 +39,7 @@ metadata = "true"
 tagged-metadata = "true"
 
 [tool.ruff]
-select = [
+lint.select = [
     "E",
     "F",
     "B",
@@ -54,7 +54,7 @@ select = [
     "PLE",
     "TID252",
 ]
-ignore = ["ANN201", "ANN003", "N999", "ANN101", "ANN204", "N818", "B008"]
+lint.ignore = ["ANN201", "ANN003", "N999", "ANN204", "N818", "B008"]
 
 [tool.mypy]
 exclude = "charm/*"
