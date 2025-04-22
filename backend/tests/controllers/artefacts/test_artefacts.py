@@ -317,10 +317,9 @@ def test_artefact_promote_unknown_stage(
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
     artefact1 = generator.gen_artefact(StageName.beta, version="1")
     artefact2 = generator.gen_artefact(StageName.beta, version="2")
-    artefact3 = generator.gen_artefact(StageName.beta, version="3")
+    artefact3 = generator.gen_artefact(StageName.beta, version="3", branch="test")
 
     expected_result = [
-        {"version": "3", "artefact_id": artefact3.id},
         {"version": "2", "artefact_id": artefact2.id},
         {"version": "1", "artefact_id": artefact1.id},
     ]
@@ -329,9 +328,13 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     assert response.status_code == 200
     assert response.json() == expected_result
 
-    response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
+    response = test_client.get(f"/v1/artefacts/{artefact2.id}/versions")
     assert response.status_code == 200
     assert response.json() == expected_result
+
+    response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
+    assert response.status_code == 200
+    assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 
 
 def _assert_get_artefacts_response(

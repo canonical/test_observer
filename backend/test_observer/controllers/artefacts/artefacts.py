@@ -160,6 +160,7 @@ def get_artefact_versions(
         select(Artefact)
         .where(Artefact.name == artefact.name)
         .where(Artefact.track == artefact.track)
+        .where(Artefact.branch == artefact.branch)
         .where(Artefact.series == artefact.series)
         .where(Artefact.repo == artefact.repo)
         .where(Artefact.os == artefact.os)
