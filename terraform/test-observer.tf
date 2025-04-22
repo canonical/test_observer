@@ -199,7 +199,7 @@ resource "juju_integration" "db-backups-restore" {
   model = local.juju_model
 
   application {
-    name = juju_application.db-backups-restore.name
+    name = juju_application.backup-restoring-db.name
   }
 
   application {
