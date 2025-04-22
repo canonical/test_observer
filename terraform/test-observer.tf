@@ -101,6 +101,19 @@ resource "juju_application" "pg" {
   }
 }
 
+resource "juju_application" "backup-restoring-db" {
+  name  = "backup-restoring-db"
+  model = local.juju_model
+  trust = true
+
+  charm {
+    name     = "postgresql-k8s"
+    channel  = "14/stable"
+    base     = "ubuntu@22.04"
+    revision = 281
+  }
+}
+
 resource "juju_application" "test-observer-api" {
   name  = "api"
   model = local.juju_model
@@ -171,6 +184,18 @@ resource "juju_application" "s3-integrator" {
 }
 
 resource "juju_integration" "db-backups" {
+  model = local.juju_model
+
+  application {
+    name = juju_application.pg.name
+  }
+
+  application {
+    name = juju_application.s3-integrator.name
+  }
+}
+
+resource "juju_integration" "db-backups-restore" {
   model = local.juju_model
 
   application {
