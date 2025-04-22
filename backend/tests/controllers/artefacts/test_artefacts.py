@@ -68,6 +68,20 @@ def test_get_relevant_image_artefacts(
     assert response_data[0]["sha256"] == new_image.sha256
 
 
+def test_get_artefacts_treats_branches_as_unique(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    generator.gen_artefact(StageName.beta)
+    generator.gen_artefact(StageName.beta, branch="test-branch")
+
+    response = test_client.get("/v1/artefacts")
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert len(response_data) == 2
+
+
 def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     """Should be able to fetch an existing artefact"""
     u = generator.gen_user()
@@ -334,6 +348,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "version": artefact.version,
         "track": artefact.track,
         "store": artefact.store,
+        "branch": artefact.branch,
         "series": artefact.series,
         "repo": artefact.repo,
         "stage": artefact.stage,

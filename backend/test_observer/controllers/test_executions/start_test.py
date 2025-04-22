@@ -45,10 +45,12 @@ router = APIRouter()
 class StartTestExecutionController:
     def __init__(
         self,
-        request: StartSnapTestExecutionRequest
-        | StartDebTestExecutionRequest
-        | StartCharmTestExecutionRequest
-        | StartImageTestExecutionRequest = Body(discriminator="family"),
+        request: (
+            StartSnapTestExecutionRequest
+            | StartDebTestExecutionRequest
+            | StartCharmTestExecutionRequest
+            | StartImageTestExecutionRequest
+        ) = Body(discriminator="family"),
         db: Session = Depends(get_db),
     ):
         self.request = request
@@ -119,23 +121,34 @@ class StartTestExecutionController:
         )
 
     def create_artefact(self) -> None:
+        filter_kwargs = {
+            "name": self.request.name,
+            "version": self.request.version,
+            "family": self.request.family,
+        }
+
+        match self.request:
+            case StartSnapTestExecutionRequest():
+                filter_kwargs["store"] = self.request.store
+                filter_kwargs["track"] = self.request.track
+                filter_kwargs["branch"] = self.request.branch
+            case StartCharmTestExecutionRequest():
+                filter_kwargs["track"] = self.request.track
+                filter_kwargs["branch"] = self.request.branch
+            case StartDebTestExecutionRequest():
+                filter_kwargs["series"] = self.request.series
+                filter_kwargs["repo"] = self.request.repo
+            case StartImageTestExecutionRequest():
+                filter_kwargs["os"] = self.request.os
+                filter_kwargs["release"] = self.request.release
+                filter_kwargs["sha256"] = self.request.sha256
+                filter_kwargs["owner"] = self.request.owner
+                filter_kwargs["image_url"] = str(self.request.image_url)
+
         self.artefact = get_or_create(
             self.db,
             Artefact,
-            filter_kwargs={
-                "name": self.request.name,
-                "version": self.request.version,
-                "family": self.request.family,
-                "store": getattr(self.request, "store", ""),
-                "track": getattr(self.request, "track", ""),
-                "series": getattr(self.request, "series", ""),
-                "repo": getattr(self.request, "repo", ""),
-                "os": getattr(self.request, "os", ""),
-                "release": getattr(self.request, "release", ""),
-                "sha256": getattr(self.request, "sha256", ""),
-                "owner": getattr(self.request, "owner", ""),
-                "image_url": getattr(self.request, "image_url", ""),
-            },
+            filter_kwargs=filter_kwargs,
             creation_kwargs={"stage": self.request.execution_stage},
         )
 

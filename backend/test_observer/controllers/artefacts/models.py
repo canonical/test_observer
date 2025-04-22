@@ -52,6 +52,7 @@ class ArtefactResponse(BaseModel):
     version: str
     track: str
     store: str
+    branch: str
     series: str
     repo: str
     os: str
