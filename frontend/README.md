@@ -10,11 +10,17 @@ Install flutter snap:
 $ sudo snap install flutter --classic
 ```
 
-Change flutter to the version used in production:
+Check the version of flutter installed:
+
+```bash
+$ flutter --version
+```
+
+Change flutter to the version used in production (note that the below directory doesn't get created until you run some flutter command like `flutter --version`):
 
 ```bash
 $ cd ~/snap/flutter/common/flutter
-$ flutter checkout 3.22.3
+$ git checkout 3.22.3
 ```
 
 Then install dependencies via:
