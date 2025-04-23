@@ -280,29 +280,6 @@
       }
     },
     "/v1/test-executions/reruns": {
-      "get": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Get Rerun Requests",
-        "operationId": "get_rerun_requests_v1_test_executions_reruns_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PendingRerun"
-                  },
-                  "type": "array",
-                  "title": "Response Get Rerun Requests V1 Test Executions Reruns Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "test-executions"
@@ -310,14 +287,14 @@
         "summary": "Create Rerun Requests",
         "operationId": "create_rerun_requests_v1_test_executions_reruns_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RerunRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -325,11 +302,78 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/PendingRerun"
                   },
-                  "type": "array",
                   "title": "Response Create Rerun Requests V1 Test Executions Reruns Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Get Rerun Requests",
+        "operationId": "get_rerun_requests_v1_test_executions_reruns_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FamilyName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingRerun"
+                  },
+                  "title": "Response Get Rerun Requests V1 Test Executions Reruns Get"
                 }
               }
             }
@@ -353,14 +397,14 @@
         "summary": "Delete Rerun Requests",
         "operationId": "delete_rerun_requests_v1_test_executions_reruns_delete",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DeleteReruns"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
