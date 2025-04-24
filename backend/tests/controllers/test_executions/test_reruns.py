@@ -237,9 +237,9 @@ def test_get_with_family(
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(family=FamilyName.charm).json() == [
-        test_execution_to_pending_rerun(te2),
-    ]
+    assert get(family=FamilyName.snap).json() == [test_execution_to_pending_rerun(te1)]
+    assert get(family=FamilyName.charm).json() == [test_execution_to_pending_rerun(te2)]
+    assert get(family=FamilyName.image).json() == []
 
 
 def test_post_delete_get(
