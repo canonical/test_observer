@@ -18,7 +18,7 @@
 import contextlib
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, asc
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import (
@@ -86,6 +86,7 @@ def get_rerun_requests(
             joinedload(TestExecutionRerunRequest.test_execution)
             .joinedload(TestExecution.environment),
         )
+        .order_by(asc(TestExecutionRerunRequest.created_at))
     )
 
     if family is not None:

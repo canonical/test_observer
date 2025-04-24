@@ -222,10 +222,7 @@ def test_get_with_limit(
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(limit=1).json() in [
-        [test_execution_to_pending_rerun(te1)],
-        [test_execution_to_pending_rerun(te2)],
-    ]
+    assert get(limit=1).json() == [test_execution_to_pending_rerun(te1)]
 
 
 def test_get_with_family(
