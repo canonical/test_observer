@@ -25,7 +25,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from test_observer.data_access.models import TestExecution
-from test_observer.data_access.models_enums import StageName
+from test_observer.data_access.models_enums import StageName, FamilyName
 from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
@@ -41,8 +41,16 @@ def post(test_client: TestClient):
 
 @pytest.fixture
 def get(test_client: TestClient):
-    def get_helper() -> Response:
-        return test_client.get(reruns_url)
+    def get_helper(
+            family: FamilyName | None = None,
+            limit: int | None = None,
+        ) -> Response:
+        params: dict[str, str | int] = {}
+        if family is not None:
+            params["family"] = family.value
+        if limit is not None:
+            params["limit"] = limit
+        return test_client.get(reruns_url, params=params)
 
     return get_helper
 
@@ -56,7 +64,7 @@ def delete(test_client: TestClient):
 
 
 Post: TypeAlias = Callable[[Any], Response]
-Get: TypeAlias = Callable[[], Response]
+Get: TypeAlias = Callable[..., Response]
 Delete: TypeAlias = Callable[[Any], Response]
 
 
@@ -203,6 +211,35 @@ def test_get_after_post_with_two_test_execution_ids(
         test_execution_to_pending_rerun(te1),
         test_execution_to_pending_rerun(te2),
     ]
+
+
+def test_get_with_limit(
+    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
+):
+    te1 = test_execution
+    te2 = generator.gen_test_execution(te1.artefact_build, te1.environment)
+
+    post({"test_execution_ids": [te1.id]})
+    post({"test_execution_ids": [te2.id]})
+
+    assert get(limit=1).json() == [test_execution_to_pending_rerun(te1)]
+
+
+def test_get_with_family(
+    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
+):
+    te1 = test_execution
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    e2 = generator.gen_environment("e2")
+    te2 = generator.gen_test_execution(ab, e2)
+
+    post({"test_execution_ids": [te1.id]})
+    post({"test_execution_ids": [te2.id]})
+
+    assert get(family=FamilyName.snap).json() == [test_execution_to_pending_rerun(te1)]
+    assert get(family=FamilyName.charm).json() == [test_execution_to_pending_rerun(te2)]
+    assert get(family=FamilyName.image).json() == []
 
 
 def test_post_delete_get(
