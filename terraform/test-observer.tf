@@ -130,7 +130,7 @@ resource "juju_application" "test-observer-api" {
     sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
   }
 
-  units = 1
+  units = 3
 }
 
 resource "juju_application" "test-observer-frontend" {
