@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/enriched_test_execution.dart';
@@ -24,7 +25,7 @@ part 'enriched_test_executions.g.dart';
 
 @riverpod
 Future<List<EnrichedTestExecution>> enrichedTestExecutions(
-  EnrichedTestExecutionsRef ref,
+  Ref ref,
   int artefactId,
 ) async {
   final result = <EnrichedTestExecution>[];
