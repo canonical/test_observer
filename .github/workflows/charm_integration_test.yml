@@ -65,7 +65,7 @@ jobs:
         working-directory: "${{ matrix.charm }}/charm"
       
       - name: Upload charm artifact
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.charm }}-charm
           path: "${{ matrix.charm }}/charm/*.charm"
@@ -144,14 +144,14 @@ jobs:
 
       - name: Upload charmcraft logs
         if: failure()
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: charmcraft-logs-${{ steps.sanitize.outputs.sanitized_suite }}
           path: /home/ubuntu/.local/state/charmcraft/log/*
       
       - name: Upload spread artifacts
         if: failure()
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: spread-artifacts-${{ steps.sanitize.outputs.sanitized_suite }}
           path: ./artifacts
