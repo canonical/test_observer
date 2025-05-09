@@ -22,7 +22,7 @@ import 'test_execution.dart';
 part 'enriched_test_execution.freezed.dart';
 
 @freezed
-class EnrichedTestExecution with _$EnrichedTestExecution {
+abstract class EnrichedTestExecution with _$EnrichedTestExecution {
   const factory EnrichedTestExecution({
     required TestExecution testExecution,
     required EnvironmentReview environmentReview,
