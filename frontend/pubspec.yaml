@@ -28,7 +28,7 @@ dev_dependencies:
   dependency_validator: ^3.2.2
   build_runner: ^2.3.3
   freezed: ^2.4.5
-  custom_lint: ^0.5.3
+  custom_lint: ^0.7.0
   riverpod_lint: ^2.1.1
   riverpod_generator: ^2.3.3
   json_serializable: ^6.6.2
