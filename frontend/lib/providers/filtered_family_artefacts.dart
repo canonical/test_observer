@@ -17,6 +17,7 @@
 import 'dart:collection';
 
 import 'package:dartx/dartx.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../filtering/artefact_filters.dart';
@@ -28,10 +29,7 @@ import 'family_artefacts.dart';
 part 'filtered_family_artefacts.g.dart';
 
 @riverpod
-LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
-  FilteredFamilyArtefactsRef ref,
-  Uri pageUri,
-) {
+LinkedHashMap<int, Artefact> filteredFamilyArtefacts(Ref ref, Uri pageUri) {
   final family = AppRoutes.familyFromUri(pageUri);
   final searchValue =
       pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';

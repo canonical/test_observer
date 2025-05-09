@@ -31,7 +31,7 @@ class ErrorPopup extends ConsumerWidget {
         showDialog(
           context: context,
           builder: (context) => PopScope(
-            onPopInvoked: (_) =>
+            onPopInvokedWithResult: (_, __) =>
                 ref.read(globalErrorMessageProvider.notifier).set(''),
             child: SimpleDialog(
               title: const Text('Error'),

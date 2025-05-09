@@ -20,7 +20,7 @@ import '../../spacing.dart';
 import 'view_mode_toggle.dart';
 
 class DashboardHeader extends StatelessWidget {
-  const DashboardHeader({Key? key, required this.title}) : super(key: key);
+  const DashboardHeader({super.key, required this.title});
 
   final String title;
 

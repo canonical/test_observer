@@ -20,7 +20,7 @@ part 'environment.freezed.dart';
 part 'environment.g.dart';
 
 @freezed
-class Environment with _$Environment {
+abstract class Environment with _$Environment {
   const factory Environment({
     required int id,
     required String name,
