@@ -42,7 +42,7 @@ Future<void> runBenchmarkRunnerFile(
   final results = await serveWebBenchmark(
     benchmarkAppDirectory: Directory('.'),
     entryPoint: file,
-    initialPage: initialPage,
+    benchmarkPath: initialPage,
     headless: isHeadless,
   );
 

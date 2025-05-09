@@ -26,7 +26,7 @@ import '../user_avatar.dart';
 import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
-  const ArtefactCard({Key? key, required this.artefact}) : super(key: key);
+  const ArtefactCard({super.key, required this.artefact});
 
   final Artefact artefact;
   static const double width = 320;
