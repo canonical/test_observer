@@ -20,7 +20,7 @@ Change flutter to the version used in production (note that the below directory 
 
 ```bash
 $ cd ~/snap/flutter/common/flutter
-$ git checkout 3.27.2
+$ git checkout 3.29.3
 ```
 
 Then install dependencies via:
