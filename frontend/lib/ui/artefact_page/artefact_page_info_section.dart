@@ -21,6 +21,7 @@ import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
+import '../../models/artefact_version.dart';
 import '../../models/stage_name.dart';
 import '../../providers/artefact_versions.dart';
 import '../../routing.dart';
@@ -87,23 +88,29 @@ class _ArtefactVersionSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final versions =
-        ref.watch(artefactVersionsProvider(artefact.id)).value ?? [];
+    final currentVersion =
+        ArtefactVersion(artefactId: artefact.id, version: artefact.version);
+    final versions = ref.watch(artefactVersionsProvider(artefact.id)).value ??
+        [currentVersion];
 
     return Row(
       children: [
         Text('version: ', style: labelFontStyle),
-        YaruPopupMenuButton(
-          child: Text(artefact.version),
-          itemBuilder: (_) => versions
+        DropdownMenu<ArtefactVersion>(
+          initialSelection: currentVersion,
+          dropdownMenuEntries: versions
               .map(
-                (version) => PopupMenuItem(
-                  child: Text(version.version),
-                  onTap: () =>
-                      navigateToArtefactPage(context, version.artefactId),
+                (version) => DropdownMenuEntry<ArtefactVersion>(
+                  value: version,
+                  label: version.version,
                 ),
               )
               .toList(),
+          onSelected: (version) {
+            if (version != null) {
+              navigateToArtefactPage(context, version.artefactId);
+            }
+          },
         ),
       ],
     );

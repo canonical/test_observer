@@ -20,7 +20,7 @@ part 'rerun_request.freezed.dart';
 part 'rerun_request.g.dart';
 
 @freezed
-class RerunRequest with _$RerunRequest {
+abstract class RerunRequest with _$RerunRequest {
   const factory RerunRequest({
     @JsonKey(name: 'test_execution_id') required int testExecutionId,
     @JsonKey(name: 'ci_link') required String ciLink,

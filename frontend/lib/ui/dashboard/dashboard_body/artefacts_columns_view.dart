@@ -23,7 +23,7 @@ import '../../spacing.dart';
 import '../stage_column.dart';
 
 class ArtefactsColumnsView extends ConsumerWidget {
-  const ArtefactsColumnsView({Key? key}) : super(key: key);
+  const ArtefactsColumnsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

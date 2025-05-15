@@ -24,7 +24,7 @@ part 'test_execution.freezed.dart';
 part 'test_execution.g.dart';
 
 @freezed
-class TestExecution with _$TestExecution {
+abstract class TestExecution with _$TestExecution {
   static const String reviewCommentJsonKey = 'review_comment';
   static const String reviewDecisionJsonKey = 'review_decision';
   static const String defaultTestPlanName = 'unknown';

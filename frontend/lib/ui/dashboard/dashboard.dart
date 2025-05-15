@@ -29,7 +29,7 @@ import 'dashboard_body/dashboard_body.dart';
 import 'dashboard_header/dashboard_header.dart';
 
 class Dashboard extends ConsumerWidget {
-  const Dashboard({Key? key}) : super(key: key);
+  const Dashboard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

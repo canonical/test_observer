@@ -153,6 +153,7 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
   @override
   Widget build(BuildContext context) {
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
+    final onDelete = widget.onDelete;
 
     return Form(
       key: _formKey,
@@ -224,12 +225,13 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
                   ),
                 ),
                 const Spacer(),
-                if (widget.onDelete != null)
+                if (onDelete != null)
                   TextButton(
-                    onPressed: () {
-                      widget.onDelete
-                          ?.call()
-                          .then((didDelete) => context.pop());
+                    onPressed: () async {
+                      final didDelete = await onDelete();
+                      if (didDelete == true && context.mounted) {
+                        context.pop();
+                      }
                     },
                     child: Text(
                       'delete',

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact_version.dart';
@@ -22,10 +23,7 @@ import 'api.dart';
 part 'artefact_versions.g.dart';
 
 @riverpod
-Future<List<ArtefactVersion>> artefactVersions(
-  ArtefactVersionsRef ref,
-  int artefactId,
-) async {
+Future<List<ArtefactVersion>> artefactVersions(Ref ref, int artefactId) async {
   final api = ref.watch(apiProvider);
   return await api.getArtefactVersions(artefactId);
 }

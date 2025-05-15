@@ -67,6 +67,7 @@ class _VanillaSearchBarState extends State<VanillaSearchBar> {
       height: 40,
       width: double.infinity,
       child: SearchBar(
+        backgroundColor: WidgetStatePropertyAll(Colors.white),
         controller: controller,
         hintText: widget.hintText,
         hintStyle: WidgetStatePropertyAll(
