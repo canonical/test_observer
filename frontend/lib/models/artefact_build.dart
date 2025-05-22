@@ -21,7 +21,7 @@ import 'test_execution.dart';
 part 'artefact_build.freezed.dart';
 
 @freezed
-class ArtefactBuild with _$ArtefactBuild {
+abstract class ArtefactBuild with _$ArtefactBuild {
   const ArtefactBuild._();
 
   const factory ArtefactBuild({

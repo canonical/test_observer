@@ -25,7 +25,7 @@ part 'artefact.freezed.dart';
 part 'artefact.g.dart';
 
 @freezed
-class Artefact with _$Artefact {
+abstract class Artefact with _$Artefact {
   const Artefact._();
 
   const factory Artefact({

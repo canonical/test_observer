@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/artefact.dart';
@@ -23,10 +24,7 @@ import 'api.dart';
 part 'family_artefacts.g.dart';
 
 @riverpod
-Future<Map<int, Artefact>> familyArtefacts(
-  FamilyArtefactsRef ref,
-  FamilyName family,
-) {
+Future<Map<int, Artefact>> familyArtefacts(Ref ref, FamilyName family) {
   final api = ref.watch(apiProvider);
   return api.getFamilyArtefacts(family);
 }

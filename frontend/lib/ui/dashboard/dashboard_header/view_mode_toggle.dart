@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../../models/view_modes.dart';
 import '../../../providers/view_mode.dart';
@@ -30,6 +31,8 @@ class ViewModeToggle extends ConsumerWidget {
     if (viewMode == null) return const SizedBox.shrink();
 
     return ToggleButtons(
+      color: YaruColors.orange,
+      selectedColor: YaruColors.orange,
       isSelected: [
         viewMode == ViewModes.list,
         viewMode == ViewModes.dashboard,
