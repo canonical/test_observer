@@ -63,6 +63,7 @@ class ArtefactResponse(BaseModel):
     stage: str
     family: str
     status: ArtefactStatus
+    comment: str
     archived: bool
     assignee: UserResponse | None
     due_date: date | None
