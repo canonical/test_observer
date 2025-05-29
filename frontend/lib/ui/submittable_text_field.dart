@@ -24,11 +24,13 @@ class SubmittableTextField extends StatefulWidget {
     required this.title,
     required this.onSubmit,
     required this.initialValue,
+    required this.hintText,
   });
 
   final Widget title;
   final Function(String value) onSubmit;
   final String initialValue;
+  final String hintText;
 
   @override
   State<SubmittableTextField> createState() => _SubmittableTextFieldState();
@@ -71,7 +73,7 @@ class _SubmittableTextFieldState extends State<SubmittableTextField> {
           labelStyle: Theme.of(context).textTheme.titleLarge,
           controller: commentController,
           multiline: true,
-          hintText: 'No comment',
+          hintText: widget.hintText,
         ),
       ],
     );

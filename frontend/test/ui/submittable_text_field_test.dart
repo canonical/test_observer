@@ -30,10 +30,27 @@ void main() {
           title: title,
           onSubmit: (_) {},
           initialValue: '',
+          hintText: '',
         ),
       );
 
       expect(find.byWidget(title), findsOneWidget);
+    });
+
+    testWidgets('Shows hint text', (tester) async {
+      final hint = 'Hint';
+
+      await _execute(
+        tester,
+        SubmittableTextField(
+          title: Text(''),
+          onSubmit: (_) {},
+          initialValue: '',
+          hintText: hint,
+        ),
+      );
+
+      expect(find.text(hint), findsOneWidget);
     });
 
     testWidgets('Shows initial value', (tester) async {
@@ -45,6 +62,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: initialValue,
+          hintText: '',
         ),
       );
 
@@ -58,6 +76,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: '',
+          hintText: '',
         ),
       );
 
@@ -75,6 +94,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: '',
+          hintText: '',
         ),
       );
 
@@ -89,6 +109,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: '',
+          hintText: '',
         ),
       );
 
@@ -110,6 +131,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: '',
+          hintText: '',
         ),
       );
 
@@ -132,6 +154,7 @@ void main() {
             submittedValue = value;
           },
           initialValue: '',
+          hintText: '',
         ),
       );
 
@@ -156,6 +179,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: initialValue,
+          hintText: '',
         ),
       );
 
@@ -178,6 +202,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: '',
+          hintText: '',
         ),
       );
 
@@ -202,6 +227,7 @@ void main() {
           title: Text(''),
           onSubmit: (_) {},
           initialValue: '',
+          hintText: '',
         ),
       );
 

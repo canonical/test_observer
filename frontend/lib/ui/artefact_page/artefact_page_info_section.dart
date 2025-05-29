@@ -79,6 +79,7 @@ class ArtefactPageInfoSection extends ConsumerWidget {
           ),
         SubmittableTextField(
           title: Text('comment: ', style: fontStyle),
+          hintText: 'Add a comment',
           initialValue: artefact.comment,
           onSubmit:
               ref.read(artefactProvider(artefact.id).notifier).updateComment,
