@@ -37,6 +37,7 @@ class SubmittableTextField extends StatefulWidget {
 class _SubmittableTextFieldState extends State<SubmittableTextField> {
   bool isEditing = false;
   TextEditingController commentController = TextEditingController();
+  FocusNode focusNode = FocusNode();
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _SubmittableTextFieldState extends State<SubmittableTextField> {
   @override
   void dispose() {
     commentController.dispose();
+    focusNode.dispose();
     super.dispose();
   }
 
@@ -64,6 +66,7 @@ class _SubmittableTextFieldState extends State<SubmittableTextField> {
         ),
         const SizedBox(height: Spacing.level3),
         VanillaTextInput(
+          focusNode: focusNode,
           enabled: isEditing,
           labelStyle: Theme.of(context).textTheme.titleLarge,
           controller: commentController,
@@ -81,6 +84,8 @@ class _SubmittableTextFieldState extends State<SubmittableTextField> {
           setState(() {
             isEditing = true;
           });
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => focusNode.requestFocus());
         },
         icon: Icon(Icons.edit),
       ),

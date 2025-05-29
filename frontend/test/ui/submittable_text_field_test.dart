@@ -1,3 +1,19 @@
+// Copyright (C) 2023 Canonical Ltd.
+//
+// This file is part of Test Observer Frontend.
+//
+// Test Observer Frontend is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 3, as
+// published by the Free Software Foundation.
+//
+// Test Observer Frontend is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:testcase_dashboard/ui/submittable_text_field.dart';
@@ -65,7 +81,8 @@ void main() {
       expect(find.byIcon(Icons.edit), findsOneWidget);
     });
 
-    testWidgets('Clicking on edit enables the input', (tester) async {
+    testWidgets('Clicking on edit enables and focuses the input',
+        (tester) async {
       await _execute(
         tester,
         SubmittableTextField(
@@ -82,6 +99,7 @@ void main() {
         find.byType(VanillaTextInput),
       );
       expect(vanillaTextInput.enabled, true);
+      expect(vanillaTextInput.focusNode?.hasFocus, true);
     });
 
     testWidgets('Clicking on edit shows done icon & cancel icons',
