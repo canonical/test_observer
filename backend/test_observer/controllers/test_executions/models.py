@@ -33,6 +33,7 @@ from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
     TestExecutionResponse,
+    TestExecutionRelevantLinkCreate,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -84,6 +85,9 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     track: str
     branch: str = ""
     execution_stage: CharmStage
+    test_execution_relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
+        default_factory=list
+    )
 
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):

@@ -42,9 +42,9 @@ def post(test_client: TestClient):
 @pytest.fixture
 def get(test_client: TestClient):
     def get_helper(
-            family: FamilyName | None = None,
-            limit: int | None = None,
-        ) -> Response:
+        family: FamilyName | None = None,
+        limit: int | None = None,
+    ) -> Response:
         params: dict[str, str | int] = {}
         if family is not None:
             params["family"] = family.value
@@ -78,6 +78,8 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "id": test_execution.id,
                 "ci_link": test_execution.ci_link,
                 "c3_link": test_execution.c3_link,
+                "test_execution_relevant_links":
+                    test_execution.test_execution_relevant_links,
                 "environment": {
                     "id": test_execution.environment.id,
                     "name": test_execution.environment.name,
