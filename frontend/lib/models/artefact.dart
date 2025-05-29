@@ -44,6 +44,7 @@ abstract class Artefact with _$Artefact {
     @Default('') String sha256,
     @Default('') @JsonKey(name: 'image_url') String imageUrl,
     required ArtefactStatus status,
+    required String comment,
     required StageName stage,
     @JsonKey(name: 'all_environment_reviews_count')
     required int allEnvironmentReviewsCount,
