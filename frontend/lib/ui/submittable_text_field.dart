@@ -15,11 +15,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'spacing.dart';
 import 'vanilla/vanilla_text_input.dart';
 
-class SubmittableTextField extends ConsumerStatefulWidget {
+class SubmittableTextField extends StatefulWidget {
   const SubmittableTextField({
     super.key,
     required this.title,
@@ -32,11 +31,10 @@ class SubmittableTextField extends ConsumerStatefulWidget {
   final String initialValue;
 
   @override
-  ConsumerState<SubmittableTextField> createState() =>
-      _SubmittableTextFieldState();
+  State<SubmittableTextField> createState() => _SubmittableTextFieldState();
 }
 
-class _SubmittableTextFieldState extends ConsumerState<SubmittableTextField> {
+class _SubmittableTextFieldState extends State<SubmittableTextField> {
   bool isEditing = false;
   TextEditingController commentController = TextEditingController();
 
@@ -54,12 +52,16 @@ class _SubmittableTextFieldState extends ConsumerState<SubmittableTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final fontStyle = Theme.of(context).textTheme.bodyLarge;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _title(fontStyle),
+        Row(
+          children: [
+            widget.title,
+            const Spacer(),
+            if (isEditing) ..._editingIcons else ..._normalIcons,
+          ],
+        ),
         const SizedBox(height: Spacing.level3),
         VanillaTextInput(
           enabled: isEditing,
@@ -72,31 +74,39 @@ class _SubmittableTextFieldState extends ConsumerState<SubmittableTextField> {
     );
   }
 
-  Row _title(TextStyle? fontStyle) {
-    return Row(
-      children: [
-        widget.title,
-        const Spacer(),
-        if (isEditing)
-          IconButton(
-            onPressed: () {
-              setState(() {
-                isEditing = false;
-                widget.onSubmit(commentController.text);
-              });
-            },
-            icon: Icon(Icons.done),
-          )
-        else
-          IconButton(
-            onPressed: () {
-              setState(() {
-                isEditing = true;
-              });
-            },
-            icon: Icon(Icons.edit),
-          ),
-      ],
-    );
+  List<IconButton> get _normalIcons {
+    return [
+      IconButton(
+        onPressed: () {
+          setState(() {
+            isEditing = true;
+          });
+        },
+        icon: Icon(Icons.edit),
+      ),
+    ];
+  }
+
+  List<IconButton> get _editingIcons {
+    return [
+      IconButton(
+        onPressed: () {
+          setState(() {
+            isEditing = false;
+            commentController.text = widget.initialValue;
+          });
+        },
+        icon: Icon(Icons.cancel),
+      ),
+      IconButton(
+        onPressed: () {
+          setState(() {
+            isEditing = false;
+            widget.onSubmit(commentController.text);
+          });
+        },
+        icon: Icon(Icons.done),
+      ),
+    ];
   }
 }
