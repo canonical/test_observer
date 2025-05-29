@@ -314,6 +314,19 @@ def test_artefact_promote_unknown_stage(
     assert response.status_code > 400
 
 
+def test_update_artefact_comment(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    comment = "Updated comment"
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"comment": comment},
+    )
+
+    assert response.status_code == 200
+    assert a.comment == comment
+
+
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
     artefact1 = generator.gen_artefact(StageName.beta, version="1")
     artefact2 = generator.gen_artefact(StageName.beta, version="2")
@@ -361,6 +374,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "sha256": artefact.sha256,
         "image_url": artefact.image_url,
         "status": artefact.status,
+        "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
         "assignee": None,

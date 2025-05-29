@@ -23,18 +23,20 @@ import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../models/artefact_version.dart';
 import '../../models/stage_name.dart';
+import '../../providers/artefact.dart' hide Artefact;
 import '../../providers/artefact_versions.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
+import '../submittable_text_field.dart';
 
-class ArtefactPageInfoSection extends StatelessWidget {
+class ArtefactPageInfoSection extends ConsumerWidget {
   const ArtefactPageInfoSection({super.key, required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bugLink = artefact.bugLink;
     final fontStyle = Theme.of(context).textTheme.bodyLarge;
 
@@ -75,6 +77,13 @@ class ArtefactPageInfoSection extends StatelessWidget {
             urlText: bugLink,
             fontStyle: fontStyle,
           ),
+        SubmittableTextField(
+          title: Text('comment: ', style: fontStyle),
+          hintText: 'Add a comment',
+          initialValue: artefact.comment,
+          onSubmit:
+              ref.read(artefactProvider(artefact.id).notifier).updateComment,
+        ),
       ].intersperse(const SizedBox(height: Spacing.level3)).toList(),
     );
   }

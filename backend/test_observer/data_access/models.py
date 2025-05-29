@@ -122,6 +122,7 @@ class Artefact(Base):
     bug_link: Mapped[str] = mapped_column(default="")
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    comment: Mapped[str] = mapped_column(default="")
 
     # Snap specific fields
     store: Mapped[str] = mapped_column(default="")
