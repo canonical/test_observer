@@ -83,8 +83,9 @@ def get_rerun_requests(
             .joinedload(TestExecution.artefact_build)
             .joinedload(ArtefactBuild.artefact)
             .joinedload(Artefact.assignee),
-            joinedload(TestExecutionRerunRequest.test_execution)
-            .joinedload(TestExecution.environment),
+            joinedload(TestExecutionRerunRequest.test_execution).joinedload(
+                TestExecution.environment
+            ),
         )
         .order_by(asc(TestExecutionRerunRequest.created_at))
     )
@@ -108,5 +109,4 @@ def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
     db.commit()
 
 
-class _TestExecutionNotFound(ValueError):
-    ...
+class _TestExecutionNotFound(ValueError): ...

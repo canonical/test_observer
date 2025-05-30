@@ -78,6 +78,8 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "id": test_execution.id,
                 "ci_link": test_execution.ci_link,
                 "c3_link": test_execution.c3_link,
+                "test_execution_relevant_links":
+                    test_execution.test_execution_relevant_links,
                 "environment": {
                     "id": test_execution.environment.id,
                     "name": test_execution.environment.name,

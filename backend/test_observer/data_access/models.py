@@ -369,6 +369,10 @@ class TestExecution(Base):
         String(200), nullable=True, default=None
     )
 
+    test_execution_relevant_links: Mapped[list["TestExecutionRelevantLink"]] = (
+        relationship(back_populates="test_execution", cascade="all, delete-orphan")
+    )
+
     test_plan: Mapped[str] = mapped_column(String(200))
 
     @property
@@ -538,3 +542,18 @@ class ArtefactBuildEnvironmentReview(Base):
         return (len(self.review_decision) > 0) and (
             ArtefactBuildEnvironmentReviewDecision.REJECTED not in self.review_decision
         )
+
+
+class TestExecutionRelevantLink(Base):
+    __tablename__ = "test_execution_relevant_link"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    test_execution_id: Mapped[int] = mapped_column(
+        ForeignKey("test_execution.id", ondelete="CASCADE"), nullable=False
+    )
+    label: Mapped[str]
+    url: Mapped[str]
+
+    test_execution: Mapped["TestExecution"] = relationship(
+        back_populates="test_execution_relevant_links"
+    )
