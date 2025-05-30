@@ -522,6 +522,146 @@
         }
       }
     },
+    "/v1/test-executions/{id}/links": {
+      "post": {
+        "tags": [
+          "test-execution-relevant-links"
+        ],
+        "summary": "Post Link",
+        "operationId": "post_link_v1_test_executions__id__links_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "test-execution-relevant-links"
+        ],
+        "summary": "List Links",
+        "operationId": "list_links_v1_test_executions__id__links_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+                  },
+                  "title": "Response List Links V1 Test Executions  Id  Links Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/{id}/links/{link_id}": {
+      "delete": {
+        "tags": [
+          "test-execution-relevant-links"
+        ],
+        "summary": "Delete Link",
+        "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Link Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/artefacts/{artefact_id}/environment-reviews": {
       "get": {
         "tags": [
@@ -2189,6 +2329,13 @@
           },
           "execution_stage": {
             "$ref": "#/components/schemas/CharmStage"
+          },
+          "test_execution_relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Test Execution Relevant Links"
           }
         },
         "type": "object",
@@ -2489,6 +2636,47 @@
         ],
         "title": "TestEventResponse"
       },
+      "TestExecutionRelevantLinkCreate": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "url"
+        ],
+        "title": "TestExecutionRelevantLinkCreate"
+      },
+      "TestExecutionRelevantLinkResponse": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "url",
+          "id"
+        ],
+        "title": "TestExecutionRelevantLinkResponse"
+      },
       "TestExecutionResponse": {
         "properties": {
           "id": {
@@ -2516,6 +2704,13 @@
               }
             ],
             "title": "C3 Link"
+          },
+          "test_execution_relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+            },
+            "type": "array",
+            "title": "Test Execution Relevant Links"
           },
           "environment": {
             "$ref": "#/components/schemas/EnvironmentResponse"

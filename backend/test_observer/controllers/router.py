@@ -33,7 +33,7 @@ router.include_router(artefacts.router, prefix="/v1/artefacts")
 router.include_router(reports.router, prefix="/v1/reports")
 router.include_router(test_cases.router, prefix="/v1/test-cases")
 router.include_router(environments.router, prefix="/v1/environments")
-router.include_router(relevant_links.router)
+router.include_router(relevant_links.router, prefix="/v1/test-executions")
 
 
 @router.get("/")

@@ -1,3 +1,20 @@
+# Copyright (C) 2023 Canonical Ltd.
+#
+# This file is part of Test Observer Backend.
+#
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -12,13 +29,10 @@ from test_observer.controllers.artefacts.models import (
     TestExecutionRelevantLinkResponse,
 )
 
-
 router = APIRouter(tags=["test-execution-relevant-links"])
 
 
-@router.post(
-    "/test-executions/{id}/links", response_model=TestExecutionRelevantLinkResponse
-)
+@router.post("/{id}/links", response_model=TestExecutionRelevantLinkResponse)
 def post_link(
     id: int, request: TestExecutionRelevantLinkCreate, db: Session = Depends(get_db)
 ):
@@ -28,15 +42,12 @@ def post_link(
     return create_test_execution_relevant_link(db, id, request.label, request.url)
 
 
-@router.get(
-    "/test-executions/{id}/links",
-    response_model=list[TestExecutionRelevantLinkResponse],
-)
+@router.get("/{id}/links", response_model=list[TestExecutionRelevantLinkResponse])
 def list_links(id: int, db: Session = Depends(get_db)):
     return get_test_execution_relevant_links(db, id)
 
 
-@router.delete("/test-executions/{id}/links/{link_id}", status_code=204)
+@router.delete("/{id}/links/{link_id}", status_code=204)
 def delete_link(id: int, link_id: int, db: Session = Depends(get_db)):
     test_execution = db.get(TestExecution, id)
     if test_execution is None:
@@ -55,3 +66,4 @@ def delete_link(id: int, link_id: int, db: Session = Depends(get_db)):
 
     db.delete(link)
     db.commit()
+
