@@ -39,7 +39,8 @@ abstract class TestExecution with _$TestExecution {
     @Default(false) @JsonKey(name: 'is_rerun_requested') bool isRerunRequested,
     @JsonKey(name: 'artefact_build_id') required int artefactBuildId,
     @JsonKey(name: 'test_plan') required String testPlan,
-    @Default([]) @JsonKey(name: 'test_execution_relevant_links')
+    @Default([])
+    @JsonKey(name: 'test_execution_relevant_links')
     List<TestExecutionRelevantLink> testExecutionRelevantLinks,
   }) = _TestExecution;
 
