@@ -85,7 +85,7 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     track: str
     branch: str = ""
     execution_stage: CharmStage
-    test_execution_relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
+    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
         default_factory=list
     )
 

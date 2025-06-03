@@ -91,8 +91,8 @@ class StartTestExecutionController:
         )
         # Test relevant links are applicable for charm test executions
         if isinstance(self.request, StartCharmTestExecutionRequest):
-            for link in self.request.test_execution_relevant_links:
-                self.test_execution.test_execution_relevant_links.append(
+            for link in self.request.relevant_links:
+                self.test_execution.relevant_links.append(
                     TestExecutionRelevantLink(label=link.label, url=link.url)
                 )
             self.db.add(self.test_execution)

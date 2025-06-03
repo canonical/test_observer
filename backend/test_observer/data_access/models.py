@@ -368,7 +368,7 @@ class TestExecution(Base):
         String(200), nullable=True, default=None
     )
 
-    test_execution_relevant_links: Mapped[list["TestExecutionRelevantLink"]] = (
+    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = (
         relationship(back_populates="test_execution", cascade="all, delete-orphan")
     )
 
@@ -554,5 +554,5 @@ class TestExecutionRelevantLink(Base):
     url: Mapped[str]
 
     test_execution: Mapped["TestExecution"] = relationship(
-        back_populates="test_execution_relevant_links"
+        back_populates="relevant_links"
     )

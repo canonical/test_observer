@@ -97,7 +97,7 @@ class TestExecutionResponse(BaseModel):
     id: int
     ci_link: str | None
     c3_link: str | None
-    test_execution_relevant_links: list[TestExecutionRelevantLinkResponse] = Field(
+    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(
         default_factory=list
     )
     environment: EnvironmentResponse
