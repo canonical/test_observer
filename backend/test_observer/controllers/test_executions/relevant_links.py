@@ -56,7 +56,7 @@ def delete_link(id: int, link_id: int, db: Session = Depends(get_db)):
     link = next(
         (
             link
-            for link in test_execution.test_execution_relevant_links
+            for link in test_execution.relevant_links
             if link.id == link_id
         ),
         None,

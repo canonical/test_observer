@@ -40,7 +40,7 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
                     "id": te.id,
                     "ci_link": te.ci_link,
                     "c3_link": te.c3_link,
-                    "test_execution_relevant_links": te.test_execution_relevant_links,
+                    "relevant_links": te.relevant_links,
                     "status": te.status.value,
                     "environment": {
                         "id": e.id,
@@ -76,7 +76,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     "id": te1.id,
                     "ci_link": te1.ci_link,
                     "c3_link": te1.c3_link,
-                    "test_execution_relevant_links": te1.test_execution_relevant_links,
+                    "relevant_links": te1.relevant_links,
                     "status": te1.status.value,
                     "environment": {
                         "id": e1.id,
@@ -91,7 +91,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     "id": te2.id,
                     "ci_link": te2.ci_link,
                     "c3_link": te2.c3_link,
-                    "test_execution_relevant_links": te2.test_execution_relevant_links,
+                    "relevant_links": te2.relevant_links,
                     "status": te2.status.value,
                     "environment": {
                         "id": e2.id,
@@ -149,7 +149,7 @@ def test_get_artefact_builds_with_rerun_requested(
                     "id": te.id,
                     "ci_link": te.ci_link,
                     "c3_link": te.c3_link,
-                    "test_execution_relevant_links": te.test_execution_relevant_links,
+                    "relevant_links": te.relevant_links,
                     "status": te.status.value,
                     "environment": {
                         "id": e.id,

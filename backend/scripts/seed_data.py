@@ -290,7 +290,7 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage=CharmStage.candidate,
         environment="juju=3.5 ubuntu=22.04 cloud=k8s",
         ci_link="http://example13",
-        test_execution_relevant_links=[
+        relevant_links=[
             TestExecutionRelevantLinkCreate(label="Doc", url="https://example.com/1")
         ],
         test_plan="com.canonical.solutions-qa::tbd",
