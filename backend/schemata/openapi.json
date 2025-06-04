@@ -522,6 +522,102 @@
         }
       }
     },
+    "/v1/test-executions/{id}/links": {
+      "post": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Post Link",
+        "operationId": "post_link_v1_test_executions__id__links_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/{id}/links/{link_id}": {
+      "delete": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Delete Link",
+        "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Link Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/artefacts/{artefact_id}/environment-reviews": {
       "get": {
         "tags": [
@@ -2185,6 +2281,13 @@
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
           "family": {
             "type": "string",
             "const": "charm",
@@ -2262,6 +2365,13 @@
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
           "family": {
             "type": "string",
             "const": "deb",
@@ -2333,6 +2443,13 @@
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
           },
           "family": {
             "type": "string",
@@ -2424,6 +2541,13 @@
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
           "family": {
             "type": "string",
             "const": "snap",
@@ -2505,6 +2629,53 @@
         ],
         "title": "TestEventResponse"
       },
+      "TestExecutionRelevantLinkCreate": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "url"
+        ],
+        "title": "TestExecutionRelevantLinkCreate"
+      },
+      "TestExecutionRelevantLinkResponse": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "url",
+          "id"
+        ],
+        "title": "TestExecutionRelevantLinkResponse"
+      },
       "TestExecutionResponse": {
         "properties": {
           "id": {
@@ -2532,6 +2703,13 @@
               }
             ],
             "title": "C3 Link"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+            },
+            "type": "array",
+            "title": "Relevant Links"
           },
           "environment": {
             "$ref": "#/components/schemas/EnvironmentResponse"
