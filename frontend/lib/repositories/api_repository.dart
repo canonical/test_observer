@@ -54,6 +54,15 @@ class ApiRepository {
     return Artefact.fromJson(response.data);
   }
 
+  Future<Artefact> changeArtefactComment(
+    int artefactId,
+    String comment,
+  ) async {
+    final response = await dio
+        .patch('/v1/artefacts/$artefactId', data: {'comment': comment});
+    return Artefact.fromJson(response.data);
+  }
+
   Future<List<ArtefactBuild>> getArtefactBuilds(int artefactId) async {
     final response = await dio.get('/v1/artefacts/$artefactId/builds');
     final List artefactBuildsJson = response.data;

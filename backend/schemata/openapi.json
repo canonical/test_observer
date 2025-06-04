@@ -1682,6 +1682,17 @@
                 "type": "null"
               }
             ]
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
           }
         },
         "type": "object",
@@ -1752,6 +1763,10 @@
           "status": {
             "$ref": "#/components/schemas/ArtefactStatus"
           },
+          "comment": {
+            "type": "string",
+            "title": "Comment"
+          },
           "archived": {
             "type": "boolean",
             "title": "Archived"
@@ -1814,6 +1829,7 @@
           "stage",
           "family",
           "status",
+          "comment",
           "archived",
           "assignee",
           "due_date",

@@ -110,6 +110,8 @@ def patch_artefact(
     if request.stage is not None:
         _validate_artefact_stage(artefact, request.stage)
         artefact.stage = request.stage
+    if request.comment is not None:
+        artefact.comment = request.comment
     db.commit()
     return artefact
 

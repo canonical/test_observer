@@ -106,6 +106,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "owner": test_execution.artefact_build.artefact.owner,
                 "stage": test_execution.artefact_build.artefact.stage,
                 "status": test_execution.artefact_build.artefact.status,
+                "comment": test_execution.artefact_build.artefact.comment,
                 "archived": test_execution.artefact_build.artefact.archived,
                 "assignee": test_execution.artefact_build.artefact.assignee,
                 "due_date": test_execution.artefact_build.artefact.due_date,
