@@ -291,7 +291,7 @@ START_TEST_EXECUTION_REQUESTS = [
         environment="juju=3.5 ubuntu=22.04 cloud=k8s",
         ci_link="http://example13",
         relevant_links=[
-            TestExecutionRelevantLinkCreate(label="Doc", url="https://example.com/1")
+            TestExecutionRelevantLinkCreate(label="Doc", url=HttpUrl("https://example.com/1"))
         ],
         test_plan="com.canonical.solutions-qa::tbd",
     ),

@@ -16,7 +16,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.data_access.models import TestExecution
@@ -34,7 +34,11 @@ def patch_test_execution(
     request: TestExecutionsPatchRequest,
     db: Session = Depends(get_db),
 ):
-    test_execution = db.get(TestExecution, id)
+    test_execution = db.get(
+        TestExecution,
+        id, 
+        options=[selectinload(TestExecution.relevant_links)],
+    )
 
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")

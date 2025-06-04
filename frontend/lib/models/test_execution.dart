@@ -41,7 +41,7 @@ abstract class TestExecution with _$TestExecution {
     @JsonKey(name: 'test_plan') required String testPlan,
     @Default([])
     @JsonKey(name: 'relevant_links')
-    List<TestExecutionRelevantLink> testExecutionRelevantLinks,
+    List<TestExecutionRelevantLink> relevantLinks,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>

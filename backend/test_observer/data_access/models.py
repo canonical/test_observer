@@ -545,11 +545,11 @@ class ArtefactBuildEnvironmentReview(Base):
 
 
 class TestExecutionRelevantLink(Base):
+    __test__ = False
     __tablename__ = "test_execution_relevant_link"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
     test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("test_execution.id", ondelete="CASCADE"), nullable=False, index=True
     )
     label: Mapped[str]
     url: Mapped[str]

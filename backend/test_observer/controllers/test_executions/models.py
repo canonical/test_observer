@@ -54,6 +54,9 @@ class _StartTestExecutionRequest(BaseModel):
     ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
     initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
+    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
+        default_factory=list
+    )
 
     @field_validator("version")
     @classmethod
@@ -85,9 +88,6 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     track: str
     branch: str = ""
     execution_stage: CharmStage
-    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
-        default_factory=list
-    )
 
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):

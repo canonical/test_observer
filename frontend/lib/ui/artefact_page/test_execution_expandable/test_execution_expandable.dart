@@ -81,7 +81,7 @@ class _TestExecutionTileTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
-    final relevantLinks = testExecution.testExecutionRelevantLinks;
+    final relevantLinks = testExecution.relevantLinks;
 
     return Row(
       children: [

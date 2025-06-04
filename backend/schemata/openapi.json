@@ -525,7 +525,7 @@
     "/v1/test-executions/{id}/links": {
       "post": {
         "tags": [
-          "test-execution-relevant-links"
+          "test-executions"
         ],
         "summary": "Post Link",
         "operationId": "post_link_v1_test_executions__id__links_post",
@@ -572,56 +572,12 @@
             }
           }
         }
-      },
-      "get": {
-        "tags": [
-          "test-execution-relevant-links"
-        ],
-        "summary": "List Links",
-        "operationId": "list_links_v1_test_executions__id__links_get",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
-                  },
-                  "title": "Response List Links V1 Test Executions  Id  Links Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/v1/test-executions/{id}/links/{link_id}": {
       "delete": {
         "tags": [
-          "test-execution-relevant-links"
+          "test-executions"
         ],
         "summary": "Delete Link",
         "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
@@ -2325,6 +2281,13 @@
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
           "family": {
             "type": "string",
             "const": "charm",
@@ -2345,13 +2308,6 @@
           },
           "execution_stage": {
             "$ref": "#/components/schemas/CharmStage"
-          },
-          "relevant_links": {
-            "items": {
-              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
-            },
-            "type": "array",
-            "title": "Relevant Links"
           }
         },
         "type": "object",
@@ -2408,6 +2364,13 @@
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
           },
           "family": {
             "type": "string",
@@ -2480,6 +2443,13 @@
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
           },
           "family": {
             "type": "string",
@@ -2571,6 +2541,13 @@
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
           "family": {
             "type": "string",
             "const": "snap",
@@ -2660,6 +2637,9 @@
           },
           "url": {
             "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
             "title": "Url"
           }
         },
@@ -2678,6 +2658,9 @@
           },
           "url": {
             "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
             "title": "Url"
           },
           "id": {

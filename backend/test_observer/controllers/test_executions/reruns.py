@@ -19,7 +19,7 @@ import contextlib
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import delete, select, asc
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.data_access.models import (
     ArtefactBuild,
@@ -79,13 +79,14 @@ def get_rerun_requests(
         .join(TestExecution.artefact_build)
         .join(ArtefactBuild.artefact)
         .options(
-            joinedload(TestExecutionRerunRequest.test_execution)
-            .joinedload(TestExecution.artefact_build)
-            .joinedload(ArtefactBuild.artefact)
-            .joinedload(Artefact.assignee),
-            joinedload(TestExecutionRerunRequest.test_execution).joinedload(
-                TestExecution.environment
-            ),
+            selectinload(TestExecutionRerunRequest.test_execution)
+            .selectinload(TestExecution.artefact_build)
+            .selectinload(ArtefactBuild.artefact)
+            .selectinload(Artefact.assignee),
+            selectinload(TestExecutionRerunRequest.test_execution)
+            .selectinload(TestExecution.environment),
+            selectinload(TestExecutionRerunRequest.test_execution)
+            .selectinload(TestExecution.relevant_links),
         )
         .order_by(asc(TestExecutionRerunRequest.created_at))
     )

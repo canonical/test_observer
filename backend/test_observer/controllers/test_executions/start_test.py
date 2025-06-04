@@ -28,7 +28,6 @@ from test_observer.data_access.models import (
     Environment,
     TestExecution,
     User,
-    TestExecutionRelevantLink,
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
@@ -89,14 +88,6 @@ class StartTestExecutionController:
                 "test_plan": self.request.test_plan,
             },
         )
-        # Test relevant links are applicable for charm test executions
-        if isinstance(self.request, StartCharmTestExecutionRequest):
-            for link in self.request.relevant_links:
-                self.test_execution.relevant_links.append(
-                    TestExecutionRelevantLink(label=link.label, url=link.url)
-                )
-            self.db.add(self.test_execution)
-            self.db.commit()
 
     def create_artefact_build_environment(self):
         get_or_create(

@@ -38,11 +38,15 @@ def get_artefact_builds(
         ArtefactRetriever(
             selectinload(Artefact.builds)
             .selectinload(ArtefactBuild.test_executions)
-            .options(
-                selectinload(TestExecution.environment),
-                selectinload(TestExecution.rerun_request),
-            )
+            .selectinload(TestExecution.environment),
+            selectinload(Artefact.builds)
+            .selectinload(ArtefactBuild.test_executions)
+            .selectinload(TestExecution.rerun_request),
+            selectinload(Artefact.builds)
+            .selectinload(ArtefactBuild.test_executions)
+            .selectinload(TestExecution.relevant_links),
         )
+
     ),
 ):
     """Get latest artefact builds of an artefact together with their test executions"""

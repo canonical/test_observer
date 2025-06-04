@@ -19,6 +19,7 @@
 
 from collections.abc import Iterable
 from typing import Any
+from pydantic import HttpUrl
 
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
@@ -156,7 +157,7 @@ def get_or_create(
 
 
 def create_test_execution_relevant_link(
-    session: Session, test_execution_id: int, label: str, url: str
+    session: Session, test_execution_id: int, label: str, url: HttpUrl
 ) -> TestExecutionRelevantLink:
     new_link = TestExecutionRelevantLink(
         test_execution_id=test_execution_id, label=label, url=url
@@ -165,13 +166,3 @@ def create_test_execution_relevant_link(
     session.commit()
     session.refresh(new_link)
     return new_link
-
-
-def get_test_execution_relevant_links(
-    session: Session, test_execution_id: int
-) -> list[TestExecutionRelevantLink]:
-    return (
-        session.query(TestExecutionRelevantLink)
-        .filter_by(test_execution_id=test_execution_id)
-        .all()
-    )
