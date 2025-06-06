@@ -78,6 +78,10 @@ def main():
             lines_of_interest += list(filter(filter_f, reader))
 
     artefact_id = (x["Artefact.name"] for x in lines_of_interest)
+    to_links = [
+        f"https://test-observer.canonical.com/#/{x["Artefact.family"]}s/{x["Artefact.id"]}"
+        for x in lines_of_interest
+    ]
     machine_id = (x["TestExecution.c3_link"][45:57] for x in lines_of_interest)
     sub_links = (x["TestExecution.c3_link"] for x in lines_of_interest)
     sub_links = [f"{x}test-results/fail" for x in sub_links]
@@ -118,6 +122,7 @@ def main():
         for sub in sub_summaries
     ]
     fieldnames = [
+        "TestObserver Link",
         "Submission Link",
         "Job ID",
         "Template ID",
@@ -125,9 +130,10 @@ def main():
         "Machine",
         "Artefact id",
     ]
-    results = zip(sub_links, job_objects, machine_id, artefact_id)
+    results = zip(to_links, sub_links, job_objects, machine_id, artefact_id)
     results = (
         (
+            to_link,
             sub_link,
             job_object["name"],
             job_object.get("template_id", ""),
@@ -135,7 +141,13 @@ def main():
             machine_id,
             artefact_id,
         )
-        for (sub_link, job_objects, machine_id, artefact_id) in results
+        for (
+            to_link,
+            sub_link,
+            job_objects,
+            machine_id,
+            artefact_id,
+        ) in results
         for job_object in job_objects
     )
     result_rows = [dict(zip(fieldnames, result_row)) for result_row in results]
