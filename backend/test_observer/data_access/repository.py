@@ -19,12 +19,13 @@
 
 from collections.abc import Iterable
 from typing import Any
+from pydantic import HttpUrl
 
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Artefact, ArtefactBuild, DataModel
+from .models import Artefact, ArtefactBuild, DataModel, TestExecutionRelevantLink
 from .models_enums import FamilyName
 
 
@@ -153,3 +154,15 @@ def get_or_create(
         instance = db.query(model).filter_by(**filter_kwargs).one()
     db.commit()
     return instance
+
+
+def create_test_execution_relevant_link(
+    session: Session, test_execution_id: int, label: str, url: HttpUrl
+) -> TestExecutionRelevantLink:
+    new_link = TestExecutionRelevantLink(
+        test_execution_id=test_execution_id, label=label, url=url
+    )
+    session.add(new_link)
+    session.commit()
+    session.refresh(new_link)
+    return new_link

@@ -33,6 +33,7 @@ from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
     TestExecutionResponse,
+    TestExecutionRelevantLinkCreate,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -53,6 +54,9 @@ class _StartTestExecutionRequest(BaseModel):
     ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
     initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
+    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
+        default_factory=list
+    )
 
     @field_validator("version")
     @classmethod

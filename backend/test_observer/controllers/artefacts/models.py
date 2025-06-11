@@ -25,6 +25,7 @@ from pydantic import (
     Field,
     computed_field,
     field_validator,
+    HttpUrl
 )
 
 from test_observer.data_access.models_enums import (
@@ -81,6 +82,17 @@ class EnvironmentResponse(BaseModel):
     architecture: str
 
 
+class TestExecutionRelevantLinkCreate(BaseModel):
+    label: str
+    url: HttpUrl
+
+
+class TestExecutionRelevantLinkResponse(TestExecutionRelevantLinkCreate):
+    id: int
+    label: str
+    url: HttpUrl
+
+
 class TestExecutionResponse(BaseModel):
     __test__ = False
 
@@ -89,6 +101,9 @@ class TestExecutionResponse(BaseModel):
     id: int
     ci_link: str | None
     c3_link: str | None
+    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(
+        default_factory=list
+    )
     environment: EnvironmentResponse
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
