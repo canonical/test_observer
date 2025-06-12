@@ -40,6 +40,9 @@ from test_observer.controllers.test_executions.models import (
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
+
+from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
+
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -287,6 +290,9 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage=CharmStage.candidate,
         environment="juju=3.5 ubuntu=22.04 cloud=k8s",
         ci_link="http://example13",
+        relevant_links=[
+            TestExecutionRelevantLinkCreate(label="Doc", url=HttpUrl("https://example.com/1"))
+        ],
         test_plan="com.canonical.solutions-qa::tbd",
     ),
     StartImageTestExecutionRequest(
