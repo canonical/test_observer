@@ -29,6 +29,7 @@ docker-compose up --build
 ```
 
 This will start:
+
 - **Backend API** at `http://localhost:30000` (with automatic migrations and seeding)
 - **Frontend** at `http://localhost:8080`
 - **PostgreSQL database** with persistent storage
