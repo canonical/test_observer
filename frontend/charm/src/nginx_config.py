@@ -65,7 +65,7 @@ def nginx_503_config() -> str:
     """
 
 
-def html_503(self) -> str:
+def html_503() -> str:
     """Return a 503 response page."""
     return """
     <html>
