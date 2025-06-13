@@ -18,14 +18,15 @@
 import contextlib
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import delete, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import delete, select, asc
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
     TestExecutionRerunRequest,
     Artefact,
+    FamilyName,
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
@@ -67,18 +68,36 @@ def _create_rerun_request(
 
 
 @router.get("/reruns", response_model=list[PendingRerun])
-def get_rerun_requests(db: Session = Depends(get_db)):
-    return db.scalars(
-        select(TestExecutionRerunRequest).options(
-            joinedload(TestExecutionRerunRequest.test_execution)
-            .joinedload(TestExecution.artefact_build)
-            .joinedload(ArtefactBuild.artefact)
-            .joinedload(Artefact.assignee),
-            joinedload(TestExecutionRerunRequest.test_execution).joinedload(
-                TestExecution.environment
-            ),
+def get_rerun_requests(
+    family: FamilyName | None = None,
+    limit: int | None = None,
+    db: Session = Depends(get_db),
+):
+    stmt = (
+        select(TestExecutionRerunRequest)
+        .join(TestExecutionRerunRequest.test_execution)
+        .join(TestExecution.artefact_build)
+        .join(ArtefactBuild.artefact)
+        .options(
+            selectinload(TestExecutionRerunRequest.test_execution)
+            .selectinload(TestExecution.artefact_build)
+            .selectinload(ArtefactBuild.artefact)
+            .selectinload(Artefact.assignee),
+            selectinload(TestExecutionRerunRequest.test_execution)
+            .selectinload(TestExecution.environment),
+            selectinload(TestExecutionRerunRequest.test_execution)
+            .selectinload(TestExecution.relevant_links),
         )
+        .order_by(asc(TestExecutionRerunRequest.created_at))
     )
+
+    if family is not None:
+        stmt = stmt.filter(Artefact.family == family)
+
+    if limit is not None:
+        stmt = stmt.limit(limit)
+
+    return db.scalars(stmt)
 
 
 @router.delete("/reruns")
@@ -91,5 +110,4 @@ def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
     db.commit()
 
 
-class _TestExecutionNotFound(ValueError):
-    ...
+class _TestExecutionNotFound(ValueError): ...

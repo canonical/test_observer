@@ -110,6 +110,8 @@ def patch_artefact(
     if request.stage is not None:
         _validate_artefact_stage(artefact, request.stage)
         artefact.stage = request.stage
+    if request.comment is not None:
+        artefact.comment = request.comment
     db.commit()
     return artefact
 
@@ -160,6 +162,7 @@ def get_artefact_versions(
         select(Artefact)
         .where(Artefact.name == artefact.name)
         .where(Artefact.track == artefact.track)
+        .where(Artefact.branch == artefact.branch)
         .where(Artefact.series == artefact.series)
         .where(Artefact.repo == artefact.repo)
         .where(Artefact.os == artefact.os)

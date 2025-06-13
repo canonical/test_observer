@@ -43,4 +43,10 @@ class Artefact extends _$Artefact {
     state =
         AsyncData(artefact.copyWith(completedEnvironmentReviewsCount: count));
   }
+
+  Future<void> updateComment(String comment) async {
+    final api = ref.read(apiProvider);
+    final artefact = await api.changeArtefactComment(artefactId, comment);
+    state = AsyncData(artefact);
+  }
 }

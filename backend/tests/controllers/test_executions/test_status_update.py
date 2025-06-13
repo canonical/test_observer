@@ -29,7 +29,10 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
-        artefact_build, environment, ci_link="http://localhost"
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "Doc Link", "url": "http://example.com/doc"}]
     )
 
     response = test_client.put(
@@ -77,7 +80,10 @@ def test_status_updates_is_idempotent(
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
-        artefact_build, environment, ci_link="http://localhost"
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "Support Ticket", "url": "http://example.com/ticket/456"}]
     )
 
     for _ in range(3):
@@ -110,7 +116,10 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
-        artefact_build, environment, ci_link="http://localhost"
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "Release Notes", "url": "http://example.com/release"}]
     )
 
     test_client.put(
@@ -158,7 +167,10 @@ def test_status_updates_invalid_timestamp(
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
-        artefact_build, environment, ci_link="http://localhost"
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "External Info", "url": "http://example.com/info"}]
     )
 
     response = test_client.put(
@@ -188,7 +200,10 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
-        artefact_build, environment, ci_link="http://localhost"
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "Logs", "url": "http://example.com/logs"}]
     )
 
     test_client.put(

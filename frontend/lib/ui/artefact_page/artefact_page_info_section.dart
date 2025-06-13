@@ -21,19 +21,22 @@ import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
+import '../../models/artefact_version.dart';
 import '../../models/stage_name.dart';
+import '../../providers/artefact.dart' hide Artefact;
 import '../../providers/artefact_versions.dart';
 import '../../routing.dart';
 import '../inline_url_text.dart';
 import '../spacing.dart';
+import '../submittable_text_field.dart';
 
-class ArtefactPageInfoSection extends StatelessWidget {
+class ArtefactPageInfoSection extends ConsumerWidget {
   const ArtefactPageInfoSection({super.key, required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bugLink = artefact.bugLink;
     final fontStyle = Theme.of(context).textTheme.bodyLarge;
 
@@ -46,6 +49,8 @@ class ArtefactPageInfoSection extends StatelessWidget {
           Text('track: ${artefact.track}', style: fontStyle),
         if (artefact.store.isNotEmpty)
           Text('store: ${artefact.store}', style: fontStyle),
+        if (artefact.branch.isNotEmpty)
+          Text('branch: ${artefact.branch}', style: fontStyle),
         if (artefact.series.isNotEmpty)
           Text('series: ${artefact.series}', style: fontStyle),
         if (artefact.repo.isNotEmpty)
@@ -72,6 +77,13 @@ class ArtefactPageInfoSection extends StatelessWidget {
             urlText: bugLink,
             fontStyle: fontStyle,
           ),
+        SubmittableTextField(
+          title: Text('comment: ', style: fontStyle),
+          hintText: 'Add a comment',
+          initialValue: artefact.comment,
+          onSubmit:
+              ref.read(artefactProvider(artefact.id).notifier).updateComment,
+        ),
       ].intersperse(const SizedBox(height: Spacing.level3)).toList(),
     );
   }
@@ -85,23 +97,29 @@ class _ArtefactVersionSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final versions =
-        ref.watch(artefactVersionsProvider(artefact.id)).value ?? [];
+    final currentVersion =
+        ArtefactVersion(artefactId: artefact.id, version: artefact.version);
+    final versions = ref.watch(artefactVersionsProvider(artefact.id)).value ??
+        [currentVersion];
 
     return Row(
       children: [
         Text('version: ', style: labelFontStyle),
-        YaruPopupMenuButton(
-          child: Text(artefact.version),
-          itemBuilder: (_) => versions
+        DropdownMenu<ArtefactVersion>(
+          initialSelection: currentVersion,
+          dropdownMenuEntries: versions
               .map(
-                (version) => PopupMenuItem(
-                  child: Text(version.version),
-                  onTap: () =>
-                      navigateToArtefactPage(context, version.artefactId),
+                (version) => DropdownMenuEntry<ArtefactVersion>(
+                  value: version,
+                  label: version.version,
                 ),
               )
               .toList(),
+          onSelected: (version) {
+            if (version != null) {
+              navigateToArtefactPage(context, version.artefactId);
+            }
+          },
         ),
       ],
     );

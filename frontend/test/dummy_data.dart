@@ -44,6 +44,7 @@ const dummyArtefact = Artefact(
   bugLink: '',
   allEnvironmentReviewsCount: 1,
   completedEnvironmentReviewsCount: 0,
+  comment: '',
 );
 
 const dummyEnvironment = Environment(

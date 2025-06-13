@@ -26,11 +26,8 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return YaruTheme(
       builder: (context, yaru, child) {
-        final colorScheme = yaru.theme?.colorScheme.copyWith(
-          surfaceContainerHigh: Colors.white, // search bars color
-          surfaceContainerLow: Colors.white, // cards color
-        );
-        final theme = yaru.theme?.copyWith(colorScheme: colorScheme);
+        final theme =
+            yaru.theme?.copyWith(cardTheme: CardThemeData(color: Colors.white));
 
         return MaterialApp.router(
           theme: theme,

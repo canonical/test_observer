@@ -280,29 +280,6 @@
       }
     },
     "/v1/test-executions/reruns": {
-      "get": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Get Rerun Requests",
-        "operationId": "get_rerun_requests_v1_test_executions_reruns_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PendingRerun"
-                  },
-                  "type": "array",
-                  "title": "Response Get Rerun Requests V1 Test Executions Reruns Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "test-executions"
@@ -310,14 +287,14 @@
         "summary": "Create Rerun Requests",
         "operationId": "create_rerun_requests_v1_test_executions_reruns_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RerunRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -325,11 +302,78 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/PendingRerun"
                   },
-                  "type": "array",
                   "title": "Response Create Rerun Requests V1 Test Executions Reruns Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Get Rerun Requests",
+        "operationId": "get_rerun_requests_v1_test_executions_reruns_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FamilyName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingRerun"
+                  },
+                  "title": "Response Get Rerun Requests V1 Test Executions Reruns Get"
                 }
               }
             }
@@ -353,14 +397,14 @@
         "summary": "Delete Rerun Requests",
         "operationId": "delete_rerun_requests_v1_test_executions_reruns_delete",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DeleteReruns"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -464,6 +508,102 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/{id}/links": {
+      "post": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Post Link",
+        "operationId": "post_link_v1_test_executions__id__links_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-executions/{id}/links/{link_id}": {
+      "delete": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Delete Link",
+        "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Link Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -1498,6 +1638,17 @@
                 "type": "null"
               }
             ]
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
           }
         },
         "type": "object",
@@ -1524,6 +1675,10 @@
           "store": {
             "type": "string",
             "title": "Store"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
           },
           "series": {
             "type": "string",
@@ -1563,6 +1718,10 @@
           },
           "status": {
             "$ref": "#/components/schemas/ArtefactStatus"
+          },
+          "comment": {
+            "type": "string",
+            "title": "Comment"
           },
           "archived": {
             "type": "boolean",
@@ -1615,6 +1774,7 @@
           "version",
           "track",
           "store",
+          "branch",
           "series",
           "repo",
           "os",
@@ -1625,6 +1785,7 @@
           "stage",
           "family",
           "status",
+          "comment",
           "archived",
           "assignee",
           "due_date",
@@ -2120,6 +2281,13 @@
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
           "family": {
             "type": "string",
             "const": "charm",
@@ -2132,6 +2300,11 @@
           "track": {
             "type": "string",
             "title": "Track"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
           },
           "execution_stage": {
             "$ref": "#/components/schemas/CharmStage"
@@ -2191,6 +2364,13 @@
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
           },
           "family": {
             "type": "string",
@@ -2263,6 +2443,13 @@
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
           },
           "family": {
             "type": "string",
@@ -2354,6 +2541,13 @@
             "$ref": "#/components/schemas/TestExecutionStatus",
             "default": "IN_PROGRESS"
           },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
           "family": {
             "type": "string",
             "const": "snap",
@@ -2370,6 +2564,11 @@
           "store": {
             "type": "string",
             "title": "Store"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
           },
           "execution_stage": {
             "$ref": "#/components/schemas/SnapStage"
@@ -2430,6 +2629,53 @@
         ],
         "title": "TestEventResponse"
       },
+      "TestExecutionRelevantLinkCreate": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "url"
+        ],
+        "title": "TestExecutionRelevantLinkCreate"
+      },
+      "TestExecutionRelevantLinkResponse": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "url",
+          "id"
+        ],
+        "title": "TestExecutionRelevantLinkResponse"
+      },
       "TestExecutionResponse": {
         "properties": {
           "id": {
@@ -2457,6 +2703,13 @@
               }
             ],
             "title": "C3 Link"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+            },
+            "type": "array",
+            "title": "Relevant Links"
           },
           "environment": {
             "$ref": "#/components/schemas/EnvironmentResponse"

@@ -1,6 +1,6 @@
 settings:
     # Jira project key to create the issue in
-  jira_project_key: "RTW"
+  jira_project_key: "TO"
   
   # Dictionary mapping GitHub issue status to Jira issue status
   status_mapping:

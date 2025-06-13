@@ -24,7 +24,7 @@ import 'test_execution.dart';
 part 'artefact_environment.freezed.dart';
 
 @freezed
-class ArtefactEnvironment with _$ArtefactEnvironment {
+abstract class ArtefactEnvironment with _$ArtefactEnvironment {
   const ArtefactEnvironment._();
 
   const factory ArtefactEnvironment({

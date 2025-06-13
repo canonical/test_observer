@@ -20,7 +20,7 @@ part 'test_issue.freezed.dart';
 part 'test_issue.g.dart';
 
 @freezed
-class TestIssue with _$TestIssue {
+abstract class TestIssue with _$TestIssue {
   const factory TestIssue({
     required int id,
     @JsonKey(name: 'template_id') required String templateId,

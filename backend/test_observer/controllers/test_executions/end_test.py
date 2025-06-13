@@ -65,22 +65,16 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
 def _find_related_test_execution(
     request: EndTestExecutionRequest, db: Session
 ) -> TestExecution | None:
-    return (
-        db.execute(
-            select(TestExecution)
-            .where(TestExecution.ci_link == request.ci_link)
-            .options(
-                joinedload(TestExecution.artefact_build).joinedload(
-                    ArtefactBuild.artefact
-                )
-            )
-            .options(
-                joinedload(TestExecution.test_results).joinedload(TestResult.test_case)
-            )
+    stmt = (
+        select(TestExecution)
+        .where(TestExecution.ci_link == request.ci_link)
+        .options(
+            joinedload(TestExecution.artefact_build).joinedload(ArtefactBuild.artefact),
+            joinedload(TestExecution.test_results).joinedload(TestResult.test_case),
         )
-        .unique()
-        .scalar_one_or_none()
     )
+
+    return db.execute(stmt).unique().scalar_one_or_none()
 
 
 def _store_c3_test_results(

@@ -68,6 +68,20 @@ def test_get_relevant_image_artefacts(
     assert response_data[0]["sha256"] == new_image.sha256
 
 
+def test_get_artefacts_treats_branches_as_unique(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    generator.gen_artefact(StageName.beta)
+    generator.gen_artefact(StageName.beta, branch="test-branch")
+
+    response = test_client.get("/v1/artefacts")
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert len(response_data) == 2
+
+
 def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     """Should be able to fetch an existing artefact"""
     u = generator.gen_user()
@@ -300,13 +314,25 @@ def test_artefact_promote_unknown_stage(
     assert response.status_code > 400
 
 
+def test_update_artefact_comment(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    comment = "Updated comment"
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"comment": comment},
+    )
+
+    assert response.status_code == 200
+    assert a.comment == comment
+
+
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
     artefact1 = generator.gen_artefact(StageName.beta, version="1")
     artefact2 = generator.gen_artefact(StageName.beta, version="2")
-    artefact3 = generator.gen_artefact(StageName.beta, version="3")
+    artefact3 = generator.gen_artefact(StageName.beta, version="3", branch="test")
 
     expected_result = [
-        {"version": "3", "artefact_id": artefact3.id},
         {"version": "2", "artefact_id": artefact2.id},
         {"version": "1", "artefact_id": artefact1.id},
     ]
@@ -315,9 +341,13 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     assert response.status_code == 200
     assert response.json() == expected_result
 
-    response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
+    response = test_client.get(f"/v1/artefacts/{artefact2.id}/versions")
     assert response.status_code == 200
     assert response.json() == expected_result
+
+    response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
+    assert response.status_code == 200
+    assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 
 
 def _assert_get_artefacts_response(
@@ -334,6 +364,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "version": artefact.version,
         "track": artefact.track,
         "store": artefact.store,
+        "branch": artefact.branch,
         "series": artefact.series,
         "repo": artefact.repo,
         "stage": artefact.stage,
@@ -343,6 +374,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "sha256": artefact.sha256,
         "image_url": artefact.image_url,
         "status": artefact.status,
+        "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
         "assignee": None,

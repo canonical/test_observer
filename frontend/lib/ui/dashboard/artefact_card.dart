@@ -26,7 +26,7 @@ import '../user_avatar.dart';
 import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
-  const ArtefactCard({Key? key, required this.artefact}) : super(key: key);
+  const ArtefactCard({super.key, required this.artefact});
 
   final Artefact artefact;
   static const double width = 320;
@@ -60,6 +60,8 @@ class ArtefactCard extends ConsumerWidget {
               Text('version: ${artefact.version}'),
               if (artefact.track.isNotEmpty) Text('track: ${artefact.track}'),
               if (artefact.store.isNotEmpty) Text('store: ${artefact.store}'),
+              if (artefact.branch.isNotEmpty)
+                Text('branch: ${artefact.branch}'),
               if (artefact.series.isNotEmpty)
                 Text('series: ${artefact.series}'),
               if (artefact.repo.isNotEmpty) Text('repo: ${artefact.repo}'),
