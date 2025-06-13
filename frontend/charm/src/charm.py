@@ -17,7 +17,7 @@
 """Test Observer frontend charm."""
 
 import logging
-from typing import Tuple
+from typing import Optional, Tuple
 
 import ops
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
@@ -28,6 +28,7 @@ from ops.model import (
     WaitingStatus,
 )
 from ops.pebble import Layer
+from nginx_config import nginx_config, nginx_503_config, html_503
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         self._update_layer_and_restart(event)
 
-    def _config_is_valid(self, config) -> Tuple[bool, str]:
+    def _config_is_valid(self, config) -> Tuple[bool, Optional[str]]:
         """Validate the provided config."""
         if config["port"] < 1 or config["port"] > 65535:
             return False, "port must be between 1 and 65535"
@@ -100,67 +101,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
         logger.debug("REST API relation broken")
         self._handle_no_api_relation()
 
-    def nginx_config(self, base_uri: str) -> str:
-        """Return a config where the backend port `base_uri` is adjusted."""
-        return f"""
-        server {{
-            listen       80;
-            server_name  localhost;
-
-            location / {{
-                root   /usr/share/nginx/html;
-                index  index.html index.htm;
-                try_files $uri $uri/ /index.html =404;
-
-                # Ensure no caching
-                expires -1;
-                add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
-
-                sub_filter 'http://localhost:30000/' '{base_uri}';
-                sub_filter_once on;
-            }}
-
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {{
-                root   /usr/share/nginx/html;
-            }}
-        }}
-        """
-
-    def nginx_503_config(self) -> str:
-        """Return a config for the situation when the backend is not yet available."""
-        return """
-        server {
-            listen 80 default_server;
-            server_name _;
-            return 503;
-            error_page 503 @maintenance;
-
-            location @maintenance {
-                rewrite ^(.*)$ /503.html break;
-                root /usr/share/nginx/html;
-
-                # Ensure no caching
-                expires -1;
-                add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
-            }
-        }
-        """
-
-    def html_503(self) -> str:
-        """Return a 503 response page."""
-        return """
-        <html>
-            <head>
-                <title>503 Service Unavailable</title>
-            </head>
-            <body>
-                <h1>503 Service Unavailable</h1>
-                <p>Backend not yet configured.</p>
-            </body>
-        </html>
-        """
-
     def _update_layer_and_restart(self, event):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
@@ -169,7 +109,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
             if api_url:
                 self.container.push(
                     "/etc/nginx/sites-available/test-observer-frontend",
-                    self.nginx_config(base_uri=api_url),
+                    nginx_config(base_uri=api_url),
                     make_dirs=True,
                 )
                 self.container.add_layer(
@@ -188,12 +128,12 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         if api_relation is None:
             self._handle_no_api_relation()
-            return
+            return None
 
         relation_data = api_relation.data[api_relation.app]
         if not relation_data:
             self.unit.status = WaitingStatus("Waiting for test observer api relation data")
-            return
+            return None
 
         hostname = relation_data["hostname"]
         port = relation_data["port"]
@@ -213,12 +153,12 @@ class TestObserverFrontendCharm(ops.CharmBase):
         if self.container.can_connect():
             self.container.push(
                 "/etc/nginx/sites-available/test-observer-frontend",
-                self.nginx_503_config(),
+                nginx_503_config(),
                 make_dirs=True,
             )
             self.container.push(
                 "/usr/share/nginx/html/503.html",
-                self.html_503(),
+                html_503(),
                 make_dirs=True,
             )
             self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)

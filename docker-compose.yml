@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  test-observer-api:
+    image: test-observer-api
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-0.1.2}
+    volumes:
+      - ./test_observer:/test_observer
+      - ./tests:/tests
+      - ./migrations:/migrations
+      - ./scripts:/scripts
+    ports:
+      - "30000:30000"
+    depends_on:
+      - test-observer-frontend
+      - test-observer-db
+    environment:
+      DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
+
+  test-observer-frontend:
+    image: test-observer-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "30001:80" # Adjust the port mapping as needed
+
+  test-observer-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: test_observer_user
+      POSTGRES_PASSWORD: test_observer_password
+      POSTGRES_DB: test_observer_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  db_data:
