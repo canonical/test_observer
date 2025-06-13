@@ -99,6 +99,7 @@ skaffold dev --no-prune=false --cache-artifacts=false
 ```
 
 **Docker Compose Services:**
+
 - `backend`: FastAPI server on port 30000
 - `frontend`: Flutter web app on port 8080  
 - `db`: PostgreSQL database with persistent volume
