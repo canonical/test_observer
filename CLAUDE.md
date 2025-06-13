@@ -5,8 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Backend (Python/FastAPI)
+
 ```bash
 # Install dependencies
+
 cd backend && poetry install
 
 # Run linting and type checking
@@ -14,29 +16,37 @@ ruff check .
 mypy .
 
 # Run tests (Docker Compose)
+
 docker-compose exec backend pytest
 
 # Run tests (Kubernetes)
+
 kubectl exec -it service/test-observer-api -- pytest
 
 # Database migrations (Docker Compose)
+
 docker-compose exec backend alembic revision --autogenerate -m "Description"
 docker-compose exec backend alembic upgrade head
 
 # Database migrations (Kubernetes)
+
 kubectl exec -it service/test-observer-api -- alembic revision --autogenerate -m "Description"
 kubectl exec -it service/test-observer-api -- alembic upgrade head
 
 # Seed database with test data (Docker Compose)
+
 docker-compose exec backend python scripts/seed_data.py
 
 # Seed database with test data (Kubernetes)
+
 kubectl exec -it service/test-observer-api -- python scripts/seed_data.py
 ```
 
 ### Frontend (Flutter/Dart)
+
 ```bash
 # Install dependencies
+
 cd frontend && flutter pub get
 
 # Generate code (required before running)
@@ -56,6 +66,7 @@ flutter test --platform chrome
 ### Development Environment
 
 #### Docker Compose (Recommended)
+
 ```bash
 # Start full stack with docker-compose (migrations and seeding run automatically)
 docker-compose up
@@ -81,6 +92,7 @@ docker-compose exec frontend bash
 ```
 
 #### Kubernetes (Alternative)
+
 ```bash
 # Start microk8s development
 skaffold dev --no-prune=false --cache-artifacts=false
@@ -97,6 +109,7 @@ skaffold dev --no-prune=false --cache-artifacts=false
 **Test Observer** is a dashboard for viewing and managing test results on software artefacts (debs, snaps, charms, images) across different environments. The system does not run tests itself, but provides APIs for reporting and reviewing test results.
 
 ### Backend Architecture
+
 - **Framework**: FastAPI with SQLAlchemy ORM and PostgreSQL
 - **Entry Point**: `backend/test_observer/main.py`
 - **API Structure**: Versioned REST API (`/v1/*`) organized by domain:
@@ -107,7 +120,8 @@ skaffold dev --no-prune=false --cache-artifacts=false
 - **Data Access**: Repository pattern with `data_access/` module
 - **Background Tasks**: Celery with Redis for async processing
 
-### Frontend Architecture  
+### Frontend Architecture
+
 - **Framework**: Flutter web application with Riverpod state management
 - **Entry Point**: `frontend/lib/main.dart`
 - **Navigation**: Router-based SPA with family-specific routes (snaps, debs, charms, images)
@@ -115,6 +129,7 @@ skaffold dev --no-prune=false --cache-artifacts=false
 - **API Communication**: HTTP REST calls via Dio client through `ApiRepository`
 
 ### Core Data Model
+
 The system centers around **Artefacts** (software packages) that go through testing workflows:
 
 - **Artefact**: Central entity supporting multiple families (snap/deb/charm/image)
@@ -125,6 +140,7 @@ The system centers around **Artefacts** (software packages) that go through test
 - **Review System**: Multi-level approval workflow for artefact releases
 
 ### Key Patterns
+
 - **Domain-Driven Design**: Controllers organized by business domain, not HTTP verbs
 - **Partial Unique Constraints**: Database handles different artefact family requirements
 - **Event-Driven Architecture**: TestEvents provide audit trail of test execution
@@ -134,6 +150,7 @@ The system centers around **Artefacts** (software packages) that go through test
 ## Important Conventions
 
 ### Database Migrations
+
 - Use Alembic for all schema changes
 - Auto-generate migrations: `alembic revision --autogenerate -m "Description"`
 - Always review generated migrations before applying
@@ -142,11 +159,13 @@ The system centers around **Artefacts** (software packages) that go through test
 - **Test Data Seeding**: Development Docker automatically seeds test data unless `SEED_DATA=false`
 
 ### Code Generation (Frontend)
+
 - Flutter uses code generation for models and providers
 - Always run `dart run build_runner build` after model changes
 - Generated files (`.g.dart`, `.freezed.dart`) are committed to version control
 
 ### Testing Approach
+
 - Backend: pytest within Docker containers or Kubernetes pods
 - Frontend: Chrome-based unit tests and integration tests
 - Use existing test data generators in `tests/data_generator.py`
@@ -154,12 +173,14 @@ The system centers around **Artefacts** (software packages) that go through test
 - Kubernetes: `kubectl exec -it service/test-observer-api -- pytest`
 
 ### API Design
+
 - All endpoints versioned with `/v1/` prefix
 - RESTful resource-based routing
 - Pydantic models for request/response validation
 - Dependency injection for database sessions and auth
 
 ### Environment Configuration
+
 - Development: microk8s + Skaffold (preferred) or docker-compose
 - Database: PostgreSQL (local) or microk8s postgres
 - Frontend connects to backend at `http://localhost:30000/` by default
