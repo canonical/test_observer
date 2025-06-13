@@ -13,14 +13,24 @@ cd backend && poetry install
 ruff check .
 mypy .
 
-# Run tests
+# Run tests (Docker Compose)
+docker-compose exec backend pytest
+
+# Run tests (Kubernetes)
 kubectl exec -it service/test-observer-api -- pytest
 
-# Database migrations
+# Database migrations (Docker Compose)
+docker-compose exec backend alembic revision --autogenerate -m "Description"
+docker-compose exec backend alembic upgrade head
+
+# Database migrations (Kubernetes)
 kubectl exec -it service/test-observer-api -- alembic revision --autogenerate -m "Description"
 kubectl exec -it service/test-observer-api -- alembic upgrade head
 
-# Seed database with test data
+# Seed database with test data (Docker Compose)
+docker-compose exec backend python scripts/seed_data.py
+
+# Seed database with test data (Kubernetes)
 kubectl exec -it service/test-observer-api -- python scripts/seed_data.py
 ```
 
@@ -44,6 +54,8 @@ flutter test --platform chrome
 ```
 
 ### Development Environment
+
+#### Docker Compose (Recommended)
 ```bash
 # Start full stack with docker-compose (migrations and seeding run automatically)
 docker-compose up
@@ -51,9 +63,34 @@ docker-compose up
 # Start without seeding (set environment variable)
 SEED_DATA=false docker-compose up
 
-# Start microk8s development (preferred)
+# Run in background
+docker-compose up -d
+
+# Rebuild containers after code changes
+docker-compose up --build
+
+# Stop services
+docker-compose down
+
+# View logs
+docker-compose logs -f [service-name]
+
+# Execute commands in running containers
+docker-compose exec backend bash
+docker-compose exec frontend bash
+```
+
+#### Kubernetes (Alternative)
+```bash
+# Start microk8s development
 skaffold dev --no-prune=false --cache-artifacts=false
 ```
+
+**Docker Compose Services:**
+- `backend`: FastAPI server on port 30000
+- `frontend`: Flutter web app on port 8080  
+- `db`: PostgreSQL database with persistent volume
+- Automatic migrations and seeding via `entrypoint.sh`
 
 ## Architecture Overview
 
@@ -110,9 +147,11 @@ The system centers around **Artefacts** (software packages) that go through test
 - Generated files (`.g.dart`, `.freezed.dart`) are committed to version control
 
 ### Testing Approach
-- Backend: pytest within Kubernetes pods
+- Backend: pytest within Docker containers or Kubernetes pods
 - Frontend: Chrome-based unit tests and integration tests
 - Use existing test data generators in `tests/data_generator.py`
+- Docker Compose: `docker-compose exec backend pytest`
+- Kubernetes: `kubectl exec -it service/test-observer-api -- pytest`
 
 ### API Design
 - All endpoints versioned with `/v1/` prefix

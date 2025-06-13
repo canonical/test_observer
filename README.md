@@ -6,9 +6,40 @@ Certification currently deploys an instance of TO that they used for reviewing S
 
 ## Run locally
 
-For development look at the [backend](/backend/README.md) and [frontend](/frontend/README.md).
+### Docker Compose (Recommended for Development)
 
-To run the whole system (backend + frontend + pg at the time of writing) via Terraform, juju and charms simulating production and staging environments, use [terraform](/terraform/README.md)
+The easiest way to run the full Test Observer stack locally is using Docker Compose:
+
+```bash
+# Start the complete stack (backend, frontend, database)
+# Migrations and test data seeding happen automatically
+docker-compose up
+
+# Start without test data seeding
+SEED_DATA=false docker-compose up
+
+# Run in detached mode
+docker-compose up -d
+
+# Stop the stack
+docker-compose down
+
+# Rebuild containers after code changes
+docker-compose up --build
+```
+
+This will start:
+- **Backend API** at `http://localhost:30000` (with automatic migrations and seeding)
+- **Frontend** at `http://localhost:8080`
+- **PostgreSQL database** with persistent storage
+
+### Individual Components
+
+For component-specific development, see the [backend](/backend/README.md) and [frontend](/frontend/README.md) documentation.
+
+### Production-like Environment
+
+To run the whole system via Terraform, juju and charms simulating production and staging environments, use [terraform](/terraform/README.md)
 
 
 ## Charm integration tests
