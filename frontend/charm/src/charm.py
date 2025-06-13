@@ -28,7 +28,8 @@ from ops.model import (
     WaitingStatus,
 )
 from ops.pebble import Layer
-from nginx_config import nginx_config, nginx_503_config, html_503
+
+from nginx_config import html_503, nginx_503_config, nginx_config
 
 logger = logging.getLogger(__name__)
 

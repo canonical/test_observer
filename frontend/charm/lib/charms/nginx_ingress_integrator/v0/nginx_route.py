@@ -153,7 +153,50 @@ class _NginxRouteRequirer(ops.framework.Object):
             relation_app_data.update({k: str(v) for k, v in self._config.items()})
 
 
-def require_nginx_route(  # pylint: disable=too-many-locals,too-many-branches
+def _build_nginx_route_config(
+    service_hostname: str,
+    service_name: str,
+    service_port: int,
+    additional_hostnames: typing.Optional[str] = None,
+    backend_protocol: typing.Optional[str] = None,
+    limit_rps: typing.Optional[int] = None,
+    limit_whitelist: typing.Optional[str] = None,
+    max_body_size: typing.Optional[int] = None,
+    owasp_modsecurity_crs: typing.Optional[str] = None,
+    owasp_modsecurity_custom_rules: typing.Optional[str] = None,
+    path_routes: typing.Optional[str] = None,
+    retry_errors: typing.Optional[str] = None,
+    rewrite_target: typing.Optional[str] = None,
+    rewrite_enabled: typing.Optional[bool] = None,
+    service_namespace: typing.Optional[str] = None,
+    session_cookie_max_age: typing.Optional[int] = None,
+    tls_secret_name: typing.Optional[str] = None,
+) -> typing.Dict[str, typing.Union[str, int, bool]]:
+    """Build nginx route configuration from parameters."""
+    config_mapping = {
+        "service-hostname": service_hostname,
+        "service-name": service_name,
+        "service-port": service_port,
+        "additional-hostnames": additional_hostnames,
+        "backend-protocol": backend_protocol,
+        "limit-rps": limit_rps,
+        "limit-whitelist": limit_whitelist,
+        "max-body-size": max_body_size,
+        "owasp-modsecurity-crs": owasp_modsecurity_crs,
+        "owasp-modsecurity-custom-rules": owasp_modsecurity_custom_rules,
+        "path-routes": path_routes,
+        "retry-errors": retry_errors,
+        "rewrite-target": rewrite_target,
+        "rewrite-enabled": rewrite_enabled,
+        "service-namespace": service_namespace,
+        "session-cookie-max-age": session_cookie_max_age,
+        "tls-secret-name": tls_secret_name,
+    }
+
+    return {key: value for key, value in config_mapping.items() if value is not None}
+
+
+def require_nginx_route(  # pylint: disable=too-many-locals
     *,
     charm: ops.charm.CharmBase,
     service_hostname: str,
@@ -220,41 +263,25 @@ def require_nginx_route(  # pylint: disable=too-many-locals,too-many-branches
             the relation handled by this requirer class. The relation
             must have the nginx-route interface.
     """
-    config: typing.Dict[str, typing.Union[str, int, bool]] = {}
-    if service_hostname is not None:
-        config["service-hostname"] = service_hostname
-    if service_name is not None:
-        config["service-name"] = service_name
-    if service_port is not None:
-        config["service-port"] = service_port
-    if additional_hostnames is not None:
-        config["additional-hostnames"] = additional_hostnames
-    if backend_protocol is not None:
-        config["backend-protocol"] = backend_protocol
-    if limit_rps is not None:
-        config["limit-rps"] = limit_rps
-    if limit_whitelist is not None:
-        config["limit-whitelist"] = limit_whitelist
-    if max_body_size is not None:
-        config["max-body-size"] = max_body_size
-    if owasp_modsecurity_crs is not None:
-        config["owasp-modsecurity-crs"] = owasp_modsecurity_crs
-    if owasp_modsecurity_custom_rules is not None:
-        config["owasp-modsecurity-custom-rules"] = owasp_modsecurity_custom_rules
-    if path_routes is not None:
-        config["path-routes"] = path_routes
-    if retry_errors is not None:
-        config["retry-errors"] = retry_errors
-    if rewrite_target is not None:
-        config["rewrite-target"] = rewrite_target
-    if rewrite_enabled is not None:
-        config["rewrite-enabled"] = rewrite_enabled
-    if service_namespace is not None:
-        config["service-namespace"] = service_namespace
-    if session_cookie_max_age is not None:
-        config["session-cookie-max-age"] = session_cookie_max_age
-    if tls_secret_name is not None:
-        config["tls-secret-name"] = tls_secret_name
+    config = _build_nginx_route_config(
+        service_hostname=service_hostname,
+        service_name=service_name,
+        service_port=service_port,
+        additional_hostnames=additional_hostnames,
+        backend_protocol=backend_protocol,
+        limit_rps=limit_rps,
+        limit_whitelist=limit_whitelist,
+        max_body_size=max_body_size,
+        owasp_modsecurity_crs=owasp_modsecurity_crs,
+        owasp_modsecurity_custom_rules=owasp_modsecurity_custom_rules,
+        path_routes=path_routes,
+        retry_errors=retry_errors,
+        rewrite_target=rewrite_target,
+        rewrite_enabled=rewrite_enabled,
+        service_namespace=service_namespace,
+        session_cookie_max_age=session_cookie_max_age,
+        tls_secret_name=tls_secret_name,
+    )
 
     _NginxRouteRequirer(
         charm=charm, config=config, nginx_route_relation_name=nginx_route_relation_name
