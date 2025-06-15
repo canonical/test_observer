@@ -6,6 +6,7 @@
 # Test Observer Backend is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
+
 #
 # Test Observer Backend is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -43,7 +44,7 @@ from test_observer.controllers.test_executions.models import (
 
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
-from test_observer.data_access.models import Artefact
+from test_observer.data_access.models import Artefact, User, TestExecution
 from test_observer.data_access.models_enums import (
     FamilyName,
     SnapStage,
@@ -584,7 +585,20 @@ ENVIRONMENT_ISSUE_REQUESTS = [
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
 
-    add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
+    # Check if data already exists by looking for test executions with known ci_links
+    existing_test_execution = session.scalar(
+        select(TestExecution).where(TestExecution.ci_link == "http://example1")
+    )
+    if existing_test_execution:
+        print("Seed data already exists, skipping seeding")
+        return
+
+    # Check if user exists, create if needed
+    existing_user = session.scalar(
+        select(User).where(User.launchpad_email == "john.doe@canonical.com")
+    )
+    if not existing_user:
+        add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
     test_executions = []
     for start_request in START_TEST_EXECUTION_REQUESTS:

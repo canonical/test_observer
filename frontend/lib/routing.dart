@@ -21,6 +21,7 @@ import 'package:go_router/go_router.dart';
 import 'models/family_name.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
+import 'ui/reporting/reporting_page.dart';
 import 'ui/skeleton.dart';
 
 final appRouter = GoRouter(
@@ -90,6 +91,12 @@ final appRouter = GoRouter(
             ),
           ),
         ),
+        GoRoute(
+          path: AppRoutes.reporting,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: ReportingPage(),
+          ),
+        ),
       ],
     ),
   ],
@@ -111,6 +118,7 @@ class AppRoutes {
   static const debs = '/debs';
   static const charms = '/charms';
   static const images = '/images';
+  static const reporting = '/reporting';
 
   static Uri uriFromContext(BuildContext context) =>
       GoRouterState.of(context).uri;

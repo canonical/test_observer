@@ -210,4 +210,43 @@ class ApiRepository {
     );
     return EnvironmentReview.fromJson(response.data);
   }
+
+
+  Future<List<dynamic>> getKnownIssuesReport({
+    String? templateId,
+    String? caseName,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (templateId != null) {
+      queryParameters['template_id'] = templateId;
+    }
+    if (caseName != null) {
+      queryParameters['case_name'] = caseName;
+    }
+    
+    final response = await dio.get(
+      '/v1/test-cases/reported-issues',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
+
+  Future<String> getTestResultsCsv({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    
+    final response = await dio.get(
+      '/v1/reports/test-results',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
 }

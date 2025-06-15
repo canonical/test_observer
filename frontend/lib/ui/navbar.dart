@@ -64,6 +64,10 @@ class Navbar extends StatelessWidget {
                     title: 'Image Testing',
                     route: AppRoutes.images,
                   ),
+                  const _NavbarEntry(
+                    title: 'Reporting',
+                    route: AppRoutes.reporting,
+                  ),
                   const Spacer(),
                   _NavbarDropdownEntry(
                     label: 'Help',
