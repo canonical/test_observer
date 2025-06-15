@@ -43,6 +43,8 @@ class Navbar extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Image.asset('assets/canonical.png'),
+            const SizedBox(width: Spacing.level4),
             Expanded(
               child: Row(
                 children: [
