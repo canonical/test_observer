@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -21,7 +21,7 @@ part 'user.freezed.dart';
 part 'user.g.dart';
 
 @freezed
-class User with _$User {
+abstract class User with _$User {
   const User._();
 
   const factory User({

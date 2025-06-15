@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -21,7 +21,7 @@ import 'test_execution.dart';
 part 'artefact_build.freezed.dart';
 
 @freezed
-class ArtefactBuild with _$ArtefactBuild {
+abstract class ArtefactBuild with _$ArtefactBuild {
   const ArtefactBuild._();
 
   const factory ArtefactBuild({

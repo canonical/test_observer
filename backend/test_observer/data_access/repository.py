@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -19,12 +19,13 @@
 
 from collections.abc import Iterable
 from typing import Any
+from pydantic import HttpUrl
 
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from .models import Artefact, ArtefactBuild, DataModel
+from .models import Artefact, ArtefactBuild, DataModel, TestExecutionRelevantLink
 from .models_enums import FamilyName
 
 
@@ -55,8 +56,8 @@ def get_artefacts_by_family(
     match family:
         case FamilyName.snap:
             subquery = (
-                base_query.add_columns(Artefact.track)
-                .group_by(Artefact.track)
+                base_query.add_columns(Artefact.track, Artefact.branch)
+                .group_by(Artefact.track, Artefact.branch)
                 .subquery()
             )
 
@@ -67,6 +68,7 @@ def get_artefacts_by_family(
                     Artefact.name == subquery.c.name,
                     Artefact.created_at == subquery.c.max_created,
                     Artefact.track == subquery.c.track,
+                    Artefact.branch == subquery.c.branch,
                 ),
             )
 
@@ -89,27 +91,11 @@ def get_artefacts_by_family(
             )
 
         case FamilyName.charm:
-            subquery = (
-                base_query.join(ArtefactBuild)
-                .add_columns(Artefact.track, ArtefactBuild.architecture)
-                .group_by(Artefact.track, ArtefactBuild.architecture)
-                .subquery()
-            )
-
-            query = (
-                session.query(Artefact)
-                .join(ArtefactBuild)
-                .join(
-                    subquery,
-                    and_(
-                        Artefact.stage == subquery.c.stage,
-                        Artefact.name == subquery.c.name,
-                        Artefact.created_at == subquery.c.max_created,
-                        Artefact.track == subquery.c.track,
-                        ArtefactBuild.architecture == subquery.c.architecture,
-                    ),
-                )
-                .distinct()
+            query = session.query(Artefact).where(
+                and_(
+                    Artefact.family == family,
+                    Artefact.archived.is_(False),
+                ),
             )
 
         case FamilyName.image:
@@ -168,3 +154,15 @@ def get_or_create(
         instance = db.query(model).filter_by(**filter_kwargs).one()
     db.commit()
     return instance
+
+
+def create_test_execution_relevant_link(
+    session: Session, test_execution_id: int, label: str, url: HttpUrl
+) -> TestExecutionRelevantLink:
+    new_link = TestExecutionRelevantLink(
+        test_execution_id=test_execution_id, label=label, url=url
+    )
+    session.add(new_link)
+    session.commit()
+    session.refresh(new_link)
+    return new_link

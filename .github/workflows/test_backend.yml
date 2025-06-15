@@ -37,7 +37,7 @@ jobs:
         with:
           poetry-version: "1.8.2"
       - run: poetry install
-      - run: poetry run ruff test_observer tests migrations scripts tasks
+      - run: poetry run ruff check
       - run: poetry run mypy .
       - run: poetry run pytest
         env:

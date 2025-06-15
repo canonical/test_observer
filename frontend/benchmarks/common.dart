@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -66,6 +66,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
       series: '',
       repo: '',
       status: ArtefactStatus.undecided,
+      comment: '',
       stage: StageName.beta,
       bugLink: '',
       allEnvironmentReviewsCount: 1,

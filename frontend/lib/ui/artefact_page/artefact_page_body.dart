@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -28,6 +28,7 @@ import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'environment_expandable.dart';
+import 'rerun_filtered_plans_button.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
   const ArtefactPageBody({super.key, required this.artefact});
@@ -61,6 +62,8 @@ class ArtefactPageBody extends ConsumerWidget {
             _ArtefactEnvironmentsStatusSummary(
               artefactEnvironments: environments,
             ),
+            const Spacer(),
+            const RerunFilteredPlansButton(),
           ],
         ),
         NonBlockingProviderPreloader(
@@ -118,7 +121,14 @@ class _ArtefactEnvironmentsStatusSummary extends StatelessWidget {
   Map<TestExecutionStatus, int> _latestExecutionStatusCounts(
     Iterable<ArtefactEnvironment> artefactEnvironments,
   ) {
-    final counts = {for (final status in TestExecutionStatus.values) status: 0};
+    final counts = {
+      TestExecutionStatus.notStarted: 0,
+      TestExecutionStatus.notTested: 0,
+      TestExecutionStatus.inProgress: 0,
+      TestExecutionStatus.endedPrematurely: 0,
+      TestExecutionStatus.failed: 0,
+      TestExecutionStatus.passed: 0,
+    };
 
     for (final artefactEnvironment in artefactEnvironments) {
       final status = artefactEnvironment.runsDescending.first.status;

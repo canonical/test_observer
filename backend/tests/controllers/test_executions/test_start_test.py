@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -30,6 +30,10 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     StageName,
+    SnapStage,
+    DebStage,
+    CharmStage,
+    ImageStage,
     TestExecutionStatus,
 )
 from tests.asserts import assert_fails_validation
@@ -54,7 +58,7 @@ snap_test_request = {
     "track": "22",
     "store": "ubuntu",
     "arch": "arm64",
-    "execution_stage": StageName.beta,
+    "execution_stage": SnapStage.beta,
     "environment": "cm3",
     "ci_link": "http://localhost",
     "test_plan": "test plan",
@@ -66,7 +70,7 @@ deb_test_request = {
     "version": "6.8.0-50.51~22.04.1",
     "series": "jammy",
     "repo": "main",
-    "execution_stage": StageName.proposed,
+    "execution_stage": DebStage.proposed,
     "arch": "amd64",
     "environment": "xps",
     "ci_link": "http://localhost",
@@ -80,7 +84,7 @@ charm_test_request = {
     "revision": 123,
     "track": "22",
     "arch": "arm64",
-    "execution_stage": StageName.beta,
+    "execution_stage": CharmStage.beta,
     "environment": "juju 3 - microk8s 2",
     "ci_link": "http://localhost",
     "test_plan": "test plan",
@@ -96,7 +100,7 @@ image_test_request = {
     "sha256": "e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
     "owner": "foundations",
     "image_url": "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso",
-    "execution_stage": StageName.pending,
+    "execution_stage": ImageStage.pending,
     "test_plan": "image test plan",
     "environment": "xps",
     "ci_link": "http://localhost",
@@ -239,7 +243,7 @@ class TestFamilyIndependentTests:
         assert artefact.release == request.get("release", "")
         assert artefact.sha256 == request.get("sha256", "")
         assert artefact.owner == request.get("owner", "")
-        assert artefact.image_url == str(request.get("image_url", ''))
+        assert artefact.image_url == str(request.get("image_url", ""))
         assert artefact.store == request.get("store", "")
         assert artefact.track == request.get("track", "")
         assert artefact.series == request.get("series", "")
@@ -380,7 +384,7 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
 
 @pytest.mark.parametrize(
     "invalid_stage",
-    set(StageName) - {StageName.proposed, StageName.updates},
+    set(StageName) - set(DebStage),
 )
 def test_validates_stage_for_debs(execute: Execute, invalid_stage: StageName):
     response = execute({**deb_test_request, "execution_stage": invalid_stage})
@@ -390,13 +394,7 @@ def test_validates_stage_for_debs(execute: Execute, invalid_stage: StageName):
 
 @pytest.mark.parametrize(
     "invalid_stage",
-    set(StageName)
-    - {
-        StageName.edge,
-        StageName.beta,
-        StageName.candidate,
-        StageName.stable,
-    },
+    set(StageName) - set(SnapStage),
 )
 def test_validates_stage_for_snaps(execute: Execute, invalid_stage: StageName):
     response = execute({**snap_test_request, "execution_stage": invalid_stage})
@@ -406,15 +404,25 @@ def test_validates_stage_for_snaps(execute: Execute, invalid_stage: StageName):
 
 @pytest.mark.parametrize(
     "invalid_stage",
-    set(StageName)
-    - {
-        StageName.edge,
-        StageName.beta,
-        StageName.candidate,
-        StageName.stable,
-    },
+    set(StageName) - set(CharmStage),
 )
 def test_validates_stage_for_charms(execute: Execute, invalid_stage: StageName):
     response = execute({**charm_test_request, "execution_stage": invalid_stage})
 
     assert response.status_code == 422
+
+
+def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session):
+    response = execute(snap_test_request)
+    te1 = db_session.get(TestExecution, response.json()["id"])
+
+    request_with_branch = {
+        **snap_test_request,
+        "branch": "test-branch",
+        "ci_link": "http://someother.link",
+    }
+    response = execute(request_with_branch)
+    te2 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te2
+    assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id

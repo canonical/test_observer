@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -19,7 +19,6 @@ import 'package:flutter/material.dart';
 import '../../../models/environment_issue.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
-import '../../vanilla/vanilla_button.dart';
 import 'environment_issue_form.dart';
 
 class EnvironmentIssueListItem extends StatelessWidget {
@@ -60,8 +59,7 @@ class EnvironmentIssueListItem extends StatelessWidget {
               urlText: 'URL',
               fontStyle: Theme.of(context).textTheme.bodyMedium,
             ),
-          const SizedBox(width: Spacing.level3),
-          VanillaButton(
+          TextButton(
             onPressed: () => showEnvironmentIssueUpdateDialog(
               context: context,
               issue: issue,

@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -16,13 +16,13 @@
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'artefact_side_filters_visibility.g.dart';
+part 'artefact_page_side_visibility.g.dart';
 
 @riverpod
-class ArtefactSideFiltersVisibility extends _$ArtefactSideFiltersVisibility {
+class ArtefactPageSideVisibility extends _$ArtefactPageSideVisibility {
   @override
   bool build() {
-    return false;
+    return true;
   }
 
   void set(bool value) {

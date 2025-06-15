@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -22,7 +22,7 @@ part 'environment_review.freezed.dart';
 part 'environment_review.g.dart';
 
 @freezed
-class EnvironmentReview with _$EnvironmentReview {
+abstract class EnvironmentReview with _$EnvironmentReview {
   static const String reviewCommentJsonKey = 'review_comment';
   static const String reviewDecisionJsonKey = 'review_decision';
 
@@ -42,7 +42,8 @@ class EnvironmentReview with _$EnvironmentReview {
 }
 
 @freezed
-class EnvironmentReviewArtefactBuild with _$EnvironmentReviewArtefactBuild {
+abstract class EnvironmentReviewArtefactBuild
+    with _$EnvironmentReviewArtefactBuild {
   const factory EnvironmentReviewArtefactBuild({
     required int id,
     required String architecture,

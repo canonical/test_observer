@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -25,7 +25,7 @@ import '../spacing.dart';
 import 'artefact_card.dart';
 
 class StageColumn extends ConsumerWidget {
-  const StageColumn({Key? key, required this.stage}) : super(key: key);
+  const StageColumn({super.key, required this.stage});
 
   final StageName stage;
 

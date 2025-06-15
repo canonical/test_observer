@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -36,7 +36,7 @@ class TestPlanExpandable extends StatelessWidget {
   Widget build(BuildContext context) {
     String title = testExecutionsDescending.first.testPlan;
     if (title.isEmpty) {
-      title = 'Unknown';
+      title = TestExecution.defaultTestPlanName;
     }
 
     return Expandable(

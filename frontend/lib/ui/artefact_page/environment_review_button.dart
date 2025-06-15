@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -15,11 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:yaru/yaru.dart';
 import 'package:popover/popover.dart';
 
 import '../../models/environment_review.dart';
 import '../../routing.dart';
-import '../vanilla/vanilla_chip.dart';
 import 'environment_review_pop_over.dart';
 
 class EnvironmentReviewButton extends StatelessWidget {
@@ -27,19 +27,23 @@ class EnvironmentReviewButton extends StatelessWidget {
 
   final EnvironmentReview environmentReview;
 
-  VanillaChip _getReviewDecisionWidget() {
+  Text _getReviewDecisionText(BuildContext context) {
+    final fontStyle = Theme.of(context).textTheme.labelMedium;
     if (environmentReview.reviewDecision.isEmpty) {
-      return const VanillaChip(text: 'Undecided');
+      return Text(
+        'Undecided',
+        style: fontStyle?.apply(color: YaruColors.textGrey),
+      );
     } else if (environmentReview.reviewDecision
         .contains(EnvironmentReviewDecision.rejected)) {
-      return const VanillaChip(
-        text: 'Rejected',
-        type: VanillaChipType.negative,
+      return Text(
+        'Rejected',
+        style: fontStyle?.apply(color: YaruColors.red),
       );
     } else {
-      return const VanillaChip(
-        text: 'Approved',
-        type: VanillaChipType.positive,
+      return Text(
+        'Approved',
+        style: fontStyle?.apply(color: YaruColors.light.success),
       );
     }
   }
@@ -64,7 +68,10 @@ class EnvironmentReviewButton extends StatelessWidget {
           arrowWidth: 30,
         );
       },
-      child: _getReviewDecisionWidget(),
+      child: Chip(
+        label: _getReviewDecisionText(context),
+        shape: const StadiumBorder(),
+      ),
     );
   }
 }

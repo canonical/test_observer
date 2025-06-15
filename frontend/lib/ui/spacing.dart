@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -23,4 +23,5 @@ class Spacing {
   static const level6 = 64.0;
 
   static const pageHorizontalPadding = level5;
+  static const maxPageContentWidth = 1800.0;
 }

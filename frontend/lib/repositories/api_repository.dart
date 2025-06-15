@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -51,6 +51,15 @@ class ApiRepository {
       '/v1/artefacts/$artefactId',
       data: {'status': newStatus.toJson()},
     );
+    return Artefact.fromJson(response.data);
+  }
+
+  Future<Artefact> changeArtefactComment(
+    int artefactId,
+    String comment,
+  ) async {
+    final response = await dio
+        .patch('/v1/artefacts/$artefactId', data: {'comment': comment});
     return Artefact.fromJson(response.data);
   }
 

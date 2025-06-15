@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -27,6 +27,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     column,
+    Boolean,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.engine.default import DefaultExecutionContext
@@ -120,12 +121,21 @@ class Artefact(Base):
     due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
     bug_link: Mapped[str] = mapped_column(default="")
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    comment: Mapped[str] = mapped_column(default="")
 
-    # Family specific fields
-    track: Mapped[str] = mapped_column(default="")
+    # Snap specific fields
     store: Mapped[str] = mapped_column(default="")
+
+    # Snap and Charm specific fields
+    track: Mapped[str] = mapped_column(default="")
+    branch: Mapped[str] = mapped_column(String(200), default="")
+
+    # Deb specific fields
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+
+    # Image specific fields
     os: Mapped[str] = mapped_column(String(200), default="")
     release: Mapped[str] = mapped_column(String(200), default="")
     sha256: Mapped[str] = mapped_column(String(200), default="")
@@ -151,6 +161,7 @@ class Artefact(Base):
             "name",
             "version",
             "track",
+            "branch",
             postgresql_where=column("family") == FamilyName.snap.name,
             unique=True,
         ),
@@ -159,6 +170,7 @@ class Artefact(Base):
             "name",
             "version",
             "track",
+            "branch",
             postgresql_where=column("family") == FamilyName.charm.name,
             unique=True,
         ),
@@ -197,6 +209,7 @@ class Artefact(Base):
             "image_url",
             "due_date",
             "status",
+            "archived",
         )
 
     @hybrid_property
@@ -356,6 +369,10 @@ class TestExecution(Base):
         String(200), nullable=True, default=None
     )
 
+    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = (
+        relationship(back_populates="test_execution", cascade="all, delete-orphan")
+    )
+
     test_plan: Mapped[str] = mapped_column(String(200))
 
     @property
@@ -503,9 +520,9 @@ class ArtefactBuildEnvironmentReview(Base):
     __tablename__ = "artefact_build_environment_review"
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
-    review_decision: Mapped[
-        list[ArtefactBuildEnvironmentReviewDecision]
-    ] = mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    review_decision: Mapped[list[ArtefactBuildEnvironmentReviewDecision]] = (
+        mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    )
     review_comment: Mapped[str] = mapped_column(default="")
 
     environment_id: Mapped[int] = mapped_column(
@@ -525,3 +542,18 @@ class ArtefactBuildEnvironmentReview(Base):
         return (len(self.review_decision) > 0) and (
             ArtefactBuildEnvironmentReviewDecision.REJECTED not in self.review_decision
         )
+
+
+class TestExecutionRelevantLink(Base):
+    __test__ = False
+    __tablename__ = "test_execution_relevant_link"
+
+    test_execution_id: Mapped[int] = mapped_column(
+        ForeignKey("test_execution.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    label: Mapped[str]
+    url: Mapped[str]
+
+    test_execution: Mapped["TestExecution"] = relationship(
+        back_populates="relevant_links"
+    )

@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -25,7 +25,7 @@ part 'artefact.freezed.dart';
 part 'artefact.g.dart';
 
 @freezed
-class Artefact with _$Artefact {
+abstract class Artefact with _$Artefact {
   const Artefact._();
 
   const factory Artefact({
@@ -35,6 +35,7 @@ class Artefact with _$Artefact {
     required String family,
     @Default('') String track,
     @Default('') String store,
+    @Default('') String branch,
     @Default('') String series,
     @Default('') String repo,
     @Default('') String os,
@@ -43,6 +44,7 @@ class Artefact with _$Artefact {
     @Default('') String sha256,
     @Default('') @JsonKey(name: 'image_url') String imageUrl,
     required ArtefactStatus status,
+    required String comment,
     required StageName stage,
     @JsonKey(name: 'all_environment_reviews_count')
     required int allEnvironmentReviewsCount,

@@ -1,0 +1,157 @@
+name: Charm integration tests
+
+on:
+  workflow_call:
+    secrets:
+      CHARMHUB_TOKEN:
+        required: true
+  
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+ 
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}-${{ github.job }}
+  cancel-in-progress: true
+
+jobs:
+  lib-check:
+    name: Check libraries
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+      - name: Check libs
+        uses: canonical/charming-actions/check-libraries@934193396735701141a1decc3613818e412da606 # 2.6.3
+        with:
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  pack-charm:
+    name: Build charm
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        charm: [backend, frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup LXD
+        uses: canonical/setup-lxd@v0.1.2
+        with:
+          channel: 5.21/stable
+
+      - name: Install charmcraft
+        run: sudo snap install charmcraft --channel=3.x/stable --classic
+
+      - name: Cache wheels
+        id: cache-wheels
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: /home/runner/snap/charmcraft/common/cache/charmcraft
+          key: ${{ runner.os }}-wheel-cache-${{ hashFiles('./uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-wheel-cache-
+
+      - name: Pack charm
+        run: charmcraft pack -v
+        working-directory: "${{ matrix.charm }}/charm"
+      
+      - name: Upload charm artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.charm }}-charm
+          path: "${{ matrix.charm }}/charm/*.charm"
+
+  define-matrix:
+    name: Define spread matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      suites: ${{ steps.suites.outputs.suites }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Install spread
+        run: sudo snap install spread
+
+      - name: Generate matrix list
+        id: suites
+        run: |
+          list="$(spread --list github-ci | sed "s|github-ci:ubuntu-24.04:spread/||g" | jq -r -ncR '[inputs | select(length>0)]')"
+          echo "suites=$list"
+          echo "suites=$list" >> $GITHUB_OUTPUT
+
+  integration-test:
+    name: Spread (${{ matrix.suite }})
+    
+    runs-on: [self-hosted, linux, large, noble, x64]
+    needs:
+      - define-matrix
+      - lib-check
+      - pack-charm
+    strategy:
+      fail-fast: true
+      matrix:
+        suite: ${{ fromJSON(needs.define-matrix.outputs.suites) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Download backend charm artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: backend-charm
+          path: ${{ github.workspace }}/backend/charm
+      
+      - name: Download frontend charm artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: frontend-charm
+          path: ${{ github.workspace }}/frontend/charm
+  
+      - name: Setup LXD
+        uses: canonical/setup-lxd@v0.1.2
+        with:
+          channel: 5.21/stable
+
+      - name: Setup Go
+        uses: actions/setup-go@v5.3.0
+        with:
+          go-version: 1.24.0
+  
+      - name: Install spread
+        run: |
+          go install github.com/snapcore/spread/cmd/spread@latest
+  
+      - name: Run integration tests
+        run: |
+          spread -v "github-ci:ubuntu-24.04:spread/${{ matrix.suite }}"
+      
+      - name: Sanitize suite name
+        if: failure()
+        id: sanitize
+        run: |
+          SANITIZED_SUITE=$(echo "${{ matrix.suite }}" | tr ':/' '-')
+          echo "sanitized_suite=$SANITIZED_SUITE" >> $GITHUB_OUTPUT
+
+      - name: Upload charmcraft logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: charmcraft-logs-${{ steps.sanitize.outputs.sanitized_suite }}
+          path: /home/ubuntu/.local/state/charmcraft/log/*
+      
+      - name: Upload spread artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: spread-artifacts-${{ steps.sanitize.outputs.sanitized_suite }}
+          path: ./artifacts

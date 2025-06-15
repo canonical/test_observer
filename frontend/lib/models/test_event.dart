@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -20,7 +20,7 @@ part 'test_event.freezed.dart';
 part 'test_event.g.dart';
 
 @freezed
-class TestEvent with _$TestEvent {
+abstract class TestEvent with _$TestEvent {
   const factory TestEvent({
     @JsonKey(name: 'event_name') required String eventName,
     required String timestamp,

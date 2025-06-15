@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -17,23 +17,23 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yaru/widgets.dart';
 
 import '../../providers/family_artefacts.dart';
-import '../../providers/artefact_side_filters_visibility.dart';
+import '../../providers/dashboard_page_side_visibility.dart';
 import '../../routing.dart';
 import '../blocking_provider_preloader.dart';
 import '../page_filters/page_filters.dart';
 import '../spacing.dart';
-import '../vanilla/vanilla_icon_button.dart';
 import 'dashboard_body/dashboard_body.dart';
 import 'dashboard_header/dashboard_header.dart';
 
 class Dashboard extends ConsumerWidget {
-  const Dashboard({Key? key}) : super(key: key);
+  const Dashboard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final showFilters = ref.watch(artefactSideFiltersVisibilityProvider);
+    final showFilters = ref.watch(dashboardPageSideVisibilityProvider);
     final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
 
     return Padding(
@@ -57,10 +57,10 @@ class Dashboard extends ConsumerWidget {
               builder: (_, __) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  VanillaIconButton(
-                    icon: const Icon(Icons.filter_alt),
+                  YaruOptionButton(
+                    child: const Icon(Icons.filter_alt),
                     onPressed: () => ref
-                        .read(artefactSideFiltersVisibilityProvider.notifier)
+                        .read(dashboardPageSideVisibilityProvider.notifier)
                         .set(!showFilters),
                   ),
                   Visibility(

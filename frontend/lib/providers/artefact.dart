@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -42,5 +42,11 @@ class Artefact extends _$Artefact {
     final artefact = await future;
     state =
         AsyncData(artefact.copyWith(completedEnvironmentReviewsCount: count));
+  }
+
+  Future<void> updateComment(String comment) async {
+    final api = ref.read(apiProvider);
+    final artefact = await api.changeArtefactComment(artefactId, comment);
+    state = AsyncData(artefact);
   }
 }

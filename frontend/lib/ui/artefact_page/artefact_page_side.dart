@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -34,9 +34,12 @@ class ArtefactPageSide extends StatelessWidget {
     return SizedBox(
       width: 300.0,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ArtefactPageInfoSection(artefact: artefact),
           const SizedBox(height: Spacing.level4),
+          Text('Search', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: Spacing.level2),
           Expanded(
             child: _ArtefactPageSideFilters(artefact: artefact),
           ),

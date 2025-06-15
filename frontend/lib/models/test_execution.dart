@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -18,15 +18,17 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:yaru/yaru.dart';
 
+import 'test_execution_relevant_link.dart';
 import 'environment.dart';
 
 part 'test_execution.freezed.dart';
 part 'test_execution.g.dart';
 
 @freezed
-class TestExecution with _$TestExecution {
+abstract class TestExecution with _$TestExecution {
   static const String reviewCommentJsonKey = 'review_comment';
   static const String reviewDecisionJsonKey = 'review_decision';
+  static const String defaultTestPlanName = 'unknown';
 
   const factory TestExecution({
     required int id,
@@ -37,6 +39,9 @@ class TestExecution with _$TestExecution {
     @Default(false) @JsonKey(name: 'is_rerun_requested') bool isRerunRequested,
     @JsonKey(name: 'artefact_build_id') required int artefactBuildId,
     @JsonKey(name: 'test_plan') required String testPlan,
+    @Default([])
+    @JsonKey(name: 'relevant_links')
+    List<TestExecutionRelevantLink> relevantLinks,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>

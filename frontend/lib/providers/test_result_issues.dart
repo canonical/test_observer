@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -25,10 +25,7 @@ import 'tests_issues.dart';
 part 'test_result_issues.g.dart';
 
 @riverpod
-Future<List<TestIssue>> testResultIssues(
-  Ref ref,
-  TestResult testResult,
-) {
+Future<List<TestIssue>> testResultIssues(Ref ref, TestResult testResult) {
   return ref.watch(
     testsIssuesProvider.selectAsync(
       (issues) => issues

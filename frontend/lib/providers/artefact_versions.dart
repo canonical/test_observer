@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -23,10 +23,7 @@ import 'api.dart';
 part 'artefact_versions.g.dart';
 
 @riverpod
-Future<List<ArtefactVersion>> artefactVersions(
-  Ref ref,
-  int artefactId,
-) async {
+Future<List<ArtefactVersion>> artefactVersions(Ref ref, int artefactId) async {
   final api = ref.watch(apiProvider);
   return await api.getArtefactVersions(artefactId);
 }

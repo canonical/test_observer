@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -23,7 +23,7 @@ import '../../spacing.dart';
 import '../stage_column.dart';
 
 class ArtefactsColumnsView extends ConsumerWidget {
-  const ArtefactsColumnsView({Key? key}) : super(key: key);
+  const ArtefactsColumnsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

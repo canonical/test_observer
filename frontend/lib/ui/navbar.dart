@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -17,94 +17,133 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:yaru/yaru.dart';
 
 import '../routing.dart';
-import 'vanilla/vanilla_navigation.dart';
+import 'spacing.dart';
+
+const _navbarHeight = 57.0;
 
 class Navbar extends StatelessWidget {
   const Navbar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final windowSize = MediaQuery.sizeOf(context);
-
-    if (windowSize.width > 1150) {
-      return VanillaNavigation(
-        children: [
-          VanillaNavigationTitle(
-            title: 'Test Observer',
-            onPressed: () => context.go('/'),
-          ),
-          const _NavbarEntry(title: 'Snap Testing', route: AppRoutes.snaps),
-          const _NavbarEntry(title: 'Deb Testing', route: AppRoutes.debs),
-          const _NavbarEntry(title: 'Charm Testing', route: AppRoutes.charms),
-          const _NavbarEntry(title: 'Image Testing', route: AppRoutes.images),
-          const Spacer(),
-          IntrinsicWidth(
-            child: VanillaNavigationDropdown(
-              menuChildren: [
-                VanillaNavigationButton(
-                  child: const Text('Source Code'),
-                  onPressed: () => launchUrlString(
-                    'https://github.com/canonical/test_observer',
+    return Container(
+      color: YaruColors.coolGrey,
+      alignment: Alignment.center,
+      height: _navbarHeight,
+      child: Container(
+        constraints: BoxConstraints.loose(
+          const Size.fromWidth(Spacing.maxPageContentWidth),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.pageHorizontalPadding,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  const _NavbarEntry(
+                    title: 'Snap Testing',
+                    route: AppRoutes.snaps,
                   ),
-                ),
-                VanillaNavigationButton(
-                  child: const Text('Docs'),
-                  onPressed: () => launchUrlString(
-                    'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                  const _NavbarEntry(
+                    title: 'Deb Testing',
+                    route: AppRoutes.debs,
                   ),
-                ),
-              ],
-              child: const Text('Help'),
-            ),
-          ),
-        ],
-      );
-    } else {
-      return VanillaNavigation(
-        children: [
-          VanillaNavigationTitle(
-            title: 'Test Observer',
-            onPressed: () => context.go('/'),
-          ),
-          IntrinsicWidth(
-            child: VanillaNavigationDropdown(
-              menuChildren: [
-                VanillaNavigationButton(
-                  onPressed: () => context.go(AppRoutes.snaps),
-                  child: const Text('Snap Testing'),
-                ),
-                VanillaNavigationButton(
-                  onPressed: () => context.go(AppRoutes.debs),
-                  child: const Text('Deb Testing'),
-                ),
-                VanillaNavigationButton(
-                  onPressed: () => context.go(AppRoutes.charms),
-                  child: const Text('Charm Testing'),
-                ),
-                VanillaNavigationButton(
-                  onPressed: () => context.go(AppRoutes.images),
-                  child: const Text('Image Testing'),
-                ),
-                VanillaNavigationDropdown(
-                  menuChildren: [
-                    VanillaNavigationButton(
-                      child: const Text('Source Code'),
-                      onPressed: () => launchUrlString(
-                        'https://github.com/canonical/test_observer',
+                  const _NavbarEntry(
+                    title: 'Charm Testing',
+                    route: AppRoutes.charms,
+                  ),
+                  const _NavbarEntry(
+                    title: 'Image Testing',
+                    route: AppRoutes.images,
+                  ),
+                  const Spacer(),
+                  _NavbarDropdownEntry(
+                    label: 'Help',
+                    dropdownChildren: [
+                      _NavbarDropdownItem(
+                        label: 'Docs',
+                        onPressed: () => launchUrlString(
+                          'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                        ),
                       ),
-                    ),
-                  ],
-                  child: const Text('Help'),
-                ),
-              ],
-              child: const Text('Menu'),
+                      _NavbarDropdownItem(
+                        label: 'Source Code',
+                        onPressed: () => launchUrlString(
+                          'https://github.com/canonical/test_observer',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavbarDropdownEntry extends StatelessWidget {
+  const _NavbarDropdownEntry({
+    required this.dropdownChildren,
+    required this.label,
+  });
+
+  final String label;
+  final List<Widget> dropdownChildren;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicWidth(
+      child: SizedBox(
+        height: _navbarHeight,
+        child: SubmenuButton(
+          menuStyle: const MenuStyle(
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+            backgroundColor: WidgetStatePropertyAll(YaruColors.coolGrey),
           ),
-        ],
-      );
-    }
+          menuChildren: dropdownChildren,
+          child: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.apply(color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavbarDropdownItem extends StatelessWidget {
+  const _NavbarDropdownItem({required this.label, this.onPressed});
+
+  final String label;
+  final void Function()? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _navbarHeight,
+      child: MenuItemButton(
+        onPressed: onPressed,
+        child: Text(
+          label,
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.apply(color: Colors.white),
+        ),
+      ),
+    );
   }
 }
 
@@ -116,10 +155,21 @@ class _NavbarEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return VanillaNavigationButton(
-      isSelected: GoRouterState.of(context).fullPath!.startsWith(route),
-      onPressed: () => context.go(route),
-      child: Text(title),
+    return InkWell(
+      onTap: () => context.go(route),
+      child: Container(
+        color: GoRouterState.of(context).fullPath!.startsWith(route)
+            ? YaruColors.orange
+            : null,
+        padding: const EdgeInsets.all(Spacing.level4),
+        child: Text(
+          title,
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.apply(color: Colors.white),
+        ),
+      ),
     );
   }
 }

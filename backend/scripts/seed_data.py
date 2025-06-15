@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -40,8 +40,17 @@ from test_observer.controllers.test_executions.models import (
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
+
+from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
+
 from test_observer.data_access.models import Artefact
-from test_observer.data_access.models_enums import FamilyName, StageName
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    SnapStage,
+    DebStage,
+    CharmStage,
+    ImageStage,
+)
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
 from tests.fake_launchpad_api import FakeLaunchpadAPI
@@ -61,8 +70,9 @@ START_TEST_EXECUTION_REQUESTS = [
         revision=1,
         track="22",
         store="ubuntu",
+        branch="test-branch",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rpi2",
         ci_link="http://example1",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -75,7 +85,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="22",
         store="ubuntu",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rpi2",
         ci_link="http://example13",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -88,7 +98,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="22",
         store="ubuntu",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rpi2",
         ci_link="http://example14",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -101,7 +111,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="22",
         store="ubuntu",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rpi4",
         ci_link="http://example10",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -114,7 +124,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="22",
         store="ubuntu",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rpi3aplus",
         ci_link="http://example11",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -127,7 +137,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="22",
         store="ubuntu",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rp3bplus",
         ci_link="http://example12",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -140,7 +150,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="latest",
         store="ubuntu",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rpi2",
         ci_link="http://example2",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
@@ -153,7 +163,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="core18",
         store="ubuntu",
         arch="armhf",
-        execution_stage=StageName.beta,
+        execution_stage=SnapStage.beta,
         environment="rpi2",
         ci_link="http://example3",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
@@ -166,7 +176,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="22",
         store="ubuntu",
         arch="amd64",
-        execution_stage=StageName.edge,
+        execution_stage=SnapStage.edge,
         environment="dawson-i",
         ci_link="http://example4",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -179,7 +189,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="22",
         store="ubuntu",
         arch="arm64",
-        execution_stage=StageName.candidate,
+        execution_stage=SnapStage.candidate,
         environment="cm3",
         ci_link="http://example5",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -192,7 +202,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="latest",
         store="ubuntu",
         arch="arm64",
-        execution_stage=StageName.stable,
+        execution_stage=SnapStage.stable,
         environment="cm3",
         ci_link="http://example6",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -205,7 +215,7 @@ START_TEST_EXECUTION_REQUESTS = [
         track="latest",
         store="ubuntu",
         arch="arm64",
-        execution_stage=StageName.stable,
+        execution_stage=SnapStage.stable,
         environment="dragonboard",
         ci_link="http://example7",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
@@ -217,7 +227,7 @@ START_TEST_EXECUTION_REQUESTS = [
         series="jammy",
         repo="main",
         arch="arm64",
-        execution_stage=StageName.updates,
+        execution_stage=DebStage.updates,
         environment="rpi400",
         ci_link="http://example9",
         test_plan="com.canonical.certification::sru",
@@ -229,7 +239,7 @@ START_TEST_EXECUTION_REQUESTS = [
         series="jammy",
         repo="main",
         arch="arm64",
-        execution_stage=StageName.proposed,
+        execution_stage=DebStage.proposed,
         environment="rpi400",
         ci_link="http://example8",
         test_plan="com.canonical.certification::sru",
@@ -241,7 +251,7 @@ START_TEST_EXECUTION_REQUESTS = [
         series="jammy",
         repo="main",
         arch="arm64",
-        execution_stage=StageName.proposed,
+        execution_stage=DebStage.proposed,
         environment="rpi400",
         ci_link="http://example15",
         test_plan="com.canonical.certification::sru",
@@ -253,7 +263,7 @@ START_TEST_EXECUTION_REQUESTS = [
         series="jammy",
         repo="main",
         arch="arm64",
-        execution_stage=StageName.proposed,
+        execution_stage=DebStage.proposed,
         environment="rpi400",
         ci_link="http://example16",
         test_plan="com.canonical.certification::sru",
@@ -265,7 +275,7 @@ START_TEST_EXECUTION_REQUESTS = [
         series="jammy",
         repo="main",
         arch="arm64",
-        execution_stage=StageName.proposed,
+        execution_stage=DebStage.proposed,
         environment="rpi400",
         ci_link="http://example17",
         test_plan="com.canonical.certification::sru-server",
@@ -277,9 +287,12 @@ START_TEST_EXECUTION_REQUESTS = [
         revision=123,
         track="14",
         arch="arm64",
-        execution_stage=StageName.candidate,
+        execution_stage=CharmStage.candidate,
         environment="juju=3.5 ubuntu=22.04 cloud=k8s",
         ci_link="http://example13",
+        relevant_links=[
+            TestExecutionRelevantLinkCreate(label="Doc", url=HttpUrl("https://example.com/1"))
+        ],
         test_plan="com.canonical.solutions-qa::tbd",
     ),
     StartImageTestExecutionRequest(
@@ -293,7 +306,7 @@ START_TEST_EXECUTION_REQUESTS = [
         image_url=HttpUrl(
             "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
         ),
-        execution_stage=StageName.pending,
+        execution_stage=ImageStage.pending,
         test_plan="image test plan",
         environment="xps",
     ),
@@ -308,7 +321,7 @@ START_TEST_EXECUTION_REQUESTS = [
         image_url=HttpUrl(
             "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
         ),
-        execution_stage=StageName.pending,
+        execution_stage=ImageStage.pending,
         test_plan="desktop image test plan",
         environment="xps",
     ),
@@ -323,7 +336,7 @@ START_TEST_EXECUTION_REQUESTS = [
         image_url=HttpUrl(
             "https://cdimage.ubuntu.com/ubuntu-core/20/stable/20221025.4/ubuntu-core-20-arm64+raspi.img.xz"
         ),
-        execution_stage=StageName.pending,
+        execution_stage=ImageStage.pending,
         test_plan="core image test plan",
         environment="rpi3",
     ),

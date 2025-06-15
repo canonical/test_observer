@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -45,7 +45,6 @@ TEST_EXECUTIONS_REPORT_COLUMNS = [
     Artefact.series,
     Artefact.repo,
     Artefact.os,
-    Artefact.series,
     TestExecution.id,
     TestExecution.status,
     TestExecution.ci_link,
@@ -69,6 +68,7 @@ TEST_EXECUTIONS_REPORT_HEADERS = [
     "Artefact.track",
     "Artefact.series",
     "Artefact.repo",
+    "Artefact.os",
     "TestExecution.id",
     "TestExecution.status",
     "TestExecution.ci_link",

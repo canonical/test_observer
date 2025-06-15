@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -39,11 +39,12 @@ def get_artefact_builds(
             selectinload(Artefact.builds)
             .selectinload(ArtefactBuild.test_executions)
             .options(
-                selectinload(TestExecution.environment),
-                selectinload(TestExecution.rerun_request),
+            selectinload(TestExecution.environment),
+            selectinload(TestExecution.rerun_request),
+            selectinload(TestExecution.relevant_links),
             )
         )
-    ),
+    )
 ):
     """Get latest artefact builds of an artefact together with their test executions"""
     for artefact_build in artefact.latest_builds:

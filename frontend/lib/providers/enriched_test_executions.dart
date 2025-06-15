@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -14,40 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:dartx/dartx.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/artefact_environment.dart';
+import '../models/enriched_test_execution.dart';
 import 'artefact_builds.dart';
 import 'artefact_environment_reviews.dart';
 
-part 'artefact_environments.g.dart';
+part 'enriched_test_executions.g.dart';
 
 @riverpod
-Future<List<ArtefactEnvironment>> artefactEnvironments(
+Future<List<EnrichedTestExecution>> enrichedTestExecutions(
   Ref ref,
   int artefactId,
 ) async {
-  final environmentReviews =
-      await ref.watch(artefactEnvironmentReviewsProvider(artefactId).future);
+  final result = <EnrichedTestExecution>[];
   final builds = await ref.watch(artefactBuildsProvider(artefactId).future);
-  final testExecutions = builds.map((build) => build.testExecutions).flatten();
-  final groupedTestExecutions =
-      testExecutions.groupBy((te) => (te.artefactBuildId, te.environment.id));
+  final reviews =
+      await ref.watch(artefactEnvironmentReviewsProvider(artefactId).future);
 
-  final result = environmentReviews.map(
-    (environmentReview) {
-      final testExecutions = groupedTestExecutions[(
-        environmentReview.artefactBuild.id,
-        environmentReview.environment.id
-      )]!;
-      return ArtefactEnvironment(
-        runsDescending: testExecutions.sortedByDescending((te) => te.id),
-        review: environmentReview,
+  final reviewsMap = {
+    for (var r in reviews) (r.artefactBuild.id, r.environment.id): r,
+  };
+
+  for (var b in builds) {
+    for (var te in b.testExecutions) {
+      result.add(
+        EnrichedTestExecution(
+          testExecution: te,
+          environmentReview: reviewsMap[(b.id, te.environment.id)]!,
+        ),
       );
-    },
-  ).toList();
+    }
+  }
 
-  return result.sortedBy((environment) => environment.review.environment.name);
+  return result;
 }

@@ -1,0 +1,21 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+snap:
+  commands:
+    - snap install lxd --channel=6/stable
+    - snap install juju --channel=3.6/stable
+    - snap install charmcraft --channel=3.x/stable --classic
+    - snap install terraform --classic
+    - snap install microk8s --channel=1.32-strict/stable
+    - snap alias microk8s.kubectl kubectl
+runcmd:
+  - lxd init --auto
+  - adduser ubuntu snap_microk8s
+  - microk8s status --wait-ready
+  - microk8s enable dns
+  - microk8s enable hostpath-storage
+  - microk8s enable ingress
+  - sudo -i -u ubuntu snap run juju bootstrap microk8s microk8s-controller
+  - sudo -i -u ubuntu snap run juju add-model test-observer-development

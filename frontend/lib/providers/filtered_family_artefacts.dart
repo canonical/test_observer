@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -20,8 +20,8 @@ import 'package:dartx/dartx.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../filtering/artefact_filters.dart';
 import '../models/artefact.dart';
-import '../models/filters.dart';
 import '../routing.dart';
 import '../utils/artefact_sorting.dart';
 import 'family_artefacts.dart';
@@ -29,34 +29,31 @@ import 'family_artefacts.dart';
 part 'filtered_family_artefacts.g.dart';
 
 @riverpod
-LinkedHashMap<int, Artefact> filteredFamilyArtefacts(
-  Ref ref,
-  Uri pageUri,
-) {
+LinkedHashMap<int, Artefact> filteredFamilyArtefacts(Ref ref, Uri pageUri) {
   final family = AppRoutes.familyFromUri(pageUri);
-  final artefacts = ref.watch(familyArtefactsProvider(family)).requireValue;
-  final filters = createEmptyArtefactFilters(family)
-      .copyWithQueryParams(pageUri.queryParametersAll);
   final searchValue =
       pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
+  final parameters = pageUri.queryParametersAll;
 
-  final filteredArtefacts = artefacts.values
-      .filter(
-        (artefact) =>
-            _artefactPassesSearch(artefact, searchValue) &&
-            filters.doesObjectPassFilters(artefact),
-      )
+  var artefacts =
+      ref.watch(familyArtefactsProvider(family)).value?.values.toList() ?? [];
+
+  for (var filter in getArtefactFiltersFor(family)) {
+    final filterOptions = parameters[filter.name];
+    if (filterOptions != null) {
+      artefacts = filter.filter(artefacts, filterOptions.toSet());
+    }
+  }
+
+  artefacts = artefacts
+      .filter((a) => a.name.toLowerCase().contains(searchValue.toLowerCase()))
       .toList();
 
-  sortArtefacts(pageUri.queryParameters, filteredArtefacts);
+  sortArtefacts(pageUri.queryParameters, artefacts);
 
   return LinkedHashMap.fromIterable(
-    filteredArtefacts,
+    artefacts,
     key: (a) => a.id,
     value: (a) => a,
   );
-}
-
-bool _artefactPassesSearch(Artefact artefact, String searchValue) {
-  return artefact.name.toLowerCase().contains(searchValue.toLowerCase());
 }

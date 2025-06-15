@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -81,6 +81,7 @@ class _TestExecutionTileTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
+    final relevantLinks = testExecution.relevantLinks;
 
     return Row(
       children: [
@@ -101,6 +102,14 @@ class _TestExecutionTileTitle extends StatelessWidget {
           InlineUrlText(
             url: c3Link,
             urlText: 'C3',
+          ),
+        for (final link in relevantLinks)
+          Padding(
+            padding: const EdgeInsets.only(left: Spacing.level3),
+            child: InlineUrlText(
+              url: link.url,
+              urlText: link.label,
+            ),
           ),
       ],
     );

@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -44,6 +44,7 @@ const dummyArtefact = Artefact(
   bugLink: '',
   allEnvironmentReviewsCount: 1,
   completedEnvironmentReviewsCount: 0,
+  comment: '',
 );
 
 const dummyEnvironment = Environment(

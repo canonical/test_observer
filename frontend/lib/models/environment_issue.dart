@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -20,7 +20,7 @@ part 'environment_issue.freezed.dart';
 part 'environment_issue.g.dart';
 
 @freezed
-class EnvironmentIssue with _$EnvironmentIssue {
+abstract class EnvironmentIssue with _$EnvironmentIssue {
   const factory EnvironmentIssue({
     required int id,
     @JsonKey(name: 'environment_name') required String environmentName,

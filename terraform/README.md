@@ -1,108 +1,102 @@
-# Test Observer
+# Juju deployment
 
-Observe the status and state of certification tests for various artefacts
+Local Juju and charm deployment via microk8s and terraform.
 
-## Prerequisites for deploying locally
+## Setup a juju environment
 
-- `juju` 3.1 or later (`sudo snap install juju --channel=3.1/stable`)
-- `microk8s` 1.27 or later (`sudo snap install microk8s --channel=1.27-strict/stable`) + [permission setup steps after install](https://juju.is/docs/sdk/set-up-your-development-environment#heading--install-microk8s)
-- `terraform` 1.4.6 or later (`sudo snap install terraform --classic`)
-- `lxd` 5.19 or later (`sudo snap install lxd --channel=5.19/stable` or `sudo snap refresh lxd --channel=5.19/stable` if already installed) + `lxd init --auto` after install.
-- `charmcraft` 2.3.0 or later (`sudo snap install charmcraft --channel=2.x/stable --classic`)
-- optional: `jhack` for all kinds of handy Juju and charm SDK development and debugging operations (`sudo snap install jhack`)
+Setup an environment to use for any juju deployment.
 
-## Deploying a copy of the system with terraform / juju in microk8s
-
-Workaround for juju bug https://bugs.launchpad.net/juju/+bug/1988355
-
-```
-mkdir -p ~/.local/share
-```
-
-Fist configure microk8s with the needed extensions:
-
-```
-sudo microk8s enable dns hostpath-storage metallb ingress# metallb setup involves choosing a free IP range for the load balancer.
-```
-
-Setup juju:
+It is recommended to install the pre-requisites on a VM rather than your host machine. To do so, first install multipass:
 
 ```bash
-juju bootstrap microk8s
-juju model-config logging-config="<root>=DEBUG"
+sudo snap install multipass
 ```
 
-### Deploy the system locally with Terraform
-
-In the `terraform` directory of your working copy, complete the one-time initialisation:
+Then launch a new VM instance using (this will take a while):
 
 ```bash
-cd terraform
-terraform init
+multipass launch noble --disk 50G --memory 4G --cpus 2 --name test-observer-juju --mount /path/to/test_observer:/home/ubuntu/test_observer --cloud-init /path/to/test_observer/terraform/cloud-init.yaml --timeout 1200
 ```
 
-After initialization (or after making changes to the terraform configuration) you can deploy the whole system with:
+Feel free to increase the storage, memory, cpu limits or change the VM name.
+
+## Initialize project's terraform
+
+Now that everything has been set up, you can initialize the project's terraform.
+
+In the terraform directory on your host machine, run:
 
 ```bash
-TF_VAR_environment=development TF_VAR_external_ingress_hostname="mah-domain.com" terraform apply -auto-approve
+multipass exec test-observer-juju -- terraform init
 ```
 
-At the time of writing, this will accomplish deploying the following:
+## Deploy everything
 
-- the backend API server
-- the frontend served using nginx
-- a postgresql database
-- nginx as ingress
-- backend connected to frontend (the backend's public facing base URI passed to the frontend app)
-- backend connected to database
-- backend connected to load balancer
-- frontend connected to load balancer
-
-Terraform works by applying changes between the current state of the system and what is in the plan (the test-observer.tf configuration file). When `terraform apply` is run the 1st time, there is no state -> it will create the Juju model and all resources inside it. When it is run with a pre-existing model already in place, it will instead set / unset config values that have changed, add / remove relations, add / remove applications, etc. Basically, it makes working with Juju declarative - yay!
-
-The terraform juju provider is documented over here: https://registry.terraform.io/providers/juju/juju/latest/docs
-
-Terraform tracks its state with a .tfstate file which is created as a result of running `terraform apply` -- for production purposes this will be stored in an S3-like bucket remotely, and for local development purposes it sits in the `terraform` directory aftery you have done a `terraform apply`).
-
-After all is up, you can run `juju switch test-observer-development` to use the development juju model. Then `juju status --relations` should give you output to the direction of the following:
+In the terraform directory on your host machine, run:
 
 ```bash
-$ juju status --relations
-Model                      Controller       Cloud/Region        Version  SLA          Timestamp
-test-observer-development  juju-controller  microk8s/localhost  3.1.2    unsupported  15:38:51+03:00
-
-App       Version  Status  Scale  Charm                     Channel      Rev  Address         Exposed  Message
-api                active      1  test-observer-api         latest/edge   15  10.152.183.182  no       
-db        14.7     active      1  postgresql-k8s            14/stable     73  10.152.183.172  no       Primary
-frontend           active      1  test-observer-frontend    latest/edge    8  10.152.183.79   no       
-ingress   25.3.0   active      1  nginx-ingress-integrator  stable        59  10.152.183.103  no       Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
-
-Unit         Workload  Agent  Address       Ports  Message
-api/0*       active    idle   10.1.131.142         
-db/0*        active    idle   10.1.131.132         Primary
-frontend/0*  active    idle   10.1.131.169         
-ingress/0*   active    idle   10.1.131.167         Ingress IP(s): 127.0.0.1, 127.0.0.1, Service IP(s): 10.152.183.72, 10.152.183.34
-
-Relation provider           Requirer                         Interface          Type     Message
-api:test-observer-rest-api  frontend:test-observer-rest-api  http               regular  
-db:database                 api:database                     postgresql_client  regular  
-db:database-peers           db:database-peers                postgresql_peers   peer     
-db:restart                  db:restart                       rolling_op         peer     
-ingress:nginx-route         api:nginx-route                  nginx-route        regular  
-ingress:nginx-route         frontend:nginx-route             nginx-route        regular
+multipass exec test-observer-juju -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform apply -auto-approve
 ```
 
-## Add /etc/hosts entries
-
-To test the application, you need to create some aliases in `/etc/hosts` to the IP address that the ingress got from `metallb` (`juju status` above will find you the ingress IP). Let's assume you have a domain `mah-domain.com` that you want to expose service under, the backend and frontend will be present as subdomains `test-observer.mah-domain.com` and `test-observer-api.mah-domain.com`, respectively:
+Then wait for the deployment to settle and all the statuses to become active. You can watch the statuses via:
 
 ```bash
-$ cat /etc/hosts
-192.168.0.202   test-observer.mah-domain.com test-observer-api.mah-domain.com
-...
+multipass exec test-observer-juju -- juju status --storage --relations --watch 5s
 ```
 
-Note that without this step the frontend will fail to connect to api as it's trying to use `test-observer-api.mah-domain.com`
+## Connect to your deployment
+
+Look at the IPv4 addresses of your test-observer-juju vm through:
+
+```bash
+multipass info test-observer-juju
+```
+
+One of these connect to the ingress enabled inside the VM. To figure out which one try the following command on each IP address until you get response:
+
+```bash
+curl --connect-to ::<ip-address> http://test-observer-api.local
+```
+
+Once you find the IP address add the following entry to your host machine's `/etc/hosts` file:
+
+```text
+<ip-address>   test-observer.local test-observer-api.local
+```
+
+After that you should be able to get to TO frontend on your host machine's browser through the url `http://test-observer.local`. You should also be able to access the API through `http://test-observer-api.local`.
+
+## Teardown
+
+To take everything down you can start with terraform:
+
+```bash
+multipass exec test-observer-juju -- TF_VAR_environment=development TF_VAR_external_ingress_hostname=local terraform destroy -auto-approve
+```
+
+The above step can take a while and may even get stuck with some applications in error state. You can watch it through:
+
+```bash
+multipass exec test-observer-juju -- juju status --storage --relations --watch 5s
+```
+
+To forcefully remove applications stuck in error state:
+
+```bash
+multipass exec test-observer-juju -- juju remove-application <application-name> --destroy-storage --force
+```
+
+Once everything is down and the juju model has been deleted you can stop the multipass VM:
+
+```bash
+multipass stop test-observer-juju
+```
+
+Optionally, delete the VM:
+
+```bash
+multipass delete --purge test-observer-juju
+```
 
 ## Developing the charm
 
@@ -115,10 +109,10 @@ You can make edits to the backend charm and refresh it in the running system on 
 ```bash
 cd backend/charm
 charmcraft pack
-juju refresh test-observer-api --path ./test-observer-api_ubuntu-22.04-amd64.charm
+juju refresh api --path ./test-observer-api_ubuntu-22.04-amd64.charm
 
 # to update the OCI image that runs the backend
-juju attach-resource test-observer-api api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
+juju attach-resource api api-image=ghcr.io/canonical/test_observer/backend:[tag or sha]
 ```
 
 ### Build and refresh the frontend charm
@@ -129,10 +123,10 @@ Same thing with the frontend:
 cd frontend/charm
 charmcraft pack
 
-juju refresh test-observer-frontend ./test-observer-frontend_ubuntu-22.04-amd64.charm
+juju refresh frontend ./test-observer-frontend_ubuntu-22.04-amd64.charm
 
 # to update the OCI image that runs the backend
-juju attach-resource test-observer-frontend frontend-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
+juju attach-resource frontend frontend-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
 ```
 
 Note that the frontend app is made aware of the backend URL to connect to using the global `window.testObserverAPIBaseURI`, which is set at runtime with some nginx config level trickery based on...
@@ -173,11 +167,3 @@ Now if you use as your project the directory `backend/charm` and `frontend/charm
 ## Handy documentation pointers about charming
 
 - [Integrations (how to provide and require relations)](https://juju.is/docs/sdk/integration)
-
-### Enable the K8s Dashboard
-
-You need an auth token in case you want to connect to the kubernetes dashboard:
-
-```bash
-microk8s kubectl describe secret -n kube-system microk8s-dashboard-token
-```

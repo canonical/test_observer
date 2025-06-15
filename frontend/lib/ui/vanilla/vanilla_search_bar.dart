@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -16,8 +16,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
-
-import 'vanilla_colors.dart';
 
 class VanillaSearchBar extends StatefulWidget {
   const VanillaSearchBar({
@@ -69,6 +67,7 @@ class _VanillaSearchBarState extends State<VanillaSearchBar> {
       height: 40,
       width: double.infinity,
       child: SearchBar(
+        backgroundColor: WidgetStatePropertyAll(Colors.white),
         controller: controller,
         hintText: widget.hintText,
         hintStyle: WidgetStatePropertyAll(
@@ -77,8 +76,6 @@ class _VanillaSearchBarState extends State<VanillaSearchBar> {
               .bodyLarge
               ?.apply(color: YaruColors.warmGrey),
         ),
-        backgroundColor:
-            const WidgetStatePropertyAll(VanillaColors.backgroundInput),
         focusNode: widget.focusNode,
         elevation: const WidgetStatePropertyAll(0),
         shape: WidgetStatePropertyAll(LinearBorder.bottom()),

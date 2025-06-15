@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -20,7 +20,7 @@ part 'artefact_version.freezed.dart';
 part 'artefact_version.g.dart';
 
 @freezed
-class ArtefactVersion with _$ArtefactVersion {
+abstract class ArtefactVersion with _$ArtefactVersion {
   const factory ArtefactVersion({
     @JsonKey(name: 'artefact_id') required int artefactId,
     required String version,

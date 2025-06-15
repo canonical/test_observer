@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -24,10 +24,7 @@ import 'api.dart';
 part 'family_artefacts.g.dart';
 
 @riverpod
-Future<Map<int, Artefact>> familyArtefacts(
-  Ref ref,
-  FamilyName family,
-) {
+Future<Map<int, Artefact>> familyArtefacts(Ref ref, FamilyName family) {
   final api = ref.watch(apiProvider);
   return api.getFamilyArtefacts(family);
 }

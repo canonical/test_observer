@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -18,7 +18,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/global_error_message.dart';
-import 'vanilla/vanilla_modal.dart';
 
 class ErrorPopup extends ConsumerWidget {
   const ErrorPopup({super.key, required this.child});
@@ -29,14 +28,16 @@ class ErrorPopup extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(globalErrorMessageProvider, (previous, next) {
       if (next.isNotEmpty) {
-        showVanillaModal(
+        showDialog(
           context: context,
           builder: (context) => PopScope(
             onPopInvokedWithResult: (_, __) =>
                 ref.read(globalErrorMessageProvider.notifier).set(''),
-            child: VanillaModal(
+            child: SimpleDialog(
               title: const Text('Error'),
-              content: Text(next),
+              // match default padding of title
+              contentPadding: const EdgeInsets.fromLTRB(24.0, 12.0, 24.0, 16.0),
+              children: [Text(next)],
             ),
           ),
         );

@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -24,7 +24,15 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
 )
-from test_observer.data_access.models_enums import ArtefactStatus, FamilyName
+from test_observer.data_access.models_enums import (
+    ArtefactStatus,
+    FamilyName,
+    StageName,
+    SnapStage,
+    DebStage,
+    CharmStage,
+    ImageStage,
+)
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 
@@ -94,9 +102,16 @@ def patch_artefact(
         )
     ),
 ):
-    _validate_artefact_status(artefact.latest_builds, request.status)
-
-    artefact.status = request.status
+    if request.status is not None:
+        _validate_artefact_status(artefact.latest_builds, request.status)
+        artefact.status = request.status
+    if request.archived is not None:
+        artefact.archived = request.archived
+    if request.stage is not None:
+        _validate_artefact_stage(artefact, request.stage)
+        artefact.stage = request.stage
+    if request.comment is not None:
+        artefact.comment = request.comment
     db.commit()
     return artefact
 
@@ -121,6 +136,24 @@ def _validate_artefact_status(
         )
 
 
+def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
+    try:
+        match artefact.family:
+            case FamilyName.snap:
+                SnapStage(stage)
+            case FamilyName.deb:
+                DebStage(stage)
+            case FamilyName.charm:
+                CharmStage(stage)
+            case FamilyName.image:
+                ImageStage(stage)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Stage {stage} is invalid for artefact family {artefact.family}",
+        ) from e
+
+
 @router.get("/{artefact_id}/versions", response_model=list[ArtefactVersionResponse])
 def get_artefact_versions(
     artefact: Artefact = Depends(ArtefactRetriever()), db: Session = Depends(get_db)
@@ -129,9 +162,10 @@ def get_artefact_versions(
         select(Artefact)
         .where(Artefact.name == artefact.name)
         .where(Artefact.track == artefact.track)
+        .where(Artefact.branch == artefact.branch)
         .where(Artefact.series == artefact.series)
         .where(Artefact.repo == artefact.repo)
         .where(Artefact.os == artefact.os)
-        .where(Artefact.series == artefact.series)
+        .where(Artefact.release == artefact.release)
         .order_by(Artefact.id.desc())
     )

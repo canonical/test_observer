@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -23,10 +23,7 @@ import 'api.dart';
 part 'test_results.g.dart';
 
 @riverpod
-Future<List<TestResult>> testResults(
-  Ref ref,
-  int testExecutionId,
-) async {
+Future<List<TestResult>> testResults(Ref ref, int testExecutionId) async {
   final api = ref.watch(apiProvider);
   return await api.getTestExecutionResults(testExecutionId);
 }

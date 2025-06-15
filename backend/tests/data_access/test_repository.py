@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -22,8 +22,12 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models_enums import FamilyName, StageName
-from test_observer.data_access.repository import get_artefacts_by_family
+from test_observer.data_access.repository import (
+    get_artefacts_by_family, create_test_execution_relevant_link
+)
 from tests.data_generator import DataGenerator
+
+from pydantic import HttpUrl
 
 
 def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGenerator):
@@ -78,62 +82,68 @@ def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGene
 def test_get_artefacts_by_family_charm_unique(
     db_session: Session, generator: DataGenerator
 ):
-    """For latest charms, artefacts should be unique on name, track, and version"""
+    """For charms, artefacts should be returned using the archived field"""
     # Arrange
     specs = [
-        ("name-1", "track-1", "version-1"),
-        ("name-2", "track-1", "version-1"),
-        ("name-1", "track-2", "version-1"),
-        ("name-1", "track-1", "version-2"),
+        ("name-1", "1", False),
+        ("name-1", "2", True),
+        ("name-2", "3", False),
     ]
-    for name, track, version in specs:
+    for name, version, archived in specs:
         artefact = generator.gen_artefact(
             StageName.edge,
             family=FamilyName.charm,
             name=name,
             version=version,
-            track=track,
+            archived=archived,
             created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
         )
         generator.gen_artefact_build(
             artefact,
             "arch-1",
         )
+    expected_artefacts = {specs[0], specs[2]}
 
     # Act
     artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
 
     # Assert
-    assert len(artefacts) == 4
+    assert len(artefacts) == len(expected_artefacts)
+    assert {
+        (
+            artefact.name,
+            artefact.version,
+            artefact.archived,
+        )
+        for artefact in artefacts
+    } == expected_artefacts
 
-
-def test_get_artefacts_by_family_charm_all_architectures(
+def test_create_test_execution_relevant_link(
     db_session: Session, generator: DataGenerator
 ):
-    """For latest charms, artefacts should return all known architectures"""
+    """Test creating a relevant link for a test execution."""
     # Arrange
-    specs = [
-        ("version-3", "arch-1", 0),
-        ("version-2", "arch-1", -1),
-        ("version-1", "arch-2", -2),
-    ]
-    for version, arch, day in specs:
-        artefact = generator.gen_artefact(
-            StageName.edge,
-            family=FamilyName.charm,
-            name="name",
-            version=version,
-            track="track",
-            created_at=datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=day),
-        )
-        generator.gen_artefact_build(
-            artefact,
-            arch,
-        )
+    artefact = generator.gen_artefact()
+    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    environment = generator.gen_environment()
+
+    test_execution = generator.gen_test_execution(
+        artefact_build=artefact_build,
+        environment=environment
+    )
+
+    label = "Test Link"
+    url = HttpUrl("https://example.com/test-link")
 
     # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
+    link = create_test_execution_relevant_link(
+        db_session, test_execution.id, label, url
+    )
 
     # Assert
-    assert len(artefacts) == 2
-    assert {artefact.version for artefact in artefacts} == {"version-3", "version-1"}
+    assert link.label == label
+    assert HttpUrl(link.url) == url
+    assert link.test_execution_id == test_execution.id
+    assert link.created_at is not None
+    db_session.refresh(test_execution)
+    assert any(rl.id == link.id for rl in test_execution.relevant_links)

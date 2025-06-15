@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -22,7 +22,7 @@ part 'test_result.freezed.dart';
 part 'test_result.g.dart';
 
 @freezed
-class PreviousTestResult with _$PreviousTestResult {
+abstract class PreviousTestResult with _$PreviousTestResult {
   const PreviousTestResult._();
 
   const factory PreviousTestResult({
@@ -36,7 +36,7 @@ class PreviousTestResult with _$PreviousTestResult {
 }
 
 @freezed
-class TestResult with _$TestResult {
+abstract class TestResult with _$TestResult {
   const TestResult._();
 
   const factory TestResult({

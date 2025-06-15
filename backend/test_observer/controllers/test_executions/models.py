@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -33,10 +33,14 @@ from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
     TestExecutionResponse,
+    TestExecutionRelevantLinkCreate,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
-    StageName,
+    SnapStage,
+    DebStage,
+    CharmStage,
+    ImageStage,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -50,6 +54,9 @@ class _StartTestExecutionRequest(BaseModel):
     ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
     initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
+    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
+        default_factory=list
+    )
 
     @field_validator("version")
     @classmethod
@@ -64,30 +71,28 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
-    execution_stage: Literal[
-        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
-    ]
+    branch: str = ""
+    execution_stage: SnapStage
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.deb]
     series: str
     repo: str
-    execution_stage: Literal[StageName.proposed, StageName.updates]
+    execution_stage: DebStage
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.charm]
     revision: int
     track: str
-    execution_stage: Literal[
-        StageName.edge, StageName.beta, StageName.candidate, StageName.stable
-    ]
+    branch: str = ""
+    execution_stage: CharmStage
 
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.image] = FamilyName.image
-    execution_stage: Literal[StageName.pending, StageName.current]
+    execution_stage: ImageStage
     os: str
     release: str
     sha256: str

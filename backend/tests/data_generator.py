@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -28,6 +28,7 @@ from test_observer.data_access.models import (
     TestEvent,
     TestExecution,
     TestExecutionRerunRequest,
+    TestExecutionRelevantLink,
     TestResult,
     User,
 )
@@ -69,10 +70,12 @@ class DataGenerator:
         version: str = "1.1.1",
         track: str = "",
         store: str = "",
+        branch: str = "",
         series: str = "",
         repo: str = "",
         created_at: datetime | None = None,
         status: ArtefactStatus = ArtefactStatus.UNDECIDED,
+        archived: bool = False,
         bug_link: str = "",
         due_date: date | None = None,
         assignee_id: int | None = None,
@@ -98,10 +101,12 @@ class DataGenerator:
             version=version,
             track=track,
             store=store,
+            branch=branch,
             series=series,
             repo=repo,
             created_at=created_at,
             status=status,
+            archived=archived,
             bug_link=bug_link,
             due_date=due_date,
             assignee_id=assignee_id,
@@ -180,16 +185,27 @@ class DataGenerator:
         environment: Environment,
         ci_link: str | None = None,
         c3_link: str | None = None,
+        relevant_links: list[dict[str, str] | dict] | None = None,
         status: TestExecutionStatus = TestExecutionStatus.NOT_STARTED,
         checkbox_version: str | None = None,
         created_at: datetime | None = None,
         test_plan: str | None = "Test plan",
     ) -> TestExecution:
+        if relevant_links is None:
+            relevant_links = []
+        converted_relevant_links = []
+        for link_item in relevant_links:
+            if isinstance(link_item, dict):
+                converted_relevant_links.append(TestExecutionRelevantLink(**link_item))
+            else:
+                converted_relevant_links.append(link_item)
+
         test_execution = TestExecution(
             artefact_build=artefact_build,
             environment=environment,
             ci_link=ci_link,
             c3_link=c3_link,
+            relevant_links=converted_relevant_links,
             status=status,
             checkbox_version=checkbox_version,
             created_at=created_at,

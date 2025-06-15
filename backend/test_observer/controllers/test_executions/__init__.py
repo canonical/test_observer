@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -25,6 +25,7 @@ from . import (
     reruns,
     start_test,
     status_update,
+    relevant_links,
 )
 
 router = APIRouter(tags=["test-executions"])
@@ -35,3 +36,4 @@ router.include_router(patch.router)
 router.include_router(reruns.router)
 router.include_router(status_update.router)
 router.include_router(post_results.router)
+router.include_router(relevant_links.router)

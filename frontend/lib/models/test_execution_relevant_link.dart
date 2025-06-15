@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -16,21 +16,17 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'filter.freezed.dart';
+part 'test_execution_relevant_link.freezed.dart';
+part 'test_execution_relevant_link.g.dart';
 
 @freezed
-class Filter<T> with _$Filter<T> {
-  const Filter._();
+abstract class TestExecutionRelevantLink with _$TestExecutionRelevantLink {
+  const factory TestExecutionRelevantLink({
+    required int id,
+    required String label,
+    required String url,
+  }) = _TestExecutionRelevantLink;
 
-  const factory Filter({
-    required String name,
-    required String? Function(T) extractOption,
-    @Default(<String>{}) Set<String> selectedOptions,
-    @Default(<String>[]) List<String> detectedOptions,
-  }) = _Filter<T>;
-
-  bool doesObjectPassFilter(T object) {
-    return selectedOptions.isEmpty ||
-        selectedOptions.contains(extractOption(object));
-  }
+  factory TestExecutionRelevantLink.fromJson(Map<String, dynamic> json) =>
+      _$TestExecutionRelevantLinkFromJson(json);
 }

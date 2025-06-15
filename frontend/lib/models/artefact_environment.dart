@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -24,7 +24,7 @@ import 'test_execution.dart';
 part 'artefact_environment.freezed.dart';
 
 @freezed
-class ArtefactEnvironment with _$ArtefactEnvironment {
+abstract class ArtefactEnvironment with _$ArtefactEnvironment {
   const ArtefactEnvironment._();
 
   const factory ArtefactEnvironment({

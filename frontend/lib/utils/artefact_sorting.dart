@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -22,6 +22,7 @@ enum ArtefactSortingQuery {
   version,
   track,
   risk,
+  branch,
   dueDate,
   reviewsRemaining,
   status,
@@ -69,6 +70,8 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
       return (a1, a2) => a1.track.compareTo(a2.track);
     case ArtefactSortingQuery.risk:
       return (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
+    case ArtefactSortingQuery.branch:
+      return (a1, a2) => a1.branch.compareTo(a2.branch);
     case ArtefactSortingQuery.dueDate:
       return (a1, a2) {
         final a1DueDate = a1.dueDate;

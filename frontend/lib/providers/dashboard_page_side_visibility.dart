@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -14,25 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter/material.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'vanilla_colors.dart';
+part 'dashboard_page_side_visibility.g.dart';
 
-class VanillaCard extends StatelessWidget {
-  const VanillaCard({super.key, required this.child});
-
-  final Widget child;
-
+@riverpod
+class DashboardPageSideVisibility extends _$DashboardPageSideVisibility {
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(0),
-      elevation: 0,
-      color: VanillaColors.backgroundDefault,
-      shape: const RoundedRectangleBorder(
-        side: BorderSide(color: VanillaColors.borderDefault, width: 1.5),
-      ),
-      child: child,
-    );
+  bool build() {
+    return false;
+  }
+
+  void set(bool value) {
+    state = value;
   }
 }

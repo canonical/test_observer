@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2025 Canonical Ltd.
+// Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
 //
@@ -28,6 +28,7 @@ class VanillaTextInput extends StatelessWidget {
     this.validator,
     this.hintText,
     this.labelStyle,
+    this.focusNode,
   }) : _label = label;
 
   final String? _label;
@@ -37,6 +38,7 @@ class VanillaTextInput extends StatelessWidget {
   final String? Function(String?)? validator;
   final String? hintText;
   final TextStyle? labelStyle;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +52,7 @@ class VanillaTextInput extends StatelessWidget {
           ),
         const SizedBox(height: Spacing.level2),
         TextFormField(
+          focusNode: focusNode,
           controller: controller,
           validator: validator,
           keyboardType: multiline ? TextInputType.multiline : null,

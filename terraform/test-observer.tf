@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     juju = {
-      version = "~> 0.7.0"
+      version = "~> 0.10.1"
       source  = "juju/juju"
     }
   }
@@ -31,26 +31,55 @@ variable "nginx_ingress_integrator_charm_whitelist_source_range" {
   default     = ""
 }
 
+variable "backups_s3_endpoint" {
+  description = "Database backups s3-integrator endpoint"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_region" {
+  description = "Database backups s3-integrator region"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_bucket" {
+  description = "Database backups s3-integrator bucket"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_path" {
+  description = "Database backups s3-integrator path"
+  type        = string
+  default     = ""
+}
+
+variable "backups_s3_uri_style" {
+  description = "Database backups s3-integrator uri_style"
+  type        = string
+  default     = "path"
+}
+
+
 locals {
   sentry_dsn_map = {
     production  = "https://dd931d36e0c24681aaeed6abd312c896@sentry.is.canonical.com//66"
-    stg     = "https://84a48d05b2444e47a7fa176b577bf85a@sentry.is.canonical.com//68",
+    stg         = "https://84a48d05b2444e47a7fa176b577bf85a@sentry.is.canonical.com//68",
     development = ""
   }
-}
-
-resource "juju_model" "test-observer" {
-  name = "test-observer-${var.environment}"
+  juju_model = "test-observer-${var.environment}"
 }
 
 resource "juju_application" "ingress" {
   name  = "ingress"
-  model = juju_model.test-observer.name
+  model = local.juju_model
   trust = true
 
   charm {
-    name    = "nginx-ingress-integrator"
-    channel = "stable"
+    name     = "nginx-ingress-integrator"
+    channel  = "latest/stable"
+    revision = 59
   }
 
   config = {
@@ -61,43 +90,57 @@ resource "juju_application" "ingress" {
 
 resource "juju_application" "pg" {
   name  = "db"
-  model = juju_model.test-observer.name
+  model = local.juju_model
   trust = true
 
   charm {
-    name    = "postgresql-k8s"
-    channel = "14/candidate"
-    series  = "jammy"
+    name     = "postgresql-k8s"
+    channel  = "14/stable"
+    base     = "ubuntu@22.04"
+    revision = 281
+  }
+}
+
+resource "juju_application" "backup-restoring-db" {
+  name  = "backup-restoring-db"
+  model = local.juju_model
+  trust = true
+
+  charm {
+    name     = "postgresql-k8s"
+    channel  = "14/stable"
+    base     = "ubuntu@22.04"
+    revision = 281
   }
 }
 
 resource "juju_application" "test-observer-api" {
   name  = "api"
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   charm {
     name    = "test-observer-api"
     channel = "latest/edge"
-    series  = "jammy"
+    base    = "ubuntu@22.04"
   }
 
   config = {
     hostname   = var.environment == "stg" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
-    port       = var.environment == "development" ? 30000 : 443
+    port       = var.environment == "development" ? 80 : 443
     sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
   }
 
-  units = 1
+  units = 3
 }
 
 resource "juju_application" "test-observer-frontend" {
   name  = "frontend"
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   charm {
     name    = "test-observer-frontend"
     channel = "latest/edge"
-    series  = "jammy"
+    base    = "ubuntu@22.04"
   }
 
   config = {
@@ -110,16 +153,62 @@ resource "juju_application" "test-observer-frontend" {
 
 resource "juju_application" "redis" {
   name  = "redis"
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   charm {
-    name    = "redis-k8s"
-    channel = "latest/edge"
+    name     = "redis-k8s"
+    channel  = "latest/edge"
+    base     = "ubuntu@22.04"
+    revision = 27
+  }
+}
+
+resource "juju_application" "s3-integrator" {
+  name  = "backups-s3-integrator"
+  model = local.juju_model
+
+  charm {
+    name     = "s3-integrator"
+    channel  = "latest/stable"
+    revision = 77
+    base     = "ubuntu@22.04"
+  }
+
+  config = {
+    endpoint     = var.backups_s3_endpoint
+    region       = var.backups_s3_region
+    bucket       = var.backups_s3_bucket
+    path         = var.backups_s3_path
+    s3-uri-style = var.backups_s3_uri_style
+  }
+}
+
+resource "juju_integration" "db-backups" {
+  model = local.juju_model
+
+  application {
+    name = juju_application.pg.name
+  }
+
+  application {
+    name = juju_application.s3-integrator.name
+  }
+}
+
+resource "juju_integration" "db-backups-restore" {
+  model = local.juju_model
+
+  application {
+    name = juju_application.backup-restoring-db.name
+  }
+
+  application {
+    name = juju_application.s3-integrator.name
   }
 }
 
 resource "juju_integration" "test-observer-api-database-access" {
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   application {
     name = juju_application.test-observer-api.name
@@ -131,7 +220,7 @@ resource "juju_integration" "test-observer-api-database-access" {
 }
 
 resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   application {
     name = juju_application.test-observer-api.name
@@ -143,7 +232,7 @@ resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
 }
 
 resource "juju_integration" "test-observer-frontend-ingress" {
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   application {
     name = juju_application.test-observer-frontend.name
@@ -156,7 +245,7 @@ resource "juju_integration" "test-observer-frontend-ingress" {
 
 
 resource "juju_integration" "test-observer-api-ingress" {
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   application {
     name = juju_application.test-observer-api.name
@@ -169,7 +258,7 @@ resource "juju_integration" "test-observer-api-ingress" {
 
 
 resource "juju_integration" "test-observer-redis-access" {
-  model = juju_model.test-observer.name
+  model = local.juju_model
 
   application {
     name = juju_application.test-observer-api.name
