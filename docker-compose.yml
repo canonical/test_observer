@@ -17,6 +17,7 @@ services:
     depends_on:
       - test-observer-db
       - test-observer-redis
+      - test-observer-celery
     environment:
       DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
       CELERY_BROKER_URL: "redis://test-observer-redis:6379"

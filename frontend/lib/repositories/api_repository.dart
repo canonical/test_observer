@@ -269,7 +269,7 @@ class ApiRepository {
     }
     
     final response = await dio.get(
-      '/v1/reports/test-summary',
+      '/v1/reports/test-summary-with-trends',
       queryParameters: queryParameters,
     );
     return response.data;

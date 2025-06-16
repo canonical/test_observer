@@ -1196,6 +1196,79 @@
         }
       }
     },
+    "/v1/reports/test-summary-with-trends": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Test Summary Report With Trends",
+        "description": "Returns test summary report with trend analysis comparing current vs previous period.",
+        "operationId": "get_test_summary_report_with_trends_v1_reports_test_summary_with_trends_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "default": "0001-01-01T00:00:00",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "snap",
+                "deb"
+              ],
+              "title": "Families"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Test Summary Report With Trends V1 Reports Test Summary With Trends Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/test-cases/reported-issues": {
       "get": {
         "tags": [

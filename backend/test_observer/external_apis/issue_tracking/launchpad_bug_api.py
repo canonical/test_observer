@@ -14,12 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
+import logging
 
 from launchpadlib.launchpad import Launchpad  # type: ignore
+from lazr.restfulclient.errors import NotFound  # type: ignore
 
 from test_observer.data_access.models_enums import IssueStatus
 from .models import IssueInfo
+
+logger = logging.getLogger(__name__)
 
 
 class LaunchpadBugAPI:
@@ -41,9 +44,18 @@ class LaunchpadBugAPI:
             IssueInfo object if successful, None if not found or error
         """
         try:
-            bug = self.launchpad.bugs[bug_number]
+            logger.debug(f"Fetching Launchpad bug: {bug_number}")
+            
+            # Try to access the bug - this may raise KeyError or NotFound
+            try:
+                bug = self.launchpad.bugs[bug_number]
+            except (KeyError, NotFound) as e:
+                # Bug not found (404) or inaccessible - this is normal for deleted/private bugs
+                logger.info(f"Launchpad bug {bug_number} not found or not accessible: {type(e).__name__}: {e}")
+                return None
             
             if not bug:
+                logger.info(f"Launchpad bug not found: {bug_number}")
                 return None
             
             # Determine bug status
@@ -85,8 +97,6 @@ class LaunchpadBugAPI:
                 labels=labels,
                 description=str(bug.description) if hasattr(bug, "description") else None
             )
-            
-        except Exception:
-            # Log error in production, for now return None
-            # Launchpad API can raise various exceptions
-            return None
+        except Exception as e:
+            logger.error(f"Error fetching Launchpad bug {bug_number}: {type(e).__name__}: {e}", exc_info=True)
+            raise

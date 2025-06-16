@@ -16,6 +16,7 @@
 
 
 import os
+import logging
 from datetime import datetime
 import base64
 
@@ -25,6 +26,8 @@ from urllib3.util.retry import Retry
 
 from test_observer.data_access.models_enums import IssueStatus
 from .models import IssueInfo
+
+logger = logging.getLogger(__name__)
 
 
 class JiraAPI:
@@ -70,9 +73,11 @@ class JiraAPI:
         """
         try:
             url = f"{self.base_url}/rest/api/3/issue/{issue_key}"
+            logger.debug(f"Fetching Jira issue from: {url}")
             response = self.session.get(url, timeout=30)
             
             if response.status_code == 404:
+                logger.info(f"Jira issue not found: {issue_key}")
                 return None
             response.raise_for_status()
             
@@ -109,6 +114,9 @@ class JiraAPI:
             # Build issue URL
             issue_url = f"{self.base_url}/browse/{issue_key}"
             
+            # Parse Jira description (Atlassian Document Format)
+            description = self._parse_adf_description(fields.get("description"))
+            
             return IssueInfo(
                 external_id=issue_key,
                 title=fields.get("summary", ""),
@@ -117,9 +125,91 @@ class JiraAPI:
                 last_updated=last_updated,
                 assignee=assignee,
                 labels=labels,
-                description=fields.get("description", {}).get("content") if isinstance(fields.get("description"), dict) else None
+                description=description
             )
             
-        except (requests.RequestException, ValueError, KeyError):
-            # Log error in production, for now return None
+        except requests.RequestException as e:
+            logger.error(f"HTTP error fetching Jira issue {issue_key}: {type(e).__name__}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response status: {e.response.status_code}, body: {e.response.text[:500]}")
+            raise
+        except (ValueError, KeyError) as e:
+            logger.error(f"Error parsing Jira API response for {issue_key}: {type(e).__name__}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error fetching Jira issue {issue_key}: {type(e).__name__}: {e}")
+            raise
+
+    def _parse_adf_description(self, description_obj) -> str | None:
+        """
+        Parse Atlassian Document Format (ADF) description to extract plain text.
+        
+        Jira returns descriptions in ADF format, which is a JSON structure like:
+        {
+            "type": "doc",
+            "version": 1,
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "This is the description text"
+                        }
+                    ]
+                }
+            ]
+        }
+        """
+        if not description_obj or not isinstance(description_obj, dict):
+            return None
+            
+        def extract_text_from_content(content_list):
+            """Recursively extract text from ADF content blocks."""
+            text_parts = []
+            
+            if not isinstance(content_list, list):
+                return ""
+                
+            for item in content_list:
+                if not isinstance(item, dict):
+                    continue
+                    
+                # Extract direct text
+                if item.get("type") == "text" and "text" in item:
+                    text_parts.append(item["text"])
+                
+                # Handle code blocks
+                elif item.get("type") == "codeBlock" and "content" in item:
+                    code_text = extract_text_from_content(item["content"])
+                    if code_text:
+                        text_parts.append(f"```\n{code_text}\n```")
+                
+                # Handle other block types with nested content
+                elif "content" in item:
+                    nested_text = extract_text_from_content(item["content"])
+                    if nested_text:
+                        text_parts.append(nested_text)
+                        
+                # Add line breaks for paragraph and other block elements
+                if item.get("type") in ["paragraph", "heading"]:
+                    text_parts.append("\n")
+            
+            return "".join(text_parts)
+        
+        try:
+            content = description_obj.get("content", [])
+            description_text = extract_text_from_content(content)
+            
+            # Clean up extra whitespace and newlines
+            description_text = description_text.strip()
+            
+            # Limit length to prevent extremely long descriptions
+            if len(description_text) > 1000:
+                description_text = description_text[:997] + "..."
+                
+            return description_text if description_text else None
+            
+        except Exception as e:
+            logger.warning(f"Failed to parse ADF description: {e}")
             return None

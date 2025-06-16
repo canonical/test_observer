@@ -16,6 +16,7 @@
 
 
 import os
+import logging
 from datetime import datetime
 
 import requests
@@ -24,6 +25,8 @@ from urllib3.util.retry import Retry
 
 from test_observer.data_access.models_enums import IssueStatus
 from .models import IssueInfo
+
+logger = logging.getLogger(__name__)
 
 
 class GitHubAPI:
@@ -64,9 +67,11 @@ class GitHubAPI:
         """
         try:
             url = f"{self.base_url}/repos/{owner}/{repo}/issues/{issue_number}"
+            logger.debug(f"Fetching GitHub issue from: {url}")
             response = self.session.get(url, timeout=30)
             
             if response.status_code == 404:
+                logger.info(f"GitHub issue not found: {owner}/{repo}#{issue_number}")
                 return None
             response.raise_for_status()
             
@@ -106,6 +111,14 @@ class GitHubAPI:
                 description=data.get("body")
             )
             
-        except (requests.RequestException, ValueError, KeyError):
-            # Log error in production, for now return None
-            return None
+        except requests.RequestException as e:
+            logger.error(f"HTTP error fetching GitHub issue {owner}/{repo}#{issue_number}: {type(e).__name__}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response status: {e.response.status_code}, body: {e.response.text[:500]}")
+            raise
+        except (ValueError, KeyError) as e:
+            logger.error(f"Error parsing GitHub API response for {owner}/{repo}#{issue_number}: {type(e).__name__}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error fetching GitHub issue {owner}/{repo}#{issue_number}: {type(e).__name__}: {e}")
+            raise

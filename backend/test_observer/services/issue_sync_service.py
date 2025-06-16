@@ -77,15 +77,15 @@ class IssueSyncService:
                 else:
                     # Failed to sync
                     issue.sync_status = IssueSyncStatus.SYNC_FAILED
-                    issue.sync_error = "Failed to fetch issue data"
+                    issue.sync_error = "Failed to fetch issue data from external API"
                     stats["failed"] += 1
-                    logger.warning(f"Failed to sync test case issue {issue.id}: {issue.url}")
+                    logger.warning(f"Failed to sync test case issue {issue.id}: {issue.url} - API returned None")
             except Exception as e:
                 # Handle sync error
                 issue.sync_status = IssueSyncStatus.SYNC_FAILED
                 issue.sync_error = str(e)[:500]  # Limit error message length
                 stats["failed"] += 1
-                logger.error(f"Error syncing test case issue {issue.id}: {e}")
+                logger.error(f"Error syncing test case issue {issue.id} ({issue.url}): {type(e).__name__}: {e}", exc_info=True)
         
         db.commit()
         return stats
@@ -122,15 +122,15 @@ class IssueSyncService:
                 else:
                     # Failed to sync
                     issue.sync_status = IssueSyncStatus.SYNC_FAILED
-                    issue.sync_error = "Failed to fetch issue data"
+                    issue.sync_error = "Failed to fetch issue data from external API"
                     stats["failed"] += 1
-                    logger.warning(f"Failed to sync environment issue {issue.id}: {issue.url}")
+                    logger.warning(f"Failed to sync environment issue {issue.id}: {issue.url} - API returned None")
             except Exception as e:
                 # Handle sync error
                 issue.sync_status = IssueSyncStatus.SYNC_FAILED
                 issue.sync_error = str(e)[:500]  # Limit error message length
                 stats["failed"] += 1
-                logger.error(f"Error syncing environment issue {issue.id}: {e}")
+                logger.error(f"Error syncing environment issue {issue.id} ({issue.url}): {type(e).__name__}: {e}", exc_info=True)
         
         db.commit()
         return stats
@@ -168,8 +168,8 @@ class IssueSyncService:
                 logger.warning(f"Unsupported platform: {parsed_url.platform}")
                 return None
         except Exception as e:
-            logger.error(f"Error fetching issue data for {url}: {e}")
-            return None
+            logger.error(f"Error fetching issue data for {url}: {type(e).__name__}: {e}", exc_info=True)
+            raise  # Re-raise to let caller handle it with more context
     
     def sync_all_issues(self, db: Session) -> dict[str, int]:
         """

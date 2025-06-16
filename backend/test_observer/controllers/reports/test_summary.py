@@ -171,3 +171,81 @@ def batch_check_test_case_issues(
         response[identifier] = identifier in identifiers_with_issues
     
     return response
+
+
+@router.get("/test-summary-with-trends")
+def get_test_summary_report_with_trends(
+    start_date: datetime = Query(default=datetime.min),
+    end_date: datetime = Query(default_factory=datetime.now),
+    families: list[str] = Query(default=['snap', 'deb']),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """
+    Returns test summary report with trend analysis comparing current vs previous period.
+    """
+    
+    # Calculate the duration of the current period
+    period_duration = end_date - start_date
+    
+    # Calculate previous period (same duration, ending when current period starts)
+    prev_end_date = start_date
+    prev_start_date = prev_end_date - period_duration
+    
+    # Get current period data
+    current_data = get_test_summary_report(start_date, end_date, families, db)
+    
+    # Get previous period data
+    prev_data = get_test_summary_report(prev_start_date, prev_end_date, families, db)
+    
+    # Build lookup for previous period success rates
+    prev_success_rates = {}
+    for item in prev_data['summary']:
+        test_id = item['test_identifier']
+        total = item['total']
+        passed = item['passed']
+        if total > 0:
+            prev_success_rates[test_id] = (passed / total) * 100
+    
+    # Add trend analysis to current data
+    summary_with_trends = []
+    for item in current_data['summary']:
+        test_id = item['test_identifier']
+        total = item['total']
+        passed = item['passed']
+        
+        # Calculate current success rate
+        current_success_rate = (passed / total * 100) if total > 0 else 0
+        
+        # Compare with previous period (based on fail rate, not success rate)
+        trend = 'none'  # none, improving, worsening
+        if test_id in prev_success_rates:
+            prev_rate = prev_success_rates[test_id]
+            current_fail_rate = 100 - current_success_rate
+            prev_fail_rate = 100 - prev_rate
+            
+            # Green (improving) when fail rate decreases by >10%
+            if current_fail_rate < prev_fail_rate - 10:
+                trend = 'improving'
+            # Red (worsening) when fail rate increases by >10%
+            elif current_fail_rate > prev_fail_rate + 10:
+                trend = 'worsening'
+        
+        # Add trend info to item
+        item_with_trend = dict(item)
+        item_with_trend['trend'] = trend
+        item_with_trend['current_success_rate'] = current_success_rate
+        item_with_trend['previous_success_rate'] = prev_success_rates.get(test_id)
+        
+        summary_with_trends.append(item_with_trend)
+    
+    # Update the response with trend data
+    result = dict(current_data)
+    result['summary'] = summary_with_trends
+    result['previous_period'] = {
+        'start_date': prev_start_date.isoformat(),
+        'end_date': prev_end_date.isoformat(),
+        'total_tests': prev_data['total_tests'],
+        'total_executions': prev_data['total_executions']
+    }
+    
+    return result

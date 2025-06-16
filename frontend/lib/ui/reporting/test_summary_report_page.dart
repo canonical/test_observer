@@ -47,16 +47,26 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   bool _testSummarySortAscending = true;
   String _testSummaryFilterText = '';
   
+  // Filter to hide test cases with 0 fails
+  bool _hideZeroFails = false;
+  
   // Track expanded test cases
   final Set<String> _expandedTestCases = <String>{};
   
   // Cache test identifiers to avoid repeated API calls
   List<String>? _cachedTestIdentifiers;
-  List<dynamic>? _cachedSummaryData;
+  Map<String, bool>? _cachedBatchIssues;
 
   @override
   void initState() {
     super.initState();
+    // Set default date range to Last 180 days
+    final now = DateTime.now();
+    _selectedDateRange = DateRange(
+      startDate: now.subtract(const Duration(days: 180)),
+      endDate: now,
+    );
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeDateRangeFromUrl();
     });
@@ -65,6 +75,9 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   void _initializeDateRangeFromUrl() {
     final uri = GoRouterState.of(context).uri;
     final dateRangeParam = uri.queryParameters['date_range'];
+    final sortColumnParam = uri.queryParameters['sort_column'];
+    final sortOrderParam = uri.queryParameters['sort_order'];
+    final hideZeroFailsParam = uri.queryParameters['hide_zero_fails'];
     
     if (dateRangeParam != null) {
       final dateRange = _parseDateRangeFromUrl(dateRangeParam);
@@ -73,6 +86,27 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           _selectedDateRange = dateRange;
         });
       }
+    } else {
+      // If no date range in URL, update URL to reflect the default
+      _updateUrlWithDateRange(_selectedDateRange);
+    }
+    
+    // Initialize sort parameters from URL
+    if (sortColumnParam != null) {
+      final columnIndex = int.tryParse(sortColumnParam);
+      if (columnIndex != null && columnIndex >= 0 && columnIndex <= 4) {
+        setState(() {
+          _testSummarySortColumnIndex = columnIndex;
+          _testSummarySortAscending = sortOrderParam == 'asc';
+        });
+      }
+    }
+    
+    // Initialize filter parameter from URL
+    if (hideZeroFailsParam != null) {
+      setState(() {
+        _hideZeroFails = hideZeroFailsParam.toLowerCase() == 'true';
+      });
     }
   }
 
@@ -89,6 +123,9 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       } else if (dateRangeParam == 'last30days') {
         final now = DateTime.now();
         return DateRange(startDate: now.subtract(const Duration(days: 30)), endDate: now);
+      } else if (dateRangeParam == 'last180days') {
+        final now = DateTime.now();
+        return DateRange(startDate: now.subtract(const Duration(days: 180)), endDate: now);
       } else if (dateRangeParam == 'last365days') {
         final now = DateTime.now();
         return DateRange(startDate: now.subtract(const Duration(days: 365)), endDate: now);
@@ -137,6 +174,36 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     context.go(newUri.toString());
   }
 
+  void _updateUrlWithSort() {
+    final currentUri = GoRouterState.of(context).uri;
+    final queryParams = Map<String, String>.from(currentUri.queryParameters);
+    
+    if (_testSummarySortColumnIndex != null) {
+      queryParams['sort_column'] = _testSummarySortColumnIndex.toString();
+      queryParams['sort_order'] = _testSummarySortAscending ? 'asc' : 'desc';
+    } else {
+      queryParams.remove('sort_column');
+      queryParams.remove('sort_order');
+    }
+    
+    final newUri = currentUri.replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+    context.go(newUri.toString());
+  }
+
+  void _updateUrlWithFilter() {
+    final currentUri = GoRouterState.of(context).uri;
+    final queryParams = Map<String, String>.from(currentUri.queryParameters);
+    
+    if (_hideZeroFails) {
+      queryParams['hide_zero_fails'] = 'true';
+    } else {
+      queryParams.remove('hide_zero_fails');
+    }
+    
+    final newUri = currentUri.replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+    context.go(newUri.toString());
+  }
+
   String _formatDateRangeForUrl(DateRange dateRange) {
     final start = dateRange.startDate;
     final end = dateRange.endDate;
@@ -153,6 +220,8 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       return 'last7days';
     } else if (_isApproximately(start, now.subtract(const Duration(days: 30)))) {
       return 'last30days';
+    } else if (_isApproximately(start, now.subtract(const Duration(days: 180)))) {
+      return 'last180days';
     } else if (_isApproximately(start, now.subtract(const Duration(days: 365)))) {
       return 'last365days';
     } else if (_isMonthRange(start, end)) {
@@ -196,6 +265,10 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         break;
       case 'last30days':
         final startDate = now.subtract(const Duration(days: 30));
+        newDateRange = DateRange(startDate: startDate, endDate: now);
+        break;
+      case 'last180days':
+        final startDate = now.subtract(const Duration(days: 180));
         newDateRange = DateRange(startDate: startDate, endDate: now);
         break;
       case 'last365days':
@@ -277,6 +350,8 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       return 'Last 7 days';
     } else if (_isApproximately(start, now.subtract(const Duration(days: 30)))) {
       return 'Last 30 days';
+    } else if (_isApproximately(start, now.subtract(const Duration(days: 180)))) {
+      return 'Last 180 days';
     } else if (_isApproximately(start, now.subtract(const Duration(days: 365)))) {
       return 'Last 365 days';
     } else if (_isMonthRange(start, end)) {
@@ -342,6 +417,16 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             ),
           ),
           const PopupMenuItem(
+            value: 'last180days',
+            child: Row(
+              children: [
+                Icon(Icons.date_range),
+                SizedBox(width: 8),
+                Text('Last 180 days'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
             value: 'last365days',
             child: Row(
               children: [
@@ -354,8 +439,8 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           const PopupMenuDivider(),
         ];
         
-        // Add last 3 months
-        for (int i = 0; i < 3; i++) {
+        // Add last 6 months
+        for (int i = 0; i < 6; i++) {
           final month = DateTime(now.year, now.month - i, 1);
           final monthName = _getMonthName(month.month, month.year);
           final value = 'month-${month.year}-${month.month.toString().padLeft(2, '0')}';
@@ -390,10 +475,30 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         
         return items;
       },
-      child: FilledButton.icon(
-        onPressed: null,
-        icon: const Icon(Icons.date_range),
-        label: Text(_getDateRangeDisplayText()),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.date_range,
+              color: Theme.of(context).colorScheme.onPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _getDateRangeDisplayText(),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -447,36 +552,77 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   Widget _buildPageHeader(Map<String, dynamic> data) {
     final totalTests = data['total_tests'] ?? 0;
     final totalExecutions = data['total_executions'] ?? 0;
+    final summary = data['summary'] as List<dynamic>? ?? [];
     final numberFormat = NumberFormat('#,###');
     
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    // Calculate overall failure rate
+    int totalPassed = 0;
+    int totalAll = 0;
+    for (final item in summary) {
+      totalPassed += (item['passed'] ?? 0) as int;
+      totalAll += (item['total'] ?? 0) as int;
+    }
+    final failureRate = totalAll > 0 ? ((totalAll - totalPassed) / totalAll * 100) : 0.0;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Row(
-            children: [
-              Text(
-                'Success Rate by Test Case',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              const SizedBox(width: Spacing.level4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '${numberFormat.format(totalTests)} tests • ${numberFormat.format(totalExecutions)} executions',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Text(
+                    'Success Rate by Test Case',
+                    style: Theme.of(context).textTheme.headlineLarge,
                   ),
-                ),
+                  const SizedBox(width: Spacing.level4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${numberFormat.format(totalTests)} tests • ${numberFormat.format(totalExecutions)} executions',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        Text(
+                          'Total fail rate: ${failureRate.toStringAsFixed(1)}%',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Row(
+              children: [
+                _buildDateRangeSelector(),
+                const SizedBox(width: Spacing.level3),
+                _buildFilterTextField(
+                  hintText: 'Filter tests...',
+                  value: _testSummaryFilterText,
+                  onChanged: (value) {
+                    setState(() {
+                      _testSummaryFilterText = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
-        _buildDateRangeSelector(),
       ],
     );
   }
@@ -506,21 +652,6 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const SizedBox(), // Empty space for alignment
-            _buildFilterTextField(
-              hintText: 'Filter tests...',
-              value: _testSummaryFilterText,
-              onChanged: (value) {
-                setState(() {
-                  _testSummaryFilterText = value;
-                });
-              },
-            ),
-          ],
-        ),
         const SizedBox(height: Spacing.level4),
         testSummaryAsync.when(
           data: (data) => _buildTestSummaryContent(data),
@@ -550,6 +681,14 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       final filterLower = _testSummaryFilterText.toLowerCase();
       summary = summary.where((item) {
         return (item['test_identifier']?.toString().toLowerCase().contains(filterLower) ?? false);
+      }).toList();
+    }
+    
+    // Apply zero-fails filter
+    if (_hideZeroFails) {
+      summary = summary.where((item) {
+        final failed = (item['total'] ?? 0) - (item['passed'] ?? 0);
+        return failed > 0;
       }).toList();
     }
 
@@ -595,9 +734,29 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Test Results (Showing ${summary.length} entries)',
-          style: Theme.of(context).textTheme.titleMedium,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Test Results (Showing ${summary.length} entries)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Checkbox(
+                  value: _hideZeroFails,
+                  onChanged: (value) {
+                    setState(() {
+                      _hideZeroFails = value ?? false;
+                    });
+                    _updateUrlWithFilter();
+                  },
+                ),
+                const Text('Hide always successful tests'),
+              ],
+            ),
+          ],
         ),
         const SizedBox(height: Spacing.level3),
         _buildTestTable(summary),
@@ -647,14 +806,30 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       });
     }
     
-    // Only update test identifiers if the summary data actually changed
-    if (_cachedSummaryData == null || !_listEquals(_cachedSummaryData!, summary)) {
-      _cachedSummaryData = List.from(summary);
-      _cachedTestIdentifiers = summary.map<String>((item) => item['test_identifier'] ?? '').toList();
+    // Only update test identifiers if the actual set of test identifiers changed
+    final currentTestIdentifiers = summary.map<String>((item) => item['test_identifier'] ?? '').toSet();
+    final cachedTestIdentifiersSet = _cachedTestIdentifiers?.toSet() ?? <String>{};
+    
+    if (!_setEquals(currentTestIdentifiers, cachedTestIdentifiersSet)) {
+      _cachedTestIdentifiers = currentTestIdentifiers.toList();
+      _cachedBatchIssues = null; // Clear cache when identifiers change
+      // Trigger the batch request only when test identifiers actually change
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadBatchIssues(ref);
+      });
     }
     
-    // Make a single batch request for all test cases using cached identifiers
-    final batchIssuesAsync = ref.watch(batchTestCaseIssuesProvider(_cachedTestIdentifiers!));
+    // If we have identifiers but no cached issues yet, trigger initial load
+    if (_cachedTestIdentifiers != null && _cachedTestIdentifiers!.isNotEmpty && _cachedBatchIssues == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadBatchIssues(ref);
+      });
+    }
+    
+    // Use cached batch issues if available, otherwise show loading
+    final batchIssuesAsync = _cachedBatchIssues != null 
+        ? AsyncValue.data(_cachedBatchIssues!) 
+        : const AsyncValue.loading();
     
     return Column(
       children: [
@@ -673,16 +848,28 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
                 child: _buildSortableHeader('Test', 0),
               ),
               Expanded(
-                child: _buildSortableHeader('Total', 1),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildSortableHeader('Total', 1),
+                ),
               ),
               Expanded(
-                child: _buildSortableHeader('Passed', 2),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildSortableHeader('Passed', 2),
+                ),
               ),
               Expanded(
-                child: _buildSortableHeader('Failed', 3),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildSortableHeader('Failed', 3),
+                ),
               ),
               Expanded(
-                child: _buildSortableHeader('Fail Rate', 4),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildSortableHeader('Fail Rate', 4),
+                ),
               ),
             ],
           ),
@@ -790,14 +977,6 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
                     maxLines: 1,
                   ),
                 ),
-                if (hasIssues) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ],
               ],
             ),
           ),
@@ -820,9 +999,28 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             ),
           ),
           Expanded(
-            child: Text(
-              '${failRate.toStringAsFixed(1)}%',
-              textAlign: TextAlign.right,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '${failRate.toStringAsFixed(1)}%',
+                  textAlign: TextAlign.right,
+                ),
+                // Add trend arrow with tooltip
+                if (item['trend'] != null && item['trend'] != 'none') ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: item['previous_success_rate'] != null
+                        ? '${(100 - item['previous_success_rate']).toStringAsFixed(1)}% fail rate on previous ${_getPeriodDescription()}'
+                        : 'No data for previous period',
+                    child: Icon(
+                      item['trend'] == 'improving' ? Icons.south_east : Icons.north_east,
+                      size: 16,
+                      color: item['trend'] == 'improving' ? Colors.green : Colors.red,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -954,9 +1152,10 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             _testSummarySortAscending = !_testSummarySortAscending;
           } else {
             _testSummarySortColumnIndex = columnIndex;
-            _testSummarySortAscending = true;
+            _testSummarySortAscending = false; // Start with descending order
           }
         });
+        _updateUrlWithSort();
       },
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -985,16 +1184,63 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     );
   }
 
-  bool _listEquals(List<dynamic> a, List<dynamic> b) {
+  bool _setEquals(Set<String> a, Set<String> b) {
     if (a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i]['test_identifier'] != b[i]['test_identifier']) return false;
+    return a.every((item) => b.contains(item));
+  }
+
+  void _loadBatchIssues(WidgetRef ref) async {
+    if (_cachedTestIdentifiers == null || _cachedTestIdentifiers!.isEmpty) return;
+    
+    try {
+      final result = await ref.read(batchTestCaseIssuesProvider(_cachedTestIdentifiers!).future);
+      if (mounted) {
+        setState(() {
+          _cachedBatchIssues = result;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _cachedBatchIssues = <String, bool>{}; // Empty map on error
+        });
+      }
     }
-    return true;
   }
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'N/A';
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _getPeriodDescription() {
+    if (_selectedDateRange == null) return 'period';
+    
+    final start = _selectedDateRange!.startDate;
+    final end = _selectedDateRange!.endDate;
+    
+    if (start == null || end == null) return 'period';
+    
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // Check for preset ranges
+    if (start.year == today.year && start.month == today.month && start.day == today.day) {
+      return 'day';
+    } else if (_isApproximately(start, now.subtract(const Duration(days: 7)))) {
+      return '7 days';
+    } else if (_isApproximately(start, now.subtract(const Duration(days: 30)))) {
+      return '30 days';
+    } else if (_isApproximately(start, now.subtract(const Duration(days: 180)))) {
+      return '180 days';
+    } else if (_isApproximately(start, now.subtract(const Duration(days: 365)))) {
+      return '365 days';
+    } else if (_isMonthRange(start, end)) {
+      return 'month';
+    } else {
+      // Custom range - calculate duration
+      final duration = end.difference(start);
+      return '${duration.inDays} days';
+    }
   }
 }
