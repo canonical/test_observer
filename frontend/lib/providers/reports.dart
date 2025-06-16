@@ -14,18 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:csv/csv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api.dart';
 
 final testSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, DateRange?>((ref, dateRange) async {
   final api = ref.watch(apiProvider);
-  final csvData = await api.getTestResultsCsv(
+  
+  // Use the optimized test summary endpoint instead of processing CSV
+  final summaryData = await api.getTestSummaryReport(
     startDate: dateRange?.startDate,
     endDate: dateRange?.endDate,
+    families: ['snap', 'deb'], // Default families, can be made configurable
   );
   
-  return _processTestResultsCsv(csvData, dateRange?.startDate, dateRange?.endDate);
+  return summaryData;
 });
 
 
@@ -47,6 +49,36 @@ final environmentIssuesReportProvider = FutureProvider.autoDispose<Map<String, d
   };
 });
 
+final testCaseIssuesProvider = FutureProvider.autoDispose.family<List<dynamic>, String>((ref, testIdentifier) async {
+  final api = ref.watch(apiProvider);
+  
+  // Try to parse the test identifier to get template_id or case_name
+  String? templateId;
+  String? caseName;
+  
+  // If it contains "::" it's likely a template_id format
+  if (testIdentifier.contains('::')) {
+    templateId = testIdentifier;
+  } else {
+    caseName = testIdentifier;
+  }
+  
+  final issues = await api.getKnownIssuesReport(
+    templateId: templateId,
+    caseName: caseName,
+  );
+  
+  return issues;
+});
+
+// Simple direct provider for batch checking test case issues  
+final batchTestCaseIssuesProvider = FutureProvider.autoDispose.family<Map<String, bool>, List<String>>((ref, testIdentifiers) async {
+  if (testIdentifiers.isEmpty) return {};
+  
+  final api = ref.watch(apiProvider);
+  return api.batchCheckTestCaseIssues(testIdentifiers);
+});
+
 class DateRange {
   final DateTime? startDate;
   final DateTime? endDate;
@@ -63,76 +95,4 @@ class DateRange {
   
   @override
   int get hashCode => Object.hash(startDate, endDate);
-}
-
-Map<String, dynamic> _processTestResultsCsv(String csvData, DateTime? startDate, DateTime? endDate) {
-  final rows = const CsvToListConverter().convert(csvData);
-  if (rows.isEmpty) {
-    return {
-      'start_date': startDate?.toIso8601String() ?? '0001-01-01T00:00:00',
-      'end_date': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-      'total_tests': 0,
-      'total_executions': 0,
-      'summary': <Map<String, dynamic>>[],
-    };
-  }
-
-  final headers = rows.first.cast<String>();
-  final dataRows = rows.skip(1);
-  
-  // Find column indices
-  final familyIndex = headers.indexOf('Artefact.family');
-  final templateIdIndex = headers.indexOf('TestCase.template_id');
-  final nameIndex = headers.indexOf('TestCase.name');
-  final statusIndex = headers.indexOf('TestResult.status');
-  
-  // Process data similar to fetch_test_results_report.py
-  final testSummary = <String, Map<String, int>>{};
-  int totalExecutions = 0;
-  
-  for (final row in dataRows) {
-    if (row.length <= maxOf([familyIndex, templateIdIndex, nameIndex, statusIndex])) continue;
-    
-    final family = row[familyIndex]?.toString() ?? '';
-    final templateId = row[templateIdIndex]?.toString() ?? '';
-    final name = row[nameIndex]?.toString() ?? '';
-    final status = row[statusIndex]?.toString() ?? '';
-    
-    // Filter like the script: only snap/deb, exclude mir tests
-    if (!['snap', 'deb'].contains(family) || name.contains('mir')) {
-      continue;
-    }
-    
-    final testIdentifier = templateId.isNotEmpty ? templateId : name;
-    testSummary.putIfAbsent(testIdentifier, () => {'FAILED': 0, 'PASSED': 0, 'SKIPPED': 0});
-    testSummary[testIdentifier]![status] = (testSummary[testIdentifier]![status] ?? 0) + 1;
-    totalExecutions++;
-  }
-  
-  // Convert to summary format
-  final summaryItems = testSummary.entries.map((entry) {
-    final counts = entry.value;
-    return {
-      'test_identifier': entry.key,
-      'total': (counts['FAILED'] ?? 0) + (counts['PASSED'] ?? 0),
-      'failed': counts['FAILED'] ?? 0,
-      'passed': counts['PASSED'] ?? 0,
-      'skipped': counts['SKIPPED'] ?? 0,
-    };
-  }).toList();
-  
-  // Sort by total count descending
-  summaryItems.sort((a, b) => (b['total'] as int).compareTo(a['total'] as int));
-  
-  return {
-    'start_date': startDate?.toIso8601String() ?? '0001-01-01T00:00:00',
-    'end_date': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-    'total_tests': summaryItems.length,
-    'total_executions': totalExecutions,
-    'summary': summaryItems,
-  };
-}
-
-int maxOf(List<int> values) {
-  return values.reduce((a, b) => a > b ? a : b);
 }

@@ -249,4 +249,39 @@ class ApiRepository {
     );
     return response.data;
   }
+
+  Future<Map<String, dynamic>> getTestSummaryReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? families,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    if (families != null && families.isNotEmpty) {
+      for (final family in families) {
+        queryParameters.addAll({'families': family});
+      }
+    }
+    
+    final response = await dio.get(
+      '/v1/reports/test-summary',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
+
+  Future<Map<String, bool>> batchCheckTestCaseIssues(
+    List<String> testIdentifiers,
+  ) async {
+    final response = await dio.post(
+      '/v1/reports/test-summary/batch-issues-check',
+      data: {'test_identifiers': testIdentifiers},
+    );
+    return Map<String, bool>.from(response.data);
+  }
 }

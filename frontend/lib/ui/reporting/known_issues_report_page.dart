@@ -83,41 +83,36 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
   }
 
   Widget _buildKnownIssuesSection(AsyncValue<Map<String, dynamic>> knownIssuesReportAsync) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Spacing.level4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Test Case Issues',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                _buildFilterTextField(
-                  hintText: 'Filter issues...',
-                  value: _knownIssuesFilterText,
-                  onChanged: (value) {
-                    setState(() {
-                      _knownIssuesFilterText = value;
-                    });
-                  },
-                ),
-              ],
+            Text(
+              'Test Case Issues',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: Spacing.level4),
-            knownIssuesReportAsync.when(
-              data: (data) => _buildKnownIssuesContent(data),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Error: $error'),
-              ),
+            _buildFilterTextField(
+              hintText: 'Filter issues...',
+              value: _knownIssuesFilterText,
+              onChanged: (value) {
+                setState(() {
+                  _knownIssuesFilterText = value;
+                });
+              },
             ),
           ],
         ),
-      ),
+        const SizedBox(height: Spacing.level4),
+        knownIssuesReportAsync.when(
+          data: (data) => _buildKnownIssuesContent(data),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Text('Error: $error'),
+          ),
+        ),
+      ],
     );
   }
 

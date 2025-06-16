@@ -83,41 +83,36 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
   }
 
   Widget _buildEnvironmentIssuesSection(AsyncValue<Map<String, dynamic>> environmentIssuesReportAsync) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Spacing.level4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Environment Issues',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                _buildFilterTextField(
-                  hintText: 'Filter issues...',
-                  value: _environmentIssuesFilterText,
-                  onChanged: (value) {
-                    setState(() {
-                      _environmentIssuesFilterText = value;
-                    });
-                  },
-                ),
-              ],
+            Text(
+              'Environment Issues',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: Spacing.level4),
-            environmentIssuesReportAsync.when(
-              data: (data) => _buildEnvironmentIssuesContent(data),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Error: $error'),
-              ),
+            _buildFilterTextField(
+              hintText: 'Filter issues...',
+              value: _environmentIssuesFilterText,
+              onChanged: (value) {
+                setState(() {
+                  _environmentIssuesFilterText = value;
+                });
+              },
             ),
           ],
         ),
-      ),
+        const SizedBox(height: Spacing.level4),
+        environmentIssuesReportAsync.when(
+          data: (data) => _buildEnvironmentIssuesContent(data),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Text('Error: $error'),
+          ),
+        ),
+      ],
     );
   }
 

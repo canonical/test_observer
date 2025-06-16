@@ -78,7 +78,7 @@ class Navbar extends StatelessWidget {
                     label: 'Reports',
                     dropdownChildren: [
                       _NavbarDropdownItem(
-                        label: 'Test Summary',
+                        label: 'Success Rate by Test Case',
                         onPressed: () => _navigateWithDelay(context, AppRoutes.testSummaryReport),
                       ),
                       _NavbarDropdownItem(

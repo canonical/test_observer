@@ -52,7 +52,7 @@ class ReportsOverviewPage extends StatelessWidget {
               children: [
                 _buildReportCard(
                   context,
-                  'Test Summary Report',
+                  'Success Rate by Test Case',
                   'View success rates and statistics by test case',
                   Icons.analytics,
                   AppRoutes.testSummaryReport,

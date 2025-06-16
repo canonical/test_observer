@@ -15,7 +15,6 @@ services:
     ports:
       - "30000:30000"
     depends_on:
-      - test-observer-frontend
       - test-observer-db
       - test-observer-redis
     environment:
