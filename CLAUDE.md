@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Install dependencies
 
-cd backend && poetry install
+cd backend && uv sync
 
 # Run linting and type checking
 ruff check .
