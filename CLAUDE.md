@@ -69,16 +69,16 @@ flutter test --platform chrome
 
 ```bash
 # Start full stack with docker-compose (migrations and seeding run automatically)
-docker-compose up
+docker compose up
 
 # Start without seeding (set environment variable)
-SEED_DATA=false docker-compose up
+SEED_DATA=false docker compose up
 
 # Run in background
-docker-compose up -d
+docker compose up -d
 
 # Rebuild containers after code changes
-docker-compose up --build
+docker compose up --build
 
 # Stop services
 docker-compose down

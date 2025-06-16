@@ -8,24 +8,24 @@ Certification currently deploys an instance of TO that they used for reviewing S
 
 ### Docker Compose (Recommended for Development)
 
-The easiest way to run the full Test Observer stack locally is using Docker Compose:
+The easiest way to run the full Test Observer stack locally is using Docker Compose (installed preferably via the [docker.io](https://docs.docker.com/engine/install/ubuntu/) provided APT source):
 
 ```bash
 # Start the complete stack (backend, frontend, database)
 # Migrations and test data seeding happen automatically
-docker-compose up
+docker compose up
 
 # Start without test data seeding
-SEED_DATA=false docker-compose up
+SEED_DATA=false docker compose up
 
 # Run in detached mode
-docker-compose up -d
+docker compose up -d
 
 # Stop the stack
-docker-compose down
+docker compose down
 
 # Rebuild containers after code changes
-docker-compose up --build
+docker compose up --build
 ```
 
 This will start:
