@@ -22,8 +22,8 @@ APP_PID=$!
 echo "Waiting for application to be ready..."
 uv run python wait_for_app.py
 
-# Check if seeding is enabled (default to true for development)
-if [ "${SEED_DATA:-true}" = "true" ]; then
+# Check if seeding is enabled (default to false)
+if [ "${SEED_DATA:-false}" = "true" ]; then
     echo "Seeding database with test data..."
     
     # Run seed data script

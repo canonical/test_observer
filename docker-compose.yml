@@ -19,6 +19,7 @@ services:
       - test-observer-db
     environment:
       DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
+      SEED_DATA: "true"
 
   test-observer-frontend:
     image: test-observer-frontend
