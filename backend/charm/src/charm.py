@@ -195,6 +195,11 @@ class TestObserverBackendCharm(CharmBase):
         env = {
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
+            # Issue tracking integration credentials
+            "GITHUB_TOKEN": self.config["github_token"],
+            "JIRA_USERNAME": self.config["jira_username"],
+            "JIRA_TOKEN": self.config["jira_token"],
+            "JIRA_BASE_URL": self.config["jira_base_url"],
         }
         env.update(self._postgres_relation_data())
         return env

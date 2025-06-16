@@ -31,6 +31,21 @@ class ReportingPage extends ConsumerStatefulWidget {
 class _ReportingPageState extends ConsumerState<ReportingPage> {
   DateRange? _selectedDateRange;
   
+  // Sorting states for Known Issues table
+  int? _knownIssuesSortColumnIndex;
+  bool _knownIssuesSortAscending = true;
+  String _knownIssuesFilterText = '';
+  
+  // Sorting states for Environment Issues table
+  int? _environmentIssuesSortColumnIndex;
+  bool _environmentIssuesSortAscending = true;
+  String _environmentIssuesFilterText = '';
+  
+  // Sorting states for Test Summary table
+  int? _testSummarySortColumnIndex;
+  bool _testSummarySortAscending = true;
+  String _testSummaryFilterText = '';
+  
   void _selectDateRange() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -107,6 +122,26 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
     );
   }
 
+  Widget _buildFilterTextField({
+    required String hintText,
+    required String value,
+    required ValueChanged<String> onChanged,
+  }) {
+    return SizedBox(
+      width: 300,
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: hintText,
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        onChanged: onChanged,
+      ),
+    );
+  }
 
   Widget _buildKnownIssuesSection(AsyncValue<Map<String, dynamic>> knownIssuesReportAsync) {
     return Card(
@@ -115,9 +150,23 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Known Test Case Issues',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Known Test Case Issues',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                _buildFilterTextField(
+                  hintText: 'Filter issues...',
+                  value: _knownIssuesFilterText,
+                  onChanged: (value) {
+                    setState(() {
+                      _knownIssuesFilterText = value;
+                    });
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: Spacing.level4),
             knownIssuesReportAsync.when(
@@ -140,9 +189,23 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Known Environment Issues',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Known Environment Issues',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                _buildFilterTextField(
+                  hintText: 'Filter issues...',
+                  value: _environmentIssuesFilterText,
+                  onChanged: (value) {
+                    setState(() {
+                      _environmentIssuesFilterText = value;
+                    });
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: Spacing.level4),
             environmentIssuesReportAsync.when(
@@ -165,9 +228,23 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Success Rate by Test Case',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Success Rate by Test Case',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                _buildFilterTextField(
+                  hintText: 'Filter tests...',
+                  value: _testSummaryFilterText,
+                  onChanged: (value) {
+                    setState(() {
+                      _testSummaryFilterText = value;
+                    });
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: Spacing.level4),
             testSummaryAsync.when(
@@ -184,7 +261,7 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
   }
 
   Widget _buildKnownIssuesContent(Map<String, dynamic> data) {
-    final issues = data['issues'] as List<dynamic>? ?? [];
+    var issues = data['issues'] as List<dynamic>? ?? [];
     final totalCount = data['total_count'] ?? 0;
 
     if (issues.isEmpty) {
@@ -196,27 +273,139 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
       );
     }
 
+    // Apply filtering
+    if (_knownIssuesFilterText.isNotEmpty) {
+      final filterLower = _knownIssuesFilterText.toLowerCase();
+      issues = issues.where((issue) {
+        return (issue['template_id']?.toString().toLowerCase().contains(filterLower) ?? false) ||
+               (issue['case_name']?.toString().toLowerCase().contains(filterLower) ?? false) ||
+               (issue['description']?.toString().toLowerCase().contains(filterLower) ?? false) ||
+               (issue['url']?.toString().toLowerCase().contains(filterLower) ?? false);
+      }).toList();
+    }
+
+    // Apply sorting
+    if (_knownIssuesSortColumnIndex != null) {
+      issues.sort((a, b) {
+        dynamic aValue, bValue;
+        switch (_knownIssuesSortColumnIndex) {
+          case 0:
+            aValue = a['id'] ?? 0;
+            bValue = b['id'] ?? 0;
+            break;
+          case 1:
+            aValue = a['template_id'] ?? '';
+            bValue = b['template_id'] ?? '';
+            break;
+          case 2:
+            aValue = a['case_name'] ?? '';
+            bValue = b['case_name'] ?? '';
+            break;
+          case 3:
+            aValue = a['description'] ?? '';
+            bValue = b['description'] ?? '';
+            break;
+          case 4:
+            aValue = a['url'] ?? '';
+            bValue = b['url'] ?? '';
+            break;
+          case 5:
+            aValue = DateTime.parse(a['created_at'] ?? DateTime.now().toIso8601String());
+            bValue = DateTime.parse(b['created_at'] ?? DateTime.now().toIso8601String());
+            break;
+          case 6:
+            aValue = DateTime.parse(a['updated_at'] ?? DateTime.now().toIso8601String());
+            bValue = DateTime.parse(b['updated_at'] ?? DateTime.now().toIso8601String());
+            break;
+          default:
+            return 0;
+        }
+        
+        final comparison = aValue.compareTo(bValue);
+        return _knownIssuesSortAscending ? comparison : -comparison;
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Total Issues: $totalCount',
+          'Total Issues: $totalCount (Showing ${issues.length})',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: Spacing.level3),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
+            sortColumnIndex: _knownIssuesSortColumnIndex,
+            sortAscending: _knownIssuesSortAscending,
             columnSpacing: 12.0,
             horizontalMargin: 8.0,
-            columns: const [
-              DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
-              DataColumn(label: Text('Template ID', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Case Name', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Description', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('URL', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Created At', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Updated At', style: TextStyle(fontWeight: FontWeight.bold))),
+            columns: [
+              DataColumn(
+                label: const Text('ID', style: TextStyle(fontWeight: FontWeight.bold)),
+                numeric: true,
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Template ID', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Case Name', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Description', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('URL', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Created At', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Updated At', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
             ],
             rows: issues.map((issue) {
               final createdAt = DateTime.parse(issue['created_at']);
@@ -278,7 +467,7 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
   }
 
   Widget _buildEnvironmentIssuesContent(Map<String, dynamic> data) {
-    final issues = data['issues'] as List<dynamic>? ?? [];
+    var issues = data['issues'] as List<dynamic>? ?? [];
     final totalCount = data['total_count'] ?? 0;
 
     if (issues.isEmpty) {
@@ -290,25 +479,112 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
       );
     }
 
+    // Apply filtering
+    if (_environmentIssuesFilterText.isNotEmpty) {
+      final filterLower = _environmentIssuesFilterText.toLowerCase();
+      issues = issues.where((issue) {
+        return (issue.environmentName?.toLowerCase().contains(filterLower) ?? false) ||
+               (issue.description?.toLowerCase().contains(filterLower) ?? false) ||
+               (issue.url?.toString().toLowerCase().contains(filterLower) ?? false);
+      }).toList();
+    }
+
+    // Apply sorting
+    if (_environmentIssuesSortColumnIndex != null) {
+      issues.sort((a, b) {
+        dynamic aValue, bValue;
+        switch (_environmentIssuesSortColumnIndex) {
+          case 0:
+            aValue = a.id ?? 0;
+            bValue = b.id ?? 0;
+            break;
+          case 1:
+            aValue = a.environmentName ?? '';
+            bValue = b.environmentName ?? '';
+            break;
+          case 2:
+            aValue = a.description ?? '';
+            bValue = b.description ?? '';
+            break;
+          case 3:
+            aValue = a.url?.toString() ?? '';
+            bValue = b.url?.toString() ?? '';
+            break;
+          case 4:
+            aValue = a.isConfirmed ? 1 : 0;
+            bValue = b.isConfirmed ? 1 : 0;
+            break;
+          default:
+            return 0;
+        }
+        
+        final comparison = aValue.compareTo(bValue);
+        return _environmentIssuesSortAscending ? comparison : -comparison;
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Total Issues: $totalCount',
+          'Total Issues: $totalCount (Showing ${issues.length})',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: Spacing.level3),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
+            sortColumnIndex: _environmentIssuesSortColumnIndex,
+            sortAscending: _environmentIssuesSortAscending,
             columnSpacing: 12.0,
             horizontalMargin: 8.0,
-            columns: const [
-              DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
-              DataColumn(label: Text('Environment', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Description', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('URL', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Confirmed', style: TextStyle(fontWeight: FontWeight.bold))),
+            columns: [
+              DataColumn(
+                label: const Text('ID', style: TextStyle(fontWeight: FontWeight.bold)),
+                numeric: true,
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _environmentIssuesSortColumnIndex = columnIndex;
+                    _environmentIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Environment', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _environmentIssuesSortColumnIndex = columnIndex;
+                    _environmentIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Description', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _environmentIssuesSortColumnIndex = columnIndex;
+                    _environmentIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('URL', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _environmentIssuesSortColumnIndex = columnIndex;
+                    _environmentIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Confirmed', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _environmentIssuesSortColumnIndex = columnIndex;
+                    _environmentIssuesSortAscending = ascending;
+                  });
+                },
+              ),
             ],
             rows: issues.map((issue) {
               return DataRow(cells: [
@@ -364,7 +640,7 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
   }
 
   Widget _buildTestSummaryContent(Map<String, dynamic> data) {
-    final summary = data['summary'] as List<dynamic>? ?? [];
+    var summary = data['summary'] as List<dynamic>? ?? [];
     final totalTests = data['total_tests'] ?? 0;
     final totalExecutions = data['total_executions'] ?? 0;
 
@@ -375,6 +651,48 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
           child: Text('No test results found for the selected period'),
         ),
       );
+    }
+
+    // Apply filtering
+    if (_testSummaryFilterText.isNotEmpty) {
+      final filterLower = _testSummaryFilterText.toLowerCase();
+      summary = summary.where((item) {
+        return (item['test_identifier']?.toString().toLowerCase().contains(filterLower) ?? false);
+      }).toList();
+    }
+
+    // Apply sorting
+    if (_testSummarySortColumnIndex != null) {
+      summary.sort((a, b) {
+        dynamic aValue, bValue;
+        switch (_testSummarySortColumnIndex) {
+          case 0:
+            aValue = a['test_identifier'] ?? '';
+            bValue = b['test_identifier'] ?? '';
+            break;
+          case 1:
+            aValue = a['total'] ?? 0;
+            bValue = b['total'] ?? 0;
+            break;
+          case 2:
+            aValue = a['passed'] ?? 0;
+            bValue = b['passed'] ?? 0;
+            break;
+          case 3:
+            aValue = a['failed'] ?? 0;
+            bValue = b['failed'] ?? 0;
+            break;
+          case 4:
+            aValue = a['skipped'] ?? 0;
+            bValue = b['skipped'] ?? 0;
+            break;
+          default:
+            return 0;
+        }
+        
+        final comparison = aValue.compareTo(bValue);
+        return _testSummarySortAscending ? comparison : -comparison;
+      });
     }
 
     return Column(
@@ -389,19 +707,65 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
         ),
         const SizedBox(height: Spacing.level4),
         Text(
-          'Top Test Results',
+          'Test Results (Showing ${summary.length.clamp(0, 10)} of ${summary.length})',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: Spacing.level3),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            columns: const [
-              DataColumn(label: Text('Test')),
-              DataColumn(label: Text('Total'), numeric: true),
-              DataColumn(label: Text('Passed'), numeric: true),
-              DataColumn(label: Text('Failed'), numeric: true),
-              DataColumn(label: Text('Skipped'), numeric: true),
+            sortColumnIndex: _testSummarySortColumnIndex,
+            sortAscending: _testSummarySortAscending,
+            columns: [
+              DataColumn(
+                label: const Text('Test'),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _testSummarySortColumnIndex = columnIndex;
+                    _testSummarySortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Total'),
+                numeric: true,
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _testSummarySortColumnIndex = columnIndex;
+                    _testSummarySortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Passed'),
+                numeric: true,
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _testSummarySortColumnIndex = columnIndex;
+                    _testSummarySortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Failed'),
+                numeric: true,
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _testSummarySortColumnIndex = columnIndex;
+                    _testSummarySortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
+                label: const Text('Skipped'),
+                numeric: true,
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _testSummarySortColumnIndex = columnIndex;
+                    _testSummarySortAscending = ascending;
+                  });
+                },
+              ),
             ],
             rows: summary.take(10).map((item) {
               return DataRow(cells: [

@@ -68,6 +68,10 @@ flutter test --platform chrome
 #### Docker Compose (Recommended)
 
 ```bash
+# Copy environment template and configure credentials (optional)
+cp .env.example .env
+# Edit .env file to set GITHUB_TOKEN, JIRA_USERNAME, JIRA_TOKEN if needed
+
 # Start full stack with docker-compose (migrations and seeding run automatically)
 docker-compose up
 
@@ -91,18 +95,13 @@ docker-compose exec backend bash
 docker-compose exec frontend bash
 ```
 
-#### Kubernetes (Alternative)
-
-```bash
-# Start microk8s development
-skaffold dev --no-prune=false --cache-artifacts=false
-```
-
 **Docker Compose Services:**
 
-- `backend`: FastAPI server on port 30000
-- `frontend`: Flutter web app on port 8080  
-- `db`: PostgreSQL database with persistent volume
+- `test-observer-api`: FastAPI server on port 30000
+- `test-observer-celery`: Celery worker with beat scheduler for background tasks
+- `test-observer-frontend`: Flutter web app on port 30001  
+- `test-observer-db`: PostgreSQL database with persistent volume
+- `test-observer-redis`: Redis broker for Celery tasks
 - Automatic migrations and seeding via `entrypoint.sh`
 
 ## Architecture Overview
@@ -185,3 +184,11 @@ The system centers around **Artefacts** (software packages) that go through test
 - Development: microk8s + Skaffold (preferred) or docker-compose
 - Database: PostgreSQL (local) or microk8s postgres
 - Frontend connects to backend at `http://localhost:30000/` by default
+
+### Issue Tracking Integration
+
+- **GitHub**: Set `GITHUB_TOKEN` environment variable or `github_token` charm config
+- **Jira**: Set `JIRA_USERNAME`, `JIRA_TOKEN`, and optionally `JIRA_BASE_URL` environment variables or corresponding charm configs
+- **Launchpad**: No credentials required (uses anonymous access)
+- Issue sync runs every 15 minutes via Celery task
+- See `backend/charm/README_ISSUE_SYNC_CONFIG.md` for detailed configuration instructions

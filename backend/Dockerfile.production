@@ -14,5 +14,11 @@ RUN pip3 install poetry && \
 
 COPY ./backend .
 
+# Issue tracking API credentials (optional - can be set at runtime)
+ENV GITHUB_TOKEN=""
+ENV JIRA_USERNAME=""
+ENV JIRA_TOKEN=""
+ENV JIRA_BASE_URL="https://warthogs.atlassian.net"
+
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:30000/v1/version || exit 1
 CMD [ "uvicorn",  "test_observer.main:app", "--host", "0.0.0.0", "--port", "30000" ]

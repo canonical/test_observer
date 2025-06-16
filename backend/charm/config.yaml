@@ -12,3 +12,24 @@ options:
     default: ""
     description: value for SENTRY_DSN that is used to send errors to sentry
     type: string
+  
+  # Issue tracking integration credentials
+  github_token:
+    default: ""
+    description: GitHub API token for issue tracking integration. Used to sync issue statuses from GitHub.
+    type: string
+  
+  jira_username:
+    default: ""
+    description: Jira username for issue tracking integration. Used to sync issue statuses from Jira.
+    type: string
+  
+  jira_token:
+    default: ""
+    description: Jira API token for issue tracking integration. Used to sync issue statuses from Jira.
+    type: string
+  
+  jira_base_url:
+    default: "https://warthogs.atlassian.net"
+    description: Jira base URL for issue tracking integration. Default is Canonical's Jira instance.
+    type: string

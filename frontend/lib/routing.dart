@@ -21,7 +21,10 @@ import 'package:go_router/go_router.dart';
 import 'models/family_name.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
-import 'ui/reporting/reporting_page.dart';
+import 'ui/reporting/reports_overview_page.dart';
+import 'ui/reporting/test_summary_report_page.dart';
+import 'ui/reporting/known_issues_report_page.dart';
+import 'ui/reporting/environment_issues_report_page.dart';
 import 'ui/skeleton.dart';
 
 final appRouter = GoRouter(
@@ -94,7 +97,25 @@ final appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.reporting,
           pageBuilder: (_, __) => const NoTransitionPage(
-            child: ReportingPage(),
+            child: ReportsOverviewPage(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.testSummaryReport,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: TestSummaryReportPage(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.knownIssuesReport,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: KnownIssuesReportPage(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.environmentIssuesReport,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: EnvironmentIssuesReportPage(),
           ),
         ),
       ],
@@ -119,6 +140,9 @@ class AppRoutes {
   static const charms = '/charms';
   static const images = '/images';
   static const reporting = '/reporting';
+  static const testSummaryReport = '/reports/test-summary';
+  static const knownIssuesReport = '/reports/known-issues';
+  static const environmentIssuesReport = '/reports/environment-issues';
 
   static Uri uriFromContext(BuildContext context) =>
       GoRouterState.of(context).uri;

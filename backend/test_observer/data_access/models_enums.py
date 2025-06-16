@@ -108,3 +108,15 @@ class TestResultStatus(str, Enum):
     PASSED = "PASSED"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+
+
+class IssueStatus(str, Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
+    UNKNOWN = "UNKNOWN"
+
+
+class IssueSyncStatus(str, Enum):
+    NEVER_SYNCED = "NEVER_SYNCED"
+    SYNCED = "SYNCED"
+    SYNC_FAILED = "SYNC_FAILED"

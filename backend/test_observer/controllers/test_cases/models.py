@@ -20,6 +20,7 @@ from datetime import datetime
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
 
 from test_observer.common.constants import VALID_ISSUE_HOSTS
+from test_observer.data_access.models_enums import IssueStatus, IssueSyncStatus
 
 
 class TestReportedIssueRequest(BaseModel):
@@ -53,3 +54,9 @@ class TestReportedIssueResponse(BaseModel):
     url: HttpUrl
     created_at: datetime
     updated_at: datetime
+    # Issue tracking fields
+    external_id: str | None = None
+    issue_status: IssueStatus = IssueStatus.UNKNOWN
+    sync_status: IssueSyncStatus = IssueSyncStatus.NEVER_SYNCED
+    last_synced_at: datetime | None = None
+    sync_error: str | None = None

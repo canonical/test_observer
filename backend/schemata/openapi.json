@@ -2037,6 +2037,48 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "issue_status": {
+            "$ref": "#/components/schemas/IssueStatus",
+            "default": "UNKNOWN"
+          },
+          "sync_status": {
+            "$ref": "#/components/schemas/IssueSyncStatus",
+            "default": "NEVER_SYNCED"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "sync_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Error"
           }
         },
         "type": "object",
@@ -2135,6 +2177,24 @@
           "current"
         ],
         "title": "ImageStage"
+      },
+      "IssueStatus": {
+        "type": "string",
+        "enum": [
+          "OPEN",
+          "CLOSED",
+          "UNKNOWN"
+        ],
+        "title": "IssueStatus"
+      },
+      "IssueSyncStatus": {
+        "type": "string",
+        "enum": [
+          "NEVER_SYNCED",
+          "SYNCED",
+          "SYNC_FAILED"
+        ],
+        "title": "IssueSyncStatus"
       },
       "PendingRerun": {
         "properties": {
@@ -2873,6 +2933,48 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "issue_status": {
+            "$ref": "#/components/schemas/IssueStatus",
+            "default": "UNKNOWN"
+          },
+          "sync_status": {
+            "$ref": "#/components/schemas/IssueSyncStatus",
+            "default": "NEVER_SYNCED"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "sync_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Error"
           }
         },
         "type": "object",

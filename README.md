@@ -34,6 +34,32 @@ This will start:
 - **Frontend** at `http://localhost:8080`
 - **PostgreSQL database** with persistent storage
 
+#### Loading Production Database Dumps (Docker Compose Development)
+
+When using Docker Compose for local development, you can load a production database dump to test with real data:
+
+```bash
+# 1. Ensure the Docker Compose stack is running
+docker-compose up -d
+
+# 2. Copy the dump file into the database container
+docker cp prod.dump test_observer-test-observer-db-1:/tmp/prod.dump
+
+# 3. Drop and recreate the public schema (this will delete all existing data)
+docker-compose exec -T test-observer-db psql -U test_observer_user -d test_observer_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO test_observer_user; GRANT ALL ON SCHEMA public TO public;"
+
+# 4. Restore the database dump
+docker-compose exec -T test-observer-db pg_restore -U test_observer_user -d test_observer_db --no-owner --no-privileges --verbose /tmp/prod.dump
+
+# 5. Run migrations to ensure schema is up to date
+docker-compose exec -T test-observer-api alembic upgrade head
+
+# 6. Clean up the dump file from the container
+docker-compose exec -T test-observer-db rm /tmp/prod.dump
+```
+
+**Note**: This process will completely replace your local Docker Compose database with the production data. Make sure to backup any local data you want to keep before running these commands. This workflow is specific to Docker Compose development and won't affect other deployment methods (Kubernetes, Terraform, etc.).
+
 ### Individual Components
 
 For component-specific development, see the [backend](/backend/README.md) and [frontend](/frontend/README.md) documentation.

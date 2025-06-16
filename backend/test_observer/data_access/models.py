@@ -44,6 +44,8 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    IssueStatus,
+    IssueSyncStatus,
     StageName,
     TestExecutionStatus,
     TestResultStatus,
@@ -478,6 +480,13 @@ class TestCaseIssue(Base):
     case_name: Mapped[str] = mapped_column(index=True)
     url: Mapped[str]
     description: Mapped[str]
+    
+    # External issue tracking fields
+    external_id: Mapped[str | None] = mapped_column(default=None, index=True)
+    issue_status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
+    sync_status: Mapped[IssueSyncStatus] = mapped_column(default=IssueSyncStatus.NEVER_SYNCED)
+    last_synced_at: Mapped[datetime | None] = mapped_column(default=None)
+    sync_error: Mapped[str | None] = mapped_column(default=None)
 
     def __repr__(self) -> str:
         return data_model_repr(
@@ -486,6 +495,9 @@ class TestCaseIssue(Base):
             "case_name",
             "url",
             "description",
+            "external_id",
+            "issue_status",
+            "sync_status",
         )
 
 
@@ -500,6 +512,13 @@ class EnvironmentIssue(Base):
     url: Mapped[str | None] = mapped_column(default=None)
     description: Mapped[str]
     is_confirmed: Mapped[bool]
+    
+    # External issue tracking fields
+    external_id: Mapped[str | None] = mapped_column(default=None, index=True)
+    issue_status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
+    sync_status: Mapped[IssueSyncStatus] = mapped_column(default=IssueSyncStatus.NEVER_SYNCED)
+    last_synced_at: Mapped[datetime | None] = mapped_column(default=None)
+    sync_error: Mapped[str | None] = mapped_column(default=None)
 
     def __repr__(self) -> str:
         return data_model_repr(
@@ -508,6 +527,9 @@ class EnvironmentIssue(Base):
             "url",
             "description",
             "is_confirmed",
+            "external_id",
+            "issue_status",
+            "sync_status",
         )
 
 

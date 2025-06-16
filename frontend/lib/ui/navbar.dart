@@ -16,16 +16,25 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
 import '../routing.dart';
 import 'spacing.dart';
+import 'navbar_help_items.dart';
 
 const _navbarHeight = 57.0;
 
 class Navbar extends StatelessWidget {
   const Navbar({super.key});
+
+  void _navigateWithDelay(BuildContext context, String route) {
+    // Use a timer to delay navigation until after the dropdown closes
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (context.mounted) {
+        context.go(route);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,25 +73,34 @@ class Navbar extends StatelessWidget {
                     title: 'Image Testing',
                     route: AppRoutes.images,
                   ),
-                  const _NavbarEntry(
-                    title: 'Reporting',
-                    route: AppRoutes.reporting,
-                  ),
                   const Spacer(),
                   _NavbarDropdownEntry(
-                    label: 'Help',
+                    label: 'Reports',
                     dropdownChildren: [
                       _NavbarDropdownItem(
-                        label: 'Docs',
-                        onPressed: () => launchUrlString(
-                          'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
-                        ),
+                        label: 'Test Summary',
+                        onPressed: () => _navigateWithDelay(context, AppRoutes.testSummaryReport),
                       ),
                       _NavbarDropdownItem(
+                        label: 'Test Case Issues',
+                        onPressed: () => _navigateWithDelay(context, AppRoutes.knownIssuesReport),
+                      ),
+                      _NavbarDropdownItem(
+                        label: 'Environment Issues',
+                        onPressed: () => _navigateWithDelay(context, AppRoutes.environmentIssuesReport),
+                      ),
+                    ],
+                  ),
+                  const _NavbarDropdownEntry(
+                    label: 'Help',
+                    dropdownChildren: [
+                      NavbarHelpItem(
+                        label: 'Docs',
+                        url: 'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                      ),
+                      NavbarHelpItem(
                         label: 'Source Code',
-                        onPressed: () => launchUrlString(
-                          'https://github.com/canonical/test_observer',
-                        ),
+                        url: 'https://github.com/canonical/test_observer',
                       ),
                     ],
                   ),
@@ -133,7 +151,7 @@ class _NavbarDropdownItem extends StatelessWidget {
   const _NavbarDropdownItem({required this.label, this.onPressed});
 
   final String label;
-  final void Function()? onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

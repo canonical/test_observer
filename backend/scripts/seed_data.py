@@ -545,17 +545,17 @@ END_TEST_EXECUTION_REQUESTS = [
 TEST_CASE_ISSUE_REQUESTS = [
     TestReportedIssueRequest(
         template_id=END_TEST_EXECUTION_REQUESTS[0].test_results[2].template_id,  # type: ignore
-        url=HttpUrl("https://github.com"),
+        url=HttpUrl("https://warthogs.atlassian.net/browse/C3-1157"),
         description="known issue 1",
     ),
     TestReportedIssueRequest(
         case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[0].name,
-        url=HttpUrl("https://warthogs.atlassian.net"),
+        url=HttpUrl("https://warthogs.atlassian.net/browse/RTW-535"),
         description="known issue 2",
     ),
     TestReportedIssueRequest(
         case_name=END_TEST_EXECUTION_REQUESTS[0].test_results[1].name,
-        url=HttpUrl("https://bugs.launchpad.net"),
+        url=HttpUrl("https://github.com/canonical/checkbox/issues/1763"),
         description="known issue 3",
     ),
 ]
@@ -563,19 +563,19 @@ TEST_CASE_ISSUE_REQUESTS = [
 ENVIRONMENT_ISSUE_REQUESTS = [
     EnvironmentReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[0].environment,
-        url=HttpUrl("https://github.com"),
+        url=HttpUrl("https://github.com/canonical/checkbox/issues/1961"),
         description="known issue 1",
         is_confirmed=True,
     ),
     EnvironmentReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[1].environment,
-        url=HttpUrl("https://warthogs.atlassian.net"),
+        url=HttpUrl("https://github.com/canonical/checkbox/issues/1955"),
         description="known issue 2",
         is_confirmed=False,
     ),
     EnvironmentReportedIssueRequest(
         environment_name=START_TEST_EXECUTION_REQUESTS[2].environment,
-        url=HttpUrl("https://bugs.launchpad.net"),
+        url=HttpUrl("https://github.com/canonical/checkbox/issues/1940"),
         description="known issue 3",
         is_confirmed=True,
     ),

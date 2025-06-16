@@ -22,6 +22,12 @@ RUN apt-get update && \
 
 ENV PYTHONPATH=/home/app
 
+# Issue tracking API credentials (optional - can be set at runtime)
+ENV GITHUB_TOKEN=""
+ENV JIRA_USERNAME=""
+ENV JIRA_TOKEN=""
+ENV JIRA_BASE_URL="https://warthogs.atlassian.net"
+
 COPY uv.lock .
 COPY pyproject.toml .
 COPY . .
