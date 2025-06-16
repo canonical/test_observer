@@ -103,7 +103,7 @@ skaffold dev --no-prune=false --cache-artifacts=false
 - `backend`: FastAPI server on port 30000
 - `frontend`: Flutter web app on port 8080  
 - `db`: PostgreSQL database with persistent volume
-- Automatic migrations and seeding via `entrypoint.sh`
+- Automatic migrations and seeding via `dev_entrypoint.sh`
 
 ## Architecture Overview
 
@@ -156,7 +156,7 @@ The system centers around **Artefacts** (software packages) that go through test
 - Auto-generate migrations: `alembic revision --autogenerate -m "Description"`
 - Always review generated migrations before applying
 - Copy migrations from pod to host: `kubectl cp test-observer-api-POD:/home/app/migrations/versions ./migrations/versions`
-- **Development Docker**: Migrations run automatically on container startup via `entrypoint.sh`
+- **Development Docker**: Migrations run automatically on container startup via `dev_entrypoint.sh`
 - **Test Data Seeding**: Development Docker automatically seeds test data unless `SEED_DATA=false`
 
 ### Code Generation (Frontend)

@@ -1077,6 +1077,198 @@
         }
       }
     },
+    "/v1/reports/test-summary": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Test Summary Report",
+        "description": "Returns an optimized test summary report with aggregated data.\n\nThis endpoint performs database-level aggregation instead of transferring\nall test results to the frontend for processing.",
+        "operationId": "get_test_summary_report_v1_reports_test_summary_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "default": "0001-01-01T00:00:00",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "snap",
+                "deb"
+              ],
+              "title": "Families"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Test Summary Report V1 Reports Test Summary Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/test-summary/batch-issues-check": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Batch Check Test Case Issues",
+        "description": "Efficiently check which test cases have reported issues.\n\nReturns a mapping of test_identifier -> has_issues (bool).",
+        "operationId": "batch_check_test_case_issues_v1_reports_test_summary_batch_issues_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_batch_check_test_case_issues_v1_reports_test_summary_batch_issues_check_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Batch Check Test Case Issues V1 Reports Test Summary Batch Issues Check Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/test-summary-with-trends": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Test Summary Report With Trends",
+        "description": "Returns test summary report with trend analysis comparing current vs previous period.",
+        "operationId": "get_test_summary_report_with_trends_v1_reports_test_summary_with_trends_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "default": "0001-01-01T00:00:00",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "snap",
+                "deb"
+              ],
+              "title": "Families"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Test Summary Report With Trends V1 Reports Test Summary With Trends Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/test-cases/reported-issues": {
       "get": {
         "tags": [
@@ -1823,6 +2015,22 @@
         ],
         "title": "ArtefactVersionResponse"
       },
+      "Body_batch_check_test_case_issues_v1_reports_test_summary_batch_issues_check_post": {
+        "properties": {
+          "test_identifiers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Identifiers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_identifiers"
+        ],
+        "title": "Body_batch_check_test_case_issues_v1_reports_test_summary_batch_issues_check_post"
+      },
       "C3TestResult": {
         "properties": {
           "name": {
@@ -2037,6 +2245,48 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "issue_status": {
+            "$ref": "#/components/schemas/IssueStatus",
+            "default": "UNKNOWN"
+          },
+          "sync_status": {
+            "$ref": "#/components/schemas/IssueSyncStatus",
+            "default": "NEVER_SYNCED"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "sync_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Error"
           }
         },
         "type": "object",
@@ -2135,6 +2385,24 @@
           "current"
         ],
         "title": "ImageStage"
+      },
+      "IssueStatus": {
+        "type": "string",
+        "enum": [
+          "OPEN",
+          "CLOSED",
+          "UNKNOWN"
+        ],
+        "title": "IssueStatus"
+      },
+      "IssueSyncStatus": {
+        "type": "string",
+        "enum": [
+          "NEVER_SYNCED",
+          "SYNCED",
+          "SYNC_FAILED"
+        ],
+        "title": "IssueSyncStatus"
       },
       "PendingRerun": {
         "properties": {
@@ -2873,6 +3141,48 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "issue_status": {
+            "$ref": "#/components/schemas/IssueStatus",
+            "default": "UNKNOWN"
+          },
+          "sync_status": {
+            "$ref": "#/components/schemas/IssueSyncStatus",
+            "default": "NEVER_SYNCED"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "sync_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Error"
           }
         },
         "type": "object",
