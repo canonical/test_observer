@@ -707,6 +707,37 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
   }
 
   Widget _buildIssueArtefactSection(String title, List artefacts, int issueId, Color backgroundColor, Color borderColor) {
+    // Group artefacts by name
+    final groupedArtefacts = <String, List<Map<String, dynamic>>>{};
+    for (final artefact in artefacts) {
+      final name = artefact['name'] as String;
+      groupedArtefacts.putIfAbsent(name, () => []);
+      groupedArtefacts[name]!.add(artefact as Map<String, dynamic>);
+    }
+    
+    // Sort each group by created_at date in descending order (newest first)
+    for (final group in groupedArtefacts.values) {
+      group.sort((a, b) {
+        final aCreatedAt = a['created_at'] as String?;
+        final bCreatedAt = b['created_at'] as String?;
+        
+        if (aCreatedAt == null && bCreatedAt == null) return 0;
+        if (aCreatedAt == null) return 1;
+        if (bCreatedAt == null) return -1;
+        
+        try {
+          final aDate = DateTime.parse(aCreatedAt);
+          final bDate = DateTime.parse(bCreatedAt);
+          return bDate.compareTo(aDate); // Descending order (newest first)
+        } catch (e) {
+          return 0;
+        }
+      });
+    }
+    
+    // Sort group names alphabetically
+    final sortedGroupNames = groupedArtefacts.keys.toList()..sort();
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -725,74 +756,141 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
             ),
           ),
           const SizedBox(height: 8),
-          ...artefacts.map((artefact) {
-            final artefactId = artefact['id'] as int;
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Theme.of(context).dividerColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          ...sortedGroupNames.expand((groupName) {
+            final groupArtefacts = groupedArtefacts[groupName]!;
+            return [
+              // Group header
+              InkWell(
+                onTap: () {
+                  final artefact = groupArtefacts.first;
+                  final artefactId = artefact['id'] as int;
+                  final family = artefact['family'] as String;
+                  final path = '/${family}s/$artefactId';
+                  context.go(path);
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 6, top: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: borderColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: borderColor.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
                     children: [
                       Icon(
-                        Icons.inventory,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.primary,
+                        Icons.inventory_2,
+                        size: 16,
+                        color: borderColor,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          '${artefact['name']} ${artefact['version']}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w500,
+                          groupName,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: borderColor,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(4),
+                          color: borderColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          artefact['family'].toString().toUpperCase(),
+                          '${groupArtefacts.length}',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSecondaryContainer,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
+                            color: borderColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      if (artefact['due_date'] != null && artefact['due_date'] != 'null') ...[
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.schedule,
-                          size: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          _formatDate(DateTime.parse(artefact['due_date'])),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.open_in_new,
+                        size: 12,
+                        color: borderColor,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  _buildEnvironmentSection(artefact, issueId, artefactId),
-                ],
+                ),
               ),
-            );
+              // Artefacts in this group
+              ...groupArtefacts.map((artefact) {
+                final artefactId = artefact['id'] as int;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 6, left: 12),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.tag,
+                            size: 12,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              artefact['version'],
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              artefact['family'].toString().toUpperCase(),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (artefact['due_date'] != null && artefact['due_date'] != 'null') ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.schedule,
+                              size: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              _formatDate(DateTime.parse(artefact['due_date'])),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      _buildEnvironmentSection(artefact, issueId, artefactId),
+                    ],
+                  ),
+                );
+              }),
+            ];
           }),
         ],
       ),
