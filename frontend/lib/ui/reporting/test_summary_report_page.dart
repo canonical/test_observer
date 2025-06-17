@@ -567,16 +567,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           const SizedBox(height: Spacing.level5),
           testSummaryAsync.when(
             data: (data) => _buildPageHeader(data),
-            loading: () => Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Test Case Health',
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                _buildDateRangeSelector(),
-              ],
-            ),
+            loading: () => _buildLoadingHeader(),
             error: (error, stack) => Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -595,6 +586,115 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Text(
+                    'Test Case Health',
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
+                  const SizedBox(width: Spacing.level4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Loading test data...',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                _buildDateRangeSelector(),
+                const SizedBox(width: Spacing.level3),
+                _buildFamilyDropdown(),
+                const SizedBox(width: Spacing.level3),
+                _buildFilterTextField(
+                  hintText: 'Filter tests...',
+                  value: _testSummaryFilterText,
+                  onChanged: (value) {
+                    setState(() {
+                      _testSummaryFilterText = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingContent() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          Spacing.level5, 
+          Spacing.level5 * 3, // More vertical spacing from top
+          Spacing.level5, 
+          Spacing.level5
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 80,
+              height: 80,
+              child: CircularProgressIndicator(
+                strokeWidth: 6,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: Spacing.level5),
+            Text(
+              'Loading Test Health Data',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: Spacing.level3),
+            Text(
+              'Analyzing test results and calculating statistics...',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -707,7 +807,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         const SizedBox(height: Spacing.level4),
         testSummaryAsync.when(
           data: (data) => _buildTestSummaryContent(data),
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => _buildLoadingContent(),
           error: (error, stack) => Center(
             child: Text('Error: $error'),
           ),
@@ -1732,39 +1832,22 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           ],
         ),
       ),
-      onSelected: (_) {}, // Empty handler - we handle selection in items
+      onSelected: (value) {
+        // Handle selection here to avoid context issues
+        if (value != null) {
+          _toggleFamily(value);
+        }
+      },
       itemBuilder: (context) {
         return families.map((family) {
           final isSelected = _selectedFamilies.contains(family);
           return PopupMenuItem<String>(
             value: family,
-            onTap: () {
-              setState(() {
-                if (isSelected) {
-                  _selectedFamilies.remove(family);
-                } else {
-                  _selectedFamilies.add(family);
-                }
-              });
-              _updateUrlWithFilter();
-              // Don't close the menu
-              return;
-            },
             child: Row(
               children: [
                 Checkbox(
                   value: isSelected,
-                  onChanged: (_) {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedFamilies.remove(family);
-                      } else {
-                        _selectedFamilies.add(family);
-                      }
-                    });
-                    _updateUrlWithFilter();
-                    Navigator.of(context).pop();
-                  },
+                  onChanged: null, // Disable to avoid double handling
                 ),
                 Text(family),
               ],
@@ -1773,6 +1856,19 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         }).toList();
       },
     );
+  }
+
+  void _toggleFamily(String family) {
+    if (mounted) {
+      setState(() {
+        if (_selectedFamilies.contains(family)) {
+          _selectedFamilies.remove(family);
+        } else {
+          _selectedFamilies.add(family);
+        }
+      });
+      _updateUrlWithFilter();
+    }
   }
 
   void _loadBatchIssues(WidgetRef ref) async {

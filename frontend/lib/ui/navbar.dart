@@ -122,18 +122,6 @@ class _NavbarDropdownEntry extends StatelessWidget {
 
   final String label;
   final List<Widget> dropdownChildren;
-  
-  static final _menuStyle = MenuStyle(
-    shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-    ),
-    backgroundColor: const WidgetStatePropertyAll(Color(0xFF2B2B2B)),
-    elevation: const WidgetStatePropertyAll(8),
-    shadowColor: WidgetStatePropertyAll(Colors.black.withValues(alpha: 0.3)),
-    padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 8)),
-  );
 
   static const _textStyle = TextStyle(
     color: Colors.white,
@@ -143,15 +131,49 @@ class _NavbarDropdownEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicWidth(
-      child: SizedBox(
-        height: _navbarHeight,
-        child: SubmenuButton(
-          menuStyle: _menuStyle,
-          menuChildren: dropdownChildren,
-          child: Text(
-            label,
-            style: _textStyle,
+    return SizedBox(
+      height: _navbarHeight,
+      child: PopupMenuButton<String>(
+        offset: const Offset(0, _navbarHeight),
+        color: const Color(0xFF2B2B2B),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        itemBuilder: (context) => dropdownChildren
+            .whereType<_NavbarDropdownItem>()
+            .map((item) => PopupMenuItem<String>(
+                  value: item.label,
+                  onTap: item.onPressed,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.level4,
+                    vertical: Spacing.level4,
+                  ),
+                  child: SizedBox(
+                    width: 200,
+                    child: Text(
+                      item.label,
+                      style: _textStyle,
+                    ),
+                  ),
+                ))
+            .toList(),
+        child: Container(
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: _textStyle,
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.arrow_drop_down,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
           ),
         ),
       ),
