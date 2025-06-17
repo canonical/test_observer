@@ -1153,6 +1153,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
                                 ),
                               ),
                             ),
+                            _buildStatusChip(issue['issue_status']),
                           ],
                         ),
                         if (issue['url'] != null && issue['url'].toString().isNotEmpty) ...[
@@ -1233,6 +1234,44 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String? status) {
+    final statusValue = status ?? 'UNKNOWN';
+    Color chipColor;
+    Color textColor;
+    
+    switch (statusValue.toUpperCase()) {
+      case 'OPEN':
+        chipColor = Theme.of(context).colorScheme.errorContainer;
+        textColor = Theme.of(context).colorScheme.onErrorContainer;
+        break;
+      case 'CLOSED':
+        chipColor = Theme.of(context).colorScheme.primaryContainer;
+        textColor = Theme.of(context).colorScheme.onPrimaryContainer;
+        break;
+      case 'UNKNOWN':
+      default:
+        chipColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+        textColor = Theme.of(context).colorScheme.onSurface;
+        break;
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: chipColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        statusValue,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

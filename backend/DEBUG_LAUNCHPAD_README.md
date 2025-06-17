@@ -21,6 +21,12 @@ python debug_launchpad.py
 
 # Test a specific bug number
 python debug_launchpad.py 2091878
+
+# Test with Launchpad credentials for private bugs
+export LAUNCHPAD_CONSUMER_NAME="Your Consumer Name"
+export LAUNCHPAD_OAUTH_TOKEN="your_oauth_token"
+export LAUNCHPAD_OAUTH_TOKEN_SECRET="your_oauth_token_secret"
+python debug_launchpad.py 2069797
 ```
 
 ### Prerequisites
@@ -32,6 +38,28 @@ cd backend
 poetry shell  # or your preferred environment activation
 python debug_launchpad.py
 ```
+
+### Launchpad Credentials (Optional)
+
+For accessing private bugs, set the following environment variables:
+
+```bash
+export LAUNCHPAD_CONSUMER_NAME="Your Consumer Name"
+export LAUNCHPAD_OAUTH_TOKEN="your_oauth_token"
+export LAUNCHPAD_OAUTH_TOKEN_SECRET="your_oauth_token_secret"
+```
+
+The debug tool will automatically detect and use these credentials for authenticated access.
+
+#### Getting Launchpad OAuth Credentials
+
+1. Go to [Launchpad](https://launchpad.net)
+2. Log in to your account  
+3. Navigate to your profile settings
+4. Create an OAuth application/consumer
+5. Note down the consumer name, token, and token secret
+
+**Note**: Without credentials, the tool uses anonymous access which cannot access private bugs.
 
 ## What It Tests
 
@@ -80,8 +108,12 @@ Bug Number: 2091878
 2025-06-16 18:30:00 - INFO - ✅ URL parsed successfully:
 2025-06-16 18:30:00 - INFO -    Platform: launchpad
 2025-06-16 18:30:00 - INFO -    External ID: 2091878
+2025-06-16 18:30:00 - INFO - 🔐 Using authenticated Launchpad access
+2025-06-16 18:30:00 - INFO -    Consumer: System-wide: Ubuntu Core (athena)
 2025-06-16 18:30:00 - INFO - Testing direct Launchpad API access for bug: 2091878
 2025-06-16 18:30:01 - INFO - ✅ LaunchpadBugAPI initialized successfully
+2025-06-16 18:30:01 - INFO - ✅ Bug fetched successfully:
+2025-06-16 18:30:01 - INFO -    Private: True
 ...
 ```
 
@@ -122,7 +154,13 @@ Raw Launchpad connection failed: HTTPError: HTTP Error 503: Service Temporarily 
 ```
 Bug not found or not accessible: NotFound: HTTP Error 404: Not Found
 ```
-**Solution**: Bug may be private, deleted, or the URL may be incorrect. This is normal for some bugs.
+**Solution**: Bug may be private, deleted, or the URL may be incorrect. For private bugs, provide Launchpad OAuth credentials.
+
+### Private Bug Access
+```
+Bug fetch returned None (bug may be private or deleted)
+```
+**Solution**: The bug is likely private. Set `LAUNCHPAD_CONSUMER_NAME`, `LAUNCHPAD_OAUTH_TOKEN`, and `LAUNCHPAD_OAUTH_TOKEN_SECRET` environment variables for authenticated access.
 
 ## Integration with Main Application
 
