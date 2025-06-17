@@ -74,8 +74,12 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final testSummaryAsync = ref.watch(testSummaryProvider(_selectedDateRange));
-    final knownIssuesReportAsync = ref.watch(knownIssuesReportProvider);
+    final testSummaryParams = TestSummaryParams(
+      dateRange: _selectedDateRange,
+      families: ['snap', 'deb', 'charm', 'image'], // All families by default
+    );
+    final testSummaryAsync = ref.watch(testSummaryProvider(testSummaryParams));
+    final knownIssuesReportAsync = ref.watch(knownIssuesReportProvider(_selectedDateRange));
     final environmentIssuesReportAsync = ref.watch(environmentIssuesReportProvider);
 
     return Padding(
@@ -232,7 +236,7 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Success Rate by Test Case',
+                  'Test Case Health',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 _buildFilterTextField(

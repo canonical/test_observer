@@ -17,23 +17,48 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api.dart';
 
-final testSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, DateRange?>((ref, dateRange) async {
+class TestSummaryParams {
+  final DateRange? dateRange;
+  final List<String> families;
+  
+  const TestSummaryParams({
+    this.dateRange,
+    required this.families,
+  });
+  
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TestSummaryParams &&
+        other.dateRange == dateRange &&
+        other.families.length == families.length &&
+        other.families.every((f) => families.contains(f));
+  }
+  
+  @override
+  int get hashCode => Object.hash(dateRange, Object.hashAll(families));
+}
+
+final testSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, TestSummaryParams>((ref, params) async {
   final api = ref.watch(apiProvider);
   
   // Use the optimized test summary endpoint instead of processing CSV
   final summaryData = await api.getTestSummaryReport(
-    startDate: dateRange?.startDate,
-    endDate: dateRange?.endDate,
-    families: ['snap', 'deb'], // Default families, can be made configurable
+    startDate: params.dateRange?.startDate,
+    endDate: params.dateRange?.endDate,
+    families: params.families,
   );
   
   return summaryData;
 });
 
 
-final knownIssuesReportProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+final knownIssuesReportProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, DateRange?>((ref, dateRange) async {
   final api = ref.watch(apiProvider);
-  final issues = await api.getKnownIssuesReport();
+  final issues = await api.getKnownIssuesReport(
+    startDate: dateRange?.startDate,
+    endDate: dateRange?.endDate,
+  );
   return {
     'issues': issues,
     'total_count': issues.length,
@@ -77,6 +102,16 @@ final batchTestCaseIssuesProvider = FutureProvider.autoDispose.family<Map<String
   
   final api = ref.watch(apiProvider);
   return api.batchCheckTestCaseIssues(testIdentifiers);
+});
+
+final affectedArtefactsProvider = FutureProvider.autoDispose.family<dynamic, int>((ref, issueId) async {
+  final api = ref.watch(apiProvider);
+  return api.getAffectedArtefacts(issueId);
+});
+
+final testCaseAffectedArtefactsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, testIdentifier) async {
+  final api = ref.watch(apiProvider);
+  return api.getTestCaseAffectedArtefacts(testIdentifier);
 });
 
 class DateRange {

@@ -78,7 +78,7 @@ class Navbar extends StatelessWidget {
                     label: 'Reports',
                     dropdownChildren: [
                       _NavbarDropdownItem(
-                        label: 'Success Rate by Test Case',
+                        label: 'Test Health',
                         onPressed: () => _navigateWithDelay(context, AppRoutes.testSummaryReport),
                       ),
                       _NavbarDropdownItem(
@@ -122,6 +122,24 @@ class _NavbarDropdownEntry extends StatelessWidget {
 
   final String label;
   final List<Widget> dropdownChildren;
+  
+  static final _menuStyle = MenuStyle(
+    shape: WidgetStatePropertyAll(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    ),
+    backgroundColor: const WidgetStatePropertyAll(Color(0xFF2B2B2B)),
+    elevation: const WidgetStatePropertyAll(8),
+    shadowColor: WidgetStatePropertyAll(Colors.black.withValues(alpha: 0.3)),
+    padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 8)),
+  );
+
+  static const _textStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 22,
+    fontWeight: FontWeight.w400,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -129,17 +147,11 @@ class _NavbarDropdownEntry extends StatelessWidget {
       child: SizedBox(
         height: _navbarHeight,
         child: SubmenuButton(
-          menuStyle: const MenuStyle(
-            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
-            backgroundColor: WidgetStatePropertyAll(YaruColors.coolGrey),
-          ),
+          menuStyle: _menuStyle,
           menuChildren: dropdownChildren,
           child: Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.apply(color: Colors.white),
+            style: _textStyle,
           ),
         ),
       ),
@@ -153,19 +165,30 @@ class _NavbarDropdownItem extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
+  static final _buttonStyle = MenuItemButton.styleFrom(
+    padding: const EdgeInsets.symmetric(
+      horizontal: Spacing.level4,
+      vertical: Spacing.level4,
+    ),
+    minimumSize: const Size(200, 0),
+    maximumSize: Size.infinite,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
+  static const _textStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 22,
+    fontWeight: FontWeight.w400,
+  );
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _navbarHeight,
-      child: MenuItemButton(
-        onPressed: onPressed,
-        child: Text(
-          label,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
-        ),
+    return MenuItemButton(
+      style: _buttonStyle,
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: _textStyle,
       ),
     );
   }
@@ -176,6 +199,12 @@ class _NavbarEntry extends StatelessWidget {
 
   final String route;
   final String title;
+
+  static const _textStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 22,
+    fontWeight: FontWeight.w400,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -188,10 +217,7 @@ class _NavbarEntry extends StatelessWidget {
         padding: const EdgeInsets.all(Spacing.level4),
         child: Text(
           title,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
+          style: _textStyle,
         ),
       ),
     );

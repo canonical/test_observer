@@ -1196,6 +1196,51 @@
         }
       }
     },
+    "/v1/reports/test-case/affected-artefacts": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Test Case Affected Artefacts",
+        "description": "Get artefacts affected by a specific test case, separated by success vs failure status.\n\nReturns artefacts that have test results for the given test case,\ncategorized by whether they have any failures or only successes.",
+        "operationId": "get_test_case_affected_artefacts_v1_reports_test_case_affected_artefacts_get",
+        "parameters": [
+          {
+            "name": "test_identifier",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Test Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Test Case Affected Artefacts V1 Reports Test Case Affected Artefacts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/reports/test-summary-with-trends": {
       "get": {
         "tags": [
@@ -1308,6 +1353,40 @@
               ],
               "title": "Case Name"
             }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
           }
         ],
         "responses": {
@@ -1315,13 +1394,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestReportedIssueResponse"
-                  },
-                  "title": "Response Get Reported Issues V1 Test Cases Reported Issues Get"
-                }
+                "schema": {}
               }
             }
           },
@@ -1434,6 +1507,47 @@
         ],
         "summary": "Delete Reported Issue",
         "operationId": "delete_reported_issue_v1_test_cases_reported_issues__issue_id__delete",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-cases/reported-issues/{issue_id}/affected-artefacts": {
+      "get": {
+        "tags": [
+          "test-cases"
+        ],
+        "summary": "Get Affected Artefacts",
+        "description": "Get artefacts affected by a specific test case issue.\n\nReturns artefacts that have test results matching the test cases \nassociated with the given issue.",
+        "operationId": "get_affected_artefacts_v1_test_cases_reported_issues__issue_id__affected_artefacts_get",
         "parameters": [
           {
             "name": "issue_id",

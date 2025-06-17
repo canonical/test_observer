@@ -50,11 +50,20 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   // Filter to hide test cases with 0 fails
   bool _hideZeroFails = false;
   
+  // Filter to hide closed issues
+  bool _hideClosedIssues = true;
+  
+  // Selected family types for filtering
+  Set<String> _selectedFamilies = {'snap', 'deb'};
+  
   // Track expanded test cases
   final Set<String> _expandedTestCases = <String>{};
   
   // Track if all issues are expanded
   bool _allIssuesExpanded = false;
+  
+  // Track expanded environment sections per artefact (test_identifier -> artefact_id -> {'success': bool, 'failure': bool})
+  final Map<String, Map<int, Map<String, bool>>> _expandedTestCaseEnvironmentSections = <String, Map<int, Map<String, bool>>>{};
   
   // Cache test identifiers to avoid repeated API calls
   List<String>? _cachedTestIdentifiers;
@@ -81,6 +90,8 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     final sortColumnParam = uri.queryParameters['sort_column'];
     final sortOrderParam = uri.queryParameters['sort_order'];
     final hideZeroFailsParam = uri.queryParameters['hide_zero_fails'];
+    final hideClosedIssuesParam = uri.queryParameters['hide_closed_issues'];
+    final familiesParam = uri.queryParametersAll['families'];
     
     if (dateRangeParam != null) {
       final dateRange = _parseDateRangeFromUrl(dateRangeParam);
@@ -105,10 +116,24 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       }
     }
     
-    // Initialize filter parameter from URL
+    // Initialize filter parameters from URL
     if (hideZeroFailsParam != null) {
       setState(() {
         _hideZeroFails = hideZeroFailsParam.toLowerCase() == 'true';
+      });
+    }
+    
+    // Set hideClosedIssues based on URL parameter, defaulting to true
+    setState(() {
+      _hideClosedIssues = hideClosedIssuesParam != null 
+          ? hideClosedIssuesParam.toLowerCase() == 'true'
+          : true; // Default to true (hide closed issues)
+    });
+    
+    // Initialize families from URL parameter
+    if (familiesParam != null && familiesParam.isNotEmpty) {
+      setState(() {
+        _selectedFamilies = familiesParam.toSet();
       });
     }
   }
@@ -195,7 +220,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
 
   void _updateUrlWithFilter() {
     final currentUri = GoRouterState.of(context).uri;
-    final queryParams = Map<String, String>.from(currentUri.queryParameters);
+    final queryParams = Map<String, dynamic>.from(currentUri.queryParameters);
     
     if (_hideZeroFails) {
       queryParams['hide_zero_fails'] = 'true';
@@ -203,7 +228,30 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       queryParams.remove('hide_zero_fails');
     }
     
-    final newUri = currentUri.replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+    if (_hideClosedIssues) {
+      queryParams['hide_closed_issues'] = 'true';
+    } else {
+      queryParams.remove('hide_closed_issues');
+    }
+    
+    // Remove old families params and add new ones
+    queryParams.removeWhere((key, value) => key == 'families');
+    
+    // Convert to List<List<String>> for proper URL encoding
+    final queryList = <String>[];
+    queryParams.forEach((key, value) {
+      if (value != null) {
+        queryList.add('$key=$value');
+      }
+    });
+    
+    // Add families as separate parameters
+    for (final family in _selectedFamilies) {
+      queryList.add('families=$family');
+    }
+    
+    final newQuery = queryList.isEmpty ? null : queryList.join('&');
+    final newUri = currentUri.replace(query: newQuery);
     context.go(newUri.toString());
   }
 
@@ -479,27 +527,22 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         return items;
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Theme.of(context).dividerColor),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.date_range,
-              color: Theme.of(context).colorScheme.onPrimary,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
+            const Icon(Icons.calendar_today, size: 16),
+            const SizedBox(width: 4),
             Text(
               _getDateRangeDisplayText(),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 16),
           ],
         ),
       ),
@@ -508,7 +551,11 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    final testSummaryAsync = ref.watch(testSummaryProvider(_selectedDateRange));
+    final testSummaryParams = TestSummaryParams(
+      dateRange: _selectedDateRange,
+      families: _selectedFamilies.toList(),
+    );
+    final testSummaryAsync = ref.watch(testSummaryProvider(testSummaryParams));
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -524,7 +571,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Success Rate by Test Case',
+                  'Test Case Health',
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 _buildDateRangeSelector(),
@@ -534,7 +581,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Success Rate by Test Case',
+                  'Test Case Health',
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 _buildDateRangeSelector(),
@@ -600,7 +647,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
                         Text(
                           'Total fail rate: ${failureRate.toStringAsFixed(1)}%',
                           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                            color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -612,6 +659,8 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             Row(
               children: [
                 _buildDateRangeSelector(),
+                const SizedBox(width: Spacing.level3),
+                _buildFamilyDropdown(),
                 const SizedBox(width: Spacing.level3),
                 _buildFilterTextField(
                   hintText: 'Filter tests...',
@@ -789,16 +838,37 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Checkbox(
-                  value: _hideZeroFails,
-                  onChanged: (value) {
-                    setState(() {
-                      _hideZeroFails = value ?? false;
-                    });
-                    _updateUrlWithFilter();
-                  },
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: _hideZeroFails,
+                      onChanged: (value) {
+                        setState(() {
+                          _hideZeroFails = value ?? false;
+                        });
+                        _updateUrlWithFilter();
+                      },
+                    ),
+                    const Text('Hide always successful tests'),
+                  ],
                 ),
-                const Text('Hide always successful tests'),
+                const SizedBox(width: 24),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: _hideClosedIssues,
+                      onChanged: (value) {
+                        setState(() {
+                          _hideClosedIssues = value ?? false;
+                        });
+                        _updateUrlWithFilter();
+                      },
+                    ),
+                    const Text('Hide closed reported issues'),
+                  ],
+                ),
               ],
             ),
           ],
@@ -1121,11 +1191,17 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           const SizedBox(height: 8),
           issuesAsync.when(
             data: (issues) {
-              if (issues.isEmpty) {
+              // Apply closed issues filter
+              var filteredIssues = issues;
+              if (_hideClosedIssues) {
+                filteredIssues = issues.where((issue) => issue['issue_status'] != 'CLOSED').toList();
+              }
+              
+              if (filteredIssues.isEmpty) {
                 return const Text('No reported issues found for this test case.');
               }
               return Column(
-                children: issues.map<Widget>((issue) {
+                children: filteredIssues.map<Widget>((issue) {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
@@ -1191,9 +1267,347 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
+          const SizedBox(height: 16),
+          Text(
+            'Affected Artefacts',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildTestCaseAffectedArtefacts(testIdentifier),
         ],
       ),
     );
+  }
+
+  Widget _buildTestCaseAffectedArtefacts(String testIdentifier) {
+    final artefactsAsync = ref.watch(testCaseAffectedArtefactsProvider(testIdentifier));
+
+    return artefactsAsync.when(
+      data: (data) {
+        final successOnlyArtefacts = data['success_only_artefacts'] as List? ?? [];
+        final artefactsWithFailures = data['artefacts_with_failures'] as List? ?? [];
+        final totalArtefacts = data['total_artefacts'] as int? ?? 0;
+
+        if (totalArtefacts == 0) {
+          return const Text('No affected artefacts found for this test case.');
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (artefactsWithFailures.isNotEmpty) ...[
+              _buildArtefactSection(
+                'Artefacts with Failures',
+                artefactsWithFailures,
+                testIdentifier,
+                Colors.red.shade100,
+                Colors.red.shade700,
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (successOnlyArtefacts.isNotEmpty) ...[
+              _buildArtefactSection(
+                'Success-Only Artefacts',
+                successOnlyArtefacts,
+                testIdentifier,
+                Colors.green.shade100,
+                Colors.green.shade700,
+              ),
+            ],
+          ],
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, stack) => Text(
+        'Error loading affected artefacts: $error',
+        style: TextStyle(color: Theme.of(context).colorScheme.error),
+      ),
+    );
+  }
+
+  Widget _buildArtefactSection(String title, List artefacts, String testIdentifier, Color backgroundColor, Color borderColor) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$title (${artefacts.length})',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: borderColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...artefacts.map((artefact) {
+            final artefactId = artefact['id'] as int;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Theme.of(context).dividerColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.inventory,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '${artefact['name']} ${artefact['version']}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          artefact['family'].toString().toUpperCase(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (artefact['due_date'] != null && artefact['due_date'] != 'null') ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.schedule,
+                          size: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          _formatDate(DateTime.parse(artefact['due_date'])),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  _buildTestCaseEnvironmentSection(artefact, testIdentifier),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTestCaseEnvironmentSection(Map<String, dynamic> artefact, String testIdentifier) {
+    final successEnvironments = artefact['success_environments'] as List? ?? [];
+    final failureEnvironments = artefact['failure_environments'] as List? ?? [];
+    final totalEnvCount = artefact['environment_count'] as int? ?? 0;
+    final artefactId = artefact['id'] as int;
+    final environments = [...successEnvironments, ...failureEnvironments];
+    
+    if (totalEnvCount == 0) {
+      return Text(
+        'Environments: 0 environments',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    final isEnvExpanded = _expandedTestCaseEnvironmentSections[testIdentifier]?[artefactId]?['environments'] ?? (environments.length < 10);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: environments.isNotEmpty ? () {
+            setState(() {
+              _expandedTestCaseEnvironmentSections.putIfAbsent(testIdentifier, () => <int, Map<String, bool>>{});
+              _expandedTestCaseEnvironmentSections[testIdentifier]!.putIfAbsent(artefactId, () => <String, bool>{});
+              _expandedTestCaseEnvironmentSections[testIdentifier]![artefactId]!['environments'] = !isEnvExpanded;
+            });
+          } : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Environments: $totalEnvCount environment${totalEnvCount == 1 ? '' : 's'}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: environments.isNotEmpty 
+                    ? Theme.of(context).colorScheme.primary 
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                  decoration: environments.isNotEmpty ? TextDecoration.underline : null,
+                ),
+              ),
+              if (environments.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  isEnvExpanded ? Icons.expand_less : Icons.expand_more,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (isEnvExpanded && environments.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          if (failureEnvironments.isNotEmpty) ...[
+            _buildTestCaseEnvironmentSubSection(
+              'With Failures',
+              failureEnvironments,
+              testIdentifier,
+              artefactId,
+              'failure',
+              Colors.red.shade100,
+              Colors.red.shade700,
+            ),
+            const SizedBox(height: 4),
+          ],
+          if (successEnvironments.isNotEmpty) ...[
+            _buildTestCaseEnvironmentSubSection(
+              'Success Only',
+              successEnvironments,
+              testIdentifier,
+              artefactId,
+              'success',
+              Colors.green.shade100,
+              Colors.green.shade700,
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTestCaseEnvironmentSubSection(
+    String title,
+    List environments,
+    String testIdentifier,
+    int artefactId,
+    String sectionType,
+    Color backgroundColor,
+    Color textColor,
+  ) {
+    final isExpanded = _expandedTestCaseEnvironmentSections[testIdentifier]?[artefactId]?[sectionType] ?? false;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              _expandedTestCaseEnvironmentSections.putIfAbsent(testIdentifier, () => <int, Map<String, bool>>{});
+              _expandedTestCaseEnvironmentSections[testIdentifier]!.putIfAbsent(artefactId, () => <String, bool>{});
+              _expandedTestCaseEnvironmentSections[testIdentifier]![artefactId]![sectionType] = !isExpanded;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: textColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$title (${environments.length})',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: textColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  size: 12,
+                  color: textColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded) ...[
+          const SizedBox(height: 2),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: backgroundColor.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Wrap(
+              spacing: 2,
+              runSpacing: 2,
+              children: environments.map<Widget>((env) {
+                return InkWell(
+                  onTap: () => _launchTestflingerUrl(env.toString()),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(2),
+                      border: Border.all(color: textColor.withValues(alpha: 0.2)),
+                    ),
+                    child: Text(
+                      env.toString(),
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'N/A';
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _launchTestflingerUrl(String environmentName) async {
+    final url = 'https://testflinger.canonical.com/queues/$environmentName';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   Widget _buildSortableHeader(String title, int columnIndex) {
@@ -1292,6 +1706,75 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     return false;
   }
 
+  Widget _buildFamilyDropdown() {
+    const families = ['snap', 'deb', 'charm', 'image'];
+    final selectedText = _selectedFamilies.isEmpty 
+        ? "None" 
+        : (_selectedFamilies.toList()..sort()).join(", ");
+    
+    return PopupMenuButton<String>(
+      tooltip: 'Select artifact families to include',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Families: $selectedText',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.arrow_drop_down, size: 20),
+          ],
+        ),
+      ),
+      onSelected: (_) {}, // Empty handler - we handle selection in items
+      itemBuilder: (context) {
+        return families.map((family) {
+          final isSelected = _selectedFamilies.contains(family);
+          return PopupMenuItem<String>(
+            value: family,
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  _selectedFamilies.remove(family);
+                } else {
+                  _selectedFamilies.add(family);
+                }
+              });
+              _updateUrlWithFilter();
+              // Don't close the menu
+              return;
+            },
+            child: Row(
+              children: [
+                Checkbox(
+                  value: isSelected,
+                  onChanged: (_) {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedFamilies.remove(family);
+                      } else {
+                        _selectedFamilies.add(family);
+                      }
+                    });
+                    _updateUrlWithFilter();
+                    Navigator.of(context).pop();
+                  },
+                ),
+                Text(family),
+              ],
+            ),
+          );
+        }).toList();
+      },
+    );
+  }
+
   void _loadBatchIssues(WidgetRef ref) async {
     if (_cachedTestIdentifiers == null || _cachedTestIdentifiers!.isEmpty) return;
     
@@ -1309,11 +1792,6 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         });
       }
     }
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'N/A';
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   String _getPeriodDescription() {

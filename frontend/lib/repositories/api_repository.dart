@@ -215,6 +215,8 @@ class ApiRepository {
   Future<List<dynamic>> getKnownIssuesReport({
     String? templateId,
     String? caseName,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final queryParameters = <String, String>{};
     if (templateId != null) {
@@ -222,6 +224,12 @@ class ApiRepository {
     }
     if (caseName != null) {
       queryParameters['case_name'] = caseName;
+    }
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
     }
     
     final response = await dio.get(
@@ -255,7 +263,7 @@ class ApiRepository {
     DateTime? endDate,
     List<String>? families,
   }) async {
-    final queryParameters = <String, String>{};
+    final queryParameters = <String, dynamic>{};
     if (startDate != null) {
       queryParameters['start_date'] = startDate.toIso8601String();
     }
@@ -263,9 +271,8 @@ class ApiRepository {
       queryParameters['end_date'] = endDate.toIso8601String();
     }
     if (families != null && families.isNotEmpty) {
-      for (final family in families) {
-        queryParameters.addAll({'families': family});
-      }
+      // Pass families as a list - dio will handle it as multiple query params
+      queryParameters['families'] = families;
     }
     
     final response = await dio.get(
@@ -283,5 +290,17 @@ class ApiRepository {
       data: {'test_identifiers': testIdentifiers},
     );
     return Map<String, bool>.from(response.data);
+  }
+
+  Future<dynamic> getAffectedArtefacts(int issueId) async {
+    final response = await dio.get('/v1/test-cases/reported-issues/$issueId/affected-artefacts');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getTestCaseAffectedArtefacts(String testIdentifier) async {
+    final response = await dio.get('/v1/reports/test-case/affected-artefacts', queryParameters: {
+      'test_identifier': testIdentifier,
+    });
+    return response.data;
   }
 }

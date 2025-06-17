@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    Environment,
     TestCase,
     TestCaseIssue,
     TestExecution,
@@ -171,6 +172,109 @@ def batch_check_test_case_issues(
         response[identifier] = identifier in identifiers_with_issues
     
     return response
+
+
+@router.get("/test-case/affected-artefacts")
+def get_test_case_affected_artefacts(
+    test_identifier: str = Query(...),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """
+    Get artefacts affected by a specific test case, separated by success vs failure status.
+    
+    Returns artefacts that have test results for the given test case,
+    categorized by whether they have any failures or only successes.
+    """
+    # Query to find artefacts that have test results for this test case
+    artefacts_query = (
+        select(
+            Artefact.id.label('artefact_id'),
+            Artefact.name.label('artefact_name'),
+            Artefact.version.label('artefact_version'),
+            Artefact.family.label('artefact_family'),
+            Artefact.due_date.label('artefact_due_date'),
+            Environment.name.label('environment_name'),
+            TestResult.status.label('test_result_status'),
+            TestExecution.id.label('test_execution_id')
+        )
+        .select_from(TestCase)
+        .join(TestResult, TestResult.test_case_id == TestCase.id)
+        .join(TestExecution, TestResult.test_execution_id == TestExecution.id)
+        .join(ArtefactBuild, TestExecution.artefact_build_id == ArtefactBuild.id)
+        .join(Artefact, ArtefactBuild.artefact_id == Artefact.id)
+        .join(Environment, TestExecution.environment_id == Environment.id)
+        .where(or_(
+            and_(TestCase.template_id == test_identifier, TestCase.template_id != ''),
+            and_(TestCase.name == test_identifier, TestCase.name != '')
+        ))
+        .distinct()
+    )
+    
+    results = db.execute(artefacts_query).fetchall()
+    
+    # Group results by artefact and track success/failure status
+    artefacts_dict = {}
+    for row in results:
+        artefact_key = f"{row.artefact_id}"
+        if artefact_key not in artefacts_dict:
+            artefacts_dict[artefact_key] = {
+                'id': row.artefact_id,
+                'name': row.artefact_name,
+                'version': row.artefact_version,
+                'family': row.artefact_family,
+                'due_date': row.artefact_due_date.isoformat() if row.artefact_due_date else None,
+                'environments': set(),
+                'has_failures': False,
+                'test_results': []
+            }
+        
+        artefacts_dict[artefact_key]['environments'].add(row.environment_name)
+        artefacts_dict[artefact_key]['test_results'].append({
+            'test_execution_id': row.test_execution_id,
+            'environment_name': row.environment_name,
+            'test_result_status': row.test_result_status
+        })
+        
+        # Track environments by success/failure status
+        if 'success_environments' not in artefacts_dict[artefact_key]:
+            artefacts_dict[artefact_key]['success_environments'] = set()
+            artefacts_dict[artefact_key]['failure_environments'] = set()
+        
+        # Track environment-specific results
+        if row.test_result_status == 'FAILED':
+            artefacts_dict[artefact_key]['has_failures'] = True
+            artefacts_dict[artefact_key]['failure_environments'].add(row.environment_name)
+        elif row.test_result_status == 'PASSED':
+            artefacts_dict[artefact_key]['success_environments'].add(row.environment_name)
+    
+    # Separate artefacts into success-only and those with failures
+    success_only_artefacts = []
+    artefacts_with_failures = []
+    
+    for artefact_data in artefacts_dict.values():
+        # Convert environments sets to sorted lists and add counts
+        environments = sorted(list(artefact_data['environments']))
+        success_environments = sorted(list(artefact_data.get('success_environments', set())))
+        failure_environments = sorted(list(artefact_data.get('failure_environments', set())))
+        
+        artefact_data['environment_count'] = len(environments)
+        artefact_data['environments'] = environments
+        artefact_data['success_environments'] = success_environments
+        artefact_data['failure_environments'] = failure_environments
+        artefact_data['success_environment_count'] = len(success_environments)
+        artefact_data['failure_environment_count'] = len(failure_environments)
+        
+        if artefact_data['has_failures']:
+            artefacts_with_failures.append(artefact_data)
+        else:
+            success_only_artefacts.append(artefact_data)
+    
+    return {
+        'test_identifier': test_identifier,
+        'success_only_artefacts': success_only_artefacts,
+        'artefacts_with_failures': artefacts_with_failures,
+        'total_artefacts': len(artefacts_dict)
+    }
 
 
 @router.get("/test-summary-with-trends")
