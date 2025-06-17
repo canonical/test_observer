@@ -53,6 +53,9 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   // Track expanded test cases
   final Set<String> _expandedTestCases = <String>{};
   
+  // Track if all issues are expanded
+  bool _allIssuesExpanded = false;
+  
   // Cache test identifiers to avoid repeated API calls
   List<String>? _cachedTestIdentifiers;
   Map<String, bool>? _cachedBatchIssues;
@@ -574,7 +577,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
               child: Row(
                 children: [
                   Text(
-                    'Success Rate by Test Case',
+                    'Test Case Fail Rate',
                     style: Theme.of(context).textTheme.headlineLarge,
                   ),
                   const SizedBox(width: Spacing.level4),
@@ -737,9 +740,51 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Test Results (Showing ${summary.length} entries)',
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                Text(
+                  'Test Results (Showing ${summary.length} entries)',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                // Add expand/collapse all control only if there are test cases with issues
+                if (_hasTestCasesWithIssues(summary)) ...[
+                  const SizedBox(width: 12),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _allIssuesExpanded = !_allIssuesExpanded;
+                        if (_allIssuesExpanded) {
+                          // Expand all test cases that have issues
+                          for (final item in summary) {
+                            final testIdentifier = item['test_identifier'] ?? '';
+                            final batchIssues = _cachedBatchIssues ?? <String, bool>{};
+                            final hasIssues = batchIssues[testIdentifier] ?? false;
+                            if (hasIssues) {
+                              _expandedTestCases.add(testIdentifier);
+                            }
+                          }
+                        } else {
+                          // Collapse all test cases
+                          _expandedTestCases.clear();
+                        }
+                      });
+                    },
+                    icon: Icon(
+                      _allIssuesExpanded ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _allIssuesExpanded ? 'Collapse All' : 'Expand All',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ],
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -847,25 +892,29 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
                 flex: 3,
                 child: _buildSortableHeader('Test', 0),
               ),
-              Expanded(
+              SizedBox(
+                width: 80,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: _buildSortableHeader('Total', 1),
                 ),
               ),
-              Expanded(
+              SizedBox(
+                width: 80,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: _buildSortableHeader('Passed', 2),
                 ),
               ),
-              Expanded(
+              SizedBox(
+                width: 80,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: _buildSortableHeader('Failed', 3),
                 ),
               ),
-              Expanded(
+              SizedBox(
+                width: 80,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: _buildSortableHeader('Fail Rate', 4),
@@ -980,25 +1029,29 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
               ],
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Text(
               numberFormat.format(total),
               textAlign: TextAlign.right,
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Text(
               numberFormat.format(item['passed'] ?? 0),
               textAlign: TextAlign.right,
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Text(
               numberFormat.format(failed),
               textAlign: TextAlign.right,
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -1187,6 +1240,17 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   bool _setEquals(Set<String> a, Set<String> b) {
     if (a.length != b.length) return false;
     return a.every((item) => b.contains(item));
+  }
+
+  bool _hasTestCasesWithIssues(List<dynamic> summary) {
+    if (_cachedBatchIssues == null) return false;
+    
+    for (final item in summary) {
+      final testIdentifier = item['test_identifier'] ?? '';
+      final hasIssues = _cachedBatchIssues![testIdentifier] ?? false;
+      if (hasIssues) return true;
+    }
+    return false;
   }
 
   void _loadBatchIssues(WidgetRef ref) async {

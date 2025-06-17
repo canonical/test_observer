@@ -77,7 +77,7 @@ class IssueSyncService:
                 else:
                     # Failed to sync
                     issue.sync_status = IssueSyncStatus.SYNC_FAILED
-                    issue.sync_error = "Failed to fetch issue data from external API"
+                    issue.sync_error = "Issue not found or not accessible (may be private, deleted, or moved)"
                     stats["failed"] += 1
                     logger.warning(f"Failed to sync test case issue {issue.id}: {issue.url} - API returned None")
             except Exception as e:
@@ -122,7 +122,7 @@ class IssueSyncService:
                 else:
                     # Failed to sync
                     issue.sync_status = IssueSyncStatus.SYNC_FAILED
-                    issue.sync_error = "Failed to fetch issue data from external API"
+                    issue.sync_error = "Issue not found or not accessible (may be private, deleted, or moved)"
                     stats["failed"] += 1
                     logger.warning(f"Failed to sync environment issue {issue.id}: {issue.url} - API returned None")
             except Exception as e:
@@ -151,7 +151,7 @@ class IssueSyncService:
         parsed_url = self.url_parser.parse_url(url)
         if not parsed_url:
             logger.warning(f"Could not parse issue URL: {url}")
-            return None
+            raise ValueError(f"Unsupported URL format: {url}")
         
         try:
             if parsed_url.platform == "github":

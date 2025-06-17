@@ -136,7 +136,8 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
         return (issue['template_id']?.toString().toLowerCase().contains(filterLower) ?? false) ||
                (issue['case_name']?.toString().toLowerCase().contains(filterLower) ?? false) ||
                (issue['description']?.toString().toLowerCase().contains(filterLower) ?? false) ||
-               (issue['url']?.toString().toLowerCase().contains(filterLower) ?? false);
+               (issue['url']?.toString().toLowerCase().contains(filterLower) ?? false) ||
+               (issue['issue_status']?.toString().toLowerCase().contains(filterLower) ?? false);
       }).toList();
     }
 
@@ -166,10 +167,14 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
             bValue = b['url'] ?? '';
             break;
           case 5:
+            aValue = a['issue_status'] ?? 'UNKNOWN';
+            bValue = b['issue_status'] ?? 'UNKNOWN';
+            break;
+          case 6:
             aValue = DateTime.parse(a['created_at'] ?? DateTime.now().toIso8601String());
             bValue = DateTime.parse(b['created_at'] ?? DateTime.now().toIso8601String());
             break;
-          case 6:
+          case 7:
             aValue = DateTime.parse(a['updated_at'] ?? DateTime.now().toIso8601String());
             bValue = DateTime.parse(b['updated_at'] ?? DateTime.now().toIso8601String());
             break;
@@ -245,6 +250,15 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                 },
               ),
               DataColumn(
+                label: const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                onSort: (columnIndex, ascending) {
+                  setState(() {
+                    _knownIssuesSortColumnIndex = columnIndex;
+                    _knownIssuesSortAscending = ascending;
+                  });
+                },
+              ),
+              DataColumn(
                 label: const Text('Created At', style: TextStyle(fontWeight: FontWeight.bold)),
                 onSort: (columnIndex, ascending) {
                   setState(() {
@@ -312,6 +326,7 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                     ),
                   ),
                 ),
+                DataCell(_buildStatusChip(issue['issue_status'])),
                 DataCell(Text(_formatDateTime(createdAt))),
                 DataCell(Text(_formatDateTime(updatedAt))),
               ]);
@@ -325,6 +340,44 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
   String _formatDateTime(DateTime? dateTime) {
     if (dateTime == null) return 'N/A';
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildStatusChip(String? status) {
+    final statusValue = status ?? 'UNKNOWN';
+    Color chipColor;
+    Color textColor;
+    
+    switch (statusValue.toUpperCase()) {
+      case 'OPEN':
+        chipColor = Theme.of(context).colorScheme.errorContainer;
+        textColor = Theme.of(context).colorScheme.onErrorContainer;
+        break;
+      case 'CLOSED':
+        chipColor = Theme.of(context).colorScheme.primaryContainer;
+        textColor = Theme.of(context).colorScheme.onPrimaryContainer;
+        break;
+      case 'UNKNOWN':
+      default:
+        chipColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+        textColor = Theme.of(context).colorScheme.onSurface;
+        break;
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: chipColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        statusValue,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   Future<void> _launchUrl(String urlString) async {

@@ -27,7 +27,7 @@ class IssueURLParser:
     # URL patterns for different issue tracking systems
     GITHUB_PATTERN = re.compile(r"github\.com/([^/]+)/([^/]+)/issues/(\d+)")
     JIRA_PATTERN = re.compile(r"([a-zA-Z0-9.-]+)/browse/([A-Z][A-Z0-9]+-\d+)")
-    LAUNCHPAD_PATTERN = re.compile(r"bugs\.launchpad\.net/[^/]+/\+bug/(\d+)")
+    LAUNCHPAD_PATTERN = re.compile(r"bugs\.launchpad\.net/.*?(?:\+bug|bugs)/(\d+)")
     
     @classmethod
     def parse_url(cls, url: str) -> ParsedIssueURL | None:

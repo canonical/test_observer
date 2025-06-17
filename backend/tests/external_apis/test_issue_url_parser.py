@@ -89,6 +89,38 @@ class TestIssueURLParser:
         assert result is not None
         assert result.platform == "launchpad"
         assert result.external_id == "789012"
+
+    def test_parse_launchpad_url_with_source_package(self):
+        """Test parsing Launchpad bug URLs with source package paths"""
+        url = "https://bugs.launchpad.net/ubuntu/+source/linux-signed-hwe-6.8/+bug/2091878"
+        result = IssueURLParser.parse_url(url)
+        
+        assert result is not None
+        assert result.platform == "launchpad"
+        assert result.host == "bugs.launchpad.net"
+        assert result.external_id == "2091878"
+        assert result.owner is None
+        assert result.repo is None
+        assert result.project is None
+
+    def test_parse_launchpad_url_direct_bugs_format(self):
+        """Test parsing Launchpad bug URLs in direct /bugs/ format"""
+        url = "https://bugs.launchpad.net/bugs/123456"
+        result = IssueURLParser.parse_url(url)
+        
+        assert result is not None
+        assert result.platform == "launchpad"
+        assert result.host == "bugs.launchpad.net"
+        assert result.external_id == "123456"
+
+    def test_parse_launchpad_url_complex_project_path(self):
+        """Test parsing Launchpad bug URLs with complex project paths"""
+        url = "https://bugs.launchpad.net/project/subproject/+bug/555555"
+        result = IssueURLParser.parse_url(url)
+        
+        assert result is not None
+        assert result.platform == "launchpad"
+        assert result.external_id == "555555"
     
     def test_parse_unsupported_url(self):
         """Test parsing unsupported URLs returns None"""
@@ -141,6 +173,7 @@ class TestIssueURLParser:
             "https://github.com/canonical/test-observer/issues/123",
             "https://warthogs.atlassian.net/browse/TEST-123",
             "https://bugs.launchpad.net/ubuntu/+bug/123456",
+            "https://bugs.launchpad.net/ubuntu/+source/linux-signed-hwe-6.8/+bug/2091878",
         ]
         
         unsupported_urls = [
