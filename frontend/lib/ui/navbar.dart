@@ -89,6 +89,10 @@ class Navbar extends StatelessWidget {
                         label: 'Environment Issues',
                         onPressed: () => _navigateWithDelay(context, AppRoutes.environmentIssuesReport),
                       ),
+                      _NavbarDropdownItem(
+                        label: 'Rejections',
+                        onPressed: () => _navigateWithDelay(context, AppRoutes.rejectionsReport),
+                      ),
                     ],
                   ),
                   const _NavbarDropdownEntry(

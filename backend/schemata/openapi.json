@@ -1314,6 +1314,156 @@
         }
       }
     },
+    "/v1/reports/rejections": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Rejections Report",
+        "description": "Returns a report of rejections over time, aggregated by day.\n\nShows the count of environment review rejections for artefacts\nover the specified time period, broken down by family type.",
+        "operationId": "get_rejections_report_v1_reports_rejections_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "default": "0001-01-01T00:00:00",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "snap",
+                "deb",
+                "charm",
+                "image"
+              ],
+              "title": "Families"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Rejections Report V1 Reports Rejections Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reports/rejections/summary": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Rejections Summary",
+        "description": "Returns a summary of rejections with top rejected artefacts and environments.",
+        "operationId": "get_rejections_summary_v1_reports_rejections_summary_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "default": "0001-01-01T00:00:00",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "snap",
+                "deb",
+                "charm",
+                "image"
+              ],
+              "title": "Families"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Rejections Summary V1 Reports Rejections Summary Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/test-cases/reported-issues": {
       "get": {
         "tags": [

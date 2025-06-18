@@ -25,6 +25,7 @@ import 'ui/reporting/reports_overview_page.dart';
 import 'ui/reporting/test_summary_report_page.dart';
 import 'ui/reporting/known_issues_report_page.dart';
 import 'ui/reporting/environment_issues_report_page.dart';
+import 'ui/reporting/rejections_report_page.dart';
 import 'ui/skeleton.dart';
 
 final appRouter = GoRouter(
@@ -118,6 +119,12 @@ final appRouter = GoRouter(
             child: EnvironmentIssuesReportPage(),
           ),
         ),
+        GoRoute(
+          path: AppRoutes.rejectionsReport,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: RejectionsReportPage(),
+          ),
+        ),
       ],
     ),
   ],
@@ -143,6 +150,7 @@ class AppRoutes {
   static const testSummaryReport = '/reports/test-summary';
   static const knownIssuesReport = '/reports/known-issues';
   static const environmentIssuesReport = '/reports/environment-issues';
+  static const rejectionsReport = '/reports/rejections';
 
   static Uri uriFromContext(BuildContext context) =>
       GoRouterState.of(context).uri;

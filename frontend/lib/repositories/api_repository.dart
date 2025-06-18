@@ -303,4 +303,50 @@ class ApiRepository {
     });
     return response.data;
   }
+
+  Future<Map<String, dynamic>> getRejectionsReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? families,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    if (families != null && families.isNotEmpty) {
+      queryParameters['families'] = families;
+    }
+    
+    final response = await dio.get(
+      '/v1/reports/rejections',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getRejectionsSummary({
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? families,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    if (families != null && families.isNotEmpty) {
+      queryParameters['families'] = families;
+    }
+    
+    final response = await dio.get(
+      '/v1/reports/rejections/summary',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
 }

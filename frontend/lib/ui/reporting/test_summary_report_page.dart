@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,6 +24,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/reports.dart';
 import '../spacing.dart';
 import '../common/error_display.dart';
+import '../common/io_log_viewer.dart';
 
 /// Test Summary Report page with deep linkable date ranges.
 /// 
@@ -66,9 +68,45 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   // Track expanded environment sections per artefact (test_identifier -> artefact_id -> {'success': bool, 'failure': bool})
   final Map<String, Map<int, Map<String, bool>>> _expandedTestCaseEnvironmentSections = <String, Map<int, Map<String, bool>>>{};
   
+  // Track IO log visibility per environment (test_identifier -> artefact_id -> environment_name -> bool)
+  final Map<String, Map<int, Map<String, bool>>> _ioLogVisibility = <String, Map<int, Map<String, bool>>>{};
+  
   // Cache test identifiers to avoid repeated API calls
   List<String>? _cachedTestIdentifiers;
   Map<String, bool>? _cachedBatchIssues;
+
+  // Helper function to format error messages for users
+  String _formatErrorMessage(dynamic error) {
+    final errorStr = error.toString();
+    
+    // Handle common network errors
+    if (errorStr.contains('XMLHttpRequest') || errorStr.contains('connection error')) {
+      return 'Unable to connect to the server. Please check your connection and try again.';
+    }
+    
+    // Handle timeout errors
+    if (errorStr.contains('timeout')) {
+      return 'The request took too long. Please try again.';
+    }
+    
+    // Handle 404 errors
+    if (errorStr.contains('404')) {
+      return 'The requested data was not found.';
+    }
+    
+    // Handle 500 errors
+    if (errorStr.contains('500') || errorStr.contains('Internal Server Error')) {
+      return 'Server error occurred. Please try again later.';
+    }
+    
+    // Handle authentication errors
+    if (errorStr.contains('401') || errorStr.contains('403')) {
+      return 'Access denied. Please check your permissions.';
+    }
+    
+    // Default message for other errors
+    return 'An error occurred while loading data. Please try again.';
+  }
 
   @override
   void initState() {
@@ -582,9 +620,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           ),
           const SizedBox(height: Spacing.level4),
           Expanded(
-            child: SingleChildScrollView(
-              child: _buildTestSummarySection(testSummaryAsync),
-            ),
+            child: _buildTestSummarySection(testSummaryAsync),
           ),
         ],
       ),
@@ -802,36 +838,30 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   }
 
   Widget _buildTestSummarySection(AsyncValue<Map<String, dynamic>> testSummaryAsync) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: Spacing.level4),
-        testSummaryAsync.when(
-          data: (data) => _buildTestSummaryContent(data),
-          loading: () => _buildLoadingContent(),
-          error: (error, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 16),
-                const Text('Failed to load test summary data'),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
-                  onPressed: () => showErrorDialog(
-                    context,
-                    error,
-                    title: 'Test Summary Error',
-                    onRetry: () => ref.invalidate(testSummaryProvider),
-                  ),
-                  icon: const Icon(Icons.info),
-                  label: const Text('View Details'),
-                ),
-              ],
+    return testSummaryAsync.when(
+      data: (data) => _buildTestSummaryContent(data),
+      loading: () => _buildLoadingContent(),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text('Failed to load test summary data'),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () => showErrorDialog(
+                context,
+                error,
+                title: 'Test Summary Error',
+                onRetry: () => ref.invalidate(testSummaryProvider),
+              ),
+              icon: const Icon(Icons.info),
+              label: const Text('View Details'),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -993,10 +1023,13 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           ],
         ),
         const SizedBox(height: Spacing.level3),
-        _buildTestTable(summary),
+        Expanded(
+          child: _buildTestTable(summary),
+        ),
       ],
     );
   }
+
 
 
   Widget _buildTestTable(List<dynamic> summary) {
@@ -1112,34 +1145,54 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             ],
           ),
         ),
-        // Table rows
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).dividerColor),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-          ),
-          child: batchIssuesAsync.when(
-            data: (issuesMap) => Column(
-              children: sortedSummary.map<Widget>((item) {
-                final testIdentifier = item['test_identifier'] ?? '';
-                final isExpanded = _expandedTestCases.contains(testIdentifier);
-                final hasIssues = issuesMap[testIdentifier] ?? false;
-                return _buildTestRow(item, isExpanded, hasIssues);
-              }).toList(),
+        // Table rows - using virtualized list for performance
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Theme.of(context).dividerColor),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
             ),
-            loading: () => Column(
-              children: sortedSummary.map<Widget>((item) {
-                final testIdentifier = item['test_identifier'] ?? '';
-                final isExpanded = _expandedTestCases.contains(testIdentifier);
-                return _buildTestRow(item, isExpanded, false); // Default to no issues while loading
-              }).toList(),
-            ),
-            error: (error, stack) => Column(
-              children: sortedSummary.map<Widget>((item) {
-                final testIdentifier = item['test_identifier'] ?? '';
-                final isExpanded = _expandedTestCases.contains(testIdentifier);
-                return _buildTestRow(item, isExpanded, false); // Default to no issues on error
-              }).toList(),
+            child: batchIssuesAsync.when(
+              data: (issuesMap) => ListView.builder(
+                itemCount: sortedSummary.length,
+                itemExtent: null, // Let items size themselves
+                cacheExtent: 1000, // Cache more items for smoother scrolling
+                addAutomaticKeepAlives: false, // Don't keep all items alive
+                addRepaintBoundaries: true, // Optimize repainting
+                itemBuilder: (context, index) {
+                  final item = sortedSummary[index];
+                  final testIdentifier = item['test_identifier'] ?? '';
+                  final isExpanded = _expandedTestCases.contains(testIdentifier);
+                  final hasIssues = issuesMap[testIdentifier] ?? false;
+                  return _buildTestRow(item, isExpanded, hasIssues);
+                },
+              ),
+              loading: () => ListView.builder(
+                itemCount: sortedSummary.length,
+                itemExtent: null,
+                cacheExtent: 1000,
+                addAutomaticKeepAlives: false,
+                addRepaintBoundaries: true,
+                itemBuilder: (context, index) {
+                  final item = sortedSummary[index];
+                  final testIdentifier = item['test_identifier'] ?? '';
+                  final isExpanded = _expandedTestCases.contains(testIdentifier);
+                  return _buildTestRow(item, isExpanded, false); // Default to no issues while loading
+                },
+              ),
+              error: (error, stack) => ListView.builder(
+                itemCount: sortedSummary.length,
+                itemExtent: null,
+                cacheExtent: 1000,
+                addAutomaticKeepAlives: false,
+                addRepaintBoundaries: true,
+                itemBuilder: (context, index) {
+                  final item = sortedSummary[index];
+                  final testIdentifier = item['test_identifier'] ?? '';
+                  final isExpanded = _expandedTestCases.contains(testIdentifier);
+                  return _buildTestRow(item, isExpanded, false); // Default to no issues on error
+                },
+              ),
             ),
           ),
         ),
@@ -1464,7 +1517,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Failed to load associated artefacts',
+                _formatErrorMessage(error),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
@@ -1730,58 +1783,24 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
               color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Wrap(
-              spacing: 4,
-              runSpacing: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: environmentDetails.map<Widget>((envDetail) {
                 final envName = envDetail['name'] as String;
-                final c3Link = envDetail['c3_link'] as String?;
+                final c3Links = envDetail['c3_links'] as List? ?? [];
+                final ioLogs = envDetail['io_logs'] as List? ?? [];
                 final hasFailure = envDetail['has_failure'] as bool? ?? false;
                 
-                return InkWell(
-                  onTap: c3Link != null && c3Link.isNotEmpty 
-                    ? () => _launchUrl(c3Link)
-                    : () => _launchTestflingerUrl(envName),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: hasFailure 
-                        ? Colors.red.shade100
-                        : Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: hasFailure 
-                          ? Colors.red.shade300
-                          : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          envName,
-                          style: TextStyle(
-                            color: hasFailure 
-                              ? Colors.red.shade800
-                              : Theme.of(context).colorScheme.onPrimaryContainer,
-                            fontSize: 11,
-                            fontWeight: hasFailure ? FontWeight.bold : FontWeight.normal,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                        if (c3Link != null && c3Link.isNotEmpty) ...[
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.launch,
-                            size: 10,
-                            color: hasFailure 
-                              ? Colors.red.shade600
-                              : Theme.of(context).colorScheme.onPrimaryContainer,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                final isIOLogVisible = _ioLogVisibility[testIdentifier]?[artefactId]?[envName] ?? false;
+                
+                return _buildEnvironmentCard(
+                  envName, 
+                  c3Links, 
+                  ioLogs, 
+                  hasFailure, 
+                  testIdentifier, 
+                  artefactId,
+                  isIOLogVisible,
                 );
               }).toList(),
             ),
@@ -1899,6 +1918,193 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+
+  Widget _buildEnvironmentCard(
+    String envName,
+    List c3Links,
+    List ioLogs,
+    bool hasFailure,
+    String testIdentifier,
+    int artefactId,
+    bool isIOLogVisible,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Environment header with controls
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: hasFailure 
+                ? Colors.red.shade50
+                : Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: hasFailure 
+                  ? Colors.red.shade300
+                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Environment name
+                Expanded(
+                  child: Text(
+                    envName,
+                    style: TextStyle(
+                      color: hasFailure 
+                        ? Colors.red.shade800
+                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                
+                // IO Log toggle button
+                if (ioLogs.isNotEmpty) ...[
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _ioLogVisibility.putIfAbsent(testIdentifier, () => <int, Map<String, bool>>{});
+                        _ioLogVisibility[testIdentifier]!.putIfAbsent(artefactId, () => <String, bool>{});
+                        _ioLogVisibility[testIdentifier]![artefactId]![envName] = !isIOLogVisible;
+                      });
+                    },
+                    icon: Icon(
+                      isIOLogVisible ? Icons.terminal : Icons.terminal_outlined,
+                      size: 16,
+                    ),
+                    tooltip: isIOLogVisible ? 'Hide IO Log' : 'Show IO Log',
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(24, 24),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                  ),
+                  
+                  // IO Log dialog button
+                  IconButton(
+                    onPressed: () => showIOLogDialog(
+                      context,
+                      ioLogs.cast<Map<String, dynamic>>(),
+                      envName,
+                    ),
+                    icon: const Icon(Icons.open_in_new, size: 14),
+                    tooltip: 'Open IO Log in dialog',
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(24, 24),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                  ),
+                ],
+                
+                // Testflinger link
+                IconButton(
+                  onPressed: () => _launchTestflingerUrl(envName),
+                  icon: const Icon(Icons.device_hub, size: 14),
+                  tooltip: 'View in Testflinger',
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(24, 24),
+                    padding: const EdgeInsets.all(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // C3 Links
+          if (c3Links.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'C3 Submissions (${c3Links.length}):',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 2,
+                    children: c3Links.map<Widget>((c3Link) {
+                      final url = c3Link['url'] as String;
+                      final status = c3Link['status'] as String;
+                      final testExecutionId = c3Link['test_execution_id'] as int;
+                      
+                      return InkWell(
+                        onTap: () => _launchUrl(url),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: status == 'FAILED' 
+                              ? Colors.red.shade100
+                              : Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(3),
+                            border: Border.all(
+                              color: status == 'FAILED' 
+                                ? Colors.red.shade300
+                                : Colors.green.shade300,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'TE$testExecutionId',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: status == 'FAILED' 
+                                    ? Colors.red.shade700
+                                    : Colors.green.shade700,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.launch,
+                                size: 8,
+                                color: status == 'FAILED' 
+                                  ? Colors.red.shade600
+                                  : Colors.green.shade600,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          
+          // IO Log display (when toggled on)
+          if (isIOLogVisible && ioLogs.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            IOLogViewer(
+              ioLogs: ioLogs.cast<Map<String, dynamic>>(),
+              environmentName: envName,
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildSortableHeader(String title, int columnIndex) {

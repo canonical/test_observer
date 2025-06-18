@@ -84,8 +84,8 @@ def get_test_summary_report(
         .join(Artefact, ArtefactBuild.artefact_id == Artefact.id)
         .where(
             and_(
-                Artefact.created_at >= start_date,
-                Artefact.created_at <= end_date,
+                TestResult.created_at >= start_date,
+                TestResult.created_at <= end_date,
                 Artefact.family.in_(valid_families),
                 # Exclude mir tests as done in the frontend processing
                 ~TestCase.name.contains('mir')
@@ -197,6 +197,7 @@ def get_test_case_associated_artefacts(
             Environment.name.label('environment_name'),
             TestResult.status.label('test_result_status'),
             TestResult.id.label('test_result_id'),
+            TestResult.io_log.label('io_log'),
             TestExecution.id.label('test_execution_id'),
             TestExecution.c3_link.label('c3_link'),
             TestExecution.ci_link.label('ci_link')
@@ -253,6 +254,7 @@ def get_test_case_associated_artefacts(
             'test_result_id': row.test_result_id,
             'c3_link': row.c3_link,
             'ci_link': row.ci_link,
+            'io_log': row.io_log,
             'status': row.test_result_status
         })
         
@@ -289,18 +291,36 @@ def get_test_case_associated_artefacts(
         environment_details_list = []
         for env_name in environments:
             env_details = artefact_data['environment_details'][env_name]
-            # Find the most recent C3 link for failed tests, or any C3 link
-            c3_link = None
+            
+            # Collect all C3 links for this environment
+            c3_links = []
+            io_logs = []
+            primary_c3_link = None
+            
             for exec_detail in env_details['test_executions']:
                 if exec_detail['c3_link']:
-                    c3_link = exec_detail['c3_link']
-                    # Prefer C3 links from failed executions
-                    if exec_detail['status'] == 'FAILED':
-                        break
+                    c3_links.append({
+                        'url': exec_detail['c3_link'],
+                        'test_execution_id': exec_detail['test_execution_id'],
+                        'status': exec_detail['status']
+                    })
+                    # Use the most recent C3 link as primary, preferring failed ones
+                    if not primary_c3_link or exec_detail['status'] == 'FAILED':
+                        primary_c3_link = exec_detail['c3_link']
+                
+                if exec_detail['io_log']:
+                    io_logs.append({
+                        'content': exec_detail['io_log'],
+                        'test_result_id': exec_detail['test_result_id'],
+                        'test_execution_id': exec_detail['test_execution_id'],
+                        'status': exec_detail['status']
+                    })
             
             environment_details_list.append({
                 'name': env_name,
-                'c3_link': c3_link,
+                'c3_link': primary_c3_link,  # Primary C3 link for quick access
+                'c3_links': c3_links,  # All C3 links for this environment
+                'io_logs': io_logs,  # All IO logs for this environment
                 'has_failure': env_name in failure_environments,
                 'test_executions': env_details['test_executions']
             })

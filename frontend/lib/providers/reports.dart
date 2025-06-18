@@ -114,6 +114,48 @@ final testCaseAffectedArtefactsProvider = FutureProvider.autoDispose.family<Map<
   return api.getTestCaseAffectedArtefacts(testIdentifier);
 });
 
+class RejectionsParams {
+  final DateRange? dateRange;
+  final List<String> families;
+  
+  const RejectionsParams({
+    this.dateRange,
+    required this.families,
+  });
+  
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is RejectionsParams &&
+        other.dateRange == dateRange &&
+        other.families.length == families.length &&
+        other.families.every((f) => families.contains(f));
+  }
+  
+  @override
+  int get hashCode => Object.hash(dateRange, Object.hashAll(families));
+}
+
+final rejectionsReportProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, RejectionsParams>((ref, params) async {
+  final api = ref.watch(apiProvider);
+  
+  return api.getRejectionsReport(
+    startDate: params.dateRange?.startDate,
+    endDate: params.dateRange?.endDate,
+    families: params.families,
+  );
+});
+
+final rejectionsSummaryProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, RejectionsParams>((ref, params) async {
+  final api = ref.watch(apiProvider);
+  
+  return api.getRejectionsSummary(
+    startDate: params.dateRange?.startDate,
+    endDate: params.dateRange?.endDate,
+    families: params.families,
+  );
+});
+
 class DateRange {
   final DateTime? startDate;
   final DateTime? endDate;

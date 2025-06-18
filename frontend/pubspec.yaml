@@ -9,6 +9,7 @@ dependencies:
   dartx: ^1.2.0
   dio: ^5.8.0+1
   dio_smart_retry: ^7.0.1
+  fl_chart: ^0.69.0
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1

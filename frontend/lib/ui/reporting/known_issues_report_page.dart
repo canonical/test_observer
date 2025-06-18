@@ -22,6 +22,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/reports.dart';
 import '../spacing.dart';
 import '../common/error_display.dart';
+import '../common/io_log_viewer.dart';
 
 class KnownIssuesReportPage extends ConsumerStatefulWidget {
   const KnownIssuesReportPage({super.key});
@@ -57,6 +58,65 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
   // Track expanded success/failure environment sections per artefact (issue_id -> artefact_id -> {'success': bool, 'failure': bool})
   final Map<int, Map<int, Map<String, bool>>> _expandedEnvironmentSections =
       <int, Map<int, Map<String, bool>>>{};
+
+  // Track IO log visibility per environment (issue_id -> artefact_id -> environment_name -> bool)
+  final Map<int, Map<int, Map<String, bool>>> _ioLogVisibility = <int, Map<int, Map<String, bool>>>{};
+
+  // Helper function to categorize issues
+  String _categorizeIssue(Map<String, dynamic> issue) {
+    final url = issue['url']?.toString() ?? '';
+    final description = issue['description']?.toString() ?? '';
+    
+    // Check for GitHub issues to canonical/checkbox repo
+    if (url.contains('github.com/canonical/checkbox')) {
+      return 'test_definition';
+    }
+    
+    // Check for Jira issues with C3- or RTW- prefix in description
+    if (description.startsWith('C3-') || description.startsWith('RTW-')) {
+      return 'test_definition';
+    }
+    
+    // Check for Jira issues with C3- or RTW- prefix in URL
+    if (url.contains('/C3-') || url.contains('/RTW-')) {
+      return 'test_definition';
+    }
+    
+    return 'platform';
+  }
+
+  // Helper function to format error messages for users
+  String _formatErrorMessage(dynamic error) {
+    final errorStr = error.toString();
+    
+    // Handle common network errors
+    if (errorStr.contains('XMLHttpRequest') || errorStr.contains('connection error')) {
+      return 'Unable to connect to the server. Please check your connection and try again.';
+    }
+    
+    // Handle timeout errors
+    if (errorStr.contains('timeout')) {
+      return 'The request took too long. Please try again.';
+    }
+    
+    // Handle 404 errors
+    if (errorStr.contains('404')) {
+      return 'The requested data was not found.';
+    }
+    
+    // Handle 500 errors
+    if (errorStr.contains('500') || errorStr.contains('Internal Server Error')) {
+      return 'Server error occurred. Please try again later.';
+    }
+    
+    // Handle authentication errors
+    if (errorStr.contains('401') || errorStr.contains('403')) {
+      return 'Access denied. Please check your permissions.';
+    }
+    
+    // Default message for other errors
+    return 'An error occurred while loading data. Please try again.';
+  }
 
   @override
   void initState() {
@@ -326,8 +386,86 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
           ],
         ),
         const SizedBox(height: Spacing.level3),
-        _buildIssuesTable(issues),
+        
+        // Group issues by category
+        ..._buildGroupedIssues(issues),
       ],
+    );
+  }
+
+  List<Widget> _buildGroupedIssues(List<dynamic> issues) {
+    // Group issues by category
+    final testDefinitionIssues = <Map<String, dynamic>>[];
+    final platformIssues = <Map<String, dynamic>>[];
+    
+    for (final issue in issues) {
+      if (_categorizeIssue(issue) == 'test_definition') {
+        testDefinitionIssues.add(issue);
+      } else {
+        platformIssues.add(issue);
+      }
+    }
+
+    final widgets = <Widget>[];
+    
+    // Test Definition Related Issues
+    if (testDefinitionIssues.isNotEmpty) {
+      widgets.addAll([
+        _buildGroupHeader('Test Definition Related Issues', testDefinitionIssues.length, Icons.bug_report),
+        const SizedBox(height: Spacing.level2),
+        _buildIssuesTable(testDefinitionIssues),
+        const SizedBox(height: Spacing.level4),
+      ]);
+    }
+    
+    // Known Platform Issues  
+    if (platformIssues.isNotEmpty) {
+      widgets.addAll([
+        _buildGroupHeader('Known Platform Issues', platformIssues.length, Icons.error_outline),
+        const SizedBox(height: Spacing.level2),
+        _buildIssuesTable(platformIssues),
+      ]);
+    }
+    
+    return widgets;
+  }
+
+  Widget _buildGroupHeader(String title, int count, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              count.toString(),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -827,9 +965,24 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                 child: CircularProgressIndicator(),
               ),
             ),
-            error: (error, stack) => Text(
-              'Error loading associated artefacts: $error',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            error: (error, stack) => Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: Theme.of(context).colorScheme.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _formatErrorMessage(error),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1124,69 +1277,24 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
               ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Wrap(
-              spacing: 4,
-              runSpacing: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: environmentDetails.map<Widget>((envDetail) {
                 final envName = envDetail['name'] as String;
-                final c3Link = envDetail['c3_link'] as String?;
+                final c3Links = envDetail['c3_links'] as List? ?? [];
+                final ioLogs = envDetail['io_logs'] as List? ?? [];
                 final hasFailure = envDetail['has_failure'] as bool? ?? false;
-
-                return InkWell(
-                  onTap: c3Link != null && c3Link.isNotEmpty
-                      ? () => _launchUrl(c3Link)
-                      : () => _launchTestflingerUrl(envName),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: hasFailure
-                          ? Colors.red.shade100
-                          : Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: hasFailure
-                            ? Colors.red.shade300
-                            : Theme.of(
-                                context,
-                              ).colorScheme.outline.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          envName,
-                          style: TextStyle(
-                            color: hasFailure
-                                ? Colors.red.shade800
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
-                            fontSize: 11,
-                            fontWeight: hasFailure
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                        if (c3Link != null && c3Link.isNotEmpty) ...[
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.launch,
-                            size: 10,
-                            color: hasFailure
-                                ? Colors.red.shade600
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                
+                final isIOLogVisible = _ioLogVisibility[issueId]?[artefactId]?[envName] ?? false;
+                
+                return _buildEnvironmentCard(
+                  envName, 
+                  c3Links, 
+                  ioLogs, 
+                  hasFailure, 
+                  issueId, 
+                  artefactId,
+                  isIOLogVisible,
                 );
               }).toList(),
             ),
@@ -1643,5 +1751,192 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+
+  Widget _buildEnvironmentCard(
+    String envName,
+    List c3Links,
+    List ioLogs,
+    bool hasFailure,
+    int issueId,
+    int artefactId,
+    bool isIOLogVisible,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Environment header with controls
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: hasFailure 
+                ? Colors.red.shade50
+                : Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: hasFailure 
+                  ? Colors.red.shade300
+                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Environment name
+                Expanded(
+                  child: Text(
+                    envName,
+                    style: TextStyle(
+                      color: hasFailure 
+                        ? Colors.red.shade800
+                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                
+                // IO Log toggle button
+                if (ioLogs.isNotEmpty) ...[
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _ioLogVisibility.putIfAbsent(issueId, () => <int, Map<String, bool>>{});
+                        _ioLogVisibility[issueId]!.putIfAbsent(artefactId, () => <String, bool>{});
+                        _ioLogVisibility[issueId]![artefactId]![envName] = !isIOLogVisible;
+                      });
+                    },
+                    icon: Icon(
+                      isIOLogVisible ? Icons.terminal : Icons.terminal_outlined,
+                      size: 16,
+                    ),
+                    tooltip: isIOLogVisible ? 'Hide IO Log' : 'Show IO Log',
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(24, 24),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                  ),
+                  
+                  // IO Log dialog button
+                  IconButton(
+                    onPressed: () => showIOLogDialog(
+                      context,
+                      ioLogs.cast<Map<String, dynamic>>(),
+                      envName,
+                    ),
+                    icon: const Icon(Icons.open_in_new, size: 14),
+                    tooltip: 'Open IO Log in dialog',
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(24, 24),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                  ),
+                ],
+                
+                // Testflinger link
+                IconButton(
+                  onPressed: () => _launchTestflingerUrl(envName),
+                  icon: const Icon(Icons.device_hub, size: 14),
+                  tooltip: 'View in Testflinger',
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(24, 24),
+                    padding: const EdgeInsets.all(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // C3 Links
+          if (c3Links.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'C3 Submissions (${c3Links.length}):',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 2,
+                    children: c3Links.map<Widget>((c3Link) {
+                      final url = c3Link['url'] as String;
+                      final status = c3Link['status'] as String;
+                      final testExecutionId = c3Link['test_execution_id'] as int;
+                      
+                      return InkWell(
+                        onTap: () => _launchUrl(url),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: status == 'FAILED' 
+                              ? Colors.red.shade100
+                              : Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(3),
+                            border: Border.all(
+                              color: status == 'FAILED' 
+                                ? Colors.red.shade300
+                                : Colors.green.shade300,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'TE$testExecutionId',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: status == 'FAILED' 
+                                    ? Colors.red.shade700
+                                    : Colors.green.shade700,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.launch,
+                                size: 8,
+                                color: status == 'FAILED' 
+                                  ? Colors.red.shade600
+                                  : Colors.green.shade600,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          
+          // IO Log display (when toggled on)
+          if (isIOLogVisible && ioLogs.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            IOLogViewer(
+              ioLogs: ioLogs.cast<Map<String, dynamic>>(),
+              environmentName: envName,
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
