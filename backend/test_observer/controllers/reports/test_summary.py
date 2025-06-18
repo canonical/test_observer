@@ -332,6 +332,10 @@ def get_test_case_associated_artefacts(
         else:
             success_only_artefacts.append(artefact_data)
     
+    # Sort artefacts within each group by name for consistent ordering
+    artefacts_with_failures.sort(key=lambda x: x['name'])
+    success_only_artefacts.sort(key=lambda x: x['name'])
+    
     return {
         'test_identifier': test_identifier,
         'success_only_artefacts': success_only_artefacts,
