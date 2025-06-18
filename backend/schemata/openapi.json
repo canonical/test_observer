@@ -1196,14 +1196,14 @@
         }
       }
     },
-    "/v1/reports/test-case/affected-artefacts": {
+    "/v1/reports/test-case/associated-artefacts": {
       "get": {
         "tags": [
           "reports"
         ],
-        "summary": "Get Test Case Affected Artefacts",
-        "description": "Get artefacts affected by a specific test case, separated by success vs failure status.\n\nReturns artefacts that have test results for the given test case,\ncategorized by whether they have any failures or only successes.",
-        "operationId": "get_test_case_affected_artefacts_v1_reports_test_case_affected_artefacts_get",
+        "summary": "Get Test Case Associated Artefacts",
+        "description": "Get artefacts associated with a specific test case, separated by success vs failure status.\n\nReturns artefacts that have test results for the given test case,\ncategorized by whether they have any failures or only successes.",
+        "operationId": "get_test_case_associated_artefacts_v1_reports_test_case_associated_artefacts_get",
         "parameters": [
           {
             "name": "test_identifier",
@@ -1223,7 +1223,7 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Get Test Case Affected Artefacts V1 Reports Test Case Affected Artefacts Get"
+                  "title": "Response Get Test Case Associated Artefacts V1 Reports Test Case Associated Artefacts Get"
                 }
               }
             }
@@ -1540,14 +1540,14 @@
         }
       }
     },
-    "/v1/test-cases/reported-issues/{issue_id}/affected-artefacts": {
+    "/v1/test-cases/reported-issues/{issue_id}/associated-artefacts": {
       "get": {
         "tags": [
           "test-cases"
         ],
-        "summary": "Get Affected Artefacts",
-        "description": "Get artefacts affected by a specific test case issue.\n\nReturns artefacts that have test results matching the test cases \nassociated with the given issue.",
-        "operationId": "get_affected_artefacts_v1_test_cases_reported_issues__issue_id__affected_artefacts_get",
+        "summary": "Get Associated Artefacts",
+        "description": "Get artefacts associated with a specific test case issue.\n\nReturns artefacts that have test results matching the test cases \nassociated with the given issue.",
+        "operationId": "get_associated_artefacts_v1_test_cases_reported_issues__issue_id__associated_artefacts_get",
         "parameters": [
           {
             "name": "issue_id",

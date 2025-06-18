@@ -16,6 +16,7 @@
 
 
 from fastapi import Depends, HTTPException
+from test_observer.error_utils import not_found_error
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.base import ExecutableOption
@@ -35,6 +36,5 @@ class ArtefactRetriever:
             select(Artefact).where(Artefact.id == artefact_id).options(*self._options)
         )
         if artefact is None:
-            msg = f"Artefact with id {artefact_id} not found"
-            raise HTTPException(status_code=404, detail=msg)
+            raise not_found_error("Artefact", artefact_id)
         return artefact

@@ -132,16 +132,16 @@ def delete_reported_issue(issue_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
-@router.get(endpoint + "/{issue_id}/affected-artefacts")
-def get_affected_artefacts(issue_id: int, db: Session = Depends(get_db)):
+@router.get(endpoint + "/{issue_id}/associated-artefacts")
+def get_associated_artefacts(issue_id: int, db: Session = Depends(get_db)):
     """
-    Get artefacts affected by a specific test case issue.
+    Get artefacts associated with a specific test case issue.
     
     Returns artefacts that have test results matching the test cases 
     associated with the given issue.
     """
-    # Query to find artefacts affected by the issue
-    affected_artefacts_query = (
+    # Query to find artefacts associated with the issue
+    associated_artefacts_query = (
         select(
             Artefact.id.label('artefact_id'),
             Artefact.name.label('artefact_name'), 
@@ -166,7 +166,7 @@ def get_affected_artefacts(issue_id: int, db: Session = Depends(get_db)):
         .distinct()
     )
     
-    results = db.execute(affected_artefacts_query).fetchall()
+    results = db.execute(associated_artefacts_query).fetchall()
     
     # Group results by artefact and track success/failure status
     artefacts_dict = {}

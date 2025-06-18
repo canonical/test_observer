@@ -174,13 +174,13 @@ def batch_check_test_case_issues(
     return response
 
 
-@router.get("/test-case/affected-artefacts")
-def get_test_case_affected_artefacts(
+@router.get("/test-case/associated-artefacts")
+def get_test_case_associated_artefacts(
     test_identifier: str = Query(...),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    Get artefacts affected by a specific test case, separated by success vs failure status.
+    Get artefacts associated with a specific test case, separated by success vs failure status.
     
     Returns artefacts that have test results for the given test case,
     categorized by whether they have any failures or only successes.
@@ -193,9 +193,13 @@ def get_test_case_affected_artefacts(
             Artefact.version.label('artefact_version'),
             Artefact.family.label('artefact_family'),
             Artefact.due_date.label('artefact_due_date'),
+            Artefact.created_at.label('created_at'),
             Environment.name.label('environment_name'),
             TestResult.status.label('test_result_status'),
-            TestExecution.id.label('test_execution_id')
+            TestResult.id.label('test_result_id'),
+            TestExecution.id.label('test_execution_id'),
+            TestExecution.c3_link.label('c3_link'),
+            TestExecution.ci_link.label('ci_link')
         )
         .select_from(TestCase)
         .join(TestResult, TestResult.test_case_id == TestCase.id)
@@ -223,9 +227,11 @@ def get_test_case_affected_artefacts(
                 'version': row.artefact_version,
                 'family': row.artefact_family,
                 'due_date': row.artefact_due_date.isoformat() if row.artefact_due_date else None,
+                'created_at': row.created_at.isoformat() if row.created_at else None,
                 'environments': set(),
                 'has_failures': False,
-                'test_results': []
+                'test_results': [],
+                'environment_details': {}  # Map of environment_name -> details
             }
         
         artefacts_dict[artefact_key]['environments'].add(row.environment_name)
@@ -233,6 +239,21 @@ def get_test_case_affected_artefacts(
             'test_execution_id': row.test_execution_id,
             'environment_name': row.environment_name,
             'test_result_status': row.test_result_status
+        })
+        
+        # Track environment details with C3 links
+        if row.environment_name not in artefacts_dict[artefact_key]['environment_details']:
+            artefacts_dict[artefact_key]['environment_details'][row.environment_name] = {
+                'name': row.environment_name,
+                'test_executions': []
+            }
+        
+        artefacts_dict[artefact_key]['environment_details'][row.environment_name]['test_executions'].append({
+            'test_execution_id': row.test_execution_id,
+            'test_result_id': row.test_result_id,
+            'c3_link': row.c3_link,
+            'ci_link': row.ci_link,
+            'status': row.test_result_status
         })
         
         # Track environments by success/failure status
@@ -263,6 +284,28 @@ def get_test_case_affected_artefacts(
         artefact_data['failure_environments'] = failure_environments
         artefact_data['success_environment_count'] = len(success_environments)
         artefact_data['failure_environment_count'] = len(failure_environments)
+        
+        # Convert environment_details to list format for frontend consumption
+        environment_details_list = []
+        for env_name in environments:
+            env_details = artefact_data['environment_details'][env_name]
+            # Find the most recent C3 link for failed tests, or any C3 link
+            c3_link = None
+            for exec_detail in env_details['test_executions']:
+                if exec_detail['c3_link']:
+                    c3_link = exec_detail['c3_link']
+                    # Prefer C3 links from failed executions
+                    if exec_detail['status'] == 'FAILED':
+                        break
+            
+            environment_details_list.append({
+                'name': env_name,
+                'c3_link': c3_link,
+                'has_failure': env_name in failure_environments,
+                'test_executions': env_details['test_executions']
+            })
+        
+        artefact_data['environment_details'] = environment_details_list
         
         if artefact_data['has_failures']:
             artefacts_with_failures.append(artefact_data)

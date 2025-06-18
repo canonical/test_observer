@@ -22,6 +22,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/reports.dart';
 import '../spacing.dart';
+import '../common/error_display.dart';
 
 /// Test Summary Report page with deep linkable date ranges.
 /// 
@@ -809,7 +810,25 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           data: (data) => _buildTestSummaryContent(data),
           loading: () => _buildLoadingContent(),
           error: (error, stack) => Center(
-            child: Text('Error: $error'),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text('Failed to load test summary data'),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => showErrorDialog(
+                    context,
+                    error,
+                    title: 'Test Summary Error',
+                    onRetry: () => ref.invalidate(testSummaryProvider),
+                  ),
+                  icon: const Icon(Icons.info),
+                  label: const Text('View Details'),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -1362,14 +1381,26 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
                 child: CircularProgressIndicator(),
               ),
             ),
-            error: (error, stack) => Text(
-              'Error loading issues: $error',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            error: (error, stack) => Row(
+              children: [
+                Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Failed to load issue information',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => showErrorSnackbar(context, error),
+                  child: const Text('Details'),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'Affected Artefacts',
+            'Associated Artefacts',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -1391,7 +1422,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         final totalArtefacts = data['total_artefacts'] as int? ?? 0;
 
         if (totalArtefacts == 0) {
-          return const Text('No affected artefacts found for this test case.');
+          return const Text('No associated artefacts found for this test case.');
         }
 
         return Column(
@@ -1399,11 +1430,11 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           children: [
             if (artefactsWithFailures.isNotEmpty) ...[
               _buildArtefactSection(
-                'Artefacts with Failures',
+                '... artefacts where some environments failed this test',
                 artefactsWithFailures,
                 testIdentifier,
-                Colors.red.shade100,
-                Colors.red.shade700,
+                Theme.of(context).colorScheme.surfaceContainerHighest,
+                Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 12),
             ],
@@ -1425,9 +1456,24 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
           child: CircularProgressIndicator(),
         ),
       ),
-      error: (error, stack) => Text(
-        'Error loading affected artefacts: $error',
-        style: TextStyle(color: Theme.of(context).colorScheme.error),
+      error: (error, stack) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Failed to load associated artefacts',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+            TextButton(
+              onPressed: () => showErrorSnackbar(context, error),
+              child: const Text('Details'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1624,11 +1670,10 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   }
 
   Widget _buildTestCaseEnvironmentSection(Map<String, dynamic> artefact, String testIdentifier) {
-    final successEnvironments = artefact['success_environments'] as List? ?? [];
+    final environmentDetails = artefact['environment_details'] as List? ?? [];
     final failureEnvironments = artefact['failure_environments'] as List? ?? [];
     final totalEnvCount = artefact['environment_count'] as int? ?? 0;
     final artefactId = artefact['id'] as int;
-    final environments = [...successEnvironments, ...failureEnvironments];
     
     if (totalEnvCount == 0) {
       return Text(
@@ -1639,13 +1684,13 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       );
     }
 
-    final isEnvExpanded = _expandedTestCaseEnvironmentSections[testIdentifier]?[artefactId]?['environments'] ?? (environments.length < 10);
+    final isEnvExpanded = _expandedTestCaseEnvironmentSections[testIdentifier]?[artefactId]?['environments'] ?? (environmentDetails.length < 10);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          onTap: environments.isNotEmpty ? () {
+          onTap: environmentDetails.isNotEmpty ? () {
             setState(() {
               _expandedTestCaseEnvironmentSections.putIfAbsent(testIdentifier, () => <int, Map<String, bool>>{});
               _expandedTestCaseEnvironmentSections[testIdentifier]!.putIfAbsent(artefactId, () => <String, bool>{});
@@ -1656,15 +1701,17 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Environments: $totalEnvCount environment${totalEnvCount == 1 ? '' : 's'}',
+                failureEnvironments.isNotEmpty
+                  ? 'Environments: $totalEnvCount environment${totalEnvCount == 1 ? '' : 's'}, ${failureEnvironments.length} failing this test'
+                  : 'Environments: $totalEnvCount environment${totalEnvCount == 1 ? '' : 's'}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: environments.isNotEmpty 
+                  color: environmentDetails.isNotEmpty 
                     ? Theme.of(context).colorScheme.primary 
                     : Theme.of(context).colorScheme.onSurfaceVariant,
-                  decoration: environments.isNotEmpty ? TextDecoration.underline : null,
+                  decoration: environmentDetails.isNotEmpty ? TextDecoration.underline : null,
                 ),
               ),
-              if (environments.isNotEmpty) ...[
+              if (environmentDetails.isNotEmpty) ...[
                 const SizedBox(width: 4),
                 Icon(
                   isEnvExpanded ? Icons.expand_less : Icons.expand_more,
@@ -1675,31 +1722,70 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
             ],
           ),
         ),
-        if (isEnvExpanded && environments.isNotEmpty) ...[
+        if (isEnvExpanded && environmentDetails.isNotEmpty) ...[
           const SizedBox(height: 4),
-          if (failureEnvironments.isNotEmpty) ...[
-            _buildTestCaseEnvironmentSubSection(
-              'With Failures',
-              failureEnvironments,
-              testIdentifier,
-              artefactId,
-              'failure',
-              Colors.red.shade100,
-              Colors.red.shade700,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(4),
             ),
-            const SizedBox(height: 4),
-          ],
-          if (successEnvironments.isNotEmpty) ...[
-            _buildTestCaseEnvironmentSubSection(
-              'Success Only',
-              successEnvironments,
-              testIdentifier,
-              artefactId,
-              'success',
-              Colors.green.shade100,
-              Colors.green.shade700,
+            child: Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: environmentDetails.map<Widget>((envDetail) {
+                final envName = envDetail['name'] as String;
+                final c3Link = envDetail['c3_link'] as String?;
+                final hasFailure = envDetail['has_failure'] as bool? ?? false;
+                
+                return InkWell(
+                  onTap: c3Link != null && c3Link.isNotEmpty 
+                    ? () => _launchUrl(c3Link)
+                    : () => _launchTestflingerUrl(envName),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: hasFailure 
+                        ? Colors.red.shade100
+                        : Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: hasFailure 
+                          ? Colors.red.shade300
+                          : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          envName,
+                          style: TextStyle(
+                            color: hasFailure 
+                              ? Colors.red.shade800
+                              : Theme.of(context).colorScheme.onPrimaryContainer,
+                            fontSize: 11,
+                            fontWeight: hasFailure ? FontWeight.bold : FontWeight.normal,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                        if (c3Link != null && c3Link.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.launch,
+                            size: 10,
+                            color: hasFailure 
+                              ? Colors.red.shade600
+                              : Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
-          ],
+          ),
         ],
       ],
     );
@@ -1802,6 +1888,13 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
 
   Future<void> _launchTestflingerUrl(String environmentName) async {
     final url = 'https://testflinger.canonical.com/queues/$environmentName';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);

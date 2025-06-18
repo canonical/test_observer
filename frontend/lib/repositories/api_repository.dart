@@ -293,12 +293,12 @@ class ApiRepository {
   }
 
   Future<dynamic> getAffectedArtefacts(int issueId) async {
-    final response = await dio.get('/v1/test-cases/reported-issues/$issueId/affected-artefacts');
+    final response = await dio.get('/v1/test-cases/reported-issues/$issueId/associated-artefacts');
     return response.data;
   }
 
   Future<Map<String, dynamic>> getTestCaseAffectedArtefacts(String testIdentifier) async {
-    final response = await dio.get('/v1/reports/test-case/affected-artefacts', queryParameters: {
+    final response = await dio.get('/v1/reports/test-case/associated-artefacts', queryParameters: {
       'test_identifier': testIdentifier,
     });
     return response.data;

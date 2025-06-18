@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from test_observer.controllers.router import router
 from test_observer.logging_config import setup_logging
+from test_observer.error_handling import setup_error_handlers
 from importlib.metadata import PackageNotFoundError, version
 
 # Setup logging before anything else
@@ -59,3 +60,6 @@ app.add_middleware(
 
 
 app.include_router(router)
+
+# Setup error handlers
+setup_error_handlers(app)

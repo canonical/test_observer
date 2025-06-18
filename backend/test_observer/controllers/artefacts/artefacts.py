@@ -16,6 +16,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException
+from test_observer.error_utils import artefact_status_error, invalid_input_error
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -121,18 +122,20 @@ def _validate_artefact_status(
 ) -> None:
     ...
     if status == ArtefactStatus.APPROVED and not are_all_environments_approved(builds):
-        raise HTTPException(
-            status_code=400,
-            detail="All test executions need to be approved",
+        raise artefact_status_error(
+            current_status="unknown",  # Current status not available in this context
+            requested_status=status.value,
+            reason="All test executions need to be approved"
         )
 
     if (
         status == ArtefactStatus.MARKED_AS_FAILED
         and not is_there_a_rejected_environment(builds)
     ):
-        raise HTTPException(
-            400,
-            detail="At least one test execution needs to be rejected",
+        raise artefact_status_error(
+            current_status="unknown",  # Current status not available in this context  
+            requested_status=status.value,
+            reason="At least one test execution needs to be rejected"
         )
 
 
@@ -148,9 +151,11 @@ def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
             case FamilyName.image:
                 ImageStage(stage)
     except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Stage {stage} is invalid for artefact family {artefact.family}",
+        raise invalid_input_error(
+            field="stage",
+            value=stage,
+            reason=f"Invalid stage for artefact family {artefact.family}",
+            details={"artefact_family": artefact.family.value, "available_stages": "varies by family"}
         ) from e
 
 
