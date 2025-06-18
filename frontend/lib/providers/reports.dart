@@ -109,7 +109,7 @@ final affectedArtefactsProvider = FutureProvider.autoDispose.family<dynamic, int
   return api.getAffectedArtefacts(issueId);
 });
 
-final testCaseAffectedArtefactsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, testIdentifier) async {
+final testCaseAffectedArtefactsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, testIdentifier) async {
   final api = ref.watch(apiProvider);
   return api.getTestCaseAffectedArtefacts(testIdentifier);
 });

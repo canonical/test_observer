@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -65,15 +64,34 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
   // Track if all issues are expanded
   bool _allIssuesExpanded = false;
   
-  // Track expanded environment sections per artefact (test_identifier -> artefact_id -> {'success': bool, 'failure': bool})
-  final Map<String, Map<int, Map<String, bool>>> _expandedTestCaseEnvironmentSections = <String, Map<int, Map<String, bool>>>{};
+  // Ultra-optimized state management with individual tracking
+  final Map<String, bool> _expandedEnvironmentSections = <String, bool>{};
   
-  // Track IO log visibility per environment (test_identifier -> artefact_id -> environment_name -> bool)
-  final Map<String, Map<int, Map<String, bool>>> _ioLogVisibility = <String, Map<int, Map<String, bool>>>{};
+  // Cache for expensive operations (environment lists only, not individual cards)
+  final Map<String, List<Widget>> _environmentListCache = <String, List<Widget>>{};
   
   // Cache test identifiers to avoid repeated API calls
   List<String>? _cachedTestIdentifiers;
   Map<String, bool>? _cachedBatchIssues;
+
+  // Helper methods for generating consistent state keys
+  String _environmentSectionKey(String testIdentifier, int artefactId) =>
+      '${testIdentifier}_${artefactId}_environments';
+  
+  // Optimized state getters
+  bool _isEnvironmentExpanded(String key) => _expandedEnvironmentSections[key] ?? false;
+  
+  // Optimized state setters that minimize rebuilds
+  void _toggleEnvironmentExpansion(String key) {
+    _expandedEnvironmentSections[key] = !_isEnvironmentExpanded(key);
+    // Clear cache for this section
+    _environmentListCache.remove(key);
+  }
+  
+  // Clear all caches when data changes
+  void _clearAllCaches() {
+    _environmentListCache.clear();
+  }
 
   // Helper function to format error messages for users
   String _formatErrorMessage(dynamic error) {
@@ -1737,17 +1755,16 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
       );
     }
 
-    final isEnvExpanded = _expandedTestCaseEnvironmentSections[testIdentifier]?[artefactId]?['environments'] ?? (environmentDetails.length < 10);
+    final envSectionKey = _environmentSectionKey(testIdentifier, artefactId);
+    final isEnvExpanded = _isEnvironmentExpanded(envSectionKey) || environmentDetails.length < 10;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
+        GestureDetector(
           onTap: environmentDetails.isNotEmpty ? () {
             setState(() {
-              _expandedTestCaseEnvironmentSections.putIfAbsent(testIdentifier, () => <int, Map<String, bool>>{});
-              _expandedTestCaseEnvironmentSections[testIdentifier]!.putIfAbsent(artefactId, () => <String, bool>{});
-              _expandedTestCaseEnvironmentSections[testIdentifier]![artefactId]!['environments'] = !isEnvExpanded;
+              _toggleEnvironmentExpansion(envSectionKey);
             });
           } : null,
           child: Row(
@@ -1777,36 +1794,62 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
         ),
         if (isEnvExpanded && environmentDetails.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: environmentDetails.map<Widget>((envDetail) {
-                final envName = envDetail['name'] as String;
-                final c3Links = envDetail['c3_links'] as List? ?? [];
-                final ioLogs = envDetail['io_logs'] as List? ?? [];
-                final hasFailure = envDetail['has_failure'] as bool? ?? false;
-                
-                final isIOLogVisible = _ioLogVisibility[testIdentifier]?[artefactId]?[envName] ?? false;
-                
-                return _buildEnvironmentCard(
-                  envName, 
-                  c3Links, 
-                  ioLogs, 
-                  hasFailure, 
-                  testIdentifier, 
-                  artefactId,
-                  isIOLogVisible,
-                );
-              }).toList(),
-            ),
-          ),
+          _buildOptimizedEnvironmentList(environmentDetails, testIdentifier, artefactId, envSectionKey),
         ],
       ],
+    );
+  }
+
+  Widget _buildOptimizedEnvironmentList(
+    List environmentDetails, 
+    String testIdentifier, 
+    int artefactId, 
+    String cacheKey
+  ) {
+    // Use cached list if available
+    if (_environmentListCache.containsKey(cacheKey)) {
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: _environmentListCache[cacheKey]!,
+        ),
+      );
+    }
+
+    // Build environment cards with caching
+    final environmentCards = <Widget>[];
+    for (final envDetail in environmentDetails) {
+      final envName = envDetail['name'] as String;
+      final c3Links = envDetail['c3_links'] as List? ?? [];
+      final ioLogs = envDetail['io_logs'] as List? ?? [];
+      final hasFailure = envDetail['has_failure'] as bool? ?? false;
+      
+      environmentCards.add(_buildOptimizedEnvironmentCard(
+        envName, 
+        c3Links, 
+        ioLogs, 
+        hasFailure,
+      ));
+    }
+
+    // Cache the built list
+    _environmentListCache[cacheKey] = environmentCards;
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: environmentCards,
+      ),
     );
   }
 
@@ -1819,17 +1862,16 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     Color backgroundColor,
     Color textColor,
   ) {
-    final isExpanded = _expandedTestCaseEnvironmentSections[testIdentifier]?[artefactId]?[sectionType] ?? false;
+    final subsectionKey = '${testIdentifier}_${artefactId}_$sectionType';
+    final isExpanded = _isEnvironmentExpanded(subsectionKey);
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
+        GestureDetector(
           onTap: () {
             setState(() {
-              _expandedTestCaseEnvironmentSections.putIfAbsent(testIdentifier, () => <int, Map<String, bool>>{});
-              _expandedTestCaseEnvironmentSections[testIdentifier]!.putIfAbsent(artefactId, () => <String, bool>{});
-              _expandedTestCaseEnvironmentSections[testIdentifier]![artefactId]![sectionType] = !isExpanded;
+              _toggleEnvironmentExpansion(subsectionKey);
             });
           },
           child: Container(
@@ -1872,7 +1914,7 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
               spacing: 2,
               runSpacing: 2,
               children: environments.map<Widget>((env) {
-                return InkWell(
+                return GestureDetector(
                   onTap: () => _launchTestflingerUrl(env.toString()),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
@@ -1920,21 +1962,107 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     }
   }
 
-  Widget _buildEnvironmentCard(
+  void _showIOLogDialogWithPreloading(
+    BuildContext context,
+    List<Map<String, dynamic>> ioLogs,
+    String environmentName,
+  ) {
+    // Use the standard IOLogDialog without custom preloading to avoid lifecycle issues
+    showIOLogDialog(context, ioLogs, environmentName);
+  }
+
+  Widget _buildC3LinksSection(List c3Links) {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'C3 Submissions (${c3Links.length}):',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 4,
+            runSpacing: 2,
+            children: c3Links.map<Widget>((c3Link) {
+              final url = c3Link['url'] as String;
+              final status = c3Link['status'] as String;
+              final testExecutionId = c3Link['test_execution_id'] as int;
+              
+              return GestureDetector(
+                onTap: () => _launchUrl(url),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: status == 'FAILED' 
+                      ? Colors.red.shade100
+                      : Colors.green.shade100,
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(
+                      color: status == 'FAILED' 
+                        ? Colors.red.shade300
+                        : Colors.green.shade300,
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'TE$testExecutionId',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: status == 'FAILED' 
+                            ? Colors.red.shade700
+                            : Colors.green.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.launch,
+                        size: 8,
+                        color: status == 'FAILED' 
+                          ? Colors.red.shade600
+                          : Colors.green.shade600,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildOptimizedEnvironmentCard(
     String envName,
     List c3Links,
     List ioLogs,
     bool hasFailure,
-    String testIdentifier,
-    int artefactId,
-    bool isIOLogVisible,
   ) {
+    // Build card fresh each time to ensure state consistency
+    // The main performance benefit comes from caching environment lists, not individual cards
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Environment header with controls
+          // Environment header with controls (optimized with reduced hover area)
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -1964,148 +2092,45 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
                   ),
                 ),
                 
-                // IO Log toggle button
+                // IO Log dialog button
                 if (ioLogs.isNotEmpty) ...[
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _ioLogVisibility.putIfAbsent(testIdentifier, () => <int, Map<String, bool>>{});
-                        _ioLogVisibility[testIdentifier]!.putIfAbsent(artefactId, () => <String, bool>{});
-                        _ioLogVisibility[testIdentifier]![artefactId]![envName] = !isIOLogVisible;
-                      });
+                  GestureDetector(
+                    onTap: () {
+                      _showIOLogDialogWithPreloading(
+                        context,
+                        ioLogs.cast<Map<String, dynamic>>(),
+                        envName,
+                      );
                     },
-                    icon: Icon(
-                      isIOLogVisible ? Icons.terminal : Icons.terminal_outlined,
-                      size: 16,
-                    ),
-                    tooltip: isIOLogVisible ? 'Hide IO Log' : 'Show IO Log',
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size(24, 24),
+                    child: Container(
                       padding: const EdgeInsets.all(4),
-                    ),
-                  ),
-                  
-                  // IO Log dialog button
-                  IconButton(
-                    onPressed: () => showIOLogDialog(
-                      context,
-                      ioLogs.cast<Map<String, dynamic>>(),
-                      envName,
-                    ),
-                    icon: const Icon(Icons.open_in_new, size: 14),
-                    tooltip: 'Open IO Log in dialog',
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size(24, 24),
-                      padding: const EdgeInsets.all(4),
+                      child: const Icon(Icons.terminal, size: 16),
                     ),
                   ),
                 ],
                 
-                // Testflinger link
-                IconButton(
-                  onPressed: () => _launchTestflingerUrl(envName),
-                  icon: const Icon(Icons.device_hub, size: 14),
-                  tooltip: 'View in Testflinger',
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(24, 24),
+                // Testflinger link (optimized)
+                GestureDetector(
+                  onTap: () => _launchTestflingerUrl(envName),
+                  child: Container(
                     padding: const EdgeInsets.all(4),
+                    child: const Icon(Icons.device_hub, size: 14),
                   ),
                 ),
               ],
             ),
           ),
           
-          // C3 Links
+          // C3 Links (build once, cached)
           if (c3Links.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'C3 Submissions (${c3Links.length}):',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 2,
-                    children: c3Links.map<Widget>((c3Link) {
-                      final url = c3Link['url'] as String;
-                      final status = c3Link['status'] as String;
-                      final testExecutionId = c3Link['test_execution_id'] as int;
-                      
-                      return InkWell(
-                        onTap: () => _launchUrl(url),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: status == 'FAILED' 
-                              ? Colors.red.shade100
-                              : Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(3),
-                            border: Border.all(
-                              color: status == 'FAILED' 
-                                ? Colors.red.shade300
-                                : Colors.green.shade300,
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'TE$testExecutionId',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: status == 'FAILED' 
-                                    ? Colors.red.shade700
-                                    : Colors.green.shade700,
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              Icon(
-                                Icons.launch,
-                                size: 8,
-                                color: status == 'FAILED' 
-                                  ? Colors.red.shade600
-                                  : Colors.green.shade600,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          
-          // IO Log display (when toggled on)
-          if (isIOLogVisible && ioLogs.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            IOLogViewer(
-              ioLogs: ioLogs.cast<Map<String, dynamic>>(),
-              environmentName: envName,
-            ),
+            _buildC3LinksSection(c3Links),
           ],
         ],
       ),
     );
   }
+
 
   Widget _buildSortableHeader(String title, int columnIndex) {
     final isSelected = _testSummarySortColumnIndex == columnIndex;
@@ -2318,3 +2343,5 @@ class _TestSummaryReportPageState extends ConsumerState<TestSummaryReportPage> {
     }
   }
 }
+
+

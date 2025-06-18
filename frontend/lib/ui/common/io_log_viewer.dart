@@ -120,9 +120,25 @@ class _IOLogViewerState extends State<IOLogViewer> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    'Test Execution ${log['test_execution_id']}',
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Test Execution ${log['test_execution_id']}',
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                        if (log['environment_name'] != null) ...[
+                                          Text(
+                                            'Environment: ${log['environment_name']}',
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              fontSize: 10,
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -144,7 +160,7 @@ class _IOLogViewerState extends State<IOLogViewer> {
             ),
           ),
           
-          // Log content
+          // Log content with optimized rendering
           Expanded(
             child: Container(
               width: double.infinity,
@@ -156,20 +172,72 @@ class _IOLogViewerState extends State<IOLogViewer> {
                   color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
-              child: SingleChildScrollView(
-                child: SelectableText(
-                  selectedLog['content'] as String,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    height: 1.4,
+              child: _buildLogContent(selectedLog['content'] as String),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogContent(String content) {
+    // For very large logs, use a more efficient approach
+    if (content.length > 100000) { // 100KB threshold
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.yellow.shade100,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.yellow.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning, size: 16, color: Colors.orange.shade600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Large log content (${(content.length / 1024).round()}KB). Rendering optimized view.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Text(
+                content,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  height: 1.4,
                 ),
               ),
             ),
           ),
         ],
+      );
+    }
+    
+    // For smaller logs, use SelectableText for better UX
+    return SingleChildScrollView(
+      child: SelectableText(
+        content,
+        style: TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.onSurface,
+          height: 1.4,
+        ),
       ),
     );
   }
@@ -185,7 +253,7 @@ class _IOLogViewerState extends State<IOLogViewer> {
   }
 }
 
-class IOLogDialog extends StatelessWidget {
+class IOLogDialog extends StatefulWidget {
   final List<Map<String, dynamic>> ioLogs;
   final String environmentName;
 
@@ -194,6 +262,26 @@ class IOLogDialog extends StatelessWidget {
     required this.ioLogs,
     required this.environmentName,
   });
+
+  @override
+  State<IOLogDialog> createState() => _IOLogDialogState();
+}
+
+class _IOLogDialogState extends State<IOLogDialog> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Simulate async loading to allow dialog to show before heavy rendering
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +313,7 @@ class IOLogDialog extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'IO Log - $environmentName',
+                      'IO Log - ${widget.environmentName}',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -242,13 +330,24 @@ class IOLogDialog extends StatelessWidget {
             
             // Log viewer
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: IOLogViewer(
-                  ioLogs: ioLogs,
-                  environmentName: environmentName,
-                ),
-              ),
+              child: _isLoading 
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Loading IO logs...'),
+                      ],
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: IOLogViewer(
+                      ioLogs: widget.ioLogs,
+                      environmentName: widget.environmentName,
+                    ),
+                  ),
             ),
           ],
         ),
@@ -257,7 +356,7 @@ class IOLogDialog extends StatelessWidget {
   }
 }
 
-// Helper function to show IO log dialog
+// Helper function to show IO log dialog with loading state
 void showIOLogDialog(
   BuildContext context,
   List<Map<String, dynamic>> ioLogs,
@@ -265,6 +364,7 @@ void showIOLogDialog(
 ) {
   showDialog(
     context: context,
+    barrierDismissible: false, // Prevent dismiss during loading
     builder: (context) => IOLogDialog(
       ioLogs: ioLogs,
       environmentName: environmentName,

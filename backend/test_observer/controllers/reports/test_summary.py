@@ -287,14 +287,39 @@ def get_test_case_associated_artefacts(
         artefact_data['success_environment_count'] = len(success_environments)
         artefact_data['failure_environment_count'] = len(failure_environments)
         
+        # Collect all test executions for this artefact across all environments
+        all_test_executions = []
+        for env_name in environments:
+            env_details = artefact_data['environment_details'][env_name]
+            for exec_detail in env_details['test_executions']:
+                all_test_executions.append({
+                    'test_execution_id': exec_detail['test_execution_id'],
+                    'test_result_id': exec_detail['test_result_id'],
+                    'environment_name': env_name,
+                    'c3_link': exec_detail['c3_link'],
+                    'ci_link': exec_detail['ci_link'],
+                    'io_log': exec_detail['io_log'],
+                    'status': exec_detail['status']
+                })
+        
+        # Create consolidated IO logs list for this artefact (all environments)
+        consolidated_io_logs = []
+        for exec_detail in all_test_executions:
+            consolidated_io_logs.append({
+                'content': exec_detail['io_log'] or 'No IO log available for this test execution.',
+                'test_result_id': exec_detail['test_result_id'],
+                'test_execution_id': exec_detail['test_execution_id'],
+                'environment_name': exec_detail['environment_name'],
+                'status': exec_detail['status']
+            })
+        
         # Convert environment_details to list format for frontend consumption
         environment_details_list = []
         for env_name in environments:
             env_details = artefact_data['environment_details'][env_name]
             
-            # Collect all C3 links for this environment
+            # Collect C3 links for this specific environment
             c3_links = []
-            io_logs = []
             primary_c3_link = None
             
             for exec_detail in env_details['test_executions']:
@@ -307,20 +332,12 @@ def get_test_case_associated_artefacts(
                     # Use the most recent C3 link as primary, preferring failed ones
                     if not primary_c3_link or exec_detail['status'] == 'FAILED':
                         primary_c3_link = exec_detail['c3_link']
-                
-                if exec_detail['io_log']:
-                    io_logs.append({
-                        'content': exec_detail['io_log'],
-                        'test_result_id': exec_detail['test_result_id'],
-                        'test_execution_id': exec_detail['test_execution_id'],
-                        'status': exec_detail['status']
-                    })
             
             environment_details_list.append({
                 'name': env_name,
                 'c3_link': primary_c3_link,  # Primary C3 link for quick access
-                'c3_links': c3_links,  # All C3 links for this environment
-                'io_logs': io_logs,  # All IO logs for this environment
+                'c3_links': c3_links,  # C3 links for this environment only
+                'io_logs': consolidated_io_logs,  # All IO logs for this artefact (all environments)
                 'has_failure': env_name in failure_environments,
                 'test_executions': env_details['test_executions']
             })
