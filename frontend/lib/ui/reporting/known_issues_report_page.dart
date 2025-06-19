@@ -60,60 +60,63 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
       <int, Map<int, Map<String, bool>>>{};
 
   // Track IO log visibility per environment (issue_id -> artefact_id -> environment_name -> bool)
-  final Map<int, Map<int, Map<String, bool>>> _ioLogVisibility = <int, Map<int, Map<String, bool>>>{};
+  final Map<int, Map<int, Map<String, bool>>> _ioLogVisibility =
+      <int, Map<int, Map<String, bool>>>{};
 
   // Helper function to categorize issues
   String _categorizeIssue(Map<String, dynamic> issue) {
     final url = issue['url']?.toString() ?? '';
     final description = issue['description']?.toString() ?? '';
-    
+
     // Check for GitHub issues to canonical/checkbox repo
     if (url.contains('github.com/canonical/checkbox')) {
       return 'test_definition';
     }
-    
+
     // Check for Jira issues with C3- or RTW- prefix in description
     if (description.startsWith('C3-') || description.startsWith('RTW-')) {
       return 'test_definition';
     }
-    
+
     // Check for Jira issues with C3- or RTW- prefix in URL
     if (url.contains('/C3-') || url.contains('/RTW-')) {
       return 'test_definition';
     }
-    
+
     return 'platform';
   }
 
   // Helper function to format error messages for users
   String _formatErrorMessage(dynamic error) {
     final errorStr = error.toString();
-    
+
     // Handle common network errors
-    if (errorStr.contains('XMLHttpRequest') || errorStr.contains('connection error')) {
+    if (errorStr.contains('XMLHttpRequest') ||
+        errorStr.contains('connection error')) {
       return 'Unable to connect to the server. Please check your connection and try again.';
     }
-    
+
     // Handle timeout errors
     if (errorStr.contains('timeout')) {
       return 'The request took too long. Please try again.';
     }
-    
+
     // Handle 404 errors
     if (errorStr.contains('404')) {
       return 'The requested data was not found.';
     }
-    
+
     // Handle 500 errors
-    if (errorStr.contains('500') || errorStr.contains('Internal Server Error')) {
+    if (errorStr.contains('500') ||
+        errorStr.contains('Internal Server Error')) {
       return 'Server error occurred. Please try again later.';
     }
-    
+
     // Handle authentication errors
     if (errorStr.contains('401') || errorStr.contains('403')) {
       return 'Access denied. Please check your permissions.';
     }
-    
+
     // Default message for other errors
     return 'An error occurred while loading data. Please try again.';
   }
@@ -386,7 +389,7 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
           ],
         ),
         const SizedBox(height: Spacing.level3),
-        
+
         // Group issues by category
         ..._buildGroupedIssues(issues),
       ],
@@ -397,7 +400,7 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
     // Group issues by category
     final testDefinitionIssues = <Map<String, dynamic>>[];
     final platformIssues = <Map<String, dynamic>>[];
-    
+
     for (final issue in issues) {
       if (_categorizeIssue(issue) == 'test_definition') {
         testDefinitionIssues.add(issue);
@@ -407,26 +410,34 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
     }
 
     final widgets = <Widget>[];
-    
+
     // Test Definition Related Issues
     if (testDefinitionIssues.isNotEmpty) {
       widgets.addAll([
-        _buildGroupHeader('Test Definition Related Issues', testDefinitionIssues.length, Icons.bug_report),
+        _buildGroupHeader(
+          'Test Definition Issues',
+          testDefinitionIssues.length,
+          Icons.bug_report,
+        ),
         const SizedBox(height: Spacing.level2),
         _buildIssuesTable(testDefinitionIssues),
         const SizedBox(height: Spacing.level4),
       ]);
     }
-    
-    // Known Platform Issues  
+
+    // Known Platform Issues
     if (platformIssues.isNotEmpty) {
       widgets.addAll([
-        _buildGroupHeader('Known Platform Issues', platformIssues.length, Icons.error_outline),
+        _buildGroupHeader(
+          'Known Platform Issues',
+          platformIssues.length,
+          Icons.error_outline,
+        ),
         const SizedBox(height: Spacing.level2),
         _buildIssuesTable(platformIssues),
       ]);
     }
-    
+
     return widgets;
   }
 
@@ -978,7 +989,9 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                   Expanded(
                     child: Text(
                       _formatErrorMessage(error),
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ),
                 ],
@@ -1284,15 +1297,16 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                 final c3Links = envDetail['c3_links'] as List? ?? [];
                 final ioLogs = envDetail['io_logs'] as List? ?? [];
                 final hasFailure = envDetail['has_failure'] as bool? ?? false;
-                
-                final isIOLogVisible = _ioLogVisibility[issueId]?[artefactId]?[envName] ?? false;
-                
+
+                final isIOLogVisible =
+                    _ioLogVisibility[issueId]?[artefactId]?[envName] ?? false;
+
                 return _buildEnvironmentCard(
-                  envName, 
-                  c3Links, 
-                  ioLogs, 
-                  hasFailure, 
-                  issueId, 
+                  envName,
+                  c3Links,
+                  ioLogs,
+                  hasFailure,
+                  issueId,
                   artefactId,
                   isIOLogVisible,
                 );
@@ -1771,14 +1785,18 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: hasFailure 
-                ? Colors.red.shade50
-                : Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              color: hasFailure
+                  ? Colors.red.shade50
+                  : Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: hasFailure 
-                  ? Colors.red.shade300
-                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                color: hasFailure
+                    ? Colors.red.shade300
+                    : Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -1788,23 +1806,30 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                   child: Text(
                     envName,
                     style: TextStyle(
-                      color: hasFailure 
-                        ? Colors.red.shade800
-                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                      color: hasFailure
+                          ? Colors.red.shade800
+                          : Theme.of(context).colorScheme.onPrimaryContainer,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                
+
                 // IO Log toggle button
                 if (ioLogs.isNotEmpty) ...[
                   IconButton(
                     onPressed: () {
                       setState(() {
-                        _ioLogVisibility.putIfAbsent(issueId, () => <int, Map<String, bool>>{});
-                        _ioLogVisibility[issueId]!.putIfAbsent(artefactId, () => <String, bool>{});
-                        _ioLogVisibility[issueId]![artefactId]![envName] = !isIOLogVisible;
+                        _ioLogVisibility.putIfAbsent(
+                          issueId,
+                          () => <int, Map<String, bool>>{},
+                        );
+                        _ioLogVisibility[issueId]!.putIfAbsent(
+                          artefactId,
+                          () => <String, bool>{},
+                        );
+                        _ioLogVisibility[issueId]![artefactId]![envName] =
+                            !isIOLogVisible;
                       });
                     },
                     icon: Icon(
@@ -1817,7 +1842,7 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                       padding: const EdgeInsets.all(4),
                     ),
                   ),
-                  
+
                   // IO Log dialog button
                   IconButton(
                     onPressed: () => showIOLogDialog(
@@ -1833,7 +1858,7 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                     ),
                   ),
                 ],
-                
+
                 // Testflinger link
                 IconButton(
                   onPressed: () => _launchTestflingerUrl(envName),
@@ -1847,7 +1872,7 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
               ],
             ),
           ),
-          
+
           // C3 Links
           if (c3Links.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -1857,7 +1882,9 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               child: Column(
@@ -1877,21 +1904,25 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                     children: c3Links.map<Widget>((c3Link) {
                       final url = c3Link['url'] as String;
                       final status = c3Link['status'] as String;
-                      final testExecutionId = c3Link['test_execution_id'] as int;
-                      
+                      final testExecutionId =
+                          c3Link['test_execution_id'] as int;
+
                       return InkWell(
                         onTap: () => _launchUrl(url),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: status == 'FAILED' 
-                              ? Colors.red.shade100
-                              : Colors.green.shade100,
+                            color: status == 'FAILED'
+                                ? Colors.red.shade100
+                                : Colors.green.shade100,
                             borderRadius: BorderRadius.circular(3),
                             border: Border.all(
-                              color: status == 'FAILED' 
-                                ? Colors.red.shade300
-                                : Colors.green.shade300,
+                              color: status == 'FAILED'
+                                  ? Colors.red.shade300
+                                  : Colors.green.shade300,
                               width: 0.5,
                             ),
                           ),
@@ -1903,18 +1934,18 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
-                                  color: status == 'FAILED' 
-                                    ? Colors.red.shade700
-                                    : Colors.green.shade700,
+                                  color: status == 'FAILED'
+                                      ? Colors.red.shade700
+                                      : Colors.green.shade700,
                                 ),
                               ),
                               const SizedBox(width: 2),
                               Icon(
                                 Icons.launch,
                                 size: 8,
-                                color: status == 'FAILED' 
-                                  ? Colors.red.shade600
-                                  : Colors.green.shade600,
+                                color: status == 'FAILED'
+                                    ? Colors.red.shade600
+                                    : Colors.green.shade600,
                               ),
                             ],
                           ),
@@ -1926,7 +1957,7 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
               ),
             ),
           ],
-          
+
           // IO Log display (when toggled on)
           if (isIOLogVisible && ioLogs.isNotEmpty) ...[
             const SizedBox(height: 4),
