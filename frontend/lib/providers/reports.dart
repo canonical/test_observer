@@ -65,9 +65,12 @@ final knownIssuesReportProvider = FutureProvider.autoDispose.family<Map<String, 
   };
 });
 
-final environmentIssuesReportProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+final environmentIssuesReportProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, DateRange?>((ref, dateRange) async {
   final api = ref.watch(apiProvider);
-  final issues = await api.getEnvironmentsIssues();
+  final issues = await api.getEnvironmentsIssuesWithCounts(
+    startDate: dateRange?.startDate,
+    endDate: dateRange?.endDate,
+  );
   return {
     'issues': issues,
     'total_count': issues.length,
@@ -112,6 +115,36 @@ final affectedArtefactsProvider = FutureProvider.autoDispose.family<dynamic, int
 final testCaseAffectedArtefactsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, testIdentifier) async {
   final api = ref.watch(apiProvider);
   return api.getTestCaseAffectedArtefacts(testIdentifier);
+});
+
+class EnvironmentAffectedArtefactsParams {
+  final int issueId;
+  final DateRange? dateRange;
+  
+  const EnvironmentAffectedArtefactsParams({
+    required this.issueId,
+    this.dateRange,
+  });
+  
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is EnvironmentAffectedArtefactsParams &&
+        other.issueId == issueId &&
+        other.dateRange == dateRange;
+  }
+  
+  @override
+  int get hashCode => Object.hash(issueId, dateRange);
+}
+
+final environmentAffectedArtefactsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, EnvironmentAffectedArtefactsParams>((ref, params) async {
+  final api = ref.watch(apiProvider);
+  return api.getEnvironmentAffectedArtefacts(
+    params.issueId,
+    startDate: params.dateRange?.startDate,
+    endDate: params.dateRange?.endDate,
+  );
 });
 
 class RejectionsParams {

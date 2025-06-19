@@ -157,6 +157,25 @@ class ApiRepository {
     return issuesJson.map((json) => EnvironmentIssue.fromJson(json)).toList();
   }
 
+  Future<List<dynamic>> getEnvironmentsIssuesWithCounts({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final queryParameters = <String, String>{}; 
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    
+    final response = await dio.get(
+      '/v1/environments/reported-issues',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
+
   Future<EnvironmentIssue> createEnvironmentIssue(
     String url,
     String description,
@@ -345,6 +364,26 @@ class ApiRepository {
     
     final response = await dio.get(
       '/v1/reports/rejections/summary',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getEnvironmentAffectedArtefacts(
+    int issueId, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    
+    final response = await dio.get(
+      '/v1/environments/reported-issues/$issueId/affected-artefacts',
       queryParameters: queryParameters,
     );
     return response.data;

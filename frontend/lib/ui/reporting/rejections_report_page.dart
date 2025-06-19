@@ -37,10 +37,10 @@ class _RejectionsReportPageState extends ConsumerState<RejectionsReportPage> {
   @override
   void initState() {
     super.initState();
-    // Set default date range to Last 30 days
+    // Set default date range to Last 365 days
     final now = DateTime.now();
     _selectedDateRange = DateRange(
-      startDate: now.subtract(const Duration(days: 30)),
+      startDate: now.subtract(const Duration(days: 365)),
       endDate: now,
     );
   }

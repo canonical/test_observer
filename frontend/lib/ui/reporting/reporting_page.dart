@@ -80,7 +80,7 @@ class _ReportingPageState extends ConsumerState<ReportingPage> {
     );
     final testSummaryAsync = ref.watch(testSummaryProvider(testSummaryParams));
     final knownIssuesReportAsync = ref.watch(knownIssuesReportProvider(_selectedDateRange));
-    final environmentIssuesReportAsync = ref.watch(environmentIssuesReportProvider);
+    final environmentIssuesReportAsync = ref.watch(environmentIssuesReportProvider(_selectedDateRange));
 
     return Padding(
       padding: const EdgeInsets.symmetric(

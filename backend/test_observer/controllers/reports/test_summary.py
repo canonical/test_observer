@@ -217,6 +217,65 @@ def get_test_case_associated_artefacts(
     
     results = db.execute(artefacts_query).fetchall()
     
+    if not results:
+        return {
+            'test_identifier': test_identifier,
+            'success_only_artefacts': [],
+            'artefacts_with_failures': [],
+            'total_artefacts': 0
+        }
+    
+    # Get the artefact IDs to find additional test executions
+    artefact_ids = list(set(row.artefact_id for row in results))
+    
+    # Query for ALL test executions for these artefacts to get complete IO log data
+    all_executions_query = (
+        select(
+            TestExecution.id.label('test_execution_id'),
+            TestExecution.artefact_build_id.label('artefact_build_id'),
+            TestExecution.environment_id.label('environment_id'),
+            TestExecution.c3_link.label('c3_link'),
+            TestExecution.ci_link.label('ci_link'),
+            ArtefactBuild.artefact_id.label('artefact_id'),
+            Environment.name.label('environment_name'),
+            # Get any test result for IO log data, prioritizing failed results
+            func.max(
+                case(
+                    (TestResult.status == 'FAILED', TestResult.io_log),
+                    else_=TestResult.io_log
+                )
+            ).label('io_log'),
+            func.max(
+                case(
+                    (TestResult.status == 'FAILED', TestResult.id),
+                    else_=TestResult.id
+                )
+            ).label('test_result_id'),
+            func.max(
+                case(
+                    (TestResult.status == 'FAILED', TestResult.status),
+                    else_=TestResult.status
+                )
+            ).label('status')
+        )
+        .select_from(TestExecution)
+        .join(ArtefactBuild, TestExecution.artefact_build_id == ArtefactBuild.id)
+        .join(Environment, TestExecution.environment_id == Environment.id)
+        .outerjoin(TestResult, TestResult.test_execution_id == TestExecution.id)
+        .where(ArtefactBuild.artefact_id.in_(artefact_ids))
+        .group_by(
+            TestExecution.id,
+            TestExecution.artefact_build_id,
+            TestExecution.environment_id,
+            TestExecution.c3_link,
+            TestExecution.ci_link,
+            ArtefactBuild.artefact_id,
+            Environment.name
+        )
+    )
+    
+    all_executions = db.execute(all_executions_query).fetchall()
+    
     # Group results by artefact and track success/failure status
     artefacts_dict = {}
     for row in results:
@@ -287,19 +346,18 @@ def get_test_case_associated_artefacts(
         artefact_data['success_environment_count'] = len(success_environments)
         artefact_data['failure_environment_count'] = len(failure_environments)
         
-        # Collect all test executions for this artefact across all environments
+        # Collect ALL test executions for this artefact across all environments
         all_test_executions = []
-        for env_name in environments:
-            env_details = artefact_data['environment_details'][env_name]
-            for exec_detail in env_details['test_executions']:
+        for exec_row in all_executions:
+            if exec_row.artefact_id == artefact_data['id']:
                 all_test_executions.append({
-                    'test_execution_id': exec_detail['test_execution_id'],
-                    'test_result_id': exec_detail['test_result_id'],
-                    'environment_name': env_name,
-                    'c3_link': exec_detail['c3_link'],
-                    'ci_link': exec_detail['ci_link'],
-                    'io_log': exec_detail['io_log'],
-                    'status': exec_detail['status']
+                    'test_execution_id': exec_row.test_execution_id,
+                    'test_result_id': exec_row.test_result_id,
+                    'environment_name': exec_row.environment_name,
+                    'c3_link': exec_row.c3_link,
+                    'ci_link': exec_row.ci_link,
+                    'io_log': exec_row.io_log,
+                    'status': exec_row.status
                 })
         
         # Create consolidated IO logs list for this artefact (all environments)

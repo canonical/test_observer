@@ -63,6 +63,10 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
   final Map<int, Map<int, Map<String, bool>>> _ioLogVisibility =
       <int, Map<int, Map<String, bool>>>{};
 
+  // Track expanded state for issue group sections
+  bool _testDefinitionIssuesExpanded = true;
+  bool _platformIssuesExpanded = true;
+
   // Helper function to categorize issues
   String _categorizeIssue(Map<String, dynamic> issue) {
     final url = issue['url']?.toString() ?? '';
@@ -418,9 +422,17 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
           'Test Definition Issues',
           testDefinitionIssues.length,
           Icons.bug_report,
+          _testDefinitionIssuesExpanded,
+          () {
+            setState(() {
+              _testDefinitionIssuesExpanded = !_testDefinitionIssuesExpanded;
+            });
+          },
         ),
-        const SizedBox(height: Spacing.level2),
-        _buildIssuesTable(testDefinitionIssues),
+        if (_testDefinitionIssuesExpanded) ...[
+          const SizedBox(height: Spacing.level2),
+          _buildIssuesTable(testDefinitionIssues),
+        ],
         const SizedBox(height: Spacing.level4),
       ]);
     }
@@ -432,50 +444,70 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
           'Known Platform Issues',
           platformIssues.length,
           Icons.error_outline,
+          _platformIssuesExpanded,
+          () {
+            setState(() {
+              _platformIssuesExpanded = !_platformIssuesExpanded;
+            });
+          },
         ),
-        const SizedBox(height: Spacing.level2),
-        _buildIssuesTable(platformIssues),
+        if (_platformIssuesExpanded) ...[
+          const SizedBox(height: Spacing.level2),
+          _buildIssuesTable(platformIssues),
+        ],
       ]);
     }
 
     return widgets;
   }
 
-  Widget _buildGroupHeader(String title, int count, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              count.toString(),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+  Widget _buildGroupHeader(String title, int count, IconData icon, bool isExpanded, VoidCallback onToggle) {
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                count.toString(),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              isExpanded ? Icons.expand_less : Icons.expand_more,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ],
+        ),
       ),
     );
   }
