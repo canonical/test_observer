@@ -10,10 +10,18 @@ services:
     ports:
       - "30000:30000"
     depends_on:
-      - test-observer-db
+      test-observer-db:
+        condition: service_healthy
     environment:
       DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
       SEED_DATA: "true"
+      UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:30000/v1/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   test-observer-frontend:
     image: test-observer-frontend
@@ -22,6 +30,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "30001:80" # Adjust the port mapping as needed
+    depends_on:
+      test-observer-api:
+        condition: service_healthy
 
   test-observer-db:
     image: postgres:15
@@ -33,6 +44,12 @@ services:
       - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_observer_user -d test_observer_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   db_data:

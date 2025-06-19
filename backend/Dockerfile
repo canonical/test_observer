@@ -16,7 +16,7 @@ WORKDIR /home/app
 RUN echo "Version: ${VERSION}"
 
 RUN apt-get update && \
-    apt-get install -y python3.12 && \
+    apt-get install -y python3.12 curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
