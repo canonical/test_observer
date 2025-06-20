@@ -27,7 +27,7 @@ COPY pyproject.toml .
 COPY . .
 
 # Make scripts executable
-RUN chmod +x dev_entrypoint.sh wait_for_db.py wait_for_app.py
+RUN chmod +x dev_entrypoint.sh
 
 ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
