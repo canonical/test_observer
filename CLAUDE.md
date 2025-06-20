@@ -52,8 +52,11 @@ cd frontend && flutter pub get
 # Generate code (required before running)
 dart run build_runner build
 
-# Run application
-flutter run -d chrome
+# Run application (development with hot reload)
+flutter run -d chrome --web-experimental-hot-reload
+
+# Build for production (with WASM)
+flutter build web --wasm
 
 # Run tests
 flutter analyze

@@ -16,6 +16,12 @@ services:
       DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
       SEED_DATA: "true"
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
+      PYTHONDONTWRITEBYTECODE: "1"  # Prevent .pyc files in development
+    volumes:
+      # Mount source code from host for development
+      - ./backend:/home/app
+      # Preserve virtual environment in anonymous volume
+      - /home/app/.venv
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:30000/v1/version"]
       interval: 30s
