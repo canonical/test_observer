@@ -5,7 +5,7 @@ RUN apt-get update
 RUN apt-get install -y curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback python3
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
-    cd /opt/flutter && git checkout '3.29.3' && \
+    cd /opt/flutter && git checkout '3.32.4' && \
     /opt/flutter/bin/flutter doctor && \
     /opt/flutter/bin/flutter config --enable-web
 
