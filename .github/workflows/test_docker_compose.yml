@@ -1,13 +1,5 @@
 name: Test Docker Compose
 on:
-  push:
-    branches-ignore:
-      - 'main'
-    paths:
-      - 'docker-compose.yml'
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/test_docker_compose.yml'
   pull_request:
     paths:
       - 'docker-compose.yml'
