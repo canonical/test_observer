@@ -34,24 +34,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12" # version of python used in production Dockerfile
-
-      - name: Install uv and calculate version
-        id: version
-        run: |
-          pip install uv
-          cd backend
-          uv sync --group test
-          VERSION=$(uv run python set_project_version_hook.py)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Calculated version: $VERSION"
-
       - name: Build and start services
         env:
-          VERSION: ${{ steps.version.outputs.VERSION }}
           SEED_DATA: "true"  # Enable seeding to test full application setup
         run: |
           docker compose build
