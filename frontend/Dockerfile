@@ -16,7 +16,7 @@ COPY . /app
 
 RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
-RUN flutter build web --release --wasm
+RUN flutter build web --release
 # Cache busting so that users don't have to hard refresh
 RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
     mv build/web/flutter_bootstrap.js build/web/flutter_bootstrap.$RANDOMVALUE.js && \
