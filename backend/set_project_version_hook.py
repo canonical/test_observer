@@ -81,7 +81,17 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
                 .strip()
             )
 
-            return f"{latest_tag.lstrip('v')}-{commit_count}+{short_rev}"
+            # Check for uncommitted changes
+            try:
+                subprocess.check_output(
+                    ["git", "diff-index", "--quiet", "HEAD", "--"],
+                    stderr=subprocess.DEVNULL,
+                )
+                dirty_suffix = ""
+            except subprocess.CalledProcessError:
+                dirty_suffix = "-dirty"
+
+            return f"{latest_tag.lstrip('v')}-{commit_count}+{short_rev}{dirty_suffix}"
         else:
             # Fallback if no tags found
             short_rev = (
@@ -92,7 +102,18 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
                 .decode()
                 .strip()
             )
-            return f"0.0.0-{short_rev}"
+            
+            # Check for uncommitted changes
+            try:
+                subprocess.check_output(
+                    ["git", "diff-index", "--quiet", "HEAD", "--"],
+                    stderr=subprocess.DEVNULL,
+                )
+                dirty_suffix = ""
+            except subprocess.CalledProcessError:
+                dirty_suffix = "-dirty"
+                
+            return f"0.0.0-{short_rev}{dirty_suffix}"
     else:
         return fallback_version
 

@@ -29,6 +29,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for git versioning
 
       - name: Log in to the Container registry
         uses: docker/login-action@6d4b68b490aef8836e8fb5e50ee7b3bdfa5894f0
@@ -36,6 +38,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate version from git
+        id: version
+        run: |
+          cd backend
+          VERSION=$(python set_project_version_hook.py)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated version: $VERSION"
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -51,6 +61,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            UV_DYNAMIC_VERSIONING_BYPASS=${{ steps.version.outputs.VERSION }}
 
   build-and-push-charm:
     runs-on: [self-hosted, linux, xlarge, jammy, x64]
