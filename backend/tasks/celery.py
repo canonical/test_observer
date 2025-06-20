@@ -37,6 +37,11 @@ logger = logging.getLogger(__name__)
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):  # noqa
+    # Skip periodic tasks in development/seeding mode
+    if environ.get("DISABLE_PERIODIC_TASKS", "false").lower() == "true":
+        logger.info("Periodic tasks disabled via DISABLE_PERIODIC_TASKS environment variable")
+        return
+        
     sender.add_periodic_task(300, integrate_with_kernel_swm.s())
     sender.add_periodic_task(600, run_promote_artefacts.s())
 

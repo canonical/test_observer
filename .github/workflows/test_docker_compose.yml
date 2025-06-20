@@ -29,6 +29,7 @@ jobs:
       - name: Build and start services
         env:
           SEED_DATA: "true"  # Enable seeding to test full application setup
+          DISABLE_PERIODIC_TASKS: "true"  # Disable external API calls in CI
         run: |
           docker compose build
           docker compose up -d
