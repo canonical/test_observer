@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -52,7 +53,11 @@ def _create_user(launchpad_user: LaunchpadUser, session: Session) -> User:
         select(User).where(User.launchpad_email == launchpad_user.email)
     )
     if existing_user:
-        print(f"User with email {launchpad_user.email} already exists. Skipping creation.")
+        logger = logging.getLogger("test-observer-backend")
+        logger.info(
+            "User with email %s already exists. Skipping creation.",
+            launchpad_user.email
+        )
         return existing_user
     
     user = User(

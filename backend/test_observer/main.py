@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import logging
 import os
 
 import sentry_sdk
@@ -23,7 +22,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from test_observer.controllers.router import router
-from importlib.metadata import PackageNotFoundError, version
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:

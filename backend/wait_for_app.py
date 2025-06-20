@@ -20,6 +20,7 @@ Application readiness check script for Test Observer backend.
 Waits for the FastAPI application to be ready to accept requests.
 """
 
+import logging
 import time
 import sys
 import requests
@@ -27,11 +28,16 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 
-def wait_for_application(base_url: str = "http://localhost:30000", max_retries: int = 30, retry_interval: int = 2):
+def wait_for_application(
+    base_url: str = "http://localhost:30000",
+    max_retries: int = 30,
+    retry_interval: int = 2,
+):
     """Wait for the FastAPI application to be ready."""
     health_url = f"{base_url}/v1/version"
     
-    print(f"Checking application readiness at: {health_url}")
+    logger = logging.getLogger("test-observer-backend")
+    logger.info("Checking application readiness at: %s", health_url)
     
     # Configure requests session with retries
     session = requests.Session()
@@ -50,17 +56,23 @@ def wait_for_application(base_url: str = "http://localhost:30000", max_retries: 
         try:
             response = session.get(health_url, timeout=5)
             if response.status_code == 200:
-                print("Application is ready!")
+                logger.info("Application is ready!")
                 return True
                 
         except (requests.exceptions.ConnectionError, 
                 requests.exceptions.Timeout, 
                 requests.exceptions.RequestException) as e:
             if attempt == max_retries - 1:
-                print(f"Application readiness check failed after {max_retries} attempts: {e}")
+                logger.error(
+                    "Application readiness check failed after %d attempts: %s",
+                    max_retries, e
+                )
                 return False
                 
-            print(f"Application not ready, retrying... ({attempt + 1}/{max_retries})")
+            logger.info(
+                "Application not ready, retrying... (%d/%d)",
+                attempt + 1, max_retries
+            )
             time.sleep(retry_interval)
     
     return False
