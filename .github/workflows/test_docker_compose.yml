@@ -53,16 +53,16 @@ jobs:
       - name: Wait for services to be healthy
         run: |
           echo "Waiting for all services to be healthy..."
-          
+        
           # Maximum wait time (in seconds)
           MAX_WAIT=300
           ELAPSED=0
           INTERVAL=5
-          
+
           while [ $ELAPSED -lt $MAX_WAIT ]; do
             # Check health status of all services
             HEALTH_STATUS=$(docker compose ps --format json | jq -r '.[].Health')
-            
+
             # Check if all services are healthy
             ALL_HEALTHY=true
             for status in $HEALTH_STATUS; do
@@ -71,18 +71,18 @@ jobs:
                 break
               fi
             done
-            
+
             if [ "$ALL_HEALTHY" = true ]; then
               echo "All services are healthy!"
               docker compose ps
               break
             fi
-            
+
             echo "Waiting for services... ($ELAPSED/$MAX_WAIT seconds)"
             sleep $INTERVAL
             ELAPSED=$((ELAPSED + INTERVAL))
           done
-          
+
           if [ $ELAPSED -ge $MAX_WAIT ]; then
             echo "Timeout waiting for services to be healthy"
             docker compose ps
@@ -94,7 +94,7 @@ jobs:
         run: |
           echo "Testing API version endpoint..."
           curl -f http://localhost:30000/v1/version || (echo "API test failed" && exit 1)
-          
+
       - name: Test Frontend
         run: |
           echo "Testing frontend HTTP response..."
