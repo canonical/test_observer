@@ -52,11 +52,15 @@ lint.select = [
 lint.ignore = ["ANN201", "ANN003", "N999", "ANN204", "N818", "B008"]
 
 [tool.mypy]
-exclude = "charm/*"
+exclude = ["charm/*", "set_project_version_hook.py"]
 explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = "celery.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "hatchling.*"
 ignore_missing_imports = true
 
 [build-system]
