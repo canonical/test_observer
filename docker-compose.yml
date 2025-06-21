@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   test-observer-api:
     image: test-observer-api

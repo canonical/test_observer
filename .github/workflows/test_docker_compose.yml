@@ -45,12 +45,12 @@ jobs:
 
           while [ $ELAPSED -lt $MAX_WAIT ]; do
             # Check health status of all services
-            HEALTH_STATUS=$(docker compose ps --format json | jq -r '.[].Health')
+            HEALTH_STATUS=$(docker compose ps --format json | jq -r '.[] | select(has("Health")) | .Health // "unknown"')
 
             # Check if all services are healthy
             ALL_HEALTHY=true
             for status in $HEALTH_STATUS; do
-              if [ "$status" != "healthy" ] && [ "$status" != "null" ]; then
+              if [ "$status" != "healthy" ] && [ "$status" != "unknown" ] && [ "$status" != "" ]; then
                 ALL_HEALTHY=false
                 break
               fi
