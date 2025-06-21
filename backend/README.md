@@ -2,14 +2,14 @@
 
 ## Development Setup
 
-This project supports [microk8s](https://microk8s.io/) development environment with the help of [Skaffold](https://skaffold.dev/). It also uses [Poetry](https://python-poetry.org/) for dependency management.
+This project supports [microk8s](https://microk8s.io/) development environment with the help of [Skaffold](https://skaffold.dev/). It also uses [uv](https://github.com/astral-sh/uv) for dependency management.
 
 ### 1. Install required tools
 
 - Install [docker](https://docs.docker.com/engine/install/ubuntu/) and [setup permissions](https://docs.docker.com/engine/install/linux-postinstall/)
 - Install [microk8s](https://microk8s.io/docs/getting-started) and setup permissions
 - Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary)
-- Install [Poetry](https://python-poetry.org/docs/#installation)
+- Install [uv](https://github.com/astral-sh/uv#installation)
 - Install [pre-commit](https://pre-commit.com) (best done using `sudo apt install pre-commit`, followed by `pre-commit install` in the `backend` directory)
 - Install [jq](https://github.com/jqlang/jq) (`sudo apt install jq`)
 
@@ -23,7 +23,7 @@ This project supports [microk8s](https://microk8s.io/) development environment w
 
 ### 3. Install python dependencies for linting and completions
 
-While technically not required to run the code, it helps to have dependencies installed on host system to get code completions and linting. To do that just run `$ poetry install`. Note that poetry will create a virtual environment for you, but if you want poetry to create that virtual environment inside this project's directory just run `$ poetry config virtualenvs.in-project true` before installing dependencies.
+While technically not required to run the code, it helps to have dependencies installed on host system to get code completions and linting. To do that just run `$ uv sync`. Note that uv will create a virtual environment for you in the `.venv` directory.
 
 Linting and formatting checks are done using ruff, and type checking using mypy. We have CI in place to make those checks, but it's probably a good idea to setup your editor to use these. Note that their settings are in `pyproject.toml`.
 
@@ -48,15 +48,15 @@ Run `scripts/seed_data.py` script to seed the database with some dummy data. Thi
 
 ### Add/Install dependency
 
-`$ poetry add foo`
+`$ uv add foo`
 
 If it's a dev dependency
 
-`$ poetry add --group dev foo`
+`$ uv add --dev foo`
 
 ### Remove/Uninstall dependency
 
-`$ poetry remove foo`
+`$ uv remove foo`
 
 ## Database Migrations
 
@@ -97,12 +97,12 @@ Two Dockerfiles are provided for the backend application:
 
 ## Versioning
 
-The application is versioned for release purposes using source control tag and commit metadata, using [poetry-dynamic-versioning](https://pypi.org/project/poetry-dynamic-versioning/).
+The application is versioned for release purposes using source control tag and commit metadata, using [setuptools-scm](https://github.com/pypa/setuptools_scm).
 
 The version "0.0.0" stated in the `pyproject.toml` is a "fallback version" which is returned by the `/version` endpoint when the application is either run:
 
 1. ... directly from source, i.e. not built and launched as wheel.
-2. ... using a wheel built with `poetry build` when `poetry-dynamic-versioning[plugin]` was not installed (this is installed in the `Dockerfile`).
+2. ... using a wheel built with `uv build` when dynamic versioning is not configured.
 
 ## Building Docker images
 

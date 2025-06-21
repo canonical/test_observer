@@ -13,20 +13,3 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
-from importlib.metadata import PackageNotFoundError
-
-from test_observer._version import __version__
-
-from fastapi import APIRouter
-
-router = APIRouter()
-
-
-@router.get("")
-async def get_version():
-    try:
-        return {"version": __version__}
-    except PackageNotFoundError:
-        return {"version": "0.0.0"}

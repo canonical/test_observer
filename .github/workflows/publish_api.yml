@@ -29,6 +29,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for git versioning
 
       - name: Log in to the Container registry
         uses: docker/login-action@6d4b68b490aef8836e8fb5e50ee7b3bdfa5894f0
