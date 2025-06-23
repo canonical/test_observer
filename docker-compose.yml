@@ -4,8 +4,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      args:
-        VERSION: ${VERSION:-0.1.2}
     ports:
       - "30000:30000"
     depends_on:
@@ -22,12 +20,6 @@ services:
       - ./backend:/home/app
       # Preserve virtual environment in anonymous volume
       - /home/app/.venv
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:30000/v1/version"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
 
   test-observer-frontend:
     image: test-observer-frontend

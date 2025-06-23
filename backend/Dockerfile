@@ -30,7 +30,7 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --group test
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:30000/v1/version || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD curl --fail http://localhost:30000/v1/version || exit 1
 
 WORKDIR /home/app
 
