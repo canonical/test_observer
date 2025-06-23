@@ -15,9 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import importlib.metadata
 from importlib.metadata import PackageNotFoundError
-
-from test_observer._version import __version__
 
 from fastapi import APIRouter
 
@@ -27,6 +26,7 @@ router = APIRouter()
 @router.get("")
 async def get_version():
     try:
-        return {"version": __version__}
+        version = importlib.metadata.version("test-observer")
+        return {"version": version}
     except PackageNotFoundError:
         return {"version": "0.0.0"}

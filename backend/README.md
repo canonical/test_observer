@@ -97,7 +97,7 @@ Two Dockerfiles are provided for the backend application:
 
 ## Versioning
 
-The application is versioned for release purposes using source control tag and commit metadata, using [setuptools-scm](https://github.com/pypa/setuptools_scm).
+The application is versioned for release purposes using source control tag and commit metadata, using [uv-dynamic-versioning](https://pypi.org/project/uv-dynamic-versioning/).
 
 The version "0.0.0" stated in the `pyproject.toml` is a "fallback version" which is returned by the `/version` endpoint when the application is either run:
 

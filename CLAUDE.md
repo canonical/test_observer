@@ -17,7 +17,7 @@ mypy .
 
 # Run tests (Docker Compose)
 
-docker-compose exec backend pytest
+docker compose exec backend pytest
 
 # Run tests (Kubernetes)
 
@@ -25,8 +25,8 @@ kubectl exec -it service/test-observer-api -- pytest
 
 # Database migrations (Docker Compose)
 
-docker-compose exec backend alembic revision --autogenerate -m "Description"
-docker-compose exec backend alembic upgrade head
+docker compose exec backend alembic revision --autogenerate -m "Description"
+docker compose exec backend alembic upgrade head
 
 # Database migrations (Kubernetes)
 
@@ -35,7 +35,7 @@ kubectl exec -it service/test-observer-api -- alembic upgrade head
 
 # Seed database with test data (Docker Compose)
 
-docker-compose exec backend python scripts/seed_data.py
+docker compose exec backend python scripts/seed_data.py
 
 # Seed database with test data (Kubernetes)
 
@@ -84,14 +84,14 @@ docker compose up -d
 docker compose up --build
 
 # Stop services
-docker-compose down
+docker compose down
 
 # View logs
-docker-compose logs -f [service-name]
+docker compose logs -f [service-name]
 
 # Execute commands in running containers
-docker-compose exec backend bash
-docker-compose exec frontend bash
+docker compose exec backend bash
+docker compose exec frontend bash
 ```
 
 #### Kubernetes (Alternative)
