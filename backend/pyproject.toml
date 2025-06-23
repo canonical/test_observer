@@ -52,7 +52,7 @@ lint.select = [
 lint.ignore = ["ANN201", "ANN003", "N999", "ANN204", "N818", "B008"]
 
 [tool.mypy]
-exclude = ["charm/*", "set_project_version_hook.py"]
+exclude = ["charm/*"]
 explicit_package_bases = true
 
 [[tool.mypy.overrides]]
