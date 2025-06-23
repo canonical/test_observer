@@ -41,7 +41,7 @@ $ dart run build_runner build
 Then you can launch the fontend on chrome:
 
 ```bash
-## You can use --experimental-hot-reload with Flutter versions sufficiently new (3.32.0 or later).
+# You can use --experimental-hot-reload with Flutter versions >= 3.32.0
 $ flutter run -d chrome # --experimental-hot-reload
 ```
 
