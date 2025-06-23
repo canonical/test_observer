@@ -79,3 +79,27 @@ def get_status_update(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
     return test_execution.test_events
+
+
+@router.post("/{id}/status_update")
+def post_status_update(
+    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
+):
+    test_execution = db.get(
+        TestExecution,
+        id,
+        options=[joinedload(TestExecution.test_events)],
+    )
+    if test_execution is None:
+        raise HTTPException(status_code=404, detail="TestExecution not found")
+
+    for event in request.events:
+        test_event = TestEvent(
+            event_name=event.event_name,
+            timestamp=event.timestamp,
+            detail=event.detail,
+        )
+        db.add(test_event)
+        test_execution.test_events.append(test_event)
+
+    db.commit()
