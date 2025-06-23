@@ -231,3 +231,53 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
         },
     )
     assert test_execution.status == TestExecutionStatus.ENDED_PREMATURELY
+
+
+def test_post_status_update_appends_events(
+    test_client: TestClient, 
+    generator: DataGenerator, 
+    db_session: Session
+):
+
+    artefact = generator.gen_artefact(StageName.beta)
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "CI", "url": "http://example.com/ci"}]
+    )
+
+    response1 = test_client.post(
+        f"/v1/test-executions/{test_execution.id}/status_update",
+        json={
+            "events": [
+                {
+                    "event_name": "started_setup",
+                    "timestamp": "2025-06-21T10:00:00.000000",
+                    "detail": "Initial setup started",
+                }
+            ]
+        }
+    )
+    assert response1.status_code == 200
+
+    response2 = test_client.post(
+        f"/v1/test-executions/{test_execution.id}/status_update",
+        json={
+            "events": [
+                {
+                    "event_name": "ended_setup",
+                    "timestamp": "2025-06-21T10:05:00.000000",
+                    "detail": "Setup completed",
+                }
+            ]
+        }
+    )
+    assert response2.status_code == 200
+
+    db_session.refresh(test_execution)
+    assert len(test_execution.test_events) == 2
+    assert test_execution.test_events[0].event_name == "started_setup"
+    assert test_execution.test_events[1].event_name == "ended_setup"
