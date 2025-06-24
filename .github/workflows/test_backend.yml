@@ -34,7 +34,8 @@ jobs:
         with:
           python-version: "3.10"
       - run: pip install uv
-      - run: uv sync --group test
+      - run: uv sync --all-groups
+      - run: uv pip install -e .
       - run: uv run ruff check
       - run: uv run mypy .
       - run: uv run pytest
