@@ -69,20 +69,22 @@ def db_url():
         "database": "test",
         "port": 5432,
     }
-    
+
     # Define potential database hosts in order of preference
     hosts = [
         "localhost",  # For running tests on host OS
         "test-observer-db",  # For running tests inside Docker
     ]
-    
+
     # Find the first host that we can connect to
     selected_host = None
     for host in hosts:
-        if _check_postgres_connection(host, db_params["port"], db_params["user"], db_params["password"]):
+        if _check_postgres_connection(
+            host, db_params["port"], db_params["user"], db_params["password"]
+        ):
             selected_host = host
             break
-    
+
     if not selected_host:
         raise RuntimeError(
             "Could not connect to PostgreSQL. Make sure either:\n"
@@ -90,13 +92,13 @@ def db_url():
             "2. You're running tests inside Docker Compose, or\n"
             "3. Set TEST_DB_URL environment variable"
         )
-    
+
     # Now create the test database
     db_url = f"postgresql+pg8000://{db_params['user']}:{db_params['password']}@{selected_host}:{db_params['port']}/{db_params['database']}"
     create_database(db_url)
-    
+
     yield db_url
-    
+
     drop_database(db_url)
 
 
