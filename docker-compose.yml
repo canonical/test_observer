@@ -1,0 +1,53 @@
+services:
+  test-observer-api:
+    image: test-observer-api
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "30000:30000"
+    depends_on:
+      test-observer-db:
+        condition: service_healthy
+    environment:
+      DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
+      SEED_DATA: "true"
+      DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}"  # Can be overridden for GitHub CI
+      UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
+      PYTHONDONTWRITEBYTECODE: "1"  # Prevent .pyc files in development
+    volumes:
+      # Mount source code from host for development
+      - ./backend:/home/app
+      # Preserve virtual environment in anonymous volume
+      - /home/app/.venv
+
+  test-observer-frontend:
+    image: test-observer-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "30001:80" # Adjust the port mapping as needed
+    depends_on:
+      test-observer-api:
+        condition: service_healthy
+
+  test-observer-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: test_observer_user
+      POSTGRES_PASSWORD: test_observer_password
+      POSTGRES_DB: test_observer_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_observer_user -d test_observer_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  db_data:

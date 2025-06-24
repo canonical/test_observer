@@ -1,0 +1,71 @@
+name: Test Docker Compose
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/test_docker_compose.yml'
+
+# Cancel in-progress runs if new commit pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-docker-compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for git versioning
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start services
+        env:
+          SEED_DATA: "true"  # Enable seeding to test full application setup
+          DISABLE_PERIODIC_TASKS: "true"  # Disable external API calls in CI
+        run: |
+          docker compose build
+          # Use --wait flag to wait for services to be healthy before returning
+          docker compose up -d --wait --wait-timeout 300
+          
+      - name: Show service status
+        run: |
+          echo "All services are up and healthy!"
+          docker compose ps
+
+      - name: Test API endpoint
+        run: |
+          echo "Testing API version endpoint..."
+          curl -f http://localhost:30000/v1/version || (echo "API test failed" && exit 1)
+
+      - name: Test Frontend
+        run: |
+          echo "Testing frontend HTTP response..."
+          curl -f -I http://localhost:30001 || (echo "Frontend test failed" && exit 1)
+
+      - name: Test Database connectivity
+        run: |
+          echo "Testing database connectivity through API..."
+          # The API health check already verifies DB connectivity
+          # but we can also check if migrations ran successfully
+          docker compose exec -T test-observer-api uv run alembic current || (echo "Database migration check failed" && exit 1)
+
+      - name: Show service logs on failure
+        if: failure()
+        run: |
+          echo "=== Docker Compose Status ==="
+          docker compose ps
+          echo -e "\n=== Docker Compose Logs ==="
+          docker compose logs
+
+      - name: Clean up
+        if: always()
+        run: |
+          docker compose down -v

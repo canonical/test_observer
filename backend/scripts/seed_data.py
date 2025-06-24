@@ -43,7 +43,7 @@ from test_observer.controllers.test_executions.models import (
 
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
-from test_observer.data_access.models import Artefact
+from test_observer.data_access.models import Artefact, User
 from test_observer.data_access.models_enums import (
     FamilyName,
     SnapStage,
@@ -583,7 +583,17 @@ ENVIRONMENT_ISSUE_REQUESTS = [
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
-
+    
+    # Check if data has already been seeded by looking for existing users or artefacts
+    existing_users = session.scalar(select(User).limit(1))
+    existing_artefacts = session.scalar(select(Artefact).limit(1))
+    
+    if existing_users or existing_artefacts:
+        print("Database already contains data. Skipping seed operation.")
+        return
+    
+    print("Seeding database with test data...")
+    
     add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
     test_executions = []
@@ -613,6 +623,8 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     _rerun_some_test_executions(client, test_executions)
 
     _add_bugurl_and_duedate(session)
+    
+    print("Database seeding completed successfully!")
 
 
 def _rerun_some_test_executions(
