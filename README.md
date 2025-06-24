@@ -32,7 +32,7 @@ This will start:
 
 - **Backend API** at `http://localhost:30000` (with automatic migrations and seeding)
 - **Frontend** at `http://localhost:30001`
-- **PostgreSQL database** with persistent storage
+- **PostgreSQL database** with persistent storage on port 5432
 
 ### Individual Components
 

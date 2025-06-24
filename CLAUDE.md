@@ -23,6 +23,14 @@ docker compose exec backend pytest
 
 kubectl exec -it service/test-observer-api -- pytest
 
+# Run tests on host machine (requires Docker Compose running)
+
+cd backend && uv run pytest
+
+# Run tests with custom database URL
+
+TEST_DB_URL="postgresql+pg8000://user:pass@host:port/db" uv run pytest
+
 # Database migrations (Docker Compose)
 
 docker compose exec backend alembic revision --autogenerate -m "Description"

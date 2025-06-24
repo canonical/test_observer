@@ -84,9 +84,40 @@ Since the database is in microk8s cluster, migrations have to be applied inside 
 
 ## Tests
 
-To run the tests, first make sure that you're running skaffold. Then execute the pytest command in the API pod:
+Tests can be run in several ways:
+
+### Running tests in Kubernetes (Skaffold)
+
+To run the tests in the Kubernetes environment, first make sure that you're running skaffold. Then execute the pytest command in the API pod:
 
 `$ kubectl exec -it service/test-observer-api -- pytest`
+
+### Running tests in Docker Compose
+
+If you're using Docker Compose for development:
+
+`$ docker compose exec test-observer-api pytest`
+
+### Running tests on host machine
+
+You can also run tests directly on your host machine if Docker Compose is running (exposing PostgreSQL on localhost:5432):
+
+```bash
+# First ensure dependencies are installed
+$ uv sync --all-groups
+$ uv pip install -e .
+
+# Run tests
+$ uv run pytest
+```
+
+The test configuration automatically detects whether to use localhost (for host machine testing) or the Docker service name (for container testing).
+
+### Custom database configuration
+
+You can override the database connection by setting the `TEST_DB_URL` environment variable:
+
+`$ TEST_DB_URL="postgresql+pg8000://user:password@host:port/database" uv run pytest`
 
 ## OCI images
 

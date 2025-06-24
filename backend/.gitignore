@@ -178,3 +178,5 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 test_observer/_version.py
+
+*.csv
