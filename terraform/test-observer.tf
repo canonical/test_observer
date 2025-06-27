@@ -1,4 +1,5 @@
 terraform {
+  required_version = ">= 1.12.0"
   required_providers {
     juju = {
       version = "~> 0.20.0"
@@ -22,6 +23,7 @@ resource "juju_secret" "lego_creds" {
 
 variable "environment" {
   description = "The environment to deploy to (development, stg, production)"
+  type = string
 }
 
 variable "config_dir" {
@@ -216,7 +218,7 @@ resource "juju_application" "test-observer-api" {
   config = {
     hostname   = var.environment == "stg" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
     port       = var.environment == "development" ? 80 : 443
-    sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
+    sentry_dsn = local.sentry_dsn_map[var.environment]
   }
 
   units = 3
