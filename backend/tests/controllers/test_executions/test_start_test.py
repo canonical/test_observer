@@ -17,7 +17,7 @@
 
 from collections.abc import Callable
 from datetime import date, timedelta
-from typing import Any, TypeAlias
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -39,7 +39,7 @@ from test_observer.data_access.models_enums import (
 from tests.asserts import assert_fails_validation
 from tests.data_generator import DataGenerator
 
-Execute: TypeAlias = Callable[[dict[str, Any]], Response]
+type Execute = Callable[[dict[str, Any]], Response]
 
 
 @pytest.fixture

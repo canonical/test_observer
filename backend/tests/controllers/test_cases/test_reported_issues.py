@@ -16,7 +16,7 @@
 
 
 from collections.abc import Callable
-from typing import Any, TypeAlias
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -65,10 +65,10 @@ def delete(test_client: TestClient):
     return delete_helper
 
 
-Post: TypeAlias = Callable[[Any], Response]
-Put: TypeAlias = Callable[[int, Any], Response]
-Get: TypeAlias = Callable[..., Response]
-Delete: TypeAlias = Callable[[int], Response]
+type Post = Callable[[Any], Response]
+type Put = Callable[[int, Any], Response]
+type Get = Callable[..., Response]
+type Delete = Callable[[int], Response]
 
 
 def test_empty_get(get: Get):
