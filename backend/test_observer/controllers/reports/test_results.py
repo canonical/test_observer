@@ -89,13 +89,15 @@ def get_testresults_report(
     )
 
     filename = "testresults_report.csv"
-    with open(filename, "w") as csvfile:
+
+    try:
+        with open(filename, "w") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(TESTRESULTS_REPORT_COLUMNS)
+            writer.writerows(cursor)
+    finally:
         # Background tasks get called after the response was returned.
         # So effectively, this will delete the file after it was returned to the user
         background_tasks.add_task(lambda: Path(filename).unlink(missing_ok=True))
-
-        writer = csv.writer(csvfile)
-        writer.writerow(TESTRESULTS_REPORT_COLUMNS)
-        writer.writerows(cursor)
 
     return filename
