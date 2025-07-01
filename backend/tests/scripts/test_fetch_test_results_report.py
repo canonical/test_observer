@@ -16,7 +16,7 @@
 
 from collections.abc import Generator
 from datetime import datetime, timedelta
-import os
+from pathlib import Path
 import pytest
 import subprocess
 
@@ -39,7 +39,7 @@ def _run_script(input_params: list[str]) -> tuple[bytes, bytes]:
 
 
 def _verify_csv_file(file_name: str) -> None:
-    assert os.path.exists(file_name)
+    assert Path(file_name).exists()
     with open(file_name) as output_file:
         lines = output_file.readlines()
         assert lines == [
@@ -68,13 +68,15 @@ def test_fetch_test_results_report_invalid_start_date():
 @pytest.fixture
 def _clean_files_created() -> Generator[None, None, None]:
     yield
-    if os.path.exists("output.csv"):
-        os.remove("output.csv")
+    output_file = Path("output.csv")
+    if output_file.exists():
+        output_file.unlink()
 
-    if os.path.exists("test-results-reports"):
-        for file in os.listdir("test-results-reports"):
-            os.remove(os.path.join("test-results-reports", file))
-        os.rmdir("test-results-reports")
+    reports_dir = Path("test-results-reports")
+    if reports_dir.exists():
+        for file in reports_dir.iterdir():
+            file.unlink()
+        reports_dir.rmdir()
 
 
 def test_fetch_test_results_report(

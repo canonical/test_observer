@@ -17,7 +17,7 @@
 
 import csv
 from datetime import datetime
-import os
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -90,7 +90,7 @@ def get_testresults_report(
 
     filename = "testresults_report.csv"
     with open(filename, "w") as csvfile:
-        background_tasks.add_task(lambda: os.remove(filename))
+        background_tasks.add_task(lambda: Path(filename).unlink(missing_ok=True))
 
         writer = csv.writer(csvfile)
         writer.writerow(TESTRESULTS_REPORT_COLUMNS)
