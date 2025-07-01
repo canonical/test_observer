@@ -130,7 +130,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
             with ArchiveManager(
                 arch=arch,
                 series=series,
-                pocket=pocket.value,
+                pocket=pocket,
                 apt_repo=repo,
             ) as archivemanager:
                 deb_version = archivemanager.get_deb_version(artefact.name)
