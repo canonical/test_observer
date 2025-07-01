@@ -16,7 +16,7 @@
 
 
 from datetime import datetime
-from enum import StrEnum
+from enum import Enum
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -100,7 +100,7 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     image_url: HttpUrl
 
 
-class C3TestResultStatus(StrEnum):
+class C3TestResultStatus(str, Enum):
     PASS = "pass"
     FAIL = "fail"
     SKIP = "skip"

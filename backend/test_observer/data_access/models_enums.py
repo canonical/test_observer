@@ -15,10 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from enum import StrEnum, auto
+from enum import Enum, StrEnum, auto
 
 
-class FamilyName(StrEnum):
+class FamilyName(str, Enum):
     snap = "snap"
     deb = "deb"
     charm = "charm"
@@ -52,31 +52,31 @@ class StageName(StrEnum):
         return self._compare(other) >= 0
 
 
-class SnapStage(StrEnum):
+class SnapStage(str, Enum):
     edge = StageName.edge.value
     beta = StageName.beta.value
     candidate = StageName.candidate.value
     stable = StageName.stable.value
 
 
-class DebStage(StrEnum):
+class DebStage(str, Enum):
     proposed = StageName.proposed.value
     updates = StageName.updates.value
 
 
-class CharmStage(StrEnum):
+class CharmStage(str, Enum):
     edge = StageName.edge.value
     beta = StageName.beta.value
     candidate = StageName.candidate.value
     stable = StageName.stable.value
 
 
-class ImageStage(StrEnum):
+class ImageStage(str, Enum):
     pending = StageName.pending.value
     current = StageName.current.value
 
 
-class TestExecutionStatus(StrEnum):
+class TestExecutionStatus(str, Enum):
     __test__ = False
 
     NOT_STARTED = "NOT_STARTED"
@@ -87,7 +87,7 @@ class TestExecutionStatus(StrEnum):
     ENDED_PREMATURELY = "ENDED_PREMATURELY"
 
 
-class ArtefactBuildEnvironmentReviewDecision(StrEnum):
+class ArtefactBuildEnvironmentReviewDecision(str, Enum):
     REJECTED = "REJECTED"
     APPROVED_INCONSISTENT_TEST = "APPROVED_INCONSISTENT_TEST"
     APPROVED_UNSTABLE_PHYSICAL_INFRA = "APPROVED_UNSTABLE_PHYSICAL_INFRA"
@@ -96,13 +96,13 @@ class ArtefactBuildEnvironmentReviewDecision(StrEnum):
     APPROVED_ALL_TESTS_PASS = "APPROVED_ALL_TESTS_PASS"
 
 
-class ArtefactStatus(StrEnum):
+class ArtefactStatus(str, Enum):
     APPROVED = "APPROVED"
     MARKED_AS_FAILED = "MARKED_AS_FAILED"
     UNDECIDED = "UNDECIDED"
 
 
-class TestResultStatus(StrEnum):
+class TestResultStatus(str, Enum):
     __test__ = False
 
     PASSED = "PASSED"
