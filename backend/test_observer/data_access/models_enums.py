@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from enum import Enum
+from enum import Enum, StrEnum, auto
 
 
 class FamilyName(str, Enum):
@@ -25,15 +25,15 @@ class FamilyName(str, Enum):
     image = "image"
 
 
-class StageName(str, Enum):
-    proposed = "proposed"
-    updates = "updates"
-    edge = "edge"
-    beta = "beta"
-    candidate = "candidate"
-    stable = "stable"
-    pending = "pending"
-    current = "current"
+class StageName(StrEnum):
+    proposed = auto()
+    updates = auto()
+    edge = auto()
+    beta = auto()
+    candidate = auto()
+    stable = auto()
+    pending = auto()
+    current = auto()
 
     def _compare(self, other: str) -> int:
         stages = list(StageName.__members__.values())
