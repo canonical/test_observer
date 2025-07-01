@@ -18,7 +18,7 @@
 from enum import Enum, StrEnum, auto
 
 
-class FamilyName(str, Enum):
+class FamilyName(StrEnum):
     snap = "snap"
     deb = "deb"
     charm = "charm"
@@ -52,31 +52,31 @@ class StageName(StrEnum):
         return self._compare(other) >= 0
 
 
-class SnapStage(str, Enum):
+class SnapStage(StrEnum):
     edge = StageName.edge.value
     beta = StageName.beta.value
     candidate = StageName.candidate.value
     stable = StageName.stable.value
 
 
-class DebStage(str, Enum):
+class DebStage(StrEnum):
     proposed = StageName.proposed.value
     updates = StageName.updates.value
 
 
-class CharmStage(str, Enum):
+class CharmStage(StrEnum):
     edge = StageName.edge.value
     beta = StageName.beta.value
     candidate = StageName.candidate.value
     stable = StageName.stable.value
 
 
-class ImageStage(str, Enum):
+class ImageStage(StrEnum):
     pending = StageName.pending.value
     current = StageName.current.value
 
 
-class TestExecutionStatus(str, Enum):
+class TestExecutionStatus(StrEnum):
     __test__ = False
 
     NOT_STARTED = "NOT_STARTED"
@@ -87,7 +87,7 @@ class TestExecutionStatus(str, Enum):
     ENDED_PREMATURELY = "ENDED_PREMATURELY"
 
 
-class ArtefactBuildEnvironmentReviewDecision(str, Enum):
+class ArtefactBuildEnvironmentReviewDecision(StrEnum):
     REJECTED = "REJECTED"
     APPROVED_INCONSISTENT_TEST = "APPROVED_INCONSISTENT_TEST"
     APPROVED_UNSTABLE_PHYSICAL_INFRA = "APPROVED_UNSTABLE_PHYSICAL_INFRA"
@@ -96,13 +96,13 @@ class ArtefactBuildEnvironmentReviewDecision(str, Enum):
     APPROVED_ALL_TESTS_PASS = "APPROVED_ALL_TESTS_PASS"
 
 
-class ArtefactStatus(str, Enum):
+class ArtefactStatus(StrEnum):
     APPROVED = "APPROVED"
     MARKED_AS_FAILED = "MARKED_AS_FAILED"
     UNDECIDED = "UNDECIDED"
 
 
-class TestResultStatus(str, Enum):
+class TestResultStatus(StrEnum):
     __test__ = False
 
     PASSED = "PASSED"
