@@ -17,8 +17,9 @@
 
 import csv
 from datetime import datetime
+import os
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
@@ -137,6 +138,7 @@ def _get_test_executions_reports_query(
 
 @router.get("/test-executions", response_class=FileResponse)
 def get_test_execution_reports(
+    background_tasks: BackgroundTasks,
     start_date: datetime = datetime.min,
     end_date: datetime | None = None,
     db: Session = Depends(get_db),
@@ -153,6 +155,8 @@ def get_test_execution_reports(
 
     filename = "test_executions_report.csv"
     with open(filename, "w") as csvfile:
+        background_tasks.add_task(lambda: os.remove(filename))
+
         writer = csv.writer(csvfile)
         writer.writerow(TEST_EXECUTIONS_REPORT_HEADERS)
         writer.writerows(cursor)

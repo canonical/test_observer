@@ -17,8 +17,9 @@
 
 import csv
 from datetime import datetime
+import os
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -65,6 +66,7 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
 
 @router.get("/test-results", response_class=FileResponse)
 def get_testresults_report(
+    background_tasks: BackgroundTasks,
     start_date: datetime = datetime.min,
     end_date: datetime | None = None,
     db: Session = Depends(get_db),
@@ -88,6 +90,8 @@ def get_testresults_report(
 
     filename = "testresults_report.csv"
     with open(filename, "w") as csvfile:
+        background_tasks.add_task(lambda: os.remove(filename))
+
         writer = csv.writer(csvfile)
         writer.writerow(TESTRESULTS_REPORT_COLUMNS)
         writer.writerows(cursor)
