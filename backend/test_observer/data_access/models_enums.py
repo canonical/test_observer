@@ -53,27 +53,27 @@ class StageName(StrEnum):
 
 
 class SnapStage(StrEnum):
-    edge = StageName.edge.value
-    beta = StageName.beta.value
-    candidate = StageName.candidate.value
-    stable = StageName.stable.value
+    edge = StageName.edge
+    beta = StageName.beta
+    candidate = StageName.candidate
+    stable = StageName.stable
 
 
 class DebStage(StrEnum):
-    proposed = StageName.proposed.value
-    updates = StageName.updates.value
+    proposed = StageName.proposed
+    updates = StageName.updates
 
 
 class CharmStage(StrEnum):
-    edge = StageName.edge.value
-    beta = StageName.beta.value
-    candidate = StageName.candidate.value
-    stable = StageName.stable.value
+    edge = StageName.edge
+    beta = StageName.beta
+    candidate = StageName.candidate
+    stable = StageName.stable
 
 
 class ImageStage(StrEnum):
-    pending = StageName.pending.value
-    current = StageName.current.value
+    pending = StageName.pending
+    current = StageName.current
 
 
 class TestExecutionStatus(StrEnum):
