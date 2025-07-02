@@ -15,17 +15,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from enum import Enum
+from enum import StrEnum
 
 
-class FamilyName(str, Enum):
+class FamilyName(StrEnum):
     snap = "snap"
     deb = "deb"
     charm = "charm"
     image = "image"
 
 
-class StageName(str, Enum):
+class StageName(StrEnum):
     proposed = "proposed"
     updates = "updates"
     edge = "edge"
@@ -52,31 +52,31 @@ class StageName(str, Enum):
         return self._compare(other) >= 0
 
 
-class SnapStage(str, Enum):
-    edge = StageName.edge.value
-    beta = StageName.beta.value
-    candidate = StageName.candidate.value
-    stable = StageName.stable.value
+class SnapStage(StrEnum):
+    edge = StageName.edge
+    beta = StageName.beta
+    candidate = StageName.candidate
+    stable = StageName.stable
 
 
-class DebStage(str, Enum):
-    proposed = StageName.proposed.value
-    updates = StageName.updates.value
+class DebStage(StrEnum):
+    proposed = StageName.proposed
+    updates = StageName.updates
 
 
-class CharmStage(str, Enum):
-    edge = StageName.edge.value
-    beta = StageName.beta.value
-    candidate = StageName.candidate.value
-    stable = StageName.stable.value
+class CharmStage(StrEnum):
+    edge = StageName.edge
+    beta = StageName.beta
+    candidate = StageName.candidate
+    stable = StageName.stable
 
 
-class ImageStage(str, Enum):
-    pending = StageName.pending.value
-    current = StageName.current.value
+class ImageStage(StrEnum):
+    pending = StageName.pending
+    current = StageName.current
 
 
-class TestExecutionStatus(str, Enum):
+class TestExecutionStatus(StrEnum):
     __test__ = False
 
     NOT_STARTED = "NOT_STARTED"
@@ -87,7 +87,7 @@ class TestExecutionStatus(str, Enum):
     ENDED_PREMATURELY = "ENDED_PREMATURELY"
 
 
-class ArtefactBuildEnvironmentReviewDecision(str, Enum):
+class ArtefactBuildEnvironmentReviewDecision(StrEnum):
     REJECTED = "REJECTED"
     APPROVED_INCONSISTENT_TEST = "APPROVED_INCONSISTENT_TEST"
     APPROVED_UNSTABLE_PHYSICAL_INFRA = "APPROVED_UNSTABLE_PHYSICAL_INFRA"
@@ -96,13 +96,13 @@ class ArtefactBuildEnvironmentReviewDecision(str, Enum):
     APPROVED_ALL_TESTS_PASS = "APPROVED_ALL_TESTS_PASS"
 
 
-class ArtefactStatus(str, Enum):
+class ArtefactStatus(StrEnum):
     APPROVED = "APPROVED"
     MARKED_AS_FAILED = "MARKED_AS_FAILED"
     UNDECIDED = "UNDECIDED"
 
 
-class TestResultStatus(str, Enum):
+class TestResultStatus(StrEnum):
     __test__ = False
 
     PASSED = "PASSED"

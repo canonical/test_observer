@@ -17,7 +17,7 @@
 
 from collections.abc import Callable
 from operator import itemgetter
-from typing import Any, TypeAlias
+from typing import Any
 
 import pytest
 from fastapi.encoders import jsonable_encoder
@@ -63,9 +63,9 @@ def delete(test_client: TestClient):
     return delete_helper
 
 
-Post: TypeAlias = Callable[[Any], Response]
-Get: TypeAlias = Callable[..., Response]
-Delete: TypeAlias = Callable[[Any], Response]
+type Post = Callable[[Any], Response]
+type Get = Callable[..., Response]
+type Delete = Callable[[Any], Response]
 
 
 def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
@@ -263,13 +263,13 @@ def test_rerun_preserves_ci_and_relevant_links(
     environment = generator.gen_environment()
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
-    
+
     expected_ci_link = "http://ci.example.com/build-123"
     initial_relevant_links_data = [
         {"label": "Bug Report", "url": "http://bug.example.com/1"},
         {"label": "Wiki", "url": "http://wiki.example.com/page"},
     ]
-    
+
     test_execution = generator.gen_test_execution(
         artefact_build=artefact_build,
         environment=environment,
@@ -286,7 +286,7 @@ def test_rerun_preserves_ci_and_relevant_links(
     retrieved_rerun = get_response[0]
 
     expected_rerun_data = test_execution_to_pending_rerun(test_execution)
-    
+
     assert retrieved_rerun["test_execution"]["ci_link"] == expected_ci_link
 
     retrieved_links = retrieved_rerun["test_execution"]["relevant_links"]
