@@ -17,7 +17,7 @@
 
 import csv
 from datetime import datetime
-import os
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -163,6 +163,6 @@ def get_test_execution_reports(
     finally:
         # Background tasks get called after the response was returned.
         # So effectively, this will delete the file after it was returned to the user
-        background_tasks.add_task(lambda: os.remove(filename))
+        background_tasks.add_task(lambda: Path(filename).unlink(missing_ok=True))
 
     return filename
