@@ -18,10 +18,41 @@ depends_on = None
 
 
 def upgrade() -> None:
+    _add_source_column()
+    _change_unique_constraints()
+
+
+def downgrade() -> None:
+    op.execute("DELETE FROM artefact WHERE source != ''")
+    _revert_unique_constraints()
+    op.drop_column("artefact", "source")
+
+
+def _add_source_column() -> None:
     op.add_column("artefact", sa.Column("source", sa.String(length=200)))
     op.execute("UPDATE artefact SET source = '' WHERE source is NULL")
     op.alter_column("artefact", "source", nullable=False)
 
 
-def downgrade() -> None:
-    op.drop_column("artefact", "source")
+def _change_unique_constraints() -> None:
+    op.drop_index("unique_deb", "artefact")
+
+    op.create_index(
+        "unique_deb",
+        "artefact",
+        ["name", "version", "series", "repo", "source"],
+        unique=True,
+        postgresql_where=sa.text("family = 'deb'"),
+    )
+
+
+def _revert_unique_constraints() -> None:
+    op.drop_index("unique_deb", "artefact")
+
+    op.create_index(
+        "unique_deb",
+        "artefact",
+        ["name", "version", "series", "repo"],
+        unique=True,
+        postgresql_where=sa.text("family = 'deb'"),
+    )
