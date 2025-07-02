@@ -154,11 +154,15 @@ def get_test_execution_reports(
     cursor = db.execute(_get_test_executions_reports_query(start_date, end_date))
 
     filename = "test_executions_report.csv"
-    with open(filename, "w") as csvfile:
-        background_tasks.add_task(lambda: os.remove(filename))
 
-        writer = csv.writer(csvfile)
-        writer.writerow(TEST_EXECUTIONS_REPORT_HEADERS)
-        writer.writerows(cursor)
+    try:
+        with open(filename, "w") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(TEST_EXECUTIONS_REPORT_HEADERS)
+            writer.writerows(cursor)
+    finally:
+        # Background tasks get called after the response was returned.
+        # So effectively, this will delete the file after it was returned to the user
+        background_tasks.add_task(lambda: os.remove(filename))
 
     return filename
