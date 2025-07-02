@@ -54,9 +54,7 @@ class _StartTestExecutionRequest(BaseModel):
     ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
     initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
-    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
-        default_factory=list
-    )
+    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(default_factory=list)
 
     @field_validator("version")
     @classmethod
@@ -71,7 +69,7 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
-    branch: str = ""
+    branch: str = Field(max_length=200, default="")
     execution_stage: SnapStage
 
 
@@ -79,6 +77,7 @@ class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.deb]
     series: str
     repo: str
+    source: str = Field(max_length=200, description="PPA source or empty", default="")
     execution_stage: DebStage
 
 

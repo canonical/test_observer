@@ -426,3 +426,19 @@ def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session
 
     assert te1 and te2
     assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
+
+
+def test_deb_source_is_part_of_uniqueness(execute: Execute, db_session: Session):
+    response = execute(deb_test_request)
+    te1 = db_session.get(TestExecution, response.json()["id"])
+
+    request_with_source = {
+        **deb_test_request,
+        "source": "ppa",
+        "ci_link": "http://someother.link",
+    }
+    response = execute(request_with_source)
+    te2 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te2
+    assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
