@@ -1736,6 +1736,10 @@
             "type": "string",
             "title": "Repo"
           },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
           "os": {
             "type": "string",
             "title": "Os"
@@ -1825,6 +1829,7 @@
           "branch",
           "series",
           "repo",
+          "source",
           "os",
           "release",
           "owner",
@@ -2433,6 +2438,13 @@
             "type": "string",
             "title": "Repo"
           },
+          "source": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Source",
+            "description": "PPA source or empty",
+            "default": ""
+          },
           "execution_stage": {
             "$ref": "#/components/schemas/DebStage"
           }
@@ -2615,6 +2627,7 @@
           },
           "branch": {
             "type": "string",
+            "maxLength": 200,
             "title": "Branch",
             "default": ""
           },
