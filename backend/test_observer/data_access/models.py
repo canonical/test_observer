@@ -134,6 +134,7 @@ class Artefact(Base):
     # Deb specific fields
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+    source: Mapped[str] = mapped_column(String(200), default="")
 
     # Image specific fields
     os: Mapped[str] = mapped_column(String(200), default="")
@@ -369,8 +370,8 @@ class TestExecution(Base):
         String(200), nullable=True, default=None
     )
 
-    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = (
-        relationship(back_populates="test_execution", cascade="all, delete-orphan")
+    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = relationship(
+        back_populates="test_execution", cascade="all, delete-orphan"
     )
 
     test_plan: Mapped[str] = mapped_column(String(200))
