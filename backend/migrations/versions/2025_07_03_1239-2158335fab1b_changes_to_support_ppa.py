@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Add artefact source field
+"""Changes to support ppa
 
-Revision ID: f1aa5dc6ea73
-Revises: 87f9e68e61a7
-Create Date: 2025-07-02 08:47:22.068336+00:00
+Revision ID: 2158335fab1b
+Revises: f1aa5dc6ea73
+Create Date: 2025-07-03 12:39:07.797701+00:00
 
 """
 
@@ -27,8 +27,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "f1aa5dc6ea73"
-down_revision = "87f9e68e61a7"
+revision = "2158335fab1b"
+down_revision = "f1aa5dc6ea73"
 branch_labels = None
 depends_on = None
 
@@ -63,6 +63,7 @@ def _change_stage_type() -> None:
 
 
 def downgrade() -> None:
+    _revert_stage_type()
     op.execute("DELETE FROM artefact WHERE source != ''")
     _revert_unique_constraints()
     op.drop_column("artefact", "source")
@@ -77,4 +78,19 @@ def _revert_unique_constraints() -> None:
         ["name", "version", "series", "repo"],
         unique=True,
         postgresql_where=sa.text("family = 'deb'"),
+    )
+
+
+def _revert_stage_type() -> None:
+    op.execute(
+        "DELETE FROM artefact WHERE stage NOT IN "
+        "('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')"
+    )
+    op.execute(
+        "CREATE TYPE stagename AS "
+        "ENUM('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')"
+    )
+    op.execute(
+        "ALTER TABLE artefact ALTER COLUMN stage TYPE "
+        "stagename USING stage::text::stagename"
     )

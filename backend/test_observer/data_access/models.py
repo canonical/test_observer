@@ -323,7 +323,7 @@ class TestExecutionRerunRequest(Base):
     __tablename__ = "test_execution_rerun_request"
 
     test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id"), unique=True
+        ForeignKey("test_execution.id", ondelete="CASCADE"), unique=True
     )
     test_execution: Mapped["TestExecution"] = relationship(
         back_populates="rerun_request"
