@@ -36,12 +36,7 @@ depends_on = None
 def upgrade() -> None:
     _add_source_column()
     _change_unique_constraints()
-
-
-def downgrade() -> None:
-    op.execute("DELETE FROM artefact WHERE source != ''")
-    _revert_unique_constraints()
-    op.drop_column("artefact", "source")
+    _change_stage_type()
 
 
 def _add_source_column() -> None:
@@ -60,6 +55,17 @@ def _change_unique_constraints() -> None:
         unique=True,
         postgresql_where=sa.text("family = 'deb'"),
     )
+
+
+def _change_stage_type() -> None:
+    op.alter_column("artefact", "stage", type_=sa.VARCHAR(100))
+    op.execute("DROP TYPE stagename")
+
+
+def downgrade() -> None:
+    op.execute("DELETE FROM artefact WHERE source != ''")
+    _revert_unique_constraints()
+    op.drop_column("artefact", "source")
 
 
 def _revert_unique_constraints() -> None:
