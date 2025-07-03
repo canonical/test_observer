@@ -35,7 +35,7 @@ def get_summary(sub_id):
     with urllib.request.urlopen(req) as response:
         result = json.loads(response.read().decode("utf-8"))
 
-    return result
+    return (sub_id, result)
 
 
 def slugify(_string: str):
@@ -79,10 +79,15 @@ def main():
 
     artefact_id = (x["Artefact.name"] for x in lines_of_interest)
     to_links = [
-        f"https://test-observer.canonical.com/#/{x["Artefact.family"]}s/{x["Artefact.id"]}"
+        f"https://test-observer.canonical.com/#/{x["Artefact.family"]}s/{x["Artefact.id"]}?q={x["Environment.name"]}"
         for x in lines_of_interest
     ]
     machine_id = (x["TestExecution.c3_link"][45:57] for x in lines_of_interest)
+    environment_name = (x["Environment.name"] for x in lines_of_interest)
+    checkbox_version = (
+        x["TestExecution.checkbox_version"] for x in lines_of_interest
+    )
+
     sub_links = (x["TestExecution.c3_link"] for x in lines_of_interest)
     sub_links = [f"{x}test-results/fail" for x in sub_links]
     print(f"Found {len(sub_links)} failures")
@@ -101,12 +106,15 @@ def main():
         f.writelines("\n".join(sub_links))
 
     sub_ids = [x.rsplit("/", 3)[-3] for x in sub_links]
-    sub_summaries = []
+    unique_ids = list(set(sub_ids))
+    sub_summaries = {}
     print("Downloading all submissions")
-    with Pool(20) as p:
-        for i, sub_summary in enumerate(p.imap(get_summary, sub_ids)):
-            print(f"Done {i+1}/{len(sub_ids)}")
-            sub_summaries.append(sub_summary["results"][0]["testresult_set"])
+    with Pool(min(len(unique_ids), 20)) as p:
+        for i, (sub_id, sub_summary) in enumerate(
+            p.imap(get_summary, unique_ids)
+        ):
+            print(f"Done {i+1}/{len(unique_ids)}")
+            sub_summaries[sub_id] = sub_summary["results"][0]["testresult_set"]
 
     job_objects = [
         list(
@@ -116,10 +124,10 @@ def main():
                     or x["template_id"] in relevant_ids
                 )
                 and x["status"] == "fail",
-                sub,
+                sub_summaries[sub_id],
             )
         )
-        for sub in sub_summaries
+        for sub_id in sub_ids
     ]
     fieldnames = [
         "TestObserver Link",
@@ -128,9 +136,19 @@ def main():
         "Template ID",
         "Job log",
         "Machine",
+        "Environment Name",
+        "Checkbox Version",
         "Artefact id",
     ]
-    results = zip(to_links, sub_links, job_objects, machine_id, artefact_id)
+    results = zip(
+        to_links,
+        sub_links,
+        job_objects,
+        machine_id,
+        environment_name,
+        checkbox_version,
+        artefact_id,
+    )
     results = (
         (
             to_link,
@@ -139,6 +157,8 @@ def main():
             job_object.get("template_id", ""),
             job_object["io_log"],
             machine_id,
+            environment_name,
+            checkbox_version,
             artefact_id,
         )
         for (
@@ -146,6 +166,8 @@ def main():
             sub_link,
             job_objects,
             machine_id,
+            environment_name,
+            checkbox_version,
             artefact_id,
         ) in results
         for job_object in job_objects
