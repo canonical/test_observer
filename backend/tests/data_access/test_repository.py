@@ -17,7 +17,7 @@
 
 """Test services functions"""
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 
 from sqlalchemy.orm import Session
 
@@ -96,7 +96,7 @@ def test_get_artefacts_by_family_charm_unique(
             name=name,
             version=version,
             archived=archived,
-            created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            created_at=datetime(2024, 1, 1, tzinfo=UTC),
         )
         generator.gen_artefact_build(
             artefact,

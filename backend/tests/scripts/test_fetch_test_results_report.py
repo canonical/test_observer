@@ -14,13 +14,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from collections.abc import Generator
 from datetime import datetime, timedelta
-import os
+from pathlib import Path
+import pytest
 import subprocess
 
 from scripts.fetch_test_results_report import fetch_test_results_report
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
+
 
 from fastapi.testclient import TestClient
 
@@ -35,18 +38,8 @@ def _run_script(input_params: list[str]) -> tuple[bytes, bytes]:
     return stdout, stderr
 
 
-def _clean_files_created(output_file_name: str) -> None:
-    if os.path.exists(output_file_name):
-        os.remove(output_file_name)
-
-    if os.path.exists("test-results-reports"):
-        for file in os.listdir("test-results-reports"):
-            os.remove(os.path.join("test-results-reports", file))
-        os.rmdir("test-results-reports")
-
-
 def _verify_csv_file(file_name: str) -> None:
-    assert os.path.exists(file_name)
+    assert Path(file_name).exists()
     with open(file_name) as output_file:
         lines = output_file.readlines()
         assert lines == [
@@ -72,7 +65,25 @@ def test_fetch_test_results_report_invalid_start_date():
     assert "Date 2023.01.15 is not in the correct format: %Y-%m-%d" in str(stderr)
 
 
-def test_fetch_test_results_report(generator: DataGenerator, test_client: TestClient):
+@pytest.fixture
+def _clean_files_created() -> Generator[None, None, None]:
+    yield
+    output_file = Path("output.csv")
+    if output_file.exists():
+        output_file.unlink()
+
+    reports_dir = Path("test-results-reports")
+    if reports_dir.exists():
+        for file in reports_dir.iterdir():
+            file.unlink()
+        reports_dir.rmdir()
+
+
+def test_fetch_test_results_report(
+    generator: DataGenerator,
+    test_client: TestClient,
+    _clean_files_created,  # noqa: ANN001
+):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -88,4 +99,3 @@ def test_fetch_test_results_report(generator: DataGenerator, test_client: TestCl
     )
 
     _verify_csv_file("output.csv")
-    _clean_files_created("output.csv")

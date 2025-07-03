@@ -16,7 +16,7 @@
 
 
 from collections.abc import Callable
-from typing import Any, TypeAlias
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -28,7 +28,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from tests.data_generator import DataGenerator
 
-Execute: TypeAlias = Callable[[int, dict[str, Any]], Response]
+type Execute = Callable[[int, dict[str, Any]], Response]
 
 
 @pytest.fixture

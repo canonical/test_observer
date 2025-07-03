@@ -17,8 +17,9 @@
 
 import csv
 from datetime import datetime
+from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
@@ -137,6 +138,7 @@ def _get_test_executions_reports_query(
 
 @router.get("/test-executions", response_class=FileResponse)
 def get_test_execution_reports(
+    background_tasks: BackgroundTasks,
     start_date: datetime = datetime.min,
     end_date: datetime | None = None,
     db: Session = Depends(get_db),
@@ -152,9 +154,15 @@ def get_test_execution_reports(
     cursor = db.execute(_get_test_executions_reports_query(start_date, end_date))
 
     filename = "test_executions_report.csv"
-    with open(filename, "w") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(TEST_EXECUTIONS_REPORT_HEADERS)
-        writer.writerows(cursor)
+
+    try:
+        with open(filename, "w") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(TEST_EXECUTIONS_REPORT_HEADERS)
+            writer.writerows(cursor)
+    finally:
+        # Background tasks get called after the response was returned.
+        # So effectively, this will delete the file after it was returned to the user
+        background_tasks.add_task(lambda: Path(filename).unlink(missing_ok=True))
 
     return filename

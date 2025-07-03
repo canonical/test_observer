@@ -3,7 +3,7 @@ name = "test-observer"
 description = "Observe the status and state of certification tests for various artefacts"
 authors = []
 dynamic = ["version"] # uv-dynamic-versioning used
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 dependencies = [
     "fastapi>=0.115.0,<0.116.0",
