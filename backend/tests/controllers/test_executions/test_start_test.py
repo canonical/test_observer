@@ -436,6 +436,7 @@ def test_deb_source_is_part_of_uniqueness(execute: Execute, db_session: Session)
         "source": "ppa",
         "ci_link": "http://someother.link",
     }
+    request_with_source.pop("execution_stage")
     response = execute(request_with_source)
     te2 = db_session.get(TestExecution, response.json()["id"])
 
@@ -457,3 +458,10 @@ def test_deb_with_source_and_no_stage(execute: Execute):
     response = execute(request)
 
     assert response.status_code == 200
+
+
+def test_deb_with_source_and_stage_fails(execute: Execute):
+    request = {**deb_test_request, "source": "ppa"}
+    response = execute(request)
+
+    assert response.status_code == 422

@@ -89,6 +89,8 @@ class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     def one_of_source_or_stage(self) -> Self:
         if not (self.source or self.execution_stage):
             raise ValueError("Received no source or execution_stage")
+        if self.source and self.execution_stage:
+            raise ValueError("Received both source and execution_stage")
         return self
 
 
