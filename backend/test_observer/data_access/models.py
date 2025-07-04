@@ -44,7 +44,6 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
-    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
