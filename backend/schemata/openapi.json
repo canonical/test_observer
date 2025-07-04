@@ -2446,7 +2446,19 @@
             "default": ""
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/DebStage"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DebStage"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ],
+            "maxLength": 100,
+            "title": "Execution Stage",
+            "description": "Pocket of ppa or empty if it's from a PPA",
+            "default": ""
           }
         },
         "type": "object",
@@ -2458,8 +2470,7 @@
           "test_plan",
           "family",
           "series",
-          "repo",
-          "execution_stage"
+          "repo"
         ],
         "title": "StartDebTestExecutionRequest"
       },

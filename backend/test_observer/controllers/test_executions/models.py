@@ -17,7 +17,7 @@
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     AliasPath,
@@ -26,6 +26,7 @@ from pydantic import (
     Field,
     HttpUrl,
     field_validator,
+    model_validator,
 )
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
@@ -78,7 +79,17 @@ class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     series: str
     repo: str
     source: str = Field(max_length=200, description="PPA source or empty", default="")
-    execution_stage: DebStage
+    execution_stage: DebStage | Literal[""] = Field(
+        max_length=100,
+        description="Pocket of ppa or empty if it's from a PPA",
+        default="",
+    )
+
+    @model_validator(mode="after")
+    def one_of_source_or_stage(self) -> Self:
+        if not (self.source or self.execution_stage):
+            raise ValueError("Received no source or execution_stage")
+        return self
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
