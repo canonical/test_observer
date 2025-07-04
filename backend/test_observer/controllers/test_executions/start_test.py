@@ -138,6 +138,7 @@ class StartTestExecutionController:
             case StartDebTestExecutionRequest():
                 filter_kwargs["series"] = self.request.series
                 filter_kwargs["repo"] = self.request.repo
+                filter_kwargs["source"] = self.request.source
             case StartImageTestExecutionRequest():
                 filter_kwargs["os"] = self.request.os
                 filter_kwargs["release"] = self.request.release

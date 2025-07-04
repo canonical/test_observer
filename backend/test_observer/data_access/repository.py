@@ -74,8 +74,8 @@ def get_artefacts_by_family(
 
         case FamilyName.deb:
             subquery = (
-                base_query.add_columns(Artefact.repo, Artefact.series)
-                .group_by(Artefact.repo, Artefact.series)
+                base_query.add_columns(Artefact.repo, Artefact.series, Artefact.source)
+                .group_by(Artefact.repo, Artefact.series, Artefact.source)
                 .subquery()
             )
 
@@ -87,6 +87,7 @@ def get_artefacts_by_family(
                     Artefact.created_at == subquery.c.max_created,
                     Artefact.repo == subquery.c.repo,
                     Artefact.series == subquery.c.series,
+                    Artefact.source == subquery.c.source,
                 ),
             )
 

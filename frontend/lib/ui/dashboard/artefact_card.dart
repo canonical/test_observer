@@ -65,6 +65,7 @@ class ArtefactCard extends ConsumerWidget {
               if (artefact.series.isNotEmpty)
                 Text('series: ${artefact.series}'),
               if (artefact.repo.isNotEmpty) Text('repo: ${artefact.repo}'),
+              if (artefact.source.isNotEmpty) Text('repo: ${artefact.source}'),
               if (artefact.os.isNotEmpty) Text('os: ${artefact.os}'),
               if (artefact.release.isNotEmpty)
                 Text('release: ${artefact.release}'),

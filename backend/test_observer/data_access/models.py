@@ -44,7 +44,6 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
-    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -116,7 +115,7 @@ class Artefact(Base):
     # Generic fields
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
-    stage: Mapped[StageName]
+    stage: Mapped[str] = mapped_column(String(100))
     family: Mapped[FamilyName]
     due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
     bug_link: Mapped[str] = mapped_column(default="")
@@ -134,6 +133,7 @@ class Artefact(Base):
     # Deb specific fields
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+    source: Mapped[str] = mapped_column(String(200), default="")
 
     # Image specific fields
     os: Mapped[str] = mapped_column(String(200), default="")
@@ -180,6 +180,7 @@ class Artefact(Base):
             "version",
             "series",
             "repo",
+            "source",
             postgresql_where=column("family") == FamilyName.deb.name,
             unique=True,
         ),
@@ -200,8 +201,10 @@ class Artefact(Base):
             "family",
             "track",
             "store",
+            "branch",
             "series",
             "repo",
+            "source",
             "os",
             "release",
             "sha256",
@@ -319,7 +322,7 @@ class TestExecutionRerunRequest(Base):
     __tablename__ = "test_execution_rerun_request"
 
     test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id"), unique=True
+        ForeignKey("test_execution.id", ondelete="CASCADE"), unique=True
     )
     test_execution: Mapped["TestExecution"] = relationship(
         back_populates="rerun_request"
@@ -369,8 +372,8 @@ class TestExecution(Base):
         String(200), nullable=True, default=None
     )
 
-    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = (
-        relationship(back_populates="test_execution", cascade="all, delete-orphan")
+    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = relationship(
+        back_populates="test_execution", cascade="all, delete-orphan"
     )
 
     test_plan: Mapped[str] = mapped_column(String(200))
