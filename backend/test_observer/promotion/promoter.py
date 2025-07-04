@@ -30,8 +30,8 @@ from test_observer.external_apis.snapcraft import (
 logger = logging.getLogger("test-observer-backend")
 POCKET_PROMOTION_MAP = {
     # pocket -> next-pocket
-    StageName.proposed: StageName.updates,
-    StageName.updates: StageName.updates,
+    "proposed": StageName.updates,
+    "updates": StageName.updates,
 }
 
 
@@ -124,6 +124,9 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     repo = artefact.repo
     assert series is not None, f"Series is not set for the artefact {artefact.id}"
     assert repo is not None, f"Repo is not set for the artefact {artefact.id}"
+
+    if not artefact.stage:
+        return
 
     for arch in artefact.architectures:
         for pocket in POCKET_PROMOTION_MAP:
