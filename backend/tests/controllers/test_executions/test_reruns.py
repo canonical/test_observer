@@ -100,6 +100,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "branch": test_execution.artefact_build.artefact.branch,
             "series": test_execution.artefact_build.artefact.series,
             "repo": test_execution.artefact_build.artefact.repo,
+            "source": test_execution.artefact_build.artefact.source,
             "os": test_execution.artefact_build.artefact.os,
             "release": test_execution.artefact_build.artefact.release,
             "sha256": test_execution.artefact_build.artefact.sha256,

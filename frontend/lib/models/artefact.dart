@@ -38,6 +38,7 @@ abstract class Artefact with _$Artefact {
     @Default('') String branch,
     @Default('') String series,
     @Default('') String repo,
+    @Default('') String source,
     @Default('') String os,
     @Default('') String release,
     @Default('') String owner,

@@ -25,7 +25,7 @@ from pydantic import (
     Field,
     computed_field,
     field_validator,
-    HttpUrl
+    HttpUrl,
 )
 
 from test_observer.data_access.models_enums import (
@@ -56,6 +56,7 @@ class ArtefactResponse(BaseModel):
     branch: str
     series: str
     repo: str
+    source: str
     os: str
     release: str
     owner: str
