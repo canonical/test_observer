@@ -56,6 +56,11 @@ class _StartTestExecutionRequest(BaseModel):
     test_plan: str = Field(max_length=200)
     initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
     relevant_links: list[TestExecutionRelevantLinkCreate] = Field(default_factory=list)
+    needs_assignment: bool = Field(
+        default=False,
+        description="Whether the artefact created from "
+        "this test execution requires assignment of a reviewer",
+    )
 
     @field_validator("version")
     @classmethod
