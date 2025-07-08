@@ -250,6 +250,34 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     assert response.status_code == 400
 
 
+def test_artefact_rejection_requires_comment(
+    test_client: TestClient, test_execution: TestExecution
+):
+    # Reject an environment as that's required to reject an artefact
+    test_execution.artefact_build.environment_reviews[0].review_decision = [
+        ArtefactBuildEnvironmentReviewDecision.REJECTED
+    ]
+
+    response = test_client.patch(
+        f"/v1/artefacts/{test_execution.artefact_build.artefact_id}",
+        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    )
+
+    assert response.status_code == 400
+
+    test_execution.artefact_build.artefact.comment = "some comment"
+
+    response = test_client.patch(
+        f"/v1/artefacts/{test_execution.artefact_build.artefact_id}",
+        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    )
+
+    assert response.status_code == 200
+    assert (
+        test_execution.artefact_build.artefact.status == ArtefactStatus.MARKED_AS_FAILED
+    )
+
+
 def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate, archived=False)
 
