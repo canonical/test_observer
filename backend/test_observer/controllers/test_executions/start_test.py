@@ -70,7 +70,11 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
-        if self.artefact.assignee_id is None and (users := self.db.query(User).all()):
+        if (
+            self.request.needs_assignment
+            and self.artefact.assignee_id is None
+            and (users := self.db.query(User).all())
+        ):
             self.artefact.assignee = random.choice(users)
             self.db.commit()
 

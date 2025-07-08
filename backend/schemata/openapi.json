@@ -2341,6 +2341,12 @@
             "type": "array",
             "title": "Relevant Links"
           },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
+          },
           "family": {
             "type": "string",
             "const": "charm",
@@ -2424,6 +2430,12 @@
             },
             "type": "array",
             "title": "Relevant Links"
+          },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
           },
           "family": {
             "type": "string",
@@ -2522,6 +2534,12 @@
             "type": "array",
             "title": "Relevant Links"
           },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
+          },
           "family": {
             "type": "string",
             "const": "image",
@@ -2618,6 +2636,12 @@
             },
             "type": "array",
             "title": "Relevant Links"
+          },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
           },
           "family": {
             "type": "string",

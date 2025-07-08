@@ -151,12 +151,24 @@ class TestFamilyIndependentTests:
         assert test_execution_2.environment_id == test_execution_1.environment_id
         assert test_execution_2.artefact_build_id == test_execution_1.artefact_build_id
 
+    def test_new_artefact_no_assignment_by_default(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        generator.gen_user()
+
+        response = execute(start_request)
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assignee = test_execution.artefact_build.artefact.assignee
+        assert assignee is None
+
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
         user = generator.gen_user()
 
-        response = execute(start_request)
+        response = execute({**start_request, "needs_assignment": True})
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
