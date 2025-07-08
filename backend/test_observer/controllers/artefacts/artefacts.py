@@ -103,7 +103,7 @@ def patch_artefact(
     ),
 ):
     if request.status is not None:
-        _validate_artefact_status(artefact.latest_builds, request.status)
+        _validate_artefact_status(artefact, request)
         artefact.status = request.status
     if request.archived is not None:
         artefact.archived = request.archived
@@ -116,24 +116,24 @@ def patch_artefact(
     return artefact
 
 
-def _validate_artefact_status(
-    builds: list[ArtefactBuild], status: ArtefactStatus
-) -> None:
-    ...
-    if status == ArtefactStatus.APPROVED and not are_all_environments_approved(builds):
-        raise HTTPException(
-            status_code=400,
-            detail="All test executions need to be approved",
-        )
-
-    if (
-        status == ArtefactStatus.MARKED_AS_FAILED
-        and not is_there_a_rejected_environment(builds)
+def _validate_artefact_status(artefact: Artefact, request: ArtefactPatch) -> None:
+    if request.status == ArtefactStatus.APPROVED and not are_all_environments_approved(
+        artefact.latest_builds
     ):
         raise HTTPException(
-            400,
-            detail="At least one test execution needs to be rejected",
+            status_code=400, detail="All test executions need to be approved"
         )
+
+    if request.status == ArtefactStatus.MARKED_AS_FAILED:
+        if not is_there_a_rejected_environment(artefact.latest_builds):
+            raise HTTPException(
+                400, detail="At least one test execution needs to be rejected"
+            )
+
+        if not (request.comment or artefact.comment):
+            raise HTTPException(
+                400, detail="Can't reject an artefact without a comment"
+            )
 
 
 def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:

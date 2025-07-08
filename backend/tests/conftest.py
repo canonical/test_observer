@@ -153,4 +153,5 @@ def test_execution(generator: DataGenerator) -> TestExecution:
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)
+    generator.gen_artefact_build_environment_review(ab, e)
     return te
