@@ -151,7 +151,7 @@ class TestFamilyIndependentTests:
         assert test_execution_2.environment_id == test_execution_1.environment_id
         assert test_execution_2.artefact_build_id == test_execution_1.artefact_build_id
 
-    def test_new_artefact_no_assignment_by_default(
+    def test_new_artefact_no_assignment_and_no_date_by_default(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
         generator.gen_user()
@@ -160,8 +160,8 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assignee = test_execution.artefact_build.artefact.assignee
-        assert assignee is None
+        assert test_execution.artefact_build.artefact.assignee is None
+        assert test_execution.artefact_build.artefact.due_date is None
 
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
@@ -348,11 +348,15 @@ def test_image_required_fields(execute: Execute, field: str):
     assert_fails_validation(response, field, "missing")
 
 
-def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
+def test_non_kernel_artefact_due_date(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    execute(snap_test_request)
+    generator.gen_user()
+
+    execute({**snap_test_request, "needs_assignment": True})
 
     artefact = (
         db_session.query(Artefact)

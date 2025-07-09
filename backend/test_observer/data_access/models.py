@@ -16,7 +16,7 @@
 
 
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import TypeVar
 
 from sqlalchemy import (
@@ -30,7 +30,6 @@ from sqlalchemy import (
     Boolean,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -80,15 +79,6 @@ def data_model_repr(obj: DataModel, *keys: str) -> str:
     return f"{type(obj).__name__}({', '.join(kwargs)})"
 
 
-def determine_due_date(context: DefaultExecutionContext):
-    name = context.get_current_parameters()["name"]
-    is_kernel = name.startswith("linux-") or name.endswith("-kernel")
-    if not is_kernel:
-        # If not a kernel, return a date 10 days from now
-        return date.today() + timedelta(days=10)
-    return None
-
-
 class User(Base):
     """
     ORM representing users that can be assigned to review artefacts
@@ -117,7 +107,7 @@ class Artefact(Base):
     version: Mapped[str]
     stage: Mapped[str] = mapped_column(String(100))
     family: Mapped[FamilyName]
-    due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
+    due_date: Mapped[date | None] = mapped_column(default=None)
     bug_link: Mapped[str] = mapped_column(default="")
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
