@@ -56,7 +56,7 @@ class ArtefactPageInfoSection extends ConsumerWidget {
         if (artefact.repo.isNotEmpty)
           Text('repo: ${artefact.repo}', style: fontStyle),
         if (artefact.source.isNotEmpty)
-          Text('repo: ${artefact.source}', style: fontStyle),
+          Text('source: ${artefact.source}', style: fontStyle),
         if (artefact.os.isNotEmpty)
           Text('os: ${artefact.os}', style: fontStyle),
         if (artefact.release.isNotEmpty)
