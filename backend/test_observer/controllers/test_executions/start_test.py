@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from datetime import date, timedelta
 import random
 
 from fastapi import APIRouter, Body, Depends
@@ -76,6 +77,7 @@ class StartTestExecutionController:
             and (users := self.db.query(User).all())
         ):
             self.artefact.assignee = random.choice(users)
+            self.artefact.due_date = self.determine_due_date()
             self.db.commit()
 
     def create_test_execution(self):
@@ -174,6 +176,14 @@ class StartTestExecutionController:
                 self.db.delete(rerun_request)
 
         self.db.commit()
+
+    def determine_due_date(self):
+        name = self.artefact.name
+        is_kernel = name.startswith("linux-") or name.endswith("-kernel")
+        if not is_kernel:
+            # If not a kernel, return a date 10 days from now
+            return date.today() + timedelta(days=10)
+        return None
 
 
 @router.put("/start-test")
