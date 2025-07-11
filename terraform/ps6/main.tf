@@ -10,7 +10,6 @@ resource "juju_application" "api_ingress" {
   }
 
   config = {
-    tls-secret-name        = var.backend_tls_secret_name
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
@@ -27,7 +26,6 @@ resource "juju_application" "frontend_ingress" {
   }
 
   config = {
-    tls-secret-name        = var.frontend_tls_secret_name
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }

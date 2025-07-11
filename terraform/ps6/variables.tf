@@ -31,18 +31,6 @@ variable "lego_plugin" {
   default = "httpreq"
 }
 
-variable "frontend_tls_secret_name" {
-  description = "Secret where the TLS certificate for ingress is stored"
-  type        = string
-  default     = ""
-}
-
-variable "backend_tls_secret_name" {
-  description = "Secret where the TLS certificate for ingress is stored"
-  type        = string
-  default     = ""
-}
-
 variable "pg_storage_size" {
   description = "Size of storage partition for postgres database"
   type = string
