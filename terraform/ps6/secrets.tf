@@ -1,4 +1,4 @@
-data "juju_secret" "lego_creds" {
-  name  = "lego-creds"
+data "juju_secret" "lego_credentials" {
+  name  = "lego-credentials"
   model = var.juju_model
 }
