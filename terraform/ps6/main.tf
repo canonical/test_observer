@@ -10,7 +10,6 @@ resource "juju_application" "api_ingress" {
   }
 
   config = {
-    tls-secret-name        = var.backend_tls_secret_name
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
@@ -27,7 +26,6 @@ resource "juju_application" "frontend_ingress" {
   }
 
   config = {
-    tls-secret-name        = var.frontend_tls_secret_name
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
@@ -47,7 +45,7 @@ resource "juju_application" "api_ingress_lego" {
     server = var.lego_server
     email  = var.lego_email
     plugin = var.lego_plugin
-    plugin-config-secret-id = data.juju_secret.lego_creds.secret_id
+    plugin-config-secret-id = data.juju_secret.lego_credentials.secret_id
   }
 }
 
@@ -66,17 +64,17 @@ resource "juju_application" "frontend_ingress_lego" {
     server = var.lego_server
     email  = var.lego_email
     plugin = var.lego_plugin
-    plugin-config-secret-id = data.juju_secret.lego_creds.secret_id
+    plugin-config-secret-id = data.juju_secret.lego_credentials.secret_id
   }
 }
 
-resource "juju_access_secret" "lego_creds_access" {
+resource "juju_access_secret" "lego_credentials_access" {
   applications = [
     juju_application.api_ingress_lego.name,
     juju_application.frontend_ingress_lego.name,
   ]
   model = var.juju_model
-  secret_id = data.juju_secret.lego_creds.secret_id
+  secret_id = data.juju_secret.lego_credentials.secret_id
 }
 
 resource "juju_application" "pg" {
