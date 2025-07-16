@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import 'family_name.dart';
 
 enum StageName {
@@ -24,7 +26,11 @@ enum StageName {
   proposed,
   updates,
   pending,
-  current
+  current,
+  @JsonValue('')
+  empty;
+
+  bool get isEmpty => this == empty;
 }
 
 List<StageName> familyStages(FamilyName family) {
@@ -40,6 +46,7 @@ List<StageName> familyStages(FamilyName family) {
       return [
         StageName.proposed,
         StageName.updates,
+        StageName.empty,
       ];
     case FamilyName.charm:
       return [

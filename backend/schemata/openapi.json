@@ -1736,6 +1736,10 @@
             "type": "string",
             "title": "Repo"
           },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
           "os": {
             "type": "string",
             "title": "Os"
@@ -1825,6 +1829,7 @@
           "branch",
           "series",
           "repo",
+          "source",
           "os",
           "release",
           "owner",
@@ -2336,6 +2341,12 @@
             "type": "array",
             "title": "Relevant Links"
           },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
+          },
           "family": {
             "type": "string",
             "const": "charm",
@@ -2420,6 +2431,12 @@
             "type": "array",
             "title": "Relevant Links"
           },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
+          },
           "family": {
             "type": "string",
             "const": "deb",
@@ -2433,8 +2450,27 @@
             "type": "string",
             "title": "Repo"
           },
+          "source": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Source",
+            "description": "PPA source or empty",
+            "default": ""
+          },
           "execution_stage": {
-            "$ref": "#/components/schemas/DebStage"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DebStage"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ],
+            "maxLength": 100,
+            "title": "Execution Stage",
+            "description": "Pocket of ppa or empty if it's from a PPA",
+            "default": ""
           }
         },
         "type": "object",
@@ -2446,8 +2482,7 @@
           "test_plan",
           "family",
           "series",
-          "repo",
-          "execution_stage"
+          "repo"
         ],
         "title": "StartDebTestExecutionRequest"
       },
@@ -2498,6 +2533,12 @@
             },
             "type": "array",
             "title": "Relevant Links"
+          },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
           },
           "family": {
             "type": "string",
@@ -2596,6 +2637,12 @@
             "type": "array",
             "title": "Relevant Links"
           },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "default": false
+          },
           "family": {
             "type": "string",
             "const": "snap",
@@ -2615,6 +2662,7 @@
           },
           "branch": {
             "type": "string",
+            "maxLength": 200,
             "title": "Branch",
             "default": ""
           },

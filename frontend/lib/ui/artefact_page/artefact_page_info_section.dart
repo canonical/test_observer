@@ -43,7 +43,7 @@ class ArtefactPageInfoSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _StagesRow(artefactStage: artefact.stage),
+        if (!artefact.stage.isEmpty) _StagesRow(artefactStage: artefact.stage),
         _ArtefactVersionSelector(artefact: artefact, labelFontStyle: fontStyle),
         if (artefact.track.isNotEmpty)
           Text('track: ${artefact.track}', style: fontStyle),
@@ -55,6 +55,8 @@ class ArtefactPageInfoSection extends ConsumerWidget {
           Text('series: ${artefact.series}', style: fontStyle),
         if (artefact.repo.isNotEmpty)
           Text('repo: ${artefact.repo}', style: fontStyle),
+        if (artefact.source.isNotEmpty)
+          Text('source: ${artefact.source}', style: fontStyle),
         if (artefact.os.isNotEmpty)
           Text('os: ${artefact.os}', style: fontStyle),
         if (artefact.release.isNotEmpty)
@@ -139,6 +141,8 @@ class _StagesRow extends ConsumerWidget {
     final stageNamesWidgets = <Widget>[];
     bool passedSelectedStage = false;
     for (final stage in stages) {
+      if (stage.isEmpty) continue;
+
       Color fontColor = YaruColors.warmGrey;
       if (passedSelectedStage) {
         fontColor = YaruColors.textGrey;

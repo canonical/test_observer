@@ -19,8 +19,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/family_name.dart';
 import '../../models/stage_name.dart';
 import '../../providers/filtered_family_artefacts.dart';
+import '../../routing.dart';
 import '../spacing.dart';
 import 'artefact_card.dart';
 
@@ -32,6 +34,7 @@ class StageColumn extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = GoRouterState.of(context).uri;
+    final family = AppRoutes.familyFromUri(pageUri);
     final artefacts = [
       for (final artefact
           in ref.watch(filteredFamilyArtefactsProvider(pageUri)).values)
@@ -42,7 +45,9 @@ class StageColumn extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          stage.name.capitalize(),
+          (stage.isEmpty && family == FamilyName.deb)
+              ? 'PPAs'
+              : stage.name.capitalize(),
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: Spacing.level4),

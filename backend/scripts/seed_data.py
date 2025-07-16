@@ -280,6 +280,17 @@ START_TEST_EXECUTION_REQUESTS = [
         ci_link="http://example17",
         test_plan="com.canonical.certification::sru-server",
     ),
+    StartDebTestExecutionRequest(
+        family=FamilyName.deb,
+        name="linux-raspi",
+        version="5.15.0.73.71",
+        series="jammy",
+        repo="main",
+        source="ppa/test",
+        arch="arm64",
+        environment="rpi400",
+        test_plan="com.canonical.certification::sru-server",
+    ),
     StartCharmTestExecutionRequest(
         family=FamilyName.charm,
         name="postgresql-k8s",
@@ -291,7 +302,9 @@ START_TEST_EXECUTION_REQUESTS = [
         environment="juju=3.5 ubuntu=22.04 cloud=k8s",
         ci_link="http://example13",
         relevant_links=[
-            TestExecutionRelevantLinkCreate(label="Doc", url=HttpUrl("https://example.com/1"))
+            TestExecutionRelevantLinkCreate(
+                label="Doc", url=HttpUrl("https://example.com/1")
+            )
         ],
         test_plan="com.canonical.solutions-qa::tbd",
     ),
@@ -583,17 +596,17 @@ ENVIRONMENT_ISSUE_REQUESTS = [
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
-    
+
     # Check if data has already been seeded by looking for existing users or artefacts
     existing_users = session.scalar(select(User).limit(1))
     existing_artefacts = session.scalar(select(Artefact).limit(1))
-    
+
     if existing_users or existing_artefacts:
         print("Database already contains data. Skipping seed operation.")
         return
-    
+
     print("Seeding database with test data...")
-    
+
     add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
     test_executions = []
@@ -623,7 +636,7 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     _rerun_some_test_executions(client, test_executions)
 
     _add_bugurl_and_duedate(session)
-    
+
     print("Database seeding completed successfully!")
 
 

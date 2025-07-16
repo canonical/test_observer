@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:yaru/theme.dart';
 import 'spacing.dart';
 import 'vanilla/vanilla_text_input.dart';
 
@@ -112,7 +113,7 @@ class _SubmittableTextFieldState extends State<SubmittableTextField> {
             widget.onSubmit(commentController.text);
           });
         },
-        icon: Icon(Icons.done),
+        icon: Icon(Icons.done, color: YaruColors.light.success),
       ),
     ];
   }

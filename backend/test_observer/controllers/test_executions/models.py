@@ -17,7 +17,7 @@
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     AliasPath,
@@ -26,6 +26,7 @@ from pydantic import (
     Field,
     HttpUrl,
     field_validator,
+    model_validator,
 )
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
@@ -54,8 +55,11 @@ class _StartTestExecutionRequest(BaseModel):
     ci_link: Annotated[str, HttpUrl] | None = None
     test_plan: str = Field(max_length=200)
     initial_status: TestExecutionStatus = TestExecutionStatus.IN_PROGRESS
-    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(
-        default_factory=list
+    relevant_links: list[TestExecutionRelevantLinkCreate] = Field(default_factory=list)
+    needs_assignment: bool = Field(
+        default=False,
+        description="Whether the artefact created from "
+        "this test execution requires assignment of a reviewer",
     )
 
     @field_validator("version")
@@ -71,7 +75,7 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
     revision: int
     track: str
     store: str
-    branch: str = ""
+    branch: str = Field(max_length=200, default="")
     execution_stage: SnapStage
 
 
@@ -79,7 +83,20 @@ class StartDebTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.deb]
     series: str
     repo: str
-    execution_stage: DebStage
+    source: str = Field(max_length=200, description="PPA source or empty", default="")
+    execution_stage: DebStage | Literal[""] = Field(
+        max_length=100,
+        description="Pocket of ppa or empty if it's from a PPA",
+        default="",
+    )
+
+    @model_validator(mode="after")
+    def one_of_source_or_stage(self) -> Self:
+        if not (self.source or self.execution_stage):
+            raise ValueError("Received no source or execution_stage")
+        if self.source and self.execution_stage:
+            raise ValueError("Received both source and execution_stage")
+        return self
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):

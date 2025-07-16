@@ -112,6 +112,12 @@ const _debColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStageCell,
   ),
   (
+    name: 'Source',
+    queryParam: ArtefactSortingQuery.source,
+    flex: 2,
+    cellBuilder: _buildSourceCell,
+  ),
+  (
     name: 'Due date',
     queryParam: ArtefactSortingQuery.dueDate,
     flex: 1,
@@ -261,7 +267,7 @@ Widget _buildTrackCell(BuildContext context, Artefact artefact) =>
     Text(artefact.track);
 
 Widget _buildStageCell(BuildContext context, Artefact artefact) =>
-    Text(artefact.stage.name);
+    Text(artefact.stage.isEmpty ? '' : artefact.stage.name);
 
 Widget _buildBranchCell(BuildContext context, Artefact artefact) =>
     Text(artefact.branch);
@@ -271,6 +277,9 @@ Widget _buildSeriesCell(BuildContext context, Artefact artefact) =>
 
 Widget _buildRepoCell(BuildContext context, Artefact artefact) =>
     Text(artefact.repo);
+
+Widget _buildSourceCell(BuildContext context, Artefact artefact) =>
+    Text(artefact.source);
 
 Widget _buildDueDateCell(BuildContext context, Artefact artefact) =>
     Text(artefact.dueDateString ?? '');

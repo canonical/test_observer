@@ -151,12 +151,24 @@ class TestFamilyIndependentTests:
         assert test_execution_2.environment_id == test_execution_1.environment_id
         assert test_execution_2.artefact_build_id == test_execution_1.artefact_build_id
 
+    def test_new_artefact_no_assignment_and_no_date_by_default(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        generator.gen_user()
+
+        response = execute(start_request)
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assert test_execution.artefact_build.artefact.assignee is None
+        assert test_execution.artefact_build.artefact.due_date is None
+
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
         user = generator.gen_user()
 
-        response = execute(start_request)
+        response = execute({**start_request, "needs_assignment": True})
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
@@ -280,7 +292,6 @@ def test_snap_required_fields(execute: Execute, field: str):
         "series",
         "repo",
         "arch",
-        "execution_stage",
         "environment",
         "test_plan",
     ],
@@ -337,11 +348,15 @@ def test_image_required_fields(execute: Execute, field: str):
     assert_fails_validation(response, field, "missing")
 
 
-def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute):
+def test_non_kernel_artefact_due_date(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    execute(snap_test_request)
+    generator.gen_user()
+
+    execute({**snap_test_request, "needs_assignment": True})
 
     artefact = (
         db_session.query(Artefact)
@@ -426,3 +441,43 @@ def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session
 
     assert te1 and te2
     assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
+
+
+def test_deb_source_is_part_of_uniqueness(execute: Execute, db_session: Session):
+    response = execute(deb_test_request)
+    te1 = db_session.get(TestExecution, response.json()["id"])
+
+    request_with_source = {
+        **deb_test_request,
+        "source": "ppa",
+        "ci_link": "http://someother.link",
+    }
+    request_with_source.pop("execution_stage")
+    response = execute(request_with_source)
+    te2 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te2
+    assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
+
+
+def test_deb_without_source_must_have_a_stage(execute: Execute):
+    request = {**deb_test_request}
+    request.pop("execution_stage")
+    response = execute(request)
+
+    assert response.status_code == 422
+
+
+def test_deb_with_source_and_no_stage(execute: Execute):
+    request = {**deb_test_request, "source": "ppa"}
+    request.pop("execution_stage")
+    response = execute(request)
+
+    assert response.status_code == 200
+
+
+def test_deb_with_source_and_stage_fails(execute: Execute):
+    request = {**deb_test_request, "source": "ppa"}
+    response = execute(request)
+
+    assert response.status_code == 422

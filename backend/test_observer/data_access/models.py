@@ -16,7 +16,7 @@
 
 
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import TypeVar
 
 from sqlalchemy import (
@@ -30,7 +30,6 @@ from sqlalchemy import (
     Boolean,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -44,7 +43,6 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
-    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -81,15 +79,6 @@ def data_model_repr(obj: DataModel, *keys: str) -> str:
     return f"{type(obj).__name__}({', '.join(kwargs)})"
 
 
-def determine_due_date(context: DefaultExecutionContext):
-    name = context.get_current_parameters()["name"]
-    is_kernel = name.startswith("linux-") or name.endswith("-kernel")
-    if not is_kernel:
-        # If not a kernel, return a date 10 days from now
-        return date.today() + timedelta(days=10)
-    return None
-
-
 class User(Base):
     """
     ORM representing users that can be assigned to review artefacts
@@ -116,9 +105,9 @@ class Artefact(Base):
     # Generic fields
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
-    stage: Mapped[StageName]
+    stage: Mapped[str] = mapped_column(String(100))
     family: Mapped[FamilyName]
-    due_date: Mapped[date | None] = mapped_column(default=determine_due_date)
+    due_date: Mapped[date | None] = mapped_column(default=None)
     bug_link: Mapped[str] = mapped_column(default="")
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
@@ -134,6 +123,7 @@ class Artefact(Base):
     # Deb specific fields
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+    source: Mapped[str] = mapped_column(String(200), default="")
 
     # Image specific fields
     os: Mapped[str] = mapped_column(String(200), default="")
@@ -180,6 +170,7 @@ class Artefact(Base):
             "version",
             "series",
             "repo",
+            "source",
             postgresql_where=column("family") == FamilyName.deb.name,
             unique=True,
         ),
@@ -200,8 +191,10 @@ class Artefact(Base):
             "family",
             "track",
             "store",
+            "branch",
             "series",
             "repo",
+            "source",
             "os",
             "release",
             "sha256",
@@ -319,7 +312,7 @@ class TestExecutionRerunRequest(Base):
     __tablename__ = "test_execution_rerun_request"
 
     test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id"), unique=True
+        ForeignKey("test_execution.id", ondelete="CASCADE"), unique=True
     )
     test_execution: Mapped["TestExecution"] = relationship(
         back_populates="rerun_request"
@@ -369,8 +362,8 @@ class TestExecution(Base):
         String(200), nullable=True, default=None
     )
 
-    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = (
-        relationship(back_populates="test_execution", cascade="all, delete-orphan")
+    relevant_links: Mapped[list["TestExecutionRelevantLink"]] = relationship(
+        back_populates="test_execution", cascade="all, delete-orphan"
     )
 
     test_plan: Mapped[str] = mapped_column(String(200))
