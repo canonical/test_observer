@@ -68,8 +68,14 @@ final testPlanNameFilter = createFilterFromExtractor<EnrichedTestExecution>(
   },
 );
 
+final environmentNameFilter = createFilterFromExtractor<EnrichedTestExecution>(
+  'Environment',
+  (ee) => ee.environmentReview.environment.name,
+);
+
 final enrichedTestExecutionFilters = [
   environmentReviewFilter,
   testPlanLastStatusFilter,
   testPlanNameFilter,
+  environmentNameFilter,
 ];

@@ -38,8 +38,6 @@ class ArtefactPageSide extends StatelessWidget {
         children: [
           ArtefactPageInfoSection(artefact: artefact),
           const SizedBox(height: Spacing.level4),
-          Text('Search', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: Spacing.level2),
           Expanded(
             child: _ArtefactPageSideFilters(artefact: artefact),
           ),
@@ -61,7 +59,6 @@ class _ArtefactPageSideFilters extends StatelessWidget {
       builder: (_, artefactBuilds) => BlockingProviderPreloader(
         provider: artefactEnvironmentReviewsProvider(artefact.id),
         builder: (_, environmentReviews) => const PageFiltersView(
-          searchHint: 'Search by environment name',
           width: double.infinity,
         ),
       ),
