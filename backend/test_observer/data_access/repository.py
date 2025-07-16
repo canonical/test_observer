@@ -54,24 +54,6 @@ def get_artefacts_by_family(
     )
 
     match family:
-        case FamilyName.snap:
-            subquery = (
-                base_query.add_columns(Artefact.track, Artefact.branch)
-                .group_by(Artefact.track, Artefact.branch)
-                .subquery()
-            )
-
-            query = session.query(Artefact).join(
-                subquery,
-                and_(
-                    Artefact.stage == subquery.c.stage,
-                    Artefact.name == subquery.c.name,
-                    Artefact.created_at == subquery.c.max_created,
-                    Artefact.track == subquery.c.track,
-                    Artefact.branch == subquery.c.branch,
-                ),
-            )
-
         case FamilyName.deb:
             subquery = (
                 base_query.add_columns(Artefact.repo, Artefact.series, Artefact.source)
@@ -91,7 +73,7 @@ def get_artefacts_by_family(
                 ),
             )
 
-        case FamilyName.charm:
+        case FamilyName.charm | FamilyName.snap:
             query = session.query(Artefact).where(
                 and_(
                     Artefact.family == family,
