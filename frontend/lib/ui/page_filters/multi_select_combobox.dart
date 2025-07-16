@@ -58,9 +58,11 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
   List<String> _getSuggestions(String pattern) {
     // Show options matching search AND not already selected, limited to maxSuggestions
     return widget.allOptions
-        .where((option) =>
-            option.toLowerCase().contains(pattern.toLowerCase()) &&
-            !_selected.contains(option))
+        .where(
+          (option) =>
+              option.toLowerCase().contains(pattern.toLowerCase()) &&
+              !_selected.contains(option),
+        )
         .take(widget.maxSuggestions)
         .toList();
   }
@@ -148,7 +150,7 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
                 ),
               ],
             );
-          }).toList(),
+          }),
         ],
       ],
     );

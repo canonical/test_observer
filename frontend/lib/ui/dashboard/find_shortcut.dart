@@ -62,8 +62,10 @@ class FindShortcut extends ConsumerWidget {
 class FindIntent extends Intent {}
 
 class FindAction extends Action<FindIntent> {
-  FindAction(
-      {required this.makeFiltersVisibile, required this.isOnArtefactPage});
+  FindAction({
+    required this.makeFiltersVisibile,
+    required this.isOnArtefactPage,
+  });
 
   final void Function() makeFiltersVisibile;
   final bool isOnArtefactPage;
