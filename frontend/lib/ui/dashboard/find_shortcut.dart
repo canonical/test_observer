@@ -22,7 +22,7 @@ import '../../providers/artefact_page_side_visibility.dart';
 import '../../providers/dashboard_page_side_visibility.dart';
 import '../../routing.dart';
 import '../page_filters/page_search_bar.dart';
-import '../page_filters/page_filters.dart';
+import '../page_filters/artefact_filters_view.dart';
 
 class FindShortcut extends ConsumerWidget {
   const FindShortcut({super.key, required this.child});
@@ -76,7 +76,7 @@ class FindAction extends Action<FindIntent> {
 
     if (isOnArtefactPage) {
       // For artefact pages, focus on Environment combobox
-      PageFiltersView.environmentComboboxKey.currentState?.focusCombobox();
+      ArtefactFiltersView.environmentComboboxKey.currentState?.focusCombobox();
     } else {
       // For dashboard pages, focus on search bar
       pageSearchBarKey.currentState?.focusNode.requestFocus();

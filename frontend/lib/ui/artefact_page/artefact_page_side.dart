@@ -20,7 +20,7 @@ import '../../models/artefact.dart';
 import '../../providers/artefact_builds.dart';
 import '../../providers/artefact_environment_reviews.dart';
 import '../blocking_provider_preloader.dart';
-import '../page_filters/page_filters.dart';
+import '../page_filters/artefact_filters_view.dart';
 import '../spacing.dart';
 import 'artefact_page_info_section.dart';
 
@@ -58,7 +58,7 @@ class _ArtefactPageSideFilters extends StatelessWidget {
       provider: artefactBuildsProvider(artefact.id),
       builder: (_, artefactBuilds) => BlockingProviderPreloader(
         provider: artefactEnvironmentReviewsProvider(artefact.id),
-        builder: (_, environmentReviews) => const PageFiltersView(
+        builder: (_, environmentReviews) => const ArtefactFiltersView(
           width: double.infinity,
         ),
       ),
