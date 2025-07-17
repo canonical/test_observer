@@ -84,6 +84,53 @@ def test_run_to_move_artefact_snap(
     assert artefact.stage == StageName.beta
 
 
+def test_archives_snap_if_not_found(
+    generator: DataGenerator,
+    db_session: Session,
+    requests_mock: Mocker,
+):
+    a = generator.gen_artefact(
+        family=FamilyName.snap,
+        stage=StageName.edge,
+        name="core20",
+        version="1.1.1",
+        store="ubuntu",
+    )
+    generator.gen_artefact_build(a)
+
+    requests_mock.get(
+        f"https://api.snapcraft.io/v2/snaps/info/{a.name}",
+        json={"channel-map": []},
+    )
+
+    promote_artefacts(db_session)
+
+    assert a.archived
+
+
+def test_custom_named_snaps_not_archived(
+    generator: DataGenerator,
+    db_session: Session,
+    requests_mock: Mocker,
+):
+    a = generator.gen_artefact(
+        family=FamilyName.snap,
+        stage=StageName.edge,
+        name="mycore20",
+        version="1.1.1",
+        store="ubuntu",
+    )
+    generator.gen_artefact_build(a)
+
+    requests_mock.get(
+        f"https://api.snapcraft.io/v2/snaps/info/{a.name}", status_code=404
+    )
+
+    promote_artefacts(db_session)
+
+    assert not a.archived
+
+
 def test_run_to_move_artefact_deb(
     db_session: Session,
     requests_mock: Mocker,

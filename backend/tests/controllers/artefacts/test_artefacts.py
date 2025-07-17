@@ -31,23 +31,25 @@ from test_observer.data_access.models_enums import (
 from tests.data_generator import DataGenerator
 
 
-def test_get_latest_artefacts_by_family(
-    generator: DataGenerator, test_client: TestClient
-):
-    """Should only get latest artefacts and only ones that belong to given family"""
-    relevant_artefact = generator.gen_artefact(
-        StageName.edge,
-        version="2",
-        status=ArtefactStatus.MARKED_AS_FAILED,
+def test_get_latest_deb_artefacts(generator: DataGenerator, test_client: TestClient):
+    generator.gen_artefact(
+        stage=StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-raspi",
+        version="6.8.1",
+        series="noble",
+    )
+    new = generator.gen_artefact(
+        stage=StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-raspi",
+        version="6.8.2",
+        series="noble",
     )
 
-    old_timestamp = relevant_artefact.created_at - timedelta(days=1)
-    generator.gen_artefact(StageName.edge, created_at=old_timestamp, version="1")
-    generator.gen_artefact(StageName.proposed, family=FamilyName.deb)
-
-    response = test_client.get("/v1/artefacts", params={"family": "snap"})
+    response = test_client.get("/v1/artefacts", params={"family": "deb"})
     assert response.status_code == 200
-    _assert_get_artefacts_response(response.json(), [relevant_artefact])
+    _assert_get_artefacts_response(response.json(), [new])
 
 
 def test_get_relevant_image_artefacts(

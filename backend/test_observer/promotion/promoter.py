@@ -100,16 +100,20 @@ def run_snap_promoter(db_session: Session, snap: Artefact):
         snapstore=snap.store,
         snap_name=snap.name,
     )
-    snap.stage = max(
-        (
-            cm.channel.risk
-            for cm in all_channel_maps
-            if cm.channel.track == snap.track
-            and cm.channel.architecture in snap.architectures
-            and cm.version == snap.version
-        ),
-        default=snap.stage,
-    )
+
+    try:
+        snap.stage = max(
+            (
+                cm.channel.risk
+                for cm in all_channel_maps
+                if cm.channel.track == snap.track
+                and cm.channel.architecture in snap.architectures
+                and cm.version == snap.version
+            ),
+        )
+    except ValueError:
+        snap.archived = True
+
     db_session.commit()
 
 

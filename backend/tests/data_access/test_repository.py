@@ -17,66 +17,18 @@
 
 """Test services functions"""
 
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, UTC
 
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models_enums import FamilyName, StageName
 from test_observer.data_access.repository import (
-    get_artefacts_by_family, create_test_execution_relevant_link
+    get_artefacts_by_family,
+    create_test_execution_relevant_link,
 )
 from tests.data_generator import DataGenerator
 
 from pydantic import HttpUrl
-
-
-def test_get_artefacts_by_family_latest(db_session: Session, generator: DataGenerator):
-    """We should get a only latest artefacts in each stage for the specified family"""
-    # Arrange
-    artefact_tuple = [
-        ("core20", FamilyName.snap, StageName.edge, datetime.utcnow(), "1"),
-        ("oem-jammy", FamilyName.deb, StageName.proposed, datetime.utcnow(), "1"),
-        (
-            "core20",
-            FamilyName.snap,
-            StageName.edge,
-            datetime.utcnow() - timedelta(days=10),
-            "2",
-        ),
-        (
-            "core20",
-            FamilyName.snap,
-            StageName.beta,
-            datetime.utcnow() - timedelta(days=20),
-            "3",
-        ),
-    ]
-    expected_artefacts = {artefact_tuple[0], artefact_tuple[-1]}
-
-    for name, family, stage, created_at, version in artefact_tuple:
-        generator.gen_artefact(
-            stage,
-            family=family,
-            name=name,
-            created_at=created_at,
-            version=version,
-        )
-
-    # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.snap)
-
-    # Assert
-    assert len(artefacts) == len(expected_artefacts)
-    assert {
-        (
-            artefact.name,
-            artefact.family,
-            artefact.stage,
-            artefact.created_at,
-            artefact.version,
-        )
-        for artefact in artefacts
-    } == expected_artefacts
 
 
 def test_get_artefacts_by_family_charm_unique(
@@ -118,6 +70,7 @@ def test_get_artefacts_by_family_charm_unique(
         for artefact in artefacts
     } == expected_artefacts
 
+
 def test_create_test_execution_relevant_link(
     db_session: Session, generator: DataGenerator
 ):
@@ -128,8 +81,7 @@ def test_create_test_execution_relevant_link(
     environment = generator.gen_environment()
 
     test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build,
-        environment=environment
+        artefact_build=artefact_build, environment=environment
     )
 
     label = "Test Link"
