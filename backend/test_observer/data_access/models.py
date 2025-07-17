@@ -45,6 +45,8 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     TestExecutionStatus,
     TestResultStatus,
+    IssueSource,
+    IssueStatus,
 )
 
 
@@ -502,6 +504,32 @@ class EnvironmentIssue(Base):
             "description",
             "is_confirmed",
         )
+
+
+class Issue(Base):
+    """
+    A table to store issues from external sources (Jira, GitHub, Launchpad)
+    """
+
+    __tablename__ = "issue"
+
+    source: Mapped[IssueSource]
+    project: Mapped[str] = mapped_column(String(200))
+    key: Mapped[str] = mapped_column(String(200))
+    title: Mapped[str] = mapped_column(default="")
+    status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
+
+    def __repr__(self) -> str:
+        return data_model_repr(
+            self,
+            "source",
+            "project",
+            "key",
+            "title",
+            "status",
+        )
+    
+    __table_args__ = (UniqueConstraint("source", "project", "key"),)
 
 
 class ArtefactBuildEnvironmentReview(Base):
