@@ -22,6 +22,7 @@ import '../../providers/artefact_page_side_visibility.dart';
 import '../../providers/dashboard_page_side_visibility.dart';
 import '../../routing.dart';
 import '../page_filters/page_search_bar.dart';
+import '../page_filters/artefact_filters_view.dart';
 
 class FindShortcut extends ConsumerWidget {
   const FindShortcut({super.key, required this.child});
@@ -40,6 +41,7 @@ class FindShortcut extends ConsumerWidget {
       child: Actions(
         actions: {
           FindIntent: FindAction(
+            isOnArtefactPage: isOnArtefactPage,
             makeFiltersVisibile: isOnDashboardPage || isOnArtefactPage
                 ? () => isOnDashboardPage
                     ? ref
@@ -60,13 +62,24 @@ class FindShortcut extends ConsumerWidget {
 class FindIntent extends Intent {}
 
 class FindAction extends Action<FindIntent> {
-  FindAction({required this.makeFiltersVisibile});
+  FindAction({
+    required this.makeFiltersVisibile,
+    required this.isOnArtefactPage,
+  });
 
   final void Function() makeFiltersVisibile;
+  final bool isOnArtefactPage;
 
   @override
   void invoke(FindIntent intent) {
     makeFiltersVisibile();
-    pageSearchBarKey.currentState?.focusNode.requestFocus();
+
+    if (isOnArtefactPage) {
+      // For artefact pages, focus on Environment combobox
+      ArtefactFiltersView.environmentComboboxKey.currentState?.focusCombobox();
+    } else {
+      // For dashboard pages, focus on search bar
+      pageSearchBarKey.currentState?.focusNode.requestFocus();
+    }
   }
 }

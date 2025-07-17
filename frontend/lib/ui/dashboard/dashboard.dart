@@ -23,7 +23,7 @@ import '../../providers/family_artefacts.dart';
 import '../../providers/dashboard_page_side_visibility.dart';
 import '../../routing.dart';
 import '../blocking_provider_preloader.dart';
-import '../page_filters/page_filters.dart';
+import '../page_filters/dashboard_filters_view.dart';
 import '../spacing.dart';
 import 'dashboard_body/dashboard_body.dart';
 import 'dashboard_header/dashboard_header.dart';
@@ -66,7 +66,9 @@ class Dashboard extends ConsumerWidget {
                   Visibility(
                     visible: showFilters,
                     maintainState: true,
-                    child: const PageFiltersView(searchHint: 'Search by name'),
+                    child: const DashboardFiltersView(
+                      searchHint: 'Search by name',
+                    ),
                   ),
                   const SizedBox(width: Spacing.level5),
                   const Expanded(child: DashboardBody()),

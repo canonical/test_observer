@@ -20,7 +20,7 @@ import '../../models/artefact.dart';
 import '../../providers/artefact_builds.dart';
 import '../../providers/artefact_environment_reviews.dart';
 import '../blocking_provider_preloader.dart';
-import '../page_filters/page_filters.dart';
+import '../page_filters/artefact_filters_view.dart';
 import '../spacing.dart';
 import 'artefact_page_info_section.dart';
 
@@ -38,8 +38,6 @@ class ArtefactPageSide extends StatelessWidget {
         children: [
           ArtefactPageInfoSection(artefact: artefact),
           const SizedBox(height: Spacing.level4),
-          Text('Search', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: Spacing.level2),
           Expanded(
             child: _ArtefactPageSideFilters(artefact: artefact),
           ),
@@ -60,8 +58,7 @@ class _ArtefactPageSideFilters extends StatelessWidget {
       provider: artefactBuildsProvider(artefact.id),
       builder: (_, artefactBuilds) => BlockingProviderPreloader(
         provider: artefactEnvironmentReviewsProvider(artefact.id),
-        builder: (_, environmentReviews) => const PageFiltersView(
-          searchHint: 'Search by environment name',
+        builder: (_, environmentReviews) => const ArtefactFiltersView(
           width: double.infinity,
         ),
       ),

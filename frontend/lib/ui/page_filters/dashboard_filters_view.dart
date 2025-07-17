@@ -25,8 +25,8 @@ import 'checkbox_list_expandable.dart';
 import 'page_search_bar.dart';
 import '../spacing.dart';
 
-class PageFiltersView extends ConsumerWidget {
-  const PageFiltersView({super.key, this.searchHint, this.width = 300.0});
+class DashboardFiltersView extends ConsumerWidget {
+  const DashboardFiltersView({super.key, this.searchHint, this.width = 300.0});
 
   final String? searchHint;
   final double width;
@@ -53,44 +53,51 @@ class PageFiltersView extends ConsumerWidget {
         if (sortDirection != null)
           CommonQueryParameters.sortDirection: sortDirection,
       };
-      context.go(
-        pageUri.replace(queryParameters: queryParams).toString(),
+      context.go(pageUri.replace(queryParameters: queryParams).toString());
+    }
+
+    final widgets = <Widget>[];
+
+    // Add search bar first (dashboard-specific feature)
+    widgets.add(
+      PageSearchBar(
+        hintText: searchHint,
+        onSubmitted: (_) => submitFilters(),
+      ),
+    );
+
+    // Add all filters as checkboxes (dashboard shows all filters as checkboxes)
+    for (final filter in filters) {
+      widgets.add(
+        CheckboxListExpandable(
+          title: filter.name,
+          options: filter.options,
+          onChanged: (option, isSelected) => ref
+              .read(pageFiltersProvider(pageUri).notifier)
+              .onChanged(filter.name, option, isSelected),
+        ),
       );
     }
+
+    // Add apply button
+    widgets.add(
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () => submitFilters(),
+          child: const Text('Apply'),
+        ),
+      ),
+    );
 
     return SizedBox(
       width: width,
       child: ListView.separated(
         shrinkWrap: true,
-        itemBuilder: (_, i) {
-          if (i == 0) {
-            return PageSearchBar(
-              hintText: searchHint,
-              onSubmitted: (_) => submitFilters(),
-            );
-          }
-
-          if (i == filters.length + 1) {
-            return SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => submitFilters(),
-                child: const Text('Apply'),
-              ),
-            );
-          }
-
-          return CheckboxListExpandable(
-            title: filters[i - 1].name,
-            options: filters[i - 1].options,
-            onChanged: (option, isSelected) => ref
-                .read(pageFiltersProvider(pageUri).notifier)
-                .onChanged(filters[i - 1].name, option, isSelected),
-          );
-        },
+        itemCount: widgets.length,
+        itemBuilder: (_, index) => widgets[index],
         separatorBuilder: (_, __) =>
             const SizedBox(height: spacingBetweenFilters),
-        itemCount: filters.length + 2,
       ),
     );
   }
