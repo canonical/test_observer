@@ -19,7 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/page_filters.dart';
-import '../../providers/search_value.dart';
 import '../../routing.dart';
 import 'checkbox_list_expandable.dart';
 import 'multi_select_combobox.dart';
@@ -39,22 +38,11 @@ class ArtefactFiltersView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
-    final searchQuery =
-        pageUri.queryParameters[CommonQueryParameters.searchQuery];
     final filters = ref.watch(pageFiltersProvider(pageUri));
 
     void submitFilters() {
-      final sortBy = pageUri.queryParameters[CommonQueryParameters.sortBy];
-      final sortDirection =
-          pageUri.queryParameters[CommonQueryParameters.sortDirection];
-      final searchValue = ref.read(searchValueProvider(searchQuery)).trim();
       final queryParams = {
-        if (searchValue.isNotEmpty)
-          CommonQueryParameters.searchQuery: searchValue,
         ...ref.read(pageFiltersProvider(pageUri).notifier).toQueryParams(),
-        if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
-        if (sortDirection != null)
-          CommonQueryParameters.sortDirection: sortDirection,
       };
       context.go(pageUri.replace(queryParameters: queryParams).toString());
     }
@@ -105,24 +93,10 @@ class ArtefactFiltersView extends ConsumerWidget {
                 .onChanged(filter.name, option, isSelected);
 
             // Immediately update the URL with new filter state
-            final sortBy =
-                pageUri.queryParameters[CommonQueryParameters.sortBy];
-            final sortDirection =
-                pageUri.queryParameters[CommonQueryParameters.sortDirection];
-            final searchQuery =
-                pageUri.queryParameters[CommonQueryParameters.searchQuery];
-            final searchValue =
-                ref.read(searchValueProvider(searchQuery)).trim();
-
             final queryParams = {
-              if (searchValue.isNotEmpty)
-                CommonQueryParameters.searchQuery: searchValue,
               ...ref
                   .read(pageFiltersProvider(pageUri).notifier)
                   .toQueryParams(),
-              if (sortBy != null) CommonQueryParameters.sortBy: sortBy,
-              if (sortDirection != null)
-                CommonQueryParameters.sortDirection: sortDirection,
             };
 
             // Navigate to new URL immediately
