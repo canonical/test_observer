@@ -64,7 +64,15 @@ def get_filter(filter_name, filter_param):
             and x["TestResult.status"] == "FAILED"
         )
 
-    return {"id": id_filter, "artifact_name": artifact_filter}[filter_name]
+    def both(f):
+        def _f(x: dict) -> bool:
+            return x["Artefact.family"] in ["snap", "deb"] and f(x)
+
+        return _f
+
+    return {"id": both(id_filter), "artifact_name": both(artifact_filter)}[
+        filter_name
+    ]
 
 
 def main():
