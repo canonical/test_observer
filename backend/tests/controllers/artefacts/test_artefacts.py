@@ -16,6 +16,7 @@
 
 
 from datetime import date, timedelta
+from operator import itemgetter
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -31,25 +32,61 @@ from test_observer.data_access.models_enums import (
 from tests.data_generator import DataGenerator
 
 
-def test_get_latest_deb_artefacts(generator: DataGenerator, test_client: TestClient):
+def test_get_artefacts_ignores_archived(
+    generator: DataGenerator, test_client: TestClient
+):
+    a1 = generator.gen_artefact(
+        stage=StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-raspi",
+        version="2",
+        series="noble",
+    )
+    a2 = generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.snap,
+        name="pi-kernel",
+        version="2",
+        store="ubuntu",
+        track="latest",
+    )
+    a3 = generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.charm,
+        name="postgresql",
+        version="2",
+        track="latest",
+    )
+
     generator.gen_artefact(
         stage=StageName.proposed,
         family=FamilyName.deb,
         name="linux-raspi",
-        version="6.8.1",
+        version="1",
         series="noble",
+        archived=True,
     )
-    new = generator.gen_artefact(
-        stage=StageName.proposed,
-        family=FamilyName.deb,
-        name="linux-raspi",
-        version="6.8.2",
-        series="noble",
+    generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.snap,
+        name="pi-kernel",
+        version="1",
+        store="ubuntu",
+        track="latest",
+        archived=True,
+    )
+    generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.charm,
+        name="postgresql",
+        version="1",
+        track="latest",
+        archived=True,
     )
 
-    response = test_client.get("/v1/artefacts", params={"family": "deb"})
+    response = test_client.get("/v1/artefacts")
     assert response.status_code == 200
-    _assert_get_artefacts_response(response.json(), [new])
+    _assert_get_artefacts_response(response.json(), [a1, a2, a3])
 
 
 def test_get_relevant_image_artefacts(
@@ -383,7 +420,9 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
 def _assert_get_artefacts_response(
     response_json: list[dict[str, Any]], artefacts: list[Artefact]
 ) -> None:
-    for r, a in zip(response_json, artefacts, strict=True):
+    for r, a in zip(
+        sorted(response_json, key=itemgetter("id")), artefacts, strict=True
+    ):
         _assert_get_artefact_response(r, a)
 
 
