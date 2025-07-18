@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import itertools
 import logging
 
 from sqlalchemy.orm import Session
@@ -132,32 +133,21 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     if not artefact.stage:
         return
 
-    for arch in artefact.architectures:
-        for pocket in POCKET_PROMOTION_MAP:
-            with ArchiveManager(
-                arch=arch,
-                series=series,
-                pocket=pocket,
-                apt_repo=repo,
-            ) as archivemanager:
-                deb_version = archivemanager.get_deb_version(artefact.name)
-                if deb_version is None:
-                    logger.error(
-                        "Cannot find deb_version with deb %s in package data",
-                        artefact.name,
-                    )
-                    continue
-            next_pocket = POCKET_PROMOTION_MAP.get(artefact.stage)
-            logger.debug(
-                "Artefact version: %s, deb version: %s", artefact.version, deb_version
-            )
-            if (
-                next_pocket
-                and pocket == next_pocket != artefact.stage
-                and deb_version == artefact.version
-            ):
-                logger.info(
-                    "Move artefact '%s' to the '%s' stage", artefact, next_pocket
-                )
-                artefact.stage = next_pocket
-                session.commit()
+    should_archive = True
+    highest_pocket_found: StageName = StageName(artefact.stage)
+    for arch, pocket in itertools.product(artefact.architectures, POCKET_PROMOTION_MAP):
+        with ArchiveManager(
+            arch=arch,
+            series=series,
+            pocket=pocket,
+            apt_repo=repo,
+        ) as archivemanager:
+            deb_version = archivemanager.get_deb_version(artefact.name)
+
+        if deb_version == artefact.version:
+            should_archive = False
+            highest_pocket_found = max(highest_pocket_found, StageName(pocket))
+
+    artefact.stage = highest_pocket_found
+    artefact.archived = should_archive
+    session.commit()
