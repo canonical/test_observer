@@ -131,79 +131,6 @@ def test_custom_named_snaps_not_archived(
     assert not a.archived
 
 
-def test_run_to_move_artefact_deb(
-    db_session: Session,
-    requests_mock: Mocker,
-    generator: DataGenerator,
-):
-    """
-    If artefact's current stage name is different to its stage name on
-    deb archive, the artefact is moved to the next stage
-    """
-    # Arrange
-    artefact1 = generator.gen_artefact(
-        StageName.proposed,
-        family=FamilyName.deb,
-        name="linux-generic",
-        version="5.19.0.43.39",
-        series="kinetic",
-        repo="main",
-        created_at=datetime.utcnow(),
-    )
-    artefact2 = generator.gen_artefact(
-        StageName.proposed,
-        family=FamilyName.deb,
-        name="linux-oem-22_04a",
-        version="6.1.0.1028.29",
-        series="kinetic",
-        repo="main",
-        created_at=datetime.utcnow() - timedelta(days=1),
-    )
-    artefact3 = generator.gen_artefact(
-        StageName.proposed,
-        family=FamilyName.deb,
-        name="linux-cloud-tools-5_15.0-86",
-        version="5.15.0-86.96",
-        series="kinetic",
-        repo="main",
-        created_at=datetime.utcnow() - timedelta(days=1),
-    )
-    db_session.add_all(
-        [
-            ArtefactBuild(architecture="amd64", artefact=artefact1),
-            ArtefactBuild(architecture="amd64", artefact=artefact2),
-            ArtefactBuild(architecture="amd64", artefact=artefact3),
-        ]
-    )
-    db_session.commit()
-
-    with open("tests/test_data/Packages-proposed.gz", "rb") as f:
-        proposed_content = f.read()
-    with open("tests/test_data/Packages-updates.gz", "rb") as f:
-        updates_content = f.read()
-
-    requests_mock.get(
-        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
-        "binary-amd64/Packages.gz",
-        content=proposed_content,
-    )
-    requests_mock.get(
-        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/"
-        "binary-amd64/Packages.gz",
-        content=updates_content,
-    )
-
-    # Act
-    promote_artefacts(db_session)
-
-    db_session.refresh(artefact1)
-
-    # Assert
-    assert artefact1.stage == StageName.updates
-    assert artefact2.stage == StageName.updates
-    assert artefact3.stage == StageName.updates
-
-
 def test_promote_snap_from_beta_to_stable(
     db_session: Session,
     requests_mock: Mocker,
@@ -274,3 +201,120 @@ def test_snap_that_is_in_two_stages(
     promote_artefacts(db_session)
 
     assert artefact.stage == StageName.beta
+
+
+def test_run_to_move_artefact_deb(
+    db_session: Session,
+    requests_mock: Mocker,
+    generator: DataGenerator,
+):
+    """
+    If artefact's current stage name is different to its stage name on
+    deb archive, the artefact is moved to the next stage
+    """
+    # Arrange
+    artefact1 = generator.gen_artefact(
+        StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-generic",
+        version="5.19.0.43.39",
+        series="kinetic",
+        repo="main",
+        created_at=datetime.utcnow(),
+    )
+    artefact2 = generator.gen_artefact(
+        StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-oem-22_04a",
+        version="6.1.0.1028.29",
+        series="kinetic",
+        repo="main",
+        created_at=datetime.utcnow() - timedelta(days=1),
+    )
+    artefact3 = generator.gen_artefact(
+        StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-cloud-tools-5_15.0-86",
+        version="5.15.0-86.96",
+        series="kinetic",
+        repo="main",
+        created_at=datetime.utcnow() - timedelta(days=1),
+    )
+    db_session.add_all(
+        [
+            ArtefactBuild(architecture="amd64", artefact=artefact1),
+            ArtefactBuild(architecture="amd64", artefact=artefact2),
+            ArtefactBuild(architecture="amd64", artefact=artefact3),
+        ]
+    )
+    db_session.commit()
+
+    _prepare_archive_mock(requests_mock)
+
+    # Act
+    promote_artefacts(db_session)
+
+    db_session.refresh(artefact1)
+
+    # Assert
+    assert artefact1.stage == StageName.updates
+    assert artefact2.stage == StageName.updates
+    assert artefact3.stage == StageName.updates
+
+
+def test_archives_deb_if_version_not_found(
+    generator: DataGenerator, db_session: Session, requests_mock: Mocker
+):
+    a = generator.gen_artefact(
+        family=FamilyName.deb,
+        stage=StageName.updates,
+        name="linux-generic",
+        version="missing-version",
+        series="kinetic",
+        repo="main",
+    )
+    generator.gen_artefact_build(a, "amd64")
+
+    _prepare_archive_mock(requests_mock)
+
+    promote_artefacts(db_session)
+
+    assert a.archived
+
+
+def test_keeps_deb_unarchived_if_custom_name(
+    generator: DataGenerator, db_session: Session, requests_mock: Mocker
+):
+    a = generator.gen_artefact(
+        family=FamilyName.deb,
+        stage=StageName.updates,
+        name="some-custom-name",
+        version="5.15.0-86.96",
+        series="kinetic",
+        repo="main",
+    )
+    generator.gen_artefact_build(a, "amd64")
+
+    _prepare_archive_mock(requests_mock)
+
+    promote_artefacts(db_session)
+
+    assert a.archived
+
+
+def _prepare_archive_mock(requests_mock: Mocker) -> None:
+    with open("tests/test_data/Packages-proposed.gz", "rb") as f:
+        proposed_content = f.read()
+    with open("tests/test_data/Packages-updates.gz", "rb") as f:
+        updates_content = f.read()
+
+    requests_mock.get(
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
+        "binary-amd64/Packages.gz",
+        content=proposed_content,
+    )
+    requests_mock.get(
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/"
+        "binary-amd64/Packages.gz",
+        content=updates_content,
+    )
