@@ -1,0 +1,63 @@
+# Copyright (C) 2023 Canonical Ltd.
+#
+# This file is part of Test Observer Backend.
+#
+# Test Observer Backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+#
+# Test Observer Backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""Add new issue model
+
+Revision ID: ab74101e7373
+Revises: 2158335fab1b
+Create Date: 2025-07-17 17:55:35.565545+00:00
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision = "ab74101e7373"
+down_revision = "2158335fab1b"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.create_table("issue",
+        sa.Column(
+            "source",
+            sa.Enum("JIRA", "GITHUB", "LAUNCHPAD", name="issuesource"),
+            nullable=False,
+        ),
+        sa.Column("project", sa.String(length=200), nullable=False),
+        sa.Column("key", sa.String(length=200), nullable=False),
+        sa.Column("title", sa.String(), nullable=False),
+        sa.Column(
+            "status",
+            sa.Enum("UNKNOWN", "OPEN", "CLOSED", name="issuestatus"),
+            nullable=False,
+        ),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint("id", name=op.f("issue_pkey")),
+        sa.UniqueConstraint(
+            "source", "project", "key", name=op.f("issue_source_project_key_key")
+        ),
+    )
+
+
+def downgrade() -> None:
+    op.drop_table("issue")
+    op.execute("DROP TYPE IF EXISTS issuesource")
+    op.execute("DROP TYPE IF EXISTS issuestatus")

@@ -108,3 +108,14 @@ class TestResultStatus(StrEnum):
     PASSED = "PASSED"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+
+
+class IssueSource(StrEnum):
+    JIRA = "jira"
+    GITHUB = "github"
+    LAUNCHPAD = "launchpad"
+
+class IssueStatus(StrEnum):
+    UNKNOWN = "unknown"
+    OPEN = "open"
+    CLOSED = "closed"
