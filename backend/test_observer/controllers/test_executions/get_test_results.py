@@ -16,6 +16,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.data_access.models import (
@@ -32,21 +33,22 @@ router = APIRouter(tags=["test-results"])
 
 @router.get("/{id}/test-results", response_model=list[TestResultResponse])
 def get_test_results(id: int, db: Session = Depends(get_db)):
-    test_execution = db.get(
-        TestExecution,
-        id,
-        options=[
-            selectinload(TestExecution.test_results).selectinload(TestResult.test_case),
-        ],
-    )
+    test_execution = db.get(TestExecution, id)
 
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
+    test_results_from_db = db.execute(
+        select(TestResult)
+        .where(TestResult.test_execution_id == id)
+        .order_by(TestResult.id)
+        .options(selectinload(TestResult.test_case))
+    ).scalars().all()
+
     previous_test_results = get_previous_test_results(db, test_execution)
 
     test_results: list[TestResultResponse] = []
-    for test_result in test_execution.test_results:
+    for test_result in test_results_from_db:
         parsed_test_result = TestResultResponse.model_validate(test_result)
         parsed_test_result.previous_results = previous_test_results.get(
             test_result.test_case_id, []
