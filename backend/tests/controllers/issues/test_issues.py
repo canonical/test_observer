@@ -20,15 +20,15 @@ from fastapi.testclient import TestClient
 from tests.asserts import assert_fails_validation
 
 endpoint = "/v1/issues"
-valid_post_data = {
+valid_put_data = {
     "url": "https://github.com/canonical/test_observer/issues/71",
     "title": "some title",
     "status": "open",
 }
 sample_issue_json = {
-    "url": valid_post_data["url"],
-    "title": valid_post_data["title"],
-    "status": valid_post_data["status"],
+    "url": valid_put_data["url"],
+    "title": valid_put_data["title"],
+    "status": valid_put_data["status"],
     "source": "github",
     "project": "canonical/test_observer",
     "key": "71",
@@ -40,68 +40,68 @@ def test_empty_get_all(test_client: TestClient):
     assert response.json() == {"issues": []}
 
 def test_get_all(test_client: TestClient):
-    post_response = test_client.post(endpoint, json=valid_post_data)
+    put_response = test_client.put(endpoint, json=valid_put_data)
     response = test_client.get(endpoint)
     assert response.status_code == 200
     assert response.json() == {
-        "issues": [{**sample_issue_json, "id": post_response.json()["id"]}],
+        "issues": [{**sample_issue_json, "id": put_response.json()["id"]}],
     }
 
 def test_get_issue(test_client: TestClient):
-    post_response = test_client.post(endpoint, json=valid_post_data)
-    response = test_client.get(endpoint + f"/{post_response.json()['id']}")
+    put_response = test_client.put(endpoint, json=valid_put_data)
+    response = test_client.get(endpoint + f"/{put_response.json()['id']}")
     assert response.status_code == 200
-    assert response.json() == {**sample_issue_json, "id": post_response.json()["id"]}
+    assert response.json() == {**sample_issue_json, "id": put_response.json()["id"]}
 
 def test_patch_invalid_status(test_client: TestClient):
-    post_response = test_client.post(endpoint, json=valid_post_data)
-    response = test_client.patch(endpoint + f"/{post_response.json()['id']}", json={
+    put_response = test_client.put(endpoint, json=valid_put_data)
+    response = test_client.patch(endpoint + f"/{put_response.json()['id']}", json={
         "status": "unknown-status",
     })
     assert response.status_code == 422
 
 def test_patch_no_change(test_client: TestClient):
-    post_response = test_client.post(endpoint, json=valid_post_data)
-    response = test_client.patch(endpoint + f"/{post_response.json()['id']}", json={})
-    assert post_response.json() == response.json()
+    put_response = test_client.put(endpoint, json=valid_put_data)
+    response = test_client.patch(endpoint + f"/{put_response.json()['id']}", json={})
+    assert put_response.json() == response.json()
 
 def test_patch_all(test_client: TestClient):
-    post_response = test_client.post(endpoint, json=valid_post_data)
-    response = test_client.patch(endpoint + f"/{post_response.json()['id']}", json={
+    put_response = test_client.put(endpoint, json=valid_put_data)
+    response = test_client.patch(endpoint + f"/{put_response.json()['id']}", json={
         "title": "new title",
         "status": "closed",
     })
     assert response.json()["title"] == "new title"
     assert response.json()["status"] == "closed"
 
-def test_post_requires_url(test_client: TestClient):
-    response = test_client.post(endpoint, json={})
+def test_put_requires_url(test_client: TestClient):
+    response = test_client.put(endpoint, json={})
     assert_fails_validation(response, "url", "missing")
 
-def test_post_indempotent(test_client: TestClient):
-    test_client.post(endpoint, json=valid_post_data)
-    test_client.post(endpoint, json=valid_post_data)
+def test_put_indempotent(test_client: TestClient):
+    test_client.put(endpoint, json=valid_put_data)
+    test_client.put(endpoint, json=valid_put_data)
     response = test_client.get(endpoint)
     assert len(response.json()["issues"]) == 1
 
-def test_post_update_existing(test_client: TestClient):
-    test_client.post(endpoint, json=valid_post_data)
-    test_client.post(endpoint, json={**valid_post_data, "title": "new title"})
+def test_put_update_existing(test_client: TestClient):
+    test_client.put(endpoint, json=valid_put_data)
+    test_client.put(endpoint, json={**valid_put_data, "title": "new title"})
     response = test_client.get(endpoint)
     assert response.json()["issues"][0]["title"] == "new title"
 
-def test_post_invalid_url(test_client: TestClient):
-    post_data = {**valid_post_data, "url": "http://unknown.com/bug/1"}
-    response = test_client.post(endpoint, json=post_data)
+def test_put_invalid_url(test_client: TestClient):
+    put_data = {**valid_put_data, "url": "http://unknown.com/bug/1"}
+    response = test_client.put(endpoint, json=put_data)
     assert response.status_code == 422
 
-def test_post_invalid_status(test_client: TestClient):
-    post_data = {**valid_post_data, "status": "random"}
-    response = test_client.post(endpoint, json=post_data)
+def test_put_invalid_status(test_client: TestClient):
+    put_data = {**valid_put_data, "status": "random"}
+    response = test_client.put(endpoint, json=put_data)
     assert response.status_code == 422
 
-def test_post_defaults(test_client: TestClient):
-    post_data = {"url": valid_post_data["url"]}
-    response = test_client.post(endpoint, json=post_data)
+def test_put_defaults(test_client: TestClient):
+    put_data = {"url": valid_put_data["url"]}
+    response = test_client.put(endpoint, json=put_data)
     assert response.json()["title"] == ""
     assert response.json()["status"] == "unknown"

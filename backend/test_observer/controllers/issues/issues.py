@@ -26,7 +26,7 @@ from test_observer.data_access.models_enums import IssueSource
 
 from .models import (
     IssuePatchRequest,
-    IssuePostRequest,
+    IssuePutRequest,
     IssueResponse,
     IssuesGetResponse,
     MinimalIssueResponse,
@@ -83,9 +83,9 @@ def patch_issue(
         raise HTTPException(status_code=404, detail="Issue not found")
     return update_issue(db, issue, request)
 
-@router.post("", response_model=IssueResponse)
+@router.put("", response_model=IssueResponse)
 def create_or_update_issue(
-    request: IssuePostRequest,
+    request: IssuePutRequest,
     db: Session = Depends(get_db),
 ):
     # Fetch issue source, project, and key

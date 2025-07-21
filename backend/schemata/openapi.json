@@ -1569,18 +1569,18 @@
           }
         }
       },
-      "post": {
+      "put": {
         "tags": [
           "issues"
         ],
         "summary": "Create Or Update Issue",
-        "operationId": "create_or_update_issue_v1_issues_post",
+        "operationId": "create_or_update_issue_v1_issues_put",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/IssuePostRequest"
+                "$ref": "#/components/schemas/IssuePutRequest"
               }
             }
           }
@@ -2412,7 +2412,7 @@
         "type": "object",
         "title": "IssuePatchRequest"
       },
-      "IssuePostRequest": {
+      "IssuePutRequest": {
         "properties": {
           "title": {
             "anyOf": [
@@ -2447,7 +2447,7 @@
         "required": [
           "url"
         ],
-        "title": "IssuePostRequest"
+        "title": "IssuePutRequest"
       },
       "IssueResponse": {
         "properties": {

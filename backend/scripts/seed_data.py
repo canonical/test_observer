@@ -40,7 +40,7 @@ from test_observer.controllers.test_executions.models import (
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
-from test_observer.controllers.issues.models import IssuePostRequest
+from test_observer.controllers.issues.models import IssuePutRequest
 
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
@@ -598,17 +598,17 @@ ENVIRONMENT_ISSUE_REQUESTS = [
 ]
 
 ISSUE_REQUESTS = [
-    IssuePostRequest(
+    IssuePutRequest(
         url=HttpUrl("https://github.com/canonical/test_observer/issues/71"),
         title="no way to filter and ctrl+f does not work",
         status=IssueStatus.CLOSED,
     ),
-    IssuePostRequest(
+    IssuePutRequest(
         url=HttpUrl("https://warthogs.atlassian.net/browse/TO-142"),
         title="Create issues model and associated management APIs",
         status=IssueStatus.OPEN,
     ),
-    IssuePostRequest(
+    IssuePutRequest(
         url=HttpUrl("https://bugs.launchpad.net/some-project/+bug/123456"),
     ),
 ]
@@ -654,7 +654,7 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
         ).raise_for_status()
 
     for issue_request in ISSUE_REQUESTS:
-        client.post(
+        client.put(
             ISSUE_URL,
             json=issue_request.model_dump(mode="json"),
         ).raise_for_status()

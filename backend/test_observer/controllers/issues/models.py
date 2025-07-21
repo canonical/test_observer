@@ -60,5 +60,5 @@ class IssuePatchRequest(BaseModel):
     title: str | None = None
     status: IssueStatus | None = None
 
-class IssuePostRequest(IssuePatchRequest):
+class IssuePutRequest(IssuePatchRequest):
     url: HttpUrl
