@@ -31,7 +31,7 @@ from .models import (
     IssuesGetResponse,
     MinimalIssueResponse,
 )
-from .issue_converter import IssueURLConverter
+from .issue_url_parser import issue_source_project_key_from_url
 from test_observer.data_access.models_enums import IssueStatus
 
 router = APIRouter(tags=["issues"])
@@ -71,7 +71,6 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     db.refresh(issue)
     return issue
 
-
 @router.patch("/{issue_id}", response_model=IssueResponse)
 def patch_issue(
     issue_id: int,
@@ -90,7 +89,7 @@ def create_or_update_issue(
 ):
     # Fetch issue source, project, and key
     try:
-        source, project, key = IssueURLConverter.from_url(url=request.url)
+        source, project, key = issue_source_project_key_from_url(request.url)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 

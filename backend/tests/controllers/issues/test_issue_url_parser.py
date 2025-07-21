@@ -18,7 +18,9 @@
 import pytest
 from pydantic import HttpUrl
 
-from test_observer.controllers.issues.issue_converter import IssueURLConverter
+from test_observer.controllers.issues.issue_url_parser import (
+    issue_source_project_key_from_url
+)
 from test_observer.data_access.models_enums import IssueSource
 
 @pytest.mark.parametrize(
@@ -88,29 +90,8 @@ from test_observer.data_access.models_enums import IssueSource
 )
 def test_from_url(url: str, expected: tuple[IssueSource, str, str] | None):
     try:
-        result = IssueURLConverter.from_url(HttpUrl(url))
+        result = issue_source_project_key_from_url(HttpUrl(url))
     except ValueError:
         assert expected is None
     else:
         assert result == expected
-
-@pytest.mark.parametrize(
-    "source_project_key,expected",
-    [
-        # Unknown source
-        (("unknown_source", "some-project", "some-key"), None),
-        # Github
-        ((IssueSource.GITHUB, "canonical/test_observer", "71"), "https://github.com/canonical/test_observer/issues/71"),
-        # Jira
-        ((IssueSource.JIRA, "TO", "142"), "https://warthogs.atlassian.net/browse/TO-142"),
-        # Launchpad
-        ((IssueSource.LAUNCHPAD, "abc", "123"), "https://bugs.launchpad.net/abc/+bug/123"),
-    ],
-)
-def test_to_url(source_project_key: tuple[IssueSource, str, str], expected: str | None):
-    try:
-        result = IssueURLConverter.to_url(*source_project_key)
-    except ValueError:
-        assert expected is None
-    else:
-        assert str(result) == expected

@@ -19,11 +19,7 @@
 from pydantic import BaseModel, HttpUrl
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 
-from pydantic import (
-    ConfigDict,
-    computed_field,
-)
-from .issue_converter import IssueURLConverter
+from pydantic import ConfigDict
 
 class IssueResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -34,10 +30,7 @@ class IssueResponse(BaseModel):
     key: str
     title: str
     status: IssueStatus
-
-    @computed_field
-    def url(self) -> HttpUrl:
-        return IssueURLConverter.to_url(self.source, self.project, self.key)
+    url: HttpUrl
 
 class MinimalIssueResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -48,10 +41,7 @@ class MinimalIssueResponse(BaseModel):
     key: str
     title: str
     status: IssueStatus
-
-    @computed_field
-    def url(self) -> HttpUrl:
-        return IssueURLConverter.to_url(self.source, self.project, self.key)
+    url: HttpUrl
 
 class IssuesGetResponse(BaseModel):
     issues: list[MinimalIssueResponse]

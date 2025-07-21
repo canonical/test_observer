@@ -28,6 +28,7 @@ from sqlalchemy import (
     UniqueConstraint,
     column,
     Boolean,
+    case,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -37,7 +38,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, ColumnElement
 
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -530,6 +531,50 @@ class Issue(Base):
         )
     
     __table_args__ = (UniqueConstraint("project", "source", "key"),)
+
+    @hybrid_property
+    def url(self) -> str:
+        if self.source == IssueSource.GITHUB:
+            return f"https://github.com/{self.project}/issues/{self.key}"
+        elif self.source == IssueSource.JIRA:
+            return f"https://warthogs.atlassian.net/browse/{self.project}-{self.key}"
+        elif self.source == IssueSource.LAUNCHPAD:
+            return f"https://bugs.launchpad.net/{self.project}/+bug/{self.key}"
+        raise ValueError("Unrecognized issue source")
+    
+    @url.inplace.expression
+    @classmethod
+    def _url_expression(cls) -> ColumnElement[str]:
+        return case(
+            (
+                cls.source == IssueSource.GITHUB,
+                func.concat(
+                    "https://github.com/",
+                    cls.project,
+                    "/issues/",
+                    cls.key,
+                ),
+            ),
+            (
+                cls.source == IssueSource.JIRA,
+                func.concat(
+                    "https://warthogs.atlassian.net/browse/",
+                    cls.project,
+                    "-",
+                    cls.key,
+                ),
+            ),
+            (
+                cls.source == IssueSource.LAUNCHPAD,
+                func.concat(
+                    "https://bugs.launchpad.net/",
+                    cls.project,
+                    "/+bug/",
+                    cls.key,
+                ),
+            ),
+            else_="https://invalid"
+        )
 
 
 class ArtefactBuildEnvironmentReview(Base):

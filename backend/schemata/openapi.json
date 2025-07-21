@@ -2478,8 +2478,7 @@
             "maxLength": 2083,
             "minLength": 1,
             "format": "uri",
-            "title": "Url",
-            "readOnly": true
+            "title": "Url"
           }
         },
         "type": "object",
@@ -2557,8 +2556,7 @@
             "maxLength": 2083,
             "minLength": 1,
             "format": "uri",
-            "title": "Url",
-            "readOnly": true
+            "title": "Url"
           }
         },
         "type": "object",
