@@ -529,7 +529,7 @@ class Issue(Base):
             "status",
         )
     
-    __table_args__ = (UniqueConstraint("source", "project", "key"),)
+    __table_args__ = (UniqueConstraint("project", "source", "key"),)
 
 
 class ArtefactBuildEnvironmentReview(Base):

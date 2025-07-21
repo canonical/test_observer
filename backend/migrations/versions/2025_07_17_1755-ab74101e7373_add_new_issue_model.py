@@ -52,7 +52,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("issue_pkey")),
         sa.UniqueConstraint(
-            "source", "project", "key", name=op.f("issue_source_project_key_key")
+            "project", "source", "key", name=op.f("issue_project_source_key_key")
         ),
     )
 
