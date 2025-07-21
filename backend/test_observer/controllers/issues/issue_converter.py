@@ -37,7 +37,7 @@ class IssueURLConverter:
                 return IssueSource.GITHUB, match.group(1).lower(), match.group(2)
 
         elif host == "warthogs.atlassian.net":
-            match = re.match(r"^/browse/([A-Za-z]+)-([0-9]+)$", path)
+            match = re.match(r"^/browse/([A-Za-z]+)-([\d]+)$", path)
             if match:
                 return IssueSource.JIRA, match.group(1).upper(), match.group(2)
 
