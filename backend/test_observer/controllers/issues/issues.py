@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import Issue
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models_enums import IssueSource
+from test_observer.data_access.repository import get_or_create
 
 from .models import (
     IssuePatchRequest,
@@ -32,7 +33,6 @@ from .models import (
     MinimalIssueResponse,
 )
 from .issue_url_parser import issue_source_project_key_from_url
-from test_observer.data_access.models_enums import IssueStatus
 
 router = APIRouter(tags=["issues"])
 
@@ -93,28 +93,16 @@ def create_or_update_issue(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
-    # Fetch any existing issue
-    existing_issue = db.scalar(
-        select(Issue).where(
-            Issue.source == source,
-            Issue.project == project,
-            Issue.key == key,
-        )
+    # Get or create the issue model
+    issue = get_or_create(
+        db,
+        Issue,
+        filter_kwargs={
+            "source": source,
+            "project": project,
+            "key": key,
+        },
     )
 
-    # If existing issue, just update
-    if existing_issue:
-        return update_issue(db, existing_issue, request)
-
-    # Create a new issue
-    new_issue = Issue(
-        source=source,
-        project=project,
-        key=key,
-        title=request.title or "",
-        status=request.status or IssueStatus.UNKNOWN,
-    )
-    db.add(new_issue)
-    db.commit()
-    db.refresh(new_issue)
-    return new_issue
+    # Add any fields to be updated and commit
+    return update_issue(db, issue, request)
