@@ -342,7 +342,9 @@ class TestExecution(Base):
     )
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
     test_results: Mapped[list["TestResult"]] = relationship(
-        back_populates="test_execution", cascade="all, delete"
+        back_populates="test_execution", 
+        cascade="all, delete",
+        order_by="TestResult.id",
     )
     test_events: Mapped[list["TestEvent"]] = relationship(
         back_populates="test_execution",
