@@ -115,6 +115,7 @@ class IssueSource(StrEnum):
     GITHUB = "github"
     LAUNCHPAD = "launchpad"
 
+
 class IssueStatus(StrEnum):
     UNKNOWN = "unknown"
     OPEN = "open"

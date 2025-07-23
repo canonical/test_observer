@@ -15,11 +15,41 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-
 from pydantic import BaseModel, HttpUrl
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field, AliasPath
+
+from test_observer.controllers.artefacts.models import (
+    ArtefactBuildMinimalResponse,
+    ArtefactResponse,
+    TestExecutionResponse,
+)
+
+from test_observer.controllers.test_executions.models import (
+    TestResultResponse,
+)
+
+from .shared_models import MinimalIssueResponse
+
+
+class IssueTestResultAttachmentResponse(BaseModel):
+    test_result: TestResultResponse = Field(validation_alias=AliasPath("test_result"))
+    test_execution: TestExecutionResponse = Field(
+        validation_alias=AliasPath("test_result", "test_execution")
+    )
+    artefact: ArtefactResponse = Field(
+        validation_alias=AliasPath(
+            "test_result",
+            "test_execution",
+            "artefact_build",
+            "artefact",
+        )
+    )
+    artefact_build: ArtefactBuildMinimalResponse = Field(
+        validation_alias=AliasPath("test_result", "test_execution", "artefact_build")
+    )
+
 
 class IssueResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -32,23 +62,23 @@ class IssueResponse(BaseModel):
     status: IssueStatus
     url: HttpUrl
 
-class MinimalIssueResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    test_results: list[IssueTestResultAttachmentResponse] = Field(
+        validation_alias=AliasPath("test_result_attachments")
+    )
 
-    id: int
-    source: IssueSource
-    project: str
-    key: str
-    title: str
-    status: IssueStatus
-    url: HttpUrl
 
 class IssuesGetResponse(BaseModel):
     issues: list[MinimalIssueResponse]
+
 
 class IssuePatchRequest(BaseModel):
     title: str | None = None
     status: IssueStatus | None = None
 
+
 class IssuePutRequest(IssuePatchRequest):
     url: HttpUrl
+
+
+class IssueAttachmentRequest(BaseModel):
+    test_results: list[int] = Field(default_factory=list)

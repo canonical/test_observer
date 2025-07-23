@@ -426,6 +426,10 @@ class TestResult(Base):
     )
     test_case: Mapped["TestCase"] = relationship()
 
+    issue_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
+        back_populates="test_result", cascade="all, delete"
+    )
+
     def __repr__(self) -> str:
         return data_model_repr(
             self,
@@ -520,6 +524,10 @@ class Issue(Base):
     title: Mapped[str] = mapped_column(default="")
     status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
 
+    test_result_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
+        back_populates="issue", cascade="all, delete"
+    )
+
     def __repr__(self) -> str:
         return data_model_repr(
             self,
@@ -529,7 +537,7 @@ class Issue(Base):
             "title",
             "status",
         )
-    
+
     __table_args__ = (UniqueConstraint("project", "source", "key"),)
 
     @hybrid_property
@@ -541,7 +549,7 @@ class Issue(Base):
         elif self.source == IssueSource.LAUNCHPAD:
             return f"https://bugs.launchpad.net/{self.project}/+bug/{self.key}"
         raise ValueError("Unrecognized issue source")
-    
+
     @url.inplace.expression
     @classmethod
     def _url_expression(cls) -> ColumnElement[str]:
@@ -573,8 +581,28 @@ class Issue(Base):
                     cls.key,
                 ),
             ),
-            else_="https://invalid"
+            else_="https://invalid",
         )
+
+
+class IssueTestResultAttachment(Base):
+    """
+    A table for attaching issues to test results
+    """
+
+    __tablename__ = "issue_test_result_attachment"
+
+    issue_id: Mapped[int] = mapped_column(
+        ForeignKey("issue.id", ondelete="CASCADE"), index=True
+    )
+    issue: Mapped["Issue"] = relationship(back_populates="test_result_attachments")
+
+    test_result_id: Mapped[int] = mapped_column(
+        ForeignKey("test_result.id", ondelete="CASCADE"), index=True
+    )
+    test_result: Mapped["TestResult"] = relationship(back_populates="issue_attachments")
+
+    __table_args__ = (UniqueConstraint("issue_id", "test_result_id"),)
 
 
 class ArtefactBuildEnvironmentReview(Base):

@@ -1505,6 +1505,110 @@
         }
       }
     },
+    "/v1/issues/{issue_id}/attach": {
+      "post": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Add Issue Attachments",
+        "operationId": "add_issue_attachments_v1_issues__issue_id__attach_post",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueAttachmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/issues/{issue_id}/detach": {
+      "post": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Remove Issue Attachments",
+        "operationId": "remove_issue_attachments_v1_issues__issue_id__detach_post",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueAttachmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/issues": {
       "get": {
         "tags": [
@@ -2385,6 +2489,19 @@
         ],
         "title": "ImageStage"
       },
+      "IssueAttachmentRequest": {
+        "properties": {
+          "test_results": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Test Results"
+          }
+        },
+        "type": "object",
+        "title": "IssueAttachmentRequest"
+      },
       "IssuePatchRequest": {
         "properties": {
           "title": {
@@ -2479,6 +2596,13 @@
             "minLength": 1,
             "format": "uri",
             "title": "Url"
+          },
+          "test_results": {
+            "items": {
+              "$ref": "#/components/schemas/IssueTestResultAttachmentResponse"
+            },
+            "type": "array",
+            "title": "Test Results"
           }
         },
         "type": "object",
@@ -2489,7 +2613,8 @@
           "key",
           "title",
           "status",
-          "url"
+          "url",
+          "test_results"
         ],
         "title": "IssueResponse"
       },
@@ -2510,6 +2635,30 @@
           "closed"
         ],
         "title": "IssueStatus"
+      },
+      "IssueTestResultAttachmentResponse": {
+        "properties": {
+          "test_result": {
+            "$ref": "#/components/schemas/TestResultResponse"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/TestExecutionResponse"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/ArtefactResponse"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_result",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "IssueTestResultAttachmentResponse"
       },
       "IssuesGetResponse": {
         "properties": {
@@ -2570,6 +2719,18 @@
           "url"
         ],
         "title": "MinimalIssueResponse"
+      },
+      "MinimalIssueTestResultAttachmentResponse": {
+        "properties": {
+          "issue": {
+            "$ref": "#/components/schemas/MinimalIssueResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "issue"
+        ],
+        "title": "MinimalIssueTestResultAttachmentResponse"
       },
       "PendingRerun": {
         "properties": {
@@ -3437,6 +3598,13 @@
             "title": "Previous Results",
             "description": "The last 10 test results matched with the current test execution. The items are sorted in descending order, the first test result is the most recent, while the last one is the oldest one.",
             "default": []
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentResponse"
+            },
+            "type": "array",
+            "title": "Issues"
           }
         },
         "type": "object",
@@ -3447,7 +3615,8 @@
           "template_id",
           "status",
           "comment",
-          "io_log"
+          "io_log",
+          "issues"
         ],
         "title": "TestResultResponse"
       },

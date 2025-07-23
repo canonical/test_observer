@@ -52,6 +52,11 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
         test_execution_second,
     )
 
+    issue = generator.gen_issue()
+    response = test_client.post(
+        f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result_second.id]}
+    )
+
     response = test_client.get(
         f"/v1/test-executions/{test_execution_second.id}/test-results"
     )
@@ -69,6 +74,19 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
             "status": test_result_first.status,
             "version": artefact_first.version,
             "artefact_id": artefact_first.id,
+        }
+    ]
+    assert json[0]["issues"] == [
+        {
+            "issue": {
+                "id": issue.id,
+                "source": issue.source,
+                "project": issue.project,
+                "key": issue.key,
+                "title": issue.title,
+                "status": issue.status,
+                "url": issue.url,
+            }
         }
     ]
 
@@ -107,6 +125,7 @@ def test_previous_results_shows_reruns(
                     "artefact_id": a.id,
                 }
             ],
+            "issues": [],
         }
     ]
 
@@ -148,6 +167,7 @@ def test_previous_results_orders_by_artefact(
                     "artefact_id": a1.id,
                 }
             ],
+            "issues": [],
         }
     ]
 
