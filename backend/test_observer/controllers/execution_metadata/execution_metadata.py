@@ -15,27 +15,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from . import (
-    end_test,
-    get_test_results,
-    patch,
-    post_results,
-    reruns,
-    start_test,
-    status_update,
-    relevant_links,
-    execution_metadata,
-)
+from test_observer.data_access.models import TestExecutionMetadata
+from test_observer.data_access.setup import get_db
 
-router = APIRouter(tags=["test-executions"])
-router.include_router(start_test.router)
-router.include_router(get_test_results.router)
-router.include_router(end_test.router)
-router.include_router(patch.router)
-router.include_router(reruns.router)
-router.include_router(status_update.router)
-router.include_router(post_results.router)
-router.include_router(relevant_links.router)
+from .models import ExecutionMetadataGetResponse, ExecutionMetadata
+
+
+from . import execution_metadata
+
+router = APIRouter(tags=["execution-metadata"])
 router.include_router(execution_metadata.router)
+
+
+@router.get("", response_model=ExecutionMetadataGetResponse)
+def get_execution_metadata(db: Session = Depends(get_db)):
+    return ExecutionMetadataGetResponse(
+        execution_metadata=ExecutionMetadata.from_rows(
+            db.execute(select(TestExecutionMetadata)).scalars().all()
+        ),
+    )

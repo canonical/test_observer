@@ -666,6 +666,100 @@
         }
       }
     },
+    "/v1/test-executions/{test_execution_id}/execution-metadata": {
+      "get": {
+        "tags": [
+          "test-executions",
+          "execution-metadata"
+        ],
+        "summary": "Get Execution Metadata",
+        "operationId": "get_execution_metadata_v1_test_executions__test_execution_id__execution_metadata_get",
+        "parameters": [
+          {
+            "name": "test_execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Test Execution Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "test-executions",
+          "execution-metadata"
+        ],
+        "summary": "Post Execution Metadata",
+        "operationId": "post_execution_metadata_v1_test_executions__test_execution_id__execution_metadata_post",
+        "parameters": [
+          {
+            "name": "test_execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Test Execution Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionMetadataPostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/artefacts/{artefact_id}/environment-reviews": {
       "get": {
         "tags": [
@@ -1805,6 +1899,27 @@
         }
       }
     },
+    "/v1/execution-metadata": {
+      "get": {
+        "tags": [
+          "execution-metadata"
+        ],
+        "summary": "Get Execution Metadata",
+        "operationId": "get_execution_metadata_v1_execution_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -2457,6 +2572,40 @@
         },
         "type": "object",
         "title": "EnvironmentReviewPatch"
+      },
+      "ExecutionMetadata": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": "object",
+        "title": "ExecutionMetadata"
+      },
+      "ExecutionMetadataGetResponse": {
+        "properties": {
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_metadata"
+        ],
+        "title": "ExecutionMetadataGetResponse"
+      },
+      "ExecutionMetadataPostRequest": {
+        "properties": {
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_metadata"
+        ],
+        "title": "ExecutionMetadataPostRequest"
       },
       "FamilyName": {
         "type": "string",
