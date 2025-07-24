@@ -19,9 +19,10 @@ import pytest
 from pydantic import HttpUrl
 
 from test_observer.controllers.issues.issue_url_parser import (
-    issue_source_project_key_from_url
+    issue_source_project_key_from_url,
 )
 from test_observer.data_access.models_enums import IssueSource
+
 
 @pytest.mark.parametrize(
     "url,expected",
@@ -68,22 +69,22 @@ from test_observer.data_access.models_enums import IssueSource
         ("https://bugs.launchpad.net/abc/+bug/abc", None),
         # Good launchpad
         (
-            "https://bugs.launchpad.net/abc/+bug/123", 
+            "https://bugs.launchpad.net/abc/+bug/123",
             (IssueSource.LAUNCHPAD, "abc", "123"),
         ),
         # Lowercase launchpad project
         (
-            "https://bugs.launchpad.net/ABC/+bug/123", 
+            "https://bugs.launchpad.net/ABC/+bug/123",
             (IssueSource.LAUNCHPAD, "abc", "123"),
         ),
         # Accept http
         (
-            "http://github.com/canonical/test_observer/issues/71", 
+            "http://github.com/canonical/test_observer/issues/71",
             (IssueSource.GITHUB, "canonical/test_observer", "71"),
         ),
         # Ignore query params
         (
-            "http://github.com/canonical/test_observer/issues/71?some=param", 
+            "http://github.com/canonical/test_observer/issues/71?some=param",
             (IssueSource.GITHUB, "canonical/test_observer", "71"),
         ),
     ],

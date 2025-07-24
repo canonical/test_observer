@@ -45,6 +45,9 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
+from test_observer.controllers.issues.shared_models import (
+    MinimalIssueTestResultAttachmentResponse,
+)
 
 
 class _StartTestExecutionRequest(BaseModel):
@@ -182,6 +185,9 @@ class TestResultResponse(BaseModel):
             "the first test result is the most recent, while "
             "the last one is the oldest one."
         ),
+    )
+    issues: list[MinimalIssueTestResultAttachmentResponse] = Field(
+        validation_alias=AliasPath("issue_attachments"),
     )
 
 

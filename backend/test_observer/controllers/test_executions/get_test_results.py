@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 from test_observer.data_access.models import (
     TestExecution,
     TestResult,
+    IssueTestResultAttachment,
 )
 from test_observer.data_access.setup import get_db
 
@@ -42,7 +43,11 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
         select(TestResult)
         .where(TestResult.test_execution_id == id)
         .order_by(TestResult.id)
-        .options(selectinload(TestResult.test_case))
+        .options(
+            selectinload(TestResult.test_case),
+            selectinload(TestResult.issue_attachments)
+            .selectinload(IssueTestResultAttachment.issue),
+        )
     ).scalars().all()
 
     previous_test_results = get_previous_test_results(db, test_execution)

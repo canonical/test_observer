@@ -31,6 +31,7 @@ from test_observer.data_access.models import (
     TestExecutionRelevantLink,
     TestResult,
     User,
+    Issue,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -39,6 +40,8 @@ from test_observer.data_access.models_enums import (
     StageName,
     TestExecutionStatus,
     TestResultStatus,
+    IssueSource,
+    IssueStatus,
 )
 
 DEFAULT_ARCHITECTURE = "amd64"
@@ -286,6 +289,24 @@ class DataGenerator:
         )
         self._add_object(test_event)
         return test_event
+
+    def gen_issue(
+        self,
+        source: IssueSource = IssueSource.GITHUB,
+        project: str = "canonical/test_observer",
+        key: str = "42",
+        title: str = "there is a bug",
+        status: IssueStatus = IssueStatus.OPEN,
+    ) -> Issue:
+        issue = Issue(
+            source=source,
+            project=project,
+            key=key,
+            title=title,
+            status=status,
+        )
+        self._add_object(issue)
+        return issue
 
     def _add_object(self, instance: object) -> None:
         self.db_session.add(instance)

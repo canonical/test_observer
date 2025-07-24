@@ -18,9 +18,15 @@
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from test_observer.data_access.models import Issue
+from test_observer.data_access.models import (
+    Issue,
+    IssueTestResultAttachment,
+    TestResult,
+    TestExecution,
+    ArtefactBuild,
+)
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models_enums import IssueSource
 from test_observer.data_access.repository import get_or_create
@@ -34,7 +40,11 @@ from .models import (
 )
 from .issue_url_parser import issue_source_project_key_from_url
 
+from . import issue_attachments
+
 router = APIRouter(tags=["issues"])
+router.include_router(issue_attachments.router)
+
 
 @router.get("", response_model=IssuesGetResponse)
 def get_issues(
@@ -52,15 +62,31 @@ def get_issues(
         issues=[MinimalIssueResponse.model_validate(issue) for issue in issues]
     )
 
+
 @router.get("/{issue_id}", response_model=IssueResponse)
 def get_issue(
     issue_id: int,
     db: Session = Depends(get_db),
 ):
-    issue = db.get(Issue, issue_id)
+    issue = db.get(
+        Issue,
+        issue_id,
+        options=(
+            selectinload(Issue.test_result_attachments)
+            .selectinload(IssueTestResultAttachment.test_result)
+            .selectinload(TestResult.test_execution)
+            .selectinload(TestExecution.environment),
+            selectinload(Issue.test_result_attachments)
+            .selectinload(IssueTestResultAttachment.test_result)
+            .selectinload(TestResult.test_execution)
+            .selectinload(TestExecution.artefact_build)
+            .selectinload(ArtefactBuild.artefact),
+        ),
+    )
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
     return issue
+
 
 def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     if request.title is not None:
@@ -70,6 +96,7 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     db.commit()
     db.refresh(issue)
     return issue
+
 
 @router.patch("/{issue_id}", response_model=IssueResponse)
 def patch_issue(
@@ -81,6 +108,7 @@ def patch_issue(
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
     return update_issue(db, issue, request)
+
 
 @router.put("", response_model=IssueResponse)
 def create_or_update_issue(
