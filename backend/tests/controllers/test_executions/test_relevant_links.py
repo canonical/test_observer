@@ -23,14 +23,14 @@ from tests.data_generator import DataGenerator
 
 
 def test_post_relevant_link_success(
-    test_client: TestClient, 
-    generator: DataGenerator, 
-    db_session: Session):
-    
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(artefact_build, environment, ci_link="http://test.ci/link")
+    test_execution = generator.gen_test_execution(
+        artefact_build, environment, ci_link="http://test.ci/link"
+    )
 
     link_data = {"label": "Jira Ticket", "url": "https://jira.example.com/TICKET-123"}
     response = test_client.post(
@@ -57,13 +57,14 @@ def test_post_relevant_link_test_execution_not_found(test_client: TestClient):
 
 
 def test_post_relevant_link_invalid_body(
-    test_client: TestClient, 
-    generator: DataGenerator):
-
+    test_client: TestClient, generator: DataGenerator
+):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(artefact_build, environment, ci_link="http://test.ci/link")
+    test_execution = generator.gen_test_execution(
+        artefact_build, environment, ci_link="http://test.ci/link"
+    )
 
     invalid_link_data_no_url = {"label": "Missing URL"}
     response = test_client.post(
@@ -81,10 +82,8 @@ def test_post_relevant_link_invalid_body(
 
 
 def test_delete_relevant_link_success(
-    test_client: TestClient, 
-    generator: DataGenerator, 
-    db_session: Session):
-
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -95,7 +94,7 @@ def test_delete_relevant_link_success(
         relevant_links=[
             {"label": "Link A", "url": "http://link.a"},
             {"label": "Link B", "url": "http://link.b"},
-        ]
+        ],
     )
     db_session.refresh(test_execution)
 

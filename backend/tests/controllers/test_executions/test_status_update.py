@@ -32,7 +32,7 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[{"label": "Doc Link", "url": "http://example.com/doc"}]
+        relevant_links=[{"label": "Doc Link", "url": "http://example.com/doc"}],
     )
 
     response = test_client.put(
@@ -83,7 +83,9 @@ def test_status_updates_is_idempotent(
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[{"label": "Support Ticket", "url": "http://example.com/ticket/456"}]
+        relevant_links=[
+            {"label": "Support Ticket", "url": "http://example.com/ticket/456"}
+        ],
     )
 
     for _ in range(3):
@@ -119,7 +121,9 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[{"label": "Release Notes", "url": "http://example.com/release"}]
+        relevant_links=[
+            {"label": "Release Notes", "url": "http://example.com/release"}
+        ],
     )
 
     test_client.put(
@@ -170,7 +174,7 @@ def test_status_updates_invalid_timestamp(
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[{"label": "External Info", "url": "http://example.com/info"}]
+        relevant_links=[{"label": "External Info", "url": "http://example.com/info"}],
     )
 
     response = test_client.put(
@@ -203,7 +207,7 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[{"label": "Logs", "url": "http://example.com/logs"}]
+        relevant_links=[{"label": "Logs", "url": "http://example.com/logs"}],
     )
 
     test_client.put(
@@ -234,11 +238,8 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
 
 
 def test_post_status_update_appends_events(
-    test_client: TestClient, 
-    generator: DataGenerator, 
-    db_session: Session
+    test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -246,7 +247,7 @@ def test_post_status_update_appends_events(
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[{"label": "CI", "url": "http://example.com/ci"}]
+        relevant_links=[{"label": "CI", "url": "http://example.com/ci"}],
     )
 
     response1 = test_client.post(
@@ -259,7 +260,7 @@ def test_post_status_update_appends_events(
                     "detail": "Initial setup started",
                 }
             ]
-        }
+        },
     )
     assert response1.status_code == 200
 
@@ -273,7 +274,7 @@ def test_post_status_update_appends_events(
                     "detail": "Setup completed",
                 }
             ]
-        }
+        },
     )
     assert response2.status_code == 200
 

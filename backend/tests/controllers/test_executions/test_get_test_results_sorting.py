@@ -24,7 +24,6 @@ from tests.data_generator import DataGenerator
 def test_get_test_results_sorts_by_execution_order(
     test_client: TestClient, generator: DataGenerator
 ):
- 
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
@@ -42,16 +41,12 @@ def test_get_test_results_sorts_by_execution_order(
 
     assert response.status_code == 200
     json_response = response.json()
-    
+
     result_ids = [result["id"] for result in json_response]
     test_names = [result["name"] for result in json_response]
 
     assert result_ids == sorted(result_ids)
 
-    expected_order = [
-        "test_deploy",      
-        "test_integration", 
-        "test_teardown"     
-    ]
-    
+    expected_order = ["test_deploy", "test_integration", "test_teardown"]
+
     assert test_names == expected_order

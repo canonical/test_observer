@@ -36,7 +36,7 @@ def patch_test_execution(
 ):
     test_execution = db.get(
         TestExecution,
-        id, 
+        id,
         options=[selectinload(TestExecution.relevant_links)],
     )
 
