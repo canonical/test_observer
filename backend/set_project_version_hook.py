@@ -20,6 +20,7 @@ from hatchling.metadata.plugin.interface import MetadataHookInterface
 import subprocess
 import shutil
 
+
 def get_git_version_info(fallback_version: str = "0.0.0") -> str:
     """
     Retrieves version information for the package from git.
@@ -102,7 +103,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
                 .decode()
                 .strip()
             )
-            
+
             # Check for uncommitted changes
             try:
                 subprocess.check_output(
@@ -112,7 +113,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
                 dirty_suffix = ""
             except subprocess.CalledProcessError:
                 dirty_suffix = "-dirty"
-                
+
             return f"0.0.0-{short_rev}{dirty_suffix}"
     else:
         return fallback_version

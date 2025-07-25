@@ -39,16 +39,21 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
-    test_results_from_db = db.execute(
-        select(TestResult)
-        .where(TestResult.test_execution_id == id)
-        .order_by(TestResult.id)
-        .options(
-            selectinload(TestResult.test_case),
-            selectinload(TestResult.issue_attachments)
-            .selectinload(IssueTestResultAttachment.issue),
+    test_results_from_db = (
+        db.execute(
+            select(TestResult)
+            .where(TestResult.test_execution_id == id)
+            .order_by(TestResult.id)
+            .options(
+                selectinload(TestResult.test_case),
+                selectinload(TestResult.issue_attachments).selectinload(
+                    IssueTestResultAttachment.issue
+                ),
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     previous_test_results = get_previous_test_results(db, test_execution)
 

@@ -48,14 +48,9 @@ def delete_link(id: int, link_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="TestExecution not found")
 
     link = next(
-        (
-            link
-            for link in test_execution.relevant_links
-            if link.id == link_id
-        ),
+        (link for link in test_execution.relevant_links if link.id == link_id),
         None,
     )
 
     db.delete(link)
     db.commit()
-

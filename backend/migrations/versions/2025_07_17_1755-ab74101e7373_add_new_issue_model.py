@@ -21,6 +21,7 @@ Revises: 2158335fab1b
 Create Date: 2025-07-17 17:55:35.565545+00:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -33,7 +34,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table("issue",
+    op.create_table(
+        "issue",
         sa.Column(
             "source",
             sa.Enum("JIRA", "GITHUB", "LAUNCHPAD", name="issuesource"),

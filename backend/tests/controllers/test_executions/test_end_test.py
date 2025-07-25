@@ -36,9 +36,10 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
         {"label": "Wiki", "url": "http://example.com/wiki"},
     ]
     test_execution = generator.gen_test_execution(
-        artefact_build, environment, 
-        ci_link="http://localhost", 
-        relevant_links=initial_relevant_links_for_gen
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=initial_relevant_links_for_gen,
     )
     generator.gen_artefact_build_environment_review(artefact_build, environment)
     test_case = generator.gen_test_case()
@@ -97,10 +98,10 @@ def test_end_test_is_idempotent(
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
-        artefact_build, 
-        environment, 
-        ci_link="http://localhost", 
-        relevant_links=[{"label": "Docs", "url": "http://docs.example.com"}]
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "Docs", "url": "http://docs.example.com"}],
     )
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
@@ -139,9 +140,9 @@ def test_end_test_updates_template_id(
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
-        artefact_build, 
-        environment, 
-        ci_link="http://localhost", 
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
         relevant_links=[{"label": "Report", "url": "http://report.example.com"}],
     )
     generator.gen_artefact_build_environment_review(artefact_build, environment)

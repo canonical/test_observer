@@ -13,6 +13,7 @@ cd backend && uv sync
 
 # Run linting and type checking
 ruff check .
+ruff format --check .
 mypy .
 
 # Run tests (Docker Compose)

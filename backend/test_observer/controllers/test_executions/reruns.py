@@ -83,10 +83,12 @@ def get_rerun_requests(
             .selectinload(TestExecution.artefact_build)
             .selectinload(ArtefactBuild.artefact)
             .selectinload(Artefact.assignee),
-            selectinload(TestExecutionRerunRequest.test_execution)
-            .selectinload(TestExecution.environment),
-            selectinload(TestExecutionRerunRequest.test_execution)
-            .selectinload(TestExecution.relevant_links),
+            selectinload(TestExecutionRerunRequest.test_execution).selectinload(
+                TestExecution.environment
+            ),
+            selectinload(TestExecutionRerunRequest.test_execution).selectinload(
+                TestExecution.relevant_links
+            ),
         )
         .order_by(asc(TestExecutionRerunRequest.created_at))
     )

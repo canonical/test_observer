@@ -26,11 +26,20 @@ from test_observer.data_access.models import Issue
         # Unknown source
         (("unknown_source", "some-project", "some-key"), None),
         # Github
-        ((IssueSource.GITHUB, "canonical/test_observer", "71"), "https://github.com/canonical/test_observer/issues/71"),
+        (
+            (IssueSource.GITHUB, "canonical/test_observer", "71"),
+            "https://github.com/canonical/test_observer/issues/71",
+        ),
         # Jira
-        ((IssueSource.JIRA, "TO", "142"), "https://warthogs.atlassian.net/browse/TO-142"),
+        (
+            (IssueSource.JIRA, "TO", "142"),
+            "https://warthogs.atlassian.net/browse/TO-142",
+        ),
         # Launchpad
-        ((IssueSource.LAUNCHPAD, "abc", "123"), "https://bugs.launchpad.net/abc/+bug/123"),
+        (
+            (IssueSource.LAUNCHPAD, "abc", "123"),
+            "https://bugs.launchpad.net/abc/+bug/123",
+        ),
     ],
 )
 def test_issue_url(

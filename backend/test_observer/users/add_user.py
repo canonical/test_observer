@@ -56,10 +56,10 @@ def _create_user(launchpad_user: LaunchpadUser, session: Session) -> User:
         logger = logging.getLogger("test-observer-backend")
         logger.info(
             "User with email %s already exists. Skipping creation.",
-            launchpad_user.email
+            launchpad_user.email,
         )
         return existing_user
-    
+
     user = User(
         launchpad_handle=launchpad_user.handle,
         launchpad_email=launchpad_user.email,
