@@ -26,6 +26,7 @@ from .application import version
 from .artefacts import artefacts
 from .test_executions import relevant_links
 from .issues import issues
+from .execution_metadata import execution_metadata
 
 router = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
@@ -36,6 +37,7 @@ router.include_router(test_cases.router, prefix="/v1/test-cases")
 router.include_router(environments.router, prefix="/v1/environments")
 router.include_router(relevant_links.router, prefix="/v1/test-executions")
 router.include_router(issues.router, prefix="/v1/issues")
+router.include_router(execution_metadata.router, prefix="/v1/execution-metadata")
 
 
 @router.get("/")

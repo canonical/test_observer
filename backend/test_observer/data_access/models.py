@@ -29,6 +29,8 @@ from sqlalchemy import (
     column,
     Boolean,
     case,
+    Table,
+    Column,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -322,6 +324,37 @@ class TestExecutionRerunRequest(Base):
     )
 
 
+test_execution_metadata_association_table = Table(
+    "test_execution_metadata_association_table",
+    Base.metadata,
+    Column("test_execution_id", ForeignKey("test_execution.id"), primary_key=True),
+    Column(
+        "test_execution_metadata_id",
+        ForeignKey("test_execution_metadata.id"),
+        primary_key=True,
+    ),
+)
+
+
+class TestExecutionMetadata(Base):
+    """
+    A table to store arbitrary metadata for test executions
+    """
+
+    __test__ = False
+    __tablename__ = "test_execution_metadata"
+
+    category: Mapped[str] = mapped_column(String(200))
+    value: Mapped[str] = mapped_column(String(200))
+
+    test_executions: Mapped[list["TestExecution"]] = relationship(
+        secondary=test_execution_metadata_association_table,
+        back_populates="execution_metadata",
+    )
+
+    __table_args__ = (UniqueConstraint("category", "value"),)
+
+
 class TestExecution(Base):
     """
     A table to represent the result of test execution.
@@ -370,6 +403,11 @@ class TestExecution(Base):
     )
 
     test_plan: Mapped[str] = mapped_column(String(200))
+
+    execution_metadata: Mapped[list["TestExecutionMetadata"]] = relationship(
+        secondary=test_execution_metadata_association_table,
+        back_populates="test_executions",
+    )
 
     @property
     def has_failures(self) -> bool:
