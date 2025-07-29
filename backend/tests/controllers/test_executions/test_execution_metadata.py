@@ -55,12 +55,11 @@ def sample_execution_metadata() -> dict:
 def test_execution_metadata_add_empty(
     test_client: TestClient, sample_test_executions: tuple[TestExecution, TestExecution]
 ):
-    test_client.post(
+    response = test_client.post(
         post_endpoint.format(id=sample_test_executions[0].id),
         json={"execution_metadata": {}},
     )
-    response = test_client.get(get_endpoint.format(id=sample_test_executions[0].id))
-    assert response.json() == {"execution_metadata": {}}
+    assert response.json()["execution_metadata"] == {}
 
 
 def test_execution_metadata_add_some(
@@ -68,12 +67,11 @@ def test_execution_metadata_add_some(
     sample_test_executions: tuple[TestExecution, TestExecution],
     sample_execution_metadata: dict[str, list[str]],
 ):
-    test_client.post(
+    response = test_client.post(
         post_endpoint.format(id=sample_test_executions[0].id),
         json={"execution_metadata": sample_execution_metadata},
     )
-    response = test_client.get(get_endpoint.format(id=sample_test_executions[0].id))
-    assert response.json() == {"execution_metadata": sample_execution_metadata}
+    assert response.json()["execution_metadata"] == sample_execution_metadata
 
 
 def test_execution_metadata_add_same_twice(
@@ -85,12 +83,11 @@ def test_execution_metadata_add_same_twice(
         post_endpoint.format(id=sample_test_executions[0].id),
         json={"execution_metadata": sample_execution_metadata},
     )
-    test_client.post(
+    response = test_client.post(
         post_endpoint.format(id=sample_test_executions[0].id),
         json={"execution_metadata": sample_execution_metadata},
     )
-    response = test_client.get(get_endpoint.format(id=sample_test_executions[0].id))
-    assert response.json() == {"execution_metadata": sample_execution_metadata}
+    assert response.json()["execution_metadata"] == sample_execution_metadata
 
 
 def test_execution_metadata_add_different(
@@ -102,30 +99,11 @@ def test_execution_metadata_add_different(
         post_endpoint.format(id=sample_test_executions[0].id),
         json={"execution_metadata": sample_execution_metadata},
     )
-    test_client.post(
+    response = test_client.post(
         post_endpoint.format(id=sample_test_executions[0].id),
         json={"execution_metadata": {"category3": ["value"]}},
     )
-    response = test_client.get(get_endpoint.format(id=sample_test_executions[0].id))
-    assert response.json() == {
-        "execution_metadata": {**sample_execution_metadata, "category3": ["value"]}
+    assert response.json()["execution_metadata"] == {
+        **sample_execution_metadata,
+        "category3": ["value"],
     }
-
-
-def test_execution_metadata_multiple_test_executions(
-    test_client: TestClient,
-    sample_test_executions: tuple[TestExecution, TestExecution],
-    sample_execution_metadata: dict[str, list[str]],
-):
-    test_client.post(
-        post_endpoint.format(id=sample_test_executions[0].id),
-        json={"execution_metadata": sample_execution_metadata},
-    )
-    test_client.post(
-        post_endpoint.format(id=sample_test_executions[1].id),
-        json={"execution_metadata": {"category3": ["value"]}},
-    )
-    response = test_client.get(get_endpoint.format(id=sample_test_executions[0].id))
-    assert response.json() == {"execution_metadata": sample_execution_metadata}
-    response = test_client.get(get_endpoint.format(id=sample_test_executions[1].id))
-    assert response.json() == {"execution_metadata": {"category3": ["value"]}}

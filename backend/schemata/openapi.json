@@ -667,47 +667,6 @@
       }
     },
     "/v1/test-executions/{test_execution_id}/execution-metadata": {
-      "get": {
-        "tags": [
-          "test-executions",
-          "execution-metadata"
-        ],
-        "summary": "Get Execution Metadata",
-        "operationId": "get_execution_metadata_v1_test_executions__test_execution_id__execution_metadata_get",
-        "parameters": [
-          {
-            "name": "test_execution_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Test Execution Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExecutionMetadataResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "test-executions",
@@ -742,7 +701,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExecutionMetadataResponse"
+                  "$ref": "#/components/schemas/TestExecutionResponse"
                 }
               }
             }
@@ -1912,7 +1871,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExecutionMetadataResponse"
+                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
                 }
               }
             }
@@ -2583,6 +2542,18 @@
         "type": "object",
         "title": "ExecutionMetadata"
       },
+      "ExecutionMetadataGetResponse": {
+        "properties": {
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_metadata"
+        ],
+        "title": "ExecutionMetadataGetResponse"
+      },
       "ExecutionMetadataPostRequest": {
         "properties": {
           "execution_metadata": {
@@ -2594,18 +2565,6 @@
           "execution_metadata"
         ],
         "title": "ExecutionMetadataPostRequest"
-      },
-      "ExecutionMetadataResponse": {
-        "properties": {
-          "execution_metadata": {
-            "$ref": "#/components/schemas/ExecutionMetadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "execution_metadata"
-        ],
-        "title": "ExecutionMetadataResponse"
       },
       "FamilyName": {
         "type": "string",
@@ -3514,6 +3473,9 @@
             "format": "date-time",
             "title": "Created At"
           },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
           "is_rerun_requested": {
             "type": "boolean",
             "title": "Is Rerun Requested",
@@ -3529,6 +3491,7 @@
           "status",
           "test_plan",
           "created_at",
+          "execution_metadata",
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponse"

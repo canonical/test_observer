@@ -39,7 +39,7 @@ class ExecutionMetadata(RootModel[dict[str, list[str]]]):
         ]
 
 
-class ExecutionMetadataResponse(BaseModel):
+class ExecutionMetadataGetResponse(BaseModel):
     execution_metadata: ExecutionMetadata
 
 

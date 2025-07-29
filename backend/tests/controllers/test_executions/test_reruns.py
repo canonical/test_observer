@@ -90,6 +90,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "test_plan": test_execution.test_plan,
             "is_rerun_requested": bool(test_execution.rerun_request),
             "created_at": test_execution.created_at.isoformat(),
+            "execution_metadata": {},
         },
         "artefact": {
             "id": test_execution.artefact_build.artefact.id,

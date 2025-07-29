@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import TestExecutionMetadata
 from test_observer.data_access.setup import get_db
 
-from .models import ExecutionMetadataResponse, ExecutionMetadata
+from .models import ExecutionMetadataGetResponse, ExecutionMetadata
 
 
 from . import execution_metadata
@@ -31,9 +31,9 @@ router = APIRouter(tags=["execution-metadata"])
 router.include_router(execution_metadata.router)
 
 
-@router.get("", response_model=ExecutionMetadataResponse)
+@router.get("", response_model=ExecutionMetadataGetResponse)
 def get_execution_metadata(db: Session = Depends(get_db)):
-    return ExecutionMetadataResponse(
+    return ExecutionMetadataGetResponse(
         execution_metadata=ExecutionMetadata.from_rows(
             db.execute(select(TestExecutionMetadata)).scalars().all()
         ),
