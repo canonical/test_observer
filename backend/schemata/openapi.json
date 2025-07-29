@@ -1805,6 +1805,462 @@
         }
       }
     },
+    "/v1/test-results": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Search Test Results",
+        "description": "Search test results across artefacts using flexible filters.\n\nThis endpoint uses a single optimized query with window functions to get both\nthe total count and paginated results in one database round trip.",
+        "operationId": "search_test_results_v1_test_results_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact family (e.g., Charm, Snap)",
+              "title": "Family"
+            },
+            "description": "Filter by artefact family (e.g., Charm, Snap)"
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environment name (e.g., Juju:3/stable ubuntu:20.04)",
+              "title": "Environment"
+            },
+            "description": "Filter by environment name (e.g., Juju:3/stable ubuntu:20.04)"
+          },
+          {
+            "name": "test_case",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test case name (e.g., test_deploy)",
+              "title": "Test Case"
+            },
+            "description": "Filter by test case name (e.g., test_deploy)"
+          },
+          {
+            "name": "template_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by template ID",
+              "title": "Template Id"
+            },
+            "description": "Filter by template ID"
+          },
+          {
+            "name": "issues",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Jira or GitHub issue IDs (comma-separated)",
+              "title": "Issues"
+            },
+            "description": "Filter by Jira or GitHub issue IDs (comma-separated)"
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results from this timestamp",
+              "title": "From Date"
+            },
+            "description": "Filter results from this timestamp"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results until this timestamp",
+              "title": "Until"
+            },
+            "description": "Filter results until this timestamp"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResultSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-results/families": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Get Families",
+        "description": "Returns all families that have test results.",
+        "operationId": "get_families_v1_test_results_families_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response Get Families V1 Test Results Families Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-results/environments": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Get Environments",
+        "description": "Returns list of distinct environments, optionally filtered by other criteria.",
+        "operationId": "get_environments_v1_test_results_environments_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter environments by family",
+              "title": "Family"
+            },
+            "description": "Filter environments by family"
+          },
+          {
+            "name": "test_case",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter environments by test case",
+              "title": "Test Case"
+            },
+            "description": "Filter environments by test case"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Get Environments V1 Test Results Environments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-results/test-cases": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Get Test Cases",
+        "description": "Returns all test cases, optionally filtered by other criteria.",
+        "operationId": "get_test_cases_v1_test_results_test_cases_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter test cases by family",
+              "title": "Family"
+            },
+            "description": "Filter test cases by family"
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter test cases by environment",
+              "title": "Environment"
+            },
+            "description": "Filter test cases by environment"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Get Test Cases V1 Test Results Test Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-results/issues": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Get Issues",
+        "description": "Returns all known issues, optionally filtered by other criteria.",
+        "operationId": "get_issues_v1_test_results_issues_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter issues by family",
+              "title": "Family"
+            },
+            "description": "Filter issues by family"
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter issues by environment",
+              "title": "Environment"
+            },
+            "description": "Filter issues by environment"
+          },
+          {
+            "name": "test_case",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter issues by test case",
+              "title": "Test Case"
+            },
+            "description": "Filter issues by test case"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Issues V1 Test Results Issues Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -3619,6 +4075,28 @@
           "issues"
         ],
         "title": "TestResultResponse"
+      },
+      "TestResultSearchResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "test_results": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultResponse"
+            },
+            "type": "array",
+            "title": "Test Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "test_results"
+        ],
+        "title": "TestResultSearchResponse",
+        "description": "Response model for test results search endpoint"
       },
       "TestResultStatus": {
         "type": "string",
