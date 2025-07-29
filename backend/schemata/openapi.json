@@ -691,7 +691,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
+                  "$ref": "#/components/schemas/ExecutionMetadataResponse"
                 }
               }
             }
@@ -742,7 +742,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
+                  "$ref": "#/components/schemas/ExecutionMetadataResponse"
                 }
               }
             }
@@ -1912,7 +1912,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
+                  "$ref": "#/components/schemas/ExecutionMetadataResponse"
                 }
               }
             }
@@ -2583,18 +2583,6 @@
         "type": "object",
         "title": "ExecutionMetadata"
       },
-      "ExecutionMetadataGetResponse": {
-        "properties": {
-          "execution_metadata": {
-            "$ref": "#/components/schemas/ExecutionMetadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "execution_metadata"
-        ],
-        "title": "ExecutionMetadataGetResponse"
-      },
       "ExecutionMetadataPostRequest": {
         "properties": {
           "execution_metadata": {
@@ -2606,6 +2594,18 @@
           "execution_metadata"
         ],
         "title": "ExecutionMetadataPostRequest"
+      },
+      "ExecutionMetadataResponse": {
+        "properties": {
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_metadata"
+        ],
+        "title": "ExecutionMetadataResponse"
       },
       "FamilyName": {
         "type": "string",

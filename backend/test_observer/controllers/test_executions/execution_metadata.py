@@ -27,7 +27,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.setup import get_db
 from test_observer.controllers.execution_metadata.models import (
-    ExecutionMetadataGetResponse,
+    ExecutionMetadataResponse,
     ExecutionMetadataPostRequest,
     ExecutionMetadata,
 )
@@ -38,13 +38,13 @@ router = APIRouter(tags=["execution-metadata"])
 
 @router.get(
     "/{test_execution_id}/execution-metadata",
-    response_model=ExecutionMetadataGetResponse,
+    response_model=ExecutionMetadataResponse,
 )
 def get_execution_metadata(test_execution_id: int, db: Session = Depends(get_db)):
     test_execution = db.get(TestExecution, test_execution_id)
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
-    return ExecutionMetadataGetResponse(
+    return ExecutionMetadataResponse(
         execution_metadata=ExecutionMetadata.from_rows(
             test_execution.execution_metadata
         ),
@@ -53,7 +53,7 @@ def get_execution_metadata(test_execution_id: int, db: Session = Depends(get_db)
 
 @router.post(
     "/{test_execution_id}/execution-metadata",
-    response_model=ExecutionMetadataGetResponse,
+    response_model=ExecutionMetadataResponse,
 )
 def post_execution_metadata(
     test_execution_id: int,
@@ -70,7 +70,7 @@ def post_execution_metadata(
 
     # Exit if none given
     if len(execution_metadata_rows) == 0:
-        return ExecutionMetadataGetResponse(
+        return ExecutionMetadataResponse(
             execution_metadata=ExecutionMetadata.from_rows(
                 test_execution.execution_metadata
             ),
@@ -123,7 +123,7 @@ def post_execution_metadata(
     # Save and return all the execution metadata
     db.commit()
     db.refresh(test_execution)
-    return ExecutionMetadataGetResponse(
+    return ExecutionMetadataResponse(
         execution_metadata=ExecutionMetadata.from_rows(
             test_execution.execution_metadata
         ),
