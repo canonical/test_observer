@@ -175,9 +175,7 @@ def get_families(db: Session = Depends(get_db)) -> list[str]:
 @router.get("/environments", response_model=list[str])
 def get_environments(
     family: str | None = Query(None, description="Filter environments by family"),
-    test_case: str | None = Query(
-        None, description="Filter environments by test case"
-    ),
+    test_case: str | None = Query(None, description="Filter environments by test case"),
     db: Session = Depends(get_db),
 ) -> list[str]:
     """
@@ -251,9 +249,7 @@ def get_test_cases(
 @router.get("/issues", response_model=list[dict])
 def get_issues(
     family: str | None = Query(None, description="Filter issues by family"),
-    environment: str | None = Query(
-        None, description="Filter issues by environment"
-    ),
+    environment: str | None = Query(None, description="Filter issues by environment"),
     test_case: str | None = Query(None, description="Filter issues by test case"),
     db: Session = Depends(get_db),
 ) -> list[dict]:

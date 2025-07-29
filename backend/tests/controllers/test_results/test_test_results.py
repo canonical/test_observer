@@ -534,9 +534,7 @@ class TestSearchTestResults:
         response = test_client.get("/v1/test-results?offset=-1")
         assert response.status_code == 422
 
-    def test_large_offset_pagination(
-        self, test_client: TestClient
-    ):
+    def test_large_offset_pagination(self, test_client: TestClient):
         # Create test data
 
         response_check = test_client.get(
