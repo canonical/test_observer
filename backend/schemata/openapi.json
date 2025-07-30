@@ -666,59 +666,6 @@
         }
       }
     },
-    "/v1/test-executions/{test_execution_id}/execution-metadata": {
-      "post": {
-        "tags": [
-          "test-executions",
-          "execution-metadata"
-        ],
-        "summary": "Post Execution Metadata",
-        "operationId": "post_execution_metadata_v1_test_executions__test_execution_id__execution_metadata_post",
-        "parameters": [
-          {
-            "name": "test_execution_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Test Execution Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExecutionMetadataPostRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestExecutionResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/artefacts/{artefact_id}/environment-reviews": {
       "get": {
         "tags": [
@@ -2554,18 +2501,6 @@
         ],
         "title": "ExecutionMetadataGetResponse"
       },
-      "ExecutionMetadataPostRequest": {
-        "properties": {
-          "execution_metadata": {
-            "$ref": "#/components/schemas/ExecutionMetadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "execution_metadata"
-        ],
-        "title": "ExecutionMetadataPostRequest"
-      },
       "FamilyName": {
         "type": "string",
         "enum": [
@@ -3552,6 +3487,16 @@
               }
             ],
             "title": "Status"
+          },
+          "execution_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

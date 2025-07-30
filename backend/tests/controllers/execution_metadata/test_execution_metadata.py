@@ -23,7 +23,7 @@ from tests.data_generator import DataGenerator
 
 from test_observer.data_access.models import TestExecution
 
-test_executions_post_endpoint = "/v1/test-executions/{id}/execution-metadata"
+test_executions_patch_endpoint = "/v1/test-executions/{id}"
 get_endpoint = "/v1/execution-metadata"
 
 
@@ -48,8 +48,8 @@ def test_execution_metadata_get_all(
     test_client: TestClient,
     sample_test_executions: tuple[TestExecution, TestExecution],
 ):
-    test_client.post(
-        test_executions_post_endpoint.format(id=sample_test_executions[0].id),
+    test_client.patch(
+        test_executions_patch_endpoint.format(id=sample_test_executions[0].id),
         json={
             "execution_metadata": {
                 "category1": [
@@ -62,8 +62,8 @@ def test_execution_metadata_get_all(
             }
         },
     )
-    test_client.post(
-        test_executions_post_endpoint.format(id=sample_test_executions[0].id),
+    test_client.patch(
+        test_executions_patch_endpoint.format(id=sample_test_executions[0].id),
         json={
             "execution_metadata": {
                 "category2": [

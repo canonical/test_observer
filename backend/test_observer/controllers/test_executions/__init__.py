@@ -26,7 +26,6 @@ from . import (
     start_test,
     status_update,
     relevant_links,
-    execution_metadata,
 )
 
 router = APIRouter(tags=["test-executions"])
@@ -38,4 +37,3 @@ router.include_router(reruns.router)
 router.include_router(status_update.router)
 router.include_router(post_results.router)
 router.include_router(relevant_links.router)
-router.include_router(execution_metadata.router)
