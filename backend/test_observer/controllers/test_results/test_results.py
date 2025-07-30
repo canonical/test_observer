@@ -16,8 +16,8 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, desc, distinct, select, func
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy import and_, desc, select, func
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.data_access.models import (
@@ -38,26 +38,41 @@ from .models import TestResultSearchResponse
 router = APIRouter(tags=["test-results"])
 
 
+def parse_csv_values(values: str) -> list[str]:
+    """Parse comma-separated values and return list of stripped non-empty values."""
+    return [value.strip() for value in values.split(",") if value.strip()]
+
+
+def parse_csv_ids(ids: str) -> list[int]:
+    """Parse comma-separated IDs and return list of integers."""
+    try:
+        return [int(id_str) for id_str in parse_csv_values(ids)]
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid ID format"
+            ) from None
+
+
 @router.get("", response_model=TestResultSearchResponse)
 def search_test_results(
-    family: str | None = Query(
-        None, description="Filter by artefact family (e.g., Charm, Snap)"
+    families: str | None = Query(
+        None, description="Filter by artefact families (e.g., charm,snap)"
     ),
-    environment: str | None = Query(
+    environments: str | None = Query(
         None,
-        description="Filter by environment name (e.g., Juju:3/stable ubuntu:20.04)",
+        description="Filter by environment names (e.g., Juju:3/stable ubuntu:20.04)",
     ),
-    test_case: str | None = Query(
-        None, description="Filter by test case name (e.g., test_deploy)"
+    test_cases: str | None = Query(
+        None, description="Filter by test case names (e.g., test_deploy)"
     ),
-    template_id: str | None = Query(None, description="Filter by template ID"),
+    template_ids: str | None = Query(None, description="Filter by template IDs"),
     issues: str | None = Query(
         None, description="Filter by Jira or GitHub issue IDs (comma-separated)"
     ),
     from_date: datetime | None = Query(
         None, description="Filter results from this timestamp"
     ),
-    until: datetime | None = Query(
+    until_date: datetime | None = Query(
         None, description="Filter results until this timestamp"
     ),
     limit: int = Query(
@@ -78,43 +93,46 @@ def search_test_results(
     # Build filters
     filters = []
 
-    if family:
-        try:
-            family_enum = FamilyName(family.lower())
-            filters.append(Artefact.family == family_enum)
-        except ValueError:
-            filters.append(Artefact.family.is_(None))
+    if families:
+        family_list = parse_csv_values(families)
+        family_enums = []
+        for family in family_list:
+            try:
+                family_enums.append(FamilyName(family.lower()))
+            except ValueError:
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid family: {family}"
+                    ) from None
 
-    if environment:
-        filters.append(Environment.name.ilike(f"%{environment}%"))
+        filters.append(Artefact.family.in_(family_enums))
 
-    if test_case:
-        filters.append(TestCase.name.ilike(f"%{test_case}%"))
+    if environments:
+        environment_list = parse_csv_values(environments)
+        filters.append(Environment.name.in_(environment_list))
 
-    if template_id:
-        filters.append(TestCase.template_id == template_id)
+    if test_cases:
+        test_case_list = parse_csv_values(test_cases)
+        filters.append(TestCase.name.in_(test_case_list))
+
+    if template_ids:
+        template_id_list = parse_csv_values(template_ids)
+        filters.append(TestCase.template_id.in_(template_id_list))
 
     if issues:
-        # Handle multiple issue IDs separated by commas
-        issue_list = [issue.strip() for issue in issues.split(",") if issue.strip()]
-        if issue_list:
-            try:
-                issue_ids = [int(issue_id) for issue_id in issue_list]
-                filters.append(
-                    TestResult.id.in_(
-                        select(IssueTestResultAttachment.test_result_id)
-                        .join(IssueTestResultAttachment.issue)
-                        .where(Issue.id.in_(issue_ids))
-                    )
-                )
-            except ValueError:
-                return TestResultSearchResponse(count=0, test_results=[])
+        issue_ids = parse_csv_ids(issues)
+        filters.append(
+            TestResult.id.in_(
+                select(IssueTestResultAttachment.test_result_id)
+                .join(IssueTestResultAttachment.issue)
+                .where(Issue.id.in_(issue_ids))
+            )
+        )
 
     if from_date:
-        filters.append(TestExecution.created_at >= from_date)
+        filters.append(TestExecution.created_at >= from_date) # type: ignore
 
-    if until:
-        filters.append(TestExecution.created_at <= until)
+    if until_date:
+        filters.append(TestExecution.created_at <= until_date) # type: ignore
 
     # Build the main query with window function for total count in a single query
     query = (
@@ -151,157 +169,3 @@ def search_test_results(
 
     return TestResultSearchResponse(count=total_count, test_results=test_results)
 
-
-@router.get("/families", response_model=list[str])
-def get_families(db: Session = Depends(get_db)) -> list[str]:
-    """
-    Returns all families that have test results.
-    """
-    families = (
-        db.execute(
-            select(distinct(Artefact.family))
-            .join(ArtefactBuild)
-            .join(TestExecution)
-            .join(TestResult)
-            .order_by(Artefact.family)
-        )
-        .scalars()
-        .all()
-    )
-
-    return [family.value for family in families]
-
-
-@router.get("/environments", response_model=list[str])
-def get_environments(
-    family: str | None = Query(None, description="Filter environments by family"),
-    test_case: str | None = Query(None, description="Filter environments by test case"),
-    db: Session = Depends(get_db),
-) -> list[str]:
-    """
-    Returns list of distinct environments, optionally filtered by other criteria.
-    """
-
-    query = (
-        select(distinct(Environment.name))
-        .join(TestExecution)
-        .join(TestResult)
-        .join(TestExecution.artefact_build)
-        .join(ArtefactBuild.artefact)
-        .join(TestResult.test_case)
-    )
-
-    # Apply cascading filters
-    if family:
-        try:
-            family_enum = FamilyName(family.lower())
-            query = query.where(Artefact.family == family_enum)
-        except ValueError:
-            return []  # Invalid family
-
-    if test_case:
-        query = query.where(TestCase.name.ilike(f"%{test_case}%"))
-
-    query = query.order_by(Environment.name)
-
-    environments = db.execute(query).scalars().all()
-    return list(environments)
-
-
-@router.get("/test-cases", response_model=list[str])
-def get_test_cases(
-    family: str | None = Query(None, description="Filter test cases by family"),
-    environment: str | None = Query(
-        None, description="Filter test cases by environment"
-    ),
-    db: Session = Depends(get_db),
-) -> list[str]:
-    """
-    Returns all test cases, optionally filtered by other criteria.
-    """
-
-    query = (
-        select(distinct(TestCase.name))
-        .join(TestResult)
-        .join(TestResult.test_execution)
-        .join(TestExecution.artefact_build)
-        .join(ArtefactBuild.artefact)
-        .join(TestExecution.environment)
-    )
-
-    # Apply cascading filters
-    if family:
-        try:
-            family_enum = FamilyName(family.lower())
-            query = query.where(Artefact.family == family_enum)
-        except ValueError:
-            return []
-
-    if environment:
-        query = query.where(Environment.name.ilike(f"%{environment}%"))
-
-    query = query.order_by(TestCase.name)
-
-    test_cases = db.execute(query).scalars().all()
-    return list(test_cases)
-
-
-@router.get("/issues", response_model=list[dict])
-def get_issues(
-    family: str | None = Query(None, description="Filter issues by family"),
-    environment: str | None = Query(None, description="Filter issues by environment"),
-    test_case: str | None = Query(None, description="Filter issues by test case"),
-    db: Session = Depends(get_db),
-) -> list[dict]:
-    """
-    Returns all known issues, optionally filtered by other criteria.
-    """
-
-    query = (
-        select(
-            distinct(Issue.id),
-            Issue.url,
-            Issue.title,
-            Issue.source,
-            Issue.project,
-            Issue.key,
-        )
-        .join(IssueTestResultAttachment)
-        .join(TestResult)
-        .join(TestResult.test_execution)
-        .join(TestExecution.artefact_build)
-        .join(ArtefactBuild.artefact)
-        .join(TestExecution.environment)
-        .join(TestResult.test_case)
-    )
-
-    # Apply cascading filters
-    if family:
-        try:
-            family_enum = FamilyName(family.lower())
-            query = query.where(Artefact.family == family_enum)
-        except ValueError:
-            return []
-
-    if environment:
-        query = query.where(Environment.name.ilike(f"%{environment}%"))
-
-    if test_case:
-        query = query.where(TestCase.name.ilike(f"%{test_case}%"))
-
-    query = query.order_by(Issue.id.desc())
-
-    issues = db.execute(query).all()
-
-    return [
-        {
-            "id": issue.id,
-            "url": issue.url,
-            "title": issue.title,
-            "display_name": (
-                f"{issue.source.value.upper()}-{issue.project}-{issue.key}: "
-                f"{issue.title}"
-            )[:100],
-        }
-        for issue in issues
-    ]
