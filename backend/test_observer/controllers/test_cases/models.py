@@ -53,3 +53,9 @@ class TestReportedIssueResponse(BaseModel):
     url: HttpUrl
     created_at: datetime
     updated_at: datetime
+
+
+class TestCasesResponse(BaseModel):
+    """Response model for test cases endpoint"""
+
+    test_cases: dict[str, list[dict[str, str]]]

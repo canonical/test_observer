@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import distinct, select
 from sqlalchemy.orm import Session
 from . import reported_issues
+from .models import EnvironmentsResponse
 
 from test_observer.data_access.models import Environment, TestExecution, TestResult
 from test_observer.data_access.setup import get_db
@@ -26,10 +27,10 @@ router = APIRouter(tags=["environments"])
 router.include_router(reported_issues.router)
 
 
-@router.get("", response_model=dict)
+@router.get("", response_model=EnvironmentsResponse)
 def get_environments(
     db: Session = Depends(get_db),
-) -> dict:
+) -> EnvironmentsResponse:
     """
     Returns list of distinct environments.
     """
@@ -42,4 +43,4 @@ def get_environments(
     )
 
     environments = db.execute(query).scalars().all()
-    return {"environments": list(environments)}
+    return EnvironmentsResponse(environments=list(environments))

@@ -15,31 +15,39 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime
-
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy import and_, desc, select, func
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import and_, desc, func, select
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
-    TestExecution,
-    TestResult,
-    TestCase,
     Issue,
     IssueTestResultAttachment,
+    TestCase,
+    TestExecution,
+    TestResult,
 )
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
-from .models import TestResultSearchResponse
+# Import our models and the existing response models
+from .models import TestResultSearchResponseWithContext, TestResultResponseWithContext
+from test_observer.controllers.test_executions.models import (
+    TestResultResponse,
+    TestExecutionResponse,
+)
+from test_observer.controllers.artefacts.models import (
+    ArtefactResponse,
+    ArtefactBuildMinimalResponse,
+)
 
 router = APIRouter(tags=["test-results"])
 
 
 def parse_csv_values(values: str) -> list[str]:
-    """Parse comma-separated values and return list of stripped non-empty values."""
+    """Parse comma-separated values and return list of strings."""
     return [value.strip() for value in values.split(",") if value.strip()]
 
 
@@ -51,7 +59,7 @@ def parse_csv_ids(ids: str) -> list[int]:
         raise HTTPException(status_code=400, detail="Invalid ID format") from None
 
 
-@router.get("", response_model=TestResultSearchResponse)
+@router.get("", response_model=TestResultSearchResponseWithContext)
 def search_test_results(
     families: str | None = Query(
         None, description="Filter by artefact families (e.g., charm,snap)"
@@ -80,7 +88,7 @@ def search_test_results(
         0, ge=0, description="Number of results to skip for pagination"
     ),
     db: Session = Depends(get_db),
-) -> TestResultSearchResponse:
+) -> TestResultSearchResponseWithContext:
     """
     Search test results across artefacts using flexible filters.
 
@@ -99,18 +107,25 @@ def search_test_results(
                 family_enums.append(FamilyName(family.lower()))
             except ValueError:
                 raise HTTPException(
-                    status_code=400, detail=f"Invalid family: {family}"
+                    status_code=422, detail=f"Invalid family: {family}"
                 ) from None
 
-        filters.append(Artefact.family.in_(family_enums))
+        if family_enums:
+            filters.append(Artefact.family.in_(family_enums))
 
     if environments:
-        environment_list = parse_csv_values(environments)
-        filters.append(Environment.name.in_(environment_list))
+        if "," in environments:
+            environment_list = parse_csv_values(environments)
+            filters.append(Environment.name.in_(environment_list))
+        else:
+            filters.append(Environment.name.ilike(f"%{environments}%"))
 
     if test_cases:
-        test_case_list = parse_csv_values(test_cases)
-        filters.append(TestCase.name.in_(test_case_list))
+        if "," in test_cases:
+            test_case_list = parse_csv_values(test_cases)
+            filters.append(TestCase.name.in_(test_case_list))
+        else:
+            filters.append(TestCase.name.ilike(f"%{test_cases}%"))
 
     if template_ids:
         template_id_list = parse_csv_values(template_ids)
@@ -132,7 +147,7 @@ def search_test_results(
     if until_date:
         filters.append(TestExecution.created_at <= until_date)  # type: ignore
 
-    # Build the main query with window function for total count in a single query
+    # Build the main query with window function for total count and proper eager loading
     query = (
         select(TestResult, func.count().over().label("total_count"))
         .join(TestResult.test_execution)
@@ -141,11 +156,15 @@ def search_test_results(
         .join(ArtefactBuild.artefact)
         .join(TestResult.test_case)
         .options(
-            joinedload(TestResult.test_execution).joinedload(TestExecution.environment),
-            joinedload(TestResult.test_execution)
-            .joinedload(TestExecution.artefact_build)
-            .joinedload(ArtefactBuild.artefact),
-            joinedload(TestResult.test_case),
+            # Load all the related data that the response model needs
+            selectinload(TestResult.test_case),
+            selectinload(TestResult.test_execution).selectinload(
+                TestExecution.environment
+            ),
+            selectinload(TestResult.test_execution)
+            .selectinload(TestExecution.artefact_build)
+            .selectinload(ArtefactBuild.artefact),
+            selectinload(TestResult.issue_attachments),
         )
         .order_by(desc(TestExecution.created_at), desc(TestResult.id))
         .offset(offset)
@@ -161,8 +180,31 @@ def search_test_results(
     if result:
         test_results = [row[0] for row in result]
         total_count = result[0][1]
-    else:
-        test_results = []
-        total_count = 0
 
-    return TestResultSearchResponse(count=total_count, test_results=test_results)
+        enhanced_results = []
+        for test_result in test_results:
+            test_result_response = TestResultResponse.model_validate(test_result)
+            test_execution_response = TestExecutionResponse.model_validate(
+                test_result.test_execution
+            )
+            artefact_response = ArtefactResponse.model_validate(
+                test_result.test_execution.artefact_build.artefact
+            )
+            artefact_build_response = ArtefactBuildMinimalResponse.model_validate(
+                test_result.test_execution.artefact_build
+            )
+
+            # Create the context object with all the nested data
+            enhanced_result = TestResultResponseWithContext(
+                test_result=test_result_response,
+                test_execution=test_execution_response,
+                artefact=artefact_response,
+                artefact_build=artefact_build_response,
+            )
+            enhanced_results.append(enhanced_result)
+
+        return TestResultSearchResponseWithContext(
+            count=total_count, test_results=enhanced_results
+        )
+    else:
+        return TestResultSearchResponseWithContext(count=0, test_results=[])

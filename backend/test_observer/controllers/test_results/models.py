@@ -14,9 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel
-
-from test_observer.controllers.test_executions.models import TestResultResponse
+from pydantic import BaseModel, ConfigDict
+from test_observer.controllers.test_executions.models import (
+    TestResultResponse,
+    TestExecutionResponse,
+)
+from test_observer.controllers.artefacts.models import (
+    ArtefactResponse,
+    ArtefactBuildMinimalResponse,
+)
 
 
 class TestResultSearchResponse(BaseModel):
@@ -24,3 +30,21 @@ class TestResultSearchResponse(BaseModel):
 
     count: int
     test_results: list[TestResultResponse]
+
+
+class TestResultResponseWithContext(BaseModel):
+    """Test result response with artefact and test execution context"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    test_result: TestResultResponse
+    test_execution: TestExecutionResponse
+    artefact: ArtefactResponse
+    artefact_build: ArtefactBuildMinimalResponse
+
+
+class TestResultSearchResponseWithContext(BaseModel):
+    """Response model for test results search endpoint with full context"""
+
+    count: int
+    test_results: list[TestResultResponseWithContext]

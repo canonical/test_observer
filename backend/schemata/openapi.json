@@ -1375,9 +1375,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Test Cases V1 Test Cases Get"
+                  "$ref": "#/components/schemas/TestCasesResponse"
                 }
               }
             }
@@ -1591,9 +1589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Get Environments V1 Environments Get"
+                  "$ref": "#/components/schemas/EnvironmentsResponse"
                 }
               }
             }
@@ -2072,7 +2068,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestResultSearchResponse"
+                  "$ref": "#/components/schemas/TestResultSearchResponseWithContext"
                 }
               }
             }
@@ -2742,6 +2738,23 @@
         },
         "type": "object",
         "title": "EnvironmentReviewPatch"
+      },
+      "EnvironmentsResponse": {
+        "properties": {
+          "environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "environments"
+        ],
+        "title": "EnvironmentsResponse",
+        "description": "Response model for environments endpoint"
       },
       "FamilyName": {
         "type": "string",
@@ -3529,6 +3542,29 @@
         ],
         "title": "StatusUpdateRequest"
       },
+      "TestCasesResponse": {
+        "properties": {
+          "test_cases": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Test Cases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_cases"
+        ],
+        "title": "TestCasesResponse",
+        "description": "Response model for test cases endpoint"
+      },
       "TestEventResponse": {
         "properties": {
           "event_name": {
@@ -3905,7 +3941,32 @@
         ],
         "title": "TestResultResponse"
       },
-      "TestResultSearchResponse": {
+      "TestResultResponseWithContext": {
+        "properties": {
+          "test_result": {
+            "$ref": "#/components/schemas/TestResultResponse"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/TestExecutionResponse"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/ArtefactResponse"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_result",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "TestResultResponseWithContext",
+        "description": "Test result response with artefact and test execution context"
+      },
+      "TestResultSearchResponseWithContext": {
         "properties": {
           "count": {
             "type": "integer",
@@ -3913,7 +3974,7 @@
           },
           "test_results": {
             "items": {
-              "$ref": "#/components/schemas/TestResultResponse"
+              "$ref": "#/components/schemas/TestResultResponseWithContext"
             },
             "type": "array",
             "title": "Test Results"
@@ -3924,8 +3985,8 @@
           "count",
           "test_results"
         ],
-        "title": "TestResultSearchResponse",
-        "description": "Response model for test results search endpoint"
+        "title": "TestResultSearchResponseWithContext",
+        "description": "Response model for test results search endpoint with full context"
       },
       "TestResultStatus": {
         "type": "string",

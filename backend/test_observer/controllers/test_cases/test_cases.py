@@ -19,6 +19,7 @@ from sqlalchemy import distinct, select
 from sqlalchemy.orm import Session
 
 from . import reported_issues
+from .models import TestCasesResponse
 
 from test_observer.data_access.models import (
     Artefact,
@@ -36,18 +37,17 @@ router.include_router(reported_issues.router)
 
 
 def parse_csv_values(values: str) -> list[str]:
-    """Parse comma-separated values and return list of stripped non-empty values."""
     return [value.strip() for value in values.split(",") if value.strip()]
 
 
-@router.get("", response_model=dict)
+@router.get("", response_model=TestCasesResponse)
 def get_test_cases(
     families: str | None = Query(None, description="Filter test cases by families"),
     environments: str | None = Query(
         None, description="Filter test cases by environments"
     ),
     db: Session = Depends(get_db),
-) -> dict:
+) -> TestCasesResponse:
     """
     Returns test cases with their template IDs, optionally filtered by other criteria.
     """
@@ -91,4 +91,4 @@ def get_test_cases(
         if template_id and {"template": template_id} not in test_cases_dict[name]:
             test_cases_dict[name].append({"template": template_id})
 
-    return {"test_cases": test_cases_dict}
+    return TestCasesResponse(test_cases=test_cases_dict)

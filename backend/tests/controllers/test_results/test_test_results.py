@@ -51,7 +51,9 @@ class TestSearchTestResults:
         assert "count" in data
         assert "test_results" in data
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_window_function_count_accuracy(
         self, test_client: TestClient, generator: DataGenerator
@@ -71,7 +73,7 @@ class TestSearchTestResults:
         for _ in range(7):
             test_results.append(generator.gen_test_result(test_case, test_execution))
 
-        response = test_client.get("/v1/test-results?family=snap&limit=3")
+        response = test_client.get("/v1/test-results?families=snap&limit=3")
 
         assert response.status_code == 200
         data = response.json()
@@ -81,7 +83,7 @@ class TestSearchTestResults:
         assert data["count"] >= 7
 
         # Verify our test results are in the response
-        returned_ids = {tr["id"] for tr in data["test_results"]}
+        returned_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
         test_result_ids = {tr.id for tr in test_results}
         assert returned_ids.issubset(test_result_ids)
 
@@ -103,12 +105,12 @@ class TestSearchTestResults:
             generator.gen_test_result(test_case, test_execution)
 
         # Test first page
-        response1 = test_client.get("/v1/test-results?family=charm&limit=2&offset=0")
+        response1 = test_client.get("/v1/test-results?families=charm&limit=2&offset=0")
         assert response1.status_code == 200
         data1 = response1.json()
 
         # Test second page
-        response2 = test_client.get("/v1/test-results?family=charm&limit=2&offset=2")
+        response2 = test_client.get("/v1/test-results?families=charm&limit=2&offset=2")
         assert response2.status_code == 200
         data2 = response2.json()
 
@@ -117,8 +119,8 @@ class TestSearchTestResults:
         assert data1["count"] >= 5
 
         # Results should be different than each other
-        ids1 = {tr["id"] for tr in data1["test_results"]}
-        ids2 = {tr["id"] for tr in data2["test_results"]}
+        ids1 = {tr["test_result"]["id"] for tr in data1["test_results"]}
+        ids2 = {tr["test_result"]["id"] for tr in data2["test_results"]}
         assert ids1.isdisjoint(ids2)  # No overlap between pages
 
     def test_search_by_family(self, test_client: TestClient, generator: DataGenerator):
@@ -133,12 +135,14 @@ class TestSearchTestResults:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results?family=snap")
+        response = test_client.get("/v1/test-results?families=snap")
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_by_environment_partial_match(
         self, test_client: TestClient, generator: DataGenerator
@@ -155,12 +159,14 @@ class TestSearchTestResults:
         test_result = generator.gen_test_result(test_case, test_execution)
 
         # Search with partial name
-        response = test_client.get("/v1/test-results?environment=juju")
+        response = test_client.get("/v1/test-results?environments=juju")
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_by_test_case_partial_match(
         self, test_client: TestClient, generator: DataGenerator
@@ -177,12 +183,14 @@ class TestSearchTestResults:
         test_result = generator.gen_test_result(test_case, test_execution)
 
         # Search with partial name
-        response = test_client.get("/v1/test-results?test_case=deploy")
+        response = test_client.get("/v1/test-results?test_cases=deploy")
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_by_template_id(
         self, test_client: TestClient, generator: DataGenerator
@@ -198,12 +206,14 @@ class TestSearchTestResults:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results?template_id=test_template_123")
+        response = test_client.get("/v1/test-results?template_ids=test_template_123")
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_by_issues(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by issue IDs with window function"""
@@ -227,7 +237,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_by_multiple_issues(
         self, test_client: TestClient, generator: DataGenerator
@@ -260,7 +272,7 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 2
-        result_ids = {tr["id"] for tr in data["test_results"]}
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
         assert test_result1.id in result_ids
         assert test_result2.id in result_ids
 
@@ -281,7 +293,7 @@ class TestSearchTestResults:
         until_date = (datetime.now() + timedelta(days=1)).isoformat()
 
         response = test_client.get(
-            f"/v1/test-results?from_date={from_date}&until={until_date}"
+            f"/v1/test-results?from_date={from_date}&until_date={until_date}"
         )
 
         assert response.status_code == 200
@@ -290,7 +302,9 @@ class TestSearchTestResults:
         assert "test_results" in data
         assert data["count"] >= 1
         # Verify our specific test result is included
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_with_future_date_range(self, test_client: TestClient):
         """Test filtering by future date range should return no results"""
@@ -299,7 +313,7 @@ class TestSearchTestResults:
         until_date = (datetime.now() + timedelta(days=2)).isoformat()
 
         response = test_client.get(
-            f"/v1/test-results?from_date={from_date}&until={until_date}"
+            f"/v1/test-results?from_date={from_date}&until_date={until_date}"
         )
 
         assert response.status_code == 200
@@ -330,7 +344,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
         # Test with from_date after the test execution was created
         from_date_after = (execution_created_at + timedelta(minutes=1)).isoformat()
@@ -340,7 +356,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         # Our test result should not be in results from after its creation
-        assert not any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert not any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_with_until_date_only(
         self, test_client: TestClient, generator: DataGenerator
@@ -368,7 +386,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
         # Test with until date before the test execution was created
         until_date_before = (execution_created_at - timedelta(minutes=1)).isoformat()
@@ -378,7 +398,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         # The test result should not be in results until before its creation
-        assert not any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert not any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_date_boundary_conditions(
         self, test_client: TestClient, generator: DataGenerator
@@ -401,12 +423,14 @@ class TestSearchTestResults:
         range_after = (execution_created_at + timedelta(minutes=1)).isoformat()
 
         response = test_client.get(
-            f"/v1/test-results?from_date={range_before}&until={range_after}"
+            f"/v1/test-results?from_date={range_before}&until_date={range_after}"
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_date_combined_with_other_filters(
         self, test_client: TestClient, generator: DataGenerator
@@ -438,7 +462,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
         # Test that wrong family + date range excludes our result
         response = test_client.get(
@@ -448,7 +474,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         # Our snap test result should not be in deb family results
-        assert not any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert not any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_invalid_date_formats(self, test_client: TestClient):
         """Test handling of invalid date format parameters"""
@@ -490,28 +518,26 @@ class TestSearchTestResults:
         assert attach_response.status_code == 200
 
         response = test_client.get(
-            f"/v1/test-results?family=snap&environment=multi-filter-env&test_case=multi_filter&template_id=multi_filter_template&issues={issue.id}&limit=5"
+            f"/v1/test-results?families=snap&environments=multi-filter-env&test_cases=multi_filter&template_ids=multi_filter_template&issues={issue.id}&limit=5"
         )
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_search_invalid_family(self, test_client: TestClient):
         """Test handling invalid family name"""
-        response = test_client.get("/v1/test-results?family=invalid_family")
+        response = test_client.get("/v1/test-results?families=invalid_family")
 
-        assert response.status_code == 200
-        data = response.json()
-        # Should return no results for invalid family
-        assert data["count"] == 0
-        assert data["test_results"] == []
+        assert response.status_code == 422
 
     def test_search_no_results(self, test_client: TestClient):
         """Test search with filters that match no results"""
         response = test_client.get(
-            "/v1/test-results?test_case=nonexistent_test_case_12345"
+            "/v1/test-results?test_cases=nonexistent_test_case_12345"
         )
 
         assert response.status_code == 200
@@ -537,11 +563,11 @@ class TestSearchTestResults:
         # Create test data
 
         response_check = test_client.get(
-            "/v1/test-results?family=deb&limit=10&offset=0"
+            "/v1/test-results?families=deb&limit=10&offset=0"
         )
         actual_count = response_check.json()["count"]
 
-        response = test_client.get("/v1/test-results?family=deb&limit=10&offset=1000")
+        response = test_client.get("/v1/test-results?families=deb&limit=10&offset=1000")
         data = response.json()
 
         assert data["count"] == actual_count
@@ -565,12 +591,14 @@ class TestSearchTestResults:
 
         # Test with different cases
         for family_name in ["SNAP", "Snap", "snap"]:
-            response = test_client.get(f"/v1/test-results?family={family_name}")
+            response = test_client.get(f"/v1/test-results?families={family_name}")
 
             assert response.status_code == 200
             data = response.json()
             assert data["count"] >= 1
-            assert any(tr["id"] == test_result.id for tr in data["test_results"])
+            assert any(
+                tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+            )
 
     def test_ordering_consistency(
         self, test_client: TestClient, generator: DataGenerator
@@ -601,7 +629,7 @@ class TestSearchTestResults:
             our_results = [
                 tr
                 for tr in data["test_results"]
-                if tr["id"] in [test_result1.id, test_result2.id]
+                if tr["test_result"]["id"] in [test_result1.id, test_result2.id]
             ]
 
             # Should have both results
@@ -758,7 +786,7 @@ class TestGetIssues:
         assert search_data["count"] >= 2
 
         # Verify the correct test results are returned
-        result_ids = {tr["id"] for tr in search_data["test_results"]}
+        result_ids = {tr["test_result"]["id"] for tr in search_data["test_results"]}
         assert test_result1.id in result_ids
         assert test_result2.id in result_ids
 
@@ -768,12 +796,9 @@ class TestWindowFunctionSpecific:
 
     def test_window_function_with_empty_results(self, test_client: TestClient):
         """Test window function behavior when no results match"""
-        response = test_client.get("/v1/test-results?family=nonexistent")
+        response = test_client.get("/v1/test-results?families=nonexistent")
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["count"] == 0
-        assert data["test_results"] == []
+        assert response.status_code == 422
 
     def test_window_function_single_result(
         self, test_client: TestClient, generator: DataGenerator
@@ -788,13 +813,15 @@ class TestWindowFunctionSpecific:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results?family=image")
+        response = test_client.get("/v1/test-results?families=image")
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
         assert len(data["test_results"]) >= 1
-        assert any(tr["id"] == test_result.id for tr in data["test_results"])
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_window_function_pagination_edge_cases(
         self, test_client: TestClient, generator: DataGenerator
