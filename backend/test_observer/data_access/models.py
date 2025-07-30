@@ -407,6 +407,7 @@ class TestExecution(Base):
     execution_metadata: Mapped[list["TestExecutionMetadata"]] = relationship(
         secondary=test_execution_metadata_association_table,
         back_populates="test_executions",
+        cascade="all, delete",
     )
 
     @property
@@ -465,7 +466,7 @@ class TestResult(Base):
     test_case: Mapped["TestCase"] = relationship()
 
     issue_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
-        back_populates="test_result", cascade="all, delete"
+        back_populates="test_result"
     )
 
     def __repr__(self) -> str:
