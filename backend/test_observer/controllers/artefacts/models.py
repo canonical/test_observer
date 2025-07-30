@@ -17,6 +17,7 @@
 
 from datetime import date, datetime
 from typing import Any
+from collections.abc import Sequence
 
 from pydantic import (
     AliasPath,
@@ -34,6 +35,8 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     StageName,
 )
+
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 
 class UserResponse(BaseModel):
@@ -110,10 +113,16 @@ class TestExecutionResponse(BaseModel):
     rerun_request: Any = Field(exclude=True)
     test_plan: str
     created_at: datetime
+    execution_metadata: ExecutionMetadata
 
     @computed_field
     def is_rerun_requested(self) -> bool:
         return bool(self.rerun_request)
+
+    @field_validator("execution_metadata", mode="before")
+    @classmethod
+    def collect_execution_metadata(cls, v: Sequence) -> ExecutionMetadata:
+        return ExecutionMetadata.from_rows(v)
 
 
 class ArtefactBuildResponse(BaseModel):

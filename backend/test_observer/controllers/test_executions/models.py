@@ -36,6 +36,7 @@ from test_observer.controllers.artefacts.models import (
     TestExecutionResponse,
     TestExecutionRelevantLinkCreate,
 )
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models_enums import (
     FamilyName,
     SnapStage,
@@ -157,6 +158,7 @@ class TestExecutionsPatchRequest(BaseModel):
     c3_link: HttpUrl | None = None
     ci_link: HttpUrl | None = None
     status: TestExecutionStatus | Literal["COMPLETED"] | None = None
+    execution_metadata: ExecutionMetadata | None = None
 
 
 class PreviousTestResult(BaseModel):

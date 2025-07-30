@@ -1805,6 +1805,27 @@
         }
       }
     },
+    "/v1/execution-metadata": {
+      "get": {
+        "tags": [
+          "execution-metadata"
+        ],
+        "summary": "Get Execution Metadata",
+        "operationId": "get_execution_metadata_v1_execution_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionMetadataGetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -2457,6 +2478,28 @@
         },
         "type": "object",
         "title": "EnvironmentReviewPatch"
+      },
+      "ExecutionMetadata": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": "object",
+        "title": "ExecutionMetadata"
+      },
+      "ExecutionMetadataGetResponse": {
+        "properties": {
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_metadata"
+        ],
+        "title": "ExecutionMetadataGetResponse"
       },
       "FamilyName": {
         "type": "string",
@@ -3365,6 +3408,9 @@
             "format": "date-time",
             "title": "Created At"
           },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
           "is_rerun_requested": {
             "type": "boolean",
             "title": "Is Rerun Requested",
@@ -3380,6 +3426,7 @@
           "status",
           "test_plan",
           "created_at",
+          "execution_metadata",
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponse"
@@ -3440,6 +3487,16 @@
               }
             ],
             "title": "Status"
+          },
+          "execution_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

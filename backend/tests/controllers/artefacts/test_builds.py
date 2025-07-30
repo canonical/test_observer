@@ -50,6 +50,7 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
                     "is_rerun_requested": False,
                     "test_plan": te.test_plan,
                     "created_at": te.created_at.isoformat(),
+                    "execution_metadata": {},
                 }
             ],
         }
@@ -86,6 +87,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     "is_rerun_requested": False,
                     "test_plan": te1.test_plan,
                     "created_at": te1.created_at.isoformat(),
+                    "execution_metadata": {},
                 },
                 {
                     "id": te2.id,
@@ -101,6 +103,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     "is_rerun_requested": False,
                     "test_plan": te2.test_plan,
                     "created_at": te2.created_at.isoformat(),
+                    "execution_metadata": {},
                 },
             ],
         }
@@ -159,6 +162,7 @@ def test_get_artefact_builds_with_rerun_requested(
                     "is_rerun_requested": True,
                     "test_plan": te.test_plan,
                     "created_at": te.created_at.isoformat(),
+                    "execution_metadata": {},
                 }
             ],
         }
