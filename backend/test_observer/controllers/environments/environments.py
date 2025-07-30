@@ -25,6 +25,7 @@ from test_observer.data_access.setup import get_db
 router = APIRouter(tags=["environments"])
 router.include_router(reported_issues.router)
 
+
 @router.get("", response_model=dict)
 def get_environments(
     db: Session = Depends(get_db),

@@ -48,9 +48,7 @@ def parse_csv_ids(ids: str) -> list[int]:
     try:
         return [int(id_str) for id_str in parse_csv_values(ids)]
     except ValueError:
-        raise HTTPException(
-            status_code=400, detail="Invalid ID format"
-            ) from None
+        raise HTTPException(status_code=400, detail="Invalid ID format") from None
 
 
 @router.get("", response_model=TestResultSearchResponse)
@@ -102,7 +100,7 @@ def search_test_results(
             except ValueError:
                 raise HTTPException(
                     status_code=400, detail=f"Invalid family: {family}"
-                    ) from None
+                ) from None
 
         filters.append(Artefact.family.in_(family_enums))
 
@@ -129,10 +127,10 @@ def search_test_results(
         )
 
     if from_date:
-        filters.append(TestExecution.created_at >= from_date) # type: ignore
+        filters.append(TestExecution.created_at >= from_date)  # type: ignore
 
     if until_date:
-        filters.append(TestExecution.created_at <= until_date) # type: ignore
+        filters.append(TestExecution.created_at <= until_date)  # type: ignore
 
     # Build the main query with window function for total count in a single query
     query = (
@@ -168,4 +166,3 @@ def search_test_results(
         total_count = 0
 
     return TestResultSearchResponse(count=total_count, test_results=test_results)
-

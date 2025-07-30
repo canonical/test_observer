@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient
 def test_get_test_cases(test_client: TestClient):
     """Test getting test cases endpoint"""
     response = test_client.get("/v1/test-cases")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "test_cases" in data
@@ -36,7 +36,7 @@ def test_get_test_cases_invalid_family(test_client: TestClient):
 def test_get_test_cases_response_format(test_client: TestClient):
     """Test response format"""
     response = test_client.get("/v1/test-cases")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)

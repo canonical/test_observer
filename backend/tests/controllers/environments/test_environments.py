@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient
 def test_get_environments(test_client: TestClient):
     """Test getting environments endpoint"""
     response = test_client.get("/v1/environments")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "environments" in data
@@ -30,7 +30,7 @@ def test_get_environments(test_client: TestClient):
 def test_get_environments_response_format(test_client: TestClient):
     """Test response format"""
     response = test_client.get("/v1/environments")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)

@@ -71,8 +71,8 @@ def get_test_cases(
             except ValueError:
                 raise HTTPException(
                     status_code=400, detail=f"Invalid family: {family}"
-                    ) from None
-                    
+                ) from None
+
         query = query.where(Artefact.family.in_(family_enums))
 
     if environments:
@@ -82,7 +82,7 @@ def get_test_cases(
     query = query.order_by(TestCase.name)
 
     test_cases_data = db.execute(query).all()
-    
+
     # Group by test case name and collect template IDs
     test_cases_dict: dict[str, list[dict[str, str]]] = {}
     for name, template_id in test_cases_data:
@@ -90,5 +90,5 @@ def get_test_cases(
             test_cases_dict[name] = []
         if template_id and {"template": template_id} not in test_cases_dict[name]:
             test_cases_dict[name].append({"template": template_id})
-    
+
     return {"test_cases": test_cases_dict}
