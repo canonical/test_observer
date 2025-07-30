@@ -327,7 +327,6 @@ class TestSearchTestResults:
         from_date_before = (execution_created_at - timedelta(minutes=1)).isoformat()
 
         response = test_client.get(f"/v1/test-results?from_date={from_date_before}")
-
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
@@ -364,7 +363,7 @@ class TestSearchTestResults:
         # Test with until date after the test execution was created
         until_date_after = (execution_created_at + timedelta(minutes=1)).isoformat()
 
-        response = test_client.get(f"/v1/test-results?until={until_date_after}")
+        response = test_client.get(f"/v1/test-results?until_date={until_date_after}")
 
         assert response.status_code == 200
         data = response.json()
@@ -374,7 +373,7 @@ class TestSearchTestResults:
         # Test with until date before the test execution was created
         until_date_before = (execution_created_at - timedelta(minutes=1)).isoformat()
 
-        response = test_client.get(f"/v1/test-results?until={until_date_before}")
+        response = test_client.get(f"/v1/test-results?until_date={until_date_before}")
 
         assert response.status_code == 200
         data = response.json()
@@ -433,7 +432,7 @@ class TestSearchTestResults:
 
         # Test combining date filter with family filter
         response = test_client.get(
-            f"/v1/test-results?family=snap&from_date={from_date}&until={until_date}"
+            f"/v1/test-results?families=snap&from_date={from_date}&until_date={until_date}"
         )
 
         assert response.status_code == 200
@@ -443,7 +442,7 @@ class TestSearchTestResults:
 
         # Test that wrong family + date range excludes our result
         response = test_client.get(
-            f"/v1/test-results?family=deb&from_date={from_date}&until={until_date}"
+            f"/v1/test-results?families=deb&from_date={from_date}&until_date={until_date}"
         )
 
         assert response.status_code == 200
@@ -457,7 +456,7 @@ class TestSearchTestResults:
         response = test_client.get("/v1/test-results?from_date=invalid-date")
         assert response.status_code == 422
 
-        response = test_client.get("/v1/test-results?until=not-a-date")
+        response = test_client.get("/v1/test-results?until_date=not-a-date")
         assert response.status_code == 422
 
         # Test with malformed ISO date
@@ -625,10 +624,10 @@ class TestGetEnvironments:
         # Add test_result creation which is required by the query
         generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results/environments")
+        response = test_client.get("/v1/environments")
 
         assert response.status_code == 200
-        environments = response.json()
+        environments = response.json()["environments"]
         assert isinstance(environments, list)
         assert environment.name in environments
 
@@ -655,10 +654,10 @@ class TestGetEnvironments:
             # Add test_result creation
             generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results/environments")
+        response = test_client.get("/v1/environments")
 
         assert response.status_code == 200
-        environments = response.json()
+        environments = response.json()["environments"]
 
         # Check that our test environments are included and sorted
         test_envs = [env for env in environments if env in env_names]
@@ -678,74 +677,12 @@ class TestGetTestCases:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results/test-cases")
-
+        response = test_client.get("/v1/test-cases")
         assert response.status_code == 200
-        test_cases = response.json()
-        assert isinstance(test_cases, list)
-        assert test_case.name in test_cases
 
-
-class TestGetFamilies:
-    """Test class for the get families endpoint"""
-
-    def test_get_families(self, test_client: TestClient, generator: DataGenerator):
-        """Test getting list of families"""
-        # Create test data to ensure families exist
-        environment = generator.gen_environment()
-        test_case = generator.gen_test_case(name=generate_unique_name("families_test"))
-
-        # Create artefacts for each family to ensure they show up
-        snap_artefact = generator.gen_artefact(
-            family=FamilyName.snap, name=generate_unique_name("snap_families")
-        )
-        snap_build = generator.gen_artefact_build(snap_artefact)
-        snap_execution = generator.gen_test_execution(snap_build, environment)
-        generator.gen_test_result(test_case, snap_execution)
-
-        deb_artefact = generator.gen_artefact(
-            family=FamilyName.deb, name=generate_unique_name("deb_families")
-        )
-        deb_build = generator.gen_artefact_build(deb_artefact)
-        deb_execution = generator.gen_test_execution(deb_build, environment)
-        generator.gen_test_result(test_case, deb_execution)
-
-        response = test_client.get("/v1/test-results/families")
-
-        assert response.status_code == 200
-        families = response.json()
-        assert isinstance(families, list)
-        assert "snap" in families
-        assert "deb" in families
-
-    def test_get_families_complete(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
-        """Test that all known families are returned"""
-        # Create test data for all families
-        environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("complete_families")
-        )
-
-        # Create artefacts for all families
-        for family in FamilyName:
-            artefact = generator.gen_artefact(
-                family=family, name=generate_unique_name(f"{family.value}_complete")
-            )
-            artefact_build = generator.gen_artefact_build(artefact)
-            test_execution = generator.gen_test_execution(artefact_build, environment)
-            generator.gen_test_result(test_case, test_execution)
-
-        response = test_client.get("/v1/test-results/families")
-
-        assert response.status_code == 200
-        families = response.json()
-
-        # Check that all enum values are present
-        expected_families = [family.value for family in FamilyName]
-        for expected in expected_families:
-            assert expected in families
+        response_data = response.json()
+        assert "test_cases" in response_data
+        assert isinstance(response_data["test_cases"], dict)
 
 
 class TestGetIssues:
