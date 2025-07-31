@@ -37,8 +37,6 @@ def get_environments(
 
     query = (
         select(distinct(Environment.name))
-        .join(TestExecution)
-        .join(TestResult)
         .order_by(Environment.name)
     )
 
