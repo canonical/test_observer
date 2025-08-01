@@ -710,7 +710,7 @@ class TestGetTestCases:
 
         response_data = response.json()
         assert "test_cases" in response_data
-        assert isinstance(response_data["test_cases"], dict)
+        assert isinstance(response_data["test_cases"], list)
 
 
 class TestGetIssues:

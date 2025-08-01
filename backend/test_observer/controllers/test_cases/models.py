@@ -1,20 +1,3 @@
-# Copyright (C) 2023 Canonical Ltd.
-#
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License version 3, as
-# published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
 from datetime import datetime
 
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
@@ -55,7 +38,14 @@ class TestReportedIssueResponse(BaseModel):
     updated_at: datetime
 
 
-class TestCasesResponse(BaseModel):
-    """Response model for test cases endpoint"""
+class TestCaseInfo(BaseModel):
+    """Model for individual test case information"""
 
-    test_cases: dict[str, list[dict[str, str]]]
+    test_case: str
+    template_id: str
+
+
+class TestCasesResponse(BaseModel):
+    """Response model for test cases endpoint - flat list as suggested by Ryan"""
+
+    test_cases: list[TestCaseInfo]

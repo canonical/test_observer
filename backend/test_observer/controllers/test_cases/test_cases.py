@@ -15,11 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy import distinct, select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
 from . import reported_issues
-from .models import TestCasesResponse
+from .models import TestCasesResponse, TestCaseInfo
 
 from test_observer.data_access.models import (
     Artefact,
@@ -37,7 +37,17 @@ router.include_router(reported_issues.router)
 
 
 def parse_csv_values(values: str) -> list[str]:
+    """Parse comma-separated values and return list of strings."""
     return [value.strip() for value in values.split(",") if value.strip()]
+
+
+def parse_family_enums(families: str) -> list[FamilyName]:
+    """Parse and validate family enums, raising HTTPException for invalid families."""
+    family_list = parse_csv_values(families)
+    try:
+        return [FamilyName(family.lower()) for family in family_list]
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid family: {e}") from None
 
 
 @router.get("", response_model=TestCasesResponse)
@@ -49,11 +59,33 @@ def get_test_cases(
     db: Session = Depends(get_db),
 ) -> TestCasesResponse:
     """
-    Returns test cases with their template IDs, optionally filtered by other criteria.
+    Returns test cases as a flat list with their template IDs.
+
+    Template ID represents the generic test (e.g., "disk/stats_name")
+    Test case name is the specific instance (e.g., "disk/stats_nvme0n1")
+    Multiple test cases can share the same template ID but have different names.
     """
 
-    query = (
-        select(distinct(TestCase.name), TestCase.template_id)
+    filters = []
+
+    if families:
+        family_enums = parse_family_enums(families)
+        filters.append(Artefact.family.in_(family_enums))
+
+    if environments:
+        environment_list = parse_csv_values(environments)
+        if len(environment_list) == 1:
+            filters.append(Environment.name.ilike(f"%{environment_list[0]}%"))
+        else:
+            filters.append(Environment.name.in_(environment_list))
+
+    # Single optimized query with all joins and filters
+    base_query = (
+        select(
+            TestCase.name,
+            TestCase.template_id,
+        )
+        .distinct()
         .join(TestResult)
         .join(TestResult.test_execution)
         .join(TestExecution.artefact_build)
@@ -61,34 +93,14 @@ def get_test_cases(
         .join(TestExecution.environment)
     )
 
-    # Apply cascading filters
-    if families:
-        family_list = parse_csv_values(families)
-        family_enums = []
-        for family in family_list:
-            try:
-                family_enums.append(FamilyName(family.lower()))
-            except ValueError:
-                raise HTTPException(
-                    status_code=400, detail=f"Invalid family: {family}"
-                ) from None
-
-        query = query.where(Artefact.family.in_(family_enums))
-
-    if environments:
-        environment_list = parse_csv_values(environments)
-        query = query.where(Environment.name.in_(environment_list))
-
-    query = query.order_by(TestCase.name)
+    query = base_query.where(and_(*filters)) if filters else base_query
+    query = query.order_by(TestCase.name, TestCase.template_id)
 
     test_cases_data = db.execute(query).all()
 
-    # Group by test case name and collect template IDs
-    test_cases_dict: dict[str, list[dict[str, str]]] = {}
-    for name, template_id in test_cases_data:
-        if name not in test_cases_dict:
-            test_cases_dict[name] = []
-        if template_id and {"template": template_id} not in test_cases_dict[name]:
-            test_cases_dict[name].append({"template": template_id})
+    test_cases_list = [
+        TestCaseInfo(test_case=name, template_id=template_id or "")
+        for name, template_id in test_cases_data
+    ]
 
-    return TestCasesResponse(test_cases=test_cases_dict)
+    return TestCasesResponse(test_cases=test_cases_list)

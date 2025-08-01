@@ -1329,7 +1329,7 @@
           "test-cases"
         ],
         "summary": "Get Test Cases",
-        "description": "Returns test cases with their template IDs, optionally filtered by other criteria.",
+        "description": "Returns test cases as a flat list with their template IDs.\n\nTemplate ID represents the generic test (e.g., \"disk/stats_name\")\nTest case name is the specific instance (e.g., \"disk/stats_nvme0n1\")\nMultiple test cases can share the same template ID but have different names.",
         "operationId": "get_test_cases_v1_test_cases_get",
         "parameters": [
           {
@@ -1581,8 +1581,46 @@
           "environments"
         ],
         "summary": "Get Environments",
-        "description": "Returns list of distinct environments.",
+        "description": "Returns list of distinct environments with cascading filters.\n\nUses optimized database filtering instead of Python post-processing.\nOnly includes environments that have actually been used in test executions.",
         "operationId": "get_environments_v1_environments_get",
+        "parameters": [
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter envs by families",
+              "title": "Families"
+            },
+            "description": "Filter envs by families"
+          },
+          {
+            "name": "test_cases",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter envs by test cases",
+              "title": "Test Cases"
+            },
+            "description": "Filter envs by test cases"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1590,6 +1628,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EnvironmentsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -3542,19 +3590,32 @@
         ],
         "title": "StatusUpdateRequest"
       },
+      "TestCaseInfo": {
+        "properties": {
+          "test_case": {
+            "type": "string",
+            "title": "Test Case"
+          },
+          "template_id": {
+            "type": "string",
+            "title": "Template Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_case",
+          "template_id"
+        ],
+        "title": "TestCaseInfo",
+        "description": "Model for individual test case information"
+      },
       "TestCasesResponse": {
         "properties": {
           "test_cases": {
-            "additionalProperties": {
-              "items": {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              "type": "array"
+            "items": {
+              "$ref": "#/components/schemas/TestCaseInfo"
             },
-            "type": "object",
+            "type": "array",
             "title": "Test Cases"
           }
         },
@@ -3563,7 +3624,7 @@
           "test_cases"
         ],
         "title": "TestCasesResponse",
-        "description": "Response model for test cases endpoint"
+        "description": "Response model for test cases endpoint - flat list as suggested by Ryan"
       },
       "TestEventResponse": {
         "properties": {
