@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access.setup import get_db
 
-from . import environments, reports, test_cases, test_executions
+from . import environments, reports, test_cases, test_executions, test_results
 from .application import version
 from .artefacts import artefacts
 from .test_executions import relevant_links
@@ -37,6 +37,7 @@ router.include_router(test_cases.router, prefix="/v1/test-cases")
 router.include_router(environments.router, prefix="/v1/environments")
 router.include_router(relevant_links.router, prefix="/v1/test-executions")
 router.include_router(issues.router, prefix="/v1/issues")
+router.include_router(test_results.router, prefix="/v1/test-results")
 router.include_router(execution_metadata.router, prefix="/v1/execution-metadata")
 
 

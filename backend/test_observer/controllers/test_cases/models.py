@@ -15,10 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from datetime import datetime
-
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
-
+from datetime import datetime
 from test_observer.common.constants import VALID_ISSUE_HOSTS
 
 
@@ -53,3 +51,16 @@ class TestReportedIssueResponse(BaseModel):
     url: HttpUrl
     created_at: datetime
     updated_at: datetime
+
+
+class TestCaseInfo(BaseModel):
+    """Model for individual test case information"""
+
+    test_case: str
+    template_id: str
+
+
+class TestCasesResponse(BaseModel):
+    """Response model for test cases endpoint - flat list as suggested by Ryan"""
+
+    test_cases: list[TestCaseInfo]
