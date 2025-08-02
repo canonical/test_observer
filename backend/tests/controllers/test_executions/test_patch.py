@@ -39,6 +39,19 @@ def execute(test_client: TestClient) -> Execute:
     return execute_helper
 
 
+@pytest.fixture
+def sample_execution_metadata() -> dict:
+    return {
+        "category1": [
+            "value1",
+            "value2",
+        ],
+        "category2": [
+            "value1",
+        ],
+    }
+
+
 def test_updates_test_execution(execute: Execute, test_execution: TestExecution):
     execute(
         test_execution.id,
@@ -89,3 +102,50 @@ def test_set_completed_status_no_results(
     assert response.status_code == 200
     assert response.json()["status"] == "ENDED_PREMATURELY"
     assert test_execution.status == TestExecutionStatus.ENDED_PREMATURELY
+
+
+def test_add_execution_metadata_add_empty(
+    execute: Execute, test_execution: TestExecution
+):
+    response = execute(test_execution.id, {"execution_metadata": {}})
+
+    assert response.json()["execution_metadata"] == {}
+
+
+def test_add_execution_metadata_add_some(
+    execute: Execute, test_execution: TestExecution, sample_execution_metadata: dict
+):
+    response = execute(
+        test_execution.id, {"execution_metadata": sample_execution_metadata}
+    )
+
+    assert response.json()["execution_metadata"] == sample_execution_metadata
+
+
+def test_add_execution_metadata_add_same_twice(
+    execute: Execute, test_execution: TestExecution, sample_execution_metadata: dict
+):
+    response = execute(
+        test_execution.id, {"execution_metadata": sample_execution_metadata}
+    )
+    response = execute(
+        test_execution.id, {"execution_metadata": sample_execution_metadata}
+    )
+
+    assert response.json()["execution_metadata"] == sample_execution_metadata
+
+
+def test_add_execution_metadata_add_different(
+    execute: Execute, test_execution: TestExecution, sample_execution_metadata: dict
+):
+    response = execute(
+        test_execution.id, {"execution_metadata": sample_execution_metadata}
+    )
+    response = execute(
+        test_execution.id, {"execution_metadata": {"category3": ["value"]}}
+    )
+
+    assert response.json()["execution_metadata"] == {
+        **sample_execution_metadata,
+        "category3": ["value"],
+    }
