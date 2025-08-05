@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from pydantic import BaseModel, HttpUrl, field_validator, model_validator, ConfigDict
+from pydantic import BaseModel, HttpUrl, field_validator, model_validator
 from datetime import datetime
 from test_observer.common.constants import VALID_ISSUE_HOSTS
+from sqlalchemy.engine import RowMapping
+from collections.abc import Sequence
 
 
 class TestReportedIssueRequest(BaseModel):
@@ -53,16 +54,9 @@ class TestReportedIssueResponse(BaseModel):
     updated_at: datetime
 
 
-class TestCaseInfo(BaseModel):
-    """Model for individual test case information"""
-    
-    model_config = ConfigDict(from_attributes=True)
-
-    test_case: str
-    template_id: str = ""
-
-
 class TestCasesResponse(BaseModel):
-    """Response model for test cases endpoint"""
+    test_cases: list[dict[str, str | None]]
 
-    test_cases: list[TestCaseInfo]
+    @classmethod
+    def from_rows(cls, rows: Sequence[RowMapping]) -> "TestCasesResponse":
+        return cls(test_cases=[dict(r) for r in rows])

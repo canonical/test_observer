@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import reported_issues
-from .models import TestCasesResponse, TestCaseInfo
+from .models import TestCasesResponse
 
 from test_observer.data_access.models import TestCase
 from test_observer.data_access.setup import get_db
@@ -46,4 +46,5 @@ def get_test_cases(db: Session = Depends(get_db)) -> TestCasesResponse:
         .order_by(TestCase.name, TestCase.template_id)
     )
 
-    return TestCasesResponse(test_cases=db.execute(query).all())
+    rows = db.execute(query).mappings().all()
+    return TestCasesResponse.from_rows(rows)
