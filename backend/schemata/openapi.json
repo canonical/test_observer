@@ -1865,7 +1865,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
                 },
                 {
                   "type": "null"
@@ -1883,7 +1886,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 {
                   "type": "null"
@@ -1901,7 +1907,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 {
                   "type": "null"
@@ -1919,7 +1928,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 {
                   "type": "null"
@@ -1937,7 +1949,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
                 },
                 {
                   "type": "null"
@@ -3545,13 +3560,13 @@
           },
           "template_id": {
             "type": "string",
-            "title": "Template Id"
+            "title": "Template Id",
+            "default": ""
           }
         },
         "type": "object",
         "required": [
-          "test_case",
-          "template_id"
+          "test_case"
         ],
         "title": "TestCaseInfo",
         "description": "Model for individual test case information"

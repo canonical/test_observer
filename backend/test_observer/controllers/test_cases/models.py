@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from pydantic import BaseModel, HttpUrl, field_validator, model_validator
+from pydantic import BaseModel, HttpUrl, field_validator, model_validator, ConfigDict
 from datetime import datetime
 from test_observer.common.constants import VALID_ISSUE_HOSTS
 
@@ -55,9 +55,11 @@ class TestReportedIssueResponse(BaseModel):
 
 class TestCaseInfo(BaseModel):
     """Model for individual test case information"""
+    
+    model_config = ConfigDict(from_attributes=True)
 
     test_case: str
-    template_id: str
+    template_id: str = ""
 
 
 class TestCasesResponse(BaseModel):

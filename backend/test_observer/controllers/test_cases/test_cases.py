@@ -39,18 +39,11 @@ def get_test_cases(db: Session = Depends(get_db)) -> TestCasesResponse:
     """
     query = (
         select(
-            TestCase.name,
+            TestCase.name.label("test_case"),
             TestCase.template_id,
         )
         .distinct()
         .order_by(TestCase.name, TestCase.template_id)
     )
 
-    test_cases_data = db.execute(query).all()
-
-    test_cases_list = [
-        TestCaseInfo(test_case=name, template_id=template_id or "")
-        for name, template_id in test_cases_data
-    ]
-
-    return TestCasesResponse(test_cases=test_cases_list)
+    return TestCasesResponse(test_cases=db.execute(query).all())
