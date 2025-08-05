@@ -144,54 +144,6 @@ class TestSearchTestResults:
             tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
         )
 
-    def test_search_by_environment_partial_match(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
-        """Test filtering by environment name with partial matching"""
-        # Create test data with specific environment
-        environment = generator.gen_environment(
-            name=f"juju-controller-test-env-{uuid.uuid4().hex[:4]}"
-        )
-        test_case = generator.gen_test_case(name=generate_unique_name("env_partial"))
-        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
-        artefact_build = generator.gen_artefact_build(artefact)
-        test_execution = generator.gen_test_execution(artefact_build, environment)
-        test_result = generator.gen_test_result(test_case, test_execution)
-
-        # Search with partial name
-        response = test_client.get("/v1/test-results?environments=juju")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
-
-    def test_search_by_test_case_partial_match(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
-        """Test filtering by test case name with partial matching"""
-        # Create test data with specific test case
-        environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=f"test_deploy_application_unique_{uuid.uuid4().hex[:4]}"
-        )
-        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
-        artefact_build = generator.gen_artefact_build(artefact)
-        test_execution = generator.gen_test_execution(artefact_build, environment)
-        test_result = generator.gen_test_result(test_case, test_execution)
-
-        # Search with partial name
-        response = test_client.get("/v1/test-results?test_cases=deploy")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
-
     def test_search_by_template_id(
         self, test_client: TestClient, generator: DataGenerator
     ):
@@ -496,11 +448,12 @@ class TestSearchTestResults:
     ):
         """Test combining multiple filters with window function"""
         # Create specific test data
-        environment = generator.gen_environment(
-            name=f"multi-filter-env-{uuid.uuid4().hex[:4]}"
-        )
+        environment_name = "multi-filter-env"
+        test_case_name = "multi_filter"
+
+        environment = generator.gen_environment(name=environment_name)
         test_case = generator.gen_test_case(
-            name=generate_unique_name("multi_filter"),
+            name=test_case_name,
             template_id="multi_filter_template",
         )
         snap_artefact = generator.gen_artefact(
@@ -518,7 +471,14 @@ class TestSearchTestResults:
         assert attach_response.status_code == 200
 
         response = test_client.get(
-            f"/v1/test-results?families=snap&environments=multi-filter-env&test_cases=multi_filter&template_ids=multi_filter_template&issues={issue.id}&limit=5"
+            f"/v1/test-results?families=snap&environments={environment_name}&test_cases={test_case_name}&template_ids=multi_filter_template&issues={issue.id}&limit=5"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] >= 1
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
         )
 
         assert response.status_code == 200

@@ -1889,10 +1889,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by environment names (e.g., Juju:3/stable ubuntu:20.04)",
+              "description": "Filter by environment names (comma-separated)",
               "title": "Environments"
             },
-            "description": "Filter by environment names (e.g., Juju:3/stable ubuntu:20.04)"
+            "description": "Filter by environment names (comma-separated)"
           },
           {
             "name": "test_cases",
@@ -1907,10 +1907,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by test case names (e.g., test_deploy)",
+              "description": "Filter by test case names (comma-separated)",
               "title": "Test Cases"
             },
-            "description": "Filter by test case names (e.g., test_deploy)"
+            "description": "Filter by test case names (comma-separated)"
           },
           {
             "name": "template_ids",
@@ -1925,10 +1925,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by template IDs",
+              "description": "Filter by template IDs (comma-separated)",
               "title": "Template Ids"
             },
-            "description": "Filter by template IDs"
+            "description": "Filter by template IDs (comma-separated)"
           },
           {
             "name": "issues",

@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.orm import Session, selectinload
@@ -32,7 +33,6 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
-# Import our models and the existing response models
 from .models import TestResultSearchResponseWithContext, TestResultResponseWithContext
 from test_observer.controllers.test_executions.models import (
     TestResultResponse,
@@ -59,34 +59,45 @@ def parse_csv_ids(ids: str) -> list[int]:
         raise HTTPException(status_code=400, detail="Invalid ID format") from None
 
 
+def parse_family_enums(families: str) -> list[FamilyName]:
+    """Parse and validate family enums"""
+    family_list = parse_csv_values(families)
+    try:
+        return [FamilyName(family.lower()) for family in family_list]
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid family: {e}") from None
+
+
 @router.get("", response_model=TestResultSearchResponseWithContext)
 def search_test_results(
-    families: str | None = Query(
-        None, description="Filter by artefact families (e.g., charm,snap)"
-    ),
-    environments: str | None = Query(
-        None,
-        description="Filter by environment names (e.g., Juju:3/stable ubuntu:20.04)",
-    ),
-    test_cases: str | None = Query(
-        None, description="Filter by test case names (e.g., test_deploy)"
-    ),
-    template_ids: str | None = Query(None, description="Filter by template IDs"),
-    issues: str | None = Query(
-        None, description="Filter by Jira or GitHub issue IDs (comma-separated)"
-    ),
-    from_date: datetime | None = Query(
-        None, description="Filter results from this timestamp"
-    ),
-    until_date: datetime | None = Query(
-        None, description="Filter results until this timestamp"
-    ),
-    limit: int = Query(
-        50, ge=1, le=1000, description="Maximum number of results to return"
-    ),
-    offset: int = Query(
-        0, ge=0, description="Number of results to skip for pagination"
-    ),
+    families: Annotated[
+        str | None, Query(description="Filter by artefact families (e.g., charm,snap)")
+    ] = None,
+    environments: Annotated[
+        str | None, Query(description="Filter by environment names (comma-separated)")
+    ] = None,
+    test_cases: Annotated[
+        str | None, Query(description="Filter by test case names (comma-separated)")
+    ] = None,
+    template_ids: Annotated[
+        str | None, Query(description="Filter by template IDs (comma-separated)")
+    ] = None,
+    issues: Annotated[
+        str | None,
+        Query(description="Filter by Jira or GitHub issue IDs (comma-separated)"),
+    ] = None,
+    from_date: Annotated[
+        datetime | None, Query(description="Filter results from this timestamp")
+    ] = None,
+    until_date: Annotated[
+        datetime | None, Query(description="Filter results until this timestamp")
+    ] = None,
+    limit: Annotated[
+        int, Query(ge=1, le=1000, description="Maximum number of results to return")
+    ] = 50,
+    offset: Annotated[
+        int, Query(ge=0, description="Number of results to skip for pagination")
+    ] = 0,
     db: Session = Depends(get_db),
 ) -> TestResultSearchResponseWithContext:
     """
@@ -96,48 +107,32 @@ def search_test_results(
     the total count and paginated results in one database round trip.
     """
 
-    # Build filters
+    # Build filters using CSV parsing helper functions
     filters = []
 
     if families:
-        family_list = parse_csv_values(families)
-        family_enums = []
-        for family in family_list:
-            try:
-                family_enums.append(FamilyName(family.lower()))
-            except ValueError:
-                raise HTTPException(
-                    status_code=422, detail=f"Invalid family: {family}"
-                ) from None
-
-        if family_enums:
-            filters.append(Artefact.family.in_(family_enums))
+        family_list = parse_family_enums(families)
+        filters.append(Artefact.family.in_(family_list))
 
     if environments:
-        if "," in environments:
-            environment_list = parse_csv_values(environments)
-            filters.append(Environment.name.in_(environment_list))
-        else:
-            filters.append(Environment.name.ilike(f"%{environments}%"))
+        env_list = parse_csv_values(environments)
+        filters.append(Environment.name.in_(env_list))
 
     if test_cases:
-        if "," in test_cases:
-            test_case_list = parse_csv_values(test_cases)
-            filters.append(TestCase.name.in_(test_case_list))
-        else:
-            filters.append(TestCase.name.ilike(f"%{test_cases}%"))
+        case_list = parse_csv_values(test_cases)
+        filters.append(TestCase.name.in_(case_list))
 
     if template_ids:
-        template_id_list = parse_csv_values(template_ids)
-        filters.append(TestCase.template_id.in_(template_id_list))
+        template_list = parse_csv_values(template_ids)
+        filters.append(TestCase.template_id.in_(template_list))
 
     if issues:
-        issue_ids = parse_csv_ids(issues)
+        issue_list = parse_csv_ids(issues)
         filters.append(
             TestResult.id.in_(
                 select(IssueTestResultAttachment.test_result_id)
                 .join(IssueTestResultAttachment.issue)
-                .where(Issue.id.in_(issue_ids))
+                .where(Issue.id.in_(issue_list))
             )
         )
 
