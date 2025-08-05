@@ -3552,30 +3552,21 @@
         ],
         "title": "StatusUpdateRequest"
       },
-      "TestCaseInfo": {
-        "properties": {
-          "test_case": {
-            "type": "string",
-            "title": "Test Case"
-          },
-          "template_id": {
-            "type": "string",
-            "title": "Template Id",
-            "default": ""
-          }
-        },
-        "type": "object",
-        "required": [
-          "test_case"
-        ],
-        "title": "TestCaseInfo",
-        "description": "Model for individual test case information"
-      },
       "TestCasesResponse": {
         "properties": {
           "test_cases": {
             "items": {
-              "$ref": "#/components/schemas/TestCaseInfo"
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
             },
             "type": "array",
             "title": "Test Cases"

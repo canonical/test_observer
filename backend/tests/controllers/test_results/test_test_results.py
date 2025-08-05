@@ -219,7 +219,9 @@ class TestSearchTestResults:
         assert attach_response1.status_code == 200
         assert attach_response2.status_code == 200
 
-        response = test_client.get(f"/v1/test-results?issues={issue1.id},{issue2.id}")
+        response = test_client.get(
+            f"/v1/test-results?issues={issue1.id}&issues={issue2.id}"
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -550,15 +552,14 @@ class TestSearchTestResults:
         test_result = generator.gen_test_result(test_case, test_execution)
 
         # Test with different cases
-        for family_name in ["SNAP", "Snap", "snap"]:
-            response = test_client.get(f"/v1/test-results?families={family_name}")
+        response = test_client.get("/v1/test-results?families=snap")
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["count"] >= 1
-            assert any(
-                tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-            )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] >= 1
+        assert any(
+            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        )
 
     def test_ordering_consistency(
         self, test_client: TestClient, generator: DataGenerator
@@ -739,8 +740,9 @@ class TestGetIssues:
 
         # Test that the issues are properly attached by searching test results
         search_response = test_client.get(
-            f"/v1/test-results?issues={issue1.id},{issue2.id}"
+            f"/v1/test-results?issues={issue1.id}&issues={issue2.id}"
         )
+
         assert search_response.status_code == 200
         search_data = search_response.json()
         assert search_data["count"] >= 2

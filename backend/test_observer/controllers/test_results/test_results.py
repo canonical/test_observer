@@ -16,7 +16,7 @@
 
 from datetime import datetime
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -46,44 +46,25 @@ from test_observer.controllers.artefacts.models import (
 router = APIRouter(tags=["test-results"])
 
 
-def parse_csv_values(values: str) -> list[str]:
-    """Parse comma-separated values and return list of strings."""
-    return [value.strip() for value in values.split(",") if value.strip()]
-
-
-def parse_csv_ids(ids: str) -> list[int]:
-    """Parse comma-separated IDs and return list of integers."""
-    try:
-        return [int(id_str) for id_str in parse_csv_values(ids)]
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid ID format") from None
-
-
-def parse_family_enums(families: str) -> list[FamilyName]:
-    """Parse and validate family enums"""
-    family_list = parse_csv_values(families)
-    try:
-        return [FamilyName(family.lower()) for family in family_list]
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=f"Invalid family: {e}") from None
-
-
 @router.get("", response_model=TestResultSearchResponseWithContext)
 def search_test_results(
     families: Annotated[
-        str | None, Query(description="Filter by artefact families (e.g., charm,snap)")
+        list[FamilyName] | None,
+        Query(description="Filter by artefact families (e.g., charm,snap)"),
     ] = None,
     environments: Annotated[
-        str | None, Query(description="Filter by environment names (comma-separated)")
+        list[str] | None,
+        Query(description="Filter by environment names (comma-separated)"),
     ] = None,
     test_cases: Annotated[
-        str | None, Query(description="Filter by test case names (comma-separated)")
+        list[str] | None,
+        Query(description="Filter by test case names (comma-separated)"),
     ] = None,
     template_ids: Annotated[
-        str | None, Query(description="Filter by template IDs (comma-separated)")
+        list[str] | None, Query(description="Filter by template IDs (comma-separated)")
     ] = None,
     issues: Annotated[
-        str | None,
+        list[int] | None,
         Query(description="Filter by Jira or GitHub issue IDs (comma-separated)"),
     ] = None,
     from_date: Annotated[
@@ -107,61 +88,75 @@ def search_test_results(
     the total count and paginated results in one database round trip.
     """
 
-    # Build filters using CSV parsing helper functions
+    # Build filters and track which joins are needed
     filters = []
+    joins_needed = set()
+
+    joins_needed.add("test_execution")
 
     if families:
-        family_list = parse_family_enums(families)
-        filters.append(Artefact.family.in_(family_list))
+        filters.append(Artefact.family.in_(families))
+        joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
     if environments:
-        env_list = parse_csv_values(environments)
-        filters.append(Environment.name.in_(env_list))
+        filters.append(Environment.name.in_(environments))
+        joins_needed.update(["test_execution", "environment"])
 
     if test_cases:
-        case_list = parse_csv_values(test_cases)
-        filters.append(TestCase.name.in_(case_list))
+        filters.append(TestCase.name.in_(test_cases))
+        joins_needed.add("test_case")
 
     if template_ids:
-        template_list = parse_csv_values(template_ids)
-        filters.append(TestCase.template_id.in_(template_list))
+        filters.append(TestCase.template_id.in_(template_ids))
+        joins_needed.add("test_case")
 
     if issues:
-        issue_list = parse_csv_ids(issues)
         filters.append(
             TestResult.id.in_(
                 select(IssueTestResultAttachment.test_result_id)
                 .join(IssueTestResultAttachment.issue)
-                .where(Issue.id.in_(issue_list))
+                .where(Issue.id.in_(issues))
             )
         )
 
     if from_date:
         filters.append(TestExecution.created_at >= from_date)  # type: ignore
+        joins_needed.add("test_execution")
 
     if until_date:
         filters.append(TestExecution.created_at <= until_date)  # type: ignore
+        joins_needed.add("test_execution")
 
-    # Build the main query with window function for total count and proper eager loading
+    # Build the main query with only necessary joins
+    query = select(TestResult, func.count().over().label("total_count"))
+
+    if "test_execution" in joins_needed:
+        query = query.join(TestResult.test_execution)
+
+    if "environment" in joins_needed:
+        query = query.join(TestExecution.environment)
+
+    if "artefact_build" in joins_needed:
+        query = query.join(TestExecution.artefact_build)
+
+    if "artefact" in joins_needed:
+        query = query.join(ArtefactBuild.artefact)
+
+    if "test_case" in joins_needed:
+        query = query.join(TestResult.test_case)
+
+    query = query.options(
+        selectinload(TestResult.test_case),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
+        selectinload(TestResult.test_execution)
+        .selectinload(TestExecution.artefact_build)
+        .selectinload(ArtefactBuild.artefact),
+        selectinload(TestResult.issue_attachments),
+    )
+
+    # Apply ordering and pagination
     query = (
-        select(TestResult, func.count().over().label("total_count"))
-        .join(TestResult.test_execution)
-        .join(TestExecution.environment)
-        .join(TestExecution.artefact_build)
-        .join(ArtefactBuild.artefact)
-        .join(TestResult.test_case)
-        .options(
-            # Load all the related data that the response model needs
-            selectinload(TestResult.test_case),
-            selectinload(TestResult.test_execution).selectinload(
-                TestExecution.environment
-            ),
-            selectinload(TestResult.test_execution)
-            .selectinload(TestExecution.artefact_build)
-            .selectinload(ArtefactBuild.artefact),
-            selectinload(TestResult.issue_attachments),
-        )
-        .order_by(desc(TestExecution.created_at), desc(TestResult.id))
+        query.order_by(desc(TestExecution.created_at), desc(TestResult.id))
         .offset(offset)
         .limit(limit)
     )
