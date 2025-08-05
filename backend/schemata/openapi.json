@@ -1331,44 +1331,6 @@
         "summary": "Get Test Cases",
         "description": "Returns test cases as a flat list with their template IDs.\n\nTemplate ID represents the generic test (e.g., \"disk/stats_name\")\nTest case name is the specific instance (e.g., \"disk/stats_nvme0n1\")\nMultiple test cases can share the same template ID but have different names.",
         "operationId": "get_test_cases_v1_test_cases_get",
-        "parameters": [
-          {
-            "name": "families",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter test cases by families",
-              "title": "Families"
-            },
-            "description": "Filter test cases by families"
-          },
-          {
-            "name": "environments",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter test cases by environments",
-              "title": "Environments"
-            },
-            "description": "Filter test cases by environments"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1376,16 +1338,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TestCasesResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1581,46 +1533,8 @@
           "environments"
         ],
         "summary": "Get Environments",
-        "description": "Returns list of distinct environments with cascading filters.\n\nUses optimized database filtering instead of Python post-processing.\nOnly includes environments that have actually been used in test executions.",
+        "description": "Returns list of distinct environments that have been used in test executions.",
         "operationId": "get_environments_v1_environments_get",
-        "parameters": [
-          {
-            "name": "families",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter envs by families",
-              "title": "Families"
-            },
-            "description": "Filter envs by families"
-          },
-          {
-            "name": "test_cases",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter envs by test cases",
-              "title": "Test Cases"
-            },
-            "description": "Filter envs by test cases"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1628,16 +1542,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EnvironmentsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -3667,7 +3571,7 @@
           "test_cases"
         ],
         "title": "TestCasesResponse",
-        "description": "Response model for test cases endpoint - flat list as suggested by Ryan"
+        "description": "Response model for test cases endpoint"
       },
       "TestEventResponse": {
         "properties": {

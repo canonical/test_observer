@@ -61,6 +61,6 @@ class TestCaseInfo(BaseModel):
 
 
 class TestCasesResponse(BaseModel):
-    """Response model for test cases endpoint - flat list as suggested by Ryan"""
+    """Response model for test cases endpoint"""
 
     test_cases: list[TestCaseInfo]
