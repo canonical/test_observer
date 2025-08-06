@@ -54,9 +54,19 @@ class TestReportedIssueResponse(BaseModel):
     updated_at: datetime
 
 
+class TestCaseInfo(BaseModel):
+    test_case: str
+    template_id: str | None
+
+
 class TestCasesResponse(BaseModel):
-    test_cases: list[dict[str, str | None]]
+    test_cases: list[TestCaseInfo]
 
     @classmethod
     def from_rows(cls, rows: Sequence[RowMapping]) -> "TestCasesResponse":
-        return cls(test_cases=[dict(r) for r in rows])
+        return cls(
+            test_cases=[
+                TestCaseInfo(test_case=r["test_case"], template_id=r["template_id"])
+                for r in rows
+            ]
+        )

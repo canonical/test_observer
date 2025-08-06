@@ -3552,21 +3552,36 @@
         ],
         "title": "StatusUpdateRequest"
       },
+      "TestCaseInfo": {
+        "properties": {
+          "test_case": {
+            "type": "string",
+            "title": "Test Case"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_case",
+          "template_id"
+        ],
+        "title": "TestCaseInfo"
+      },
       "TestCasesResponse": {
         "properties": {
           "test_cases": {
             "items": {
-              "additionalProperties": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "type": "object"
+              "$ref": "#/components/schemas/TestCaseInfo"
             },
             "type": "array",
             "title": "Test Cases"
