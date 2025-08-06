@@ -149,3 +149,29 @@ def test_add_execution_metadata_add_different(
         **sample_execution_metadata,
         "category3": ["value"],
     }
+
+
+@pytest.mark.parametrize(
+    "success,execution_metadata",
+    [
+        (True, {"category": ["value"]}),
+        (True, {"X" * 200: ["value"]}),
+        (True, {"category": ["X" * 200]}),
+        (False, {"X" * 201: ["value"]}),
+        (False, {"category": ["X" * 201]}),
+        (False, {"": ["value"]}),
+        (False, {"category": [""]}),
+    ],
+)
+def test_add_execution_metadata_test_length(
+    execute: Execute,
+    test_execution: TestExecution,
+    execution_metadata: dict,
+    success: bool,
+):
+    response = execute(test_execution.id, {"execution_metadata": execution_metadata})
+
+    if success:
+        assert response.status_code == 200
+    else:
+        assert response.status_code == 422
