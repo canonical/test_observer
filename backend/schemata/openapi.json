@@ -1323,6 +1323,28 @@
         }
       }
     },
+    "/v1/test-cases": {
+      "get": {
+        "tags": [
+          "test-cases"
+        ],
+        "summary": "Get Test Cases",
+        "description": "Returns test cases as a flat list with their template IDs.\n\nTemplate ID represents the generic test (e.g., \"disk/stats_name\")\nTest case name is the specific instance (e.g., \"disk/stats_nvme0n1\")\nMultiple test cases can share the same template ID but have different names.",
+        "operationId": "get_test_cases_v1_test_cases_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestCasesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/environments/reported-issues": {
       "get": {
         "tags": [
@@ -1498,6 +1520,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/environments": {
+      "get": {
+        "tags": [
+          "environments"
+        ],
+        "summary": "Get Environments",
+        "description": "Returns list of distinct environments that have been used in test executions.",
+        "operationId": "get_environments_v1_environments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentsResponse"
                 }
               }
             }
@@ -1788,6 +1832,210 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/test-results": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Search Test Results",
+        "description": "Search test results across artefacts using flexible filters.\n\nThis endpoint uses a single optimized query with window functions to get both\nthe total count and paginated results in one database round trip.",
+        "operationId": "search_test_results_v1_test_results_get",
+        "parameters": [
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families (e.g., charm,snap)",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families (e.g., charm,snap)"
+          },
+          {
+            "name": "environments",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environment names (comma-separated)",
+              "title": "Environments"
+            },
+            "description": "Filter by environment names (comma-separated)"
+          },
+          {
+            "name": "test_cases",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test case names (comma-separated)",
+              "title": "Test Cases"
+            },
+            "description": "Filter by test case names (comma-separated)"
+          },
+          {
+            "name": "template_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by template IDs (comma-separated)",
+              "title": "Template Ids"
+            },
+            "description": "Filter by template IDs (comma-separated)"
+          },
+          {
+            "name": "issues",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Jira or GitHub issue IDs (comma-separated)",
+              "title": "Issues"
+            },
+            "description": "Filter by Jira or GitHub issue IDs (comma-separated)"
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results from this timestamp",
+              "title": "From Date"
+            },
+            "description": "Filter results from this timestamp"
+          },
+          {
+            "name": "until_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results until this timestamp",
+              "title": "Until Date"
+            },
+            "description": "Filter results until this timestamp"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResultSearchResponseWithContext"
                 }
               }
             }
@@ -2478,6 +2726,23 @@
         },
         "type": "object",
         "title": "EnvironmentReviewPatch"
+      },
+      "EnvironmentsResponse": {
+        "properties": {
+          "environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "environments"
+        ],
+        "title": "EnvironmentsResponse",
+        "description": "Response model for environments endpoint"
       },
       "ExecutionMetadata": {
         "additionalProperties": {
@@ -3287,6 +3552,47 @@
         ],
         "title": "StatusUpdateRequest"
       },
+      "TestCaseInfo": {
+        "properties": {
+          "test_case": {
+            "type": "string",
+            "title": "Test Case"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_case",
+          "template_id"
+        ],
+        "title": "TestCaseInfo"
+      },
+      "TestCasesResponse": {
+        "properties": {
+          "test_cases": {
+            "items": {
+              "$ref": "#/components/schemas/TestCaseInfo"
+            },
+            "type": "array",
+            "title": "Test Cases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_cases"
+        ],
+        "title": "TestCasesResponse"
+      },
       "TestEventResponse": {
         "properties": {
           "event_name": {
@@ -3676,6 +3982,53 @@
           "issues"
         ],
         "title": "TestResultResponse"
+      },
+      "TestResultResponseWithContext": {
+        "properties": {
+          "test_result": {
+            "$ref": "#/components/schemas/TestResultResponse"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/TestExecutionResponse"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/ArtefactResponse"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_result",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "TestResultResponseWithContext",
+        "description": "Test result response with artefact and test execution context"
+      },
+      "TestResultSearchResponseWithContext": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "test_results": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultResponseWithContext"
+            },
+            "type": "array",
+            "title": "Test Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "test_results"
+        ],
+        "title": "TestResultSearchResponseWithContext",
+        "description": "Response model for test results search endpoint with full context"
       },
       "TestResultStatus": {
         "type": "string",

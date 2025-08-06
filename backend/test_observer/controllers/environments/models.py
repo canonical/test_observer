@@ -47,3 +47,9 @@ class EnvironmentReportedIssueResponse(BaseModel):
     is_confirmed: bool
     created_at: datetime
     updated_at: datetime
+
+
+class EnvironmentsResponse(BaseModel):
+    """Response model for environments endpoint"""
+
+    environments: list[str]
