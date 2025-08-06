@@ -44,6 +44,7 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     Artefact.version,
     Artefact.status,
     Artefact.track,
+    Artefact.stage,
     Artefact.series,
     Artefact.repo,
     Artefact.os,
