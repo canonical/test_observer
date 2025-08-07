@@ -15,15 +15,52 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from pydantic import BaseModel, RootModel, field_validator
+from pydantic import BaseModel, RootModel, Field
 
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import Annotated
 
 from test_observer.data_access.models import TestExecutionMetadata
 
 
-class ExecutionMetadata(RootModel[dict[str, list[str]]]):
+class ExecutionMetadata(
+    RootModel[
+        dict[
+            Annotated[
+                str,
+                Field(
+                    min_length=1,
+                    max_length=200,
+                    description="Execution Metadata Category",
+                ),
+            ],
+            list[
+                Annotated[
+                    str,
+                    Field(
+                        min_length=1,
+                        max_length=200,
+                        description="Execution Metadata Value",
+                    ),
+                ]
+            ],
+        ]
+    ]
+):
+    model_config = {
+        "json_schema_extra": {
+            "title": "Execution Metadata",
+            "description": "A mapping of string categories to lists of string values.",
+            "examples": [
+                {
+                    "charm": ["postgresql-k8s", "mysql-k8s"],
+                    "charm:postgresql-k8s:revision": ["495"],
+                }
+            ],
+        }
+    }
+
     @classmethod
     def from_rows(cls, values: Sequence[TestExecutionMetadata]) -> "ExecutionMetadata":
         grouped = defaultdict(list)
@@ -37,23 +74,6 @@ class ExecutionMetadata(RootModel[dict[str, list[str]]]):
             for category, values in self.root.items()
             for value in values
         ]
-
-    @field_validator("root")
-    @classmethod
-    def validate_lengths(cls, metadata: dict[str, list[str]]) -> dict[str, list[str]]:
-        for category, values in metadata.items():
-            if not (1 <= len(category) <= 200):
-                raise ValueError(
-                    f"Category '{category}' must be between 1 and 200 characters"
-                )
-
-            for value in values:
-                if not (1 <= len(value) <= 200):
-                    raise ValueError(
-                        f"Value '{value}' in category '{category}' "
-                        "must be between 1 and 200 characters"
-                    )
-        return metadata
 
 
 class ExecutionMetadataGetResponse(BaseModel):

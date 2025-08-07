@@ -2747,12 +2747,32 @@
       "ExecutionMetadata": {
         "additionalProperties": {
           "items": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "description": "Execution Metadata Value"
           },
           "type": "array"
         },
+        "propertyNames": {
+          "maxLength": 200,
+          "minLength": 1,
+          "description": "Execution Metadata Category"
+        },
         "type": "object",
-        "title": "ExecutionMetadata"
+        "title": "Execution Metadata",
+        "description": "A mapping of string categories to lists of string values.",
+        "examples": [
+          {
+            "charm": [
+              "postgresql-k8s",
+              "mysql-k8s"
+            ],
+            "charm:postgresql-k8s:revision": [
+              "495"
+            ]
+          }
+        ]
       },
       "ExecutionMetadataGetResponse": {
         "properties": {
