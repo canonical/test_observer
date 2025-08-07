@@ -99,6 +99,7 @@ def _expected_report_row(test_result: TestResult) -> list:
         artefact.version,
         artefact.status.name,
         artefact.track,
+        artefact.stage,
         artefact.series,
         artefact.repo,
         artefact.os,
