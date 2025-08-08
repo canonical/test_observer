@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from pydantic import BaseModel, HttpUrl
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
+from pydantic import BaseModel, HttpUrl, field_validator
+from test_observer.data_access.models_enums import IssueSource, IssueStatus, FamilyName
 
 from pydantic import ConfigDict, Field, AliasPath
+from collections.abc import Sequence
 
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
@@ -28,6 +29,12 @@ from test_observer.controllers.artefacts.models import (
 
 from test_observer.controllers.test_executions.models import (
     TestResultResponse,
+)
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+
+from test_observer.data_access.models import (
+    IssueTestResultAttachmentRuleExecutionMetadata,
+    TestExecutionMetadata,
 )
 
 from .shared_models import MinimalIssueResponse
@@ -51,6 +58,50 @@ class IssueTestResultAttachmentResponse(BaseModel):
     )
 
 
+class IssueTestResultAttachmentRulePostRequest(BaseModel):
+    enabled: bool = Field(default=True)
+
+    families: list[FamilyName] = Field(min_length=1)
+    environment_names: list[str] = Field(default_factory=list)
+    test_case_names: list[str] = Field(default_factory=list)
+    template_ids: list[str] = Field(default_factory=list)
+    execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
+
+
+class IssueTestResultAttachmentRulePatchRequest(BaseModel):
+    enabled: bool | None = None
+
+
+class IssueTestResultAttachmentRuleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    enabled: bool
+
+    families: list[FamilyName]
+    environment_names: list[str]
+    test_case_names: list[str]
+    template_ids: list[str]
+    execution_metadata: ExecutionMetadata
+
+    @field_validator("execution_metadata", mode="before")
+    @classmethod
+    def convert_execution_metadata(
+        cls,
+        metadata: Sequence[IssueTestResultAttachmentRuleExecutionMetadata]
+        | ExecutionMetadata,
+    ) -> ExecutionMetadata:
+        if not isinstance(metadata, ExecutionMetadata):
+            return ExecutionMetadata.from_rows(
+                [
+                    TestExecutionMetadata(category=item.category, value=item.value)
+                    for item in metadata
+                ]
+            )
+
+        return metadata
+
+
 class IssueResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,6 +115,10 @@ class IssueResponse(BaseModel):
 
     test_results: list[IssueTestResultAttachmentResponse] = Field(
         validation_alias=AliasPath("test_result_attachments")
+    )
+
+    attachment_rules: list[IssueTestResultAttachmentRuleResponse] = Field(
+        validation_alias=AliasPath("test_result_attachment_rules")
     )
 
 
