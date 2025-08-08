@@ -3170,11 +3170,6 @@
       },
       "IssueTestResultAttachmentRulePostRequest": {
         "properties": {
-          "type": {
-            "type": "string",
-            "const": "test_result",
-            "title": "Type"
-          },
           "enabled": {
             "type": "boolean",
             "title": "Enabled",
@@ -3215,19 +3210,12 @@
         },
         "type": "object",
         "required": [
-          "type",
           "families"
         ],
         "title": "IssueTestResultAttachmentRulePostRequest"
       },
       "IssueTestResultAttachmentRuleResponse": {
         "properties": {
-          "type": {
-            "type": "string",
-            "const": "test_result",
-            "title": "Type",
-            "default": "test_result"
-          },
           "id": {
             "type": "integer",
             "title": "Id"
