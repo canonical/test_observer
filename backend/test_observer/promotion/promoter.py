@@ -133,8 +133,8 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     if not artefact.stage:
         return
 
-    should_archive = True
-    highest_pocket_found: StageName = StageName(artefact.stage)
+    name_found = False
+    highest_pocket_found: None | StageName = None
     for arch, pocket in itertools.product(artefact.architectures, POCKET_PROMOTION_MAP):
         with ArchiveManager(
             arch=arch,
@@ -144,10 +144,14 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
         ) as archivemanager:
             deb_version = archivemanager.get_deb_version(artefact.name)
 
-        if deb_version == artefact.version:
-            should_archive = False
-            highest_pocket_found = max(highest_pocket_found, StageName(pocket))
+        if deb_version:
+            name_found = True
 
-    artefact.stage = highest_pocket_found
-    artefact.archived = should_archive
+            if deb_version == artefact.version:
+                highest_pocket_found = max(
+                    highest_pocket_found or StageName(pocket), StageName(pocket)
+                )
+
+    artefact.archived = name_found and not highest_pocket_found
+    artefact.stage = highest_pocket_found or artefact.stage
     session.commit()
