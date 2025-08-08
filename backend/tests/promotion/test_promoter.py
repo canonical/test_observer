@@ -299,7 +299,7 @@ def test_keeps_deb_unarchived_if_custom_name(
 
     promote_artefacts(db_session)
 
-    assert a.archived
+    assert not a.archived
 
 
 def _prepare_archive_mock(requests_mock: Mocker) -> None:
