@@ -70,6 +70,17 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
     response = test_client.get(endpoint + f"/{issue.id}")
 
     assert response.status_code == 200
+    assert set(response.json().keys()) == {
+        "attachment_rules",
+        "url",
+        "test_results",
+        "key",
+        "id",
+        "project",
+        "source",
+        "title",
+        "status",
+    }
     assert response.json()["id"] == issue.id
     assert response.json()["source"] == issue.source
     assert response.json()["project"] == issue.project

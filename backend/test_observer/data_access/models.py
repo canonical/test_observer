@@ -567,6 +567,10 @@ class Issue(Base):
         back_populates="issue", cascade="all, delete"
     )
 
+    test_result_attachment_rules: Mapped[list["IssueTestResultAttachmentRule"]] = (
+        relationship(back_populates="issue", cascade="all, delete")
+    )
+
     def __repr__(self) -> str:
         return data_model_repr(
             self,
@@ -641,7 +645,64 @@ class IssueTestResultAttachment(Base):
     )
     test_result: Mapped["TestResult"] = relationship(back_populates="issue_attachments")
 
+    attachment_rule_id: Mapped[int] = mapped_column(
+        ForeignKey("issue_test_result_attachment_rule.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(
+        back_populates="test_results"
+    )
+
     __table_args__ = (UniqueConstraint("issue_id", "test_result_id"),)
+
+
+class IssueTestResultAttachmentRule(Base):
+    """
+    A table to store attachment rules for automatically attaching issues to test results
+    """
+
+    __tablename__ = "issue_test_result_attachment_rule"
+
+    issue_id: Mapped[int] = mapped_column(
+        ForeignKey("issue.id", ondelete="CASCADE"), index=True
+    )
+    issue: Mapped["Issue"] = relationship(back_populates="test_result_attachment_rules")
+
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+    test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(
+        back_populates="attachment_rule"
+    )
+
+    families: Mapped[list[FamilyName]] = mapped_column(
+        ARRAY(Enum(FamilyName)), default=list
+    )
+    environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    execution_metadata: Mapped[
+        list["IssueTestResultAttachmentRuleExecutionMetadata"]
+    ] = relationship(back_populates="attachment_rule", cascade="all, delete")
+
+
+class IssueTestResultAttachmentRuleExecutionMetadata(Base):
+    """
+    A table for attachment rules to match on execution metadata
+    """
+
+    __test__ = False
+    __tablename__ = "issue_test_result_attachment_rule_execution_metadata"
+
+    attachment_rule_id: Mapped[int] = mapped_column(
+        ForeignKey("issue_test_result_attachment_rule.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(
+        back_populates="execution_metadata"
+    )
+
+    category: Mapped[str] = mapped_column(String(200))
+    value: Mapped[str] = mapped_column(String(200))
 
 
 class ArtefactBuildEnvironmentReview(Base):
