@@ -87,7 +87,7 @@ def patch_attachment_rule(
         raise HTTPException(status_code=404, detail="Attachment rule not found")
     if attachment_rule.issue_id != issue_id:
         raise HTTPException(
-            status_code=403, detail="Attachment rule not attached to given issue"
+            status_code=400, detail="Attachment rule not attached to given issue"
         )
 
     # Modify the attachment rule
@@ -112,7 +112,7 @@ def delete_attachment_rule(
         return
     if attachment_rule.issue_id != issue_id:
         raise HTTPException(
-            status_code=403, detail="Attachment rule not attached to given issue"
+            status_code=400, detail="Attachment rule not attached to given issue"
         )
 
     # Delete the attachment rule

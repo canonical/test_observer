@@ -158,7 +158,7 @@ def test_patch_attachment_rule_wrong_issue(
         json={},
     )
 
-    assert patch_response.status_code == 403
+    assert patch_response.status_code == 400
 
 
 def test_patch_attachment_rule_disable(
@@ -204,7 +204,7 @@ def test_delete_attachment_rule_wrong_issue(
         )
     )
 
-    assert delete_response.status_code == 403
+    assert delete_response.status_code == 400
 
 
 def test_delete_attachment_rule(
