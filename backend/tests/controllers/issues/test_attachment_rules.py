@@ -60,9 +60,7 @@ def _assert_attachment_rule_response(
     assert json["id"] == model.id
     assert json["enabled"] == model.enabled
     assert sorted(json["families"]) == sorted(model.families)
-    assert sorted(json["environment_names"]) == sorted(
-        model.environment_names
-    )
+    assert sorted(json["environment_names"]) == sorted(model.environment_names)
     assert sorted(json["test_case_names"]) == sorted(model.test_case_names)
     assert sorted(json["template_ids"]) == sorted(model.template_ids)
     assert sorted(json["execution_metadata"]) == sorted(

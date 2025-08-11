@@ -648,6 +648,7 @@ class IssueTestResultAttachment(Base):
     attachment_rule_id: Mapped[int] = mapped_column(
         ForeignKey("issue_test_result_attachment_rule.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(
         back_populates="test_results"

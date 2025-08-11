@@ -105,6 +105,12 @@ def upgrade() -> None:
         ["id"],
         ondelete="SET NULL",
     )
+    op.create_index(
+        op.f("issue_test_result_attachment_attachment_rule_id_ix"),
+        "issue_test_result_attachment",
+        ["attachment_rule_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:
