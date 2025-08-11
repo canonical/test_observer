@@ -24,30 +24,28 @@ from typing import Annotated
 from test_observer.data_access.models import TestExecutionMetadata
 
 
-class ExecutionMetadata(
-    RootModel[
-        dict[
+class ExecutionMetadata(RootModel):
+    root: dict[
+        Annotated[
+            str,
+            Field(
+                min_length=1,
+                max_length=200,
+                description="Execution Metadata Category",
+            ),
+        ],
+        list[
             Annotated[
                 str,
                 Field(
                     min_length=1,
                     max_length=200,
-                    description="Execution Metadata Category",
+                    description="Execution Metadata Value",
                 ),
-            ],
-            list[
-                Annotated[
-                    str,
-                    Field(
-                        min_length=1,
-                        max_length=200,
-                        description="Execution Metadata Value",
-                    ),
-                ]
-            ],
-        ]
-    ]
-):
+            ]
+        ],
+    ] = Field(default_factory=dict)
+
     model_config = {
         "json_schema_extra": {
             "title": "Execution Metadata",

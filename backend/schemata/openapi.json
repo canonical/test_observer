@@ -1653,6 +1653,161 @@
         }
       }
     },
+    "/v1/issues/{issue_id}/attachment-rules": {
+      "post": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Post Attachment Rule",
+        "operationId": "post_attachment_rule_v1_issues__issue_id__attachment_rules_post",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueTestResultAttachmentRulePostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTestResultAttachmentRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/issues/{issue_id}/attachment-rules/{attachment_rule_id}": {
+      "patch": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Patch Attachment Rule",
+        "operationId": "patch_attachment_rule_v1_issues__issue_id__attachment_rules__attachment_rule_id__patch",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          },
+          {
+            "name": "attachment_rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Attachment Rule Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueTestResultAttachmentRulePatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTestResultAttachmentRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Delete Attachment Rule",
+        "operationId": "delete_attachment_rule_v1_issues__issue_id__attachment_rules__attachment_rule_id__delete",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          },
+          {
+            "name": "attachment_rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Attachment Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/issues": {
       "get": {
         "tags": [
@@ -2931,6 +3086,13 @@
             },
             "type": "array",
             "title": "Test Results"
+          },
+          "attachment_rules": {
+            "items": {
+              "$ref": "#/components/schemas/IssueTestResultAttachmentRuleResponse"
+            },
+            "type": "array",
+            "title": "Attachment Rules"
           }
         },
         "type": "object",
@@ -2942,7 +3104,8 @@
           "title",
           "status",
           "url",
-          "test_results"
+          "test_results",
+          "attachment_rules"
         ],
         "title": "IssueResponse"
       },
@@ -2987,6 +3150,119 @@
           "artefact_build"
         ],
         "title": "IssueTestResultAttachmentResponse"
+      },
+      "IssueTestResultAttachmentRulePatchRequest": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "title": "IssueTestResultAttachmentRulePatchRequest"
+      },
+      "IssueTestResultAttachmentRulePostRequest": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "environment_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environment Names"
+          },
+          "test_case_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Case Names"
+          },
+          "template_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Template Ids"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "title": "IssueTestResultAttachmentRulePostRequest"
+      },
+      "IssueTestResultAttachmentRuleResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "environment_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environment Names"
+          },
+          "test_case_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Case Names"
+          },
+          "template_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Template Ids"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "enabled",
+          "families",
+          "environment_names",
+          "test_case_names",
+          "template_ids",
+          "execution_metadata"
+        ],
+        "title": "IssueTestResultAttachmentRuleResponse"
       },
       "IssuesGetResponse": {
         "properties": {

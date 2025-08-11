@@ -40,10 +40,11 @@ from .models import (
 )
 from .issue_url_parser import issue_source_project_key_from_url
 
-from . import issue_attachments
+from . import issue_attachments, attachment_rules
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
+router.include_router(attachment_rules.router)
 
 
 @router.get("", response_model=IssuesGetResponse)
