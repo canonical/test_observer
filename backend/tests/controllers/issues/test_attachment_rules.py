@@ -22,6 +22,7 @@ from tests.data_generator import DataGenerator
 from sqlalchemy.orm import Session
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRuleExecutionMetadata,
+    IssueTestResultAttachmentRule,
 )
 
 issue_endpoint = "/v1/issues/{issue_id}"
@@ -42,6 +43,36 @@ def post_attachment_rule():
     }
 
 
+def _assert_attachment_rule_response(
+    json: dict,
+    model: IssueTestResultAttachmentRule | None,
+) -> None:
+    assert model is not None
+    assert set(json.keys()) == {
+        "id",
+        "enabled",
+        "families",
+        "environment_names",
+        "test_case_names",
+        "template_ids",
+        "execution_metadata",
+    }
+    assert json["id"] == model.id
+    assert json["enabled"] == model.enabled
+    assert sorted(json["families"]) == sorted(model.families)
+    assert sorted(json["environment_names"]) == sorted(
+        model.environment_names
+    )
+    assert sorted(json["test_case_names"]) == sorted(model.test_case_names)
+    assert sorted(json["template_ids"]) == sorted(model.template_ids)
+    assert sorted(json["execution_metadata"]) == sorted(
+        {
+            c: [m.value for m in model.execution_metadata if m.category == c]
+            for c in {m.category for m in model.execution_metadata}
+        }
+    )
+
+
 def test_post_attachment_rule_issue_not_found(
     test_client: TestClient, post_attachment_rule: dict
 ):
@@ -53,7 +84,10 @@ def test_post_attachment_rule_issue_not_found(
 
 
 def test_post_attachment_rule(
-    test_client: TestClient, generator: DataGenerator, post_attachment_rule: dict
+    test_client: TestClient,
+    generator: DataGenerator,
+    post_attachment_rule: dict,
+    db_session: Session,
 ):
     issue = generator.gen_issue()
 
@@ -62,29 +96,18 @@ def test_post_attachment_rule(
     )
 
     assert response.status_code == 200
-    assert set(response.json().keys()) == {
-        "environment_names",
-        "execution_metadata",
-        "id",
-        "families",
-        "template_ids",
-        "enabled",
-        "test_case_names",
-    }
-    assert response.json()["enabled"]
-    assert response.json()["families"] == ["charm"]
-    assert response.json()["environment_names"] == ["environment-1"]
-    assert response.json()["test_case_names"] == ["test-case-1"]
-    assert response.json()["template_ids"] == ["template-id-1"]
-    assert response.json()["execution_metadata"] == {
-        "category-1": ["value-1", "value-2"]
-    }
+    attachment_rule = db_session.get(
+        IssueTestResultAttachmentRule, response.json()["id"]
+    )
+    _assert_attachment_rule_response(response.json(), attachment_rule)
 
     issue_response = test_client.get(issue_endpoint.format(issue_id=issue.id))
 
     assert issue_response.status_code == 200
     assert len(issue_response.json()["attachment_rules"]) == 1
-    assert issue_response.json()["attachment_rules"][0]["id"] == response.json()["id"]
+    _assert_attachment_rule_response(
+        issue_response.json()["attachment_rules"][0], attachment_rule
+    )
 
 
 def test_post_attachment_rule_twice(
