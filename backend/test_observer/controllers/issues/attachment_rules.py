@@ -45,7 +45,7 @@ def post_attachment_rule(
     # Get the issue
     issue = db.get(Issue, issue_id)
     if issue is None:
-        raise HTTPException(status_code=404, detail="Attachment rule not found")
+        raise HTTPException(status_code=404, detail="Issue not found")
 
     # Create the attachment rule
     attachment_rule = IssueTestResultAttachmentRule(
