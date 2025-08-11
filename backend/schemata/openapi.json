@@ -3180,7 +3180,6 @@
               "$ref": "#/components/schemas/FamilyName"
             },
             "type": "array",
-            "minItems": 1,
             "title": "Families"
           },
           "environment_names": {
@@ -3209,9 +3208,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "families"
-        ],
         "title": "IssueTestResultAttachmentRulePostRequest"
       },
       "IssueTestResultAttachmentRuleResponse": {

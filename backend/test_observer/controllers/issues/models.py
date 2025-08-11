@@ -61,7 +61,7 @@ class IssueTestResultAttachmentResponse(BaseModel):
 class IssueTestResultAttachmentRulePostRequest(BaseModel):
     enabled: bool = Field(default=True)
 
-    families: list[FamilyName] = Field(min_length=1)
+    families: list[FamilyName] = Field(default_factory=list)
     environment_names: list[str] = Field(default_factory=list)
     test_case_names: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
