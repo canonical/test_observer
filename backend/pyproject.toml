@@ -16,21 +16,22 @@ dependencies = [
     "launchpadlib>=1.11.0,<2.0.0",
     "email-validator>=2.1.0.post1,<3.0.0",
     "celery[redis]>=5.3.6,<6.0.0",
-    "aiohttp>=3.9.4,<4.0.0"
+    "aiohttp>=3.9.4,<4.0.0",
+    "python3-saml>=1.16.0",
 ]
 
 [dependency-groups]
 dev = [
     "mypy>=1.3.0,<2.0.0",
     "ruff>=0.11.6,<0.12.0",
-    "types-requests>=2.31.0.1,<2.32.0.0"
+    "types-requests>=2.31.0.1,<2.32.0.0",
 ]
 test = [
     "pytest>=7.3.1,<8.0.0",
     "requests-mock>=1.10.0,<2.0.0",
     "python-multipart>=0.0.20,<0.1.0",
     "httpx>=0.28.0,<0.29.0",
-    "sqlalchemy-utils>=0.41.1,<0.42.0"
+    "sqlalchemy-utils>=0.41.1,<0.42.0",
 ]
 
 [tool.ruff]
@@ -62,6 +63,10 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "hatchling.*"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["onelogin.*"]
+follow_untyped_imports = true
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]
