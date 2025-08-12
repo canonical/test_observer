@@ -2,7 +2,7 @@ import logging
 from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Utils
+from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
 import os
 
