@@ -1,12 +1,16 @@
+import logging
 from typing import Any
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from onelogin.saml2.auth import OneLogin_Saml2_Auth
+from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Utils
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
 import os
 
 
 router = APIRouter(prefix="/saml", tags=["authentication"])
+
+
+logger = logging.getLogger("test-observer-backend")
 
 
 def _get_saml_settings() -> dict[str, Any]:
@@ -41,8 +45,14 @@ saml_settings = _get_saml_settings()
 async def saml_login(request: Request):
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, saml_settings)
-    sso_url = auth.login()
-    return RedirectResponse(url=sso_url)
+    return RedirectResponse(url=auth.login())
+
+
+@router.get("/logout")
+async def saml_logout(request: Request):
+    req = await _prepare_from_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, saml_settings)
+    return RedirectResponse(url=auth.logout())
 
 
 @router.post("/acs")
@@ -51,18 +61,41 @@ async def saml_login_callback(request: Request):
     auth = OneLogin_Saml2_Auth(req, saml_settings)
     auth.process_response()
     errors = auth.get_errors()
-    if len(errors) == 0:
-        if auth.is_authenticated():
-            return "User authenticated"
-        else:
-            return "User not authenticated"
-    else:
-        print(
-            "Error when processing SAML Response: {} {}".format(
+
+    if errors:
+        logger.warning(
+            "Error when processing SAML ACS Response: {} {}".format(
                 ", ".join(errors), auth.get_last_error_reason()
             )
         )
-        return "Error in callback"
+        raise HTTPException(500, "Authentication failed")
+
+    if not auth.is_authenticated():
+        raise HTTPException(403, "Authentication failed")
+
+    return {
+        "name_id_format": auth.get_nameid_format(),
+        "name_id": auth.get_nameid(),
+        "session_index": auth.get_session_index(),
+        "attributes": auth.get_attributes(),
+    }
+
+
+@router.post("/sls")
+@router.get("/sls")
+async def saml_logout_callback(request: Request):
+    req = await _prepare_from_fastapi_request(request)
+    auth = OneLogin_Saml2_Auth(req, saml_settings)
+    auth.process_slo()
+    errors = auth.get_errors()
+
+    if errors:
+        logger.warning(
+            "Error when processing SAML SLS Response: {} {}".format(
+                ", ".join(errors), auth.get_last_error_reason()
+            )
+        )
+        raise HTTPException(500, "Logout failed")
 
 
 async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
