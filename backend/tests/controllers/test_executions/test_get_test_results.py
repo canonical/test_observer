@@ -86,7 +86,8 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
                 "title": issue.title,
                 "status": issue.status,
                 "url": issue.url,
-            }
+            },
+            "attachment_rule": None,
         }
     ]
 

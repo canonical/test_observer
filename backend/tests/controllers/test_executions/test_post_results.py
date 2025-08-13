@@ -20,6 +20,7 @@ from fastapi.testclient import TestClient
 
 from test_observer.data_access.models import TestExecution, TestResult
 from tests.asserts import assert_fails_validation
+from tests.data_generator import DataGenerator
 
 maximum_result = {
     "name": "camera detect",
@@ -135,3 +136,28 @@ def test_overwrites_result_if_matching_case_name(
     )
 
     _assert_results(request2, test_execution.test_results)
+
+
+def test_apply_test_result_attachment_rules(
+    test_client: TestClient, test_execution: TestExecution, generator: DataGenerator
+):
+    issue = generator.gen_issue()
+
+    attachment_rule_response = test_client.post(
+        f"/v1/issues/{issue.id}/attachment-rules",
+        json={
+            "enabled": True,
+            "families": [test_execution.artefact_build.artefact.family],
+        },
+    )
+    attachment_rule_id = attachment_rule_response.json()["id"]
+
+    test_client.post(
+        f"/v1/test-executions/{test_execution.id}/test-results", json=[minimum_result]
+    )
+
+    assert test_execution.test_results[0].issue_attachments[0].issue_id == issue.id
+    assert (
+        test_execution.test_results[0].issue_attachments[0].attachment_rule_id
+        == attachment_rule_id
+    )
