@@ -143,7 +143,7 @@ class TestSearchTestResults:
             name=generate_unique_name(f"family_{family.value}")
         )
         artefact = generator.gen_artefact(
-            family=family.value, name=generate_unique_name(f"{family.value}_family")
+            family=family, name=generate_unique_name(f"{family.value}_family")
         )
         artefact_build = generator.gen_artefact_build(artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
