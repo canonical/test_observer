@@ -92,6 +92,8 @@ class TestExecutionRelevantLinkCreate(BaseModel):
 
 
 class TestExecutionRelevantLinkResponse(TestExecutionRelevantLinkCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     label: str
     url: HttpUrl
