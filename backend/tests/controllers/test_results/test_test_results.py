@@ -17,6 +17,7 @@
 from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 import uuid
+import pytest
 
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -123,25 +124,62 @@ class TestSearchTestResults:
         ids2 = {tr["test_result"]["id"] for tr in data2["test_results"]}
         assert ids1.isdisjoint(ids2)  # No overlap between pages
 
-    def test_search_by_family(self, test_client: TestClient, generator: DataGenerator):
-        """Test filtering by artefact family with window function"""
-        # Create a snap artefact with test results
-        environment = generator.gen_environment()
-        test_case = generator.gen_test_case(name=generate_unique_name("family_snap"))
-        snap_artefact = generator.gen_artefact(
-            family=FamilyName.snap, name=generate_unique_name("snap_family")
+    @pytest.mark.parametrize(
+        "family",
+        [
+            FamilyName.snap,
+            FamilyName.deb,
+            FamilyName.image,
+            FamilyName.charm,
+        ],
+    )
+    def test_search_by_family(
+        self, test_client: TestClient, generator: DataGenerator, family: FamilyName
+    ):
+        """Parametric: the filter returns only results from the requested family."""
+        env = generator.gen_environment()
+        tc = generator.gen_test_case(
+            name=generate_unique_name(f"family_{family.value}")
         )
-        artefact_build = generator.gen_artefact_build(snap_artefact)
-        test_execution = generator.gen_test_execution(artefact_build, environment)
-        test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results?families=snap")
+        # Matching family
+        artefact_yes = generator.gen_artefact(
+            family=family, name=generate_unique_name(f"{family.value}_yes")
+        )
+        ab_yes = generator.gen_artefact_build(artefact_yes)
+        te_yes = generator.gen_test_execution(ab_yes, env)
+        tr_yes = generator.gen_test_result(tc, te_yes)
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
+        # Non-matching family
+        all_families = [
+            FamilyName.snap,
+            FamilyName.deb,
+            FamilyName.image,
+            FamilyName.charm,
+        ]
+
+        other_family = next(f for f in all_families if f != family)
+        artefact_no = generator.gen_artefact(
+            family=other_family, name=generate_unique_name(f"{other_family.value}_no")
+        )
+        ab_no = generator.gen_artefact_build(artefact_no)
+        te_no = generator.gen_test_execution(ab_no, env)
+        tr_no = generator.gen_test_result(tc, te_no)
+
+        resp = test_client.get(f"/v1/test-results?families={family.value}")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # Includes the matching result
+        ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+        assert tr_yes.id in ids
+
+        # Excludes the other family's result
+        assert tr_no.id not in ids
+
+        # Every returned row belongs to the requested family
+        assert all(
+            tr["artefact"]["family"] == family.value for tr in data["test_results"]
         )
 
     def test_search_by_template_id(
