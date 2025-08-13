@@ -57,12 +57,12 @@ services:
 
   saml-idp:
     image: kristophjunge/test-saml-idp
-    # Defining hostname because python3-saml uses a url validator that doesn't
-    # approve of http://saml-idp:8080/ but approves http://saml-idp.local:8080/
-    hostname: saml-idp.local
     ports:
       - "8080:8080"
       - "8443:8443"
+    volumes:
+      - ./backend/saml/simplesamlphp/authsources.php:/var/www/simplesamlphp/config/authsources.php
+      - ./backend/saml/simplesamlphp/saml20-idp-hosted.php:/var/www/simplesamlphp/metadata/saml20-idp-hosted.php
     environment:
       SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:30000
       SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:30000/v1/auth/saml/acs
