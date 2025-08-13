@@ -33,6 +33,16 @@ depends_on = None
 
 
 def upgrade() -> None:
+    op.drop_constraint(
+        "issue_test_result_attachment_rule_execution_metadata_pkey",
+        "issue_test_result_attachment_rule_execution_metadata",
+        type_="primary",
+    )
+    op.create_primary_key(
+        "issue_test_result_attachment_rule_execution_metadata_pkey",
+        "issue_test_result_attachment_rule_execution_metadata",
+        ["id"],
+    )
     op.create_unique_constraint(
         op.f(
             "issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_category_value_key"
@@ -49,4 +59,14 @@ def downgrade() -> None:
         ),
         "issue_test_result_attachment_rule_execution_metadata",
         type_="unique",
+    )
+    op.drop_constraint(
+        "issue_test_result_attachment_rule_execution_metadata_pkey",
+        "issue_test_result_attachment_rule_execution_metadata",
+        type_="primary",
+    )
+    op.create_primary_key(
+        "issue_test_result_attachment_rule_execution_metadata_pkey",
+        "issue_test_result_attachment_rule_execution_metadata",
+        ["id", "attachment_rule_id"],
     )
