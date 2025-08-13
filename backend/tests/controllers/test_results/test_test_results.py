@@ -17,6 +17,7 @@
 from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 import uuid
+import pytest
 
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -123,19 +124,32 @@ class TestSearchTestResults:
         ids2 = {tr["test_result"]["id"] for tr in data2["test_results"]}
         assert ids1.isdisjoint(ids2)  # No overlap between pages
 
-    def test_search_by_family(self, test_client: TestClient, generator: DataGenerator):
+    @pytest.mark.parametrize(
+        "family",
+        [
+            FamilyName.snap,
+            FamilyName.deb,
+            FamilyName.image,
+            FamilyName.charm,
+        ],
+    )
+    def test_search_by_family(
+        self, test_client: TestClient, generator: DataGenerator, family: FamilyName
+    ):
         """Test filtering by artefact family with window function"""
         # Create a snap artefact with test results
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(name=generate_unique_name("family_snap"))
-        snap_artefact = generator.gen_artefact(
-            family=FamilyName.snap, name=generate_unique_name("snap_family")
+        test_case = generator.gen_test_case(
+            name=generate_unique_name(f"family_{family.value}")
         )
-        artefact_build = generator.gen_artefact_build(snap_artefact)
+        artefact = generator.gen_artefact(
+            family=family.value, name=generate_unique_name(f"{family.value}_family")
+        )
+        artefact_build = generator.gen_artefact_build(artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results?families=snap")
+        response = test_client.get(f"/v1/test-results?families={family.value}")
 
         assert response.status_code == 200
         data = response.json()
