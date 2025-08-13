@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import StageName
+from test_observer.data_access.models import TestExecution, TestExecutionMetadata
 from tests.data_generator import DataGenerator
 
 
@@ -190,3 +191,55 @@ def test_shows_up_to_maximum_previous_results(
 
     assert response.status_code == 200
     assert len(response.json()[0]["previous_results"]) == PREVIOUS_TEST_RESULT_COUNT
+
+
+def test_attachment_rule_listed_in_issue_attachment(
+    test_client: TestClient, test_execution: TestExecution, generator: DataGenerator
+):
+    issue = generator.gen_issue()
+
+    test_execution.execution_metadata.append(
+        TestExecutionMetadata(category="category1", value="value1")
+    )
+
+    attachment_rule_response = test_client.post(
+        f"/v1/issues/{issue.id}/attachment-rules",
+        json={
+            "enabled": True,
+            "families": [test_execution.artefact_build.artefact.family],
+            "environment_names": [test_execution.environment.name],
+            "test_case_names": ["test"],
+            "template_ids": ["test-template-id"],
+            "execution_metadata": {"category1": ["value1"]},
+        },
+    )
+    attachment_rule_id = attachment_rule_response.json()["id"]
+
+    test_client.post(
+        f"/v1/test-executions/{test_execution.id}/test-results",
+        json=[{"name": "test", "status": "FAILED", "template_id": "test-template-id"}],
+    )
+
+    response = test_client.get(f"/v1/test-executions/{test_execution.id}/test-results")
+    assert response.json()[0]["issues"] == [
+        {
+            "issue": {
+                "id": issue.id,
+                "source": issue.source,
+                "project": issue.project,
+                "key": issue.key,
+                "title": issue.title,
+                "status": issue.status,
+                "url": issue.url,
+            },
+            "attachment_rule": {
+                "id": attachment_rule_id,
+                "enabled": True,
+                "families": [test_execution.artefact_build.artefact.family],
+                "environment_names": [test_execution.environment.name],
+                "test_case_names": ["test"],
+                "template_ids": ["test-template-id"],
+                "execution_metadata": {"category1": ["value1"]},
+            },
+        }
+    ]

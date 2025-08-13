@@ -28,6 +28,7 @@ from sqlalchemy import (
     Enum,
     ColumnElement,
     Select,
+    literal,
 )
 from sqlalchemy.dialects.postgresql import insert
 
@@ -152,7 +153,7 @@ def apply_test_result_attachment_rules(db: Session, test_result: TestResult):
             select(
                 attachment_rules_subquery.c.issue_id,
                 attachment_rules_subquery.c.id,
-                test_result.id,
+                literal(test_result.id),
             ),
         )
         .on_conflict_do_nothing()
