@@ -27,9 +27,9 @@ from sqlalchemy import (
     type_coerce,
     Enum,
     ColumnElement,
+    Select,
 )
 from sqlalchemy.dialects.postgresql import insert
-from collections.abc import Sequence
 
 from test_observer.data_access.models import (
     TestResult,
@@ -52,8 +52,8 @@ def _empty_or_contains(
 
 
 def query_matching_test_result_attachment_rules(
-    db: Session, test_result: TestResult
-) -> Sequence[IssueTestResultAttachmentRule]:
+    test_result: TestResult,
+) -> Select[tuple[IssueTestResultAttachmentRule]]:
     stmt = select(IssueTestResultAttachmentRule)
 
     # Only fetch enabled rules
@@ -129,29 +129,33 @@ def query_matching_test_result_attachment_rules(
         )
     )
 
-    # Sort by first created
-    stmt = stmt.order_by(IssueTestResultAttachmentRule.created_at)
-
-    return db.scalars(stmt).all()
+    return stmt
 
 
 def apply_test_result_attachment_rules(db: Session, test_result: TestResult):
     # Fetch matching attachment rule
-    attachment_rules = query_matching_test_result_attachment_rules(db, test_result)
+    attachment_rules_stmt = query_matching_test_result_attachment_rules(test_result)
 
-    # Attach all issues
-    if len(attachment_rules) > 0:
-        db.execute(
-            insert(IssueTestResultAttachment)
-            .values(
-                [
-                    {
-                        "issue_id": attachment_rule.issue_id,
-                        "test_result_id": test_result.id,
-                        "attachment_rule_id": attachment_rule.id,
-                    }
-                    for attachment_rule in attachment_rules
-                ]
-            )
-            .on_conflict_do_nothing()
+    # Apply attachment rules based on creation
+    attachment_rules_stmt = attachment_rules_stmt.order_by(
+        IssueTestResultAttachmentRule.created_at
+    )
+
+    # Create a subquery
+    attachment_rules_subquery = attachment_rules_stmt.subquery()
+
+    # Create insertion statement using subquery
+    insert_stmt = (
+        insert(IssueTestResultAttachment)
+        .from_select(
+            ["issue_id", "attachment_rule_id", "test_result_id"],
+            select(
+                attachment_rules_subquery.c.issue_id,
+                attachment_rules_subquery.c.id,
+                test_result.id,
+            ),
         )
+        .on_conflict_do_nothing()
+    )
+
+    db.execute(insert_stmt)

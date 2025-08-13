@@ -207,9 +207,8 @@ def test_query_matching_test_result_attachment_rules(
         if match_expected:
             expected_matched_rules.add(attachment_rule.id)
 
-    attachment_rules = query_matching_test_result_attachment_rules(
-        db_session, test_result
-    )
+    attachment_rules_stmt = query_matching_test_result_attachment_rules(test_result)
+    attachment_rules = db_session.scalars(attachment_rules_stmt).all()
 
     assert {rule.id for rule in attachment_rules} == expected_matched_rules
 
