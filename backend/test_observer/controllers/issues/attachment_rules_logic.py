@@ -95,7 +95,10 @@ def query_matching_test_result_attachment_rules(
 
     # Filter execution metadata
     unmatched_categories = (
-        select(IssueTestResultAttachmentRuleExecutionMetadata.category)
+        select(
+            IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id,
+            IssueTestResultAttachmentRuleExecutionMetadata.category,
+        )
         .outerjoin(
             TestExecutionMetadata,
             and_(
@@ -108,14 +111,23 @@ def query_matching_test_result_attachment_rules(
                 == IssueTestResultAttachmentRuleExecutionMetadata.value,
             ),
         )
-        .where(
-            IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id
-            == IssueTestResultAttachmentRule.id
+        .group_by(
+            IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id,
+            IssueTestResultAttachmentRuleExecutionMetadata.category,
         )
-        .group_by(IssueTestResultAttachmentRuleExecutionMetadata.category)
         .having(func.count(TestExecutionMetadata.value) == 0)
+        .subquery()
     )
-    stmt = stmt.where(~exists(unmatched_categories))
+    stmt = stmt.where(
+        ~exists(
+            select(1)
+            .select_from(unmatched_categories)
+            .where(
+                unmatched_categories.c.attachment_rule_id
+                == IssueTestResultAttachmentRule.id
+            )
+        )
+    )
 
     # Sort by first created
     stmt = stmt.order_by(IssueTestResultAttachmentRule.created_at)
