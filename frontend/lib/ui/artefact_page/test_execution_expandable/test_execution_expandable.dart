@@ -24,6 +24,7 @@ import '../../inline_url_text.dart';
 import '../../spacing.dart';
 import '../test_result_filter_expandable.dart';
 import '../test_event_log_expandable.dart';
+import '../execution_metadata_expandable.dart';
 
 class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({
@@ -49,6 +50,10 @@ class TestExecutionExpandable extends ConsumerWidget {
         TestEventLogExpandable(
           testExecutionId: testExecution.id,
           initiallyExpanded: !testExecution.status.isCompleted,
+        ),
+        ExecutionMetadataExpandable(
+          executionMetadata: testExecution.executionMetadata,
+          initiallyExpanded: false,
         ),
         if (testExecution.status.isCompleted)
           Expandable(
