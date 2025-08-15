@@ -31,6 +31,9 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
+from test_observer.controllers.issues.attachment_rules_logic import (
+    apply_test_result_attachment_rules,
+)
 
 from .logic import delete_previous_results
 from .models import C3TestResult, C3TestResultStatus, EndTestExecutionRequest
@@ -102,6 +105,8 @@ def _store_c3_test_results(
         )
 
         db.add(test_result)
+        db.flush()
+        apply_test_result_attachment_rules(db, test_result)
 
     db.commit()
 

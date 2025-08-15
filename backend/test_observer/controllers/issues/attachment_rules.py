@@ -26,16 +26,18 @@ from test_observer.data_access.models import (
 )
 
 from .models import (
-    IssueTestResultAttachmentRuleResponse,
     IssueTestResultAttachmentRulePostRequest,
     IssueTestResultAttachmentRulePatchRequest,
 )
+
+from .shared_models import MinimalIssueTestResultAttachmentRuleResponse
 
 router = APIRouter()
 
 
 @router.post(
-    "/{issue_id}/attachment-rules", response_model=IssueTestResultAttachmentRuleResponse
+    "/{issue_id}/attachment-rules",
+    response_model=MinimalIssueTestResultAttachmentRuleResponse,
 )
 def post_attachment_rule(
     issue_id: int,
@@ -73,7 +75,7 @@ def post_attachment_rule(
 
 @router.patch(
     "/{issue_id}/attachment-rules/{attachment_rule_id}",
-    response_model=IssueTestResultAttachmentRuleResponse,
+    response_model=MinimalIssueTestResultAttachmentRuleResponse,
 )
 def patch_attachment_rule(
     issue_id: int,

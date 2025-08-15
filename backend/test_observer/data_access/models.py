@@ -691,12 +691,11 @@ class IssueTestResultAttachmentRuleExecutionMetadata(Base):
     A table for attachment rules to match on execution metadata
     """
 
-    __test__ = False
     __tablename__ = "issue_test_result_attachment_rule_execution_metadata"
+    __table_args__ = (UniqueConstraint("attachment_rule_id", "category", "value"),)
 
     attachment_rule_id: Mapped[int] = mapped_column(
-        ForeignKey("issue_test_result_attachment_rule.id", ondelete="CASCADE"),
-        primary_key=True,
+        ForeignKey("issue_test_result_attachment_rule.id", ondelete="CASCADE")
     )
     attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(
         back_populates="execution_metadata"

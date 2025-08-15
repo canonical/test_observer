@@ -1687,7 +1687,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IssueTestResultAttachmentRuleResponse"
+                  "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
                 }
               }
             }
@@ -1748,7 +1748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IssueTestResultAttachmentRuleResponse"
+                  "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
                 }
               }
             }
@@ -3089,7 +3089,7 @@
           },
           "attachment_rules": {
             "items": {
-              "$ref": "#/components/schemas/IssueTestResultAttachmentRuleResponse"
+              "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
             },
             "type": "array",
             "title": "Attachment Rules"
@@ -3210,60 +3210,6 @@
         "type": "object",
         "title": "IssueTestResultAttachmentRulePostRequest"
       },
-      "IssueTestResultAttachmentRuleResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "enabled": {
-            "type": "boolean",
-            "title": "Enabled"
-          },
-          "families": {
-            "items": {
-              "$ref": "#/components/schemas/FamilyName"
-            },
-            "type": "array",
-            "title": "Families"
-          },
-          "environment_names": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Environment Names"
-          },
-          "test_case_names": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Test Case Names"
-          },
-          "template_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Template Ids"
-          },
-          "execution_metadata": {
-            "$ref": "#/components/schemas/ExecutionMetadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "enabled",
-          "families",
-          "environment_names",
-          "test_case_names",
-          "template_ids",
-          "execution_metadata"
-        ],
-        "title": "IssueTestResultAttachmentRuleResponse"
-      },
       "IssuesGetResponse": {
         "properties": {
           "issues": {
@@ -3328,13 +3274,78 @@
         "properties": {
           "issue": {
             "$ref": "#/components/schemas/MinimalIssueResponse"
+          },
+          "attachment_rule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": [
-          "issue"
+          "issue",
+          "attachment_rule"
         ],
         "title": "MinimalIssueTestResultAttachmentResponse"
+      },
+      "MinimalIssueTestResultAttachmentRuleResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "environment_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environment Names"
+          },
+          "test_case_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Case Names"
+          },
+          "template_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Template Ids"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "enabled",
+          "families",
+          "environment_names",
+          "test_case_names",
+          "template_ids",
+          "execution_metadata"
+        ],
+        "title": "MinimalIssueTestResultAttachmentRuleResponse"
       },
       "PendingRerun": {
         "properties": {
