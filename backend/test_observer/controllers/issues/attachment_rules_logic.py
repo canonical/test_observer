@@ -52,6 +52,66 @@ def _empty_or_contains(
     )
 
 
+def _filter_by_execution_metadata(
+    stmt: Select[tuple[IssueTestResultAttachmentRule]],
+    test_result: TestResult,
+) -> Select[tuple[IssueTestResultAttachmentRule]]:
+    # Step 1: Build join condition for TestExecutionMetadata
+    # We want to match each attachment rule's metadata requirements to the actual
+    # metadata present in the test execution.
+    # This join condition ensures that only metadata for the current test execution,
+    # with matching category and value, is considered.
+    join_condition = and_(
+        TestExecutionMetadata.test_executions.any(
+            TestExecution.id == test_result.test_execution_id
+        ),
+        TestExecutionMetadata.category
+        == IssueTestResultAttachmentRuleExecutionMetadata.category,
+        TestExecutionMetadata.value
+        == IssueTestResultAttachmentRuleExecutionMetadata.value,
+    )
+
+    # Step 2: Build the unmatched_categories subquery
+    # For each attachment rule, we need to identify categories that are required by
+    # the rule but do not exist (or do not have a matching value) in the
+    # test execution's metadata.
+    # This subquery finds (rule_id, category) pairs for unfulfilled metadata.
+    unmatched_categories_query = select(
+        IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id,
+        IssueTestResultAttachmentRuleExecutionMetadata.category,
+    )
+    unmatched_categories_query = unmatched_categories_query.outerjoin(
+        TestExecutionMetadata,
+        join_condition,
+    )
+    unmatched_categories_query = unmatched_categories_query.group_by(
+        IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id,
+        IssueTestResultAttachmentRuleExecutionMetadata.category,
+    )
+    unmatched_categories_query = unmatched_categories_query.having(
+        func.count(TestExecutionMetadata.value) == 0
+    )
+    unmatched_categories = unmatched_categories_query.subquery()
+
+    # Step 3: Exclude rules with unmatched categories
+    # If any required category for a rule is not matched by the test execution's
+    # metadata, that rule should not apply.
+    # This exclusion ensures that only rules for which all required categories are
+    # satisfied are kept.
+    exclusion_condition = ~exists(
+        select(1)
+        .select_from(unmatched_categories)
+        .where(
+            unmatched_categories.c.attachment_rule_id
+            == IssueTestResultAttachmentRule.id
+        )
+    )
+    stmt = stmt.where(exclusion_condition)
+
+    # Step 4: Return the filtered statement
+    return stmt
+
+
 def query_matching_test_result_attachment_rules(
     test_result: TestResult,
 ) -> Select[tuple[IssueTestResultAttachmentRule]]:
@@ -95,40 +155,7 @@ def query_matching_test_result_attachment_rules(
     )
 
     # Filter execution metadata
-    unmatched_categories = (
-        select(
-            IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id,
-            IssueTestResultAttachmentRuleExecutionMetadata.category,
-        )
-        .outerjoin(
-            TestExecutionMetadata,
-            and_(
-                TestExecutionMetadata.test_executions.any(
-                    TestExecution.id == test_result.test_execution_id
-                ),
-                TestExecutionMetadata.category
-                == IssueTestResultAttachmentRuleExecutionMetadata.category,
-                TestExecutionMetadata.value
-                == IssueTestResultAttachmentRuleExecutionMetadata.value,
-            ),
-        )
-        .group_by(
-            IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id,
-            IssueTestResultAttachmentRuleExecutionMetadata.category,
-        )
-        .having(func.count(TestExecutionMetadata.value) == 0)
-        .subquery()
-    )
-    stmt = stmt.where(
-        ~exists(
-            select(1)
-            .select_from(unmatched_categories)
-            .where(
-                unmatched_categories.c.attachment_rule_id
-                == IssueTestResultAttachmentRule.id
-            )
-        )
-    )
+    stmt = _filter_by_execution_metadata(stmt, test_result)
 
     return stmt
 
