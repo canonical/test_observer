@@ -23,8 +23,6 @@ from sqlalchemy import (
     func,
     exists,
     and_,
-    type_coerce,
-    Enum,
     ColumnElement,
     Select,
     literal,
@@ -39,15 +37,14 @@ from test_observer.data_access.models import (
     TestExecution,
     IssueTestResultAttachment,
 )
-from test_observer.data_access.models_enums import FamilyName
 
 
 def _array_empty_or_contains(
-    array: InstrumentedAttribute, value: object
+    array: InstrumentedAttribute, value: ColumnElement
 ) -> ColumnElement[bool]:
     return or_(
         func.cardinality(array) == 0,
-        array.any(value),  # type: ignore[arg-type]
+        array.any(value),
     )
 
 
@@ -123,10 +120,7 @@ def query_matching_test_result_attachment_rules(
     stmt = stmt.where(
         _array_empty_or_contains(
             IssueTestResultAttachmentRule.families,
-            type_coerce(
-                test_result.test_execution.artefact_build.artefact.family,
-                Enum(FamilyName),
-            ),
+            literal(test_result.test_execution.artefact_build.artefact.family),
         )
     )
 
@@ -134,14 +128,15 @@ def query_matching_test_result_attachment_rules(
     stmt = stmt.where(
         _array_empty_or_contains(
             IssueTestResultAttachmentRule.environment_names,
-            test_result.test_execution.environment.name,
+            literal(test_result.test_execution.environment.name),
         )
     )
 
     # Filter test_case_names
     stmt = stmt.where(
         _array_empty_or_contains(
-            IssueTestResultAttachmentRule.test_case_names, test_result.test_case.name
+            IssueTestResultAttachmentRule.test_case_names,
+            literal(test_result.test_case.name),
         )
     )
 
@@ -149,7 +144,7 @@ def query_matching_test_result_attachment_rules(
     stmt = stmt.where(
         _array_empty_or_contains(
             IssueTestResultAttachmentRule.template_ids,
-            test_result.test_case.template_id,
+            literal(test_result.test_case.template_id),
         )
     )
 
