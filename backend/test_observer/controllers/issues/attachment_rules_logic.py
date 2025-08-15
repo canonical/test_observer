@@ -166,7 +166,7 @@ def apply_test_result_attachment_rules(db: Session, test_result: TestResult):
 
     # Apply attachment rules based on creation
     attachment_rules_stmt = attachment_rules_stmt.order_by(
-        IssueTestResultAttachmentRule.created_at
+        IssueTestResultAttachmentRule.id
     )
 
     # Create a subquery
