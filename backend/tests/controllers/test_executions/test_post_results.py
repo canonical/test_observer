@@ -152,10 +152,11 @@ def test_apply_test_result_attachment_rules(
     )
     attachment_rule_id = attachment_rule_response.json()["id"]
 
-    test_client.post(
+    response = test_client.post(
         f"/v1/test-executions/{test_execution.id}/test-results", json=[minimum_result]
     )
 
+    assert response.status_code == 200
     assert test_execution.test_results[0].issue_attachments[0].issue_id == issue.id
     assert (
         test_execution.test_results[0].issue_attachments[0].attachment_rule_id

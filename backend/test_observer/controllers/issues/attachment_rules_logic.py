@@ -30,7 +30,6 @@ from sqlalchemy import (
     literal,
 )
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm.interfaces import PropComparator
 
 from test_observer.data_access.models import (
     TestResult,
@@ -44,11 +43,11 @@ from test_observer.data_access.models_enums import FamilyName
 
 
 def _array_empty_or_contains(
-    array: InstrumentedAttribute, value: PropComparator
+    array: InstrumentedAttribute, value: object
 ) -> ColumnElement[bool]:
     return or_(
         func.cardinality(array) == 0,
-        array.any(value),
+        array.any(value),  # type: ignore[arg-type]
     )
 
 
