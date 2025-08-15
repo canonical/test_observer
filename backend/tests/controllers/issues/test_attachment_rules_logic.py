@@ -142,7 +142,7 @@ params_query_matching_test_result_attachment_rules: list[dict] = [
                 False,
                 {
                     "families": [FamilyName.charm],
-                    "execution_metadata": [("category3", "value1")],
+                    "execution_metadata": [("category1", "value1")],
                 },
             ),
         ],
