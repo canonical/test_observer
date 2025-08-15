@@ -21,7 +21,6 @@ from sqlalchemy import (
     select,
     or_,
     func,
-    any_,
     exists,
     and_,
     type_coerce,
@@ -31,6 +30,7 @@ from sqlalchemy import (
     literal,
 )
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm.interfaces import PropComparator
 
 from test_observer.data_access.models import (
     TestResult,
@@ -43,12 +43,12 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import FamilyName
 
 
-def _empty_or_contains(
-    array: InstrumentedAttribute, value: object
+def _array_empty_or_contains(
+    array: InstrumentedAttribute, value: PropComparator
 ) -> ColumnElement[bool]:
     return or_(
         func.cardinality(array) == 0,
-        value == any_(array),
+        array.any(value),
     )
 
 
@@ -122,7 +122,7 @@ def query_matching_test_result_attachment_rules(
 
     # Filter families
     stmt = stmt.where(
-        _empty_or_contains(
+        _array_empty_or_contains(
             IssueTestResultAttachmentRule.families,
             type_coerce(
                 test_result.test_execution.artefact_build.artefact.family,
@@ -133,7 +133,7 @@ def query_matching_test_result_attachment_rules(
 
     # Filter environment_names
     stmt = stmt.where(
-        _empty_or_contains(
+        _array_empty_or_contains(
             IssueTestResultAttachmentRule.environment_names,
             test_result.test_execution.environment.name,
         )
@@ -141,14 +141,14 @@ def query_matching_test_result_attachment_rules(
 
     # Filter test_case_names
     stmt = stmt.where(
-        _empty_or_contains(
+        _array_empty_or_contains(
             IssueTestResultAttachmentRule.test_case_names, test_result.test_case.name
         )
     )
 
     # Filter template_ids
     stmt = stmt.where(
-        _empty_or_contains(
+        _array_empty_or_contains(
             IssueTestResultAttachmentRule.template_ids,
             test_result.test_case.template_id,
         )
