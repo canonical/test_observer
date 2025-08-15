@@ -65,6 +65,7 @@ RERUN_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/reruns"
 TEST_CASE_ISSUE_URL = f"{BASE_URL}/test-cases/reported-issues"
 ENVIRONMENT_ISSUE_URL = f"{BASE_URL}/environments/reported-issues"
 ISSUE_URL = f"{BASE_URL}/issues"
+PATCH_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/{{id}}"
 
 START_TEST_EXECUTION_REQUESTS = [
     StartSnapTestExecutionRequest(
@@ -613,6 +614,30 @@ ISSUE_REQUESTS = [
     ),
 ]
 
+SAMPLE_EXECUTION_METADATA = [
+    {"category1": ["value1", "value2"], "category2": ["value3"]},
+    {
+        "category1": ["value1", "long message " + " ".join(str(n) for n in range(50))],
+        "category2": ["value3"],
+    },
+    {
+        "category1": [
+            "value1",
+            "value1",
+            "value2",
+            "value3",
+            "value4",
+            "value5",
+            "value6",
+            "value7",
+        ]
+    },
+    {"category1": ["value4"], "category2": ["value5", "value6"]},
+    {"category3": ["value4"], "category2": ["value5", "value6"]},
+    {"category4": ["value7", "value8"], "category5": ["value1", "value10"]},
+    {"category6": ["value11", "value12"], "category7": ["value13"]},
+]
+
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
@@ -661,6 +686,8 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
 
     _rerun_some_test_executions(client, test_executions)
 
+    _add_some_execution_metadata(client, test_executions)
+
     _add_bugurl_and_duedate(session)
 
     print("Database seeding completed successfully!")
@@ -674,6 +701,21 @@ def _rerun_some_test_executions(
         RERUN_TEST_EXECUTION_URL,
         json={"test_execution_ids": te_ids},
     ).raise_for_status()
+
+
+def _add_some_execution_metadata(
+    client: TestClient | requests.Session, test_executions: list[dict]
+) -> None:
+    te_ids = [te["id"] for te in test_executions[::2]]
+    for idx, te_id in enumerate(te_ids):
+        client.patch(
+            PATCH_TEST_EXECUTION_URL.format(id=te_id),
+            json={
+                "execution_metadata": SAMPLE_EXECUTION_METADATA[
+                    idx % len(SAMPLE_EXECUTION_METADATA)
+                ]
+            },
+        ).raise_for_status()
 
 
 def _add_bugurl_and_duedate(session: Session) -> None:
