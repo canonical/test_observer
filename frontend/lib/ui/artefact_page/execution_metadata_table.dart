@@ -32,35 +32,47 @@ class ExecutionMetadataTable extends StatelessWidget {
       dataRowMaxHeight: double.infinity,
       columns: const [
         DataColumn(
-            label: Text('Category',
-                style: TextStyle(fontStyle: FontStyle.italic))),
+          label: Text(
+            'Category',
+            style: TextStyle(fontStyle: FontStyle.italic),
+          ),
+        ),
         DataColumn(
-            label:
-                Text('Values', style: TextStyle(fontStyle: FontStyle.italic))),
+          label: Text(
+            'Values',
+            style: TextStyle(fontStyle: FontStyle.italic),
+          ),
+        ),
       ],
       rows: entries
-          .map((entry) => DataRow(cells: [
+          .map(
+            (entry) => DataRow(
+              cells: [
                 DataCell(Text(entry.key)),
                 DataCell(
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: entry.value
-                        .expand((v) => [
-                              const SizedBox(height: Spacing.level3),
-                              Tooltip(
-                                message: v,
-                                child: Text(
-                                  v,
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
+                        .expand(
+                          (v) => [
+                            const SizedBox(height: Spacing.level3),
+                            Tooltip(
+                              message: v,
+                              child: Text(
+                                v,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
-                              const SizedBox(height: Spacing.level3)
-                            ])
+                            ),
+                            const SizedBox(height: Spacing.level3),
+                          ],
+                        )
                         .toList(),
                   ),
                 ),
-              ]))
+              ],
+            ),
+          )
           .toList(),
     );
   }
