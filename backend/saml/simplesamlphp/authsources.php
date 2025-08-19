@@ -8,10 +8,10 @@ $config = array(
 
     'example-userpass' => array(
         'exampleauth:UserPass',
-        'omar-selo:password' => array(
-            'fullname' => 'Omar Abou Selo',
+        'certbot:password' => array(
+            'fullname' => 'Certification Bot',
             'lp_teams' => array('canonical-hw-cert'),
-            'email' => 'omar.selo@canonical.com'
+            'email' => 'certbot@canonical.com'
         ),
     ),
 

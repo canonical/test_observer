@@ -1,9 +1,98 @@
-from fastapi.testclient import TestClient
+from html.parser import HTMLParser
+
+from requests import Session, Response
 
 
-def test_saml_login_redirects_to_idp(test_client: TestClient):
-    response = test_client.get("/v1/auth/saml/login", follow_redirects=False)
+class SimpleFormParser(HTMLParser):
+    """Simple HTML parser to extract form data"""
 
-    assert response.status_code == 307
-    assert "location" in response.headers
-    assert "SSOService.php" in response.headers["location"]
+    def __init__(self):
+        super().__init__()
+        self.inputs = {}
+        self.in_form = False
+
+    def handle_starttag(self, tag: str, attrs: list):
+        attrs_dict = dict(attrs)
+
+        if tag == "form":
+            self.in_form = True
+
+        elif tag == "input" and self.in_form:
+            name = attrs_dict.get("name")
+            value = attrs_dict.get("value", "")
+            if name:
+                self.inputs[name] = value
+
+    def handle_endtag(self, tag: str):
+        if tag == "form":
+            self.in_form = False
+
+
+class TestSAMLAuthentication:
+    """Test SAML authentication workflow"""
+
+    CREDENTIALS = {"username": "certbot", "password": "password"}
+
+    def test_complete_saml_login_workflow(self):
+        """Test our SAML Service Provider (SP) implementation with end-to-end workflow
+
+        This test focuses on validating our SP behavior:
+        - SAML login initiation and redirect generation
+        - ACS endpoint SAML response processing
+        - User data extraction and response formatting
+
+        Uses a SimpleSAMLPHP IdP for integration testing
+        """
+        # Use a persistent session to maintain cookies and state throughout entire flow
+        self.session = Session()
+        self.api_url = "http://localhost:30000"
+
+        sso_url = self._initiate_saml_login()
+        auth_state, login_form_url = self._fetch_and_parse_login_form(sso_url)
+        auth_response = self._submit_credentials(auth_state, login_form_url)
+        api_response = self._process_saml_response(auth_response)
+        self._verify_authentication(api_response)
+
+    def _initiate_saml_login(self) -> str:
+        response = self.session.get(
+            f"{self.api_url}/v1/auth/saml/login", allow_redirects=False
+        )
+        # Test our SP: should redirect to IdP for authentication
+        assert response.status_code == 307
+        assert "location" in response.headers
+        return response.headers["location"]
+
+    def _fetch_and_parse_login_form(self, idp_url: str) -> tuple[str, str]:
+        idp_response = self.session.get(idp_url, allow_redirects=True)
+
+        parser = SimpleFormParser()
+        parser.feed(idp_response.text)
+
+        return parser.inputs["AuthState"], idp_response.url
+
+    def _submit_credentials(self, auth_state: str, login_form_url: str) -> Response:
+        login_data = {**self.CREDENTIALS, "AuthState": auth_state}
+        return self.session.post(login_form_url, data=login_data, allow_redirects=False)
+
+    def _process_saml_response(self, auth_response: Response) -> Response:
+        parser = SimpleFormParser()
+        parser.feed(auth_response.text)
+
+        return self.session.post(
+            f"{self.api_url}/v1/auth/saml/acs",
+            data={
+                "SAMLResponse": parser.inputs.get("SAMLResponse"),
+                "RelayState": parser.inputs.get("RelayState"),
+            },
+        )
+
+    def _verify_authentication(self, response: Response) -> None:
+        assert response.status_code == 200
+
+        user_data = response.json()
+        assert "name_id" in user_data
+        assert "attributes" in user_data
+
+        assert user_data["name_id"] == "certbot@canonical.com"
+        assert user_data["attributes"]["fullname"] == ["Certification Bot"]
+        assert user_data["attributes"]["lp_teams"] == ["canonical-hw-cert"]
