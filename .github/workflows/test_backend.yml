@@ -51,8 +51,8 @@ jobs:
           timeout 60 bash -c 'until curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php; do sleep 2; done'
           
           # Copy custom SAML configuration to the running container
-          docker cp backend/saml/simplesamlphp/authsources.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/config/authsources.php
-          docker cp backend/saml/simplesamlphp/saml20-idp-hosted.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/metadata/saml20-idp-hosted.php
+          docker cp saml/simplesamlphp/authsources.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/config/authsources.php
+          docker cp saml/simplesamlphp/saml20-idp-hosted.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/metadata/saml20-idp-hosted.php
           
           # Restart the SAML IdP container to reload configuration
           docker restart $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp")
