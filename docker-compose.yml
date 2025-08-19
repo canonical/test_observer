@@ -19,8 +19,6 @@ services:
       DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}" # Can be overridden for GitHub CI
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
-      SAML_IDP_METADATA_URL: "http://localhost:8080/simplesaml/saml2/idp/metadata.php"
-      SAML_SP_BASE_URL: "http://localhost:30000"
     volumes:
       # Mount source code from host for development
       - ./backend:/home/app

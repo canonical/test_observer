@@ -30,8 +30,11 @@ logger = logging.getLogger("test-observer-backend")
 
 
 def _get_saml_settings() -> dict[str, Any]:
-    sp_base_url = os.getenv("SAML_SP_BASE_URL")
-    idp_metadata_url = os.getenv("SAML_IDP_METADATA_URL")
+    sp_base_url = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
+    idp_metadata_url = os.getenv(
+        "SAML_IDP_METADATA_URL",
+        "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
+    )
 
     return {
         "strict": True,
@@ -60,7 +63,8 @@ saml_settings = _get_saml_settings()
 @router.get("/login")
 async def saml_login(request: Request):
     req = await _prepare_from_fastapi_request(request)
-    auth = OneLogin_Saml2_Auth(req, saml_settings)
+    settings = saml_settings
+    auth = OneLogin_Saml2_Auth(req, settings)
     return RedirectResponse(url=auth.login())
 
 
