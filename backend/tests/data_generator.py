@@ -24,14 +24,15 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
+    Issue,
     TestCase,
     TestEvent,
     TestExecution,
-    TestExecutionRerunRequest,
+    TestExecutionMetadata,
     TestExecutionRelevantLink,
+    TestExecutionRerunRequest,
     TestResult,
     User,
-    Issue,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -195,6 +196,7 @@ class DataGenerator:
         checkbox_version: str | None = None,
         created_at: datetime | None = None,
         test_plan: str | None = "Test plan",
+        execution_metadata: dict | None = None,
     ) -> TestExecution:
         if relevant_links is None:
             relevant_links = []
@@ -204,6 +206,14 @@ class DataGenerator:
                 converted_relevant_links.append(TestExecutionRelevantLink(**link_item))
             else:
                 converted_relevant_links.append(link_item)
+
+        execution_metadata_rows = []
+        if execution_metadata:
+            for category, values in execution_metadata.items():
+                for value in values:
+                    execution_metadata_rows.append(
+                        TestExecutionMetadata(category=category, value=value)
+                    )
 
         test_execution = TestExecution(
             artefact_build=artefact_build,
@@ -215,6 +225,7 @@ class DataGenerator:
             checkbox_version=checkbox_version,
             created_at=created_at,
             test_plan=test_plan,
+            execution_metadata=execution_metadata_rows,
         )
         self._add_object(test_execution)
         return test_execution
