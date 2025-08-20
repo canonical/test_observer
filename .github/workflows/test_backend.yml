@@ -18,17 +18,15 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - run: docker -v
-      - run: docker compose -v
-      # - uses: actions/checkout@v4
-      # - name: Install docker compose
-      #   run: |
-      #     sudo apt update -y
-      #     sudo apt install docker.io docker-compose-v2 -y
-      # - name: Run test observer api
-      #   run: docker compose up -d test-observer-api
-      # - name: Run api tests
-      #   run: docker compose exec test-observer-api pytest
+      - uses: actions/checkout@v4
+      - name: Install docker compose
+        run: |
+          sudo apt update -y
+          sudo apt install docker.io docker-compose-v2 -y
+      - name: Run test observer api
+        run: docker compose up -d test-observer-api
+      - name: Run api tests
+        run: docker compose exec test-observer-api pytest
     # services:
     #   postgres:
     #     image: postgres:15.2
