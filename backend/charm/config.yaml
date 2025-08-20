@@ -1,9 +1,20 @@
 options:
+  saml_idp_metadata_url:
+    description: SAML metadata endpoint for the identity provider
+    type: string
+  saml_sp_base_url:
+    description: SAML service provider base URL i.e. TO api base URL
+    type: string
+  saml_sp_cert:
+    description: SAML service provider X.509 certificate
+    type: string
+  saml_sp_key:
+    description: SAML service provider certificate private key
+    type: string
   port:
     default: 30000
     description: The port to listen on for incoming HTTP requests.
     type: int
-
   hostname:
     default: test-observer-api
     description: Public hostname for the service.
