@@ -210,4 +210,83 @@ class ApiRepository {
     );
     return EnvironmentReview.fromJson(response.data);
   }
+
+  Future<List<String>> getEnvironments() async {
+    try {
+      final response = await dio.get('/v1/environments');
+
+      final Map<String, dynamic> data = response.data;
+      final List<dynamic> environments = data['environments'] ?? [];
+      return environments.cast<String>();
+    } catch (e) {
+      throw Exception('Failed to fetch environments: $e');
+    }
+  }
+
+  Future<List<String>> getTestCases() async {
+    try {
+      final response = await dio.get('/v1/test-cases');
+
+      final Map<String, dynamic> data = response.data;
+      final List<dynamic> testCasesData = data['test_cases'] ?? [];
+
+      // Extract just the test_case names from the objects
+      return testCasesData.map((item) => item['test_case'] as String).toList();
+    } catch (e) {
+      throw Exception('Failed to fetch test cases: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> searchTestResults({
+    List<String>? families,
+    List<String>? environments,
+    List<String>? testCases,
+    List<String>? templateIds,
+    List<int>? issues,
+    DateTime? fromDate,
+    DateTime? untilDate,
+    int? limit,
+    int? offset,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+
+      if (families != null && families.isNotEmpty) {
+        queryParams['families'] = families;
+      }
+
+      if (environments != null && environments.isNotEmpty) {
+        queryParams['environments'] = environments;
+      }
+
+      if (testCases != null && testCases.isNotEmpty) {
+        queryParams['test_cases'] = testCases;
+      }
+
+      if (templateIds != null && templateIds.isNotEmpty) {
+        queryParams['template_ids'] = templateIds;
+      }
+
+      if (issues != null && issues.isNotEmpty) {
+        queryParams['issues'] = issues;
+      }
+
+      if (fromDate != null) {
+        queryParams['from_date'] = fromDate.toIso8601String();
+      }
+      if (untilDate != null) {
+        queryParams['until_date'] = untilDate.toIso8601String();
+      }
+
+      // Add pagination
+      queryParams['limit'] = limit ?? 500;
+      queryParams['offset'] = offset ?? 0;
+
+      final response =
+          await dio.get('/v1/test-results', queryParameters: queryParams);
+      return response.data;
+    } catch (e) {
+      throw Exception('Failed to search test results: $e');
+    }
+  }
 }
