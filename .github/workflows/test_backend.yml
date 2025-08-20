@@ -17,72 +17,78 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    services:
-      postgres:
-        image: postgres:15.2
-        env:
-          POSTGRES_PASSWORD: password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      saml-idp:
-        image: kristophjunge/test-saml-idp
-        ports:
-          - 8080:8080
-          - 8443:8443
-        env:
-          SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:30000
-          SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:30000/v1/auth/saml/acs
-          SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:30000/v1/auth/saml/sls
-        options: >-
-          --health-cmd "curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - name: Configure SAML IdP
-        run: |
-          # Wait for SAML IdP to be ready
-          timeout 60 bash -c 'until curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php; do sleep 2; done'
-          
-          # Copy custom SAML configuration to the running container
-          docker cp saml/simplesamlphp/authsources.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/config/authsources.php
-          docker cp saml/simplesamlphp/saml20-idp-hosted.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/metadata/saml20-idp-hosted.php
-          
-          # Restart the SAML IdP container to reload configuration
-          docker restart $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp")
-          
-          # Wait for SAML IdP to be ready again after restart
-          timeout 60 bash -c 'until curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php; do sleep 2; done'
-      - uses: actions/setup-python@v4
+      - uses: hoverkraft-tech/compose-action@40041ff1b97dbf152cd2361138c2b03fa29139df # v2.3.0
         with:
-          python-version: "3.12"
-      - run: pip install uv
-      - run: uv sync --all-groups
-      - run: uv pip install -e .
-      - run: uv run ruff check
-      - run: uv run ruff format --check
-      - run: uv run mypy .
-      - run: uv run pytest
-        env:
-          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
-      - run: uv run alembic upgrade head
-        env:
-          DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
-      - name: Check if alembic migrations are up to date
-        run: uv run alembic check
-        env:
-          DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
-      - name: Start the app
-        run: uv run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
-        shell: bash
-      - name: Fetch OpenAPI schema
-        run: curl http://localhost:30000/openapi.json | jq > fetched_openapi.json
-      - name: Compare with schema in repository
-        run: diff fetched_openapi.json schemata/openapi.json
+          services: test-observer-api
+      - run: docker compose exec test-observer-api pytest
+    # services:
+    #   postgres:
+    #     image: postgres:15.2
+    #     env:
+    #       POSTGRES_PASSWORD: password
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    #   saml-idp:
+    #     image: kristophjunge/test-saml-idp
+    #     ports:
+    #       - 8080:8080
+    #       - 8443:8443
+    #     env:
+    #       SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:30000
+    #       SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:30000/v1/auth/saml/acs
+    #       SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:30000/v1/auth/saml/sls
+    #     options: >-
+    #       --health-cmd "curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php || exit 1"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    # steps:
+    #   - uses: actions/checkout@v4
+    #   - name: Configure SAML IdP
+    #     run: |
+    #       # Wait for SAML IdP to be ready
+    #       timeout 60 bash -c 'until curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php; do sleep 2; done'
+          
+    #       # Copy custom SAML configuration to the running container
+    #       docker cp saml/simplesamlphp/authsources.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/config/authsources.php
+    #       docker cp saml/simplesamlphp/saml20-idp-hosted.php $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp"):/var/www/simplesamlphp/metadata/saml20-idp-hosted.php
+          
+    #       # Restart the SAML IdP container to reload configuration
+    #       docker restart $(docker ps -q --filter "ancestor=kristophjunge/test-saml-idp")
+          
+    #       # Wait for SAML IdP to be ready again after restart
+    #       timeout 60 bash -c 'until curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php; do sleep 2; done'
+    #   - uses: actions/setup-python@v4
+    #     with:
+    #       python-version: "3.12"
+    #   - run: pip install uv
+    #   - run: uv sync --all-groups
+    #   - run: uv pip install -e .
+    #   - run: uv run ruff check
+    #   - run: uv run ruff format --check
+    #   - run: uv run mypy .
+    #   - run: uv run pytest
+    #     env:
+    #       TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
+    #   - run: uv run alembic upgrade head
+    #     env:
+    #       DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
+    #   - name: Check if alembic migrations are up to date
+    #     run: uv run alembic check
+    #     env:
+    #       DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
+    #   - name: Start the app
+    #     run: uv run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
+    #     shell: bash
+    #   - name: Fetch OpenAPI schema
+    #     run: curl http://localhost:30000/openapi.json | jq > fetched_openapi.json
+    #   - name: Compare with schema in repository
+    #     run: diff fetched_openapi.json schemata/openapi.json
         
