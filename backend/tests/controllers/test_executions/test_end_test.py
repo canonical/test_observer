@@ -175,3 +175,51 @@ def test_end_test_updates_template_id(
     assert len(test_execution.relevant_links) == 1
     assert test_execution.relevant_links[0].label == "Report"
     assert test_execution.relevant_links[0].url == "http://report.example.com"
+
+
+def test_apply_test_result_attachment_rules(
+    test_client: TestClient, generator: DataGenerator
+):
+    artefact = generator.gen_artefact(StageName.beta)
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+    )
+    issue = generator.gen_issue()
+
+    attachment_rule_response = test_client.post(
+        f"/v1/issues/{issue.id}/attachment-rules",
+        json={
+            "enabled": True,
+            "families": [test_execution.artefact_build.artefact.family],
+        },
+    )
+    attachment_rule_id = attachment_rule_response.json()["id"]
+
+    response = test_client.put(
+        "/v1/test-executions/end-test",
+        json={
+            "ci_link": test_execution.ci_link,
+            "test_results": [
+                {
+                    "name": "some-name",
+                    "status": "pass",
+                    "category": "",
+                    "template_id": "",
+                    "comment": "",
+                    "io_log": "",
+                }
+            ],
+        },
+    )
+    response.raise_for_status()
+
+    assert response.status_code == 200
+    assert test_execution.test_results[0].issue_attachments[0].issue_id == issue.id
+    assert (
+        test_execution.test_results[0].issue_attachments[0].attachment_rule_id
+        == attachment_rule_id
+    )

@@ -20,6 +20,21 @@ from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from pydantic import ConfigDict, Field, AliasPath
 
 
+from pydantic import (
+    field_validator,
+)
+
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.data_access.models_enums import (
+    FamilyName,
+)
+from test_observer.data_access.models import (
+    IssueTestResultAttachmentRuleExecutionMetadata,
+    TestExecutionMetadata,
+)
+from collections.abc import Sequence
+
+
 class MinimalIssueResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -32,7 +47,40 @@ class MinimalIssueResponse(BaseModel):
     url: HttpUrl
 
 
+class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    enabled: bool
+
+    families: list[FamilyName]
+    environment_names: list[str]
+    test_case_names: list[str]
+    template_ids: list[str]
+    execution_metadata: ExecutionMetadata
+
+    @field_validator("execution_metadata", mode="before")
+    @classmethod
+    def convert_execution_metadata(
+        cls,
+        metadata: Sequence[IssueTestResultAttachmentRuleExecutionMetadata]
+        | ExecutionMetadata,
+    ) -> ExecutionMetadata:
+        if not isinstance(metadata, ExecutionMetadata):
+            return ExecutionMetadata.from_rows(
+                [
+                    TestExecutionMetadata(category=item.category, value=item.value)
+                    for item in metadata
+                ]
+            )
+
+        return metadata
+
+
 class MinimalIssueTestResultAttachmentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     issue: MinimalIssueResponse = Field(validation_alias=AliasPath("issue"))
+    attachment_rule: MinimalIssueTestResultAttachmentRuleResponse | None = Field(
+        validation_alias=AliasPath("attachment_rule")
+    )
