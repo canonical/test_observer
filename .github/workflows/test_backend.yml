@@ -18,11 +18,17 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: hoverkraft-tech/compose-action@40041ff1b97dbf152cd2361138c2b03fa29139df # v2.3.0
-        with:
-          services: test-observer-api
-      - run: docker compose exec test-observer-api pytest
+      - run: docker -v
+      - run: docker compose -v
+      # - uses: actions/checkout@v4
+      # - name: Install docker compose
+      #   run: |
+      #     sudo apt update -y
+      #     sudo apt install docker.io docker-compose-v2 -y
+      # - name: Run test observer api
+      #   run: docker compose up -d test-observer-api
+      # - name: Run api tests
+      #   run: docker compose exec test-observer-api pytest
     # services:
     #   postgres:
     #     image: postgres:15.2
