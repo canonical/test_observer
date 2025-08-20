@@ -119,7 +119,9 @@ class TestResultDetailsDialog extends StatelessWidget {
               'Artefact',
               [
                 _buildDetailRow(
-                    'Family', artefact['family']?.toString().toUpperCase()),
+                  'Family',
+                  artefact['family']?.toString().toUpperCase(),
+                ),
                 _buildDetailRow('Name', artefact['name']),
                 _buildDetailRow('Version', artefact['version']),
                 _buildDetailRow('Track', artefact['track']),
@@ -134,12 +136,16 @@ class TestResultDetailsDialog extends StatelessWidget {
               'Test Execution',
               [
                 _buildDetailRow(
-                    'Execution ID', testExecution['id']?.toString()),
+                  'Execution ID',
+                  testExecution['id']?.toString(),
+                ),
                 _buildDetailRow('Test Plan', testExecution['test_plan']),
                 _buildDetailRow('Environment', environment?['name']),
                 _buildDetailRow('Status', testExecution['status']),
-                _buildDetailRow('Created',
-                    TestResultHelpers.formatFullDate(testResult['created_at'])),
+                _buildDetailRow(
+                  'Created',
+                  TestResultHelpers.formatFullDate(testResult['created_at']),
+                ),
               ],
             ),
 

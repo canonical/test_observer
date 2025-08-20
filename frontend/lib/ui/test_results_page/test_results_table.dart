@@ -115,8 +115,13 @@ class TestResultsTable extends StatelessWidget {
                     DataCell(_buildStatusCell(testResult['status'])),
                     DataCell(_buildTrackCell(artefact, availableWidth)),
                     DataCell(_buildVersionCell(artefact, availableWidth)),
-                    DataCell(_buildEnvironmentCell(
-                        artefactBuild, environment, availableWidth)),
+                    DataCell(
+                      _buildEnvironmentCell(
+                        artefactBuild,
+                        environment,
+                        availableWidth,
+                      ),
+                    ),
                     DataCell(_buildTestPlanCell(testExecution, availableWidth)),
                     DataCell(_buildActionsCell(context, result)),
                   ],
@@ -130,10 +135,12 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildArtefactCell(
-      Map<String, dynamic> artefact, double availableWidth) {
+    Map<String, dynamic> artefact,
+    double availableWidth,
+  ) {
     final cellWidth = (availableWidth * 0.15).clamp(120.0, 200.0);
 
-    return Container(
+    return SizedBox(
       width: cellWidth,
       child: Text(
         artefact['name'] ?? 'Unknown',
@@ -148,7 +155,9 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildTestCaseCell(
-      Map<String, dynamic> testResult, double availableWidth) {
+    Map<String, dynamic> testResult,
+    double availableWidth,
+  ) {
     final cellWidth = (availableWidth * 0.18).clamp(180.0, 280.0);
 
     return SizedBox(
@@ -224,7 +233,9 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildVersionCell(
-      Map<String, dynamic> artefact, double availableWidth) {
+    Map<String, dynamic> artefact,
+    double availableWidth,
+  ) {
     final cellWidth = (availableWidth * 0.12).clamp(90.0, 140.0);
 
     return SizedBox(
@@ -238,8 +249,11 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildEnvironmentCell(Map<String, dynamic> artefactBuild,
-      Map<String, dynamic>? environment, double availableWidth) {
+  Widget _buildEnvironmentCell(
+    Map<String, dynamic> artefactBuild,
+    Map<String, dynamic>? environment,
+    double availableWidth,
+  ) {
     final cellWidth = (availableWidth * 0.1).clamp(80.0, 120.0);
 
     final architecture = artefactBuild['architecture'] ?? 'unknown';
@@ -258,7 +272,9 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildTestPlanCell(
-      Map<String, dynamic> testExecution, double availableWidth) {
+    Map<String, dynamic> testExecution,
+    double availableWidth,
+  ) {
     final cellWidth = (availableWidth * 0.12).clamp(120.0, 180.0);
 
     return SizedBox(
@@ -325,7 +341,9 @@ class TestResultsTable extends StatelessWidget {
   }
 
   void _showTestResultDetails(
-      BuildContext context, Map<String, dynamic> result) {
+    BuildContext context,
+    Map<String, dynamic> result,
+  ) {
     showDialog(
       context: context,
       builder: (context) => TestResultDetailsDialog(result: result),

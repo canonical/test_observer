@@ -28,12 +28,14 @@ Future<List<TestResult>> testResults(Ref ref, int testExecutionId) async {
   return await api.getTestExecutionResults(testExecutionId);
 }
 
-final familySelectionsProvider = StateProvider<Map<String, bool>>((ref) => {
-      'snap': false,
-      'deb': false,
-      'charm': false,
-      'image': false,
-    });
+final familySelectionsProvider = StateProvider<Map<String, bool>>(
+  (ref) => {
+    'snap': false,
+    'deb': false,
+    'charm': false,
+    'image': false,
+  },
+);
 
 final environmentsProvider = FutureProvider<List<String>>((ref) async {
   final api = ref.read(apiProvider);
