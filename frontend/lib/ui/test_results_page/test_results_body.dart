@@ -74,7 +74,12 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     final searchResults = ref.watch(testResultsSearchNotifierProvider);
 
     return searchResults.when(
-      loading: () => const Center(child: YaruCircularProgressIndicator()),
+      loading: () => Center(
+        child: Transform.translate(
+          offset: const Offset(0, -120),
+          child: const YaruCircularProgressIndicator(),
+        ),
+      ),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

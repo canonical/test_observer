@@ -37,7 +37,7 @@ class TestResultDetailsDialog extends StatelessWidget {
 
     return Dialog(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+        constraints: const BoxConstraints(maxWidth: 900, maxHeight: 1000),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -219,7 +219,7 @@ class TestResultDetailsDialog extends StatelessWidget {
           Expanded(
             child: Text(
               value?.toString() ?? 'N/A',
-              style: const TextStyle(color: Colors.black54),
+              style: const TextStyle(color: Colors.black),
             ),
           ),
         ],
