@@ -1,5 +1,3 @@
-// lib/ui/test_results_page/test_result_details_dialog.dart
-
 // Copyright (C) 2023 Canonical Ltd.
 //
 // This file is part of Test Observer Frontend.
