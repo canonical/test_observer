@@ -16,14 +16,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../models/test_result.dart';
 import 'api.dart';
 
-part 'test_results.g.dart';
+part 'test_results_environments.g.dart';
 
 @riverpod
-Future<List<TestResult>> testResults(Ref ref, int testExecutionId) async {
+Future<List<String>> testResultsEnvironments(Ref ref) async {
   final api = ref.watch(apiProvider);
-  return await api.getTestExecutionResults(testExecutionId);
+  return await api.getEnvironments();
 }
