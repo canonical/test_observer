@@ -98,82 +98,36 @@ class _TestResultsFiltersViewState
   }
 
   Widget _buildEnvironmentSection() {
-    final environmentsAsync = ref.watch(testResultsEnvironmentsProvider);
     final filters = ref.watch(testResultsFiltersProvider);
+    final environments = ref.watch(testResultsEnvironmentsProvider).value ?? [];
 
-    return environmentsAsync.when(
-      data: (environments) => MultiSelectCombobox(
-        key: _envKey,
-        title: 'Environment',
-        allOptions: environments,
-        initialSelected: filters.selectedEnvironments,
-        onChanged: (environment, isSelected) {
-          ref
-              .read(testResultsFiltersProvider.notifier)
-              .updateEnvironmentSelection(environment, isSelected);
-        },
-      ),
-      loading: () => MultiSelectCombobox(
-        key: _envKey,
-        title: 'Environment',
-        allOptions: const [],
-        initialSelected: const {},
-        onChanged: (_, __) {},
-      ),
-      error: (error, _) => MultiSelectCombobox(
-        key: _envKey,
-        title: 'Environment (Error)',
-        allOptions: const [],
-        initialSelected: const {},
-        onChanged: (_, __) {
-          final ctx = _envKey.currentContext;
-          if (ctx != null) {
-            ScaffoldMessenger.of(ctx).showSnackBar(
-              SnackBar(content: Text('Failed to load environments: $error')),
-            );
-          }
-        },
-      ),
+    return MultiSelectCombobox(
+      key: _envKey,
+      title: 'Environment',
+      allOptions: environments,
+      initialSelected: filters.selectedEnvironments,
+      onChanged: (environment, isSelected) {
+        ref
+            .read(testResultsFiltersProvider.notifier)
+            .updateEnvironmentSelection(environment, isSelected);
+      },
     );
   }
 
   Widget _buildTestCaseSection() {
-    final testCasesAsync = ref.watch(testResultsTestCasesProvider);
     final filters = ref.watch(testResultsFiltersProvider);
+    final testCases = ref.watch(testResultsTestCasesProvider).value ?? [];
 
-    return testCasesAsync.when(
-      data: (testCases) => MultiSelectCombobox(
-        key: _testKey,
-        title: 'Test Case',
-        allOptions: testCases,
-        initialSelected: filters.selectedTestCases,
-        onChanged: (testCase, isSelected) {
-          ref
-              .read(testResultsFiltersProvider.notifier)
-              .updateTestCaseSelection(testCase, isSelected);
-        },
-      ),
-      loading: () => MultiSelectCombobox(
-        key: _testKey,
-        title: 'Test Case',
-        allOptions: const [],
-        initialSelected: const {},
-        onChanged: (_, __) {},
-      ),
-      error: (error, _) => MultiSelectCombobox(
-        key: _testKey,
-        title: 'Test Case (Error)',
-        allOptions: const [],
-        initialSelected: const {},
-        onChanged: (_, __) {
-          final ctx = _testKey.currentContext;
-          if (ctx != null) {
-            ScaffoldMessenger.of(ctx).showSnackBar(
-              SnackBar(content: Text('Failed to load test cases: $error')),
-            );
-          }
-        },
-      ),
+    return MultiSelectCombobox(
+      key: _testKey,
+      title: 'Test Case',
+      allOptions: testCases,
+      initialSelected: filters.selectedTestCases,
+      onChanged: (testCase, isSelected) {
+        ref
+            .read(testResultsFiltersProvider.notifier)
+            .updateTestCaseSelection(testCase, isSelected);
+      },
     );
   }
 }
