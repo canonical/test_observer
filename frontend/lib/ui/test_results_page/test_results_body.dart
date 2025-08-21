@@ -120,7 +120,9 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   }
 
   Widget _buildResultsContent(
-      BuildContext context, TestResultsSearchResult data) {
+    BuildContext context,
+    TestResultsSearchResult data,
+  ) {
     final hasSearched = ref.watch(hasSearchedProvider);
     final count = data.count;
     final testResults = data.testResults;
