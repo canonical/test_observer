@@ -34,7 +34,7 @@ class MultiSelectCombobox extends StatefulWidget {
     required this.allOptions,
     required this.onChanged,
     this.focusNode,
-    this.maxSuggestions = 10,
+    this.maxSuggestions = 50,
     this.initialSelected = const {},
   });
 
@@ -99,14 +99,12 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
   }
 
   List<String> _getSuggestions(String pattern) {
-    // Show options matching search AND not already selected, limited to maxSuggestions
     return widget.allOptions
         .where(
           (option) =>
               option.toLowerCase().contains(pattern.toLowerCase()) &&
               !_selected.contains(option),
         )
-        .take(widget.maxSuggestions)
         .toList();
   }
 
@@ -224,6 +222,17 @@ class _ComboboxSearchField extends StatelessWidget {
           hintText: 'Search...',
         );
       },
+      decorationBuilder: (context, child) {
+        return Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            constraints: const BoxConstraints(maxHeight: 250),
+            child: child,
+          ),
+        );
+      },
+      offset: const Offset(0, 4),
       hideOnEmpty: true,
       hideOnError: true,
       hideOnLoading: true,
