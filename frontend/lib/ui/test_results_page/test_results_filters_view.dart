@@ -18,7 +18,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
-import '../../providers/test_results.dart';
+import '../../providers/test_results_filters.dart';
+import '../../providers/test_results_search.dart';
+import '../../providers/test_results_environments.dart';
+import '../../providers/test_results_test_cases.dart';
 import '../page_filters/multi_select_combobox.dart';
 import '../spacing.dart';
 
@@ -57,7 +60,7 @@ class _TestResultsFiltersViewState
           height: _controlHeight,
           child: ElevatedButton(
             onPressed: () {
-              ref.read(testResultsSearchNotifierProvider.notifier).search();
+              ref.read(testResultsSearchProvider.notifier).search();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: YaruColors.orange,
@@ -73,10 +76,10 @@ class _TestResultsFiltersViewState
   }
 
   Widget _buildFamilySection() {
-    final familySelections = ref.watch(familySelectionsProvider);
+    final filters = ref.watch(testResultsFiltersProvider);
 
-    final allOptions = familySelections.keys.toList()..sort();
-    final selected = familySelections.entries
+    final allOptions = filters.familySelections.keys.toList()..sort();
+    final selected = filters.familySelections.entries
         .where((e) => e.value)
         .map((e) => e.key)
         .toSet();
@@ -87,29 +90,27 @@ class _TestResultsFiltersViewState
       allOptions: allOptions,
       initialSelected: selected,
       onChanged: (family, isSelected) {
-        final current =
-            Map<String, bool>.from(ref.read(familySelectionsProvider));
-        current[family] = isSelected;
-        ref.read(familySelectionsProvider.notifier).state = current;
+        ref
+            .read(testResultsFiltersProvider.notifier)
+            .updateFamilySelection(family, isSelected);
       },
     );
   }
 
   Widget _buildEnvironmentSection() {
-    final environmentsAsync = ref.watch(environmentsProvider);
-    final selectedEnvironments = ref.watch(selectedEnvironmentsProvider);
+    final environmentsAsync = ref.watch(testResultsEnvironmentsProvider);
+    final filters = ref.watch(testResultsFiltersProvider);
 
     return environmentsAsync.when(
       data: (environments) => MultiSelectCombobox(
         key: _envKey,
         title: 'Environment',
         allOptions: environments,
-        initialSelected: selectedEnvironments,
+        initialSelected: filters.selectedEnvironments,
         onChanged: (environment, isSelected) {
-          final current =
-              Set<String>.from(ref.read(selectedEnvironmentsProvider));
-          isSelected ? current.add(environment) : current.remove(environment);
-          ref.read(selectedEnvironmentsProvider.notifier).state = current;
+          ref
+              .read(testResultsFiltersProvider.notifier)
+              .updateEnvironmentSelection(environment, isSelected);
         },
       ),
       loading: () => MultiSelectCombobox(
@@ -137,19 +138,19 @@ class _TestResultsFiltersViewState
   }
 
   Widget _buildTestCaseSection() {
-    final testCasesAsync = ref.watch(testCasesProvider);
-    final selectedTestCases = ref.watch(selectedTestCasesProvider);
+    final testCasesAsync = ref.watch(testResultsTestCasesProvider);
+    final filters = ref.watch(testResultsFiltersProvider);
 
     return testCasesAsync.when(
       data: (testCases) => MultiSelectCombobox(
         key: _testKey,
         title: 'Test Case',
         allOptions: testCases,
-        initialSelected: selectedTestCases,
+        initialSelected: filters.selectedTestCases,
         onChanged: (testCase, isSelected) {
-          final current = Set<String>.from(ref.read(selectedTestCasesProvider));
-          isSelected ? current.add(testCase) : current.remove(testCase);
-          ref.read(selectedTestCasesProvider.notifier).state = current;
+          ref
+              .read(testResultsFiltersProvider.notifier)
+              .updateTestCaseSelection(testCase, isSelected);
         },
       ),
       loading: () => MultiSelectCombobox(

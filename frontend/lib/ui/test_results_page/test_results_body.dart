@@ -18,7 +18,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
-import '../../providers/test_results.dart';
+import '../../providers/test_results_filters.dart';
+import '../../providers/test_results_search.dart';
+import '../../routing.dart';
 import '../spacing.dart';
 import '../../providers/global_error_message.dart';
 import 'test_results_table.dart';
@@ -36,8 +38,22 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   final Map<String, bool> _expandedItems = {};
   final ScrollController _scrollController = ScrollController();
 
-  int _currentLimit = 500;
   bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if we have URL parameters and auto-search if we do
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = AppRoutes.uriFromContext(context);
+      if (uri.queryParameters.isNotEmpty) {
+        ref
+            .read(testResultsFiltersProvider.notifier)
+            .loadFromQueryParams(uri.queryParameters);
+        ref.read(testResultsSearchProvider.notifier).search();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -60,8 +76,8 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<Map<String, dynamic>>>(
-      testResultsSearchNotifierProvider,
+    ref.listen<AsyncValue<TestResultsSearchResult>>(
+      testResultsSearchProvider,
       (prev, next) {
         final wasLoading = prev?.isLoading ?? false;
         final finished = next.hasError || next.hasValue;
@@ -71,7 +87,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
       },
     );
 
-    final searchResults = ref.watch(testResultsSearchNotifierProvider);
+    final searchResults = ref.watch(testResultsSearchProvider);
 
     return searchResults.when(
       loading: () => Center(
@@ -103,10 +119,11 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     );
   }
 
-  Widget _buildResultsContent(BuildContext context, Map<String, dynamic> data) {
+  Widget _buildResultsContent(
+      BuildContext context, TestResultsSearchResult data) {
     final hasSearched = ref.watch(hasSearchedProvider);
-    final count = data['count'] ?? 0;
-    final testResults = data['test_results'] as List<dynamic>? ?? [];
+    final count = data.count;
+    final testResults = data.testResults;
 
     if (!hasSearched) {
       return Center(
@@ -200,7 +217,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     );
   }
 
-  Widget _buildTreeView(List<dynamic> testResults) {
+  Widget _buildTreeView(List<Map<String, dynamic>> testResults) {
     final groupedResults = _groupTestResults(testResults);
 
     return ListView(
@@ -215,10 +232,10 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     );
   }
 
-  Map<String, List<dynamic>> _groupTestResults(
-    List<dynamic> results,
+  Map<String, List<Map<String, dynamic>>> _groupTestResults(
+    List<Map<String, dynamic>> results,
   ) {
-    final grouped = <String, List<dynamic>>{};
+    final grouped = <String, List<Map<String, dynamic>>>{};
 
     for (final result in results) {
       final testResult = result['test_result'] as Map<String, dynamic>?;
@@ -241,7 +258,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   Widget _buildFamilyNode(
     BuildContext context,
     String family,
-    List<dynamic> results,
+    List<Map<String, dynamic>> results,
   ) {
     final familyKey = 'family_$family';
     final isExpanded = _isExpanded(familyKey);
@@ -296,11 +313,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     });
 
     try {
-      final newLimit = (_currentLimit + additionalCount).clamp(1, 1000);
-      await ref
-          .read(testResultsSearchNotifierProvider.notifier)
-          .search(limit: newLimit);
-      _currentLimit = newLimit;
+      await ref.read(testResultsSearchProvider.notifier).loadMore();
     } catch (e) {
       if (mounted) {
         ref
