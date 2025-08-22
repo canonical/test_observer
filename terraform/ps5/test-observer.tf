@@ -55,8 +55,13 @@ variable "backups_s3_uri_style" {
   default     = "path"
 }
 
-variable "to_api_url" {
-  description = "Test Observer API url"
+variable "api_hostname" {
+  description = "Test Observer API hostname"
+  type        = string
+}
+
+variable "frontend_hostname" {
+  description = "Test Observer front-end hostname"
   type        = string
 }
 
@@ -140,7 +145,7 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname              = var.to_api_url
+    hostname              = var.api_hostname
     port                  = var.environment == "development" ? 80 : 443
     sentry_dsn            = "${local.sentry_dsn_map[var.environment]}"
     saml_idp_metadata_url = var.saml_idp_metadata_url
@@ -162,7 +167,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname                 = var.environment == "stg" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
+    hostname                 = var.environment == var.frontend_hostname
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 

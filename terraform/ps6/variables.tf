@@ -8,11 +8,6 @@ variable "environment" {
   type        = string
 }
 
-variable "config_dir" {
-  description = "Directory containing config files"
-  type        = string
-}
-
 variable "lego_server" {
   description = "Url to server providing lego certificates"
   type        = string
@@ -35,12 +30,6 @@ variable "pg_storage_size" {
   description = "Size of storage partition for postgres database"
   type        = string
   default     = "50G"
-}
-
-variable "external_ingress_hostname" {
-  description = "External hostname for the ingress"
-  type        = string
-  default     = "canonical.com"
 }
 
 variable "nginx_ingress_integrator_charm_whitelist_source_range" {
