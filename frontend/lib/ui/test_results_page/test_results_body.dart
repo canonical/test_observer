@@ -194,9 +194,9 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
               const Spacer(),
               if (testResults.length < count && !_isLoadingMore) ...[
                 TextButton(
-                  onPressed: () => _loadMore(100),
+                  onPressed: () => _loadMore(),
                   child: const Text(
-                    'Load 100 more',
+                    'Load 500 more',
                     style: TextStyle(color: YaruColors.orange),
                   ),
                 ),
@@ -307,7 +307,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     );
   }
 
-  void _loadMore(int additionalCount) async {
+  void _loadMore() async {
     if (_isLoadingMore) return;
 
     setState(() {
