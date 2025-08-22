@@ -195,6 +195,10 @@ class TestObserverBackendCharm(CharmBase):
         env = {
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
+            "SAML_SP_BASE_URL": self.config["hostname"],
+            "SAML_IDP_METADATA_URL": self.config["saml_idp_metadata_url"],
+            "SAML_SP_X509_CERT": self.config["saml_sp_cert"],
+            "SAML_SP_KEY": self.config["saml_sp_key"],
         }
         env.update(self._postgres_relation_data())
         return env

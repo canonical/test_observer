@@ -1,40 +1,40 @@
 variable "juju_model" {
   description = "name of juju model"
-  type = string
+  type        = string
 }
 
 variable "environment" {
   description = "The environment to deploy to (development, stg, production)"
-  type = string
+  type        = string
 }
 
 variable "config_dir" {
   description = "Directory containing config files"
-  type = string
+  type        = string
 }
 
 variable "lego_server" {
   description = "Url to server providing lego certificates"
-  type = string
-  default = "https://lego-certs.canonical.com"
+  type        = string
+  default     = "https://lego-certs.canonical.com"
 }
 
 variable "lego_email" {
   description = "Email address for lego charm"
-  type = string
-  default = "is-admin@canonical.com"
+  type        = string
+  default     = "is-admin@canonical.com"
 }
 
 variable "lego_plugin" {
   description = "Plugin to use in the lego charm"
-  type = string
-  default = "httpreq"
+  type        = string
+  default     = "httpreq"
 }
 
 variable "pg_storage_size" {
   description = "Size of storage partition for postgres database"
-  type = string
-  default = "50G"
+  type        = string
+  default     = "50G"
 }
 
 variable "external_ingress_hostname" {
@@ -104,4 +104,19 @@ variable "api_scheme" {
   description = "Scheme for api, either http:// or https://"
   type        = string
   default     = "https://"
+}
+
+variable "saml_idp_metadata_url" {
+  description = "SAML metadata endpoint for the identity provider"
+  type        = string
+}
+
+variable "saml_sp_cert" {
+  description = "SAML service provider X.509 certificate"
+  type        = string
+}
+
+variable "saml_sp_key" {
+  description = "SAML service provider certificate private key"
+  type        = string
 }

@@ -31,39 +31,39 @@ resource "juju_application" "frontend_ingress" {
 }
 
 resource "juju_application" "api_ingress_lego" {
-  name = "api-ingress-lego"
+  name  = "api-ingress-lego"
   model = var.juju_model
   trust = true
 
   charm {
-    name = "lego"
-    channel = "4/stable"
+    name     = "lego"
+    channel  = "4/stable"
     revision = 61
   }
 
   config = {
-    server = var.lego_server
-    email  = var.lego_email
-    plugin = var.lego_plugin
+    server                  = var.lego_server
+    email                   = var.lego_email
+    plugin                  = var.lego_plugin
     plugin-config-secret-id = data.juju_secret.lego_credentials.secret_id
   }
 }
 
 resource "juju_application" "frontend_ingress_lego" {
-  name = "frontend-ingress-lego"
+  name  = "frontend-ingress-lego"
   model = var.juju_model
   trust = true
 
   charm {
-    name = "lego"
-    channel = "4/stable"
+    name     = "lego"
+    channel  = "4/stable"
     revision = 61
   }
 
   config = {
-    server = var.lego_server
-    email  = var.lego_email
-    plugin = var.lego_plugin
+    server                  = var.lego_server
+    email                   = var.lego_email
+    plugin                  = var.lego_plugin
     plugin-config-secret-id = data.juju_secret.lego_credentials.secret_id
   }
 }
@@ -73,7 +73,7 @@ resource "juju_access_secret" "lego_credentials_access" {
     juju_application.api_ingress_lego.name,
     juju_application.frontend_ingress_lego.name,
   ]
-  model = var.juju_model
+  model     = var.juju_model
   secret_id = data.juju_secret.lego_credentials.secret_id
 }
 
@@ -105,9 +105,12 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname   = var.api_hostname
-    port       = var.api_port
-    sentry_dsn = var.sentry_dsn
+    hostname              = var.api_hostname
+    port                  = var.api_port
+    sentry_dsn            = var.sentry_dsn
+    saml_idp_metadata_url = var.saml_idp_metadata_url
+    saml_sp_cert          = var.saml_sp_cert
+    saml_sp_key           = var.saml_sp_key
   }
 
   units = 3
