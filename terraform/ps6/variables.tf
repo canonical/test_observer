@@ -8,11 +8,6 @@ variable "environment" {
   type        = string
 }
 
-variable "config_dir" {
-  description = "Directory containing config files"
-  type        = string
-}
-
 variable "lego_server" {
   description = "Url to server providing lego certificates"
   type        = string
