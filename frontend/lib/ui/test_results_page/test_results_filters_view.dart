@@ -16,12 +16,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../providers/test_results_filters.dart';
 import '../../providers/test_results_search.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
+import '../../routing.dart';
 import '../page_filters/multi_select_combobox.dart';
 import '../spacing.dart';
 
@@ -44,6 +46,17 @@ class _TestResultsFiltersViewState
 
   Widget _box(Widget child) => SizedBox(width: _comboWidth, child: child);
 
+  void _applyFilters() {
+    // Update URL with current filter state
+    final queryParams =
+        ref.read(testResultsFiltersProvider.notifier).toQueryParams();
+    final uri = AppRoutes.uriFromContext(context);
+    context.go(uri.replace(queryParameters: queryParams).toString());
+
+    // Trigger search
+    ref.read(testResultsSearchProvider.notifier).search();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -59,9 +72,7 @@ class _TestResultsFiltersViewState
           width: _comboWidth,
           height: _controlHeight,
           child: ElevatedButton(
-            onPressed: () {
-              ref.read(testResultsSearchProvider.notifier).search();
-            },
+            onPressed: _applyFilters,
             style: ElevatedButton.styleFrom(
               backgroundColor: YaruColors.orange,
               foregroundColor: Colors.white,
