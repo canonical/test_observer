@@ -60,6 +60,11 @@ variable "to_api_url" {
   type        = string
 }
 
+variable "to_frontend_url" {
+  description = "Test Observer front-end url"
+  type        = string
+}
+
 variable "saml_idp_metadata_url" {
   description = "SAML metadata endpoint for the identity provider"
   type        = string
@@ -162,7 +167,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname                 = var.environment == "stg" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
+    hostname                 = var.environment == var.to_frontend_url
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
