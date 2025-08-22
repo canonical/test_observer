@@ -37,12 +37,6 @@ variable "pg_storage_size" {
   default     = "50G"
 }
 
-variable "external_ingress_hostname" {
-  description = "External hostname for the ingress"
-  type        = string
-  default     = "canonical.com"
-}
-
 variable "nginx_ingress_integrator_charm_whitelist_source_range" {
   description = "Allowed client IP source ranges. The value is a comma separated list of CIDRs."
   type        = string
