@@ -6,6 +6,8 @@ $config = array(
         'core:AdminPassword',
     ),
 
+    // Creates a user with username: 'certbot' and password: 'password'
+    // includes fullname and lp_teams keys just as Ubuntu One schema would
     'example-userpass' => array(
         'exampleauth:UserPass',
         'certbot:password' => array(

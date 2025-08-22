@@ -26,6 +26,9 @@ docker compose down
 
 # Rebuild containers after code changes
 docker compose up --build
+
+# Run tests
+docker compose exec test-observer-api pytest
 ```
 
 This will start:
@@ -33,6 +36,11 @@ This will start:
 - **Backend API** at `http://localhost:30000` (with automatic migrations and seeding)
 - **Frontend** at `http://localhost:30001`
 - **PostgreSQL database** with persistent storage on port 5432
+- **SimpleSAMLPHP** at `http://localhost:8080` a local Identity Provider (IdP) for testing
+
+### Local authentication
+
+Test Observer (TO) supports authentication through SAML SSO. On staging and production Ubuntu One acts as the Identity Provider (IdP). On development however, [SimpleSAMLPHP](https://simplesamlphp.org/) is deployed alongside TO to act as an IdP. The setup is configures one user account with the username "certbot" and password "password". This configuration resides in `backend/saml/simplesamlphp/authsources.php`.
 
 ### Individual Components
 
