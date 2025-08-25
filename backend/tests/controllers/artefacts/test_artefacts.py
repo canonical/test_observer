@@ -427,10 +427,10 @@ def test_update_artefact_assignee_clear(
 ):
     u = generator.gen_user()
     a = generator.gen_artefact(assignee_id=u.id)
-    
+
     # Verify assignee is set initially
     assert a.assignee_id == u.id
-    
+
     # Clear the assignee
     response = test_client.patch(
         f"/v1/artefacts/{a.id}",
@@ -477,10 +477,10 @@ def test_update_artefact_assignee_clear_by_launchpad_handle(
 ):
     u = generator.gen_user()
     a = generator.gen_artefact(assignee_id=u.id)
-    
+
     # Verify assignee is set initially
     assert a.assignee_id == u.id
-    
+
     # Clear the assignee using launchpad handle
     response = test_client.patch(
         f"/v1/artefacts/{a.id}",
