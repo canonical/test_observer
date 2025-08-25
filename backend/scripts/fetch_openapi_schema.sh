@@ -1,6 +1,9 @@
 #!/bin/bash
 
-cd backend
+# Get the directory of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Go to backend directory (parent of scripts)
+cd "$SCRIPT_DIR/.."
 
 uv sync
 

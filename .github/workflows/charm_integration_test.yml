@@ -91,8 +91,7 @@ jobs:
 
   integration-test:
     name: Spread (${{ matrix.suite }})
-    
-    runs-on: [self-hosted, linux, large, noble, x64]
+    runs-on: ubuntu-24.04
     needs:
       - define-matrix
       - lib-check
