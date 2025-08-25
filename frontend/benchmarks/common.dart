@@ -131,7 +131,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   Future<List<TestResult>> getTestExecutionResults(int testExecutionId) async {
     return [
       for (int i = 0; i < 300; i++)
-        TestResult(name: 'result $i', status: TestResultStatus.passed),
+        TestResult(id: i, name: 'result $i', status: TestResultStatus.passed),
     ];
   }
 }

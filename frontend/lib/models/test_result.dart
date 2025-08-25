@@ -18,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:yaru/yaru.dart';
 
+import 'issue_attachment.dart';
+
 part 'test_result.freezed.dart';
 part 'test_result.g.dart';
 
@@ -40,6 +42,7 @@ abstract class TestResult with _$TestResult {
   const TestResult._();
 
   const factory TestResult({
+    required int id,
     required String name,
     required TestResultStatus status,
     @Default('') String category,
@@ -49,6 +52,9 @@ abstract class TestResult with _$TestResult {
     @JsonKey(name: 'previous_results')
     @Default([])
     List<PreviousTestResult> previousResults,
+    @JsonKey(name: 'issues')
+    @Default([])
+    List<IssueAttachment> issueAttachments,
   }) = _TestResult;
 
   factory TestResult.fromJson(Map<String, Object?> json) =>

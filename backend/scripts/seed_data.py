@@ -44,7 +44,7 @@ from test_observer.controllers.issues.models import IssuePutRequest
 
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
-from test_observer.data_access.models import Artefact, User
+from test_observer.data_access.models import Artefact, User, TestResult
 from test_observer.data_access.models_enums import (
     FamilyName,
     SnapStage,
@@ -66,6 +66,7 @@ TEST_CASE_ISSUE_URL = f"{BASE_URL}/test-cases/reported-issues"
 ENVIRONMENT_ISSUE_URL = f"{BASE_URL}/environments/reported-issues"
 ISSUE_URL = f"{BASE_URL}/issues"
 PATCH_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/{{id}}"
+POST_ISSUE_ATTACHMENT_URL = f"{BASE_URL}/issues/{{id}}/attach"
 
 START_TEST_EXECUTION_REQUESTS = [
     StartSnapTestExecutionRequest(
@@ -638,6 +639,13 @@ SAMPLE_EXECUTION_METADATA = [
     {"category6": ["value11", "value12"], "category7": ["value13"]},
 ]
 
+SAMPLE_ISSUE_ATTACHMENT_SEQUENCE = [
+    [0, 1, 2],
+    [0, 2],
+    [],
+    [0],
+]
+
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
@@ -678,17 +686,22 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
             json=environment_issue_request.model_dump(mode="json"),
         ).raise_for_status()
 
+    issues = []
     for issue_request in ISSUE_REQUESTS:
-        client.put(
+        response = client.put(
             ISSUE_URL,
             json=issue_request.model_dump(mode="json"),
-        ).raise_for_status()
+        )
+        response.raise_for_status()
+        issues.append(response.json())
 
     _rerun_some_test_executions(client, test_executions)
 
     _add_some_execution_metadata(client, test_executions)
 
     _add_bugurl_and_duedate(session)
+
+    _add_issue_attachments(client, session, issues)
 
     print("Database seeding completed successfully!")
 
@@ -727,6 +740,16 @@ def _add_bugurl_and_duedate(session: Session) -> None:
         )
         artefact.due_date = date.today() + timedelta(days=7)
         session.commit()
+
+
+def _add_issue_attachments(client: TestClient, session: Session, issues: list[dict]) -> None:
+    for idx, test_result in enumerate(session.scalars(select(TestResult)).all()):
+        idxs_to_attach = SAMPLE_ISSUE_ATTACHMENT_SEQUENCE[idx % len(SAMPLE_ISSUE_ATTACHMENT_SEQUENCE)]
+        for issue_idx, issue in enumerate(issues):
+            if issue_idx not in idxs_to_attach:
+                continue
+            client.post(POST_ISSUE_ATTACHMENT_URL.format(id=issue["id"]), json={"test_results": [test_result.id]}).raise_for_status()
+    session.commit()
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/artefact.dart';
+import '../models/issue.dart';
 
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
@@ -209,5 +210,49 @@ class ApiRepository {
       data: review.toJson(),
     );
     return EnvironmentReview.fromJson(response.data);
+  }
+
+  Future<Issue> attachIssueToTestResults({
+    required int issueId,
+    required List<int> testResultIds,
+  }) async {
+    final response = await dio.post(
+      '/v1/issues/$issueId/attach',
+      data: {
+        'test_results': testResultIds,
+      },
+    );
+    return Issue.fromJson(response.data);
+  }
+
+  Future<Issue> detachIssueFromTestResults({
+    required int issueId,
+    required List<int> testResultIds,
+  }) async {
+    final response = await dio.post(
+      '/v1/issues/$issueId/detach',
+      data: {
+        'test_results': testResultIds,
+      },
+    );
+    return Issue.fromJson(response.data);
+  }
+
+  Future<Issue> createIssue({
+    required String url,
+    String? title,
+    String? description,
+    String? status,
+  }) async {
+    final response = await dio.put(
+      '/v1/issues',
+      data: {
+        'url': url,
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+        if (status != null) 'status': status,
+      },
+    );
+    return Issue.fromJson(response.data);
   }
 }
