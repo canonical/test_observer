@@ -117,15 +117,15 @@ def patch_artefact(
     assignee_id_set = (
         hasattr(request, "assignee_id") and "assignee_id" in request.model_fields_set
     )
-    assignee_handle_set = (
-        hasattr(request, "assignee_launchpad_handle")
-        and "assignee_launchpad_handle" in request.model_fields_set
+    assignee_email_set = (
+        hasattr(request, "assignee_email")
+        and "assignee_email" in request.model_fields_set
     )
 
-    if assignee_id_set and assignee_handle_set:
+    if assignee_id_set and assignee_email_set:
         raise HTTPException(
             status_code=422,
-            detail="Cannot specify both assignee_id and assignee_launchpad_handle",
+            detail="Cannot specify both assignee_id and assignee_email",
         )
 
     if assignee_id_set:
@@ -140,20 +140,19 @@ def patch_artefact(
                 )
             artefact.assignee = user
 
-    if assignee_handle_set:
-        if request.assignee_launchpad_handle is None:
+    if assignee_email_set:
+        if request.assignee_email is None:
             artefact.assignee = None
         else:
             user = db.scalar(
                 select(User).where(
-                    User.launchpad_handle == request.assignee_launchpad_handle
+                    User.launchpad_email == request.assignee_email
                 )
             )
             if user is None:
-                handle = request.assignee_launchpad_handle
                 raise HTTPException(
                     status_code=422,
-                    detail=f"User with launchpad handle '{handle}' not found",
+                    detail=f"User with email '{request.assignee_email}' not found",
                 )
             artefact.assignee = user
 

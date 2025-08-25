@@ -142,7 +142,7 @@ class ArtefactPatch(BaseModel):
     stage: StageName | None = None
     comment: str | None = None
     assignee_id: int | None = None
-    assignee_launchpad_handle: str | None = None
+    assignee_email: str | None = None
 
 
 class ArtefactVersionResponse(BaseModel):

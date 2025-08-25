@@ -441,7 +441,7 @@ def test_update_artefact_assignee_clear(
     assert a.assignee_id is None
 
 
-def test_update_artefact_assignee_by_launchpad_handle(
+def test_update_artefact_assignee_by_email(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact()
@@ -449,30 +449,30 @@ def test_update_artefact_assignee_by_launchpad_handle(
 
     response = test_client.patch(
         f"/v1/artefacts/{a.id}",
-        json={"assignee_launchpad_handle": u.launchpad_handle},
+        json={"assignee_email": u.launchpad_email},
     )
 
     assert response.status_code == 200
     assert a.assignee_id == u.id
 
 
-def test_update_artefact_assignee_by_launchpad_handle_nonexistent(
+def test_update_artefact_assignee_by_email_nonexistent(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact()
-    nonexistent_handle = "nonexistent-handle"
+    nonexistent_email = "nonexistent@example.com"
 
     response = test_client.patch(
         f"/v1/artefacts/{a.id}",
-        json={"assignee_launchpad_handle": nonexistent_handle},
+        json={"assignee_email": nonexistent_email},
     )
 
     assert response.status_code == 422
-    expected_msg = f"User with launchpad handle '{nonexistent_handle}' not found"
+    expected_msg = f"User with email '{nonexistent_email}' not found"
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear_by_launchpad_handle(
+def test_update_artefact_assignee_clear_by_email(
     test_client: TestClient, generator: DataGenerator
 ):
     u = generator.gen_user()
@@ -481,17 +481,17 @@ def test_update_artefact_assignee_clear_by_launchpad_handle(
     # Verify assignee is set initially
     assert a.assignee_id == u.id
 
-    # Clear the assignee using launchpad handle
+    # Clear the assignee using email
     response = test_client.patch(
         f"/v1/artefacts/{a.id}",
-        json={"assignee_launchpad_handle": None},
+        json={"assignee_email": None},
     )
 
     assert response.status_code == 200
     assert a.assignee_id is None
 
 
-def test_update_artefact_assignee_both_id_and_handle_error(
+def test_update_artefact_assignee_both_id_and_email_error(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact()
@@ -501,12 +501,12 @@ def test_update_artefact_assignee_both_id_and_handle_error(
         f"/v1/artefacts/{a.id}",
         json={
             "assignee_id": u.id,
-            "assignee_launchpad_handle": u.launchpad_handle,
+            "assignee_email": u.launchpad_email,
         },
     )
 
     assert response.status_code == 422
-    expected_msg = "Cannot specify both assignee_id and assignee_launchpad_handle"
+    expected_msg = "Cannot specify both assignee_id and assignee_email"
     assert expected_msg in response.json()["detail"]
 
 
