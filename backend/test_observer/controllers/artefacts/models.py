@@ -141,6 +141,8 @@ class ArtefactPatch(BaseModel):
     archived: bool | None = None
     stage: StageName | None = None
     comment: str | None = None
+    assignee_id: int | None = None
+    assignee_launchpad_handle: str | None = None
 
 
 class ArtefactVersionResponse(BaseModel):

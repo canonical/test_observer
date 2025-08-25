@@ -23,6 +23,7 @@ from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetri
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    User,
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -112,6 +113,50 @@ def patch_artefact(
         artefact.stage = request.stage
     if request.comment is not None:
         artefact.comment = request.comment
+    
+    assignee_id_set = (
+        hasattr(request, 'assignee_id') and 'assignee_id' in request.model_fields_set
+    )
+    assignee_handle_set = (
+        hasattr(request, 'assignee_launchpad_handle') 
+        and 'assignee_launchpad_handle' in request.model_fields_set
+    )
+    
+    if assignee_id_set and assignee_handle_set:
+        raise HTTPException(
+            status_code=422,
+            detail="Cannot specify both assignee_id and assignee_launchpad_handle"
+        )
+    
+    if assignee_id_set:
+        if request.assignee_id is None:
+            artefact.assignee = None
+        else:
+            user = db.get(User, request.assignee_id)
+            if user is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"User with id {request.assignee_id} not found"
+                )
+            artefact.assignee = user
+    
+    if assignee_handle_set:
+        if request.assignee_launchpad_handle is None:
+            artefact.assignee = None
+        else:
+            user = db.scalar(
+                select(User).where(
+                    User.launchpad_handle == request.assignee_launchpad_handle
+                )
+            )
+            if user is None:
+                handle = request.assignee_launchpad_handle
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"User with launchpad handle '{handle}' not found"
+                )
+            artefact.assignee = user
+    
     db.commit()
     return artefact
 
