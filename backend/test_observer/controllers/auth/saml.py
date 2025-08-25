@@ -33,7 +33,7 @@ def _get_saml_settings() -> dict[str, Any] | None:
     # Skip SAML initialization entirely when SKIP_SAML_INIT env var is set
     if os.getenv("SKIP_SAML_INIT"):
         return None
-    
+
     sp_base_url = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
     idp_metadata_url = os.getenv(
         "SAML_IDP_METADATA_URL",
@@ -67,7 +67,9 @@ saml_settings = _get_saml_settings()
 @router.get("/login")
 async def saml_login(request: Request):
     if saml_settings is None:
-        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
+        raise HTTPException(
+            status_code=503, detail="SAML authentication is not configured"
+        )
     req = await _prepare_from_fastapi_request(request)
     settings = saml_settings
     auth = OneLogin_Saml2_Auth(req, settings)
@@ -77,7 +79,9 @@ async def saml_login(request: Request):
 @router.get("/logout")
 async def saml_logout(request: Request):
     if saml_settings is None:
-        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
+        raise HTTPException(
+            status_code=503, detail="SAML authentication is not configured"
+        )
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, saml_settings)
     return RedirectResponse(url=auth.logout())
@@ -86,7 +90,9 @@ async def saml_logout(request: Request):
 @router.post("/acs")
 async def saml_login_callback(request: Request):
     if saml_settings is None:
-        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
+        raise HTTPException(
+            status_code=503, detail="SAML authentication is not configured"
+        )
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, saml_settings)
     auth.process_response()
@@ -115,7 +121,9 @@ async def saml_login_callback(request: Request):
 @router.get("/sls")
 async def saml_logout_callback(request: Request):
     if saml_settings is None:
-        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
+        raise HTTPException(
+            status_code=503, detail="SAML authentication is not configured"
+        )
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, saml_settings)
     auth.process_slo()
