@@ -167,7 +167,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname                 = var.environment == var.frontend_hostname
+    hostname                 = var.frontend_hostname
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 
