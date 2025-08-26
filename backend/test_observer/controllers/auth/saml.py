@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import cache
 import logging
 from typing import Any
 from fastapi import APIRouter, HTTPException, Request
@@ -29,24 +30,14 @@ router = APIRouter(prefix="/saml", tags=["authentication"])
 logger = logging.getLogger("test-observer-backend")
 
 
-def _get_saml_settings() -> dict[str, Any] | None:
-    # Only initialize SAML if IDP metadata URL is provided
-    idp_metadata_url = os.getenv("SAML_IDP_METADATA_URL")
-    if not idp_metadata_url:
-        logger.info("SAML not configured - no IDP metadata URL provided")
-        return None
-
+@cache
+def _get_saml_settings() -> dict[str, Any]:
     sp_base_url = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
 
-    try:
-        idp_settings = OneLogin_Saml2_IdPMetadataParser.parse_remote(idp_metadata_url)[
-            "idp"
-        ]
-    except Exception as e:
-        logger.warning(
-            f"Failed to fetch SAML IDP metadata from {idp_metadata_url}: {e}"
-        )
-        return None
+    idp_metadata_url = os.getenv(
+        "SAML_IDP_METADATA_URL",
+        "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
+    )
 
     return {
         "strict": True,
@@ -65,28 +56,13 @@ def _get_saml_settings() -> dict[str, Any] | None:
             "x509cert": os.getenv("SAML_SP_X509_CERT", ""),
             "privateKey": os.getenv("SAML_SP_KEY", ""),
         },
-        "idp": idp_settings,
+        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(idp_metadata_url)["idp"],
     }
-
-
-# Sentinel value for uninitialized cache
-_UNINITIALIZED = object()
-
-# Cache for lazy initialization
-_saml_settings_cache: Any = _UNINITIALIZED
-
-
-def get_saml_settings() -> dict[str, Any] | None:
-    """Get SAML settings with lazy initialization."""
-    global _saml_settings_cache
-    if _saml_settings_cache is _UNINITIALIZED:
-        _saml_settings_cache = _get_saml_settings()
-    return _saml_settings_cache
 
 
 @router.get("/login")
 async def saml_login(request: Request):
-    settings = get_saml_settings()
+    settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
@@ -98,7 +74,7 @@ async def saml_login(request: Request):
 
 @router.get("/logout")
 async def saml_logout(request: Request):
-    settings = get_saml_settings()
+    settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
@@ -110,7 +86,7 @@ async def saml_logout(request: Request):
 
 @router.post("/acs")
 async def saml_login_callback(request: Request):
-    settings = get_saml_settings()
+    settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
@@ -142,7 +118,7 @@ async def saml_login_callback(request: Request):
 @router.post("/sls")
 @router.get("/sls")
 async def saml_logout_callback(request: Request):
-    settings = get_saml_settings()
+    settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
