@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "Starting Test Observer Backend..."
-
 # Wait for database to be ready
 echo "Waiting for database to be ready..."
 uv run python wait_for_db.py
