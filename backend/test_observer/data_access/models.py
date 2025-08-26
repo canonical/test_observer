@@ -78,7 +78,7 @@ class Base(DeclarativeBase):
 DataModel = TypeVar("DataModel", bound=Base)
 
 
-def data_model_repr(obj: DataModel, *keys: str) -> str:
+def data_model_repr[T: Base](obj: T, *keys: str) -> str:
     all_keys = ("id", "created_at", "updated_at") + keys
     kwargs = [f"{key}={getattr(obj, key)!r}" for key in all_keys]
     return f"{type(obj).__name__}({', '.join(kwargs)})"

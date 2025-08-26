@@ -20,20 +20,25 @@ import subprocess
 import shutil
 
 
-def get_git_version_info(fallback_version="0.0.0"):
+def get_git_version_info(fallback_version: str = "0.0.0") -> str:
     """
     Retrieves version information for the package from git.
 
     Args:
-        fallback_version (str): The version to return if git is unavailable or an error occurs.
+        fallback_version: The version to return if git is unavailable or
+            an error occurs.
 
     Returns:
         str: The version string in the format 'latest_tag.commit_count.short_rev',
-             or '0.0.0.0.short_rev' if no tags are found, or the fallback version if git is unavailable.
+             or '0.0.0.0.short_rev' if no tags are found, or the fallback version
+             if git is unavailable.
 
     Example:
         >>> import subprocess
-        >>> subprocess.check_output = lambda cmd, stderr=None: b'v1.2.3\\n' if 'tag' in cmd else b'5' if 'rev-list' in cmd else b'abc123'
+        >>> subprocess.check_output = lambda cmd, stderr=None: (
+        ...     b'v1.2.3\\n' if 'tag' in cmd else
+        ...     b'5' if 'rev-list' in cmd else b'abc123'
+        ... )
         >>> get_git_version_info()
         '1.2.3-5+abc123'
     """
@@ -94,7 +99,9 @@ def get_git_version_info(fallback_version="0.0.0"):
 
 
 if __name__ == "__main__":
+    import logging
     import sys
 
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     fallback = sys.argv[1] if len(sys.argv) > 1 else "0.0.0"
-    print(get_git_version_info(fallback))
+    logging.info(get_git_version_info(fallback))
