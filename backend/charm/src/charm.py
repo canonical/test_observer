@@ -136,7 +136,7 @@ class TestObserverBackendCharm(CharmBase):
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
             return
-        
+
         self._migrate_database()
         self._update_api_layer(None)
         self._update_celery_layer(None)
@@ -147,22 +147,22 @@ class TestObserverBackendCharm(CharmBase):
 
     def _validate_saml_config(self) -> bool:
         """Validate SAML configuration.
-        
+
         If any SAML config is provided, all three must be provided.
         Returns True if config is valid, False otherwise.
         """
         saml_idp_metadata_url = self.config.get("saml_idp_metadata_url", "")
         saml_sp_cert = self.config.get("saml_sp_cert", "")
         saml_sp_key = self.config.get("saml_sp_key", "")
-        
+
         # Check if any SAML config is provided
         has_any_saml = bool(saml_idp_metadata_url or saml_sp_cert or saml_sp_key)
-        
+
         # If any is provided, all must be provided
         if has_any_saml:
             has_all_saml = bool(saml_idp_metadata_url and saml_sp_cert and saml_sp_key)
             return has_all_saml
-        
+
         # If none are provided, that's valid
         return True
 
@@ -190,7 +190,7 @@ class TestObserverBackendCharm(CharmBase):
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
             return
-        
+
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
         if self.api_container.can_connect():
@@ -212,7 +212,7 @@ class TestObserverBackendCharm(CharmBase):
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
             return
-        
+
         self.unit.status = MaintenanceStatus(f"Updating {self.celery_pebble_service_name} layer")
 
         if self.celery_container.can_connect():
