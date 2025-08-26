@@ -388,4 +388,42 @@ class ApiRepository {
     );
     return response.data;
   }
+
+  Future<String> getTestCaseIssuesCsv({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    
+    final response = await dio.get(
+      '/v1/test-cases/reported-issues/export/csv',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
+
+  Future<String> getEnvironmentIssuesCsv({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (startDate != null) {
+      queryParameters['start_date'] = startDate.toIso8601String();
+    }
+    if (endDate != null) {
+      queryParameters['end_date'] = endDate.toIso8601String();
+    }
+    
+    final response = await dio.get(
+      '/v1/environments/reported-issues/export/csv',
+      queryParameters: queryParameters,
+    );
+    return response.data;
+  }
 }

@@ -15,13 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import csv
 from datetime import datetime
 from fastapi import APIRouter, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy import select, and_, func, distinct
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
-    EnvironmentIssue, Environment, TestExecution, ArtefactBuild, Artefact, TestResult
+    EnvironmentIssue, Environment, TestExecution, ArtefactBuild, Artefact, TestResult, TestCase
 )
 from test_observer.data_access.setup import get_db
 
@@ -88,6 +90,83 @@ def get_reported_issues(
         result.append(issue_dict)
     
     return result
+
+
+@router.get(endpoint + "/export/csv")
+def get_environment_issues_csv(
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Export environment issues as CSV.
+    """
+    # Get basic issue data
+    stmt = select(EnvironmentIssue)
+    issues = list(db.execute(stmt).scalars())
+    
+    # For each issue, calculate the affected artifacts count
+    result = []
+    for issue in issues:
+        # Query to count distinct artifacts with failures in this environment within date range
+        affected_artifacts_query = (
+            select(func.count(distinct(Artefact.id)))
+            .select_from(TestExecution)
+            .join(Environment, TestExecution.environment_id == Environment.id)
+            .join(ArtefactBuild, TestExecution.artefact_build_id == ArtefactBuild.id)
+            .join(Artefact, ArtefactBuild.artefact_id == Artefact.id)
+            .join(TestResult, TestResult.test_execution_id == TestExecution.id)
+            .where(and_(
+                Environment.name == issue.environment_name,
+                TestResult.status == 'FAILED'
+            ))
+        )
+        
+        # Apply date filtering if provided
+        if start_date:
+            affected_artifacts_query = affected_artifacts_query.where(TestExecution.created_at >= start_date)
+        if end_date:
+            affected_artifacts_query = affected_artifacts_query.where(TestExecution.created_at <= end_date)
+        
+        affected_count = db.execute(affected_artifacts_query).scalar() or 0
+        
+        # Add to result
+        result.append([
+            issue.id,
+            issue.environment_name,
+            issue.description,
+            str(issue.url) if issue.url else '',
+            issue.is_confirmed,
+            issue.external_id or '',
+            issue.issue_status.value if issue.issue_status else '',
+            issue.sync_status.value if issue.sync_status else '',
+            issue.last_synced_at.isoformat() if issue.last_synced_at else '',
+            issue.sync_error or '',
+            affected_count
+        ])
+    
+    # Generate CSV content in memory
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'ID',
+        'Environment Name',
+        'Description',
+        'URL',
+        'Is Confirmed',
+        'External ID',
+        'Issue Status',
+        'Sync Status',
+        'Last Synced',
+        'Sync Error',
+        'Affected Artifacts Count'
+    ])
+    writer.writerows(result)
+    csv_content = output.getvalue()
+    output.close()
+    
+    return csv_content
 
 
 @router.post(endpoint, response_model=EnvironmentReportedIssueResponse)
@@ -160,7 +239,7 @@ def get_affected_artefacts(
             TestExecution.c3_link.label('c3_link'),
             TestExecution.ci_link.label('ci_link'),
             TestResult.test_case_id.label('test_case_id'),
-            TestResult.name.label('test_case_name'),
+            TestCase.name.label('test_case_name'),
             TestResult.io_log.label('io_log')
         )
         .select_from(TestExecution)
@@ -168,10 +247,10 @@ def get_affected_artefacts(
         .join(ArtefactBuild, TestExecution.artefact_build_id == ArtefactBuild.id)
         .join(Artefact, ArtefactBuild.artefact_id == Artefact.id)
         .join(TestResult, TestResult.test_execution_id == TestExecution.id)
-        .where(and_(
-            Environment.name == issue.environment_name,
-            TestResult.status == 'FAILED'
-        ))
+        .join(TestCase, TestResult.test_case_id == TestCase.id)
+        .where(
+            Environment.name == issue.environment_name
+        )
     )
     
     # Apply date filtering if provided
@@ -227,9 +306,11 @@ def get_affected_artefacts(
             artefacts_dict[artefact_key]['io_logs'].append({
                 'test_execution_id': row.test_execution_id,
                 'content': row.io_log,
-                'test_case_name': row.test_case_name
+                'test_case_name': row.test_case_name,
+                'status': row.test_result_status
             })
         
+        # Count all failures regardless of whether we include them in details
         if row.test_result_status == 'FAILED':
             artefacts_dict[artefact_key]['failure_count'] += 1
     

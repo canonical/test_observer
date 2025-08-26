@@ -18,8 +18,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:html' as html;
 
 import '../../providers/reports.dart';
+import '../../providers/api.dart';
 import '../spacing.dart';
 import '../common/error_display.dart';
 import '../common/io_log_viewer.dart';
@@ -159,6 +161,15 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
               ),
               Row(
                 children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _downloadTestCaseIssuesCsv(),
+                    icon: const Icon(Icons.download, size: 16),
+                    label: const Text('Export CSV'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.level3),
                   _buildDateRangeSelector(),
                   const SizedBox(width: Spacing.level3),
                   _buildFilterTextField(
@@ -2001,5 +2012,26 @@ class _KnownIssuesReportPageState extends ConsumerState<KnownIssuesReportPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _downloadTestCaseIssuesCsv() async {
+    try {
+      final api = ref.read(apiProvider);
+      final csvContent = await api.getTestCaseIssuesCsv(
+        startDate: _selectedDateRange?.startDate,
+        endDate: _selectedDateRange?.endDate,
+      );
+      
+      final blob = html.Blob([csvContent], 'text/csv');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'test_case_issues_report.csv')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export CSV: $e')),
+      );
+    }
   }
 }

@@ -19,10 +19,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:html' as html;
 
 import '../../providers/reports.dart';
+import '../../providers/api.dart';
 import '../spacing.dart';
 import '../common/error_display.dart';
+import '../common/io_log_viewer.dart';
 
 class EnvironmentIssuesReportPage extends ConsumerStatefulWidget {
   const EnvironmentIssuesReportPage({super.key});
@@ -42,6 +45,9 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
   
   // Filter to hide issues with no affected artifacts
   bool _hideUnaffectedIssues = false;
+  
+  // Filter to hide closed issues
+  bool _hideClosedIssues = true;
   
   // Track expanded issues
   final Set<int> _expandedIssues = <int>{};
@@ -88,6 +94,15 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
               ),
               Row(
                 children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _downloadEnvironmentIssuesCsv(),
+                    icon: const Icon(Icons.download, size: 16),
+                    label: const Text('Export CSV'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.level3),
                   _buildDateRangeSelector(),
                   const SizedBox(width: Spacing.level3),
                   _buildFilterTextField(
@@ -429,6 +444,14 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
       }).toList();
     }
 
+    // Apply closed issues filter
+    if (_hideClosedIssues) {
+      issues = issues.where((issue) {
+        final status = issue['issue_status']?.toString().toUpperCase();
+        return status != 'CLOSED';
+      }).toList();
+    }
+
     // Apply unaffected issues filter
     if (_hideUnaffectedIssues) {
       issues = issues.where((issue) {
@@ -451,8 +474,8 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
             bValue = b['environment_name'] ?? '';
             break;
           case 2: // Status
-            aValue = a['is_confirmed'] == true ? 'Confirmed' : 'Unconfirmed';
-            bValue = b['is_confirmed'] == true ? 'Confirmed' : 'Unconfirmed';
+            aValue = a['issue_status'] ?? 'UNKNOWN';
+            bValue = b['issue_status'] ?? 'UNKNOWN';
             break;
           case 3: // Affected artifacts count
             aValue = a['affected_artifacts_count'] ?? 0;
@@ -521,6 +544,16 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Checkbox(
+                  value: _hideClosedIssues,
+                  onChanged: (value) {
+                    setState(() {
+                      _hideClosedIssues = value ?? false;
+                    });
+                  },
+                ),
+                const Text('Hide closed issues'),
+                const SizedBox(width: 16),
                 Checkbox(
                   value: _hideUnaffectedIssues,
                   onChanged: (value) {
@@ -785,7 +818,7 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
                 ),
                 SizedBox(
                   width: 100,
-                  child: Center(child: _buildStatusChip(issue['is_confirmed'])),
+                  child: Center(child: _buildStatusChip(issue['issue_status'])),
                 ),
                 SizedBox(
                   width: 80,
@@ -939,20 +972,25 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildStatusChip(bool? isConfirmed) {
-    final confirmed = isConfirmed ?? false;
+  Widget _buildStatusChip(String? status) {
+    final statusValue = status ?? 'UNKNOWN';
     Color chipColor;
     Color textColor;
-    String statusText;
 
-    if (confirmed) {
-      chipColor = Theme.of(context).colorScheme.primaryContainer;
-      textColor = Theme.of(context).colorScheme.onPrimaryContainer;
-      statusText = 'Confirmed';
-    } else {
-      chipColor = Theme.of(context).colorScheme.surfaceContainerHighest;
-      textColor = Theme.of(context).colorScheme.onSurface;
-      statusText = 'Unconfirmed';
+    switch (statusValue.toUpperCase()) {
+      case 'OPEN':
+        chipColor = Theme.of(context).colorScheme.errorContainer;
+        textColor = Theme.of(context).colorScheme.onErrorContainer;
+        break;
+      case 'CLOSED':
+        chipColor = Theme.of(context).colorScheme.primaryContainer;
+        textColor = Theme.of(context).colorScheme.onPrimaryContainer;
+        break;
+      case 'UNKNOWN':
+      default:
+        chipColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+        textColor = Theme.of(context).colorScheme.onSurface;
+        break;
     }
 
     return Container(
@@ -962,7 +1000,7 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        statusText,
+        statusValue,
         style: TextStyle(
           color: textColor,
           fontSize: 12,
@@ -992,6 +1030,7 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
       artefacts,
       Theme.of(context).colorScheme.surfaceContainerHighest,
       Theme.of(context).colorScheme.primary,
+      environmentName,
     );
   }
 
@@ -1000,6 +1039,7 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
     List artefacts,
     Color backgroundColor,
     Color borderColor,
+    String environmentName,
   ) {
     // Group artefacts by name
     final groupedArtefacts = <String, List<Map<String, dynamic>>>{};
@@ -1192,7 +1232,7 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
                         ],
                       ),
                       const SizedBox(height: 4),
-                      _buildTestExecutionSection(artefact, artefactId),
+                      _buildTestExecutionSection(artefact, artefactId, environmentName),
                     ],
                   ),
                 );
@@ -1207,6 +1247,7 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
   Widget _buildTestExecutionSection(
     Map<String, dynamic> artefact,
     int artefactId,
+    String environmentName,
   ) {
     final testExecutionDetails = artefact['test_execution_details'] as List? ?? [];
     final c3Links = artefact['c3_links'] as List? ?? [];
@@ -1347,6 +1388,61 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
                   ),
                   const SizedBox(height: 8),
                 ],
+                
+                // IO Log button section
+                if (ioLogs.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Text(
+                        'IO Logs (${ioLogs.length}):',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () => showIOLogDialog(
+                          context,
+                          ioLogs.cast<Map<String, dynamic>>(),
+                          environmentName,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(3),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View Logs',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.open_in_new,
+                                size: 10,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                
                 // Test execution details
                 Text(
                   'Test Cases:',
@@ -1410,6 +1506,27 @@ class _EnvironmentIssuesReportPageState extends ConsumerState<EnvironmentIssuesR
     final uri = Uri.parse(urlString);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
+    }
+  }
+
+  Future<void> _downloadEnvironmentIssuesCsv() async {
+    try {
+      final api = ref.read(apiProvider);
+      final csvContent = await api.getEnvironmentIssuesCsv(
+        startDate: _selectedDateRange?.startDate,
+        endDate: _selectedDateRange?.endDate,
+      );
+      
+      final blob = html.Blob([csvContent], 'text/csv');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'environment_issues_report.csv')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export CSV: $e')),
+      );
     }
   }
 }

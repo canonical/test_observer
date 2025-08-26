@@ -15,8 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import csv
 from datetime import datetime
 from fastapi import APIRouter, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy import select, and_, or_, func, distinct
 from sqlalchemy.orm import Session
 
@@ -97,6 +99,86 @@ def get_reported_issues(
         result.append(issue_dict)
     
     return result
+
+
+@router.get(endpoint + "/export/csv")
+def get_test_case_issues_csv(
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Export test case issues as CSV.
+    """
+    # Get the test case issues data (similar to the main endpoint)
+    stmt = select(TestCaseIssue)
+    issues = list(db.execute(stmt).scalars())
+    
+    # For each issue, calculate the affected artifacts count
+    result = []
+    for issue in issues:
+        # Count affected artifacts
+        affected_artifacts_query = (
+            select(func.count(distinct(func.concat(Artefact.id, '-', Environment.id))))
+            .select_from(TestCaseIssue)
+            .join(TestCase, or_(
+                and_(TestCase.template_id == TestCaseIssue.template_id, TestCaseIssue.template_id != ''),
+                and_(TestCase.name == TestCaseIssue.case_name, TestCaseIssue.case_name != '')
+            ))
+            .join(TestResult, TestResult.test_case_id == TestCase.id)
+            .join(TestExecution, TestResult.test_execution_id == TestExecution.id)
+            .join(ArtefactBuild, TestExecution.artefact_build_id == ArtefactBuild.id)
+            .join(Artefact, ArtefactBuild.artefact_id == Artefact.id)
+            .join(Environment, TestExecution.environment_id == Environment.id)
+            .where(and_(
+                TestCaseIssue.id == issue.id,
+                TestResult.status == 'FAILED'
+            ))
+        )
+        
+        # Apply date filtering if provided
+        if start_date:
+            affected_artifacts_query = affected_artifacts_query.where(TestExecution.created_at >= start_date)
+        if end_date:
+            affected_artifacts_query = affected_artifacts_query.where(TestExecution.created_at <= end_date)
+        
+        affected_count = db.execute(affected_artifacts_query).scalar() or 0
+        
+        # Add to result
+        result.append([
+            issue.id,
+            issue.template_id or issue.case_name,
+            issue.description,
+            str(issue.url) if issue.url else '',
+            issue.external_id or '',
+            issue.issue_status.value if issue.issue_status else '',
+            issue.sync_status.value if issue.sync_status else '',
+            issue.last_synced_at.isoformat() if issue.last_synced_at else '',
+            issue.sync_error or '',
+            affected_count
+        ])
+    
+    # Generate CSV content in memory
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'ID',
+        'Test Case',
+        'Description', 
+        'URL',
+        'External ID',
+        'Issue Status',
+        'Sync Status',
+        'Last Synced',
+        'Sync Error',
+        'Affected Artifacts Count'
+    ])
+    writer.writerows(result)
+    csv_content = output.getvalue()
+    output.close()
+    
+    return csv_content
 
 
 @router.post(endpoint, response_model=TestReportedIssueResponse)
