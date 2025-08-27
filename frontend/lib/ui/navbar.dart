@@ -15,20 +15,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
+import '../providers/api.dart';
 import '../routing.dart';
 import 'spacing.dart';
 
 const _navbarHeight = 57.0;
 
-class Navbar extends StatelessWidget {
+class Navbar extends ConsumerWidget {
   const Navbar({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       color: YaruColors.coolGrey,
       alignment: Alignment.center,
@@ -65,6 +67,20 @@ class Navbar extends StatelessWidget {
                     route: AppRoutes.images,
                   ),
                   const Spacer(),
+                  _NavbarButton(
+                    title: 'login',
+                    onTap: () {
+                      final uri = Uri.parse(apiUrl);
+                      final newUri = uri.replace(
+                        path: '/v1/auth/saml/login',
+                        queryParameters: {'return_to': Uri.base.toString()},
+                      );
+                      launchUrlString(
+                        newUri.toString(),
+                        webOnlyWindowName: '_self',
+                      );
+                    },
+                  ),
                   _NavbarDropdownEntry(
                     label: 'Help',
                     dropdownChildren: [
@@ -163,6 +179,30 @@ class _NavbarEntry extends StatelessWidget {
         color: GoRouterState.of(context).fullPath!.startsWith(route)
             ? YaruColors.orange
             : null,
+        padding: const EdgeInsets.all(Spacing.level4),
+        child: Text(
+          title,
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.apply(color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavbarButton extends StatelessWidget {
+  const _NavbarButton({required this.title, this.onTap});
+
+  final String title;
+  final void Function()? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
         padding: const EdgeInsets.all(Spacing.level4),
         child: Text(
           title,

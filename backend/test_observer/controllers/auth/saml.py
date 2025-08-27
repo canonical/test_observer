@@ -17,11 +17,19 @@
 from functools import cache
 import logging
 from typing import Any
-from fastapi import APIRouter, HTTPException, Request
+from urllib.parse import urlparse
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
-import os
+
+from test_observer.common.config import (
+    SAML_IDP_METADATA_URL,
+    SAML_SP_BASE_URL,
+    SAML_SP_KEY,
+    SAML_SP_X509_CERT,
+)
+from test_observer.main import FRONTEND_URL
 
 
 router = APIRouter(prefix="/saml", tags=["authentication"])
@@ -32,36 +40,31 @@ logger = logging.getLogger("test-observer-backend")
 
 @cache
 def _get_saml_settings() -> dict[str, Any]:
-    sp_base_url = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
-
-    idp_metadata_url = os.getenv(
-        "SAML_IDP_METADATA_URL",
-        "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
-    )
-
     return {
         "strict": True,
         "debug": True,
         "sp": {
-            "entityId": f"{sp_base_url}",
+            "entityId": f"{SAML_SP_BASE_URL}",
             "assertionConsumerService": {
-                "url": f"{sp_base_url}/v1/auth/saml/acs",
+                "url": f"{SAML_SP_BASE_URL}/v1/auth/saml/acs",
                 "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
             },
             "singleLogoutService": {
-                "url": f"{sp_base_url}/v1/auth/saml/sls",
+                "url": f"{SAML_SP_BASE_URL}/v1/auth/saml/sls",
                 "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
             },
             "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-            "x509cert": os.getenv("SAML_SP_X509_CERT", ""),
-            "privateKey": os.getenv("SAML_SP_KEY", ""),
+            "x509cert": SAML_SP_X509_CERT,
+            "privateKey": SAML_SP_KEY,
         },
-        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(idp_metadata_url)["idp"],
+        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL)[
+            "idp"
+        ],
     }
 
 
 @router.get("/login")
-async def saml_login(request: Request):
+async def saml_login(request: Request, return_to: str | None = None):
     settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
@@ -69,7 +72,7 @@ async def saml_login(request: Request):
         )
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
-    return RedirectResponse(url=auth.login())
+    return RedirectResponse(url=auth.login(return_to=return_to))
 
 
 @router.get("/logout")
@@ -106,6 +109,23 @@ async def saml_login_callback(request: Request):
 
     if not auth.is_authenticated():
         raise HTTPException(403, "Authentication failed")
+
+    if return_to := req["post_data"]["RelayState"]:
+        frontend_url = urlparse(FRONTEND_URL)
+        return_url = urlparse(return_to)
+        # Check if it's safe to redirect user to this URL
+        if frontend_url.netloc == return_url.netloc:
+            response = RedirectResponse(
+                url=return_to, status_code=status.HTTP_302_FOUND
+            )
+            response.set_cookie(
+                key="fakesession",
+                value="fake-cookie-session-value",
+            )
+            return response
+        else:
+            # Note by default python3-saml returns to API url
+            logger.warning(f"Received invalid return url {return_to}")
 
     return {
         "name_id_format": auth.get_nameid_format(),
