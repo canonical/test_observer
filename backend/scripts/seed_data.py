@@ -40,7 +40,10 @@ from test_observer.controllers.test_executions.models import (
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
-from test_observer.controllers.issues.models import IssuePutRequest
+from test_observer.controllers.issues.models import (
+    IssuePutRequest,
+    IssueTestResultAttachmentRulePostRequest,
+)
 
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
@@ -67,6 +70,32 @@ ENVIRONMENT_ISSUE_URL = f"{BASE_URL}/environments/reported-issues"
 ISSUE_URL = f"{BASE_URL}/issues"
 PATCH_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/{{id}}"
 POST_ISSUE_ATTACHMENT_URL = f"{BASE_URL}/issues/{{id}}/attach"
+POST_TEST_RESULT_ISSUE_ATTACHMENT_URL = f"{BASE_URL}/issues/{{id}}/attachment-rules"
+
+ISSUE_REQUESTS = [
+    IssuePutRequest(
+        url=HttpUrl("https://github.com/canonical/test_observer/issues/71"),
+        title="no way to filter and ctrl+f does not work",
+        status=IssueStatus.CLOSED,
+    ),
+    IssuePutRequest(
+        url=HttpUrl("https://warthogs.atlassian.net/browse/TO-142"),
+        title="Create issues model and associated management APIs",
+        status=IssueStatus.OPEN,
+    ),
+    IssuePutRequest(
+        url=HttpUrl("https://bugs.launchpad.net/some-project/+bug/123456"),
+    ),
+]
+
+TEST_RESULT_ATTACHMENT_RULE_REQUESTS = [
+    (
+        "https://github.com/canonical/test_observer/issues/71",
+        IssueTestResultAttachmentRulePostRequest(
+            environment_names=["rpi2"],
+        ),
+    )
+]
 
 START_TEST_EXECUTION_REQUESTS = [
     StartSnapTestExecutionRequest(
@@ -599,22 +628,6 @@ ENVIRONMENT_ISSUE_REQUESTS = [
     ),
 ]
 
-ISSUE_REQUESTS = [
-    IssuePutRequest(
-        url=HttpUrl("https://github.com/canonical/test_observer/issues/71"),
-        title="no way to filter and ctrl+f does not work",
-        status=IssueStatus.CLOSED,
-    ),
-    IssuePutRequest(
-        url=HttpUrl("https://warthogs.atlassian.net/browse/TO-142"),
-        title="Create issues model and associated management APIs",
-        status=IssueStatus.OPEN,
-    ),
-    IssuePutRequest(
-        url=HttpUrl("https://bugs.launchpad.net/some-project/+bug/123456"),
-    ),
-]
-
 SAMPLE_EXECUTION_METADATA = [
     {"category1": ["value1", "value2"], "category2": ["value3"]},
     {
@@ -662,6 +675,31 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
 
     add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
+    issues = []
+    for issue_request in ISSUE_REQUESTS:
+        response = client.put(
+            ISSUE_URL,
+            json=issue_request.model_dump(mode="json"),
+        )
+        response.raise_for_status()
+        issues.append(response.json())
+
+    attachment_rules = []
+    for issue_url, attachment_rule_request in TEST_RESULT_ATTACHMENT_RULE_REQUESTS:
+        issue_id = None
+        for issue in issues:
+            if issue["url"] == issue_url:
+                issue_id = issue["id"]
+        if issue_id is None:
+            print(f"Could not find issue ID for URL: {issue_url}")
+            continue
+        response = client.post(
+            POST_TEST_RESULT_ISSUE_ATTACHMENT_URL.format(id=issue_id),
+            json=attachment_rule_request.model_dump(mode="json"),
+        )
+        response.raise_for_status()
+        attachment_rules.append(response.json())
+
     test_executions = []
     for start_request in START_TEST_EXECUTION_REQUESTS:
         response = client.put(
@@ -685,15 +723,6 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
             ENVIRONMENT_ISSUE_URL,
             json=environment_issue_request.model_dump(mode="json"),
         ).raise_for_status()
-
-    issues = []
-    for issue_request in ISSUE_REQUESTS:
-        response = client.put(
-            ISSUE_URL,
-            json=issue_request.model_dump(mode="json"),
-        )
-        response.raise_for_status()
-        issues.append(response.json())
 
     _rerun_some_test_executions(client, test_executions)
 

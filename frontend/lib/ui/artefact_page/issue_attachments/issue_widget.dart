@@ -84,6 +84,8 @@ class IssueWidget extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
                 decoration: TextDecoration.none,
               ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
       ],
     );

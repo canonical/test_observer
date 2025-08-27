@@ -36,14 +36,13 @@ class IssueAttachmentWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: IssueWidget(issue: issueAttachment.issue),
         ),
         if (issueAttachment.attachmentRule != null) ...[
           Tooltip(
-            message: 'Attachment rule',
+            message: 'Attached by a rule',
             child: InkWell(
               onTap: () {}, // Placeholder link
               child: const Icon(Icons.attachment, size: 20),
