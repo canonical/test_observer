@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+
 import '../../../models/issue.dart';
 
 class IssueStatusChip extends StatelessWidget {

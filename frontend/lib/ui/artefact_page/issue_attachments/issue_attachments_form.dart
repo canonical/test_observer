@@ -14,16 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../models/issue.dart';
+import '../../../models/test_result.dart';
+import '../../../providers/issues.dart';
+import '../../../providers/test_result_issue_attachments.dart';
 import '../../notification.dart';
 import '../../spacing.dart';
-import '../../../models/test_result.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../vanilla/vanilla_text_input.dart';
-import 'package:go_router/go_router.dart';
-import '../../../providers/test_result_issue_attachments.dart';
-import '../../../providers/issues.dart';
-import '../../../models/issue.dart';
 import 'issue_widget.dart';
 
 class _AttachIssueForm extends ConsumerWidget {

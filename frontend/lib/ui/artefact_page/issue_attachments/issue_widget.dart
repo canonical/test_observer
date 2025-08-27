@@ -18,8 +18,8 @@ import 'package:flutter/material.dart';
 
 import '../../../models/issue.dart';
 import '../../inline_url_text.dart';
-import 'issue_status_chip.dart';
 import '../../spacing.dart';
+import 'issue_status_chip.dart';
 
 class IssueWidget extends StatelessWidget {
   const IssueWidget({
@@ -48,22 +48,32 @@ class IssueWidget extends StatelessWidget {
                   ),
             ),
             SizedBox(width: Spacing.level3),
-            // Project (gray)
-            Text(
-              issue.project,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Colors.grey),
-            ),
-            SizedBox(width: Spacing.level3),
-            // #key as link
-            InlineUrlText(
-              url: issue.url,
-              urlText: '#${issue.key}',
-              fontStyle: Theme.of(context).textTheme.bodyMedium,
-            ),
-            SizedBox(width: Spacing.level3),
+            // If source is jira, show project-key as a single link
+            if (issue.source == IssueSource.jira) ...[
+              InlineUrlText(
+                url: issue.url,
+                urlText: '${issue.project}-${issue.key}',
+                fontStyle: Theme.of(context).textTheme.bodyMedium,
+              ),
+              SizedBox(width: Spacing.level3),
+            ] else ...[
+              // Project (gray)
+              Text(
+                issue.project,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.grey),
+              ),
+              SizedBox(width: Spacing.level3),
+              // #key as link
+              InlineUrlText(
+                url: issue.url,
+                urlText: '#${issue.key}',
+                fontStyle: Theme.of(context).textTheme.bodyMedium,
+              ),
+              SizedBox(width: Spacing.level3),
+            ],
             IssueStatusChip(status: issue.status),
           ],
         ),
