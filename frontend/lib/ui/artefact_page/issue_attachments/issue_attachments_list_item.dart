@@ -20,7 +20,6 @@ import '../../../models/issue_attachment.dart';
 import 'issue_attachment_widget.dart';
 import '../../spacing.dart';
 
-
 class IssueAttachmentListItem extends StatelessWidget {
   const IssueAttachmentListItem({
     super.key,
@@ -37,7 +36,9 @@ class IssueAttachmentListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-          vertical: Spacing.level3, horizontal: Spacing.level4,),
+        vertical: Spacing.level3,
+        horizontal: Spacing.level4,
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
@@ -46,12 +47,16 @@ class IssueAttachmentListItem extends StatelessWidget {
         },
         child: Card(
           child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  vertical: Spacing.level3, horizontal: Spacing.level4,),
-              child: IssueAttachmentWidget(
-                  issueAttachment: issueAttachment,
-                  testExecutionId: testExecutionId,
-                  testResultId: testResultId,),),
+            padding: const EdgeInsets.symmetric(
+              vertical: Spacing.level3,
+              horizontal: Spacing.level4,
+            ),
+            child: IssueAttachmentWidget(
+              issueAttachment: issueAttachment,
+              testExecutionId: testExecutionId,
+              testResultId: testResultId,
+            ),
+          ),
         ),
       ),
     );

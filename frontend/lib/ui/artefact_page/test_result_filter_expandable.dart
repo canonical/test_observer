@@ -63,7 +63,9 @@ class TestResultsFilterExpandable extends StatelessWidget {
           children: filteredTestResults
               .map(
                 (testResult) => TestResultExpandable(
-                    testExecutionId: testExecutionId, testResult: testResult,),
+                  testExecutionId: testExecutionId,
+                  testResult: testResult,
+                ),
               )
               .toList(),
         );

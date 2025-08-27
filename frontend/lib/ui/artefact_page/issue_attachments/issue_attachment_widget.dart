@@ -58,10 +58,11 @@ class IssueAttachmentWidget extends StatelessWidget {
             child: const Text('detach'),
             onPressed: () {
               showDetachIssueDialog(
-                  context: context,
-                  issue: issueAttachment.issue,
-                  testResultId: testResultId,
-                  testExecutionId: testExecutionId,);
+                context: context,
+                issue: issueAttachment.issue,
+                testResultId: testResultId,
+                testExecutionId: testExecutionId,
+              );
             },
           ),
         ),

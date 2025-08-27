@@ -21,7 +21,6 @@ import '../../inline_url_text.dart';
 import 'issue_status_chip.dart';
 import '../../spacing.dart';
 
-
 class IssueWidget extends StatelessWidget {
   const IssueWidget({
     super.key,

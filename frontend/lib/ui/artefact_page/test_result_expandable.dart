@@ -30,8 +30,11 @@ import 'test_issues/test_issues_expandable.dart';
 import 'issue_attachments/issue_attachments_expandable.dart';
 
 class TestResultExpandable extends ConsumerWidget {
-  const TestResultExpandable(
-      {super.key, required this.testExecutionId, required this.testResult,});
+  const TestResultExpandable({
+    super.key,
+    required this.testExecutionId,
+    required this.testResult,
+  });
 
   final int testExecutionId;
   final TestResult testResult;
@@ -61,7 +64,9 @@ class TestResultExpandable extends ConsumerWidget {
       children: [
         TestIssuesExpandable(testResult: testResult),
         IssueAttachmentsExpandable(
-            testExecutionId: testExecutionId, testResult: testResult,),
+          testExecutionId: testExecutionId,
+          testResult: testResult,
+        ),
         _TestResultOutputExpandable(testResult: testResult),
       ],
     );
