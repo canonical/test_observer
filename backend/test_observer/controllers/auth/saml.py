@@ -139,18 +139,16 @@ async def saml_logout_callback(request: Request):
 
 async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
     form_data = await request.form()
-    address = request.client
-    url = request.url
 
     result: dict[str, Any] = {
-        "http_host": address.host if address else url.hostname,
-        "server_port": address.port if address else url.port,
-        "script_name": url.path,
+        "http_host": request.url.hostname,
+        "server_port": request.url.port,
+        "script_name": request.url.path,
         "post_data": {},
         "get_data": {},
     }
 
-    if url.scheme == "https" or result["server_port"] == 443:
+    if request.url.scheme == "https" or result["server_port"] == 443:
         result["https"] = "on"
     if request.query_params:
         result["get_data"] = (request.query_params,)
