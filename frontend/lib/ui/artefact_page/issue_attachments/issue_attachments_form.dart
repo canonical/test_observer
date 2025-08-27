@@ -118,6 +118,7 @@ class _AttachIssueForm extends ConsumerWidget {
                         .attachIssueToTestResult(
                           issueId: issueId,
                           testResultId: testResult.id,
+                          testExecutionId: testExecutionId,
                         );
                     popDialog();
                     if (issueAppearsAttached) {
@@ -208,6 +209,7 @@ class _DetachIssueDialog extends ConsumerWidget {
                 .detachIssueFromTestResult(
                   issueId: issue.id,
                   testResultId: testResultId,
+                  testExecutionId: testExecutionId,
                 );
             context.pop(true);
           },

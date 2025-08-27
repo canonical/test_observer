@@ -41,6 +41,7 @@ class TestResultIssueAttachments extends _$TestResultIssueAttachments {
   Future<void> attachIssueToTestResult({
     required int issueId,
     required int testResultId,
+    required int testExecutionId,
   }) async {
     final api = ref.read(apiProvider);
     await api.attachIssueToTestResults(
@@ -48,12 +49,13 @@ class TestResultIssueAttachments extends _$TestResultIssueAttachments {
       testResultIds: [testResultId],
     );
     ref.invalidateSelf();
-    ref.invalidate(testResultsProvider(testResultId));
+    ref.invalidate(testResultsProvider(testExecutionId));
   }
 
   Future<void> detachIssueFromTestResult({
     required int issueId,
     required int testResultId,
+    required int testExecutionId,
   }) async {
     final api = ref.read(apiProvider);
     await api.detachIssueFromTestResults(
@@ -61,6 +63,6 @@ class TestResultIssueAttachments extends _$TestResultIssueAttachments {
       testResultIds: [testResultId],
     );
     ref.invalidateSelf();
-    ref.invalidate(testResultsProvider(testResultId));
+    ref.invalidate(testResultsProvider(testExecutionId));
   }
 }

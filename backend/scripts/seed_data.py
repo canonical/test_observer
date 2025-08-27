@@ -742,13 +742,20 @@ def _add_bugurl_and_duedate(session: Session) -> None:
         session.commit()
 
 
-def _add_issue_attachments(client: TestClient, session: Session, issues: list[dict]) -> None:
+def _add_issue_attachments(
+    client: TestClient | requests.Session, session: Session, issues: list[dict]
+) -> None:
     for idx, test_result in enumerate(session.scalars(select(TestResult)).all()):
-        idxs_to_attach = SAMPLE_ISSUE_ATTACHMENT_SEQUENCE[idx % len(SAMPLE_ISSUE_ATTACHMENT_SEQUENCE)]
+        idxs_to_attach = SAMPLE_ISSUE_ATTACHMENT_SEQUENCE[
+            idx % len(SAMPLE_ISSUE_ATTACHMENT_SEQUENCE)
+        ]
         for issue_idx, issue in enumerate(issues):
             if issue_idx not in idxs_to_attach:
                 continue
-            client.post(POST_ISSUE_ATTACHMENT_URL.format(id=issue["id"]), json={"test_results": [test_result.id]}).raise_for_status()
+            client.post(
+                POST_ISSUE_ATTACHMENT_URL.format(id=issue["id"]),
+                json={"test_results": [test_result.id]},
+            ).raise_for_status()
     session.commit()
 
 

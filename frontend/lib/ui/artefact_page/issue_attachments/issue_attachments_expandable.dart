@@ -15,51 +15,37 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-
-import '../../../models/test_result.dart';
-import '../../expandable.dart';
-import 'issue_attachments_list_item.dart';
-import '../../new_tag_chip.dart';
-import 'issue_attachments_form.dart';
-import '../../../providers/test_result_issue_attachments.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class IssueAttachmentsExpandable extends StatelessWidget {
-  const IssueAttachmentsExpandable(
-      {super.key, required this.testExecutionId, required this.testResult,});
+import '../../../models/test_result.dart';
+import '../../../providers/test_result_issue_attachments.dart';
+import '../../expandable.dart';
+import '../../new_tag_chip.dart';
+import 'issue_attachments_form.dart';
+import 'issue_attachments_list_item.dart';
+
+class IssueAttachmentsExpandable extends ConsumerWidget {
+  const IssueAttachmentsExpandable({
+    super.key,
+    required this.testExecutionId,
+    required this.testResult,
+  });
 
   final int testExecutionId;
   final TestResult testResult;
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, _) {
-        final attachmentsAsync = ref.watch(
-          testResultIssueAttachmentsProvider(
-            testExecutionId: testExecutionId,
-            testResultId: testResult.id,
-          ),
-        );
-        return attachmentsAsync.when(
-          data: (attachments) => _buildExpandable(context, attachments),
-          loading: () => _buildExpandable(context, testResult.issueAttachments),
-          error: (e, st) => Expandable(
-            initiallyExpanded: false,
-            title: const Text('Test Issues (error)'),
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('Failed to load issue attachments'),
-              ),
-            ],
-          ),
-        );
-      },
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attachmentsAsync = ref.watch(
+      testResultIssueAttachmentsProvider(
+        testExecutionId: testExecutionId,
+        testResultId: testResult.id,
+      ),
     );
-  }
-
-  Widget _buildExpandable(BuildContext context, List attachments) {
+    if (attachmentsAsync.isLoading) {
+      return const CircularProgressIndicator();
+    }
+    final attachments = attachmentsAsync.value ?? [];
     return Expandable(
       initiallyExpanded: attachments.isNotEmpty,
       title: Row(
@@ -84,11 +70,12 @@ class IssueAttachmentsExpandable extends StatelessWidget {
         ],
       ),
       children: attachments
-          .map<Widget>(
+          .map(
             (attachment) => IssueAttachmentListItem(
-                issueAttachment: attachment,
-                testExecutionId: testExecutionId,
-                testResultId: testResult.id,),
+              issueAttachment: attachment,
+              testExecutionId: testExecutionId,
+              testResultId: testResult.id,
+            ),
           )
           .toList(),
     );
