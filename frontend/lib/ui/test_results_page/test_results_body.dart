@@ -49,7 +49,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
       if (uri.queryParameters.isNotEmpty) {
         ref
             .read(testResultsFiltersProvider.notifier)
-            .loadFromQueryParams(uri.queryParameters);
+            .loadFromQueryParams(uri.queryParametersAll);
         ref.read(testResultsSearchProvider.notifier).search();
       }
     });

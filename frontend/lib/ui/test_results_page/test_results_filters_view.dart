@@ -89,17 +89,13 @@ class _TestResultsFiltersViewState
   Widget _buildFamilySection() {
     final filters = ref.watch(testResultsFiltersProvider);
 
-    final allOptions = filters.familySelections.keys.toList()..sort();
-    final selected = filters.familySelections.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toSet();
+    const allFamilyOptions = ['snap', 'deb', 'charm', 'image'];
 
     return MultiSelectCombobox(
       key: _familyKey,
       title: 'Family',
-      allOptions: allOptions,
-      initialSelected: selected,
+      allOptions: allFamilyOptions,
+      initialSelected: filters.familySelections,
       onChanged: (family, isSelected) {
         ref
             .read(testResultsFiltersProvider.notifier)

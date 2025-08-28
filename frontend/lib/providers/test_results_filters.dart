@@ -26,8 +26,12 @@ class TestResultsFilters extends _$TestResultsFilters {
   }
 
   void updateFamilySelection(String family, bool isSelected) {
-    final current = Map<String, bool>.from(state.familySelections);
-    current[family] = isSelected;
+    final current = Set<String>.from(state.familySelections);
+    if (isSelected) {
+      current.add(family);
+    } else {
+      current.remove(family);
+    }
     state = state.copyWith(familySelections: current);
   }
 
@@ -58,12 +62,9 @@ class TestResultsFilters extends _$TestResultsFilters {
   Map<String, String> toQueryParams() {
     final params = <String, String>{};
 
-    final selectedFamilies = state.familySelections.entries
-        .where((entry) => entry.value)
-        .map((entry) => entry.key.toLowerCase())
-        .toList();
-    if (selectedFamilies.isNotEmpty) {
-      params['families'] = selectedFamilies.join(',');
+    if (state.familySelections.isNotEmpty) {
+      params['families'] =
+          state.familySelections.map((f) => f.toLowerCase()).join(',');
     }
 
     if (state.selectedEnvironments.isNotEmpty) {
@@ -77,30 +78,21 @@ class TestResultsFilters extends _$TestResultsFilters {
     return params;
   }
 
-  void loadFromQueryParams(Map<String, String> queryParams) {
-    final familySelections = <String, bool>{
-      'snap': false,
-      'deb': false,
-      'charm': false,
-      'image': false,
-    };
+  void loadFromQueryParams(Map<String, List<String>> queryParamsAll) {
+    final familiesValues = queryParamsAll['families'] ?? [];
+    final familySelections = familiesValues.isNotEmpty
+        ? familiesValues.first.split(',').toSet()
+        : <String>{};
 
-    final familiesParam = queryParams['families'];
-    if (familiesParam != null) {
-      final families = familiesParam.split(',');
-      for (final family in families) {
-        if (familySelections.containsKey(family)) {
-          familySelections[family] = true;
-        }
-      }
-    }
+    final environmentsValues = queryParamsAll['environments'] ?? [];
+    final selectedEnvironments = environmentsValues.isNotEmpty
+        ? environmentsValues.first.split(',').toSet()
+        : <String>{};
 
-    final environmentsParam = queryParams['environments'];
-    final selectedEnvironments =
-        environmentsParam?.split(',').toSet() ?? <String>{};
-
-    final testCasesParam = queryParams['test_cases'];
-    final selectedTestCases = testCasesParam?.split(',').toSet() ?? <String>{};
+    final testCasesValues = queryParamsAll['test_cases'] ?? [];
+    final selectedTestCases = testCasesValues.isNotEmpty
+        ? testCasesValues.first.split(',').toSet()
+        : <String>{};
 
     state = TestResultsFiltersState(
       familySelections: familySelections,
@@ -111,23 +103,18 @@ class TestResultsFilters extends _$TestResultsFilters {
 }
 
 class TestResultsFiltersState {
-  final Map<String, bool> familySelections;
+  final Set<String> familySelections;
   final Set<String> selectedEnvironments;
   final Set<String> selectedTestCases;
 
   const TestResultsFiltersState({
-    this.familySelections = const {
-      'snap': false,
-      'deb': false,
-      'charm': false,
-      'image': false,
-    },
+    this.familySelections = const {},
     this.selectedEnvironments = const {},
     this.selectedTestCases = const {},
   });
 
   TestResultsFiltersState copyWith({
-    Map<String, bool>? familySelections,
+    Set<String>? familySelections,
     Set<String>? selectedEnvironments,
     Set<String>? selectedTestCases,
   }) {

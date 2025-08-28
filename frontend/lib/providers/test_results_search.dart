@@ -24,7 +24,7 @@ part 'test_results_search.g.dart';
 class TestResultsSearch extends _$TestResultsSearch {
   @override
   AsyncValue<TestResultsSearchResult> build() {
-    return const AsyncValue.data(TestResultsSearchResult.empty());
+    return AsyncValue.data(TestResultsSearchResult.empty());
   }
 
   Future<void> search({int limit = 500, int offset = 0}) async {
@@ -39,10 +39,8 @@ class TestResultsSearch extends _$TestResultsSearch {
       final api = ref.read(apiProvider);
       final filters = ref.read(testResultsFiltersProvider);
 
-      final families = filters.familySelections.entries
-          .where((entry) => entry.value)
-          .map((entry) => entry.key.toLowerCase())
-          .toList();
+      final families =
+          filters.familySelections.map((f) => f.toLowerCase()).toList();
 
       final environments = filters.selectedEnvironments.toList();
       final testCases = filters.selectedTestCases.toList();
@@ -100,10 +98,13 @@ class TestResultsSearchResult {
     required this.hasMore,
   });
 
-  const TestResultsSearchResult.empty()
-      : count = 0,
-        testResults = const [],
-        hasMore = false;
+  factory TestResultsSearchResult.empty() {
+    return const TestResultsSearchResult(
+      count: 0,
+      testResults: [],
+      hasMore: false,
+    );
+  }
 
   TestResultsSearchResult copyWith({
     int? count,
