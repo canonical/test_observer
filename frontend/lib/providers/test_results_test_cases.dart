@@ -21,7 +21,7 @@ import 'api.dart';
 part 'test_results_test_cases.g.dart';
 
 @riverpod
-Future<List<String>> testResultsTestCases(Ref ref) async {
+Future<List<String>> allTestCases(Ref ref) async {
   final api = ref.watch(apiProvider);
   return await api.getTestCases();
 }

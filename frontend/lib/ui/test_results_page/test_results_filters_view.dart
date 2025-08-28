@@ -110,7 +110,7 @@ class _TestResultsFiltersViewState
 
   Widget _buildEnvironmentSection() {
     final filters = ref.watch(testResultsFiltersProvider);
-    final environments = ref.watch(testResultsEnvironmentsProvider).value ?? [];
+    final environments = ref.watch(allEnvironmentsProvider).value ?? [];
 
     return MultiSelectCombobox(
       key: _envKey,
@@ -127,7 +127,7 @@ class _TestResultsFiltersViewState
 
   Widget _buildTestCaseSection() {
     final filters = ref.watch(testResultsFiltersProvider);
-    final testCases = ref.watch(testResultsTestCasesProvider).value ?? [];
+    final testCases = ref.watch(allTestCasesProvider).value ?? [];
 
     return MultiSelectCombobox(
       key: _testKey,

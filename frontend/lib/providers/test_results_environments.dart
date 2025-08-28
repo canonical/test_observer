@@ -21,7 +21,7 @@ import 'api.dart';
 part 'test_results_environments.g.dart';
 
 @riverpod
-Future<List<String>> testResultsEnvironments(Ref ref) async {
+Future<List<String>> allEnvironments(Ref ref) async {
   final api = ref.watch(apiProvider);
   return await api.getEnvironments();
 }
