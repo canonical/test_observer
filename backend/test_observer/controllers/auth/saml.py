@@ -110,7 +110,7 @@ async def saml_login_callback(request: Request):
     if not auth.is_authenticated():
         raise HTTPException(403, "Authentication failed")
 
-    if return_to := req["post_data"]["RelayState"]:
+    if return_to := req["post_data"].get("RelayState"):
         frontend_url = urlparse(FRONTEND_URL)
         return_url = urlparse(return_to)
         # Check if it's safe to redirect user to this URL
