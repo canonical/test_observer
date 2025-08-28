@@ -40,10 +40,6 @@ class _TestResultsFiltersViewState
   static const double _comboWidth = 260;
   static const double _controlHeight = 48;
 
-  final _familyKey = GlobalKey<MultiSelectComboboxState>();
-  final _envKey = GlobalKey<MultiSelectComboboxState>();
-  final _testKey = GlobalKey<MultiSelectComboboxState>();
-
   Widget _box(Widget child) => SizedBox(width: _comboWidth, child: child);
 
   void _applyFilters() {
@@ -92,7 +88,6 @@ class _TestResultsFiltersViewState
     const allFamilyOptions = ['snap', 'deb', 'charm', 'image'];
 
     return MultiSelectCombobox(
-      key: _familyKey,
       title: 'Family',
       allOptions: allFamilyOptions,
       initialSelected: filters.familySelections,
@@ -109,7 +104,6 @@ class _TestResultsFiltersViewState
     final environments = ref.watch(allEnvironmentsProvider).value ?? [];
 
     return MultiSelectCombobox(
-      key: _envKey,
       title: 'Environment',
       allOptions: environments,
       initialSelected: filters.selectedEnvironments,
@@ -126,7 +120,6 @@ class _TestResultsFiltersViewState
     final testCases = ref.watch(allTestCasesProvider).value ?? [];
 
     return MultiSelectCombobox(
-      key: _testKey,
       title: 'Test Case',
       allOptions: testCases,
       initialSelected: filters.selectedTestCases,
