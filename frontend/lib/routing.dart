@@ -22,7 +22,6 @@ import 'models/family_name.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/skeleton.dart';
-
 import 'ui/test_results_page/test_results_page.dart';
 
 final appRouter = GoRouter(
@@ -142,7 +141,9 @@ class AppRoutes {
   }
 
   static bool isDashboardPage(Uri uri) =>
-      {snaps, debs, charms, images, testResults}.contains(uri.path);
+      {snaps, debs, charms, images}.contains(uri.path);
+
+  static bool isTestResultsPage(Uri uri) => uri.path == testResults;
 
   static bool isArtefactPage(Uri uri) =>
       (uri.path.contains(AppRoutes.snaps) ||
