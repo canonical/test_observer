@@ -53,6 +53,7 @@ class IssueAttachmentWidget extends StatelessWidget {
         Tooltip(
           message: 'Detach issue',
           child: TextButton(
+            key: const Key('detachIssueButton'),
             child: const Text('detach'),
             onPressed: () {
               showDetachIssueDialog(

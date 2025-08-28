@@ -19,7 +19,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/issue.dart';
-import '../../../models/test_result.dart';
 import '../../../providers/issues.dart';
 import '../../../providers/test_result_issue_attachments.dart';
 import '../../notification.dart';
@@ -29,11 +28,11 @@ import 'issue_widget.dart';
 
 class _AttachIssueForm extends ConsumerWidget {
   final int testExecutionId;
-  final TestResult testResult;
+  final int testResultId;
 
   const _AttachIssueForm({
     required this.testExecutionId,
-    required this.testResult,
+    required this.testResultId,
   });
 
   @override
@@ -41,6 +40,16 @@ class _AttachIssueForm extends ConsumerWidget {
     final formKey = GlobalKey<FormState>();
     final urlController = TextEditingController();
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
+
+    final issueAttachments = ref
+            .watch(
+              testResultIssueAttachmentsProvider(
+                testExecutionId: testExecutionId,
+                testResultId: testResultId,
+              ),
+            )
+            .value ??
+        [];
 
     return Form(
       key: formKey,
@@ -53,6 +62,7 @@ class _AttachIssueForm extends ConsumerWidget {
             Text('Attach Issue', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: Spacing.level4),
             VanillaTextInput(
+              key: const Key('attachIssueFormUrlInput'),
               label:
                   'Test Observer issue URL or external URL (GitHub, Jira, Launchpad)',
               controller: urlController,
@@ -65,9 +75,8 @@ class _AttachIssueForm extends ConsumerWidget {
                   return 'Please enter a valid URL';
                 }
                 if (uri.origin == Uri.base.origin) {
-                  final regExp = RegExp(r'/issues/(\d+)');
-                  final match = regExp.firstMatch(uri.fragment);
-                  if (match == null) {
+                  final regExp = RegExp(r'^/issues/\d+$');
+                  if (regExp.hasMatch(uri.fragment) == false) {
                     return 'Invalid Test Observer issue URL, expected: ${Uri.base.origin}/#/issues/<id>';
                   }
                 }
@@ -86,13 +95,14 @@ class _AttachIssueForm extends ConsumerWidget {
                 ),
                 const Spacer(),
                 TextButton(
+                  key: const Key('attachIssueFormSubmitButton'),
                   onPressed: () async {
                     if (formKey.currentState?.validate() != true) return;
                     final url = urlController.text.trim();
                     final uri = Uri.parse(url);
                     int issueId;
                     if (uri.origin == Uri.base.origin) {
-                      final regExp = RegExp(r'/issues/(\d+)');
+                      final regExp = RegExp(r'^/issues/(\d+)$');
                       final match = regExp.firstMatch(uri.fragment);
                       issueId = int.parse(match!.group(1)!);
                     } else {
@@ -100,7 +110,7 @@ class _AttachIssueForm extends ConsumerWidget {
                           await ref.read(createIssueProvider(url: url).future);
                       issueId = issue.id;
                     }
-                    final issueAppearsAttached = testResult.issueAttachments
+                    final issueAppearsAttached = issueAttachments
                         .map((attachment) => attachment.issue.id)
                         .contains(issueId);
                     // Don't use context after await, store pop and notification in local callbacks
@@ -113,12 +123,12 @@ class _AttachIssueForm extends ConsumerWidget {
                         .read(
                           testResultIssueAttachmentsProvider(
                             testExecutionId: testExecutionId,
-                            testResultId: testResult.id,
+                            testResultId: testResultId,
                           ).notifier,
                         )
                         .attachIssueToTestResult(
                           issueId: issueId,
-                          testResultId: testResult.id,
+                          testResultId: testResultId,
                           testExecutionId: testExecutionId,
                         );
                     popDialog();
@@ -143,7 +153,7 @@ class _AttachIssueForm extends ConsumerWidget {
 void showAttachIssueDialog({
   required BuildContext context,
   required int testExecutionId,
-  required TestResult testResult,
+  required int testResultId,
 }) =>
     showDialog(
       context: context,
@@ -152,7 +162,7 @@ void showAttachIssueDialog({
           padding: const EdgeInsets.all(Spacing.level4),
           child: _AttachIssueForm(
             testExecutionId: testExecutionId,
-            testResult: testResult,
+            testResultId: testResultId,
           ),
         ),
       ),
@@ -199,8 +209,10 @@ class _DetachIssueDialog extends ConsumerWidget {
           child: const Text('No'),
         ),
         TextButton(
-          onPressed: () {
-            ref
+          key: const Key('detachIssueConfirmButton'),
+          onPressed: () async {
+            void popDialog() => Navigator.of(context).pop();
+            await ref
                 .read(
                   testResultIssueAttachmentsProvider(
                     testExecutionId: testExecutionId,
@@ -212,7 +224,7 @@ class _DetachIssueDialog extends ConsumerWidget {
                   testResultId: testResultId,
                   testExecutionId: testExecutionId,
                 );
-            context.pop(true);
+            popDialog();
           },
           child: const Text('Yes'),
         ),

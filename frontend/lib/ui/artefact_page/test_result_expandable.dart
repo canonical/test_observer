@@ -65,7 +65,7 @@ class TestResultExpandable extends ConsumerWidget {
         TestIssuesExpandable(testResult: testResult),
         IssueAttachmentsExpandable(
           testExecutionId: testExecutionId,
-          testResult: testResult,
+          testResultId: testResult.id,
         ),
         _TestResultOutputExpandable(testResult: testResult),
       ],

@@ -17,7 +17,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../models/test_result.dart';
 import '../../../providers/test_result_issue_attachments.dart';
 import '../../expandable.dart';
 import '../../new_tag_chip.dart';
@@ -28,18 +27,18 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
   const IssueAttachmentsExpandable({
     super.key,
     required this.testExecutionId,
-    required this.testResult,
+    required this.testResultId,
   });
 
   final int testExecutionId;
-  final TestResult testResult;
+  final int testResultId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final attachmentsAsync = ref.watch(
       testResultIssueAttachmentsProvider(
         testExecutionId: testExecutionId,
-        testResultId: testResult.id,
+        testResultId: testResultId,
       ),
     );
     if (attachmentsAsync.isLoading) {
@@ -57,12 +56,13 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
           Tooltip(
             message: 'Attach issue',
             child: TextButton(
+              key: const Key('attachIssueButton'),
               child: const Text('attach'),
               onPressed: () {
                 showAttachIssueDialog(
                   context: context,
                   testExecutionId: testExecutionId,
-                  testResult: testResult,
+                  testResultId: testResultId,
                 );
               },
             ),
@@ -74,7 +74,7 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
             (attachment) => IssueAttachmentListItem(
               issueAttachment: attachment,
               testExecutionId: testExecutionId,
-              testResultId: testResult.id,
+              testResultId: testResultId,
             ),
           )
           .toList(),
