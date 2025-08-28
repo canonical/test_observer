@@ -14,14 +14,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from datetime import datetime, timedelta
 from functools import cache
 import logging
 from typing import Any
 from urllib.parse import urlparse
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
+from sqlalchemy.orm import Session
 
 from test_observer.common.config import (
     SAML_IDP_METADATA_URL,
@@ -29,6 +31,11 @@ from test_observer.common.config import (
     SAML_SP_KEY,
     SAML_SP_X509_CERT,
 )
+from test_observer.controllers.artefacts.models import UserResponse
+from test_observer.data_access.models import User, UserSession
+from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.setup import get_db
+from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
 from test_observer.main import FRONTEND_URL
 
 
@@ -87,8 +94,8 @@ async def saml_logout(request: Request):
     return RedirectResponse(url=auth.logout())
 
 
-@router.post("/acs")
-async def saml_login_callback(request: Request):
+@router.post("/acs", response_model=UserResponse)
+async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
@@ -110,6 +117,15 @@ async def saml_login_callback(request: Request):
     if not auth.is_authenticated():
         raise HTTPException(403, "Authentication failed")
 
+    user = _create_user(db, auth)
+    session = UserSession(
+        user_id=user.id, expires_at=datetime.now() + timedelta(days=14)
+    )
+    db.add(session)
+    db.commit()
+
+    request.session["id"] = session.id
+    
     if return_to := req["post_data"].get("RelayState"):
         frontend_url = urlparse(FRONTEND_URL)
         return_url = urlparse(return_to)
@@ -118,21 +134,27 @@ async def saml_login_callback(request: Request):
             response = RedirectResponse(
                 url=return_to, status_code=status.HTTP_302_FOUND
             )
-            response.set_cookie(
-                key="fakesession",
-                value="fake-cookie-session-value",
-            )
             return response
         else:
             # Note by default python3-saml returns to API url
             logger.warning(f"Received invalid return url {return_to}")
 
-    return {
-        "name_id_format": auth.get_nameid_format(),
-        "name_id": auth.get_nameid(),
-        "session_index": auth.get_session_index(),
-        "attributes": auth.get_attributes(),
-    }
+    return user
+
+
+def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
+    email = auth.get_nameid()
+    lp_user = LaunchpadAPI().get_user_by_email(email)
+    user = get_or_create(
+        db,
+        User,
+        {"email": email},
+        {
+            "name": auth.get_attributes()["fullname"][0],
+            "launchpad_handle": lp_user.handle if lp_user else None,
+        },
+    )
+    return user
 
 
 @router.post("/sls")

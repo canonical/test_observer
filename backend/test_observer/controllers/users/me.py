@@ -14,17 +14,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
+
+from fastapi import APIRouter, Depends
+
+from test_observer.controllers.artefacts.models import UserResponse
+from test_observer.data_access.models import User
+from test_observer.users.user_fixture import get_current_user
 
 
-VERSION = os.getenv("VERSION", "0.0.0")
-SENTRY_DSN = os.getenv("SENTRY_DSN")
-SAML_SP_BASE_URL = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
-SAML_IDP_METADATA_URL = os.getenv(
-    "SAML_IDP_METADATA_URL",
-    "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
-)
-SAML_SP_X509_CERT = os.getenv("SAML_SP_X509_CERT", "")
-SAML_SP_KEY = os.getenv("SAML_SP_KEY", "")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
-SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")
+router = APIRouter()
+
+
+@router.get("/me", response_model=UserResponse | None)
+def get_authenticated_user(user: User | None = Depends(get_current_user)):
+    return user

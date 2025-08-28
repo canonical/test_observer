@@ -14,17 +14,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
+
+from datetime import datetime
+from fastapi import Depends, Request
+from sqlalchemy.orm import Session, selectinload
+
+from test_observer.data_access.models import User, UserSession
+from test_observer.data_access.setup import get_db
 
 
-VERSION = os.getenv("VERSION", "0.0.0")
-SENTRY_DSN = os.getenv("SENTRY_DSN")
-SAML_SP_BASE_URL = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
-SAML_IDP_METADATA_URL = os.getenv(
-    "SAML_IDP_METADATA_URL",
-    "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
-)
-SAML_SP_X509_CERT = os.getenv("SAML_SP_X509_CERT", "")
-SAML_SP_KEY = os.getenv("SAML_SP_KEY", "")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
-SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+    session_id = request.session.get("id")
+    if not session_id:
+        return None
+
+    session = db.get(UserSession, session_id, options=[selectinload(UserSession.user)])
+    if not session or session.expires_at < datetime.now():
+        return None
+
+    return session.user

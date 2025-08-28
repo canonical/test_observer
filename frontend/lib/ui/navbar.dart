@@ -21,6 +21,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
 import '../providers/api.dart';
+import '../providers/current_user.dart';
 import '../routing.dart';
 import 'spacing.dart';
 
@@ -31,6 +32,8 @@ class Navbar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).value;
+
     return Container(
       color: YaruColors.coolGrey,
       alignment: Alignment.center,
@@ -67,20 +70,6 @@ class Navbar extends ConsumerWidget {
                     route: AppRoutes.images,
                   ),
                   const Spacer(),
-                  _NavbarButton(
-                    title: 'login',
-                    onTap: () {
-                      final uri = Uri.parse(apiUrl);
-                      final newUri = uri.replace(
-                        path: '/v1/auth/saml/login',
-                        queryParameters: {'return_to': Uri.base.toString()},
-                      );
-                      launchUrlString(
-                        newUri.toString(),
-                        webOnlyWindowName: '_self',
-                      );
-                    },
-                  ),
                   _NavbarDropdownEntry(
                     label: 'Help',
                     dropdownChildren: [
@@ -98,6 +87,27 @@ class Navbar extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  user == null
+                      ? _NavbarButton(
+                          title: 'Log in',
+                          onTap: () {
+                            final uri = Uri.parse(apiUrl);
+                            final newUri = uri.replace(
+                              path: '/v1/auth/saml/login',
+                              queryParameters: {
+                                'return_to': Uri.base.toString(),
+                              },
+                            );
+                            launchUrlString(
+                              newUri.toString(),
+                              webOnlyWindowName: '_self',
+                            );
+                          },
+                        )
+                      : _NavbarButton(
+                          title: 'hi ${user.name}',
+                          onTap: () {},
+                        ),
                 ],
               ),
             ),

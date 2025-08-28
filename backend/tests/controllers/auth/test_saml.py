@@ -105,10 +105,9 @@ class TestSAMLAuthentication:
     def _verify_authentication(self, response: Response) -> None:
         assert response.status_code == 200
 
-        user_data = response.json()
-        assert "name_id" in user_data
-        assert "attributes" in user_data
-
-        assert user_data["name_id"] == "certbot@canonical.com"
-        assert user_data["attributes"]["fullname"] == ["Certification Bot"]
-        assert user_data["attributes"]["lp_teams"] == ["canonical-hw-cert"]
+        assert response.json() == {
+            "name": "Certification Bot",
+            "email": "certbot@canonical.com",
+            "launchpad_email": "certbot@canonical.com",
+            "launchpad_handle": "certbot",
+        }

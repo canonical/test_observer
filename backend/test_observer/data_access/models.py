@@ -97,9 +97,23 @@ class User(Base):
     name: Mapped[str]
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user", cascade="all, delete"
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
+
+
+class UserSession(Base):
+    __tablename__ = "user_session"
+
+    expires_at: Mapped[datetime]
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("app_user.id", ondelete="CASCADE"), index=True
+    )
+    user: Mapped[User] = relationship(back_populates="sessions", foreign_keys=[user_id])
 
 
 class Artefact(Base):
