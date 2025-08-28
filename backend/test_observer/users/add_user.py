@@ -50,7 +50,7 @@ def add_user(
 def _create_user(launchpad_user: LaunchpadUser, session: Session) -> User:
     # Check if user already exists
     existing_user = session.scalar(
-        select(User).where(User.launchpad_email == launchpad_user.email)
+        select(User).where(User.email == launchpad_user.email)
     )
     if existing_user:
         logger = logging.getLogger("test-observer-backend")
@@ -62,7 +62,7 @@ def _create_user(launchpad_user: LaunchpadUser, session: Session) -> User:
 
     user = User(
         launchpad_handle=launchpad_user.handle,
-        launchpad_email=launchpad_user.email,
+        email=launchpad_user.email,
         name=launchpad_user.name,
     )
     session.add(user)

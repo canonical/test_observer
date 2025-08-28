@@ -92,14 +92,14 @@ class User(Base):
     # user is a reserved name in PostgreSQL
     __tablename__ = "app_user"
 
-    launchpad_email: Mapped[str] = mapped_column(unique=True)
-    launchpad_handle: Mapped[str]
+    email: Mapped[str] = mapped_column(unique=True)
+    launchpad_handle: Mapped[str | None] = mapped_column(default=None)
     name: Mapped[str]
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
 
     def __repr__(self) -> str:
-        return data_model_repr(self, "launchpad_handle")
+        return data_model_repr(self, "email", "name")
 
 
 class Artefact(Base):

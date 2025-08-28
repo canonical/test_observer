@@ -449,7 +449,7 @@ def test_update_artefact_assignee_by_email(
 
     response = test_client.patch(
         f"/v1/artefacts/{a.id}",
-        json={"assignee_email": u.launchpad_email},
+        json={"assignee_email": u.email},
     )
 
     assert response.status_code == 200
@@ -501,7 +501,7 @@ def test_update_artefact_assignee_both_id_and_email_error(
         f"/v1/artefacts/{a.id}",
         json={
             "assignee_id": u.id,
-            "assignee_email": u.launchpad_email,
+            "assignee_email": u.email,
         },
     )
 
@@ -575,7 +575,8 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
     if artefact.assignee:
         expected["assignee"] = {
             "id": artefact.assignee.id,
-            "launchpad_email": artefact.assignee.launchpad_email,
+            "email": artefact.assignee.email,
+            "launchpad_email": artefact.assignee.email,
             "launchpad_handle": artefact.assignee.launchpad_handle,
             "name": artefact.assignee.name,
         }

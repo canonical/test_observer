@@ -4501,12 +4501,24 @@
             "title": "Id"
           },
           "launchpad_handle": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Launchpad Handle"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
           },
           "launchpad_email": {
             "type": "string",
-            "title": "Launchpad Email"
+            "title": "Launchpad Email",
+            "deprecated": true
           },
           "name": {
             "type": "string",
@@ -4516,7 +4528,7 @@
         "type": "object",
         "required": [
           "id",
-          "launchpad_handle",
+          "email",
           "launchpad_email",
           "name"
         ],

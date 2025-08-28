@@ -56,11 +56,11 @@ class DataGenerator:
         self,
         name: str = "John Doe",
         launchpad_handle: str = "jd",
-        launchpad_email: str = "john@doe.com",
+        email: str = "john@doe.com",
     ) -> User:
         user = User(
             name=name,
-            launchpad_email=launchpad_email,
+            email=email,
             launchpad_handle=launchpad_handle,
         )
         self._add_object(user)
