@@ -20,7 +20,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../models/issue.dart';
 import '../../../providers/issues.dart';
-import '../../../providers/test_result_issue_attachments.dart';
+import '../../../providers/test_results.dart';
 import '../../notification.dart';
 import '../../spacing.dart';
 import '../../vanilla/vanilla_text_input.dart';
@@ -43,9 +43,12 @@ class _AttachIssueForm extends ConsumerWidget {
 
     final issueAttachments = ref
             .watch(
-              testResultIssueAttachmentsProvider(
-                testExecutionId: testExecutionId,
-                testResultId: testResultId,
+              testResultsProvider(testExecutionId).select(
+                (value) => value.whenData(
+                  (results) => results
+                      .firstWhere((result) => result.id == testResultId)
+                      .issueAttachments,
+                ),
               ),
             )
             .value ??
@@ -121,17 +124,8 @@ class _AttachIssueForm extends ConsumerWidget {
                           'Note: Issue already attached.',
                         );
                     await ref
-                        .read(
-                          testResultIssueAttachmentsProvider(
-                            testExecutionId: testExecutionId,
-                            testResultId: testResultId,
-                          ).notifier,
-                        )
-                        .attachIssueToTestResult(
-                          issueId: issueId,
-                          testResultId: testResultId,
-                          testExecutionId: testExecutionId,
-                        );
+                        .read(testResultsProvider(testExecutionId).notifier)
+                        .attachIssueToTestResult(testResultId, issueId);
                     popDialog();
                     if (issueAppearsAttached) {
                       showAlreadyAttached();
@@ -214,17 +208,8 @@ class _DetachIssueDialog extends ConsumerWidget {
           onPressed: () async {
             void popDialog() => Navigator.of(context).pop();
             await ref
-                .read(
-                  testResultIssueAttachmentsProvider(
-                    testExecutionId: testExecutionId,
-                    testResultId: testResultId,
-                  ).notifier,
-                )
-                .detachIssueFromTestResult(
-                  issueId: issue.id,
-                  testResultId: testResultId,
-                  testExecutionId: testExecutionId,
-                );
+                .read(testResultsProvider(testExecutionId).notifier)
+                .detachIssueFromTestResult(testResultId, issue.id);
             popDialog();
           },
           child: const Text('Yes'),

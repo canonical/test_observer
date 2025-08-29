@@ -23,9 +23,9 @@ part 'issues.g.dart';
 @riverpod
 class Issues extends _$Issues {
   @override
-  Future<List<Issue>> build() {
+  Future<List<Issue>> build() async {
     final api = ref.watch(apiProvider);
-    return api.getIssues();
+    return await api.getIssues();
   }
 
   Future<Issue> createIssue({

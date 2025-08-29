@@ -17,7 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../providers/test_result_issue_attachments.dart';
+import '../../../providers/test_results.dart';
 import '../../expandable.dart';
 import 'issue_attachments_form.dart';
 import 'issue_attachments_list_item.dart';
@@ -36,9 +36,12 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final attachmentsAsync = ref.watch(
-      testResultIssueAttachmentsProvider(
-        testExecutionId: testExecutionId,
-        testResultId: testResultId,
+      testResultsProvider(testExecutionId).select(
+        (value) => value.whenData(
+          (results) => results
+              .firstWhere((result) => result.id == testResultId)
+              .issueAttachments,
+        ),
       ),
     );
     if (attachmentsAsync.isLoading) {
