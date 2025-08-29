@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:dartx/dartx.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
@@ -63,10 +64,12 @@ class TestResultExpandable extends ConsumerWidget {
       ),
       children: [
         TestIssuesExpandable(testResult: testResult),
-        IssueAttachmentsExpandable(
-          testExecutionId: testExecutionId,
-          testResultId: testResult.id,
-        ),
+        if (kDebugMode) ...[
+          IssueAttachmentsExpandable(
+            testExecutionId: testExecutionId,
+            testResultId: testResult.id,
+          ),
+        ],
         _TestResultOutputExpandable(testResult: testResult),
       ],
     );
