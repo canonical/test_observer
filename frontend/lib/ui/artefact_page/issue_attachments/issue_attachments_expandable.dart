@@ -19,9 +19,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/test_result_issue_attachments.dart';
 import '../../expandable.dart';
-import '../../new_tag_chip.dart';
 import 'issue_attachments_form.dart';
 import 'issue_attachments_list_item.dart';
+import '../../vanilla/vanilla_chip.dart';
 
 class IssueAttachmentsExpandable extends ConsumerWidget {
   const IssueAttachmentsExpandable({
@@ -51,7 +51,12 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
         children: [
           Text('Test Issues (${attachments.length})'),
           const SizedBox(width: 6),
-          const NewTagChip(),
+          const VanillaChip(
+            text: 'NEW',
+            fontColor: Colors.white,
+            backgroundColor: Colors.blue,
+            side: BorderSide.none,
+          ),
           const Spacer(),
           Tooltip(
             message: 'Attach issue',
