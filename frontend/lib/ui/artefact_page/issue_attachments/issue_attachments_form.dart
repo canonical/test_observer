@@ -106,8 +106,9 @@ class _AttachIssueForm extends ConsumerWidget {
                       final match = regExp.firstMatch(uri.fragment);
                       issueId = int.parse(match!.group(1)!);
                     } else {
-                      final issue =
-                          await ref.read(createIssueProvider(url: url).future);
+                      final issue = await ref
+                          .read(issuesProvider.notifier)
+                          .createIssue(url: url);
                       issueId = issue.id;
                     }
                     final issueAppearsAttached = issueAttachments

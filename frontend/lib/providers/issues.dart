@@ -15,25 +15,46 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/issue.dart';
 import 'api.dart';
 
 part 'issues.g.dart';
 
 @riverpod
-Future<Issue> createIssue(
-  Ref ref, {
-  required String url,
-  String? title,
-  String? description,
-  String? status,
-}) async {
-  final api = ref.read(apiProvider);
-  return await api.createIssue(
-    url: url,
-    title: title,
-    description: description,
-    status: status,
-  );
+class Issues extends _$Issues {
+  @override
+  Future<List<Issue>> build() {
+    final api = ref.watch(apiProvider);
+    return api.getIssues();
+  }
+
+  Future<Issue> createIssue({
+    required String url,
+    String? title,
+    String? description,
+    String? status,
+  }) async {
+    final api = ref.read(apiProvider);
+    final newIssue = await api.createIssue(
+      url: url,
+      title: title,
+      description: description,
+      status: status,
+    );
+    // Only mutate state if there is an existing list of issues
+    final issues = state.value;
+    if (issues == null) {
+      return newIssue;
+    }
+    final index = issues.indexWhere((issue) => issue.id == newIssue.id);
+    List<Issue> updatedIssues;
+    if (index != -1) {
+      updatedIssues = List<Issue>.from(issues);
+      updatedIssues[index] = newIssue;
+    } else {
+      updatedIssues = [...issues, newIssue];
+    }
+    state = AsyncData(updatedIssues);
+    return newIssue;
+  }
 }

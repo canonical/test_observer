@@ -238,6 +238,14 @@ class ApiRepository {
     return Issue.fromJson(response.data);
   }
 
+  Future<List<Issue>> getIssues() async {
+    final response = await dio.get('/v1/issues');
+    final Map issuesJson = response.data;
+    return (issuesJson['issues'] as List)
+        .map((json) => Issue.fromJson(json))
+        .toList();
+  }
+
   Future<Issue> createIssue({
     required String url,
     String? title,
