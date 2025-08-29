@@ -23,11 +23,13 @@ void showNotification(
   String message, {
   Duration duration = const Duration(seconds: 3),
   Color? backgroundColor,
+  Color? textColor,
 }) {
   final snackBar = SnackBar(
     behavior: SnackBarBehavior.floating,
-    content: Text(message),
+    content: Text(message, style: TextStyle(color: textColor)),
     duration: duration,
+    width: 400,
     backgroundColor: backgroundColor ?? Colors.green,
   );
   ScaffoldMessenger.of(context).showSnackBar(snackBar);
