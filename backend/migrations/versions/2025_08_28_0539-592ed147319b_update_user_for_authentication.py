@@ -24,6 +24,7 @@ Create Date: 2025-08-28 05:39:18.259371+00:00
 """
 
 from alembic import op
+import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -40,9 +41,19 @@ def upgrade() -> None:
         "app_user_launchpad_email_key TO app_user_email_key"
     )
     op.alter_column("app_user", "launchpad_handle", nullable=True)
+    op.add_column(
+        "app_user",
+        sa.Column(
+            "is_reviewer",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("FALSE"),
+        ),
+    )
 
 
 def downgrade() -> None:
+    op.drop_column("app_user", "is_reviewer")
     # Downgrading is an issue if we have a user with no launchpad_handle
     op.alter_column("app_user", "launchpad_handle", nullable=False)
     op.execute(

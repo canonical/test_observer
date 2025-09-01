@@ -74,7 +74,11 @@ class StartTestExecutionController:
         if (
             self.request.needs_assignment
             and self.artefact.assignee_id is None
-            and (users := self.db.query(User).all())
+            and (
+                users := self.db.execute(select(User).where(User.is_reviewer))
+                .scalars()
+                .all()
+            )
         ):
             self.artefact.assignee = random.choice(users)
             self.artefact.due_date = self.determine_due_date()
