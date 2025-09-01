@@ -37,11 +37,12 @@ abstract class TestExecution with _$TestExecution {
     required TestExecutionStatus status,
     required Environment environment,
     @Default(false) @JsonKey(name: 'is_rerun_requested') bool isRerunRequested,
-    @JsonKey(name: 'artefact_build_id') required int artefactBuildId,
+    @JsonKey(name: 'artefact_build_id') int? artefactBuildId,
     @JsonKey(name: 'test_plan') required String testPlan,
     @Default([])
     @JsonKey(name: 'relevant_links')
     List<TestExecutionRelevantLink> relevantLinks,
+    @JsonKey(name: 'created_at') DateTime? createdAt,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>

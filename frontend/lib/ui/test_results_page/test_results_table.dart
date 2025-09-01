@@ -17,11 +17,16 @@
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 
+import '../../models/detailed_test_results.dart';
+import '../../models/test_result.dart';
+import '../../models/test_execution.dart';
+import '../../models/artefact.dart';
+import '../../models/environment.dart';
 import 'test_results_details_dialog.dart';
 import 'test_results_helpers.dart';
 
 class TestResultsTable extends StatelessWidget {
-  final List<dynamic> testResults;
+  final List<TestResultWithContext> testResults;
   final VoidCallback? onViewExecution;
 
   const TestResultsTable({
@@ -129,15 +134,15 @@ class TestResultsTable extends StatelessWidget {
 
   Widget _buildDataRow(
     BuildContext context,
-    dynamic result,
+    TestResultWithContext result,
     double availableWidth,
     int index,
   ) {
-    final testResult = result['test_result'] as Map<String, dynamic>;
-    final testExecution = result['test_execution'] as Map<String, dynamic>;
-    final artefact = result['artefact'] as Map<String, dynamic>;
-    final artefactBuild = result['artefact_build'] as Map<String, dynamic>;
-    final environment = testExecution['environment'] as Map<String, dynamic>?;
+    final testResult = result.testResult;
+    final testExecution = result.testExecution;
+    final artefact = result.artefact;
+    final artefactBuild = result.artefactBuild;
+    final environment = testExecution.environment;
 
     return Container(
       width: availableWidth,
@@ -161,7 +166,7 @@ class TestResultsTable extends StatelessWidget {
           ),
           Expanded(
             flex: 10,
-            child: _buildStatusCell(testResult['status']),
+            child: _buildStatusCell(testResult.status),
           ),
           Expanded(
             flex: 8,
@@ -193,14 +198,14 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildArtefactCell(
-    Map<String, dynamic> artefact,
+    Artefact artefact,
     double availableWidth,
   ) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
-        artefact['name'] ?? 'Unknown',
+        artefact.name,
         style: const TextStyle(
           fontWeight: FontWeight.w500,
           fontSize: 14,
@@ -212,7 +217,7 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildTestCaseCell(
-    Map<String, dynamic> testResult,
+    TestResult testResult,
     double availableWidth,
   ) {
     return Container(
@@ -222,7 +227,7 @@ class TestResultsTable extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            testResult['name'] ?? 'Unknown',
+            testResult.name,
             style: const TextStyle(
               fontWeight: FontWeight.w500,
               fontSize: 14,
@@ -230,10 +235,10 @@ class TestResultsTable extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
-          if (testResult['category'] != null) ...[
+          if (testResult.category.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
-              testResult['category'],
+              testResult.category,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -247,9 +252,8 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusCell(String? status) {
-    final testStatus = TestResultHelpers.parseTestResultStatus(status);
-    final statusIcon = testStatus.getIcon();
+  Widget _buildStatusCell(TestResultStatus status) {
+    final statusIcon = status.getIcon();
 
     return Container(
       padding: const EdgeInsets.all(12.0),
@@ -260,7 +264,7 @@ class TestResultsTable extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              testStatus.name.toUpperCase(),
+              status.name.toUpperCase(),
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -273,7 +277,7 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTrackCell(Map<String, dynamic> artefact, double availableWidth) {
+  Widget _buildTrackCell(Artefact artefact, double availableWidth) {
     final cellWidth = (availableWidth * 0.08).clamp(70.0, 100.0);
 
     return Container(
@@ -281,7 +285,7 @@ class TestResultsTable extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
-        artefact['track'] ?? 'Unknown',
+        artefact.track,
         style: const TextStyle(fontSize: 14),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
@@ -290,7 +294,7 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildVersionCell(
-    Map<String, dynamic> artefact,
+    Artefact artefact,
     double availableWidth,
   ) {
     final cellWidth = (availableWidth * 0.12).clamp(90.0, 140.0);
@@ -300,7 +304,7 @@ class TestResultsTable extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
-        artefact['version'] ?? 'Unknown',
+        artefact.version,
         style: const TextStyle(fontSize: 14),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
@@ -309,13 +313,13 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildEnvironmentCell(
-    Map<String, dynamic> artefactBuild,
-    Map<String, dynamic>? environment,
+    ArtefactBuildMinimal artefactBuild,
+    Environment environment,
     double availableWidth,
   ) {
     final cellWidth = (availableWidth * 0.10).clamp(80.0, 120.0);
-    final architecture = artefactBuild['architecture'] ?? 'unknown';
-    final environmentName = environment?['name'] ?? 'unknown';
+    final architecture = artefactBuild.architecture;
+    final environmentName = environment.name;
     final buildInfo = '$architecture/$environmentName';
 
     return Container(
@@ -332,7 +336,7 @@ class TestResultsTable extends StatelessWidget {
   }
 
   Widget _buildTestPlanCell(
-    Map<String, dynamic> testExecution,
+    TestExecution testExecution,
     double availableWidth,
   ) {
     final cellWidth = (availableWidth * 0.12).clamp(120.0, 180.0);
@@ -342,7 +346,7 @@ class TestResultsTable extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
-        testExecution['test_plan'] ?? 'Unknown',
+        testExecution.testPlan.isNotEmpty ? testExecution.testPlan : 'Unknown',
         style: const TextStyle(fontSize: 14),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
@@ -350,7 +354,7 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildActionsCell(BuildContext context, dynamic result) {
+  Widget _buildActionsCell(BuildContext context, TestResultWithContext result) {
     return Container(
       width: 180,
       padding: const EdgeInsets.all(8.0),
@@ -379,7 +383,7 @@ class TestResultsTable extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           InkWell(
-            onTap: () => TestResultHelpers.navigateToTestExecution(result),
+            onTap: () => _navigateToTestExecution(result),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(
@@ -403,10 +407,29 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  void _showTestResultDetails(BuildContext context, dynamic result) {
+  void _showTestResultDetails(
+    BuildContext context,
+    TestResultWithContext result,
+  ) {
+    final resultMap = {
+      'test_result': result.testResult.toJson(),
+      'test_execution': result.testExecution.toJson(),
+      'artefact': result.artefact.toJson(),
+      'artefact_build': result.artefactBuild.toJson(),
+    };
+
     showDialog(
       context: context,
-      builder: (context) => TestResultDetailsDialog(result: result),
+      builder: (context) => TestResultDetailsDialog(result: resultMap),
     );
+  }
+
+  void _navigateToTestExecution(TestResultWithContext result) {
+    final resultMap = {
+      'test_execution': result.testExecution.toJson(),
+      'artefact': result.artefact.toJson(),
+    };
+
+    TestResultHelpers.navigateToTestExecution(resultMap);
   }
 }

@@ -14,11 +14,55 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../models/detailed_test_results.dart';
+import '../models/test_result.dart';
+import '../models/test_execution.dart';
+import '../models/artefact.dart';
+
 import 'api.dart';
 import 'test_results_filters.dart';
 
 part 'test_results_search.g.dart';
+
+/// Top-level parsing
+
+class _ParsedSearchPage {
+  final int count;
+  final List<TestResultWithContext> items;
+  const _ParsedSearchPage({required this.count, required this.items});
+}
+
+_ParsedSearchPage _parseSearchResults(Map<String, dynamic> result) {
+  final list = (result['test_results'] as List).cast<Map<String, dynamic>>();
+
+  final items = List<TestResultWithContext>.generate(list.length, (i) {
+    final m = list[i];
+
+    final testResult =
+        TestResult.fromJson(m['test_result'] as Map<String, dynamic>);
+    final testExecution =
+        TestExecution.fromJson(m['test_execution'] as Map<String, dynamic>);
+    final artefact = Artefact.fromJson(m['artefact'] as Map<String, dynamic>);
+    final artefactBuild = ArtefactBuildMinimal.fromJson(
+      m['artefact_build'] as Map<String, dynamic>,
+    );
+
+    return TestResultWithContext(
+      testResult: testResult,
+      testExecution: testExecution,
+      artefact: artefact,
+      artefactBuild: artefactBuild,
+    );
+  });
+
+  return _ParsedSearchPage(
+    count: result['count'] as int,
+    items: items,
+  );
+}
 
 @riverpod
 class TestResultsSearch extends _$TestResultsSearch {
@@ -27,7 +71,8 @@ class TestResultsSearch extends _$TestResultsSearch {
     return AsyncValue.data(TestResultsSearchResult.empty());
   }
 
-  Future<void> search({int limit = 500, int offset = 0}) async {
+  Future<void> search({int limit = 100, int offset = 0}) async {
+    // Keep existing data visible while loading more
     if (offset > 0 && state.hasValue) {
       state = const AsyncValue<TestResultsSearchResult>.loading()
           .copyWithPrevious(state);
@@ -41,11 +86,10 @@ class TestResultsSearch extends _$TestResultsSearch {
 
       final families =
           filters.familySelections.map((f) => f.toLowerCase()).toList();
-
       final environments = filters.selectedEnvironments.toList();
       final testCases = filters.selectedTestCases.toList();
 
-      final result = await api.searchTestResults(
+      final raw = await api.searchTestResults(
         families: families.isNotEmpty ? families : null,
         environments: environments.isNotEmpty ? environments : null,
         testCases: testCases.isNotEmpty ? testCases : null,
@@ -53,23 +97,29 @@ class TestResultsSearch extends _$TestResultsSearch {
         offset: offset,
       );
 
-      final searchResult = TestResultsSearchResult(
-        count: result['count'] as int,
-        testResults: (result['test_results'] as List<dynamic>)
-            .cast<Map<String, dynamic>>(),
-        hasMore: result['count'] > offset + limit,
-      );
+      final parsed = await compute(_parseSearchResults, raw);
+      final hasMore = parsed.count > offset + limit;
 
       if (offset > 0 && state.hasValue) {
-        final currentData = state.value!;
-        final mergedResults = [
-          ...currentData.testResults,
-          ...searchResult.testResults,
-        ];
-        state =
-            AsyncValue.data(searchResult.copyWith(testResults: mergedResults));
+        final current = state.value!;
+        final merged = List<TestResultWithContext>.of(current.testResults)
+          ..addAll(parsed.items);
+
+        state = AsyncValue.data(
+          TestResultsSearchResult(
+            count: parsed.count,
+            testResults: merged,
+            hasMore: hasMore,
+          ),
+        );
       } else {
-        state = AsyncValue.data(searchResult);
+        state = AsyncValue.data(
+          TestResultsSearchResult(
+            count: parsed.count,
+            testResults: parsed.items,
+            hasMore: hasMore,
+          ),
+        );
       }
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -77,44 +127,9 @@ class TestResultsSearch extends _$TestResultsSearch {
   }
 
   Future<void> loadMore() async {
-    if (!state.hasValue || !state.value!.hasMore) return;
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore) return;
 
-    final currentData = state.value!;
-    await search(
-      limit: 500,
-      offset: currentData.testResults.length,
-    );
-  }
-}
-
-class TestResultsSearchResult {
-  final int count;
-  final List<Map<String, dynamic>> testResults;
-  final bool hasMore;
-
-  const TestResultsSearchResult({
-    required this.count,
-    required this.testResults,
-    required this.hasMore,
-  });
-
-  factory TestResultsSearchResult.empty() {
-    return const TestResultsSearchResult(
-      count: 0,
-      testResults: [],
-      hasMore: false,
-    );
-  }
-
-  TestResultsSearchResult copyWith({
-    int? count,
-    List<Map<String, dynamic>>? testResults,
-    bool? hasMore,
-  }) {
-    return TestResultsSearchResult(
-      count: count ?? this.count,
-      testResults: testResults ?? this.testResults,
-      hasMore: hasMore ?? this.hasMore,
-    );
+    await search(limit: 100, offset: current.testResults.length);
   }
 }

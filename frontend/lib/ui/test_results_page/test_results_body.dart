@@ -18,11 +18,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
+import '../../models/detailed_test_results.dart';
 import '../../providers/test_results_filters.dart';
 import '../../providers/test_results_search.dart';
-import '../../routing.dart';
-import '../spacing.dart';
 import '../../providers/global_error_message.dart';
+import '../../routing.dart';
 import 'test_results_table.dart';
 
 final hasSearchedProvider = StateProvider<bool>((ref) => false);
@@ -35,7 +35,6 @@ class TestResultsBody extends ConsumerStatefulWidget {
 }
 
 class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
-  final Map<String, bool> _expandedItems = {};
   final ScrollController _scrollController = ScrollController();
 
   bool _isLoadingMore = false;
@@ -43,7 +42,8 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   @override
   void initState() {
     super.initState();
-    // Check if we have URL parameters and auto-search if we do
+
+    // Auto-search when URL contains query params.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final uri = AppRoutes.uriFromContext(context);
       if (uri.queryParameters.isNotEmpty) {
@@ -53,25 +53,22 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
         ref.read(testResultsSearchProvider.notifier).search();
       }
     });
+
+    // Trigger load more when near the bottom.
+    _scrollController.addListener(() {
+      final pos = _scrollController.position;
+      if (!pos.hasPixels || !pos.hasContentDimensions) return;
+
+      // When at bottom, try loading more.
+      final nearBottom = pos.pixels > (pos.maxScrollExtent - 600);
+      if (nearBottom) _maybeLoadMore();
+    });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _toggleExpanded(String key) {
-    setState(() {
-      _expandedItems[key] = !(_expandedItems[key] ?? false);
-    });
-  }
-
-  bool _isExpanded(String key) {
-    if (key.startsWith('family_')) {
-      return _expandedItems[key] ?? true;
-    }
-    return _expandedItems[key] ?? false;
   }
 
   @override
@@ -138,13 +135,12 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
               const Icon(Icons.search, size: 64, color: Colors.grey),
               const SizedBox(height: 16),
               Text(
-                'Click "Apply Filters" to search test results',
+                'Search for test results',
                 style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
-                'Select your desired filters and click Apply to see results',
+                'Use the filters above and click Apply Filters to search for test results.',
                 style: TextStyle(color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -159,18 +155,18 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
         child: Transform.translate(
           offset: const Offset(0, -200),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.search_off, size: 64, color: Colors.grey),
               const SizedBox(height: 16),
               Text(
-                'No test results found',
+                'No results found',
                 style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
-                'Try adjusting your search filters',
+                'Try adjusting your search filters and try again.',
                 style: TextStyle(color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -184,135 +180,60 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.all(Spacing.level4),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Row(
             children: [
               Text(
-                'Found $count test results',
-                style: Theme.of(context).textTheme.headlineSmall,
+                'Found $count results',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               const Spacer(),
-              if (testResults.length < count && !_isLoadingMore) ...[
+              if (data.hasMore && !_isLoadingMore)
                 TextButton(
-                  onPressed: () => _loadMore(),
+                  onPressed: _loadMore,
                   child: const Text(
-                    'Load 500 more',
+                    'Load 100 more',
                     style: TextStyle(color: YaruColors.orange),
                   ),
+                )
+              else if (_isLoadingMore)
+                Row(
+                  children: const [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: YaruCircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Loading...', style: TextStyle(color: Colors.grey)),
+                  ],
                 ),
-              ] else if (_isLoadingMore) ...[
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: YaruCircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: Spacing.level2),
-                const Text('Loading...', style: TextStyle(color: Colors.grey)),
-              ],
             ],
           ),
         ),
         Expanded(
-          child: _buildTreeView(testResults),
+          child: NotificationListener<OverscrollIndicatorNotification>(
+            onNotification: (n) {
+              n.disallowIndicator();
+              return false;
+            },
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.only(bottom: 24),
+              child: TestResultsTable(
+                testResults: testResults,
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildTreeView(List<Map<String, dynamic>> testResults) {
-    final groupedResults = _groupTestResults(testResults);
-
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.level4),
-      children: groupedResults.entries
-          .map(
-            (familyEntry) =>
-                _buildFamilyNode(context, familyEntry.key, familyEntry.value),
-          )
-          .toList(),
-    );
-  }
-
-  Map<String, List<Map<String, dynamic>>> _groupTestResults(
-    List<Map<String, dynamic>> results,
-  ) {
-    final grouped = <String, List<Map<String, dynamic>>>{};
-
-    for (final result in results) {
-      final testResult = result['test_result'] as Map<String, dynamic>?;
-      final testExecution = result['test_execution'] as Map<String, dynamic>?;
-      final artefact = result['artefact'] as Map<String, dynamic>?;
-
-      if (testResult == null || testExecution == null || artefact == null) {
-        continue;
-      }
-
-      final family = artefact['family'] as String? ?? 'unknown';
-
-      grouped.putIfAbsent(family, () => []);
-      grouped[family]!.add(result);
-    }
-
-    return grouped;
-  }
-
-  Widget _buildFamilyNode(
-    BuildContext context,
-    String family,
-    List<Map<String, dynamic>> results,
-  ) {
-    final familyKey = 'family_$family';
-    final isExpanded = _isExpanded(familyKey);
-    final totalResults = results.length;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: Spacing.level2),
-      child: Column(
-        children: [
-          ListTile(
-            leading: Icon(
-              isExpanded
-                  ? Icons.keyboard_arrow_down
-                  : Icons.keyboard_arrow_right,
-              color: isExpanded ? YaruColors.orange : null,
-            ),
-            title: Text(
-              family.toUpperCase(),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.play_arrow,
-                  size: 16,
-                  color: YaruColors.orange,
-                ),
-                const SizedBox(width: 4),
-                Text('$totalResults'),
-              ],
-            ),
-            onTap: () => _toggleExpanded(familyKey),
-          ),
-          if (isExpanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.only(left: Spacing.level4),
-              child: TestResultsTable(testResults: results),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _loadMore() async {
+  // Manual button handler
+  Future<void> _loadMore() async {
     if (_isLoadingMore) return;
-
-    setState(() {
-      _isLoadingMore = true;
-    });
+    setState(() => _isLoadingMore = true);
 
     try {
       await ref.read(testResultsSearchProvider.notifier).loadMore();
@@ -324,10 +245,17 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-        });
+        setState(() => _isLoadingMore = false);
       }
     }
+  }
+
+  void _maybeLoadMore() {
+    if (_isLoadingMore) return;
+
+    final data = ref.read(testResultsSearchProvider).valueOrNull;
+    if (data == null || !data.hasMore) return;
+
+    _loadMore();
   }
 }
