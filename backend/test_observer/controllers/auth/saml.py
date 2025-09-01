@@ -191,9 +191,9 @@ async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
     }
 
     logger.info("Received a login request with the following parameters:")
-    logger.info("request.headers " + str(request.headers.items()))
-    logger.info("request.url.scheme " + request.url.scheme)
-    logger.info("result['server_port'] " + result["server_port"])
+    logger.info(f"request.headers {request.headers.items()}")
+    logger.info(f"request.url.scheme {request.url.scheme}")
+    logger.info(f"result['server_port'] {result['server_port']}")
 
     if request.url.scheme == "https" or result["server_port"] == 443:
         result["https"] = "on"
