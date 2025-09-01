@@ -24,6 +24,11 @@ from test_observer.data_access.setup import get_db
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+    # This is a protection against CSRF see "Disallowing simple requests" under
+    # https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
+    if "X-CSRF-Token" not in request.headers:
+        return None
+
     session_id = request.session.get("id")
     if not session_id:
         return None

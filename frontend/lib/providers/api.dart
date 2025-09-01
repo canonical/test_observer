@@ -38,6 +38,7 @@ ApiRepository api(Ref ref) {
   final dio = Dio(BaseOptions(baseUrl: apiUrl));
   // Send cookies with requests
   dio.options.extra['withCredentials'] = true;
+  dio.options.headers['X-CSRF-Token'] = '1';
   dio.interceptors.add(RetryInterceptor(dio: dio));
   dio.interceptors.add(
     InterceptorsWrapper(
