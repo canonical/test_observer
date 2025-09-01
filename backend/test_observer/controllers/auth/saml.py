@@ -125,7 +125,7 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     request.session["id"] = session.id
-    
+
     if return_to := req["post_data"].get("RelayState"):
         frontend_url = urlparse(FRONTEND_URL)
         return_url = urlparse(return_to)
