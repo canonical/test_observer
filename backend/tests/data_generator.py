@@ -33,6 +33,7 @@ from test_observer.data_access.models import (
     TestExecutionRerunRequest,
     TestResult,
     User,
+    UserSession,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -67,6 +68,11 @@ class DataGenerator:
         )
         self._add_object(user)
         return user
+
+    def gen_user_session(self, user: User, expires_at: datetime | None = None):
+        session = UserSession(user=user, expires_at=expires_at)
+        self._add_object(session)
+        return session
 
     def gen_artefact(
         self,
