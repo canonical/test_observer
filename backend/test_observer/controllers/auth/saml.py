@@ -39,7 +39,7 @@ from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
 from test_observer.main import FRONTEND_URL
 
 
-router = APIRouter(prefix="/saml", tags=["authentication"])
+router = APIRouter(prefix="/saml")
 
 
 logger = logging.getLogger("test-observer-backend")

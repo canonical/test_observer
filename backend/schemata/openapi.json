@@ -2232,7 +2232,6 @@
     "/v1/auth/saml/login": {
       "get": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Login",
@@ -2280,7 +2279,6 @@
     "/v1/auth/saml/logout": {
       "get": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Logout",
@@ -2300,7 +2298,6 @@
     "/v1/auth/saml/acs": {
       "post": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Login Callback",
@@ -2322,7 +2319,6 @@
     "/v1/auth/saml/sls": {
       "get": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Logout Callback",
@@ -2340,7 +2336,6 @@
       },
       "post": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Logout Callback",
