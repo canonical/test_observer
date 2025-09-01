@@ -15,6 +15,11 @@ $config = array(
             'lp_teams' => array('canonical-hw-cert'),
             'email' => 'certbot@canonical.com'
         ),
+        'omar-selo:password' => array(
+            'fullname' => 'Omar Abou Selo',
+            'lp_teams' => array('canonical'),
+            'email' => 'omar.selo@canonical.com'
+        ),
     ),
 
 );
