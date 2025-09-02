@@ -111,18 +111,19 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
         testExecutions: [
           for (int i = 200; i < 400; i++)
             TestExecution(
+              id: i,
+              ciLink: 'ciLink',
+              c3Link: 'c3Link',
+              status: TestExecutionStatus.failed,
+              environment: Environment(
                 id: i,
-                ciLink: 'ciLink',
-                c3Link: 'c3Link',
-                status: TestExecutionStatus.failed,
-                environment: Environment(
-                  id: i,
-                  name: 'Environment $i',
-                  architecture: 'armhf',
-                ),
-                artefactBuildId: i,
-                testPlan: 'test plan',
-                createdAt: DateTime.now()),
+                name: 'Environment $i',
+                architecture: 'armhf',
+              ),
+              artefactBuildId: i,
+              testPlan: 'test plan',
+              createdAt: DateTime.now(),
+            ),
         ],
       ),
     ];
