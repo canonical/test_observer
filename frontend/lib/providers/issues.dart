@@ -20,7 +20,7 @@ import 'api.dart';
 
 part 'issues.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Issues extends _$Issues {
   @override
   Future<List<Issue>> build() async {
