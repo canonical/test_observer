@@ -36,7 +36,7 @@ from .test_executions import relevant_links
 from .issues import issues
 from .execution_metadata import execution_metadata
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
 router.include_router(test_executions.router, prefix="/v1/test-executions")
 router.include_router(artefacts.router, prefix="/v1/artefacts")
