@@ -26,7 +26,7 @@ import '../../spacing.dart';
 import '../../vanilla/vanilla_text_input.dart';
 import 'issue_widget.dart';
 
-class _AttachIssueForm extends ConsumerWidget {
+class _AttachIssueForm extends ConsumerStatefulWidget {
   final int testExecutionId;
   final int testResultId;
 
@@ -36,17 +36,36 @@ class _AttachIssueForm extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final formKey = GlobalKey<FormState>();
-    final urlController = TextEditingController();
+  ConsumerState<_AttachIssueForm> createState() => _AttachIssueFormState();
+}
+
+class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
+  late final GlobalKey<FormState> formKey;
+  late final TextEditingController urlController;
+
+  @override
+  void initState() {
+    super.initState();
+    formKey = GlobalKey<FormState>();
+    urlController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    urlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
 
     final issueAttachments = ref
             .watch(
-              testResultsProvider(testExecutionId).select(
+              testResultsProvider(widget.testExecutionId).select(
                 (value) => value.whenData(
                   (results) => results
-                      .firstWhere((result) => result.id == testResultId)
+                      .firstWhere((result) => result.id == widget.testResultId)
                       .issueAttachments,
                 ),
               ),
@@ -124,8 +143,9 @@ class _AttachIssueForm extends ConsumerWidget {
                           'Note: Issue already attached.',
                         );
                     await ref
-                        .read(testResultsProvider(testExecutionId).notifier)
-                        .attachIssueToTestResult(testResultId, issueId);
+                        .read(testResultsProvider(widget.testExecutionId)
+                            .notifier)
+                        .attachIssueToTestResult(widget.testResultId, issueId);
                     popDialog();
                     if (issueAppearsAttached) {
                       showAlreadyAttached();
