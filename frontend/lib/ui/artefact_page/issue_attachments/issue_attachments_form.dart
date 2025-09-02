@@ -136,19 +136,17 @@ class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
                     final issueAppearsAttached = issueAttachments
                         .map((attachment) => attachment.issue.id)
                         .contains(issueId);
-                    // Don't use context after await, store pop and notification in local callbacks
-                    void popDialog() => Navigator.of(context).pop();
-                    void showAlreadyAttached() => showNotification(
-                          context,
-                          'Note: Issue already attached.',
-                        );
                     await ref
                         .read(testResultsProvider(widget.testExecutionId)
                             .notifier)
                         .attachIssueToTestResult(widget.testResultId, issueId);
-                    popDialog();
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
                     if (issueAppearsAttached) {
-                      showAlreadyAttached();
+                      showNotification(
+                        context,
+                        'Note: Issue already attached.',
+                      );
                     }
                   },
                   child: Text(
@@ -226,11 +224,11 @@ class _DetachIssueDialog extends ConsumerWidget {
         TextButton(
           key: const Key('detachIssueConfirmButton'),
           onPressed: () async {
-            void popDialog() => Navigator.of(context).pop();
             await ref
                 .read(testResultsProvider(testExecutionId).notifier)
                 .detachIssueFromTestResult(testResultId, issue.id);
-            popDialog();
+            if (!context.mounted) return;
+            Navigator.of(context).pop();
           },
           child: const Text('Yes'),
         ),
