@@ -133,11 +133,9 @@ class TestResultDetailsDialog extends StatelessWidget {
                 _buildDetailRow('Status', result.testExecution.status.name),
                 _buildDetailRow(
                   'Created',
-                  result.testExecution.createdAt != null
-                      ? TestResultHelpers.formatFullDate(
-                          result.testExecution.createdAt!.toIso8601String(),
-                        )
-                      : 'N/A',
+                  TestResultHelpers.formatFullDate(
+                    result.testExecution.createdAt.toIso8601String(),
+                  ),
                 ),
               ],
             ),

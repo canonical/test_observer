@@ -100,6 +100,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
               ),
               artefactBuildId: 1,
               testPlan: 'test plan',
+              createdAt: DateTime.now(),
             ),
         ],
       ),
@@ -110,18 +111,18 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
         testExecutions: [
           for (int i = 200; i < 400; i++)
             TestExecution(
-              id: i,
-              ciLink: 'ciLink',
-              c3Link: 'c3Link',
-              status: TestExecutionStatus.failed,
-              environment: Environment(
                 id: i,
-                name: 'Environment $i',
-                architecture: 'armhf',
-              ),
-              artefactBuildId: i,
-              testPlan: 'test plan',
-            ),
+                ciLink: 'ciLink',
+                c3Link: 'c3Link',
+                status: TestExecutionStatus.failed,
+                environment: Environment(
+                  id: i,
+                  name: 'Environment $i',
+                  architecture: 'armhf',
+                ),
+                artefactBuildId: i,
+                testPlan: 'test plan',
+                createdAt: DateTime.now()),
         ],
       ),
     ];

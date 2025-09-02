@@ -43,7 +43,7 @@ abstract class TestExecution with _$TestExecution {
     @Default([])
     @JsonKey(name: 'relevant_links')
     List<TestExecutionRelevantLink> relevantLinks,
-    @JsonKey(name: 'created_at') DateTime? createdAt,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
     @Default(ExecutionMetadata(data: {}))
     @JsonKey(name: 'execution_metadata')
     ExecutionMetadata executionMetadata,
