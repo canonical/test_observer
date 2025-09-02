@@ -32,7 +32,7 @@ class Navbar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).value;
+    final user = ref.watch(currentUserProvider).valueOrNull;
 
     return Container(
       color: YaruColors.coolGrey,
