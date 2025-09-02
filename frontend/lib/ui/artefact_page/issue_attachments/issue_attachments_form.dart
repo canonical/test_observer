@@ -57,6 +57,66 @@ class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
     super.dispose();
   }
 
+  Uri _extractRouteUri(Uri uri) {
+    return uri.fragment.isNotEmpty ? Uri.parse(uri.fragment) : uri;
+  }
+
+  String? _validateUrl(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a URL';
+    }
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      return 'Please enter a valid URL';
+    }
+    if (_isTestObserverIssueUrl(uri) && !_isValidIssuePage(uri)) {
+      return 'Invalid Test Observer issue URL, expected: ${Uri.base.origin}/#/issues/<id>';
+    }
+    return null;
+  }
+
+  bool _isTestObserverIssueUrl(Uri uri) {
+    return uri.origin == Uri.base.origin;
+  }
+
+  bool _isValidIssuePage(Uri uri) {
+    return AppRoutes.isIssuePage(_extractRouteUri(uri));
+  }
+
+  Future<int> _getOrCreateIssueId(String url, WidgetRef ref) async {
+    final uri = Uri.parse(url);
+    if (_isTestObserverIssueUrl(uri)) {
+      return AppRoutes.issueIdFromUri(_extractRouteUri(uri));
+    } else {
+      final issue =
+          await ref.read(issuesProvider.notifier).createIssue(url: url);
+      return issue.id;
+    }
+  }
+
+  bool _isIssueAlreadyAttached(List issueAttachments, int issueId) {
+    return issueAttachments
+        .map((attachment) => attachment.issue.id)
+        .contains(issueId);
+  }
+
+  Future<void> _attachIssue(
+    BuildContext context,
+    WidgetRef ref,
+    List issueAttachments,
+    int issueId,
+  ) async {
+    final issueAlreadyAttached =
+        _isIssueAlreadyAttached(issueAttachments, issueId);
+    await ref
+        .read(testResultsProvider(widget.testExecutionId).notifier)
+        .attachIssueToTestResult(widget.testResultId, issueId);
+    if (!context.mounted) return;
+    if (issueAlreadyAttached) {
+      showNotification(context, 'Note: Issue already attached.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
@@ -89,23 +149,7 @@ class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
               label:
                   'Test Observer issue URL or external URL (GitHub, Jira, Launchpad)',
               controller: urlController,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a URL';
-                }
-                final uri = Uri.tryParse(value);
-                if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-                  return 'Please enter a valid URL';
-                }
-                if (uri.origin == Uri.base.origin) {
-                  final routeUri =
-                      uri.fragment.isNotEmpty ? Uri.parse(uri.fragment) : uri;
-                  if (!AppRoutes.isIssuePage(routeUri)) {
-                    return 'Invalid Test Observer issue URL, expected: ${Uri.base.origin}/#/issues/<id>';
-                  }
-                }
-                return null;
-              },
+              validator: (value) => _validateUrl(value),
             ),
             const SizedBox(height: Spacing.level3),
             Row(
@@ -123,34 +167,11 @@ class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
                   onPressed: () async {
                     if (formKey.currentState?.validate() != true) return;
                     final url = urlController.text.trim();
-                    final uri = Uri.parse(url);
-                    int issueId;
-                    if (uri.origin == Uri.base.origin) {
-                      final routeUri = uri.fragment.isNotEmpty
-                          ? Uri.parse(uri.fragment)
-                          : uri;
-                      issueId = AppRoutes.issueIdFromUri(routeUri);
-                    } else {
-                      final issue = await ref
-                          .read(issuesProvider.notifier)
-                          .createIssue(url: url);
-                      issueId = issue.id;
-                    }
-                    final issueAppearsAttached = issueAttachments
-                        .map((attachment) => attachment.issue.id)
-                        .contains(issueId);
-                    await ref
-                        .read(testResultsProvider(widget.testExecutionId)
-                            .notifier)
-                        .attachIssueToTestResult(widget.testResultId, issueId);
+                    final issueId = await _getOrCreateIssueId(url, ref);
+                    if (!context.mounted) return;
+                    await _attachIssue(context, ref, issueAttachments, issueId);
                     if (!context.mounted) return;
                     Navigator.of(context).pop();
-                    if (issueAppearsAttached) {
-                      showNotification(
-                        context,
-                        'Note: Issue already attached.',
-                      );
-                    }
                   },
                   child: Text(
                     'attach',
