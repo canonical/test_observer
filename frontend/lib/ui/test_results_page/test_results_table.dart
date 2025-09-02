@@ -411,16 +411,9 @@ class TestResultsTable extends StatelessWidget {
     BuildContext context,
     TestResultWithContext result,
   ) {
-    final resultMap = {
-      'test_result': result.testResult.toJson(),
-      'test_execution': result.testExecution.toJson(),
-      'artefact': result.artefact.toJson(),
-      'artefact_build': result.artefactBuild.toJson(),
-    };
-
     showDialog(
       context: context,
-      builder: (context) => TestResultDetailsDialog(result: resultMap),
+      builder: (context) => TestResultDetailsDialog(result: result),
     );
   }
 

@@ -1,26 +1,13 @@
-// Copyright (C) 2023 Canonical Ltd.
-//
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 3, as
-// published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// frontend/lib/ui/test_results_page/test_results_details_dialog.dart
 
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 
+import '../../models/detailed_test_results.dart';
 import 'test_results_helpers.dart';
 
 class TestResultDetailsDialog extends StatelessWidget {
-  final Map<String, dynamic> result;
+  final TestResultWithContext result;
 
   const TestResultDetailsDialog({
     super.key,
@@ -29,12 +16,6 @@ class TestResultDetailsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final testResult = result['test_result'] as Map<String, dynamic>;
-    final testExecution = result['test_execution'] as Map<String, dynamic>;
-    final artefact = result['artefact'] as Map<String, dynamic>;
-    final artefactBuild = result['artefact_build'] as Map<String, dynamic>;
-    final environment = testExecution['environment'] as Map<String, dynamic>?;
-
     return Dialog(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 900, maxHeight: 1000),
@@ -42,13 +23,7 @@ class TestResultDetailsDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(context),
-            _buildContent(
-              testResult,
-              testExecution,
-              artefact,
-              artefactBuild,
-              environment,
-            ),
+            _buildContent(),
             _buildFooter(context),
           ],
         ),
@@ -88,13 +63,7 @@ class TestResultDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(
-    Map<String, dynamic> testResult,
-    Map<String, dynamic> testExecution,
-    Map<String, dynamic> artefact,
-    Map<String, dynamic> artefactBuild,
-    Map<String, dynamic>? environment,
-  ) {
+  Widget _buildContent() {
     return Expanded(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -105,10 +74,10 @@ class TestResultDetailsDialog extends StatelessWidget {
             _buildSection(
               'Test Case',
               [
-                _buildDetailRow('Name', testResult['name']),
-                _buildDetailRow('Category', testResult['category']),
-                _buildDetailRow('Template ID', testResult['template_id']),
-                _buildDetailRow('Status', testResult['status']),
+                _buildDetailRow('Name', result.testResult.name),
+                _buildDetailRow('Category', result.testResult.category),
+                _buildDetailRow('Template ID', result.testResult.templateId),
+                _buildDetailRow('Status', result.testResult.status.name),
               ],
             ),
 
@@ -120,12 +89,15 @@ class TestResultDetailsDialog extends StatelessWidget {
               [
                 _buildDetailRow(
                   'Family',
-                  artefact['family']?.toString().toUpperCase(),
+                  result.artefact.family.toUpperCase(),
                 ),
-                _buildDetailRow('Name', artefact['name']),
-                _buildDetailRow('Version', artefact['version']),
-                _buildDetailRow('Track', artefact['track']),
-                _buildDetailRow('Architecture', artefactBuild['architecture']),
+                _buildDetailRow('Name', result.artefact.name),
+                _buildDetailRow('Version', result.artefact.version),
+                _buildDetailRow('Track', result.artefact.track),
+                _buildDetailRow(
+                  'Architecture',
+                  result.artefactBuild.architecture,
+                ),
               ],
             ),
 
@@ -137,26 +109,32 @@ class TestResultDetailsDialog extends StatelessWidget {
               [
                 _buildDetailRow(
                   'Execution ID',
-                  testExecution['id']?.toString(),
+                  result.testExecution.id.toString(),
                 ),
-                _buildDetailRow('Test Plan', testExecution['test_plan']),
-                _buildDetailRow('Environment', environment?['name']),
-                _buildDetailRow('Status', testExecution['status']),
+                _buildDetailRow('Test Plan', result.testExecution.testPlan),
+                _buildDetailRow(
+                  'Environment',
+                  result.testExecution.environment.name,
+                ),
+                _buildDetailRow('Status', result.testExecution.status.name),
                 _buildDetailRow(
                   'Created',
-                  TestResultHelpers.formatFullDate(testResult['created_at']),
+                  result.testExecution.createdAt != null
+                      ? TestResultHelpers.formatFullDate(
+                          result.testExecution.createdAt!.toIso8601String(),
+                        )
+                      : 'N/A',
                 ),
               ],
             ),
 
             // IO Log if present
-            if (testResult['io_log'] != null &&
-                testResult['io_log'].toString().isNotEmpty) ...[
+            if (result.testResult.ioLog.isNotEmpty) ...[
               const SizedBox(height: 16),
               _buildSection(
                 'IO Log',
                 [
-                  _buildLogContainer(testResult['io_log'].toString()),
+                  _buildLogContainer(result.testResult.ioLog),
                 ],
               ),
             ],
@@ -206,7 +184,7 @@ class TestResultDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, dynamic value) {
+  Widget _buildDetailRow(String label, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -224,7 +202,7 @@ class TestResultDetailsDialog extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              value?.toString() ?? 'N/A',
+              value ?? 'N/A',
               style: const TextStyle(color: Colors.black),
             ),
           ),
