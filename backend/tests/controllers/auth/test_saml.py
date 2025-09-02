@@ -87,7 +87,6 @@ class TestSAMLAuthentication:
         auth_state, login_form_url = self._fetch_and_parse_login_form(sso_url)
         auth_response = self._submit_credentials(auth_state, login_form_url)
         api_response = self._process_saml_response(auth_response)
-        self._verify_authentication(api_response)
         self._verify_session(api_response)
 
     def _initiate_saml_login(self) -> str:
@@ -127,16 +126,8 @@ class TestSAMLAuthentication:
             },
         )
 
-    def _verify_authentication(self, response: requests.Response) -> None:
-        assert response.status_code == 200
-
-        user = response.json()
-        assert user.get("name") == "Mark"
-        assert user.get("email") == "mark@electricdemon.com"
-        assert user.get("launchpad_email") == "mark@electricdemon.com"
-        assert user.get("launchpad_handle") == self.CREDENTIALS["username"]
-
     def _verify_session(self, response: requests.Response) -> None:
+        assert response.status_code == 200
         assert "session" in response.cookies
 
         signer = itsdangerous.TimestampSigner(str(SESSIONS_SECRET))
@@ -145,5 +136,10 @@ class TestSAMLAuthentication:
 
         session = self.db_session.get(UserSession, session["id"])
         assert session
-        assert session.user_id == response.json().get("id")
         assert session.expires_at < datetime.now() + timedelta(days=14)
+
+        user = session.user
+        assert user
+        assert user.name == "Mark"
+        assert user.email == "mark@electricdemon.com"
+        assert user.launchpad_handle == self.CREDENTIALS["username"]

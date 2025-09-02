@@ -94,7 +94,7 @@ async def saml_logout(request: Request):
     return RedirectResponse(url=auth.logout())
 
 
-@router.post("/acs", response_model=UserResponse)
+@router.post("/acs")
 async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     settings = _get_saml_settings()
     if settings is None:
@@ -138,8 +138,6 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
         else:
             # Note by default python3-saml returns to API url
             logger.warning(f"Received invalid return url {return_to}")
-
-    return user
 
 
 def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:

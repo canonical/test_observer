@@ -2307,9 +2307,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
-                }
+                "schema": {}
               }
             }
           }
