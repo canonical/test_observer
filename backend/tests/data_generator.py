@@ -56,7 +56,7 @@ class DataGenerator:
     def gen_user(
         self,
         name: str = "John Doe",
-        launchpad_handle: str = "jd",
+        launchpad_handle: str | None = "jd",
         email: str = "john@doe.com",
         is_reviewer: bool = False,
     ) -> User:
@@ -69,8 +69,12 @@ class DataGenerator:
         self._add_object(user)
         return user
 
-    def gen_user_session(self, user: User, expires_at: datetime | None = None):
-        session = UserSession(user=user, expires_at=expires_at)
+    def gen_user_session(
+        self, user: User, expires_at: datetime | None = None
+    ) -> UserSession:
+        session = UserSession(user=user)
+        if expires_at:
+            session.expires_at = expires_at
         self._add_object(session)
         return session
 

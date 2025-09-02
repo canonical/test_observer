@@ -16,7 +16,7 @@
 
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import TypeVar
 
 from sqlalchemy import (
@@ -109,7 +109,9 @@ class User(Base):
 class UserSession(Base):
     __tablename__ = "user_session"
 
-    expires_at: Mapped[datetime]
+    expires_at: Mapped[datetime] = mapped_column(
+        default=datetime.now() + timedelta(days=14)
+    )
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("app_user.id", ondelete="CASCADE"), index=True
