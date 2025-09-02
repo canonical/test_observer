@@ -82,10 +82,12 @@ void main() {
     testWidgets('limits suggestions to maxSuggestions', (tester) async {
       final manyOptions = List.generate(15, (i) => 'Option $i');
 
-      await tester.pumpWidget(createWidget(
-        allOptions: manyOptions,
-        maxSuggestions: 5,
-      ),);
+      await tester.pumpWidget(
+        createWidget(
+          allOptions: manyOptions,
+          maxSuggestions: 5,
+        ),
+      );
 
       // Expand combobox
       await tester.tap(find.text('Test Combobox (0 selected)'));
@@ -108,12 +110,14 @@ void main() {
       String? selectedOption;
       bool? isSelected;
 
-      await tester.pumpWidget(createWidget(
-        onChanged: (option, selected) {
-          selectedOption = option;
-          isSelected = selected;
-        },
-      ),);
+      await tester.pumpWidget(
+        createWidget(
+          onChanged: (option, selected) {
+            selectedOption = option;
+            isSelected = selected;
+          },
+        ),
+      );
 
       // Expand combobox
       await tester.tap(find.text('Test Combobox (0 selected)'));
@@ -154,9 +158,11 @@ void main() {
     });
 
     testWidgets('initializes with pre-selected values', (tester) async {
-      await tester.pumpWidget(createWidget(
-        initialSelected: {'Option 1', 'Option 2'},
-      ),);
+      await tester.pumpWidget(
+        createWidget(
+          initialSelected: {'Option 1', 'Option 2'},
+        ),
+      );
 
       // Should show correct count and be expanded with YaruCheckboxes
       expect(find.text('Test Combobox (2 selected)'), findsOneWidget);
@@ -165,9 +171,11 @@ void main() {
 
     testWidgets('auto-expands when initialized with selections',
         (tester) async {
-      await tester.pumpWidget(createWidget(
-        initialSelected: {'Option 1'},
-      ),);
+      await tester.pumpWidget(
+        createWidget(
+          initialSelected: {'Option 1'},
+        ),
+      );
 
       // Should be expanded by default
       expect(find.byType(TextFormField), findsOneWidget);
@@ -175,18 +183,22 @@ void main() {
     });
 
     testWidgets('remains collapsed when no initial selections', (tester) async {
-      await tester.pumpWidget(createWidget(
-        initialSelected: {},
-      ),);
+      await tester.pumpWidget(
+        createWidget(
+          initialSelected: {},
+        ),
+      );
 
       // Should be collapsed by default
       expect(find.byType(TextFormField), findsNothing);
     });
 
     testWidgets('removes items when checkbox is unchecked', (tester) async {
-      await tester.pumpWidget(createWidget(
-        initialSelected: {'Option 1'},
-      ),);
+      await tester.pumpWidget(
+        createWidget(
+          initialSelected: {'Option 1'},
+        ),
+      );
 
       // Should start with 1 selected
       expect(find.text('Test Combobox (1 selected)'), findsOneWidget);

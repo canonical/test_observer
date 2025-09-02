@@ -68,6 +68,7 @@ final dummyTestExecution = TestExecution(
   environment: dummyEnvironment,
   artefactBuildId: dummyArtefactBuild.id,
   testPlan: 'test plan',
+  createdAt: DateTime.now(),
 );
 
 final dummyEnvironmentReview = EnvironmentReview(
