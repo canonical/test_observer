@@ -18,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 
+import '../../providers/test_results_filters.dart';
+import '../../routing.dart';
 import '../spacing.dart';
 import 'test_results_filters_view.dart';
 import 'test_results_body.dart';
@@ -31,6 +33,22 @@ class TestResultsPage extends ConsumerStatefulWidget {
 
 class _TestResultsPageState extends ConsumerState<TestResultsPage> {
   bool showFilters = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load filters from URL when the page first loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadFiltersFromUrl();
+    });
+  }
+
+  void _loadFiltersFromUrl() {
+    final uri = AppRoutes.uriFromContext(context);
+    ref
+        .read(testResultsFiltersProvider.notifier)
+        .loadFromQueryParams(uri.queryParametersAll);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +68,17 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
               const Spacer(),
               YaruOptionButton(
                 child: const Icon(Icons.filter_alt),
-                onPressed: () => setState(() => showFilters = !showFilters),
+                onPressed: () {
+                  setState(() {
+                    showFilters = !showFilters;
+                  });
+                },
               ),
             ],
           ),
           const SizedBox(height: Spacing.level4),
           if (showFilters) ...[
-            const TestResultsFiltersView(),
+            TestResultsFiltersView(key: ValueKey(showFilters)),
             const SizedBox(height: Spacing.level4),
           ],
           const Expanded(

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 
@@ -39,14 +40,12 @@ class TestResultsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth;
+        final availableWidth = math.max(constraints.maxWidth, 1000.0);
 
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: availableWidth,
-            ),
+          child: SizedBox(
+            width: availableWidth,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -84,36 +83,36 @@ class TestResultsTable extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            flex: 15,
+          SizedBox(
+            width: availableWidth * 0.15,
             child: _buildHeaderCell('Artefact'),
           ),
-          Expanded(
-            flex: 18,
+          SizedBox(
+            width: availableWidth * 0.18,
             child: _buildHeaderCell('Test Case'),
           ),
-          Expanded(
-            flex: 10,
+          SizedBox(
+            width: availableWidth * 0.10,
             child: _buildHeaderCell('Status'),
           ),
-          Expanded(
-            flex: 8,
+          SizedBox(
+            width: availableWidth * 0.08,
             child: _buildHeaderCell('Track'),
           ),
-          Expanded(
-            flex: 12,
+          SizedBox(
+            width: availableWidth * 0.12,
             child: _buildHeaderCell('Version'),
           ),
-          Expanded(
-            flex: 10,
+          SizedBox(
+            width: availableWidth * 0.12,
             child: _buildHeaderCell('Environment'),
           ),
-          Expanded(
-            flex: 12,
+          SizedBox(
+            width: availableWidth * 0.12,
             child: _buildHeaderCell('Test Plan'),
           ),
-          Expanded(
-            flex: 15,
+          SizedBox(
+            width: availableWidth * 0.13,
             child: _buildHeaderCell('Actions'),
           ),
         ],
@@ -147,49 +146,45 @@ class TestResultsTable extends StatelessWidget {
     return Container(
       width: availableWidth,
       constraints: const BoxConstraints(
-        minHeight: 48,
-        maxHeight: 72,
+        minHeight: 60,
       ),
       decoration: BoxDecoration(
         color: index.isEven ? Colors.white : Colors.grey[50],
         border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 15,
-            child: _buildArtefactCell(artefact, availableWidth),
+          SizedBox(
+            width: availableWidth * 0.15,
+            child: _buildArtefactCell(artefact),
           ),
-          Expanded(
-            flex: 18,
-            child: _buildTestCaseCell(testResult, availableWidth),
+          SizedBox(
+            width: availableWidth * 0.18,
+            child: _buildTestCaseCell(testResult),
           ),
-          Expanded(
-            flex: 10,
+          SizedBox(
+            width: availableWidth * 0.10,
             child: _buildStatusCell(testResult.status),
           ),
-          Expanded(
-            flex: 8,
-            child: _buildTrackCell(artefact, availableWidth),
+          SizedBox(
+            width: availableWidth * 0.08,
+            child: _buildTrackCell(artefact),
           ),
-          Expanded(
-            flex: 12,
-            child: _buildVersionCell(artefact, availableWidth),
+          SizedBox(
+            width: availableWidth * 0.12,
+            child: _buildVersionCell(artefact),
           ),
-          Expanded(
-            flex: 10,
-            child: _buildEnvironmentCell(
-              artefactBuild,
-              environment,
-              availableWidth,
-            ),
+          SizedBox(
+            width: availableWidth * 0.12,
+            child: _buildEnvironmentCell(artefactBuild, environment),
           ),
-          Expanded(
-            flex: 12,
-            child: _buildTestPlanCell(testExecution, availableWidth),
+          SizedBox(
+            width: availableWidth * 0.12,
+            child: _buildTestPlanCell(testExecution),
           ),
-          Expanded(
-            flex: 15,
+          SizedBox(
+            width: availableWidth * 0.13,
             child: _buildActionsCell(context, result),
           ),
         ],
@@ -197,10 +192,7 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildArtefactCell(
-    Artefact artefact,
-    double availableWidth,
-  ) {
+  Widget _buildArtefactCell(Artefact artefact) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
@@ -216,15 +208,13 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTestCaseCell(
-    TestResult testResult,
-    double availableWidth,
-  ) {
+  Widget _buildTestCaseCell(TestResult testResult) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             testResult.name,
@@ -261,12 +251,12 @@ class TestResultsTable extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           statusIcon,
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           Expanded(
             child: Text(
               status.name.toUpperCase(),
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -277,11 +267,8 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTrackCell(Artefact artefact, double availableWidth) {
-    final cellWidth = (availableWidth * 0.08).clamp(70.0, 100.0);
-
+  Widget _buildTrackCell(Artefact artefact) {
     return Container(
-      width: cellWidth,
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
@@ -293,14 +280,8 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildVersionCell(
-    Artefact artefact,
-    double availableWidth,
-  ) {
-    final cellWidth = (availableWidth * 0.12).clamp(90.0, 140.0);
-
+  Widget _buildVersionCell(Artefact artefact) {
     return Container(
-      width: cellWidth,
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
@@ -315,15 +296,12 @@ class TestResultsTable extends StatelessWidget {
   Widget _buildEnvironmentCell(
     ArtefactBuildMinimal artefactBuild,
     Environment environment,
-    double availableWidth,
   ) {
-    final cellWidth = (availableWidth * 0.10).clamp(80.0, 120.0);
     final architecture = artefactBuild.architecture;
     final environmentName = environment.name;
     final buildInfo = '$architecture/$environmentName';
 
     return Container(
-      width: cellWidth,
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
@@ -335,14 +313,8 @@ class TestResultsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTestPlanCell(
-    TestExecution testExecution,
-    double availableWidth,
-  ) {
-    final cellWidth = (availableWidth * 0.12).clamp(120.0, 180.0);
-
+  Widget _buildTestPlanCell(TestExecution testExecution) {
     return Container(
-      width: cellWidth,
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
@@ -356,7 +328,6 @@ class TestResultsTable extends StatelessWidget {
 
   Widget _buildActionsCell(BuildContext context, TestResultWithContext result) {
     return Container(
-      width: 180,
       padding: const EdgeInsets.all(8.0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -364,7 +335,7 @@ class TestResultsTable extends StatelessWidget {
           InkWell(
             onTap: () => _showTestResultDetails(context, result),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -373,7 +344,7 @@ class TestResultsTable extends StatelessWidget {
                   Text(
                     'Details',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       color: YaruColors.orange,
                     ),
                   ),
@@ -381,11 +352,11 @@ class TestResultsTable extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           InkWell(
             onTap: () => _navigateToTestExecution(result),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -394,7 +365,7 @@ class TestResultsTable extends StatelessWidget {
                   Text(
                     'Run',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       color: YaruColors.orange,
                     ),
                   ),

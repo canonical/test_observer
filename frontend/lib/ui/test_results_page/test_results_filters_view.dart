@@ -40,6 +40,17 @@ class _TestResultsFiltersViewState
   static const double _comboWidth = 260;
   static const double _controlHeight = 48;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = AppRoutes.uriFromContext(context);
+      ref
+          .read(testResultsFiltersProvider.notifier)
+          .loadFromQueryParams(uri.queryParametersAll);
+    });
+  }
+
   Widget _box(Widget child) => SizedBox(width: _comboWidth, child: child);
 
   void _applyFilters() {
@@ -88,6 +99,9 @@ class _TestResultsFiltersViewState
     const allFamilyOptions = ['snap', 'deb', 'charm', 'image'];
 
     return MultiSelectCombobox(
+      key: const ValueKey(
+        'family-filter',
+      ),
       title: 'Family',
       allOptions: allFamilyOptions,
       initialSelected: filters.familySelections,
@@ -104,6 +118,9 @@ class _TestResultsFiltersViewState
     final environments = ref.watch(allEnvironmentsProvider).value ?? [];
 
     return MultiSelectCombobox(
+      key: const ValueKey(
+        'environment-filter',
+      ),
       title: 'Environment',
       allOptions: environments,
       initialSelected: filters.selectedEnvironments,
@@ -120,6 +137,9 @@ class _TestResultsFiltersViewState
     final testCases = ref.watch(allTestCasesProvider).value ?? [];
 
     return MultiSelectCombobox(
+      key: const ValueKey(
+        'testcase-filter',
+      ),
       title: 'Test Case',
       allOptions: testCases,
       initialSelected: filters.selectedTestCases,
