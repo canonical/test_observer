@@ -21,6 +21,7 @@ import 'package:go_router/go_router.dart';
 import '../../../models/issue.dart';
 import '../../../providers/issues.dart';
 import '../../../providers/test_results.dart';
+import '../../../routing.dart';
 import '../../notification.dart';
 import '../../spacing.dart';
 import '../../vanilla/vanilla_text_input.dart';
@@ -97,8 +98,9 @@ class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
                   return 'Please enter a valid URL';
                 }
                 if (uri.origin == Uri.base.origin) {
-                  final regExp = RegExp(r'^/issues/\d+$');
-                  if (regExp.hasMatch(uri.fragment) == false) {
+                  final routeUri =
+                      uri.fragment.isNotEmpty ? Uri.parse(uri.fragment) : uri;
+                  if (!AppRoutes.isIssuePage(routeUri)) {
                     return 'Invalid Test Observer issue URL, expected: ${Uri.base.origin}/#/issues/<id>';
                   }
                 }
@@ -124,9 +126,10 @@ class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
                     final uri = Uri.parse(url);
                     int issueId;
                     if (uri.origin == Uri.base.origin) {
-                      final regExp = RegExp(r'^/issues/(\d+)$');
-                      final match = regExp.firstMatch(uri.fragment);
-                      issueId = int.parse(match!.group(1)!);
+                      final routeUri = uri.fragment.isNotEmpty
+                          ? Uri.parse(uri.fragment)
+                          : uri;
+                      issueId = AppRoutes.issueIdFromUri(routeUri);
                     } else {
                       final issue = await ref
                           .read(issuesProvider.notifier)
@@ -201,7 +204,7 @@ class _DetachIssueDialog extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            Navigator.of(context).pushNamed('/issues/${issue.id}');
+            navigateToIssuePage(context, issue.id);
           },
           child: Card(
             child: Padding(

@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/issue_attachment.dart';
+import '../../../routing.dart';
 import '../../spacing.dart';
 import 'issue_attachment_widget.dart';
 
@@ -42,8 +43,7 @@ class IssueAttachmentListItem extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          Navigator.of(context)
-              .pushNamed('/issues/${issueAttachment.issue.id}');
+          navigateToIssuePage(context, issueAttachment.issue.id);
         },
         child: Card(
           child: Padding(
