@@ -31,7 +31,6 @@ from test_observer.common.config import (
     SAML_SP_KEY,
     SAML_SP_X509_CERT,
 )
-from test_observer.controllers.artefacts.models import UserResponse
 from test_observer.data_access.models import User, UserSession
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
