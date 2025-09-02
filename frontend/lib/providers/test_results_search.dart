@@ -85,7 +85,7 @@ class TestResultsSearch extends _$TestResultsSearch {
       final filters = ref.read(testResultsFiltersProvider);
 
       final families =
-          filters.familySelections.map((f) => f.toLowerCase()).toList();
+          filters.selectedFamilies.map((f) => f.toLowerCase()).toList();
       final environments = filters.selectedEnvironments.toList();
       final testCases = filters.selectedTestCases.toList();
 

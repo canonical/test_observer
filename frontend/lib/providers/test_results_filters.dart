@@ -14,8 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
 
 @riverpod
@@ -26,17 +28,17 @@ class TestResultsFilters extends _$TestResultsFilters {
   }
 
   void updateFamilySelection(String family, bool isSelected) {
-    final current = Set<String>.from(state.familySelections);
+    final current = {...state.selectedFamilies};
     if (isSelected) {
       current.add(family);
     } else {
       current.remove(family);
     }
-    state = state.copyWith(familySelections: current);
+    state = state.copyWith(selectedFamilies: current);
   }
 
   void updateEnvironmentSelection(String environment, bool isSelected) {
-    final current = Set<String>.from(state.selectedEnvironments);
+    final current = {...state.selectedEnvironments};
     if (isSelected) {
       current.add(environment);
     } else {
@@ -46,7 +48,7 @@ class TestResultsFilters extends _$TestResultsFilters {
   }
 
   void updateTestCaseSelection(String testCase, bool isSelected) {
-    final current = Set<String>.from(state.selectedTestCases);
+    final current = {...state.selectedTestCases};
     if (isSelected) {
       current.add(testCase);
     } else {
@@ -62,9 +64,9 @@ class TestResultsFilters extends _$TestResultsFilters {
   Map<String, String> toQueryParams() {
     final params = <String, String>{};
 
-    if (state.familySelections.isNotEmpty) {
+    if (state.selectedFamilies.isNotEmpty) {
       params['families'] =
-          state.familySelections.map((f) => f.toLowerCase()).join(',');
+          state.selectedFamilies.map((f) => f.toLowerCase()).join(',');
     }
 
     if (state.selectedEnvironments.isNotEmpty) {
@@ -80,7 +82,7 @@ class TestResultsFilters extends _$TestResultsFilters {
 
   void loadFromQueryParams(Map<String, List<String>> queryParamsAll) {
     final familiesValues = queryParamsAll['families'] ?? [];
-    final familySelections = familiesValues.isNotEmpty
+    final selectedFamilies = familiesValues.isNotEmpty
         ? familiesValues.first.split(',').toSet()
         : <String>{};
 
@@ -95,33 +97,21 @@ class TestResultsFilters extends _$TestResultsFilters {
         : <String>{};
 
     state = TestResultsFiltersState(
-      familySelections: familySelections,
+      selectedFamilies: selectedFamilies,
       selectedEnvironments: selectedEnvironments,
       selectedTestCases: selectedTestCases,
     );
   }
 }
 
-class TestResultsFiltersState {
-  final Set<String> familySelections;
-  final Set<String> selectedEnvironments;
-  final Set<String> selectedTestCases;
+@freezed
+abstract class TestResultsFiltersState with _$TestResultsFiltersState {
+  const factory TestResultsFiltersState({
+    @Default(<String>{}) Set<String> selectedFamilies,
+    @Default(<String>{}) Set<String> selectedEnvironments,
+    @Default(<String>{}) Set<String> selectedTestCases,
+  }) = _TestResultsFiltersState;
 
-  const TestResultsFiltersState({
-    this.familySelections = const {},
-    this.selectedEnvironments = const {},
-    this.selectedTestCases = const {},
-  });
-
-  TestResultsFiltersState copyWith({
-    Set<String>? familySelections,
-    Set<String>? selectedEnvironments,
-    Set<String>? selectedTestCases,
-  }) {
-    return TestResultsFiltersState(
-      familySelections: familySelections ?? this.familySelections,
-      selectedEnvironments: selectedEnvironments ?? this.selectedEnvironments,
-      selectedTestCases: selectedTestCases ?? this.selectedTestCases,
-    );
-  }
+  factory TestResultsFiltersState.fromJson(Map<String, dynamic> json) =>
+      _$TestResultsFiltersStateFromJson(json);
 }

@@ -104,7 +104,7 @@ class _TestResultsFiltersViewState
       ),
       title: 'Family',
       allOptions: allFamilyOptions,
-      initialSelected: filters.familySelections,
+      initialSelected: filters.selectedFamilies,
       onChanged: (family, isSelected) {
         ref
             .read(testResultsFiltersProvider.notifier)
