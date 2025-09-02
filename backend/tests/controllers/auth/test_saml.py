@@ -66,7 +66,7 @@ class SimpleFormParser(HTMLParser):
 class TestSAMLAuthentication:
     """Test SAML authentication workflow"""
 
-    CREDENTIALS = {"username": "omar-selo", "password": "password"}
+    CREDENTIALS = {"username": "mark", "password": "password"}
 
     def test_complete_saml_login_workflow(self, db_session: Session):
         """Test our SAML Service Provider (SP) implementation with end-to-end workflow
@@ -131,9 +131,9 @@ class TestSAMLAuthentication:
         assert response.status_code == 200
 
         user = response.json()
-        assert user.get("name") == "Omar Abou Selo"
-        assert user.get("email") == "omar.selo@canonical.com"
-        assert user.get("launchpad_email") == "omar.selo@canonical.com"
+        assert user.get("name") == "Mark"
+        assert user.get("email") == "mark@electricdemon.com"
+        assert user.get("launchpad_email") == "mark@electricdemon.com"
         assert user.get("launchpad_handle") == self.CREDENTIALS["username"]
 
     def _verify_session(self, response: requests.Response) -> None:
