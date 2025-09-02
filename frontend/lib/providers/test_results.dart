@@ -36,10 +36,7 @@ class TestResults extends _$TestResults {
       issueId: issueId,
       testResultIds: [testResultId],
     );
-    final testResults = state.value;
-    if (testResults == null) {
-      return;
-    }
+    final testResults = await future;
     final resultIndex =
         testResults.indexWhere((result) => result.id == testResultId);
     if (resultIndex == -1) {
@@ -68,10 +65,7 @@ class TestResults extends _$TestResults {
       issueId: issueId,
       testResultIds: [testResultId],
     );
-    final testResults = state.value;
-    if (testResults == null) {
-      return;
-    }
+    final testResults = await future;
     final resultIndex =
         testResults.indexWhere((result) => result.id == testResultId);
     if (resultIndex == -1) {

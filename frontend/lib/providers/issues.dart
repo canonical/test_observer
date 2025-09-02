@@ -41,11 +41,7 @@ class Issues extends _$Issues {
       description: description,
       status: status,
     );
-    // Only mutate state if there is an existing list of issues
-    final issues = state.value;
-    if (issues == null) {
-      return newIssue;
-    }
+    final issues = await future;
     final index = issues.indexWhere((issue) => issue.id == newIssue.id);
     List<Issue> updatedIssues;
     if (index != -1) {
