@@ -20,6 +20,7 @@ import 'package:yaru/yaru.dart';
 
 import 'test_execution_relevant_link.dart';
 import 'environment.dart';
+import 'execution_metadata.dart';
 
 part 'test_execution.freezed.dart';
 part 'test_execution.g.dart';
@@ -43,6 +44,9 @@ abstract class TestExecution with _$TestExecution {
     @JsonKey(name: 'relevant_links')
     List<TestExecutionRelevantLink> relevantLinks,
     @JsonKey(name: 'created_at') DateTime? createdAt,
+    @Default(ExecutionMetadata(data: {}))
+    @JsonKey(name: 'execution_metadata')
+    ExecutionMetadata executionMetadata,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>

@@ -394,6 +394,122 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
     assert a.comment == comment
 
 
+def test_update_artefact_assignee(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"assignee_id": u.id},
+    )
+
+    assert response.status_code == 200
+    assert a.assignee_id == u.id
+
+
+def test_update_artefact_assignee_nonexistent_user(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact()
+    nonexistent_user_id = 99999
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"assignee_id": nonexistent_user_id},
+    )
+
+    assert response.status_code == 422
+    assert "User with id 99999 not found" in response.json()["detail"]
+
+
+def test_update_artefact_assignee_clear(
+    test_client: TestClient, generator: DataGenerator
+):
+    u = generator.gen_user()
+    a = generator.gen_artefact(assignee_id=u.id)
+
+    # Verify assignee is set initially
+    assert a.assignee_id == u.id
+
+    # Clear the assignee
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"assignee_id": None},
+    )
+
+    assert response.status_code == 200
+    assert a.assignee_id is None
+
+
+def test_update_artefact_assignee_by_email(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"assignee_email": u.launchpad_email},
+    )
+
+    assert response.status_code == 200
+    assert a.assignee_id == u.id
+
+
+def test_update_artefact_assignee_by_email_nonexistent(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact()
+    nonexistent_email = "nonexistent@example.com"
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"assignee_email": nonexistent_email},
+    )
+
+    assert response.status_code == 422
+    expected_msg = f"User with email '{nonexistent_email}' not found"
+    assert expected_msg in response.json()["detail"]
+
+
+def test_update_artefact_assignee_clear_by_email(
+    test_client: TestClient, generator: DataGenerator
+):
+    u = generator.gen_user()
+    a = generator.gen_artefact(assignee_id=u.id)
+
+    # Verify assignee is set initially
+    assert a.assignee_id == u.id
+
+    # Clear the assignee using email
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={"assignee_email": None},
+    )
+
+    assert response.status_code == 200
+    assert a.assignee_id is None
+
+
+def test_update_artefact_assignee_both_id_and_email_error(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{a.id}",
+        json={
+            "assignee_id": u.id,
+            "assignee_email": u.launchpad_email,
+        },
+    )
+
+    assert response.status_code == 422
+    expected_msg = "Cannot specify both assignee_id and assignee_email"
+    assert expected_msg in response.json()["detail"]
+
+
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
     artefact1 = generator.gen_artefact(StageName.beta, version="1")
     artefact2 = generator.gen_artefact(StageName.beta, version="2")

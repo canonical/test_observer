@@ -130,6 +130,13 @@ class TestObserverBackendCharm(CharmBase):
             raise SystemExit(0)
 
     def _on_database_changed(self, event):
+        if not self._validate_saml_config():
+            self.unit.status = BlockedStatus(
+                "SAML config incomplete: if any SAML setting is provided, "
+                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
+            )
+            return
+
         self._migrate_database()
         self._update_api_layer(None)
         self._update_celery_layer(None)
@@ -138,7 +145,35 @@ class TestObserverBackendCharm(CharmBase):
         self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
 
+    def _validate_saml_config(self) -> bool:
+        """Validate SAML configuration.
+
+        If any SAML config is provided, all three must be provided.
+        Returns True if config is valid, False otherwise.
+        """
+        saml_idp_metadata_url = self.config.get("saml_idp_metadata_url", "")
+        saml_sp_cert = self.config.get("saml_sp_cert", "")
+        saml_sp_key = self.config.get("saml_sp_key", "")
+
+        # Check if any SAML config is provided
+        has_any_saml = bool(saml_idp_metadata_url or saml_sp_cert or saml_sp_key)
+
+        # If any is provided, all must be provided
+        if has_any_saml:
+            has_all_saml = bool(saml_idp_metadata_url and saml_sp_cert and saml_sp_key)
+            return has_all_saml
+
+        # If none are provided, that's valid
+        return True
+
     def _on_config_changed(self, event):
+        if not self._validate_saml_config():
+            self.unit.status = BlockedStatus(
+                "SAML config incomplete: if any SAML setting is provided, "
+                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
+            )
+            return
+
         if self.unit.is_leader():
             for relation in self.model.relations["test-observer-rest-api"]:
                 host = self.config["hostname"]
@@ -149,6 +184,13 @@ class TestObserverBackendCharm(CharmBase):
         self._update_celery_layer(event)
 
     def _update_api_layer(self, event):
+        if not self._validate_saml_config():
+            self.unit.status = BlockedStatus(
+                "SAML config incomplete: if any SAML setting is provided, "
+                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
+            )
+            return
+
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
         if self.api_container.can_connect():
@@ -164,6 +206,13 @@ class TestObserverBackendCharm(CharmBase):
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
 
     def _update_celery_layer(self, _):
+        if not self._validate_saml_config():
+            self.unit.status = BlockedStatus(
+                "SAML config incomplete: if any SAML setting is provided, "
+                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
+            )
+            return
+
         self.unit.status = MaintenanceStatus(f"Updating {self.celery_pebble_service_name} layer")
 
         if self.celery_container.can_connect():
@@ -195,7 +244,13 @@ class TestObserverBackendCharm(CharmBase):
         env = {
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
+            "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
         }
+        # Only set SAML environment variables if IDP metadata URL is provided
+        if self.config.get("saml_idp_metadata_url"):
+            env["SAML_IDP_METADATA_URL"] = self.config["saml_idp_metadata_url"]
+            env["SAML_SP_X509_CERT"] = self.config.get("saml_sp_cert", "")
+            env["SAML_SP_KEY"] = self.config.get("saml_sp_key", "")
         env.update(self._postgres_relation_data())
         return env
 

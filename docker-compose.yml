@@ -4,17 +4,21 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "30000:30000"
+    # Without host network mode the SAML IdP url will be internal to the docker network
+    # so a redirect request sent to host will not work as the host can't access internal
+    # docker network
+    network_mode: host
     depends_on:
       test-observer-db:
         condition: service_healthy
+      saml-idp:
+        condition: service_healthy
     environment:
-      DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
+      DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@localhost:5432/test_observer_db"
       SEED_DATA: "true"
-      DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}"  # Can be overridden for GitHub CI
+      DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}" # Can be overridden for GitHub CI
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
-      PYTHONDONTWRITEBYTECODE: "1"  # Prevent .pyc files in development
+      PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
     volumes:
       # Mount source code from host for development
       - ./backend:/home/app
@@ -43,7 +47,26 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test_observer_user -d test_observer_db"]
+      test: [ "CMD-SHELL", "pg_isready -U test_observer_user -d test_observer_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  saml-idp:
+    image: kristophjunge/test-saml-idp
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ./backend/saml/simplesamlphp/authsources.php:/var/www/simplesamlphp/config/authsources.php
+      - ./backend/saml/simplesamlphp/saml20-idp-hosted.php:/var/www/simplesamlphp/metadata/saml20-idp-hosted.php
+    environment:
+      SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:30000
+      SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:30000/v1/auth/saml/acs
+      SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:30000/v1/auth/saml/sls
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5

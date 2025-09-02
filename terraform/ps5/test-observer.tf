@@ -19,12 +19,6 @@ variable "tls_secret_name" {
   default     = ""
 }
 
-variable "external_ingress_hostname" {
-  description = "External hostname for the ingress"
-  type        = string
-  default     = "canonical.com"
-}
-
 variable "nginx_ingress_integrator_charm_whitelist_source_range" {
   description = "Allowed client IP source ranges. The value is a comma separated list of CIDRs."
   type        = string
@@ -60,6 +54,32 @@ variable "backups_s3_uri_style" {
   type        = string
   default     = "path"
 }
+
+variable "api_hostname" {
+  description = "Test Observer API hostname"
+  type        = string
+}
+
+variable "frontend_hostname" {
+  description = "Test Observer front-end hostname"
+  type        = string
+}
+
+variable "saml_idp_metadata_url" {
+  description = "SAML metadata endpoint for the identity provider"
+  type        = string
+}
+
+variable "saml_sp_cert" {
+  description = "SAML service provider X.509 certificate"
+  type        = string
+}
+
+variable "saml_sp_key" {
+  description = "SAML service provider certificate private key"
+  type        = string
+}
+
 
 
 locals {
@@ -125,9 +145,12 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname   = var.environment == "stg" ? "test-observer-api-staging.${var.external_ingress_hostname}" : "test-observer-api.${var.external_ingress_hostname}"
-    port       = var.environment == "development" ? 80 : 443
-    sentry_dsn = "${local.sentry_dsn_map[var.environment]}"
+    hostname              = var.api_hostname
+    port                  = var.environment == "development" ? 80 : 443
+    sentry_dsn            = "${local.sentry_dsn_map[var.environment]}"
+    saml_idp_metadata_url = var.saml_idp_metadata_url
+    saml_sp_cert          = var.saml_sp_cert
+    saml_sp_key           = var.saml_sp_key
   }
 
   units = 3
@@ -144,7 +167,7 @@ resource "juju_application" "test-observer-frontend" {
   }
 
   config = {
-    hostname                 = var.environment == "stg" ? "test-observer-staging.${var.external_ingress_hostname}" : "test-observer.${var.external_ingress_hostname}"
+    hostname                 = var.frontend_hostname
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
 

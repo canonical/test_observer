@@ -16,18 +16,6 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    services:
-      postgres:
-        image: postgres:15.2
-        env:
-          POSTGRES_PASSWORD: password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -39,21 +27,17 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run mypy .
-      - run: uv run pytest
-        env:
-          TEST_DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
-      - run: uv run alembic upgrade head
-        env:
-          DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
+      - name: Install docker compose
+        run: |
+          sudo apt update -y
+          sudo apt install docker.io docker-compose-v2 -y
+      - name: Start test observer api
+        run: docker compose up --wait -d test-observer-api
+      - name: Run test observer api tests
+        run: docker compose exec test-observer-api pytest
       - name: Check if alembic migrations are up to date
-        run: uv run alembic check
-        env:
-          DB_URL: postgresql+pg8000://postgres:password@localhost:5432/postgres
-      - name: Start the app
-        run: uv run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
-        shell: bash
+        run: docker compose exec test-observer-api alembic check
       - name: Fetch OpenAPI schema
         run: curl http://localhost:30000/openapi.json | jq > fetched_openapi.json
       - name: Compare with schema in repository
         run: diff fetched_openapi.json schemata/openapi.json
-        
