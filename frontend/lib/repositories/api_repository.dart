@@ -27,7 +27,6 @@ import '../models/rerun_request.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_event.dart';
-import '../models/test_execution.dart';
 
 class ApiRepository {
   final Dio dio;
@@ -273,31 +272,13 @@ class ApiRepository {
     final response =
         await dio.get('/v1/test-results', queryParameters: queryParams);
 
-    // Parse the response
     final jsonData = response.data as Map<String, dynamic>;
     final resultsList =
         (jsonData['test_results'] as List).cast<Map<String, dynamic>>();
 
-    final testResults = resultsList.map((jsonResult) {
-      final testResult = TestResult.fromJson(
-        jsonResult['test_result'] as Map<String, dynamic>,
-      );
-      final testExecution = TestExecution.fromJson(
-        jsonResult['test_execution'] as Map<String, dynamic>,
-      );
-      final artefact =
-          Artefact.fromJson(jsonResult['artefact'] as Map<String, dynamic>);
-      final artefactBuild = ArtefactBuildMinimal.fromJson(
-        jsonResult['artefact_build'] as Map<String, dynamic>,
-      );
-
-      return TestResultWithContext(
-        testResult: testResult,
-        testExecution: testExecution,
-        artefact: artefact,
-        artefactBuild: artefactBuild,
-      );
-    }).toList();
+    final testResults = resultsList
+        .map((jsonResult) => TestResultWithContext.fromJson(jsonResult))
+        .toList();
 
     return TestResultsSearchResult(
       count: jsonData['count'] as int,
