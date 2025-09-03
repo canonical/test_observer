@@ -36,6 +36,7 @@ from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
 from test_observer.main import FRONTEND_URL
+from test_observer.users.user_injection import get_current_user
 
 
 router: APIRouter = APIRouter(prefix="/saml")
@@ -82,15 +83,28 @@ async def saml_login(request: Request, return_to: str | None = None):
 
 
 @router.get("/logout")
-async def saml_logout(request: Request):
+async def saml_logout(
+    request: Request,
+    return_to: str | None = None,
+    user: User | None = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if user:
+        for session in user.sessions:
+            db.delete(session)
+        db.commit()
+
+    request.session.clear()
+
     settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
         )
+
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
-    return RedirectResponse(url=auth.logout())
+    return RedirectResponse(url=auth.logout(return_to=return_to))
 
 
 @router.post("/acs")
@@ -100,6 +114,7 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
         )
+
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
     auth.process_response()
@@ -126,17 +141,10 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     request.session["id"] = session.id
 
     if return_to := req["post_data"].get("RelayState"):
-        frontend_url = urlparse(FRONTEND_URL)
-        return_url = urlparse(return_to)
-        # Check if it's safe to redirect user to this URL
-        if frontend_url.netloc == return_url.netloc:
-            response = RedirectResponse(
-                url=return_to, status_code=status.HTTP_302_FOUND
-            )
-            return response
-        else:
-            # Note by default python3-saml returns to API url
-            logger.warning(f"Received invalid return url {return_to}")
+        return _redirect_to_return_url(return_to)
+    
+    # Return success response when no redirect is needed
+    return {"message": "Authentication successful"}
 
 
 def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
@@ -175,6 +183,23 @@ async def saml_logout_callback(request: Request):
         )
         raise HTTPException(500, "Logout failed")
 
+    return_to = req["post_data"].get("RelayState") or req["get_data"].get("RelayState")
+    if return_to:
+        return _redirect_to_return_url(return_to)
+
+
+def _redirect_to_return_url(return_to: str) -> RedirectResponse | None:
+    frontend_url = urlparse(FRONTEND_URL)
+    return_url = urlparse(return_to)
+    # Check if it's safe to redirect user to this URL
+    if frontend_url.netloc == return_url.netloc:
+        response = RedirectResponse(url=return_to, status_code=status.HTTP_302_FOUND)
+        return response
+    else:
+        # Note by default python3-saml returns to API url
+        logger.warning(f"Received invalid return url {return_to}")
+    return None
+
 
 async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
     form_data = await request.form()
@@ -195,7 +220,7 @@ async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
     if request.url.scheme == "https" or result["server_port"] == 443:
         result["https"] = "on"
     if request.query_params:
-        result["get_data"] = (request.query_params,)
+        result["get_data"] = request.query_params
     if "SAMLResponse" in form_data:
         saml_response = form_data["SAMLResponse"]
         result["post_data"]["SAMLResponse"] = saml_response

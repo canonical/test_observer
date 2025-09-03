@@ -21,7 +21,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from test_observer.common.config import FRONTEND_URL, SENTRY_DSN, SESSIONS_SECRET
+from test_observer.common.config import FRONTEND_URL, SENTRY_DSN, SESSIONS_SECRET, SESSIONS_HTTPS_ONLY
 from test_observer.controllers.router import router
 
 if SENTRY_DSN:
@@ -58,7 +58,7 @@ app.add_middleware(
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSIONS_SECRET,
-    https_only=True,
+    https_only=SESSIONS_HTTPS_ONLY,
 )
 
 
