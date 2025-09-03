@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter/foundation.dart' show compute;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/detailed_test_results.dart';
@@ -97,7 +96,7 @@ class TestResultsSearch extends _$TestResultsSearch {
         offset: offset,
       );
 
-      final parsed = await compute(_parseSearchResults, raw);
+      final parsed = _parseSearchResults(raw);
       final hasMore = parsed.count > offset + limit;
 
       if (offset > 0 && state.hasValue) {
