@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 import subprocess
 import shutil
+
+from test_observer.common.config import VERSION
 
 
 def get_git_version_info(fallback_version: str = "0.0.0") -> str:
@@ -128,5 +129,5 @@ if __name__ == "__main__":
 
 class VersionMetadataHook(MetadataHookInterface):
     def update(self, metadata: dict) -> None:
-        version = get_git_version_info(os.getenv("VERSION", "0.0.0"))
+        version = get_git_version_info(VERSION)
         metadata["version"] = version

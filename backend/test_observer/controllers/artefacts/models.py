@@ -43,8 +43,12 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    launchpad_handle: str
-    launchpad_email: str
+    launchpad_handle: str | None = None
+    email: str
+    launchpad_email: str = Field(
+        validation_alias=AliasPath("email"),
+        deprecated="launchpad_email is deprecated please use email instead",
+    )
     name: str
 
 

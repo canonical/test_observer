@@ -31,11 +31,14 @@ import 'global_error_message.dart';
 
 part 'api.g.dart';
 
+final apiUrl = web.window.getProperty('testObserverAPIBaseURI'.toJS).toString();
+
 @riverpod
 ApiRepository api(Ref ref) {
-  final baseUrl =
-      web.window.getProperty('testObserverAPIBaseURI'.toJS).toString();
-  final dio = Dio(BaseOptions(baseUrl: baseUrl));
+  final dio = Dio(BaseOptions(baseUrl: apiUrl));
+  // Send cookies with requests
+  dio.options.extra['withCredentials'] = true;
+  dio.options.headers['X-CSRF-Token'] = '1';
   dio.interceptors.add(RetryInterceptor(dio: dio));
   dio.interceptors.add(
     InterceptorsWrapper(

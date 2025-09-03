@@ -109,3 +109,8 @@ variable "saml_sp_key" {
   description = "SAML service provider certificate private key"
   type        = string
 }
+
+variable "sessions_secret" {
+  description = "Randomly generated secret key to use for signing session cookies"
+  type        = string
+}
