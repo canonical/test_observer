@@ -141,6 +141,14 @@ class AppRoutes {
           uri.path.contains(AppRoutes.charms) ||
           uri.path.contains(AppRoutes.images)) &&
       uri.pathSegments.length == 2;
+
+  static bool isIssuePage(Uri uri) =>
+      uri.pathSegments.length == 2 && uri.pathSegments[0] == 'issues';
+
+  static int issueIdFromUri(Uri uri) {
+    if (isIssuePage(uri)) return int.parse(uri.pathSegments[1]);
+    throw Exception('$uri isn\'t an issue page');
+  }
 }
 
 void navigateToArtefactPage(BuildContext context, int artefactId) {
@@ -164,4 +172,8 @@ void navigateToArtefactPage(BuildContext context, int artefactId) {
   }
 
   context.go(path);
+}
+
+void navigateToIssuePage(BuildContext context, int issueId) {
+  context.go('/issues/$issueId');
 }

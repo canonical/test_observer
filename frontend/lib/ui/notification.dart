@@ -16,28 +16,21 @@
 
 import 'package:flutter/material.dart';
 
-class VanillaChip extends StatelessWidget {
-  const VanillaChip({
-    super.key,
-    required this.text,
-    this.fontColor,
-    this.backgroundColor,
-    this.side,
-  });
-
-  final String text;
-  final Color? fontColor;
-  final Color? backgroundColor;
-  final BorderSide? side;
-
-  @override
-  Widget build(BuildContext context) {
-    final fontStyle = Theme.of(context).textTheme.labelMedium;
-    return Chip(
-      label: Text(text, style: fontStyle?.apply(color: fontColor)),
-      shape: const StadiumBorder(),
-      backgroundColor: backgroundColor,
-      side: side,
-    );
-  }
+/// Shows a notification SnackBar with the given [message].
+/// Optionally, you can provide a [duration] and [backgroundColor].
+void showNotification(
+  BuildContext context,
+  String message, {
+  Duration duration = const Duration(seconds: 3),
+  Color? backgroundColor,
+  Color? textColor,
+}) {
+  final snackBar = SnackBar(
+    behavior: SnackBarBehavior.floating,
+    content: Text(message, style: TextStyle(color: textColor)),
+    duration: duration,
+    width: 400,
+    backgroundColor: backgroundColor ?? Colors.green,
+  );
+  ScaffoldMessenger.of(context).showSnackBar(snackBar);
 }

@@ -1,0 +1,277 @@
+// Copyright (C) 2023 Canonical Ltd.
+//
+// This file is part of Test Observer Frontend.
+//
+// Test Observer Frontend is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 3, as
+// published by the Free Software Foundation.
+//
+// Test Observer Frontend is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../models/issue.dart';
+import '../../../providers/issues.dart';
+import '../../../providers/test_results.dart';
+import '../../../routing.dart';
+import '../../notification.dart';
+import '../../spacing.dart';
+import '../../vanilla/vanilla_text_input.dart';
+import 'issue_widget.dart';
+
+class _AttachIssueForm extends ConsumerStatefulWidget {
+  final int testExecutionId;
+  final int testResultId;
+
+  const _AttachIssueForm({
+    required this.testExecutionId,
+    required this.testResultId,
+  });
+
+  @override
+  ConsumerState<_AttachIssueForm> createState() => _AttachIssueFormState();
+}
+
+class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
+  late final GlobalKey<FormState> formKey;
+  late final TextEditingController urlController;
+
+  @override
+  void initState() {
+    super.initState();
+    formKey = GlobalKey<FormState>();
+    urlController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    urlController.dispose();
+    super.dispose();
+  }
+
+  Uri _extractRouteUri(Uri uri) {
+    return uri.fragment.isNotEmpty ? Uri.parse(uri.fragment) : uri;
+  }
+
+  String? _validateUrl(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a URL';
+    }
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      return 'Please enter a valid URL';
+    }
+    if (_isTestObserverIssueUrl(uri) && !_isValidIssuePage(uri)) {
+      return 'Invalid Test Observer issue URL, expected: ${Uri.base.origin}/#/issues/<id>';
+    }
+    return null;
+  }
+
+  bool _isTestObserverIssueUrl(Uri uri) {
+    return uri.origin == Uri.base.origin;
+  }
+
+  bool _isValidIssuePage(Uri uri) {
+    return AppRoutes.isIssuePage(_extractRouteUri(uri));
+  }
+
+  Future<int> _getOrCreateIssueId(String url, WidgetRef ref) async {
+    final uri = Uri.parse(url);
+    if (_isTestObserverIssueUrl(uri)) {
+      return AppRoutes.issueIdFromUri(_extractRouteUri(uri));
+    } else {
+      final issue =
+          await ref.read(issuesProvider.notifier).createIssue(url: url);
+      return issue.id;
+    }
+  }
+
+  bool _isIssueAlreadyAttached(List issueAttachments, int issueId) {
+    return issueAttachments
+        .map((attachment) => attachment.issue.id)
+        .contains(issueId);
+  }
+
+  Future<void> _attachIssue(
+    BuildContext context,
+    WidgetRef ref,
+    List issueAttachments,
+    int issueId,
+  ) async {
+    final issueAlreadyAttached =
+        _isIssueAlreadyAttached(issueAttachments, issueId);
+    await ref
+        .read(testResultsProvider(widget.testExecutionId).notifier)
+        .attachIssueToTestResult(widget.testResultId, issueId);
+    if (!context.mounted) return;
+    if (issueAlreadyAttached) {
+      showNotification(context, 'Note: Issue already attached.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
+
+    final issueAttachments = ref
+            .watch(
+              testResultsProvider(widget.testExecutionId).select(
+                (value) => value.whenData(
+                  (results) => results
+                      .firstWhere((result) => result.id == widget.testResultId)
+                      .issueAttachments,
+                ),
+              ),
+            )
+            .value ??
+        [];
+
+    return Form(
+      key: formKey,
+      child: SizedBox(
+        width: 700,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Attach Issue', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: Spacing.level4),
+            VanillaTextInput(
+              key: const Key('attachIssueFormUrlInput'),
+              label:
+                  'Test Observer issue URL or external URL (GitHub, Jira, Launchpad)',
+              controller: urlController,
+              validator: (value) => _validateUrl(value),
+            ),
+            const SizedBox(height: Spacing.level3),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => context.pop(),
+                  child: Text(
+                    'cancel',
+                    style: buttonFontStyle?.apply(color: Colors.grey),
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  key: const Key('attachIssueFormSubmitButton'),
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() != true) return;
+                    final url = urlController.text.trim();
+                    final issueId = await _getOrCreateIssueId(url, ref);
+                    if (!context.mounted) return;
+                    await _attachIssue(context, ref, issueAttachments, issueId);
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    'attach',
+                    style: buttonFontStyle?.apply(color: Colors.black),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void showAttachIssueDialog({
+  required BuildContext context,
+  required int testExecutionId,
+  required int testResultId,
+}) =>
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: _AttachIssueForm(
+            testExecutionId: testExecutionId,
+            testResultId: testResultId,
+          ),
+        ),
+      ),
+    );
+
+class _DetachIssueDialog extends ConsumerWidget {
+  const _DetachIssueDialog({
+    required this.issue,
+    required this.testExecutionId,
+    required this.testResultId,
+  });
+
+  final Issue issue;
+  final int testExecutionId;
+  final int testResultId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AlertDialog(
+      title: const Text('Are you sure you want to detach this issue?'),
+      content: SizedBox(
+        width: 700,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            navigateToIssuePage(context, issue.id);
+          },
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: Spacing.level3,
+                horizontal: Spacing.level4,
+              ),
+              child: IssueWidget(issue: issue),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            context.pop(false);
+          },
+          child: const Text('No'),
+        ),
+        TextButton(
+          key: const Key('detachIssueConfirmButton'),
+          onPressed: () async {
+            await ref
+                .read(testResultsProvider(testExecutionId).notifier)
+                .detachIssueFromTestResult(testResultId, issue.id);
+            if (!context.mounted) return;
+            Navigator.of(context).pop();
+          },
+          child: const Text('Yes'),
+        ),
+      ],
+    );
+  }
+}
+
+void showDetachIssueDialog({
+  required BuildContext context,
+  required Issue issue,
+  required int testResultId,
+  required int testExecutionId,
+}) =>
+    showDialog(
+      context: context,
+      builder: (_) => _DetachIssueDialog(
+        issue: issue,
+        testExecutionId: testExecutionId,
+        testResultId: testResultId,
+      ),
+    );

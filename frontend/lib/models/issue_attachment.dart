@@ -14,30 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter/material.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class VanillaChip extends StatelessWidget {
-  const VanillaChip({
-    super.key,
-    required this.text,
-    this.fontColor,
-    this.backgroundColor,
-    this.side,
-  });
+import 'issue.dart';
+import 'attachment_rule.dart';
 
-  final String text;
-  final Color? fontColor;
-  final Color? backgroundColor;
-  final BorderSide? side;
+part 'issue_attachment.freezed.dart';
+part 'issue_attachment.g.dart';
 
-  @override
-  Widget build(BuildContext context) {
-    final fontStyle = Theme.of(context).textTheme.labelMedium;
-    return Chip(
-      label: Text(text, style: fontStyle?.apply(color: fontColor)),
-      shape: const StadiumBorder(),
-      backgroundColor: backgroundColor,
-      side: side,
-    );
-  }
+@freezed
+abstract class IssueAttachment with _$IssueAttachment {
+  const factory IssueAttachment({
+    required Issue issue,
+    @JsonKey(name: 'attachment_rule') AttachmentRule? attachmentRule,
+  }) = _IssueAttachment;
+
+  factory IssueAttachment.fromJson(Map<String, Object?> json) =>
+      _$IssueAttachmentFromJson(json);
 }
