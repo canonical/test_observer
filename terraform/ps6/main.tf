@@ -106,6 +106,7 @@ resource "juju_application" "test-observer-api" {
 
   config = {
     hostname              = var.api_hostname
+    frontend_hostname     = var.frontend_hostname
     port                  = var.api_port
     sentry_dsn            = var.sentry_dsn
     saml_idp_metadata_url = var.saml_idp_metadata_url
