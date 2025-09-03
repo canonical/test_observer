@@ -79,49 +79,42 @@ class TestResultsSearch extends _$TestResultsSearch {
       state = const AsyncValue.loading();
     }
 
-    try {
-      final api = ref.read(apiProvider);
-      final filters = ref.read(testResultsFiltersProvider);
+    final api = ref.read(apiProvider);
+    final filters = ref.read(testResultsFiltersProvider);
 
-      final families =
-          filters.selectedFamilies.map((f) => f.toLowerCase()).toList();
-      final environments = filters.selectedEnvironments.toList();
-      final testCases = filters.selectedTestCases.toList();
+    final families =
+        filters.selectedFamilies.map((f) => f.toLowerCase()).toList();
+    final environments = filters.selectedEnvironments.toList();
+    final testCases = filters.selectedTestCases.toList();
 
-      final raw = await api.searchTestResults(
-        families: families.isNotEmpty ? families : null,
-        environments: environments.isNotEmpty ? environments : null,
-        testCases: testCases.isNotEmpty ? testCases : null,
-        limit: limit,
-        offset: offset,
+    final raw = await api.searchTestResults(
+      families: families.isNotEmpty ? families : null,
+      environments: environments.isNotEmpty ? environments : null,
+      testCases: testCases.isNotEmpty ? testCases : null,
+      limit: limit,
+      offset: offset,
+    );
+
+    final parsed = _parseSearchResults(raw);
+
+    if (offset > 0 && state.hasValue) {
+      final current = state.value!;
+      final merged = List<TestResultWithContext>.of(current.testResults)
+        ..addAll(parsed.items);
+
+      state = AsyncValue.data(
+        TestResultsSearchResult(
+          count: parsed.count,
+          testResults: merged,
+        ),
       );
-
-      final parsed = _parseSearchResults(raw);
-      final hasMore = parsed.count > offset + limit;
-
-      if (offset > 0 && state.hasValue) {
-        final current = state.value!;
-        final merged = List<TestResultWithContext>.of(current.testResults)
-          ..addAll(parsed.items);
-
-        state = AsyncValue.data(
-          TestResultsSearchResult(
-            count: parsed.count,
-            testResults: merged,
-            hasMore: hasMore,
-          ),
-        );
-      } else {
-        state = AsyncValue.data(
-          TestResultsSearchResult(
-            count: parsed.count,
-            testResults: parsed.items,
-            hasMore: hasMore,
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+    } else {
+      state = AsyncValue.data(
+        TestResultsSearchResult(
+          count: parsed.count,
+          testResults: parsed.items,
+        ),
+      );
     }
   }
 

@@ -28,8 +28,11 @@ abstract class TestResultsSearchResult with _$TestResultsSearchResult {
     required int count,
     @JsonKey(name: 'test_results')
     required List<TestResultWithContext> testResults,
-    @Default(false) bool hasMore,
   }) = _TestResultsSearchResult;
+
+  const TestResultsSearchResult._();
+
+  bool get hasMore => count > testResults.length;
 
   factory TestResultsSearchResult.fromJson(Map<String, dynamic> json) =>
       _$TestResultsSearchResultFromJson(json);
@@ -38,7 +41,6 @@ abstract class TestResultsSearchResult with _$TestResultsSearchResult {
     return const TestResultsSearchResult(
       count: 0,
       testResults: [],
-      hasMore: false,
     );
   }
 }
