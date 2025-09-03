@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import logging
 import sentry_sdk
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
@@ -25,6 +26,9 @@ from test_observer.controllers.router import router
 
 if SENTRY_DSN:
     sentry_sdk.init(SENTRY_DSN)  # type: ignore
+
+logger = logging.getLogger("test-observer-backend")
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     # Redirecting slashes can return a http schemed host when the request is https.
