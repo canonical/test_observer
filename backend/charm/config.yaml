@@ -16,6 +16,10 @@ options:
     default: test-observer-api
     description: Public hostname for the service.
     type: string
+  frontend_hostname:
+    default: test-observer
+    description: Public hostname for the frontend connected to this API
+    type: string
   sentry_dsn:
     default: ""
     description: value for SENTRY_DSN that is used to send errors to sentry

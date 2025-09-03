@@ -151,6 +151,7 @@ resource "juju_application" "test-observer-api" {
 
   config = {
     hostname              = var.api_hostname
+    frontend_hostname     = var.frontend_hostname
     port                  = var.environment == "development" ? 80 : 443
     sentry_dsn            = "${local.sentry_dsn_map[var.environment]}"
     saml_idp_metadata_url = var.saml_idp_metadata_url
