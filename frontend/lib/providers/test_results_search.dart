@@ -17,51 +17,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/detailed_test_results.dart';
-import '../models/test_result.dart';
-import '../models/test_execution.dart';
-import '../models/artefact.dart';
-
 import 'api.dart';
 import 'test_results_filters.dart';
 
 part 'test_results_search.g.dart';
-
-/// Top-level parsing
-
-class _ParsedSearchPage {
-  final int count;
-  final List<TestResultWithContext> items;
-  const _ParsedSearchPage({required this.count, required this.items});
-}
-
-_ParsedSearchPage _parseSearchResults(Map<String, dynamic> result) {
-  final list = (result['test_results'] as List).cast<Map<String, dynamic>>();
-
-  final items = List<TestResultWithContext>.generate(list.length, (i) {
-    final m = list[i];
-
-    final testResult =
-        TestResult.fromJson(m['test_result'] as Map<String, dynamic>);
-    final testExecution =
-        TestExecution.fromJson(m['test_execution'] as Map<String, dynamic>);
-    final artefact = Artefact.fromJson(m['artefact'] as Map<String, dynamic>);
-    final artefactBuild = ArtefactBuildMinimal.fromJson(
-      m['artefact_build'] as Map<String, dynamic>,
-    );
-
-    return TestResultWithContext(
-      testResult: testResult,
-      testExecution: testExecution,
-      artefact: artefact,
-      artefactBuild: artefactBuild,
-    );
-  });
-
-  return _ParsedSearchPage(
-    count: result['count'] as int,
-    items: items,
-  );
-}
 
 @riverpod
 class TestResultsSearch extends _$TestResultsSearch {
@@ -87,7 +46,7 @@ class TestResultsSearch extends _$TestResultsSearch {
     final environments = filters.selectedEnvironments.toList();
     final testCases = filters.selectedTestCases.toList();
 
-    final raw = await api.searchTestResults(
+    final result = await api.searchTestResults(
       families: families.isNotEmpty ? families : null,
       environments: environments.isNotEmpty ? environments : null,
       testCases: testCases.isNotEmpty ? testCases : null,
@@ -95,26 +54,19 @@ class TestResultsSearch extends _$TestResultsSearch {
       offset: offset,
     );
 
-    final parsed = _parseSearchResults(raw);
-
     if (offset > 0 && state.hasValue) {
       final current = state.value!;
       final merged = List<TestResultWithContext>.of(current.testResults)
-        ..addAll(parsed.items);
+        ..addAll(result.testResults);
 
       state = AsyncValue.data(
         TestResultsSearchResult(
-          count: parsed.count,
+          count: result.count,
           testResults: merged,
         ),
       );
     } else {
-      state = AsyncValue.data(
-        TestResultsSearchResult(
-          count: parsed.count,
-          testResults: parsed.items,
-        ),
-      );
+      state = AsyncValue.data(result);
     }
   }
 
