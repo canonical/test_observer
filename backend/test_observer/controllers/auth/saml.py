@@ -142,7 +142,7 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
 
     if return_to := req["post_data"].get("RelayState"):
         return _redirect_to_return_url(return_to)
-    
+
     # Return success response when no redirect is needed
     return {"message": "Authentication successful"}
 
