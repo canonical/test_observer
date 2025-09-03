@@ -28,6 +28,7 @@ import '../models/rerun_request.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_event.dart';
+import '../models/user.dart';
 
 class ApiRepository {
   final Dio dio;
@@ -262,5 +263,14 @@ class ApiRepository {
       },
     );
     return Issue.fromJson(response.data);
+  }
+
+  Future<User?> getCurrentUser() async {
+    final response = await dio.get('/v1/users/me');
+    final data = response.data;
+    if (data == null) {
+      return null;
+    }
+    return User.fromJson(response.data);
   }
 }

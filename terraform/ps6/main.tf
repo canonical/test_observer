@@ -111,6 +111,7 @@ resource "juju_application" "test-observer-api" {
     saml_idp_metadata_url = var.saml_idp_metadata_url
     saml_sp_cert          = var.saml_sp_cert
     saml_sp_key           = var.saml_sp_key
+    sessions_secret       = var.sessions_secret
   }
 
   units = 3

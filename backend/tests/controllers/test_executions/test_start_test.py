@@ -166,7 +166,7 @@ class TestFamilyIndependentTests:
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        user = generator.gen_user()
+        user = generator.gen_user(is_reviewer=True)
 
         response = execute({**start_request, "needs_assignment": True})
 
@@ -175,6 +175,18 @@ class TestFamilyIndependentTests:
         assignee = test_execution.artefact_build.artefact.assignee
         assert assignee is not None
         assert assignee.launchpad_handle == user.launchpad_handle
+
+    def test_only_a_reviewer_user_is_assigned(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        generator.gen_user()
+
+        response = execute({**start_request, "needs_assignment": True})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assignee = test_execution.artefact_build.artefact.assignee
+        assert assignee is None
 
     def test_deletes_rerun_requests(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
@@ -354,7 +366,7 @@ def test_non_kernel_artefact_due_date(
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    generator.gen_user()
+    generator.gen_user(is_reviewer=True)
 
     execute({**snap_test_request, "needs_assignment": True})
 

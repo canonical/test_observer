@@ -33,6 +33,7 @@ from test_observer.data_access.models import (
     TestExecutionRerunRequest,
     TestResult,
     User,
+    UserSession,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -55,16 +56,27 @@ class DataGenerator:
     def gen_user(
         self,
         name: str = "John Doe",
-        launchpad_handle: str = "jd",
-        launchpad_email: str = "john@doe.com",
+        launchpad_handle: str | None = "jd",
+        email: str = "john@doe.com",
+        is_reviewer: bool = False,
     ) -> User:
         user = User(
             name=name,
-            launchpad_email=launchpad_email,
+            email=email,
             launchpad_handle=launchpad_handle,
+            is_reviewer=is_reviewer,
         )
         self._add_object(user)
         return user
+
+    def gen_user_session(
+        self, user: User, expires_at: datetime | None = None
+    ) -> UserSession:
+        session = UserSession(user=user)
+        if expires_at:
+            session.expires_at = expires_at
+        self._add_object(session)
+        return session
 
     def gen_artefact(
         self,

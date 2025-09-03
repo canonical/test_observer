@@ -15,15 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
-
 import sentry_sdk
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from test_observer.common.config import FRONTEND_URL, SENTRY_DSN, SESSIONS_SECRET
 from test_observer.controllers.router import router
 
-SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
     sentry_sdk.init(SENTRY_DSN)  # type: ignore
 
@@ -43,12 +42,19 @@ app = FastAPI(
     },
 )
 
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSIONS_SECRET,
+    https_only=True,
 )
 
 

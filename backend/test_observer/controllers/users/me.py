@@ -14,10 +14,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter
 
-from . import saml
+from fastapi import APIRouter, Depends
+
+from test_observer.controllers.artefacts.models import UserResponse
+from test_observer.data_access.models import User
+from test_observer.users.user_fixture import get_current_user
 
 
-router: APIRouter = APIRouter(tags=["authentication"])
-router.include_router(saml.router)
+router = APIRouter()
+
+
+@router.get("/me", response_model=UserResponse | None)
+def get_authenticated_user(user: User | None = Depends(get_current_user)):
+    return user

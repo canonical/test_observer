@@ -14,9 +14,28 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from base64 import b64decode
+from datetime import datetime, timedelta
 from html.parser import HTMLParser
+import json
 
-from requests import Session, Response
+import itsdangerous
+import pytest
+import requests
+from sqlalchemy.orm import Session
+
+from test_observer.common.config import SESSIONS_SECRET
+from test_observer.data_access.models import UserSession
+from test_observer.data_access.setup import SessionLocal
+
+
+@pytest.fixture()
+def db_session():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class SimpleFormParser(HTMLParser):
@@ -47,9 +66,9 @@ class SimpleFormParser(HTMLParser):
 class TestSAMLAuthentication:
     """Test SAML authentication workflow"""
 
-    CREDENTIALS = {"username": "certbot", "password": "password"}
+    CREDENTIALS = {"username": "mark", "password": "password"}
 
-    def test_complete_saml_login_workflow(self):
+    def test_complete_saml_login_workflow(self, db_session: Session):
         """Test our SAML Service Provider (SP) implementation with end-to-end workflow
 
         This test focuses on validating our SP behavior:
@@ -60,14 +79,15 @@ class TestSAMLAuthentication:
         Uses a SimpleSAMLPHP IdP for integration testing
         """
         # Use a persistent session to maintain cookies and state throughout entire flow
-        self.session = Session()
+        self.session = requests.Session()
         self.api_url = "http://localhost:30000"
+        self.db_session = db_session
 
         sso_url = self._initiate_saml_login()
         auth_state, login_form_url = self._fetch_and_parse_login_form(sso_url)
         auth_response = self._submit_credentials(auth_state, login_form_url)
         api_response = self._process_saml_response(auth_response)
-        self._verify_authentication(api_response)
+        self._verify_session(api_response)
 
     def _initiate_saml_login(self) -> str:
         response = self.session.get(
@@ -86,11 +106,15 @@ class TestSAMLAuthentication:
 
         return parser.inputs["AuthState"], idp_response.url
 
-    def _submit_credentials(self, auth_state: str, login_form_url: str) -> Response:
+    def _submit_credentials(
+        self, auth_state: str, login_form_url: str
+    ) -> requests.Response:
         login_data = {**self.CREDENTIALS, "AuthState": auth_state}
         return self.session.post(login_form_url, data=login_data, allow_redirects=False)
 
-    def _process_saml_response(self, auth_response: Response) -> Response:
+    def _process_saml_response(
+        self, auth_response: requests.Response
+    ) -> requests.Response:
         parser = SimpleFormParser()
         parser.feed(auth_response.text)
 
@@ -102,13 +126,20 @@ class TestSAMLAuthentication:
             },
         )
 
-    def _verify_authentication(self, response: Response) -> None:
+    def _verify_session(self, response: requests.Response) -> None:
         assert response.status_code == 200
+        assert "session" in response.cookies
 
-        user_data = response.json()
-        assert "name_id" in user_data
-        assert "attributes" in user_data
+        signer = itsdangerous.TimestampSigner(str(SESSIONS_SECRET))
+        session = json.loads(b64decode(signer.unsign(response.cookies["session"])))
+        assert "id" in session
 
-        assert user_data["name_id"] == "certbot@canonical.com"
-        assert user_data["attributes"]["fullname"] == ["Certification Bot"]
-        assert user_data["attributes"]["lp_teams"] == ["canonical-hw-cert"]
+        session = self.db_session.get(UserSession, session["id"])
+        assert session
+        assert session.expires_at < datetime.now() + timedelta(days=14)
+
+        user = session.user
+        assert user
+        assert user.name == "Mark"
+        assert user.email == "mark@electricdemon.com"
+        assert user.launchpad_handle == self.CREDENTIALS["username"]

@@ -15,28 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from datetime import datetime
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models_enums import StageName
-from test_observer.users.change_assignee import change_assignee
-from tests.data_generator import DataGenerator
+from test_observer.data_access.models import UserSession
 
 
-def test_change_assignee(db_session: Session, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.beta)
-    user1 = generator.gen_user(
-        email="user1@example.com",
-        launchpad_handle="user1",
-        name="User 1",
-    )
-    user2 = generator.gen_user(
-        email="user2@example.com",
-        launchpad_handle="user2",
-        name="User 2",
-    )
-    artefact.assignee = user1
-    db_session.commit()
-
-    change_assignee(artefact.id, user2.id, db_session)
-
-    assert artefact.assignee == user2
+def delete_expired_user_sessions(db: Session):
+    db.execute(delete(UserSession).where(UserSession.expires_at < datetime.now()))
+    db.commit()

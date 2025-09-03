@@ -144,9 +144,7 @@ def patch_artefact(
         if request.assignee_email is None:
             artefact.assignee = None
         else:
-            user = db.scalar(
-                select(User).where(User.launchpad_email == request.assignee_email)
-            )
+            user = db.scalar(select(User).where(User.email == request.assignee_email))
             if user is None:
                 raise HTTPException(
                     status_code=422,

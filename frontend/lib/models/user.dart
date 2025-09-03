@@ -27,8 +27,8 @@ abstract class User with _$User {
   const factory User({
     required int id,
     required String name,
-    @JsonKey(name: 'launchpad_email') required String launchpadEmail,
-    @JsonKey(name: 'launchpad_handle') required String launchpadHandle,
+    required String email,
+    @Default(null) @JsonKey(name: 'launchpad_handle') String? launchpadHandle,
     @Default(false) bool isEmpty,
   }) = _User;
 
@@ -53,7 +53,7 @@ abstract class User with _$User {
 const emptyUser = User(
   id: -1,
   name: 'N/A',
-  launchpadEmail: '',
+  email: '',
   launchpadHandle: '',
   isEmpty: true,
 );

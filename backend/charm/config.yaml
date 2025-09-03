@@ -20,3 +20,6 @@ options:
     default: ""
     description: value for SENTRY_DSN that is used to send errors to sentry
     type: string
+  sessions_secret:
+    description: Randomly generated secret key to use for signing session cookies
+    type: string

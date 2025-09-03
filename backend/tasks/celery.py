@@ -26,6 +26,9 @@ from test_observer.kernel_swm_integration.swm_integrator import (
 )
 from test_observer.kernel_swm_integration.swm_reader import get_artefacts_swm_info
 from test_observer.promotion.promoter import promote_artefacts
+from test_observer.users.delete_expired_user_sessions import (
+    delete_expired_user_sessions,
+)
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"
 broker_url = environ.get("CELERY_BROKER_URL", DEVELOPMENT_BROKER_URL)
@@ -44,6 +47,7 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 
     sender.add_periodic_task(300, integrate_with_kernel_swm.s())
     sender.add_periodic_task(600, run_promote_artefacts.s())
+    sender.add_periodic_task(600, clean_user_sessions.s())
 
 
 @app.task
@@ -56,6 +60,11 @@ def integrate_with_kernel_swm():
 @app.task
 def run_promote_artefacts():
     promote_artefacts(SessionLocal())
+
+
+@app.task
+def clean_user_sessions():
+    delete_expired_user_sessions(SessionLocal())
 
 
 if __name__ == "__main__":
