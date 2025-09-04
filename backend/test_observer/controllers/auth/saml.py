@@ -115,6 +115,7 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
         )
 
     req = await _prepare_from_fastapi_request(request)
+    logger.info(req)
     auth = OneLogin_Saml2_Auth(req, settings)
     auth.process_response()
     errors = auth.get_errors()
@@ -171,6 +172,7 @@ async def saml_logout_callback(request: Request):
         )
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
+    logging.info(req)
     auth.process_slo()
     errors = auth.get_errors()
 
