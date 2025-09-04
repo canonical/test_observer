@@ -211,12 +211,11 @@ async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
         "get_data": {},
     }
 
-    logger.info("Received a login request with the following parameters:")
-    logger.info(f"request.headers {request.headers.items()}")
-    logger.info(f"request.url.scheme {request.url.scheme}")
-    logger.info(f"result['server_port'] {result['server_port']}")
-
-    if request.url.scheme == "https" or result["server_port"] == 443:
+    if (
+        request.url.scheme == "https"
+        or result["server_port"] == 443
+        or request.headers.get("x-forwarded-proto") == "https"
+    ):
         result["https"] = "on"
     if request.query_params:
         result["get_data"] = request.query_params
