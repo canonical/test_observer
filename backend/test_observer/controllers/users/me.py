@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends
 
 from test_observer.controllers.artefacts.models import UserResponse
 from test_observer.data_access.models import User
-from test_observer.users.user_fixture import get_current_user
+from test_observer.users.user_injection import get_current_user
 
 
 router = APIRouter()

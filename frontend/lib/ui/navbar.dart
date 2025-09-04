@@ -104,9 +104,26 @@ class Navbar extends ConsumerWidget {
                             );
                           },
                         )
-                      : _NavbarButton(
-                          title: 'hi ${user.name}',
-                          onTap: () {},
+                      : _NavbarDropdownEntry(
+                          label: 'hi ${user.name}',
+                          dropdownChildren: [
+                            _NavbarDropdownItem(
+                              label: 'Log out',
+                              onPressed: () {
+                                final uri = Uri.parse(apiUrl);
+                                final newUri = uri.replace(
+                                  path: '/v1/auth/saml/logout',
+                                  queryParameters: {
+                                    'return_to': Uri.base.toString(),
+                                  },
+                                );
+                                launchUrlString(
+                                  newUri.toString(),
+                                  webOnlyWindowName: '_self',
+                                );
+                              },
+                            ),
+                          ],
                         ),
                 ],
               ),

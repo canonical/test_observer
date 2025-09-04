@@ -22,10 +22,11 @@ import json
 import itsdangerous
 import pytest
 import requests
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_observer.common.config import SESSIONS_SECRET
-from test_observer.data_access.models import UserSession
+from test_observer.data_access.models import User, UserSession
 from test_observer.data_access.setup import SessionLocal
 
 
@@ -68,13 +69,14 @@ class TestSAMLAuthentication:
 
     CREDENTIALS = {"username": "mark", "password": "password"}
 
-    def test_complete_saml_login_workflow(self, db_session: Session):
+    def test_complete_saml_flow(self, db_session: Session):
         """Test our SAML Service Provider (SP) implementation with end-to-end workflow
 
         This test focuses on validating our SP behavior:
         - SAML login initiation and redirect generation
         - ACS endpoint SAML response processing
         - User data extraction and response formatting
+        - SAML logout and session clearing
 
         Uses a SimpleSAMLPHP IdP for integration testing
         """
@@ -88,6 +90,7 @@ class TestSAMLAuthentication:
         auth_response = self._submit_credentials(auth_state, login_form_url)
         api_response = self._process_saml_response(auth_response)
         self._verify_session(api_response)
+        self._logout_and_verify_session_cleared()
 
     def _initiate_saml_login(self) -> str:
         response = self.session.get(
@@ -143,3 +146,22 @@ class TestSAMLAuthentication:
         assert user.name == "Mark"
         assert user.email == "mark@electricdemon.com"
         assert user.launchpad_handle == self.CREDENTIALS["username"]
+
+    def _logout_and_verify_session_cleared(self) -> None:
+        logout_response = self.session.get(
+            f"{self.api_url}/v1/auth/saml/logout",
+            headers={"X-CSRF-Token": "test"},
+            allow_redirects=False,
+        )
+
+        assert logout_response.status_code == 307
+        assert "location" in logout_response.headers
+
+        logout_url = logout_response.headers["location"]
+        self.session.get(logout_url, headers={"X-CSRF-Token": "test"})
+
+        user = self.db_session.scalar(
+            select(User).where(User.email == "mark@electricdemon.com")
+        )
+        assert user
+        assert user.sessions == []

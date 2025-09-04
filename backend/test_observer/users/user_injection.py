@@ -23,7 +23,9 @@ from test_observer.data_access.models import User, UserSession
 from test_observer.data_access.setup import get_db
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+def get_user_session(
+    request: Request, db: Session = Depends(get_db)
+) -> UserSession | None:
     # This is a protection against CSRF see "Disallowing simple requests" under
     # https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
     if "X-CSRF-Token" not in request.headers:
@@ -37,4 +39,12 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | 
     if not session or session.expires_at < datetime.now():
         return None
 
-    return session.user
+    return session
+
+
+def get_current_user(
+    session: UserSession | None = Depends(get_user_session),
+) -> User | None:
+    if session:
+        return session.user
+    return None
