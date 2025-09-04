@@ -36,7 +36,7 @@ from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
 from test_observer.main import FRONTEND_URL
-from test_observer.users.user_injection import get_current_user
+from test_observer.users.user_injection import get_user_session
 
 
 router: APIRouter = APIRouter(prefix="/saml")
@@ -86,12 +86,11 @@ async def saml_login(request: Request, return_to: str | None = None):
 async def saml_logout(
     request: Request,
     return_to: str | None = None,
-    user: User | None = Depends(get_current_user),
+    session: User | None = Depends(get_user_session),
     db: Session = Depends(get_db),
 ):
-    if user:
-        for session in user.sessions:
-            db.delete(session)
+    if session:
+        db.delete(session)
         db.commit()
 
     request.session.clear()
