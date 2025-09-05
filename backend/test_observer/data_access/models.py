@@ -84,6 +84,14 @@ def data_model_repr(obj: DataModel, *keys: str) -> str:
     return f"{type(obj).__name__}({', '.join(kwargs)})"
 
 
+team_users_association = Table(
+    "team_users_association",
+    Base.metadata,
+    Column("user_id", ForeignKey("app_user.id"), primary_key=True),
+    Column("team_id", ForeignKey("team.id"), primary_key=True),
+)
+
+
 class User(Base):
     """
     ORM representing users that can be assigned to review artefacts
@@ -101,9 +109,30 @@ class User(Base):
     sessions: Mapped[list["UserSession"]] = relationship(
         back_populates="user", cascade="all, delete"
     )
+    teams: Mapped[list["Team"]] = relationship(
+        secondary=team_users_association, back_populates="members"
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
+
+
+class Team(Base):
+    """
+    Launchpad teams that users can belong to. Currently, these are exposed by U1 SSO.
+    Not all teams are exposed by U1 SSO, only those configured through U1 backend.
+    """
+
+    __tablename__ = "team"
+
+    name: Mapped[str] = mapped_column(unique=True)
+
+    members: Mapped[list[User]] = relationship(
+        secondary=team_users_association, back_populates="teams"
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name")
 
 
 class UserSession(Base):
