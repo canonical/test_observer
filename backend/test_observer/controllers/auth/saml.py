@@ -31,7 +31,7 @@ from test_observer.common.config import (
     SAML_SP_KEY,
     SAML_SP_X509_CERT,
 )
-from test_observer.data_access.models import User, UserSession
+from test_observer.data_access.models import Team, User, UserSession
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
@@ -115,7 +115,6 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
         )
 
     req = await _prepare_from_fastapi_request(request)
-    logger.info(req)
     auth = OneLogin_Saml2_Auth(req, settings)
     auth.process_response()
     errors = auth.get_errors()
@@ -150,15 +149,18 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
 def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
     email = auth.get_nameid()
     lp_user = LaunchpadAPI().get_user_by_email(email)
+    attributes = auth.get_attributes()
     user = get_or_create(
         db,
         User,
         {"email": email},
         {
-            "name": auth.get_attributes()["fullname"][0],
+            "name": attributes["fullname"][0],
             "launchpad_handle": lp_user.handle if lp_user else None,
         },
     )
+    user.teams = [get_or_create(db, Team, {"name": t}) for t in attributes["lp_teams"]]
+    db.commit()
     return user
 
 
@@ -172,7 +174,6 @@ async def saml_logout_callback(request: Request):
         )
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
-    logging.info(req)
     auth.process_slo()
     errors = auth.get_errors()
 
