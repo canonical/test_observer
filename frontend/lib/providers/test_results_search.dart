@@ -47,7 +47,7 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
     }
   }
 
-  // Load more results (pagination)
+  // Load more results
   Future<void> loadMore() async {
     final current = state.valueOrNull;
     if (current == null || !current.hasMore) return;
@@ -84,7 +84,7 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
     final api = ref.read(apiProvider);
     final parameters = pageUri.queryParametersAll;
 
-    // Parse URI parameters directly (no dependency on other providers)
+    // Parse URI parameters directly
     final familiesValues = parameters['families'] ?? [];
     final families = familiesValues.isNotEmpty
         ? familiesValues.first.split(',').map((f) => f.toLowerCase()).toList()
