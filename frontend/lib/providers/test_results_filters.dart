@@ -14,11 +14,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
+
+@riverpod
+TestResultsFiltersState testResultsFiltersFromUri(Ref ref, Uri pageUri) {
+  final parameters = pageUri.queryParametersAll;
+
+  final familiesValues = parameters['families'] ?? [];
+  final selectedFamilies = familiesValues.isNotEmpty
+      ? familiesValues.first.split(',').toSet()
+      : <String>{};
+
+  final environmentsValues = parameters['environments'] ?? [];
+  final selectedEnvironments = environmentsValues.isNotEmpty
+      ? environmentsValues.first.split(',').toSet()
+      : <String>{};
+
+  final testCasesValues = parameters['test_cases'] ?? [];
+  final selectedTestCases = testCasesValues.isNotEmpty
+      ? testCasesValues.first.split(',').toSet()
+      : <String>{};
+
+  return TestResultsFiltersState(
+    selectedFamilies: selectedFamilies,
+    selectedEnvironments: selectedEnvironments,
+    selectedTestCases: selectedTestCases,
+  );
+}
 
 @riverpod
 class TestResultsFilters extends _$TestResultsFilters {

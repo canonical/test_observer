@@ -18,44 +18,51 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/detailed_test_results.dart';
 import 'api.dart';
-import 'test_results_filters.dart';
 
 part 'test_results_search.g.dart';
 
 @riverpod
-class TestResultsSearch extends _$TestResultsSearch {
+class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
   @override
-  AsyncValue<TestResultsSearchResult> build() {
-    return AsyncValue.data(TestResultsSearchResult.empty());
-  }
-
-  Future<void> search({int limit = 100, int offset = 0}) async {
-    // Keep existing data visible while loading more
-    if (offset > 0 && state.hasValue) {
-      state = const AsyncValue<TestResultsSearchResult>.loading()
-          .copyWithPrevious(state);
-    } else {
-      state = const AsyncValue.loading();
+  AsyncValue<TestResultsSearchResult> build(Uri pageUri) {
+    // Automatically load initial data when URI has query params
+    if (pageUri.queryParametersAll.isNotEmpty) {
+      Future.microtask(() => loadInitial());
     }
 
-    final api = ref.read(apiProvider);
-    final filters = ref.read(testResultsFiltersProvider);
+    return pageUri.queryParametersAll.isEmpty
+        ? AsyncValue.data(TestResultsSearchResult.empty())
+        : const AsyncValue.loading();
+  }
 
-    final families =
-        filters.selectedFamilies.map((f) => f.toLowerCase()).toList();
-    final environments = filters.selectedEnvironments.toList();
-    final testCases = filters.selectedTestCases.toList();
+  // Load initial results when URI changes
+  Future<void> loadInitial() async {
+    state = const AsyncValue.loading();
 
-    final result = await api.searchTestResults(
-      families: families.isNotEmpty ? families : null,
-      environments: environments.isNotEmpty ? environments : null,
-      testCases: testCases.isNotEmpty ? testCases : null,
-      limit: limit,
-      offset: offset,
-    );
+    try {
+      final result = await _searchWithUri(limit: 100, offset: 0);
+      state = AsyncValue.data(result);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
 
-    if (offset > 0 && state.hasValue) {
-      final current = state.value!;
+  // Load more results (pagination)
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore) return;
+
+    // Keep current data visible while loading
+    state = const AsyncValue<TestResultsSearchResult>.loading()
+        .copyWithPrevious(state);
+
+    try {
+      final result = await _searchWithUri(
+        limit: 100,
+        offset: current.testResults.length,
+      );
+
+      // Merge results
       final merged = List<TestResultWithContext>.of(current.testResults)
         ..addAll(result.testResults);
 
@@ -65,15 +72,45 @@ class TestResultsSearch extends _$TestResultsSearch {
           testResults: merged,
         ),
       );
-    } else {
-      state = AsyncValue.data(result);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
     }
   }
 
-  Future<void> loadMore() async {
-    final current = state.valueOrNull;
-    if (current == null || !current.hasMore) return;
+  Future<TestResultsSearchResult> _searchWithUri({
+    required int limit,
+    required int offset,
+  }) async {
+    final api = ref.read(apiProvider);
+    final parameters = pageUri.queryParametersAll;
 
-    await search(limit: 100, offset: current.testResults.length);
+    // Parse URI parameters directly (no dependency on other providers)
+    final familiesValues = parameters['families'] ?? [];
+    final families = familiesValues.isNotEmpty
+        ? familiesValues.first.split(',').map((f) => f.toLowerCase()).toList()
+        : <String>[];
+
+    final environmentsValues = parameters['environments'] ?? [];
+    final environments = environmentsValues.isNotEmpty
+        ? environmentsValues.first.split(',').toList()
+        : <String>[];
+
+    final testCasesValues = parameters['test_cases'] ?? [];
+    final testCases = testCasesValues.isNotEmpty
+        ? testCasesValues.first.split(',').toList()
+        : <String>[];
+
+    // Only search if we have filters
+    if (families.isEmpty && environments.isEmpty && testCases.isEmpty) {
+      return TestResultsSearchResult.empty();
+    }
+
+    return await api.searchTestResults(
+      families: families.isNotEmpty ? families : null,
+      environments: environments.isNotEmpty ? environments : null,
+      testCases: testCases.isNotEmpty ? testCases : null,
+      limit: limit,
+      offset: offset,
+    );
   }
 }

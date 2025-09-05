@@ -19,16 +19,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
-import '../../providers/test_results_filters.dart';
-import '../../providers/test_results_search.dart';
+import '../../models/family_name.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
-import '../../routing.dart';
 import '../page_filters/multi_select_combobox.dart';
 import '../spacing.dart';
 
 class TestResultsFiltersView extends ConsumerStatefulWidget {
-  const TestResultsFiltersView({super.key});
+  const TestResultsFiltersView({
+    super.key,
+    required this.pageUri,
+  });
+
+  final Uri pageUri;
 
   @override
   ConsumerState<TestResultsFiltersView> createState() =>
@@ -40,46 +43,106 @@ class _TestResultsFiltersViewState
   static const double _comboWidth = 260;
   static const double _controlHeight = 48;
 
+  late Set<String> _families;
+  late Set<String> _envs;
+  late Set<String> _tests;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final uri = AppRoutes.uriFromContext(context);
-      ref
-          .read(testResultsFiltersProvider.notifier)
-          .loadFromQueryParams(uri.queryParametersAll);
-    });
+    _loadFromUri();
+  }
+
+  @override
+  void didUpdateWidget(covariant TestResultsFiltersView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageUri.toString() != widget.pageUri.toString()) {
+      _loadFromUri();
+      setState(() {});
+    }
+  }
+
+  void _loadFromUri() {
+    Set<String> readParam(String key) {
+      final params = widget.pageUri.queryParametersAll;
+      final raw = params[key] ?? const <String>[];
+      return raw.expand((s) => s.split(',')).where((s) => s.isNotEmpty).toSet();
+    }
+
+    _families = readParam('families');
+    _envs = readParam('environments');
+    _tests = readParam('test_cases');
+  }
+
+  Map<String, String> _toQueryParams() {
+    final qp = <String, String>{};
+    if (_families.isNotEmpty) {
+      qp['families'] = _families.map((f) => f.toLowerCase()).join(',');
+    }
+    if (_envs.isNotEmpty) {
+      qp['environments'] = _envs.join(',');
+    }
+    if (_tests.isNotEmpty) {
+      qp['test_cases'] = _tests.join(',');
+    }
+    return qp;
   }
 
   Widget _box(Widget child) => SizedBox(width: _comboWidth, child: child);
 
-  void _applyFilters() {
-    // Update URL with current filter state
-    final queryParams =
-        ref.read(testResultsFiltersProvider.notifier).toQueryParams();
-    final uri = AppRoutes.uriFromContext(context);
-    context.go(uri.replace(queryParameters: queryParams).toString());
-
-    // Trigger search
-    ref.read(testResultsSearchProvider.notifier).search();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final environments = ref.watch(allEnvironmentsProvider).value ?? [];
+    final testCases = ref.watch(allTestCasesProvider).value ?? [];
+    final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _box(_buildFamilySection()),
+        _box(
+          MultiSelectCombobox(
+            title: 'Family',
+            allOptions: allFamilyOptions,
+            initialSelected: _families,
+            onChanged: (val, isSelected) {
+              setState(
+                () => isSelected ? _families.add(val) : _families.remove(val),
+              );
+            },
+          ),
+        ),
         const SizedBox(width: Spacing.level4),
-        _box(_buildEnvironmentSection()),
+        _box(
+          MultiSelectCombobox(
+            title: 'Environment',
+            allOptions: environments,
+            initialSelected: _envs,
+            onChanged: (val, isSelected) {
+              setState(() => isSelected ? _envs.add(val) : _envs.remove(val));
+            },
+          ),
+        ),
         const SizedBox(width: Spacing.level4),
-        _box(_buildTestCaseSection()),
+        _box(
+          MultiSelectCombobox(
+            title: 'Test Case',
+            allOptions: testCases,
+            initialSelected: _tests,
+            onChanged: (val, isSelected) {
+              setState(() => isSelected ? _tests.add(val) : _tests.remove(val));
+            },
+          ),
+        ),
         const SizedBox(width: Spacing.level4),
         SizedBox(
           width: _comboWidth,
           height: _controlHeight,
           child: ElevatedButton(
-            onPressed: _applyFilters,
+            onPressed: () {
+              final newUri =
+                  widget.pageUri.replace(queryParameters: _toQueryParams());
+              context.go(newUri.toString());
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: YaruColors.orange,
               foregroundColor: Colors.white,
@@ -90,64 +153,6 @@ class _TestResultsFiltersViewState
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFamilySection() {
-    final filters = ref.watch(testResultsFiltersProvider);
-
-    const allFamilyOptions = ['snap', 'deb', 'charm', 'image'];
-
-    return MultiSelectCombobox(
-      key: const ValueKey(
-        'family-filter',
-      ),
-      title: 'Family',
-      allOptions: allFamilyOptions,
-      initialSelected: filters.selectedFamilies,
-      onChanged: (family, isSelected) {
-        ref
-            .read(testResultsFiltersProvider.notifier)
-            .updateFamilySelection(family, isSelected);
-      },
-    );
-  }
-
-  Widget _buildEnvironmentSection() {
-    final filters = ref.watch(testResultsFiltersProvider);
-    final environments = ref.watch(allEnvironmentsProvider).value ?? [];
-
-    return MultiSelectCombobox(
-      key: const ValueKey(
-        'environment-filter',
-      ),
-      title: 'Environment',
-      allOptions: environments,
-      initialSelected: filters.selectedEnvironments,
-      onChanged: (environment, isSelected) {
-        ref
-            .read(testResultsFiltersProvider.notifier)
-            .updateEnvironmentSelection(environment, isSelected);
-      },
-    );
-  }
-
-  Widget _buildTestCaseSection() {
-    final filters = ref.watch(testResultsFiltersProvider);
-    final testCases = ref.watch(allTestCasesProvider).value ?? [];
-
-    return MultiSelectCombobox(
-      key: const ValueKey(
-        'testcase-filter',
-      ),
-      title: 'Test Case',
-      allOptions: testCases,
-      initialSelected: filters.selectedTestCases,
-      onChanged: (testCase, isSelected) {
-        ref
-            .read(testResultsFiltersProvider.notifier)
-            .updateTestCaseSelection(testCase, isSelected);
-      },
     );
   }
 }

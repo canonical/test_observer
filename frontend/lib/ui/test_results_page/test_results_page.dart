@@ -16,10 +16,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yaru/widgets.dart';
 
-import '../../providers/test_results_filters.dart';
-import '../../routing.dart';
 import '../spacing.dart';
 import 'test_results_filters_view.dart';
 import 'test_results_body.dart';
@@ -35,24 +34,9 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
   bool showFilters = true;
 
   @override
-  void initState() {
-    super.initState();
-    // Load filters from URL when the page first loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadFiltersFromUrl();
-    });
-  }
-
-  void _loadFiltersFromUrl() {
-    final uri = AppRoutes.uriFromContext(context);
-    ref
-        .read(testResultsFiltersProvider.notifier)
-        .loadFromQueryParams(uri.queryParametersAll);
-  }
-
-  @override
   Widget build(BuildContext context) {
     const pagePad = EdgeInsets.all(Spacing.pageHorizontalPadding);
+    final uri = GoRouterState.of(context).uri;
 
     return Padding(
       padding: pagePad,
@@ -78,11 +62,11 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
           ),
           const SizedBox(height: Spacing.level4),
           if (showFilters) ...[
-            TestResultsFiltersView(key: ValueKey(showFilters)),
+            TestResultsFiltersView(pageUri: uri),
             const SizedBox(height: Spacing.level4),
           ],
-          const Expanded(
-            child: TestResultsBody(),
+          Expanded(
+            child: TestResultsBody(pageUri: uri),
           ),
         ],
       ),

@@ -19,16 +19,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/detailed_test_results.dart';
-import '../../providers/test_results_filters.dart';
 import '../../providers/test_results_search.dart';
-import '../../providers/global_error_message.dart';
 import '../../routing.dart';
+import '../spacing.dart';
 import 'test_results_table.dart';
 
-final hasSearchedProvider = StateProvider<bool>((ref) => false);
-
 class TestResultsBody extends ConsumerStatefulWidget {
-  const TestResultsBody({super.key});
+  const TestResultsBody({super.key, required this.pageUri});
+
+  final Uri pageUri;
 
   @override
   ConsumerState<TestResultsBody> createState() => _TestResultsBodyState();
@@ -36,213 +35,52 @@ class TestResultsBody extends ConsumerStatefulWidget {
 
 class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   final ScrollController _scrollController = ScrollController();
-
   bool _isLoadingMore = false;
+  Uri? _lastProcessedUri;
 
   @override
   void initState() {
     super.initState();
 
-    // Auto-search when URL contains query params.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final uri = AppRoutes.uriFromContext(context);
-      if (uri.queryParameters.isNotEmpty) {
-        ref
-            .read(testResultsFiltersProvider.notifier)
-            .loadFromQueryParams(uri.queryParametersAll);
-        ref.read(testResultsSearchProvider.notifier).search();
-      }
-    });
+    _scrollController.addListener(_onScroll);
+  }
 
-    // Trigger load more when near the bottom.
-    _scrollController.addListener(() {
-      final pos = _scrollController.position;
-      if (!pos.hasPixels || !pos.hasContentDimensions) return;
-
-      // When at bottom, try loading more.
-      final nearBottom = pos.pixels > (pos.maxScrollExtent - 600);
-      if (nearBottom) _maybeLoadMore();
-    });
+  @override
+  void didUpdateWidget(TestResultsBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Handle URI changes
+    if (oldWidget.pageUri.toString() != widget.pageUri.toString()) {
+      _handleUriChange();
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    ref.listen<AsyncValue<TestResultsSearchResult>>(
-      testResultsSearchProvider,
-      (prev, next) {
-        final wasLoading = prev?.isLoading ?? false;
-        final finished = next.hasError || next.hasValue;
-        if (wasLoading && finished) {
-          ref.read(hasSearchedProvider.notifier).state = true;
-        }
-      },
-    );
-
-    final searchResults = ref.watch(testResultsSearchProvider);
-
-    return searchResults.when(
-      loading: () => Center(
-        child: Transform.translate(
-          offset: const Offset(0, -120),
-          child: const YaruCircularProgressIndicator(),
-        ),
-      ),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              'Error loading test results',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-      data: (data) => _buildResultsContent(context, data),
-    );
+  void _onScroll() {
+    if (_scrollController.position.extentAfter < 800) {
+      _maybeLoadMore();
+    }
   }
 
-  Widget _buildResultsContent(
-    BuildContext context,
-    TestResultsSearchResult data,
-  ) {
-    final hasSearched = ref.watch(hasSearchedProvider);
-    final count = data.count;
-    final testResults = data.testResults;
-
-    if (!hasSearched) {
-      return Center(
-        child: Transform.translate(
-          offset: const Offset(0, -200),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.search, size: 64, color: Colors.grey),
-              const SizedBox(height: 16),
-              Text(
-                'Search for test results',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Use the filters above and click Apply Filters to search for test results.',
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
+  void _handleUriChange() {
+    if (widget.pageUri != _lastProcessedUri) {
+      _lastProcessedUri = widget.pageUri;
     }
-
-    if (count == 0) {
-      return Center(
-        child: Transform.translate(
-          offset: const Offset(0, -200),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.search_off, size: 64, color: Colors.grey),
-              const SizedBox(height: 16),
-              Text(
-                'No results found',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Try adjusting your search filters and try again.',
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Row(
-            children: [
-              Text(
-                'Found $count results',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const Spacer(),
-              if (data.hasMore && !_isLoadingMore)
-                TextButton(
-                  onPressed: _loadMore,
-                  child: const Text(
-                    'Load 100 more',
-                    style: TextStyle(color: YaruColors.orange),
-                  ),
-                )
-              else if (_isLoadingMore)
-                Row(
-                  children: const [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: YaruCircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text('Loading...', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: NotificationListener<OverscrollIndicatorNotification>(
-            onNotification: (n) {
-              n.disallowIndicator();
-              return false;
-            },
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(bottom: 24),
-              child: TestResultsTable(
-                testResults: testResults,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 
-  // Manual button handler
   Future<void> _loadMore() async {
     if (_isLoadingMore) return;
     setState(() => _isLoadingMore = true);
 
     try {
-      await ref.read(testResultsSearchProvider.notifier).loadMore();
-    } catch (e) {
-      if (mounted) {
-        ref
-            .read(globalErrorMessageProvider.notifier)
-            .set('Failed to load more results. Please try again.');
-      }
+      await ref
+          .read(testResultsSearchFromUriProvider(widget.pageUri).notifier)
+          .loadMore();
     } finally {
       if (mounted) {
         setState(() => _isLoadingMore = false);
@@ -253,9 +91,152 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   void _maybeLoadMore() {
     if (_isLoadingMore) return;
 
-    final data = ref.read(testResultsSearchProvider).valueOrNull;
+    final data =
+        ref.read(testResultsSearchFromUriProvider(widget.pageUri)).valueOrNull;
     if (data == null || !data.hasMore) return;
 
     _loadMore();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasQueryParams = widget.pageUri.queryParametersAll.isNotEmpty;
+    final pageUri = AppRoutes.uriFromContext(context);
+    if (!hasQueryParams) {
+      return _buildEmptyState(context);
+    }
+
+    final searchResults = ref.watch(testResultsSearchFromUriProvider(pageUri));
+
+    return searchResults.when(
+      loading: () => _buildLoadingState(),
+      error: (error, stack) => _buildErrorState(context, error),
+      data: (data) => _buildResultsContent(context, data),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.search, size: 64, color: Colors.grey),
+          const SizedBox(height: Spacing.level4),
+          Text(
+            'Search for test results',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: Spacing.level2),
+          const Text(
+            'Use the filters above and click Apply Filters to search for test results.',
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: YaruCircularProgressIndicator(),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, Object error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const SizedBox(height: Spacing.level4),
+          Text(
+            'Error loading test results',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: Spacing.level2),
+          Text(
+            error.toString(),
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsContent(
+    BuildContext context,
+    TestResultsSearchResult data,
+  ) {
+    final count = data.count;
+    final testResults = data.testResults;
+
+    if (testResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 64, color: Colors.grey),
+            const SizedBox(height: Spacing.level4),
+            Text(
+              'No results found',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: Spacing.level2),
+            const Text(
+              'Try adjusting your filters or search criteria.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Found $count results (showing ${testResults.length})',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            if (_isLoadingMore) ...[
+              const SizedBox(width: 16),
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: Spacing.level3),
+        Expanded(
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (ScrollNotification scrollInfo) {
+              final screenHeight = MediaQuery.of(context).size.height;
+              // Load more naturally when the scroll is at the bottom
+              if (scrollInfo.metrics.extentAfter < screenHeight * 2) {
+                _maybeLoadMore();
+              }
+              return false;
+            },
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: TestResultsTable(
+                    testResults: testResults,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
