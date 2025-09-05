@@ -219,7 +219,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
             onNotification: (ScrollNotification scrollInfo) {
               final screenHeight = MediaQuery.of(context).size.height;
               // Load more naturally when the scroll is at the bottom
-              if (scrollInfo.metrics.extentAfter < screenHeight * 2) {
+              if (scrollInfo.metrics.extentAfter < screenHeight * 0.5) {
                 _maybeLoadMore();
               }
               return false;
