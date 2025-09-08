@@ -24,3 +24,7 @@ class TeamResponse(BaseModel):
     name: str
     permissions: list[str]
     members: list[UserResponse]
+
+
+class TeamPatch(BaseModel):
+    permissions: list[str] | None = None

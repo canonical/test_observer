@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.teams.models import TeamResponse
+from test_observer.controllers.teams.models import TeamPatch, TeamResponse
 from test_observer.data_access.models import Team
 from test_observer.data_access.setup import get_db
 
@@ -36,4 +36,17 @@ def get_team(team_id: int, db: Session = Depends(get_db)):
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(404, f"Team {team_id} doesn't exist")
+    return team
+
+
+@router.patch("/{team_id}", response_model=TeamResponse)
+def update_team(team_id: int, request: TeamPatch, db: Session = Depends(get_db)):
+    team = db.get(Team, team_id)
+    if team is None:
+        raise HTTPException(404, f"Team {team_id} doesn't exist")
+
+    if request.permissions:
+        team.permissions = request.permissions
+        db.commit()
+
     return team
