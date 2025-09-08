@@ -389,11 +389,6 @@ class TestResultsTable extends StatelessWidget {
   }
 
   void _navigateToTestExecution(TestResultWithContext result) {
-    final resultMap = {
-      'test_execution': result.testExecution.toJson(),
-      'artefact': result.artefact.toJson(),
-    };
-
-    TestResultHelpers.navigateToTestExecution(resultMap);
+    TestResultHelpers.navigateToTestExecution(result);
   }
 }

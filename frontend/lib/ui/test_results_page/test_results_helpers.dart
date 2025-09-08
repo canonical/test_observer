@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/test_result.dart';
+import '../../models/detailed_test_results.dart';
 
 class TestResultHelpers {
   static TestResultStatus parseTestResultStatus(String? status) {
@@ -57,7 +58,32 @@ class TestResultHelpers {
     }
   }
 
-  static void navigateToTestExecution(Map<String, dynamic> result) {
+  static void navigateToTestExecution(TestResultWithContext result) {
+    final testExecution = result.testExecution;
+    final artefact = result.artefact;
+    final environment = testExecution.environment;
+
+    final family = artefact.family;
+    final artefactId = artefact.id;
+    final testPlan = testExecution.testPlan.trim().isNotEmpty
+        ? testExecution.testPlan
+        : 'unknown'; // there exists test results without test plans
+
+    final environmentName = environment.name;
+
+    final currentUri = Uri.base;
+    final baseUrl =
+        '${currentUri.scheme}://${currentUri.host}:${currentUri.port}';
+
+    final encodedTestPlan = Uri.encodeQueryComponent(testPlan);
+    final encodedEnvironment = Uri.encodeQueryComponent(environmentName);
+    final linkUrl =
+        '$baseUrl/#/${family}s/$artefactId?Test+plan=$encodedTestPlan&Environment=$encodedEnvironment';
+
+    _launchUrl(linkUrl);
+  }
+
+  static void navigateToTestExecutionFromMap(Map<String, dynamic> result) {
     final testExecution = result['test_execution'] as Map<String, dynamic>;
     final artefact = result['artefact'] as Map<String, dynamic>;
     final environment = testExecution['environment'] as Map<String, dynamic>?;
