@@ -18,7 +18,6 @@ import 'package:dio/dio.dart';
 
 import '../models/artefact.dart';
 import '../models/issue.dart';
-
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
 import '../models/detailed_test_results.dart';
@@ -287,7 +286,8 @@ class ApiRepository {
       count: jsonData['count'] as int,
       testResults: testResults,
     );
-    
+  }
+
   Future<Issue> attachIssueToTestResults({
     required int issueId,
     required List<int> testResultIds,
