@@ -37,8 +37,13 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
   Widget build(BuildContext context) {
     final uri = GoRouterState.of(context).uri;
 
-    return Scaffold(
-      body: Column(
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: Spacing.pageHorizontalPadding,
+        right: Spacing.pageHorizontalPadding,
+        top: Spacing.level5,
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
