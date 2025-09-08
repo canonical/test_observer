@@ -49,21 +49,18 @@ class TestResultsTable extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildHeader(availableWidth),
-                SizedBox(
-                  width: availableWidth,
-                  height: (testResults.length * 72.0).clamp(200.0, 950.0),
-                  child: ListView.builder(
-                    itemCount: testResults.length,
-                    itemBuilder: (context, index) {
-                      return _buildDataRow(
-                        context,
-                        testResults[index],
-                        availableWidth,
-                        index,
-                      );
-                    },
-                  ),
+                _TableHeader(availableWidth: availableWidth),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: testResults.length,
+                  itemBuilder: (context, index) {
+                    return _TableDataRow(
+                      result: testResults[index],
+                      availableWidth: availableWidth,
+                      index: index,
+                    );
+                  },
                 ),
               ],
             ),
@@ -72,8 +69,15 @@ class TestResultsTable extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildHeader(double availableWidth) {
+class _TableHeader extends StatelessWidget {
+  final double availableWidth;
+
+  const _TableHeader({required this.availableWidth});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: availableWidth,
       height: 56,
@@ -85,42 +89,49 @@ class TestResultsTable extends StatelessWidget {
         children: [
           SizedBox(
             width: availableWidth * 0.15,
-            child: _buildHeaderCell('Artefact'),
+            child: const _HeaderCell(title: 'Artefact'),
           ),
           SizedBox(
             width: availableWidth * 0.18,
-            child: _buildHeaderCell('Test Case'),
+            child: const _HeaderCell(title: 'Test Case'),
           ),
           SizedBox(
             width: availableWidth * 0.10,
-            child: _buildHeaderCell('Status'),
+            child: const _HeaderCell(title: 'Status'),
           ),
           SizedBox(
             width: availableWidth * 0.08,
-            child: _buildHeaderCell('Track'),
+            child: const _HeaderCell(title: 'Track'),
           ),
           SizedBox(
             width: availableWidth * 0.12,
-            child: _buildHeaderCell('Version'),
+            child: const _HeaderCell(title: 'Version'),
           ),
           SizedBox(
             width: availableWidth * 0.12,
-            child: _buildHeaderCell('Environment'),
+            child: const _HeaderCell(title: 'Environment'),
           ),
           SizedBox(
             width: availableWidth * 0.12,
-            child: _buildHeaderCell('Test Plan'),
+            child: const _HeaderCell(title: 'Test Plan'),
           ),
           SizedBox(
             width: availableWidth * 0.13,
-            child: _buildHeaderCell('Actions'),
+            child: const _HeaderCell(title: 'Actions'),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildHeaderCell(String title) {
+class _HeaderCell extends StatelessWidget {
+  final String title;
+
+  const _HeaderCell({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
@@ -130,13 +141,21 @@ class TestResultsTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildDataRow(
-    BuildContext context,
-    TestResultWithContext result,
-    double availableWidth,
-    int index,
-  ) {
+class _TableDataRow extends StatelessWidget {
+  final TestResultWithContext result;
+  final double availableWidth;
+  final int index;
+
+  const _TableDataRow({
+    required this.result,
+    required this.availableWidth,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final testResult = result.testResult;
     final testExecution = result.testExecution;
     final artefact = result.artefact;
@@ -157,42 +176,52 @@ class TestResultsTable extends StatelessWidget {
         children: [
           SizedBox(
             width: availableWidth * 0.15,
-            child: _buildArtefactCell(artefact),
+            child: _ArtefactCell(artefact: artefact),
           ),
           SizedBox(
             width: availableWidth * 0.18,
-            child: _buildTestCaseCell(testResult),
+            child: _TestCaseCell(testResult: testResult),
           ),
           SizedBox(
             width: availableWidth * 0.10,
-            child: _buildStatusCell(testResult.status),
+            child: _StatusCell(status: testResult.status),
           ),
           SizedBox(
             width: availableWidth * 0.08,
-            child: _buildTrackCell(artefact),
+            child: _TrackCell(artefact: artefact),
           ),
           SizedBox(
             width: availableWidth * 0.12,
-            child: _buildVersionCell(artefact),
+            child: _VersionCell(artefact: artefact),
           ),
           SizedBox(
             width: availableWidth * 0.12,
-            child: _buildEnvironmentCell(artefactBuild, environment),
+            child: _EnvironmentCell(
+              artefactBuild: artefactBuild,
+              environment: environment,
+            ),
           ),
           SizedBox(
             width: availableWidth * 0.12,
-            child: _buildTestPlanCell(testExecution),
+            child: _TestPlanCell(testExecution: testExecution),
           ),
           SizedBox(
             width: availableWidth * 0.13,
-            child: _buildActionsCell(context, result),
+            child: _ActionsCell(result: result),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildArtefactCell(Artefact artefact) {
+class _ArtefactCell extends StatelessWidget {
+  final Artefact artefact;
+
+  const _ArtefactCell({required this.artefact});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
@@ -207,8 +236,15 @@ class TestResultsTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTestCaseCell(TestResult testResult) {
+class _TestCaseCell extends StatelessWidget {
+  final TestResult testResult;
+
+  const _TestCaseCell({required this.testResult});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       child: Column(
@@ -241,8 +277,15 @@ class TestResultsTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildStatusCell(TestResultStatus status) {
+class _StatusCell extends StatelessWidget {
+  final TestResultStatus status;
+
+  const _StatusCell({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
     final statusIcon = status.getIcon();
 
     return Container(
@@ -260,14 +303,22 @@ class TestResultsTable extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildTrackCell(Artefact artefact) {
+class _TrackCell extends StatelessWidget {
+  final Artefact artefact;
+
+  const _TrackCell({required this.artefact});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
@@ -279,8 +330,15 @@ class TestResultsTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildVersionCell(Artefact artefact) {
+class _VersionCell extends StatelessWidget {
+  final Artefact artefact;
+
+  const _VersionCell({required this.artefact});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
@@ -292,11 +350,19 @@ class TestResultsTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildEnvironmentCell(
-    ArtefactBuildMinimal artefactBuild,
-    Environment environment,
-  ) {
+class _EnvironmentCell extends StatelessWidget {
+  final ArtefactBuildMinimal artefactBuild;
+  final Environment environment;
+
+  const _EnvironmentCell({
+    required this.artefactBuild,
+    required this.environment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final architecture = artefactBuild.architecture;
     final environmentName = environment.name;
     final buildInfo = '$architecture/$environmentName';
@@ -312,8 +378,15 @@ class TestResultsTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTestPlanCell(TestExecution testExecution) {
+class _TestPlanCell extends StatelessWidget {
+  final TestExecution testExecution;
+
+  const _TestPlanCell({required this.testExecution});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
@@ -325,8 +398,15 @@ class TestResultsTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildActionsCell(BuildContext context, TestResultWithContext result) {
+class _ActionsCell extends StatelessWidget {
+  final TestResultWithContext result;
+
+  const _ActionsCell({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(8.0),
       child: Row(
