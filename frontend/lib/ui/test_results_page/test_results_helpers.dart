@@ -72,45 +72,19 @@ class TestResultHelpers {
     final environmentName = environment.name;
 
     final currentUri = Uri.base;
-    final baseUrl =
-        '${currentUri.scheme}://${currentUri.host}:${currentUri.port}';
 
     final encodedTestPlan = Uri.encodeQueryComponent(testPlan);
     final encodedEnvironment = Uri.encodeQueryComponent(environmentName);
-    final linkUrl =
-        '$baseUrl/#/${family}s/$artefactId?Test+plan=$encodedTestPlan&Environment=$encodedEnvironment';
 
-    _launchUrl(linkUrl);
+    final fragment =
+        '/${family}s/$artefactId?Test plan=$encodedTestPlan&Environment=$encodedEnvironment';
+
+    final targetUri = currentUri.replace(fragment: fragment);
+
+    _launchUrl(targetUri);
   }
 
-  static void navigateToTestExecutionFromMap(Map<String, dynamic> result) {
-    final testExecution = result['test_execution'] as Map<String, dynamic>;
-    final artefact = result['artefact'] as Map<String, dynamic>;
-    final environment = testExecution['environment'] as Map<String, dynamic>?;
-
-    final family = artefact['family'] as String? ?? '';
-    final artefactId = artefact['id'] as int? ?? 0;
-    final testPlan =
-        (testExecution['test_plan'] as String?)?.trim().isNotEmpty == true
-            ? testExecution['test_plan']
-            : 'unknown'; // there exists test results without test plans
-
-    final environmentName = environment?['name'] as String? ?? '';
-
-    final currentUri = Uri.base;
-    final baseUrl =
-        '${currentUri.scheme}://${currentUri.host}:${currentUri.port}';
-
-    final encodedTestPlan = Uri.encodeQueryComponent(testPlan);
-    final encodedEnvironment = Uri.encodeQueryComponent(environmentName);
-    final linkUrl =
-        '$baseUrl/#/${family}s/$artefactId?Test+plan=$encodedTestPlan&Environment=$encodedEnvironment';
-
-    _launchUrl(linkUrl);
-  }
-
-  static void _launchUrl(String url) async {
-    final uri = Uri.parse(url);
+  static void _launchUrl(Uri uri) async {
     await launchUrl(
       uri,
       mode: LaunchMode.externalApplication,

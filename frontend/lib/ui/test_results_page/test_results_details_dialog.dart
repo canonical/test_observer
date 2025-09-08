@@ -105,11 +105,17 @@ class _DialogContent extends StatelessWidget {
               children: [
                 _DetailRow(label: 'Name', value: result.testResult.name),
                 _DetailRow(
-                    label: 'Category', value: result.testResult.category),
+                  label: 'Category',
+                  value: result.testResult.category,
+                ),
                 _DetailRow(
-                    label: 'Template ID', value: result.testResult.templateId),
+                  label: 'Template ID',
+                  value: result.testResult.templateId,
+                ),
                 _DetailRow(
-                    label: 'Status', value: result.testResult.status.name),
+                  label: 'Status',
+                  value: result.testResult.status.name,
+                ),
               ],
             ),
 
@@ -144,13 +150,17 @@ class _DialogContent extends StatelessWidget {
                   value: result.testExecution.id.toString(),
                 ),
                 _DetailRow(
-                    label: 'Test Plan', value: result.testExecution.testPlan),
+                  label: 'Test Plan',
+                  value: result.testExecution.testPlan,
+                ),
                 _DetailRow(
                   label: 'Environment',
                   value: result.testExecution.environment.name,
                 ),
                 _DetailRow(
-                    label: 'Status', value: result.testExecution.status.name),
+                  label: 'Status',
+                  value: result.testExecution.status.name,
+                ),
                 _DetailRow(
                   label: 'Created',
                   value: TestResultHelpers.formatFullDate(
