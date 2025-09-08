@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/detailed_test_results.dart';
@@ -36,16 +37,23 @@ class TestResultDetailsDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(context),
-            _buildContent(),
-            _buildFooter(context),
+            _DialogHeader(onClose: () => context.pop()),
+            _DialogContent(result: result),
+            _DialogFooter(onClose: () => context.pop()),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildHeader(BuildContext context) {
+class _DialogHeader extends StatelessWidget {
+  final VoidCallback onClose;
+
+  const _DialogHeader({required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
@@ -70,14 +78,21 @@ class TestResultDetailsDialog extends StatelessWidget {
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: onClose,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildContent() {
+class _DialogContent extends StatelessWidget {
+  final TestResultWithContext result;
+
+  const _DialogContent({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
     return Expanded(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -85,32 +100,35 @@ class TestResultDetailsDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Test Case
-            _buildSection(
-              'Test Case',
-              [
-                _buildDetailRow('Name', result.testResult.name),
-                _buildDetailRow('Category', result.testResult.category),
-                _buildDetailRow('Template ID', result.testResult.templateId),
-                _buildDetailRow('Status', result.testResult.status.name),
+            _DialogSection(
+              title: 'Test Case',
+              children: [
+                _DetailRow(label: 'Name', value: result.testResult.name),
+                _DetailRow(
+                    label: 'Category', value: result.testResult.category),
+                _DetailRow(
+                    label: 'Template ID', value: result.testResult.templateId),
+                _DetailRow(
+                    label: 'Status', value: result.testResult.status.name),
               ],
             ),
 
             const SizedBox(height: 16),
 
             // Artefact
-            _buildSection(
-              'Artefact',
-              [
-                _buildDetailRow(
-                  'Family',
-                  result.artefact.family.toUpperCase(),
+            _DialogSection(
+              title: 'Artefact',
+              children: [
+                _DetailRow(
+                  label: 'Family',
+                  value: result.artefact.family.toUpperCase(),
                 ),
-                _buildDetailRow('Name', result.artefact.name),
-                _buildDetailRow('Version', result.artefact.version),
-                _buildDetailRow('Track', result.artefact.track),
-                _buildDetailRow(
-                  'Architecture',
-                  result.artefactBuild.architecture,
+                _DetailRow(label: 'Name', value: result.artefact.name),
+                _DetailRow(label: 'Version', value: result.artefact.version),
+                _DetailRow(label: 'Track', value: result.artefact.track),
+                _DetailRow(
+                  label: 'Architecture',
+                  value: result.artefactBuild.architecture,
                 ),
               ],
             ),
@@ -118,22 +136,24 @@ class TestResultDetailsDialog extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Execution
-            _buildSection(
-              'Test Execution',
-              [
-                _buildDetailRow(
-                  'Execution ID',
-                  result.testExecution.id.toString(),
+            _DialogSection(
+              title: 'Test Execution',
+              children: [
+                _DetailRow(
+                  label: 'Execution ID',
+                  value: result.testExecution.id.toString(),
                 ),
-                _buildDetailRow('Test Plan', result.testExecution.testPlan),
-                _buildDetailRow(
-                  'Environment',
-                  result.testExecution.environment.name,
+                _DetailRow(
+                    label: 'Test Plan', value: result.testExecution.testPlan),
+                _DetailRow(
+                  label: 'Environment',
+                  value: result.testExecution.environment.name,
                 ),
-                _buildDetailRow('Status', result.testExecution.status.name),
-                _buildDetailRow(
-                  'Created',
-                  TestResultHelpers.formatFullDate(
+                _DetailRow(
+                    label: 'Status', value: result.testExecution.status.name),
+                _DetailRow(
+                  label: 'Created',
+                  value: TestResultHelpers.formatFullDate(
                     result.testExecution.createdAt.toIso8601String(),
                   ),
                 ),
@@ -143,10 +163,10 @@ class TestResultDetailsDialog extends StatelessWidget {
             // IO Log if present
             if (result.testResult.ioLog.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _buildSection(
-                'IO Log',
-                [
-                  _buildLogContainer(result.testResult.ioLog),
+              _DialogSection(
+                title: 'IO Log',
+                children: [
+                  _LogContainer(logContent: result.testResult.ioLog),
                 ],
               ),
             ],
@@ -155,8 +175,15 @@ class TestResultDetailsDialog extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildFooter(BuildContext context) {
+class _DialogFooter extends StatelessWidget {
+  final VoidCallback onClose;
+
+  const _DialogFooter({required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -170,15 +197,26 @@ class TestResultDetailsDialog extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: onClose,
             child: const Text('Close'),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSection(String title, List<Widget> children) {
+class _DialogSection extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _DialogSection({
+    required this.title,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -195,8 +233,19 @@ class TestResultDetailsDialog extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildDetailRow(String label, String? value) {
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String? value;
+
+  const _DetailRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -222,8 +271,15 @@ class TestResultDetailsDialog extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildLogContainer(String logContent) {
+class _LogContainer extends StatelessWidget {
+  final String logContent;
+
+  const _LogContainer({required this.logContent});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
