@@ -49,7 +49,7 @@ class TestResultsTable extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _TableHeader(availableWidth: availableWidth),
+                const _TableHeader(),
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -57,7 +57,6 @@ class TestResultsTable extends StatelessWidget {
                   itemBuilder: (context, index) {
                     return _TableDataRow(
                       result: testResults[index],
-                      availableWidth: availableWidth,
                       index: index,
                     );
                   },
@@ -72,53 +71,26 @@ class TestResultsTable extends StatelessWidget {
 }
 
 class _TableHeader extends StatelessWidget {
-  final double availableWidth;
-
-  const _TableHeader({required this.availableWidth});
+  const _TableHeader();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: availableWidth,
       height: 56,
       decoration: BoxDecoration(
         color: Colors.grey[100],
         border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 2)),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          SizedBox(
-            width: availableWidth * 0.15,
-            child: const _HeaderCell(title: 'Artefact'),
-          ),
-          SizedBox(
-            width: availableWidth * 0.18,
-            child: const _HeaderCell(title: 'Test Case'),
-          ),
-          SizedBox(
-            width: availableWidth * 0.10,
-            child: const _HeaderCell(title: 'Status'),
-          ),
-          SizedBox(
-            width: availableWidth * 0.08,
-            child: const _HeaderCell(title: 'Track'),
-          ),
-          SizedBox(
-            width: availableWidth * 0.12,
-            child: const _HeaderCell(title: 'Version'),
-          ),
-          SizedBox(
-            width: availableWidth * 0.12,
-            child: const _HeaderCell(title: 'Environment'),
-          ),
-          SizedBox(
-            width: availableWidth * 0.12,
-            child: const _HeaderCell(title: 'Test Plan'),
-          ),
-          SizedBox(
-            width: availableWidth * 0.13,
-            child: const _HeaderCell(title: 'Actions'),
-          ),
+          Expanded(flex: 3, child: _HeaderCell(title: 'Artefact')),
+          Expanded(flex: 4, child: _HeaderCell(title: 'Test Case')),
+          Expanded(flex: 2, child: _HeaderCell(title: 'Status')),
+          Expanded(flex: 2, child: _HeaderCell(title: 'Track')),
+          Expanded(flex: 3, child: _HeaderCell(title: 'Version')),
+          Expanded(flex: 3, child: _HeaderCell(title: 'Environment')),
+          Expanded(flex: 3, child: _HeaderCell(title: 'Test Plan')),
+          Expanded(flex: 3, child: _HeaderCell(title: 'Actions')),
         ],
       ),
     );
@@ -145,12 +117,10 @@ class _HeaderCell extends StatelessWidget {
 
 class _TableDataRow extends StatelessWidget {
   final TestResultWithContext result;
-  final double availableWidth;
   final int index;
 
   const _TableDataRow({
     required this.result,
-    required this.availableWidth,
     required this.index,
   });
 
@@ -163,7 +133,6 @@ class _TableDataRow extends StatelessWidget {
     final environment = testExecution.environment;
 
     return Container(
-      width: availableWidth,
       constraints: const BoxConstraints(
         minHeight: 60,
       ),
@@ -174,41 +143,20 @@ class _TableDataRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: availableWidth * 0.15,
-            child: _ArtefactCell(artefact: artefact),
-          ),
-          SizedBox(
-            width: availableWidth * 0.18,
-            child: _TestCaseCell(testResult: testResult),
-          ),
-          SizedBox(
-            width: availableWidth * 0.10,
-            child: _StatusCell(status: testResult.status),
-          ),
-          SizedBox(
-            width: availableWidth * 0.08,
-            child: _TrackCell(artefact: artefact),
-          ),
-          SizedBox(
-            width: availableWidth * 0.12,
-            child: _VersionCell(artefact: artefact),
-          ),
-          SizedBox(
-            width: availableWidth * 0.12,
+          Expanded(flex: 3, child: _ArtefactCell(artefact: artefact)),
+          Expanded(flex: 4, child: _TestCaseCell(testResult: testResult)),
+          Expanded(flex: 2, child: _StatusCell(status: testResult.status)),
+          Expanded(flex: 2, child: _TrackCell(artefact: artefact)),
+          Expanded(flex: 3, child: _VersionCell(artefact: artefact)),
+          Expanded(
+            flex: 3,
             child: _EnvironmentCell(
               artefactBuild: artefactBuild,
               environment: environment,
             ),
           ),
-          SizedBox(
-            width: availableWidth * 0.12,
-            child: _TestPlanCell(testExecution: testExecution),
-          ),
-          SizedBox(
-            width: availableWidth * 0.13,
-            child: _ActionsCell(result: result),
-          ),
+          Expanded(flex: 3, child: _TestPlanCell(testExecution: testExecution)),
+          Expanded(flex: 3, child: _ActionsCell(result: result)),
         ],
       ),
     );
@@ -370,11 +318,14 @@ class _EnvironmentCell extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
-      child: Text(
-        buildInfo,
-        style: const TextStyle(fontSize: 14),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
+      child: Tooltip(
+        message: buildInfo,
+        child: Text(
+          buildInfo,
+          style: const TextStyle(fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
       ),
     );
   }
@@ -387,14 +338,20 @@ class _TestPlanCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final testPlan =
+        testExecution.testPlan.isNotEmpty ? testExecution.testPlan : 'Unknown';
+
     return Container(
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
-      child: Text(
-        testExecution.testPlan.isNotEmpty ? testExecution.testPlan : 'Unknown',
-        style: const TextStyle(fontSize: 14),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
+      child: Tooltip(
+        message: testPlan,
+        child: Text(
+          testPlan,
+          style: const TextStyle(fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
       ),
     );
   }
