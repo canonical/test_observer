@@ -35,12 +35,10 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
 
   @override
   Widget build(BuildContext context) {
-    const pagePad = EdgeInsets.all(Spacing.pageHorizontalPadding);
     final uri = GoRouterState.of(context).uri;
 
-    return Padding(
-      padding: pagePad,
-      child: Column(
+    return Scaffold(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
