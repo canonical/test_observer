@@ -18,9 +18,9 @@ import 'package:dio/dio.dart';
 
 import '../models/artefact.dart';
 import '../models/issue.dart';
-
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
+import '../models/detailed_test_results.dart';
 import '../models/environment_issue.dart';
 import '../models/environment_review.dart';
 import '../models/family_name.dart';
@@ -211,6 +211,81 @@ class ApiRepository {
       data: review.toJson(),
     );
     return EnvironmentReview.fromJson(response.data);
+  }
+
+  Future<List<String>> getEnvironments() async {
+    final response = await dio.get('/v1/environments');
+    final Map<String, dynamic> data = response.data;
+    final List<dynamic> environments = data['environments'] ?? [];
+    return environments.cast<String>();
+  }
+
+  Future<List<String>> getTestCases() async {
+    final response = await dio.get('/v1/test-cases');
+    final Map<String, dynamic> data = response.data;
+    final List<dynamic> testCasesData = data['test_cases'] ?? [];
+    return testCasesData.map((item) => item['test_case'] as String).toList();
+  }
+
+  Future<TestResultsSearchResult> searchTestResults({
+    List<String>? families,
+    List<String>? environments,
+    List<String>? testCases,
+    List<String>? templateIds,
+    List<int>? issues,
+    DateTime? fromDate,
+    DateTime? untilDate,
+    int? limit,
+    int? offset,
+  }) async {
+    final queryParams = <String, dynamic>{};
+
+    if (families != null && families.isNotEmpty) {
+      queryParams['families'] = families;
+    }
+
+    if (environments != null && environments.isNotEmpty) {
+      queryParams['environments'] = environments;
+    }
+
+    if (testCases != null && testCases.isNotEmpty) {
+      queryParams['test_cases'] = testCases;
+    }
+
+    if (templateIds != null && templateIds.isNotEmpty) {
+      queryParams['template_ids'] = templateIds;
+    }
+
+    if (issues != null && issues.isNotEmpty) {
+      queryParams['issues'] = issues;
+    }
+
+    if (fromDate != null) {
+      queryParams['from_date'] = fromDate.toIso8601String();
+    }
+    if (untilDate != null) {
+      queryParams['until_date'] = untilDate.toIso8601String();
+    }
+
+    // Add pagination
+    queryParams['limit'] = limit ?? 500;
+    queryParams['offset'] = offset ?? 0;
+
+    final response =
+        await dio.get('/v1/test-results', queryParameters: queryParams);
+
+    final jsonData = response.data as Map<String, dynamic>;
+    final resultsList =
+        (jsonData['test_results'] as List).cast<Map<String, dynamic>>();
+
+    final testResults = resultsList
+        .map((jsonResult) => TestResultWithContext.fromJson(jsonResult))
+        .toList();
+
+    return TestResultsSearchResult(
+      count: jsonData['count'] as int,
+      testResults: testResults,
+    );
   }
 
   Future<Issue> attachIssueToTestResults({

@@ -22,6 +22,7 @@ import 'models/family_name.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/skeleton.dart';
+import 'ui/test_results_page/test_results_page.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -90,6 +91,12 @@ final appRouter = GoRouter(
             ),
           ),
         ),
+        GoRoute(
+          path: AppRoutes.testResults,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: TestResultsPage(),
+          ),
+        ),
       ],
     ),
   ],
@@ -111,6 +118,7 @@ class AppRoutes {
   static const debs = '/debs';
   static const charms = '/charms';
   static const images = '/images';
+  static const testResults = '/test-results';
 
   static Uri uriFromContext(BuildContext context) =>
       GoRouterState.of(context).uri;
@@ -134,6 +142,8 @@ class AppRoutes {
 
   static bool isDashboardPage(Uri uri) =>
       {snaps, debs, charms, images}.contains(uri.path);
+
+  static bool isTestResultsPage(Uri uri) => uri.path == testResults;
 
   static bool isArtefactPage(Uri uri) =>
       (uri.path.contains(AppRoutes.snaps) ||

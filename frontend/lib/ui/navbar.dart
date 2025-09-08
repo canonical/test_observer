@@ -70,6 +70,10 @@ class Navbar extends ConsumerWidget {
                     route: AppRoutes.images,
                   ),
                   const Spacer(),
+                  const _NavbarEntry(
+                    title: 'Test Results',
+                    route: AppRoutes.testResults,
+                  ),
                   _NavbarDropdownEntry(
                     label: 'Help',
                     dropdownChildren: [
@@ -155,12 +159,15 @@ class _NavbarDropdownEntry extends StatelessWidget {
             backgroundColor: WidgetStatePropertyAll(YaruColors.coolGrey),
           ),
           menuChildren: dropdownChildren,
-          child: Text(
-            label,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.apply(color: Colors.white),
+          child: Padding(
+            padding: const EdgeInsets.all(Spacing.level4),
+            child: Text(
+              label,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.apply(color: Colors.white),
+            ),
           ),
         ),
       ),
