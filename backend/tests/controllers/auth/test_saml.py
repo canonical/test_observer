@@ -22,11 +22,10 @@ import json
 import itsdangerous
 import pytest
 import requests
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_observer.common.config import SESSIONS_SECRET
-from test_observer.data_access.models import User, UserSession
+from test_observer.data_access.models import UserSession
 from test_observer.data_access.setup import SessionLocal
 
 
@@ -140,12 +139,15 @@ class TestSAMLAuthentication:
         session = self.db_session.get(UserSession, session["id"])
         assert session
         assert session.expires_at < datetime.now() + timedelta(days=14)
+        self._session_id = session.id
 
         user = session.user
         assert user
         assert user.name == "Mark"
         assert user.email == "mark@electricdemon.com"
         assert user.launchpad_handle == self.CREDENTIALS["username"]
+        assert len(user.teams) == 1
+        assert user.teams[0].name == "canonical"
 
     def _logout_and_verify_session_cleared(self) -> None:
         logout_response = self.session.get(
@@ -160,8 +162,5 @@ class TestSAMLAuthentication:
         logout_url = logout_response.headers["location"]
         self.session.get(logout_url, headers={"X-CSRF-Token": "test"})
 
-        user = self.db_session.scalar(
-            select(User).where(User.email == "mark@electricdemon.com")
-        )
-        assert user
-        assert user.sessions == []
+        session = self.db_session.get(UserSession, self._session_id)
+        assert session is None
