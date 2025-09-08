@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -29,3 +29,11 @@ router: APIRouter = APIRouter(tags=["teams"])
 @router.get("", response_model=list[TeamResponse])
 def get_teams(db: Session = Depends(get_db)):
     return db.scalars(select(Team))
+
+
+@router.get("/{team_id}", response_model=TeamResponse)
+def get_team(team_id: int, db: Session = Depends(get_db)):
+    team = db.get(Team, team_id)
+    if team is None:
+        raise HTTPException(404, f"Team {team_id} doesn't exist")
+    return team

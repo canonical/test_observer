@@ -43,3 +43,26 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
             ],
         }
     ]
+
+
+def test_get_team(test_client: TestClient, generator: DataGenerator):
+    user = generator.gen_user()
+    team = generator.gen_team(permissions=["create_artefact"], members=[user])
+
+    response = test_client.get(f"/v1/teams/{team.id}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": team.id,
+        "name": team.name,
+        "permissions": ["create_artefact"],
+        "members": [
+            {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "launchpad_email": user.email,
+                "launchpad_handle": user.launchpad_handle,
+            }
+        ],
+    }
