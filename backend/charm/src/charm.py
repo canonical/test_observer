@@ -245,6 +245,8 @@ class TestObserverBackendCharm(CharmBase):
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
             "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
+            "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
+            "SESSIONS_SECRET": self.config["sessions_secret"],
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):

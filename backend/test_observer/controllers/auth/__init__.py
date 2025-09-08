@@ -19,5 +19,5 @@ from fastapi import APIRouter
 from . import saml
 
 
-router = APIRouter(tags=["authentication"])
+router: APIRouter = APIRouter(tags=["authentication"])
 router.include_router(saml.router)

@@ -2232,17 +2232,44 @@
     "/v1/auth/saml/login": {
       "get": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Login",
         "operationId": "saml_login_v1_auth_saml_login_get",
+        "parameters": [
+          {
+            "name": "return_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Return To"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -2252,17 +2279,44 @@
     "/v1/auth/saml/logout": {
       "get": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Logout",
         "operationId": "saml_logout_v1_auth_saml_logout_get",
+        "parameters": [
+          {
+            "name": "return_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Return To"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -2272,7 +2326,6 @@
     "/v1/auth/saml/acs": {
       "post": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Login Callback",
@@ -2292,7 +2345,6 @@
     "/v1/auth/saml/sls": {
       "get": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Logout Callback",
@@ -2310,7 +2362,6 @@
       },
       "post": {
         "tags": [
-          "authentication",
           "authentication"
         ],
         "summary": "Saml Logout Callback",
@@ -2321,6 +2372,35 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get Authenticated User",
+        "operationId": "get_authenticated_user_v1_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/UserResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Authenticated User V1 Users Me Get"
+                }
               }
             }
           }
@@ -4473,12 +4553,24 @@
             "title": "Id"
           },
           "launchpad_handle": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Launchpad Handle"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
           },
           "launchpad_email": {
             "type": "string",
-            "title": "Launchpad Email"
+            "title": "Launchpad Email",
+            "deprecated": true
           },
           "name": {
             "type": "string",
@@ -4488,7 +4580,7 @@
         "type": "object",
         "required": [
           "id",
-          "launchpad_handle",
+          "email",
           "launchpad_email",
           "name"
         ],

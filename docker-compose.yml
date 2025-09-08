@@ -19,6 +19,7 @@ services:
       DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}" # Can be overridden for GitHub CI
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
+      SESSIONS_HTTPS_ONLY: "false"
     volumes:
       # Mount source code from host for development
       - ./backend:/home/app

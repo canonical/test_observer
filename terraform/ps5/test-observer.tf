@@ -80,6 +80,11 @@ variable "saml_sp_key" {
   type        = string
 }
 
+variable "sessions_secret" {
+  description = "Randomly generated secret key to use for signing session cookies"
+  type        = string
+}
+
 
 
 locals {
@@ -146,11 +151,13 @@ resource "juju_application" "test-observer-api" {
 
   config = {
     hostname              = var.api_hostname
+    frontend_hostname     = var.frontend_hostname
     port                  = var.environment == "development" ? 80 : 443
     sentry_dsn            = "${local.sentry_dsn_map[var.environment]}"
     saml_idp_metadata_url = var.saml_idp_metadata_url
     saml_sp_cert          = var.saml_sp_cert
     saml_sp_key           = var.saml_sp_key
+    sessions_secret       = var.sessions_secret
   }
 
   units = 3

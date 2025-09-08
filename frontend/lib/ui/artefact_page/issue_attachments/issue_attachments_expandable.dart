@@ -1,0 +1,91 @@
+// Copyright (C) 2023 Canonical Ltd.
+//
+// This file is part of Test Observer Frontend.
+//
+// Test Observer Frontend is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 3, as
+// published by the Free Software Foundation.
+//
+// Test Observer Frontend is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../providers/test_results.dart';
+import '../../expandable.dart';
+import 'issue_attachments_form.dart';
+import 'issue_attachments_list_item.dart';
+import '../../vanilla/vanilla_chip.dart';
+
+class IssueAttachmentsExpandable extends ConsumerWidget {
+  const IssueAttachmentsExpandable({
+    super.key,
+    required this.testExecutionId,
+    required this.testResultId,
+  });
+
+  final int testExecutionId;
+  final int testResultId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attachmentsAsync = ref.watch(
+      testResultsProvider(testExecutionId).select(
+        (value) => value.whenData(
+          (results) => results
+              .firstWhere((result) => result.id == testResultId)
+              .issueAttachments,
+        ),
+      ),
+    );
+    if (attachmentsAsync.isLoading) {
+      return const CircularProgressIndicator();
+    }
+    final attachments = attachmentsAsync.value ?? [];
+    return Expandable(
+      initiallyExpanded: attachments.isNotEmpty,
+      title: Row(
+        children: [
+          Text('Test Issues (${attachments.length})'),
+          const SizedBox(width: 6),
+          const VanillaChip(
+            text: 'NEW',
+            fontColor: Colors.white,
+            backgroundColor: Colors.blue,
+            side: BorderSide.none,
+          ),
+          const Spacer(),
+          Tooltip(
+            message: 'Attach issue',
+            child: TextButton(
+              key: const Key('attachIssueButton'),
+              child: const Text('attach'),
+              onPressed: () {
+                showAttachIssueDialog(
+                  context: context,
+                  testExecutionId: testExecutionId,
+                  testResultId: testResultId,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      children: attachments
+          .map(
+            (attachment) => IssueAttachmentListItem(
+              issueAttachment: attachment,
+              testExecutionId: testExecutionId,
+              testResultId: testResultId,
+            ),
+          )
+          .toList(),
+    );
+  }
+}

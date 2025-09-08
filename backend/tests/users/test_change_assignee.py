@@ -25,12 +25,12 @@ from tests.data_generator import DataGenerator
 def test_change_assignee(db_session: Session, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     user1 = generator.gen_user(
-        launchpad_email="user1@email.com",
+        email="user1@example.com",
         launchpad_handle="user1",
         name="User 1",
     )
     user2 = generator.gen_user(
-        launchpad_email="user2@email.com",
+        email="user2@example.com",
         launchpad_handle="user2",
         name="User 2",
     )

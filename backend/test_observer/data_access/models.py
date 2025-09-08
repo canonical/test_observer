@@ -16,7 +16,7 @@
 
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import TypeVar
 
 from sqlalchemy import (
@@ -84,6 +84,14 @@ def data_model_repr(obj: DataModel, *keys: str) -> str:
     return f"{type(obj).__name__}({', '.join(kwargs)})"
 
 
+team_users_association = Table(
+    "team_users_association",
+    Base.metadata,
+    Column("user_id", ForeignKey("app_user.id"), primary_key=True),
+    Column("team_id", ForeignKey("team.id"), primary_key=True),
+)
+
+
 class User(Base):
     """
     ORM representing users that can be assigned to review artefacts
@@ -92,14 +100,52 @@ class User(Base):
     # user is a reserved name in PostgreSQL
     __tablename__ = "app_user"
 
-    launchpad_email: Mapped[str] = mapped_column(unique=True)
-    launchpad_handle: Mapped[str]
+    email: Mapped[str] = mapped_column(unique=True)
+    launchpad_handle: Mapped[str | None] = mapped_column(default=None)
     name: Mapped[str]
+    is_reviewer: Mapped[bool] = mapped_column(default=False)
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user", cascade="all, delete"
+    )
+    teams: Mapped[list["Team"]] = relationship(
+        secondary=team_users_association, back_populates="members"
+    )
 
     def __repr__(self) -> str:
-        return data_model_repr(self, "launchpad_handle")
+        return data_model_repr(self, "email", "name")
+
+
+class Team(Base):
+    """
+    Launchpad teams that users can belong to. Currently, these are exposed by U1 SSO.
+    Not all teams are exposed by U1 SSO, only those configured through U1 backend.
+    """
+
+    __tablename__ = "team"
+
+    name: Mapped[str] = mapped_column(unique=True)
+
+    members: Mapped[list[User]] = relationship(
+        secondary=team_users_association, back_populates="teams"
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name")
+
+
+class UserSession(Base):
+    __tablename__ = "user_session"
+
+    expires_at: Mapped[datetime] = mapped_column(
+        default=datetime.now() + timedelta(days=14)
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("app_user.id", ondelete="CASCADE"), index=True
+    )
+    user: Mapped[User] = relationship(back_populates="sessions", foreign_keys=[user_id])
 
 
 class Artefact(Base):

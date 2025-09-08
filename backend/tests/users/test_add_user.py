@@ -33,7 +33,7 @@ def test_create_user(db_session: Session):
     assert (
         db_session.execute(
             select(User).where(
-                User.launchpad_email == email,
+                User.email == email,
                 User.launchpad_handle == "john-doe",
                 User.name == "John Doe",
             )

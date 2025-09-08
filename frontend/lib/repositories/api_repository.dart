@@ -17,6 +17,8 @@
 import 'package:dio/dio.dart';
 
 import '../models/artefact.dart';
+import '../models/issue.dart';
+
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
 import '../models/detailed_test_results.dart';
@@ -27,6 +29,7 @@ import '../models/rerun_request.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_event.dart';
+import '../models/user.dart';
 
 class ApiRepository {
   final Dio dio;
@@ -284,5 +287,65 @@ class ApiRepository {
       count: jsonData['count'] as int,
       testResults: testResults,
     );
+    
+  Future<Issue> attachIssueToTestResults({
+    required int issueId,
+    required List<int> testResultIds,
+  }) async {
+    final response = await dio.post(
+      '/v1/issues/$issueId/attach',
+      data: {
+        'test_results': testResultIds,
+      },
+    );
+    return Issue.fromJson(response.data);
+  }
+
+  Future<Issue> detachIssueFromTestResults({
+    required int issueId,
+    required List<int> testResultIds,
+  }) async {
+    final response = await dio.post(
+      '/v1/issues/$issueId/detach',
+      data: {
+        'test_results': testResultIds,
+      },
+    );
+    return Issue.fromJson(response.data);
+  }
+
+  Future<List<Issue>> getIssues() async {
+    final response = await dio.get('/v1/issues');
+    final Map issuesJson = response.data;
+    return (issuesJson['issues'] as List)
+        .map((json) => Issue.fromJson(json))
+        .toList();
+  }
+
+  Future<Issue> createIssue({
+    required String url,
+    String? title,
+    String? description,
+    String? status,
+  }) async {
+    final response = await dio.put(
+      '/v1/issues',
+      data: {
+        'url': url,
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+        if (status != null) 'status': status,
+      },
+    );
+    return Issue.fromJson(response.data);
+  }
+
+  Future<User?> getCurrentUser() async {
+    final response = await dio.get('/v1/users/me');
+    final data = response.data;
+    if (data == null) {
+      return null;
+    }
+    return User.fromJson(response.data);
   }
 }

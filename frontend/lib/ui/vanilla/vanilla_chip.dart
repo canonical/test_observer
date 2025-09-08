@@ -17,10 +17,18 @@
 import 'package:flutter/material.dart';
 
 class VanillaChip extends StatelessWidget {
-  const VanillaChip({super.key, required this.text, this.fontColor});
+  const VanillaChip({
+    super.key,
+    required this.text,
+    this.fontColor,
+    this.backgroundColor,
+    this.side,
+  });
 
   final String text;
   final Color? fontColor;
+  final Color? backgroundColor;
+  final BorderSide? side;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +36,8 @@ class VanillaChip extends StatelessWidget {
     return Chip(
       label: Text(text, style: fontStyle?.apply(color: fontColor)),
       shape: const StadiumBorder(),
+      backgroundColor: backgroundColor,
+      side: side,
     );
   }
 }

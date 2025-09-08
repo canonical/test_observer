@@ -14,17 +14,32 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from datetime import datetime, timedelta
 from functools import cache
 import logging
 from typing import Any
-from fastapi import APIRouter, HTTPException, Request
+from urllib.parse import urlparse
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
-import os
+from sqlalchemy.orm import Session
+
+from test_observer.common.config import (
+    SAML_IDP_METADATA_URL,
+    SAML_SP_BASE_URL,
+    SAML_SP_KEY,
+    SAML_SP_X509_CERT,
+)
+from test_observer.data_access.models import Team, User, UserSession
+from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.setup import get_db
+from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
+from test_observer.main import FRONTEND_URL
+from test_observer.users.user_injection import get_user_session
 
 
-router = APIRouter(prefix="/saml", tags=["authentication"])
+router: APIRouter = APIRouter(prefix="/saml")
 
 
 logger = logging.getLogger("test-observer-backend")
@@ -32,36 +47,31 @@ logger = logging.getLogger("test-observer-backend")
 
 @cache
 def _get_saml_settings() -> dict[str, Any]:
-    sp_base_url = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
-
-    idp_metadata_url = os.getenv(
-        "SAML_IDP_METADATA_URL",
-        "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
-    )
-
     return {
         "strict": True,
         "debug": True,
         "sp": {
-            "entityId": f"{sp_base_url}",
+            "entityId": f"{SAML_SP_BASE_URL}",
             "assertionConsumerService": {
-                "url": f"{sp_base_url}/v1/auth/saml/acs",
+                "url": f"{SAML_SP_BASE_URL}/v1/auth/saml/acs",
                 "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
             },
             "singleLogoutService": {
-                "url": f"{sp_base_url}/v1/auth/saml/sls",
+                "url": f"{SAML_SP_BASE_URL}/v1/auth/saml/sls",
                 "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
             },
             "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-            "x509cert": os.getenv("SAML_SP_X509_CERT", ""),
-            "privateKey": os.getenv("SAML_SP_KEY", ""),
+            "x509cert": SAML_SP_X509_CERT,
+            "privateKey": SAML_SP_KEY,
         },
-        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(idp_metadata_url)["idp"],
+        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL)[
+            "idp"
+        ],
     }
 
 
 @router.get("/login")
-async def saml_login(request: Request):
+async def saml_login(request: Request, return_to: str | None = None):
     settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
@@ -69,28 +79,41 @@ async def saml_login(request: Request):
         )
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
-    return RedirectResponse(url=auth.login())
+    return RedirectResponse(url=auth.login(return_to=return_to))
 
 
 @router.get("/logout")
-async def saml_logout(request: Request):
+async def saml_logout(
+    request: Request,
+    return_to: str | None = None,
+    session: User | None = Depends(get_user_session),
+    db: Session = Depends(get_db),
+):
+    if session:
+        db.delete(session)
+        db.commit()
+
+    request.session.clear()
+
     settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
         )
+
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
-    return RedirectResponse(url=auth.logout())
+    return RedirectResponse(url=auth.logout(return_to=return_to))
 
 
 @router.post("/acs")
-async def saml_login_callback(request: Request):
+async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     settings = _get_saml_settings()
     if settings is None:
         raise HTTPException(
             status_code=503, detail="SAML authentication is not configured"
         )
+
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
     auth.process_response()
@@ -107,12 +130,38 @@ async def saml_login_callback(request: Request):
     if not auth.is_authenticated():
         raise HTTPException(403, "Authentication failed")
 
-    return {
-        "name_id_format": auth.get_nameid_format(),
-        "name_id": auth.get_nameid(),
-        "session_index": auth.get_session_index(),
-        "attributes": auth.get_attributes(),
-    }
+    user = _create_user(db, auth)
+    session = UserSession(
+        user_id=user.id, expires_at=datetime.now() + timedelta(days=14)
+    )
+    db.add(session)
+    db.commit()
+
+    request.session["id"] = session.id
+
+    if return_to := req["post_data"].get("RelayState"):
+        return _redirect_to_return_url(return_to)
+
+    # Return success response when no redirect is needed
+    return {"message": "Authentication successful"}
+
+
+def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
+    email = auth.get_nameid()
+    lp_user = LaunchpadAPI().get_user_by_email(email)
+    attributes = auth.get_attributes()
+    user = get_or_create(
+        db,
+        User,
+        {"email": email},
+        {
+            "name": attributes["fullname"][0],
+            "launchpad_handle": lp_user.handle if lp_user else None,
+        },
+    )
+    user.teams = [get_or_create(db, Team, {"name": t}) for t in attributes["lp_teams"]]
+    db.commit()
+    return user
 
 
 @router.post("/sls")
@@ -136,6 +185,23 @@ async def saml_logout_callback(request: Request):
         )
         raise HTTPException(500, "Logout failed")
 
+    return_to = req["post_data"].get("RelayState") or req["get_data"].get("RelayState")
+    if return_to:
+        return _redirect_to_return_url(return_to)
+
+
+def _redirect_to_return_url(return_to: str) -> RedirectResponse | None:
+    frontend_url = urlparse(FRONTEND_URL)
+    return_url = urlparse(return_to)
+    # Check if it's safe to redirect user to this URL
+    if frontend_url.netloc == return_url.netloc:
+        response = RedirectResponse(url=return_to, status_code=status.HTTP_302_FOUND)
+        return response
+    else:
+        # Note by default python3-saml returns to API url
+        logger.warning(f"Received invalid return url {return_to}")
+    return None
+
 
 async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
     form_data = await request.form()
@@ -148,10 +214,14 @@ async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
         "get_data": {},
     }
 
-    if request.url.scheme == "https" or result["server_port"] == 443:
+    if (
+        request.url.scheme == "https"
+        or result["server_port"] == 443
+        or request.headers.get("x-forwarded-proto") == "https"
+    ):
         result["https"] = "on"
     if request.query_params:
-        result["get_data"] = (request.query_params,)
+        result["get_data"] = request.query_params
     if "SAMLResponse" in form_data:
         saml_response = form_data["SAMLResponse"]
         result["post_data"]["SAMLResponse"] = saml_response

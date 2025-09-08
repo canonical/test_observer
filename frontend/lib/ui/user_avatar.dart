@@ -85,8 +85,10 @@ class UserAvatar extends StatelessWidget {
     if (user.isEmpty) {
       result = 'No reviewer assigned\n$result';
     } else {
-      result =
-          '${user.name}\n${user.launchpadHandle}\n${user.launchpadEmail}\n$result';
+      if (user.launchpadHandle != null) {
+        result = '${user.launchpadHandle}\n$result';
+      }
+      result = '${user.name}\n$result';
     }
     return result;
   }

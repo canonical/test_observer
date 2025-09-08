@@ -14,16 +14,72 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/test_result.dart';
+import '../models/issue_attachment.dart';
 import 'api.dart';
 
 part 'test_results.g.dart';
 
 @riverpod
-Future<List<TestResult>> testResults(Ref ref, int testExecutionId) async {
-  final api = ref.watch(apiProvider);
-  return await api.getTestExecutionResults(testExecutionId);
+class TestResults extends _$TestResults {
+  @override
+  Future<List<TestResult>> build(int testExecutionId) async {
+    final api = ref.watch(apiProvider);
+    return await api.getTestExecutionResults(testExecutionId);
+  }
+
+  Future<void> attachIssueToTestResult(int testResultId, int issueId) async {
+    final api = ref.read(apiProvider);
+    final attachedIssue = await api.attachIssueToTestResults(
+      issueId: issueId,
+      testResultIds: [testResultId],
+    );
+    final testResults = await future;
+    final resultIndex =
+        testResults.indexWhere((result) => result.id == testResultId);
+    if (resultIndex == -1) {
+      return;
+    }
+    final testResult = testResults[resultIndex];
+    final attachments = testResult.issueAttachments;
+    final alreadyAttached = attachments
+        .any((attachment) => attachment.issue.id == attachedIssue.id);
+    if (alreadyAttached) {
+      return;
+    }
+    // Create a new attachment for the issue
+    final newAttachment = IssueAttachment(issue: attachedIssue);
+    final updatedAttachments = [...attachments, newAttachment];
+    final updatedTestResult =
+        testResult.copyWith(issueAttachments: updatedAttachments);
+    final updatedTestResults = List<TestResult>.from(testResults);
+    updatedTestResults[resultIndex] = updatedTestResult;
+    state = AsyncData(updatedTestResults);
+  }
+
+  Future<void> detachIssueFromTestResult(int testResultId, int issueId) async {
+    final api = ref.read(apiProvider);
+    await api.detachIssueFromTestResults(
+      issueId: issueId,
+      testResultIds: [testResultId],
+    );
+    final testResults = await future;
+    final resultIndex =
+        testResults.indexWhere((result) => result.id == testResultId);
+    if (resultIndex == -1) {
+      return;
+    }
+    final testResult = testResults[resultIndex];
+    final attachments = testResult.issueAttachments;
+    final updatedAttachments = attachments
+        .where((attachment) => attachment.issue.id != issueId)
+        .toList();
+    final updatedTestResult =
+        testResult.copyWith(issueAttachments: updatedAttachments);
+    final updatedTestResults = List<TestResult>.from(testResults);
+    updatedTestResults[resultIndex] = updatedTestResult;
+    state = AsyncData(updatedTestResults);
+  }
 }
