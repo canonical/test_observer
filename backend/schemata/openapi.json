@@ -2407,6 +2407,31 @@
         }
       }
     },
+    "/v1/teams": {
+      "get": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Get Teams",
+        "operationId": "get_teams_v1_teams_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Teams V1 Teams Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -4058,6 +4083,40 @@
           "events"
         ],
         "title": "StatusUpdateRequest"
+      },
+      "TeamResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/UserResponse"
+            },
+            "type": "array",
+            "title": "Members"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "permissions",
+          "members"
+        ],
+        "title": "TeamResponse"
       },
       "TestCaseInfo": {
         "properties": {

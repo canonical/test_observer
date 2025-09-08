@@ -32,6 +32,7 @@ from . import (
 )
 from .application import version
 from .artefacts import artefacts
+from .teams import teams
 from .test_executions import relevant_links
 from .issues import issues
 from .execution_metadata import execution_metadata
@@ -49,6 +50,7 @@ router.include_router(test_results.router, prefix="/v1/test-results")
 router.include_router(execution_metadata.router, prefix="/v1/execution-metadata")
 router.include_router(auth.router, prefix="/v1/auth")
 router.include_router(users.router, prefix="/v1/users")
+router.include_router(teams.router, prefix="/v1/teams")
 
 
 @router.get("/")

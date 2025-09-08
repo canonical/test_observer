@@ -25,6 +25,7 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     Environment,
     Issue,
+    Team,
     TestCase,
     TestEvent,
     TestExecution,
@@ -52,6 +53,20 @@ DEFAULT_ARCHITECTURE = "amd64"
 class DataGenerator:
     def __init__(self, db_session: Session):
         self.db_session = db_session
+
+    def gen_team(
+        self,
+        name: str = "canonical",
+        permissions: list[str] | None = None,
+        members: list[User] | None = None,
+    ) -> Team:
+        team = Team(
+            name=name,
+            permissions=permissions or [],
+            members=members or [],
+        )
+        self._add_object(team)
+        return team
 
     def gen_user(
         self,
