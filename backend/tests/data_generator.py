@@ -74,12 +74,14 @@ class DataGenerator:
         launchpad_handle: str | None = "jd",
         email: str = "john@doe.com",
         is_reviewer: bool = False,
+        teams: list[Team] | None = None,
     ) -> User:
         user = User(
             name=name,
             email=email,
             launchpad_handle=launchpad_handle,
             is_reviewer=is_reviewer,
+            teams=teams or [],
         )
         self._add_object(user)
         return user

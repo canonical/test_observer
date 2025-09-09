@@ -16,14 +16,19 @@
 
 from pydantic import BaseModel
 
-from test_observer.controllers.artefacts.models import UserResponse
+
+class UserMinimalResponse(BaseModel):
+    id: int
+    launchpad_handle: str | None = None
+    email: str
+    name: str
 
 
 class TeamResponse(BaseModel):
     id: int
     name: str
     permissions: list[str]
-    members: list[UserResponse]
+    members: list[UserMinimalResponse]
 
 
 class TeamPatch(BaseModel):

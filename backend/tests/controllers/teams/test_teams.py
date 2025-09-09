@@ -37,7 +37,6 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
                     "id": user.id,
                     "name": user.name,
                     "email": user.email,
-                    "launchpad_email": user.email,
                     "launchpad_handle": user.launchpad_handle,
                 }
             ],
@@ -61,7 +60,6 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
-                "launchpad_email": user.email,
                 "launchpad_handle": user.launchpad_handle,
             }
         ],
@@ -87,7 +85,6 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
-                "launchpad_email": user.email,
                 "launchpad_handle": user.launchpad_handle,
             }
         ],

@@ -39,7 +39,7 @@ from test_observer.data_access.models_enums import (
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 
-class UserResponse(BaseModel):
+class AssigneeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -74,7 +74,7 @@ class ArtefactResponse(BaseModel):
     status: ArtefactStatus
     comment: str
     archived: bool
-    assignee: UserResponse | None
+    assignee: AssigneeResponse | None
     due_date: date | None
     created_at: datetime
     bug_link: str

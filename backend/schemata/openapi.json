@@ -2890,7 +2890,7 @@
           "assignee": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/UserResponse"
+                "$ref": "#/components/schemas/AssigneeResponse"
               },
               {
                 "type": "null"
@@ -2983,6 +2983,46 @@
           "artefact_id"
         ],
         "title": "ArtefactVersionResponse"
+      },
+      "AssigneeResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "launchpad_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Launchpad Handle"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "launchpad_email": {
+            "type": "string",
+            "title": "Launchpad Email",
+            "deprecated": true
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "launchpad_email",
+          "name"
+        ],
+        "title": "AssigneeResponse"
       },
       "C3TestResult": {
         "properties": {
@@ -4243,6 +4283,32 @@
         ],
         "title": "StatusUpdateRequest"
       },
+      "TeamMinimalResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "permissions"
+        ],
+        "title": "TeamMinimalResponse"
+      },
       "TeamPatch": {
         "properties": {
           "permissions": {
@@ -4282,7 +4348,7 @@
           },
           "members": {
             "items": {
-              "$ref": "#/components/schemas/UserResponse"
+              "$ref": "#/components/schemas/UserMinimalResponse"
             },
             "type": "array",
             "title": "Members"
@@ -4784,7 +4850,7 @@
         ],
         "title": "TestResultStatus"
       },
-      "UserResponse": {
+      "UserMinimalResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -4805,11 +4871,6 @@
             "type": "string",
             "title": "Email"
           },
-          "launchpad_email": {
-            "type": "string",
-            "title": "Launchpad Email",
-            "deprecated": true
-          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -4819,8 +4880,49 @@
         "required": [
           "id",
           "email",
-          "launchpad_email",
           "name"
+        ],
+        "title": "UserMinimalResponse"
+      },
+      "UserResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "launchpad_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Launchpad Handle"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMinimalResponse"
+            },
+            "type": "array",
+            "title": "Teams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name",
+          "teams"
         ],
         "title": "UserResponse"
       },

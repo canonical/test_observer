@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.artefacts.models import UserResponse
+from test_observer.controllers.users.models import UserResponse
 from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user

@@ -101,12 +101,12 @@ def test_get_me_with_valid_session_returns_user_data(
     assert user_data["id"] == user.id
     assert user_data["name"] == user.name
     assert user_data["email"] == user.email
-    assert user_data["launchpad_email"] == user.email
     assert user_data["launchpad_handle"] == user.launchpad_handle
 
 
 def test_get_users(test_client: TestClient, generator: DataGenerator):
-    user = generator.gen_user()
+    team = generator.gen_team()
+    user = generator.gen_user(teams=[team])
 
     response = test_client.get("/v1/users")
 
@@ -116,14 +116,21 @@ def test_get_users(test_client: TestClient, generator: DataGenerator):
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "launchpad_email": user.email,
             "launchpad_handle": user.launchpad_handle,
+            "teams": [
+                {
+                    "id": team.id,
+                    "name": team.name,
+                    "permissions": team.permissions,
+                }
+            ],
         }
     ]
 
 
 def test_get_user(test_client: TestClient, generator: DataGenerator):
-    user = generator.gen_user()
+    team = generator.gen_team()
+    user = generator.gen_user(teams=[team])
 
     response = test_client.get(f"/v1/users/{user.id}")
 
@@ -132,6 +139,12 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
         "id": user.id,
         "name": user.name,
         "email": user.email,
-        "launchpad_email": user.email,
         "launchpad_handle": user.launchpad_handle,
+        "teams": [
+            {
+                "id": team.id,
+                "name": team.name,
+                "permissions": team.permissions,
+            }
+        ],
     }
