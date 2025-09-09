@@ -120,3 +120,18 @@ def test_get_users(test_client: TestClient, generator: DataGenerator):
             "launchpad_handle": user.launchpad_handle,
         }
     ]
+
+
+def test_get_user(test_client: TestClient, generator: DataGenerator):
+    user = generator.gen_user()
+
+    response = test_client.get(f"/v1/users/{user.id}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "launchpad_email": user.email,
+        "launchpad_handle": user.launchpad_handle,
+    }

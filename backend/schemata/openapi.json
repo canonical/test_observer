@@ -2432,6 +2432,48 @@
         }
       }
     },
+    "/v1/users/{user_id}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get User",
+        "operationId": "get_user_v1_users__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/teams": {
       "get": {
         "tags": [

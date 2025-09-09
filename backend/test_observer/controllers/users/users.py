@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -36,3 +36,11 @@ def get_authenticated_user(user: User | None = Depends(get_current_user)):
 @router.get("", response_model=list[UserResponse])
 def get_users(db: Session = Depends(get_db)):
     return db.scalars(select(User))
+
+
+@router.get("/{user_id}", response_model=UserResponse)
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(404, f"User with id {user_id} not found")
+    return user
