@@ -13,3 +13,31 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""Add team permissions
+
+Revision ID: 80d45097d01e
+Revises: f496f12b66b8
+Create Date: 2025-09-08 13:20:45.727848+00:00
+
+"""
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+# revision identifiers, used by Alembic.
+revision = "80d45097d01e"
+down_revision = "f496f12b66b8"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.add_column(
+        "team", sa.Column("permissions", postgresql.ARRAY(sa.String()), nullable=False)
+    )
+
+
+def downgrade() -> None:
+    op.drop_column("team", "permissions")

@@ -13,3 +13,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+from enum import StrEnum, auto
+
+
+class Permission(StrEnum):
+    update_permission = auto()
