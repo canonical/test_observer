@@ -2641,6 +2641,25 @@
         }
       }
     },
+    "/v1/permissions": {
+      "get": {
+        "tags": [
+          "permissions"
+        ],
+        "summary": "Get Permissions",
+        "operationId": "get_permissions_v1_permissions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
