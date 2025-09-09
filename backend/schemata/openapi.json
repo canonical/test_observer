@@ -4954,6 +4954,10 @@
           "is_reviewer": {
             "type": "boolean",
             "title": "Is Reviewer"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin"
           }
         },
         "type": "object",
@@ -4961,7 +4965,8 @@
           "id",
           "email",
           "name",
-          "is_reviewer"
+          "is_reviewer",
+          "is_admin"
         ],
         "title": "UserMinimalResponse"
       },
@@ -4977,6 +4982,17 @@
               }
             ],
             "title": "Is Reviewer"
+          },
+          "is_admin": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Admin"
           }
         },
         "type": "object",
@@ -5017,6 +5033,10 @@
           "is_reviewer": {
             "type": "boolean",
             "title": "Is Reviewer"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin"
           }
         },
         "type": "object",
@@ -5025,7 +5045,8 @@
           "email",
           "name",
           "teams",
-          "is_reviewer"
+          "is_reviewer",
+          "is_admin"
         ],
         "title": "UserResponse"
       },

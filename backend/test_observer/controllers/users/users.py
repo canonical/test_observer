@@ -55,4 +55,7 @@ def update_user(user_id: int, request: UserPatch, db: Session = Depends(get_db))
     if request.is_reviewer is not None:
         user.is_reviewer = request.is_reviewer
 
+    if request.is_admin is not None:
+        user.is_admin = request.is_admin
+
     return user

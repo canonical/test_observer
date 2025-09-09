@@ -118,6 +118,7 @@ def test_get_users(test_client: TestClient, generator: DataGenerator):
             "email": user.email,
             "launchpad_handle": user.launchpad_handle,
             "is_reviewer": user.is_reviewer,
+            "is_admin": user.is_admin,
             "teams": [
                 {
                     "id": team.id,
@@ -142,6 +143,7 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
         "email": user.email,
         "launchpad_handle": user.launchpad_handle,
         "is_reviewer": user.is_reviewer,
+        "is_admin": user.is_admin,
         "teams": [
             {
                 "id": team.id,
@@ -159,3 +161,12 @@ def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator)
 
     assert response.status_code == 200
     assert user.is_reviewer
+
+
+def test_promote_user_to_admin(test_client: TestClient, generator: DataGenerator):
+    user = generator.gen_user()
+
+    response = test_client.patch(f"/v1/users/{user.id}", json={"is_admin": True})
+
+    assert response.status_code == 200
+    assert user.is_admin
