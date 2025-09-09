@@ -24,4 +24,5 @@ class Spacing {
 
   static const pageHorizontalPadding = level5;
   static const maxPageContentWidth = 1800.0;
+  static const formWidth = 700.0;
 }

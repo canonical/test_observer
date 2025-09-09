@@ -67,7 +67,7 @@ class _AddIssueFormState extends ConsumerState<_AddIssueForm> {
     return Form(
       key: formKey,
       child: SizedBox(
-        width: 700,
+        width: Spacing.formWidth,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

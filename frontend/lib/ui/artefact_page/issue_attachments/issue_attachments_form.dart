@@ -137,7 +137,7 @@ class _AttachIssueFormState extends ConsumerState<_AttachIssueForm> {
     return Form(
       key: formKey,
       child: SizedBox(
-        width: 700,
+        width: Spacing.formWidth,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +221,7 @@ class _DetachIssueDialog extends ConsumerWidget {
     return AlertDialog(
       title: const Text('Are you sure you want to detach this issue?'),
       content: SizedBox(
-        width: 700,
+        width: Spacing.formWidth,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
