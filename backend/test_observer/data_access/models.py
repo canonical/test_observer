@@ -91,6 +91,13 @@ team_users_association = Table(
     Column("team_id", ForeignKey("team.id"), primary_key=True),
 )
 
+team_applications_association = Table(
+    "team_applications_association",
+    Base.metadata,
+    Column("application_id", ForeignKey("application.id"), primary_key=True),
+    Column("team_id", ForeignKey("team.id"), primary_key=True),
+)
+
 
 class User(Base):
     """
@@ -118,6 +125,19 @@ class User(Base):
         return data_model_repr(self, "email", "name")
 
 
+class Application(Base):
+    __tablename__ = "application"
+
+    name: Mapped[str] = mapped_column(unique=True)
+
+    teams: Mapped[list["Team"]] = relationship(
+        secondary=team_applications_association, back_populates="applications"
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name")
+
+
 class Team(Base):
     """
     Launchpad teams that users can belong to. Currently, these are exposed by U1 SSO.
@@ -131,6 +151,9 @@ class Team(Base):
 
     members: Mapped[list[User]] = relationship(
         secondary=team_users_association, back_populates="teams"
+    )
+    applications: Mapped[list[Application]] = relationship(
+        secondary=team_applications_association, back_populates="teams"
     )
 
     def __repr__(self) -> str:
