@@ -3,8 +3,7 @@ from tests.data_generator import DataGenerator
 
 
 def test_get_applications(test_client: TestClient, generator: DataGenerator):
-    team = generator.gen_team()
-    application = generator.gen_application(teams=[team])
+    application = generator.gen_application()
 
     response = test_client.get("/v1/applications")
 
@@ -13,20 +12,13 @@ def test_get_applications(test_client: TestClient, generator: DataGenerator):
         {
             "id": application.id,
             "name": application.name,
-            "teams": [
-                {
-                    "id": team.id,
-                    "name": team.name,
-                    "permissions": team.permissions,
-                }
-            ],
+            "permissions": application.permissions,
         }
     ]
 
 
 def test_get_application(test_client: TestClient, generator: DataGenerator):
-    team = generator.gen_team()
-    application = generator.gen_application(teams=[team])
+    application = generator.gen_application()
 
     response = test_client.get(f"/v1/applications/{application.id}")
 
@@ -34,11 +26,5 @@ def test_get_application(test_client: TestClient, generator: DataGenerator):
     assert response.json() == {
         "id": application.id,
         "name": application.name,
-        "teams": [
-            {
-                "id": team.id,
-                "name": team.name,
-                "permissions": team.permissions,
-            }
-        ],
+        "permissions": application.permissions,
     }

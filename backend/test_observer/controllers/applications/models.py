@@ -17,10 +17,10 @@
 
 from pydantic import BaseModel
 
-from test_observer.controllers.users.models import TeamMinimalResponse
+from test_observer.common.permissions import Permission
 
 
 class ApplicationResponse(BaseModel):
     id: int
     name: str
-    teams: list[TeamMinimalResponse]
+    permissions: list[Permission]

@@ -2772,19 +2772,19 @@
             "type": "string",
             "title": "Name"
           },
-          "teams": {
+          "permissions": {
             "items": {
-              "$ref": "#/components/schemas/TeamMinimalResponse"
+              "$ref": "#/components/schemas/Permission"
             },
             "type": "array",
-            "title": "Teams"
+            "title": "Permissions"
           }
         },
         "type": "object",
         "required": [
           "id",
           "name",
-          "teams"
+          "permissions"
         ],
         "title": "ApplicationResponse"
       },

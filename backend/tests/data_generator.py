@@ -90,9 +90,9 @@ class DataGenerator:
     def gen_application(
         self,
         name: str = "somebot",
-        teams: list[Team] | None = None,
+        permissions: list[str] | None = None,
     ) -> Application:
-        application = Application(name=name, teams=teams or [])
+        application = Application(name=name, permissions=permissions or [])
         self._add_object(application)
         return application
 

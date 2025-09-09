@@ -25,6 +25,7 @@ Create Date: 2025-09-09 13:34:20.370764+00:00
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -38,32 +39,14 @@ def upgrade() -> None:
     op.create_table(
         "application",
         sa.Column("name", sa.String(), nullable=False),
+        sa.Column("permissions", postgresql.ARRAY(sa.String()), nullable=False),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("application_pkey")),
         sa.UniqueConstraint("name", name=op.f("application_name_key")),
     )
-    op.create_table(
-        "team_applications_association",
-        sa.Column("application_id", sa.Integer(), nullable=False),
-        sa.Column("team_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["application_id"],
-            ["application.id"],
-            name=op.f("team_applications_association_application_id_fkey"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["team_id"],
-            ["team.id"],
-            name=op.f("team_applications_association_team_id_fkey"),
-        ),
-        sa.PrimaryKeyConstraint(
-            "application_id", "team_id", name=op.f("team_applications_association_pkey")
-        ),
-    )
 
 
 def downgrade() -> None:
-    op.drop_table("team_applications_association")
     op.drop_table("application")
