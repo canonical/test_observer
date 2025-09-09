@@ -30,7 +30,9 @@ class UserResponse(BaseModel):
     launchpad_handle: str | None = None
     teams: list[TeamMinimalResponse]
     is_reviewer: bool
+    is_admin: bool
 
 
 class UserPatch(BaseModel):
     is_reviewer: bool | None = None
+    is_admin: bool | None = None

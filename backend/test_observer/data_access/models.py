@@ -104,6 +104,7 @@ class User(Base):
     launchpad_handle: Mapped[str | None] = mapped_column(default=None)
     name: Mapped[str]
     is_reviewer: Mapped[bool] = mapped_column(default=False)
+    is_admin: Mapped[bool] = mapped_column(default=False)
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
     sessions: Mapped[list["UserSession"]] = relationship(
