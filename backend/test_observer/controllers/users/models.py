@@ -13,3 +13,4 @@ class UserResponse(BaseModel):
     name: str
     launchpad_handle: str | None = None
     teams: list[TeamMinimalResponse]
+    is_reviewer: bool

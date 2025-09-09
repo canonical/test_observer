@@ -117,6 +117,7 @@ def test_get_users(test_client: TestClient, generator: DataGenerator):
             "name": user.name,
             "email": user.email,
             "launchpad_handle": user.launchpad_handle,
+            "is_reviewer": user.is_reviewer,
             "teams": [
                 {
                     "id": team.id,
@@ -140,6 +141,7 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
         "name": user.name,
         "email": user.email,
         "launchpad_handle": user.launchpad_handle,
+        "is_reviewer": user.is_reviewer,
         "teams": [
             {
                 "id": team.id,

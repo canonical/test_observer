@@ -4874,13 +4874,18 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "is_reviewer": {
+            "type": "boolean",
+            "title": "Is Reviewer"
           }
         },
         "type": "object",
         "required": [
           "id",
           "email",
-          "name"
+          "name",
+          "is_reviewer"
         ],
         "title": "UserMinimalResponse"
       },
@@ -4915,6 +4920,10 @@
             },
             "type": "array",
             "title": "Teams"
+          },
+          "is_reviewer": {
+            "type": "boolean",
+            "title": "Is Reviewer"
           }
         },
         "type": "object",
@@ -4922,7 +4931,8 @@
           "id",
           "email",
           "name",
-          "teams"
+          "teams",
+          "is_reviewer"
         ],
         "title": "UserResponse"
       },
