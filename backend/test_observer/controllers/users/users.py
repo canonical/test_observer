@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.users.models import UserResponse
+from test_observer.controllers.users.models import UserPatch, UserResponse
 from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
@@ -43,4 +43,16 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(404, f"User with id {user_id} not found")
+    return user
+
+
+@router.patch("/{user_id}", response_model=UserResponse)
+def update_user(user_id: int, request: UserPatch, db: Session = Depends(get_db)):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(404, f"User with id {user_id} not found")
+
+    if request.is_reviewer is not None:
+        user.is_reviewer = request.is_reviewer
+
     return user

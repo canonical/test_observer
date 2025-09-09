@@ -14,3 +14,7 @@ class UserResponse(BaseModel):
     launchpad_handle: str | None = None
     teams: list[TeamMinimalResponse]
     is_reviewer: bool
+
+
+class UserPatch(BaseModel):
+    is_reviewer: bool | None = None

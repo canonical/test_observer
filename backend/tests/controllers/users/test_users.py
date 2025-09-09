@@ -150,3 +150,12 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
             }
         ],
     }
+
+
+def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator):
+    user = generator.gen_user()
+
+    response = test_client.patch(f"/v1/users/{user.id}", json={"is_reviewer": True})
+
+    assert response.status_code == 200
+    assert user.is_reviewer
