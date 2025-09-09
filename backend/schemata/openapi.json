@@ -2407,6 +2407,259 @@
         }
       }
     },
+    "/v1/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get Users",
+        "operationId": "get_users_v1_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Users V1 Users Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{user_id}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get User",
+        "operationId": "get_user_v1_users__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update User",
+        "operationId": "update_user_v1_users__user_id__patch",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/teams": {
+      "get": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Get Teams",
+        "operationId": "get_teams_v1_teams_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Teams V1 Teams Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/teams/{team_id}": {
+      "get": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Get Team",
+        "operationId": "get_team_v1_teams__team_id__get",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Team Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Update Team",
+        "operationId": "update_team_v1_teams__team_id__patch",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Team Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/permissions": {
+      "get": {
+        "tags": [
+          "permissions"
+        ],
+        "summary": "Get Permissions",
+        "operationId": "get_permissions_v1_permissions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -2706,7 +2959,7 @@
           "assignee": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/UserResponse"
+                "$ref": "#/components/schemas/AssigneeResponse"
               },
               {
                 "type": "null"
@@ -2799,6 +3052,46 @@
           "artefact_id"
         ],
         "title": "ArtefactVersionResponse"
+      },
+      "AssigneeResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "launchpad_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Launchpad Handle"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "launchpad_email": {
+            "type": "string",
+            "title": "Launchpad Email",
+            "deprecated": true
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "launchpad_email",
+          "name"
+        ],
+        "title": "AssigneeResponse"
       },
       "C3TestResult": {
         "properties": {
@@ -3588,6 +3881,13 @@
         ],
         "title": "PendingRerun"
       },
+      "Permission": {
+        "type": "string",
+        "enum": [
+          "update_permission"
+        ],
+        "title": "Permission"
+      },
       "PreviousTestResult": {
         "properties": {
           "status": {
@@ -4058,6 +4358,86 @@
           "events"
         ],
         "title": "StatusUpdateRequest"
+      },
+      "TeamMinimalResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "permissions"
+        ],
+        "title": "TeamMinimalResponse"
+      },
+      "TeamPatch": {
+        "properties": {
+          "permissions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Permission"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permissions"
+          }
+        },
+        "type": "object",
+        "title": "TeamPatch"
+      },
+      "TeamResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/UserMinimalResponse"
+            },
+            "type": "array",
+            "title": "Members"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "permissions",
+          "members"
+        ],
+        "title": "TeamResponse"
       },
       "TestCaseInfo": {
         "properties": {
@@ -4546,7 +4926,7 @@
         ],
         "title": "TestResultStatus"
       },
-      "UserResponse": {
+      "UserMinimalResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -4567,22 +4947,106 @@
             "type": "string",
             "title": "Email"
           },
-          "launchpad_email": {
-            "type": "string",
-            "title": "Launchpad Email",
-            "deprecated": true
-          },
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "is_reviewer": {
+            "type": "boolean",
+            "title": "Is Reviewer"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin"
           }
         },
         "type": "object",
         "required": [
           "id",
           "email",
-          "launchpad_email",
-          "name"
+          "name",
+          "is_reviewer",
+          "is_admin"
+        ],
+        "title": "UserMinimalResponse"
+      },
+      "UserPatch": {
+        "properties": {
+          "is_reviewer": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Reviewer"
+          },
+          "is_admin": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Admin"
+          }
+        },
+        "type": "object",
+        "title": "UserPatch"
+      },
+      "UserResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "launchpad_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Launchpad Handle"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMinimalResponse"
+            },
+            "type": "array",
+            "title": "Teams"
+          },
+          "is_reviewer": {
+            "type": "boolean",
+            "title": "Is Reviewer"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name",
+          "teams",
+          "is_reviewer",
+          "is_admin"
         ],
         "title": "UserResponse"
       },

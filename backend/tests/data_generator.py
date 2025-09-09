@@ -25,6 +25,7 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     Environment,
     Issue,
+    Team,
     TestCase,
     TestEvent,
     TestExecution,
@@ -53,18 +54,34 @@ class DataGenerator:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
+    def gen_team(
+        self,
+        name: str = "canonical",
+        permissions: list[str] | None = None,
+        members: list[User] | None = None,
+    ) -> Team:
+        team = Team(
+            name=name,
+            permissions=permissions or [],
+            members=members or [],
+        )
+        self._add_object(team)
+        return team
+
     def gen_user(
         self,
         name: str = "John Doe",
         launchpad_handle: str | None = "jd",
         email: str = "john@doe.com",
         is_reviewer: bool = False,
+        teams: list[Team] | None = None,
     ) -> User:
         user = User(
             name=name,
             email=email,
             launchpad_handle=launchpad_handle,
             is_reviewer=is_reviewer,
+            teams=teams or [],
         )
         self._add_object(user)
         return user

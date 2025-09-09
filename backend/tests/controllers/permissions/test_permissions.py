@@ -13,3 +13,14 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+from fastapi.testclient import TestClient
+
+from test_observer.common.permissions import Permission
+
+
+def test_get_permissions(test_client: TestClient):
+    response = test_client.get("/v1/permissions")
+    assert response.status_code == 200
+    assert response.json() == [p.value for p in Permission]
