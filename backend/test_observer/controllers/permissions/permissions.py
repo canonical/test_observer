@@ -16,7 +16,7 @@
 
 from fastapi import APIRouter
 
-from test_observer.common.permissions import Permissions
+from test_observer.common.permissions import Permission
 
 
 router: APIRouter = APIRouter(tags=["permissions"])
@@ -24,4 +24,4 @@ router: APIRouter = APIRouter(tags=["permissions"])
 
 @router.get("")
 def get_permissions():
-    return [p.value for p in Permissions]
+    return [p.value for p in Permission]

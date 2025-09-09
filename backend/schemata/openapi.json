@@ -3881,6 +3881,13 @@
         ],
         "title": "PendingRerun"
       },
+      "Permission": {
+        "type": "string",
+        "enum": [
+          "update_permission"
+        ],
+        "title": "Permission"
+      },
       "PreviousTestResult": {
         "properties": {
           "status": {
@@ -4384,7 +4391,7 @@
             "anyOf": [
               {
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/Permission"
                 },
                 "type": "array"
               },

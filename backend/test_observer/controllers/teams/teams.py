@@ -46,7 +46,7 @@ def update_team(team_id: int, request: TeamPatch, db: Session = Depends(get_db))
         raise HTTPException(404, f"Team {team_id} doesn't exist")
 
     if request.permissions:
-        team.permissions = request.permissions
+        team.permissions = [p.value for p in request.permissions]
         db.commit()
 
     return team

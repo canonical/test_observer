@@ -16,6 +16,8 @@
 
 from pydantic import BaseModel
 
+from test_observer.common.permissions import Permission
+
 
 class UserMinimalResponse(BaseModel):
     id: int
@@ -33,4 +35,4 @@ class TeamResponse(BaseModel):
 
 
 class TeamPatch(BaseModel):
-    permissions: list[str] | None = None
+    permissions: list[Permission] | None = None

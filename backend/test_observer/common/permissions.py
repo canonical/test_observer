@@ -15,7 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from enum import StrEnum
+from enum import StrEnum, auto
 
 
-class Permissions(StrEnum): ...
+class Permission(StrEnum):
+    update_permission = auto()

@@ -22,7 +22,7 @@ from tests.data_generator import DataGenerator
 
 def test_get_teams(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
-    team = generator.gen_team(permissions=["create_artefact"], members=[user])
+    team = generator.gen_team(members=[user])
 
     response = test_client.get("/v1/teams")
 
@@ -31,7 +31,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
         {
             "id": team.id,
             "name": team.name,
-            "permissions": ["create_artefact"],
+            "permissions": team.permissions,
             "members": [
                 {
                     "id": user.id,
@@ -55,7 +55,7 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
     assert response.json() == {
         "id": team.id,
         "name": team.name,
-        "permissions": ["create_artefact"],
+        "permissions": team.permissions,
         "members": [
             {
                 "id": user.id,
@@ -70,18 +70,18 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
 
 def test_update_team_permissions(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
-    team = generator.gen_team(permissions=["create_artefact"], members=[user])
+    team = generator.gen_team(members=[user])
 
     response = test_client.patch(
         f"/v1/teams/{team.id}",
-        json={"permissions": ["create_artefact", "update_artefact"]},
+        json={"permissions": ["update_permission"]},
     )
 
     assert response.status_code == 200
     assert response.json() == {
         "id": team.id,
         "name": team.name,
-        "permissions": ["create_artefact", "update_artefact"],
+        "permissions": ["update_permission"],
         "members": [
             {
                 "id": user.id,
@@ -92,3 +92,15 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
             }
         ],
     }
+
+
+def test_set_invalid_permission(test_client: TestClient, generator: DataGenerator):
+    user = generator.gen_user()
+    team = generator.gen_team(members=[user])
+
+    response = test_client.patch(
+        f"/v1/teams/{team.id}",
+        json={"permissions": ["invalid_permission"]},
+    )
+
+    assert response.status_code == 422
