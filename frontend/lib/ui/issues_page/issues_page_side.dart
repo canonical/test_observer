@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/issues_filters.dart';
+import '../../providers/search_value.dart';
 import '../../routing.dart';
 import '../page_filters/multi_select_combobox.dart';
 import '../page_filters/checkbox_list_expandable.dart';
@@ -63,6 +64,18 @@ class IssuesPageSide extends ConsumerWidget {
           setQueryParam(
             CommonQueryParameters.searchQuery,
             value.isEmpty ? [] : [value],
+          );
+        },
+        onFocusRemoved: () {
+          final searchQuery = ref.read(
+            searchValueProvider(
+              AppRoutes.uriFromContext(context)
+                  .queryParameters[CommonQueryParameters.searchQuery],
+            ),
+          );
+          setQueryParam(
+            CommonQueryParameters.searchQuery,
+            searchQuery.isEmpty ? [] : [searchQuery],
           );
         },
       ),
