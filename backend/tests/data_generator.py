@@ -20,6 +20,7 @@ from datetime import date, datetime
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import (
+    Application,
     Artefact,
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
@@ -85,6 +86,15 @@ class DataGenerator:
         )
         self._add_object(user)
         return user
+
+    def gen_application(
+        self,
+        name: str = "somebot",
+        teams: list[Team] | None = None,
+    ) -> Application:
+        application = Application(name=name, teams=teams or [])
+        self._add_object(application)
+        return application
 
     def gen_user_session(
         self, user: User, expires_at: datetime | None = None
