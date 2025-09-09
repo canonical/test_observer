@@ -2407,6 +2407,31 @@
         }
       }
     },
+    "/v1/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get Users",
+        "operationId": "get_users_v1_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Users V1 Users Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/teams": {
       "get": {
         "tags": [

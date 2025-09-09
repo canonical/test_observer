@@ -13,12 +13,3 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
-from fastapi import APIRouter
-
-from . import me
-
-
-router = APIRouter(tags=["users"])
-router.include_router(me.router)

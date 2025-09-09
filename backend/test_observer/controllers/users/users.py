@@ -16,15 +16,23 @@
 
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from test_observer.controllers.artefacts.models import UserResponse
 from test_observer.data_access.models import User
+from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
 
-router = APIRouter()
+router = APIRouter(tags=["users"])
 
 
 @router.get("/me", response_model=UserResponse | None)
 def get_authenticated_user(user: User | None = Depends(get_current_user)):
     return user
+
+
+@router.get("", response_model=list[UserResponse])
+def get_users(db: Session = Depends(get_db)):
+    return db.scalars(select(User))

@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from test_observer.controllers.users import users
 from test_observer.data_access.setup import get_db
 
 from . import (
@@ -28,7 +29,6 @@ from . import (
     test_executions,
     test_results,
     auth,
-    users,
 )
 from .application import version
 from .artefacts import artefacts
