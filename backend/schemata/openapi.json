@@ -2188,10 +2188,17 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "Filter by execution metadata (comma-separated, category:value). Category and value must be percent encoded.",
               "title": "Execution Metadata"
             },
