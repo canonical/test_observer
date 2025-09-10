@@ -40,11 +40,13 @@ def upgrade() -> None:
         "application",
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("permissions", postgresql.ARRAY(sa.String()), nullable=False),
+        sa.Column("api_key", sa.String(), nullable=False),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("application_pkey")),
         sa.UniqueConstraint("name", name=op.f("application_name_key")),
+        sa.UniqueConstraint("api_key", name=op.f("application_api_key_key")),
     )
 
 

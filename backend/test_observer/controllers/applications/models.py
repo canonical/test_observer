@@ -24,7 +24,13 @@ class ApplicationResponse(BaseModel):
     id: int
     name: str
     permissions: list[Permission]
+    api_key: str
 
 
 class ApplicationPatch(BaseModel):
     permissions: list[Permission] | None = None
+
+
+class ApplicationPost(BaseModel):
+    name: str
+    permissions: list[Permission]

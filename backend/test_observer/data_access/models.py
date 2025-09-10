@@ -17,6 +17,7 @@
 
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+import secrets
 from typing import TypeVar
 
 from sqlalchemy import (
@@ -123,6 +124,12 @@ class Application(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+
+    @staticmethod
+    def gen_api_key() -> str:
+        return secrets.token_urlsafe(32)
+
+    api_key: Mapped[str] = mapped_column(default=gen_api_key, unique=True)
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")

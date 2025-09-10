@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.controllers.applications.models import (
     ApplicationPatch,
+    ApplicationPost,
     ApplicationResponse,
 )
 from test_observer.data_access.models import Application
@@ -29,8 +30,16 @@ from test_observer.data_access.setup import get_db
 router: APIRouter = APIRouter(tags=["applications"])
 
 
+@router.post("", response_model=ApplicationResponse)
+def create_application(request: ApplicationPost, db: Session = Depends(get_db)):
+    result = Application(name=request.name, permissions=request.permissions)
+    db.add(result)
+    db.commit()
+    return result
+
+
 @router.get("", response_model=list[ApplicationResponse])
-def get_users(db: Session = Depends(get_db)):
+def get_applications(db: Session = Depends(get_db)):
     return db.scalars(select(Application))
 
 

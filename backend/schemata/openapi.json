@@ -2665,8 +2665,8 @@
         "tags": [
           "applications"
         ],
-        "summary": "Get Users",
-        "operationId": "get_users_v1_applications_get",
+        "summary": "Get Applications",
+        "operationId": "get_applications_v1_applications_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2677,7 +2677,46 @@
                     "$ref": "#/components/schemas/ApplicationResponse"
                   },
                   "type": "array",
-                  "title": "Response Get Users V1 Applications Get"
+                  "title": "Response Get Applications V1 Applications Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Create Application",
+        "operationId": "create_application_v1_applications_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2832,6 +2871,27 @@
         "type": "object",
         "title": "ApplicationPatch"
       },
+      "ApplicationPost": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Permissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "title": "ApplicationPost"
+      },
       "ApplicationResponse": {
         "properties": {
           "id": {
@@ -2848,13 +2908,18 @@
             },
             "type": "array",
             "title": "Permissions"
+          },
+          "api_key": {
+            "type": "string",
+            "title": "Api Key"
           }
         },
         "type": "object",
         "required": [
           "id",
           "name",
-          "permissions"
+          "permissions",
+          "api_key"
         ],
         "title": "ApplicationResponse"
       },
