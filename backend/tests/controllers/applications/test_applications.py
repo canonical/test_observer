@@ -17,7 +17,8 @@ def test_create_application(test_client: TestClient, db_session: Session):
     assert data["name"] == "myscript"
     assert data["permissions"] == [Permission.update_permission]
     assert "api_key" in data
-    assert len(data["api_key"]) == 43
+    assert len(data["api_key"]) == 46
+    assert data["api_key"][0:3] == "to_"
 
     app_id = data["id"]
     app = db_session.get(Application, app_id)
