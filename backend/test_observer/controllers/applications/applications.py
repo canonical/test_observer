@@ -18,6 +18,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.controllers.applications.models import (
     ApplicationPatch,
     ApplicationPost,
@@ -41,6 +44,13 @@ def create_application(request: ApplicationPost, db: Session = Depends(get_db)):
 @router.get("", response_model=list[ApplicationResponse])
 def get_applications(db: Session = Depends(get_db)):
     return db.scalars(select(Application))
+
+
+@router.get("/me", response_model=ApplicationResponse | None)
+def get_authenticated_application(
+    app: Application | None = Depends(get_current_application),
+):
+    return app
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)

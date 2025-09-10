@@ -74,6 +74,23 @@ def test_get_application(test_client: TestClient, generator: DataGenerator):
     }
 
 
+def test_get_current_application(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application()
+
+    response = test_client.get(
+        "/v1/applications/me",
+        headers={"Authorization": f"Bearer {application.api_key}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": application.id,
+        "name": application.name,
+        "permissions": application.permissions,
+        "api_key": application.api_key,
+    }
+
+
 def test_update_application_permissions(
     test_client: TestClient, generator: DataGenerator
 ):
