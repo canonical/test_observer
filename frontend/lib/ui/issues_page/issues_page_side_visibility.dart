@@ -14,15 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-class Spacing {
-  static const level1 = 2.0;
-  static const level2 = 4.0;
-  static const level3 = 8.0;
-  static const level4 = 16.0;
-  static const level5 = 32.0;
-  static const level6 = 64.0;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-  static const pageHorizontalPadding = level5;
-  static const maxPageContentWidth = 1800.0;
-  static const formWidth = 700.0;
+part 'issues_page_side_visibility.g.dart';
+
+@riverpod
+class IssuesPageSideVisibility extends _$IssuesPageSideVisibility {
+  @override
+  bool build() {
+    return true;
+  }
+
+  void set(bool value) {
+    state = value;
+  }
 }

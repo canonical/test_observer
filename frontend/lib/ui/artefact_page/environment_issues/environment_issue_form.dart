@@ -158,7 +158,7 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
     return Form(
       key: _formKey,
       child: SizedBox(
-        width: 700,
+        width: Spacing.formWidth,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

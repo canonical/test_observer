@@ -17,6 +17,7 @@
 
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+import secrets
 from typing import TypeVar
 
 from sqlalchemy import (
@@ -116,6 +117,23 @@ class User(Base):
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
+
+
+class Application(Base):
+    __tablename__ = "application"
+
+    name: Mapped[str] = mapped_column(unique=True)
+    permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+
+    @staticmethod
+    def gen_api_key() -> str:
+        # prefix to_ is to indicate that this is an api key for Test Observer (TO)
+        return f"to_{secrets.token_urlsafe(32)}"
+
+    api_key: Mapped[str] = mapped_column(default=gen_api_key, unique=True)
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name")
 
 
 class Team(Base):

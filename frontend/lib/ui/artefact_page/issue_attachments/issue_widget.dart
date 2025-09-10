@@ -17,9 +17,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/issue.dart';
-import '../../inline_url_text.dart';
 import '../../spacing.dart';
-import 'issue_status_chip.dart';
+import '../../issues.dart';
 
 class IssueWidget extends StatelessWidget {
   const IssueWidget({
@@ -38,55 +37,16 @@ class IssueWidget extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
+          spacing: Spacing.level3,
           children: [
-            // Source (all uppercase, small font, bold)
-            Text(
-              issue.source.name.toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-            ),
-            SizedBox(width: Spacing.level3),
-            // If source is jira, show project-key as a single link
-            if (issue.source == IssueSource.jira) ...[
-              InlineUrlText(
-                url: issue.url,
-                urlText: '${issue.project}-${issue.key}',
-                fontStyle: Theme.of(context).textTheme.bodyMedium,
-              ),
-              SizedBox(width: Spacing.level3),
-            ] else ...[
-              // Project (gray)
-              Text(
-                issue.project,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.grey),
-              ),
-              SizedBox(width: Spacing.level3),
-              // #key as link
-              InlineUrlText(
-                url: issue.url,
-                urlText: '#${issue.key}',
-                fontStyle: Theme.of(context).textTheme.bodyMedium,
-              ),
-              SizedBox(width: Spacing.level3),
-            ],
-            IssueStatusChip(status: issue.status),
+            IssueSourceWidget(source: issue.source),
+            IssueProjectWidget(project: issue.project),
+            IssueLinkWidget(issue: issue),
+            IssueStatusWidget(issue: issue),
           ],
         ),
         SizedBox(height: Spacing.level3),
-        Text(
-          (issue.title.isNotEmpty ? issue.title : '[No title]'),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                decoration: TextDecoration.none,
-              ),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
+        IssueTitleWidget(issue: issue),
       ],
     );
   }

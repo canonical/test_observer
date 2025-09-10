@@ -21,6 +21,7 @@ import 'package:go_router/go_router.dart';
 import 'models/family_name.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
+import 'ui/issues_page/issues_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
 
@@ -97,6 +98,12 @@ final appRouter = GoRouter(
             child: TestResultsPage(),
           ),
         ),
+        GoRoute(
+          path: '/issues',
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: IssuesPage(),
+          ),
+        ),
       ],
     ),
   ],
@@ -159,6 +166,8 @@ class AppRoutes {
     if (isIssuePage(uri)) return int.parse(uri.pathSegments[1]);
     throw Exception('$uri isn\'t an issue page');
   }
+
+  static bool isIssuesPage(Uri uri) => uri.path == '/issues';
 }
 
 void navigateToArtefactPage(BuildContext context, int artefactId) {
