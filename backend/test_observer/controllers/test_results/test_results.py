@@ -15,10 +15,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from typing import Annotated
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, desc, func, select
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy import (
+    and_,
+    desc,
+    func,
+    select,
+    exists,
+    values,
+    column,
+    true,
+    ColumnExpressionArgument,
+)
 from sqlalchemy.orm import Session, selectinload
+from typing import Annotated
+import urllib
 
 from test_observer.data_access.models import (
     Artefact,
@@ -29,8 +40,11 @@ from test_observer.data_access.models import (
     TestCase,
     TestExecution,
     TestResult,
+    TestExecutionMetadata,
+    ColumnElement,
 )
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models import test_execution_metadata_association_table
 from test_observer.data_access.setup import get_db
 
 from .models import TestResultSearchResponseWithContext, TestResultResponseWithContext
@@ -44,6 +58,92 @@ from test_observer.controllers.artefacts.models import (
 )
 
 router = APIRouter(tags=["test-results"])
+
+
+def parse_execution_metadata(
+    execution_metadata: list[str] | None = Query(
+        None,
+        description=(
+            "Filter by execution metadata (comma-separated, category:value). "
+            "Category and value must be percent encoded."
+        ),
+    ),
+) -> list[tuple[str, str]] | None:
+    if execution_metadata is None:
+        return None
+    result = []
+    for item in execution_metadata:
+        for metadata in item.split(","):
+            if metadata.count(":") != 1:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Invalid execution metadata format: '{metadata}'. "
+                        "Expected 'category:value' with a single colon."
+                    ),
+                )
+            category, value = metadata.split(":")
+            result.append((urllib.parse.unquote(category), urllib.parse.unquote(value)))
+    return result
+
+
+def filter_execution_metadata(
+    execution_metadata: list[tuple[str, str]],
+) -> ColumnElement[bool]:
+    # Step 1: Build filter_metadata values table
+    # This table contains all (category, value) pairs to filter against.
+    filter_metadata = (
+        values(
+            column("category"),
+            column("value"),
+        )
+        .data(execution_metadata)
+        .alias("filter_metadata")
+    )
+
+    # Step 2: Build metadata_matches query
+    # For each test execution and required (category, value),
+    # attempt to find a matching metadata row.
+    metadata_matches = (
+        select(
+            TestExecution.id,
+            filter_metadata.c.category,
+        )
+        .join(filter_metadata, true())
+        .outerjoin(
+            test_execution_metadata_association_table,
+            TestExecution.id
+            == test_execution_metadata_association_table.c.test_execution_id,
+        )
+        .outerjoin(
+            TestExecutionMetadata,
+            and_(
+                test_execution_metadata_association_table.c.test_execution_metadata_id
+                == TestExecutionMetadata.id,
+                TestExecutionMetadata.category == filter_metadata.c.category,
+                TestExecutionMetadata.value == filter_metadata.c.value,
+            ),
+        )
+    )
+
+    # Step 3: Group and filter unmatched categories
+    # Group by test execution and category,
+    # keeping only those where no matching metadata value exists.
+    unmatched_categories = metadata_matches.group_by(
+        TestExecution.id,
+        filter_metadata.c.category,
+    ).having(func.count(TestExecutionMetadata.value) == 0)
+
+    # Step 4: Exclude test executions with unmatched categories
+    # Exclude any test execution that has at least one
+    # unmatched category.
+    exclusion_condition = ~exists(
+        select(1)
+        .select_from(unmatched_categories.subquery())
+        .where(unmatched_categories.c.id == TestExecution.id)
+    )
+
+    return exclusion_condition
 
 
 @router.get("", response_model=TestResultSearchResponseWithContext)
@@ -62,6 +162,9 @@ def search_test_results(
     ] = None,
     template_ids: Annotated[
         list[str] | None, Query(description="Filter by template IDs (comma-separated)")
+    ] = None,
+    execution_metadata: Annotated[
+        list[tuple[str, str]] | None, Depends(parse_execution_metadata)
     ] = None,
     issues: Annotated[
         list[int] | None,
@@ -89,7 +192,7 @@ def search_test_results(
     """
 
     # Build filters and track which joins are needed
-    filters = []
+    filters: list[ColumnExpressionArgument[bool]] = []
     joins_needed = set()
 
     joins_needed.add("test_execution")
@@ -109,6 +212,10 @@ def search_test_results(
     if template_ids:
         filters.append(TestCase.template_id.in_(template_ids))
         joins_needed.add("test_case")
+
+    if execution_metadata:
+        filters.append(filter_execution_metadata(execution_metadata))
+        joins_needed.add("execution_metadata")
 
     if issues:
         filters.append(
@@ -145,6 +252,9 @@ def search_test_results(
     if "test_case" in joins_needed:
         query = query.join(TestResult.test_case)
 
+    if "execution_metadata" in joins_needed:
+        query = query.join(TestExecution.execution_metadata)
+
     query = query.options(
         selectinload(TestResult.test_case),
         selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
@@ -152,6 +262,9 @@ def search_test_results(
         .selectinload(TestExecution.artefact_build)
         .selectinload(ArtefactBuild.artefact),
         selectinload(TestResult.issue_attachments),
+        selectinload(TestResult.test_execution).selectinload(
+            TestExecution.execution_metadata
+        ),
     )
 
     # Apply ordering and pagination

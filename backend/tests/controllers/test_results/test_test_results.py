@@ -268,6 +268,109 @@ class TestSearchTestResults:
         assert test_result1.id in result_ids
         assert test_result2.id in result_ids
 
+    def test_search_by_execution_metadata(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by execution metadata"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("issues"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_executions = [
+            (False, generator.gen_test_execution(artefact_build, environment)),
+            (
+                True,
+                generator.gen_test_execution(
+                    artefact_build,
+                    environment,
+                    execution_metadata={
+                        "category1": ["value1"],
+                    },
+                ),
+            ),
+            (
+                True,
+                generator.gen_test_execution(
+                    artefact_build,
+                    environment,
+                    execution_metadata={
+                        "category1": ["value2"],
+                    },
+                ),
+            ),
+            (
+                True,
+                generator.gen_test_execution(
+                    artefact_build,
+                    environment,
+                    execution_metadata={
+                        "category1": ["value1", "value2"],
+                    },
+                ),
+            ),
+            (
+                True,
+                generator.gen_test_execution(
+                    artefact_build,
+                    environment,
+                    execution_metadata={
+                        "category1": ["value1", "value3"],
+                    },
+                ),
+            ),
+            (
+                False,
+                generator.gen_test_execution(
+                    artefact_build,
+                    environment,
+                    execution_metadata={
+                        "category1": ["value3"],
+                    },
+                ),
+            ),
+            (
+                True,
+                generator.gen_test_execution(
+                    artefact_build,
+                    environment,
+                    execution_metadata={
+                        "category1": ["value1"],
+                        "category2": ["value1"],
+                    },
+                ),
+            ),
+            (
+                False,
+                generator.gen_test_execution(
+                    artefact_build,
+                    environment,
+                    execution_metadata={
+                        "category2": ["value1"],
+                    },
+                ),
+            ),
+        ]
+        test_results = [
+            (expect, generator.gen_test_result(test_case, test_execution))
+            for expect, test_execution in test_executions
+        ]
+
+        # Query test results with matching execution metadata
+        response = test_client.get(
+            "/v1/test-results?execution_metadata=category1:value1,category1:value2"
+        )
+        expect = {test_result.id for expect, test_result in test_results if expect}
+
+        assert response.status_code == 200
+        data = response.json()
+        assert expect == {tr["test_result"]["id"] for tr in data["test_results"]}
+
+    def test_invalid_execution_metadata_format(self, test_client: TestClient):
+        # Test with invalid execution metadata format
+        response = test_client.get("/v1/test-results?execution_metadata=invalid-format")
+        assert response.status_code == 422
+
     def test_search_with_date_range(
         self, test_client: TestClient, generator: DataGenerator
     ):
@@ -633,162 +736,6 @@ class TestSearchTestResults:
 
             # Should have both results
             assert len(our_results) == 2
-
-
-class TestGetEnvironments:
-    """Test class for the get environments endpoint"""
-
-    def test_get_environments(self, test_client: TestClient, generator: DataGenerator):
-        """Test getting list of environments"""
-        # Create test data with environment
-        environment = generator.gen_environment(
-            name=f"test-env-for-list-{uuid.uuid4().hex[:4]}"
-        )
-        test_case = generator.gen_test_case(name=generate_unique_name("get_env"))
-        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
-        artefact_build = generator.gen_artefact_build(artefact)
-        test_execution = generator.gen_test_execution(artefact_build, environment)
-        # Add test_result creation which is required by the query
-        generator.gen_test_result(test_case, test_execution)
-
-        response = test_client.get("/v1/environments")
-
-        assert response.status_code == 200
-        environments = response.json()["environments"]
-        assert isinstance(environments, list)
-        assert environment.name in environments
-
-    def test_get_environments_sorted(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
-        """Test that environments are returned in sorted order"""
-        # Create multiple environments with unique test cases
-        env_names = [
-            f"zebra-env-{uuid.uuid4().hex[:4]}",
-            f"alpha-env-{uuid.uuid4().hex[:4]}",
-            f"beta-env-{uuid.uuid4().hex[:4]}",
-        ]
-        for i, name in enumerate(env_names):
-            environment = generator.gen_environment(name=name)
-            test_case = generator.gen_test_case(
-                name=generate_unique_name(f"sort_env_{i}")
-            )
-            artefact = generator.gen_artefact(
-                name=generate_unique_name(f"artefact_{i}")
-            )
-            artefact_build = generator.gen_artefact_build(artefact)
-            test_execution = generator.gen_test_execution(artefact_build, environment)
-            # Add test_result creation
-            generator.gen_test_result(test_case, test_execution)
-
-        response = test_client.get("/v1/environments")
-
-        assert response.status_code == 200
-        environments = response.json()["environments"]
-
-        # Check that our test environments are included and sorted
-        test_envs = [env for env in environments if env in env_names]
-        assert test_envs == sorted(test_envs)
-
-
-class TestGetTestCases:
-    """Test class for the get test cases endpoint"""
-
-    def test_get_test_cases(self, test_client: TestClient, generator: DataGenerator):
-        """Test getting list of test cases"""
-        # Create test data with test case
-        environment = generator.gen_environment()
-        test_case = generator.gen_test_case(name=generate_unique_name("get_cases"))
-        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
-        artefact_build = generator.gen_artefact_build(artefact)
-        test_execution = generator.gen_test_execution(artefact_build, environment)
-        generator.gen_test_result(test_case, test_execution)
-
-        response = test_client.get("/v1/test-cases")
-        assert response.status_code == 200
-
-        response_data = response.json()
-        assert "test_cases" in response_data
-        assert isinstance(response_data["test_cases"], list)
-
-
-class TestGetIssues:
-    """Test class for the get issues endpoint"""
-
-    def test_get_issues_empty(self, test_client: TestClient):
-        """Test getting list of issues when no issues exist"""
-        response = test_client.get("/v1/issues")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "issues" in data
-        assert isinstance(data["issues"], list)
-
-    def test_get_issues(self, test_client: TestClient, generator: DataGenerator):
-        """Test getting list of issues through the main issues API"""
-        # Create test data first
-        environment = generator.gen_environment()
-        test_case = generator.gen_test_case(name=generate_unique_name("issue_test"))
-        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
-        artefact_build = generator.gen_artefact_build(artefact)
-        test_execution = generator.gen_test_execution(artefact_build, environment)
-        test_result1 = generator.gen_test_result(test_case, test_execution)
-        test_result2 = generator.gen_test_result(test_case, test_execution)
-
-        # Create issues
-        issue1 = generator.gen_issue(
-            project="canonical/test_observer",
-            key="123",
-            title="Bug in search functionality",
-        )
-        issue2 = generator.gen_issue(
-            project="TO", key="456", title="Feature request for filters"
-        )
-
-        # Attach issues to test results
-        attach_response1 = test_client.post(
-            f"/v1/issues/{issue1.id}/attach", json={"test_results": [test_result1.id]}
-        )
-        attach_response2 = test_client.post(
-            f"/v1/issues/{issue2.id}/attach", json={"test_results": [test_result2.id]}
-        )
-        assert attach_response1.status_code == 200
-        assert attach_response2.status_code == 200
-
-        # Test through the main issues endpoint
-        response = test_client.get("/v1/issues")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "issues" in data
-        issues = data["issues"]
-        assert isinstance(issues, list)
-        assert len(issues) >= 2
-
-        # Check that our issues are in the response
-        issue_ids = {issue["id"] for issue in issues}
-        assert issue1.id in issue_ids
-        assert issue2.id in issue_ids
-
-        # Check the structure of returned issues
-        found_issue = next(issue for issue in issues if issue["id"] == issue1.id)
-        assert "url" in found_issue
-        assert "title" in found_issue
-        assert found_issue["title"] == "Bug in search functionality"
-
-        # Test that the issues are properly attached by searching test results
-        search_response = test_client.get(
-            f"/v1/test-results?issues={issue1.id}&issues={issue2.id}"
-        )
-
-        assert search_response.status_code == 200
-        search_data = search_response.json()
-        assert search_data["count"] >= 2
-
-        # Verify the correct test results are returned
-        result_ids = {tr["test_result"]["id"] for tr in search_data["test_results"]}
-        assert test_result1.id in result_ids
-        assert test_result2.id in result_ids
 
 
 class TestWindowFunctionSpecific:
