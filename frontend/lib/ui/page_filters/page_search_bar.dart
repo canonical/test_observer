@@ -25,11 +25,12 @@ import '../vanilla/vanilla_search_bar.dart';
 final pageSearchBarKey = GlobalKey<_PageSearchBarState>();
 
 class PageSearchBar extends ConsumerStatefulWidget {
-  PageSearchBar({this.hintText, this.onSubmitted})
+  PageSearchBar({this.hintText, this.onSubmitted, this.onFocusRemoved})
       : super(key: pageSearchBarKey);
 
   final String? hintText;
   final void Function(String)? onSubmitted;
+  final void Function()? onFocusRemoved;
 
   @override
   ConsumerState<PageSearchBar> createState() => _PageSearchBarState();
@@ -42,10 +43,18 @@ class _PageSearchBarState extends ConsumerState<PageSearchBar> {
   void initState() {
     super.initState();
     focusNode = FocusNode();
+    focusNode.addListener(_handleFocusChange);
+  }
+
+  void _handleFocusChange() {
+    if (!focusNode.hasFocus && widget.onFocusRemoved != null) {
+      widget.onFocusRemoved!();
+    }
   }
 
   @override
   void dispose() {
+    focusNode.removeListener(_handleFocusChange);
     focusNode.dispose();
     super.dispose();
   }
