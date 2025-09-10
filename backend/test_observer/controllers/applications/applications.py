@@ -18,7 +18,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.controllers.applications.models import ApplicationResponse
+from test_observer.controllers.applications.models import (
+    ApplicationPatch,
+    ApplicationResponse,
+)
 from test_observer.data_access.models import Application
 from test_observer.data_access.setup import get_db
 
@@ -36,4 +39,19 @@ def get_application(application_id: int, db: Session = Depends(get_db)):
     application = db.get(Application, application_id)
     if application is None:
         raise HTTPException(404, f"Application with id {application_id} not found")
+    return application
+
+
+@router.patch("/{application_id}", response_model=ApplicationResponse)
+def update_application(
+    application_id: int, request: ApplicationPatch, db: Session = Depends(get_db)
+):
+    application = db.get(Application, application_id)
+    if application is None:
+        raise HTTPException(404, f"Application {application_id} doesn't exist")
+
+    if request.permissions:
+        application.permissions = [p.value for p in request.permissions]
+        db.commit()
+
     return application
