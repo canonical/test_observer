@@ -33,7 +33,10 @@ def test_create_application(test_client: TestClient, db_session: Session):
     assert data["name"] == "myscript"
     assert data["permissions"] == [Permission.update_permission]
     assert "api_key" in data
+    # Taking into consideration base64 encoded 32 bytes of entropy
+    # together with "to_" prefix results in exactly 46 characters
     assert len(data["api_key"]) == 46
+    # prefix to_ is to indicate that this is an api key for Test Observer (TO)
     assert data["api_key"][0:3] == "to_"
 
     app_id = data["id"]

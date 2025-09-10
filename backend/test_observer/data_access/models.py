@@ -127,6 +127,7 @@ class Application(Base):
 
     @staticmethod
     def gen_api_key() -> str:
+        # prefix to_ is to indicate that this is an api key for Test Observer (TO)
         return f"to_{secrets.token_urlsafe(32)}"
 
     api_key: Mapped[str] = mapped_column(default=gen_api_key, unique=True)
