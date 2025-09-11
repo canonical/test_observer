@@ -23,6 +23,8 @@ import itsdangerous
 from fastapi.testclient import TestClient
 
 from test_observer.common.config import SESSIONS_SECRET
+from test_observer.common.permissions import Permission
+from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
@@ -108,7 +110,9 @@ def test_get_users(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user(teams=[team])
 
-    response = test_client.get("/v1/users")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/users"), Permission.view_user
+    )
 
     assert response.status_code == 200
     assert response.json() == [
@@ -134,7 +138,9 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user(teams=[team])
 
-    response = test_client.get(f"/v1/users/{user.id}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/users/{user.id}"), Permission.view_user
+    )
 
     assert response.status_code == 200
     assert response.json() == {
@@ -157,7 +163,10 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
 def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
 
-    response = test_client.patch(f"/v1/users/{user.id}", json={"is_reviewer": True})
+    response = make_authenticated_request(
+        lambda: test_client.patch(f"/v1/users/{user.id}", json={"is_reviewer": True}),
+        Permission.change_user,
+    )
 
     assert response.status_code == 200
     assert user.is_reviewer
@@ -166,7 +175,10 @@ def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator)
 def test_promote_user_to_admin(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
 
-    response = test_client.patch(f"/v1/users/{user.id}", json={"is_admin": True})
+    response = make_authenticated_request(
+        lambda: test_client.patch(f"/v1/users/{user.id}", json={"is_admin": True}),
+        Permission.change_user,
+    )
 
     assert response.status_code == 200
     assert user.is_admin

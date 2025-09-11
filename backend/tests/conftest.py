@@ -17,6 +17,8 @@
 
 """Fixtures for testing"""
 
+from collections.abc import Callable
+from contextlib import contextmanager
 from os import environ
 
 import pytest
@@ -29,8 +31,13 @@ from sqlalchemy_utils import (  # type: ignore
     create_database,
     drop_database,
 )
+from httpx import Response
 
-from test_observer.data_access.models import TestExecution
+from test_observer.common.permissions import Permission
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
+from test_observer.data_access.models import Application, TestExecution
 from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
@@ -155,3 +162,24 @@ def test_execution(generator: DataGenerator) -> TestExecution:
     te = generator.gen_test_execution(ab, e)
     generator.gen_artefact_build_environment_review(ab, e)
     return te
+
+
+@contextmanager
+def override_permissions(*permissions: Permission):
+    """Context manager for temporarily overriding permissions"""
+    app.dependency_overrides[get_current_application] = lambda: Application(
+        name="override", permissions=permissions
+    )
+    try:
+        yield
+    finally:
+        del app.dependency_overrides[get_current_application]
+
+
+def make_authenticated_request(
+    request_func: Callable[[], Response], *permissions: Permission
+):
+    # First, make sure the endpoint returns 403 without permissions
+    assert request_func().status_code == 403
+    with override_permissions(*permissions):
+        return request_func()

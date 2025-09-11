@@ -4162,7 +4162,13 @@
       "Permission": {
         "type": "string",
         "enum": [
-          "update_permission"
+          "view_user",
+          "change_user",
+          "view_team",
+          "change_team",
+          "add_application",
+          "change_application",
+          "view_application"
         ],
         "title": "Permission"
       },

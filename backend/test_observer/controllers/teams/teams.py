@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, require_permissions
 from test_observer.controllers.teams.models import TeamPatch, TeamResponse
 from test_observer.data_access.models import Team
 from test_observer.data_access.setup import get_db
@@ -27,12 +28,19 @@ router: APIRouter = APIRouter(tags=["teams"])
 
 
 @router.get("", response_model=list[TeamResponse])
-def get_teams(db: Session = Depends(get_db)):
+def get_teams(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.view_team)),
+):
     return db.scalars(select(Team))
 
 
 @router.get("/{team_id}", response_model=TeamResponse)
-def get_team(team_id: int, db: Session = Depends(get_db)):
+def get_team(
+    team_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.view_team)),
+):
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(404, f"Team {team_id} doesn't exist")
@@ -40,7 +48,12 @@ def get_team(team_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{team_id}", response_model=TeamResponse)
-def update_team(team_id: int, request: TeamPatch, db: Session = Depends(get_db)):
+def update_team(
+    team_id: int,
+    request: TeamPatch,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_team)),
+):
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(404, f"Team {team_id} doesn't exist")
