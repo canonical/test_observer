@@ -64,7 +64,7 @@ def parse_execution_metadata(
     execution_metadata: list[str] | None = Query(
         None,
         description=(
-            "Filter by execution metadata (comma-separated, category:value). "
+            "Filter by execution metadata (category:value). "
             "Category and value must be percent encoded."
         ),
     ),
@@ -73,17 +73,16 @@ def parse_execution_metadata(
         return None
     result = []
     for item in execution_metadata:
-        for metadata in item.split(","):
-            if metadata.count(":") != 1:
-                raise HTTPException(
-                    status_code=422,
-                    detail=(
-                        f"Invalid execution metadata format: '{metadata}'. "
-                        "Expected 'category:value' with a single colon."
-                    ),
-                )
-            category, value = metadata.split(":")
-            result.append((urllib.parse.unquote(category), urllib.parse.unquote(value)))
+        if item.count(":") != 1:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Invalid execution metadata format: '{item}'. "
+                    "Expected 'category:value' with a single colon."
+                ),
+            )
+        category, value = item.split(":")
+        result.append((urllib.parse.unquote(category), urllib.parse.unquote(value)))
     return result
 
 
@@ -154,21 +153,21 @@ def search_test_results(
     ] = None,
     environments: Annotated[
         list[str] | None,
-        Query(description="Filter by environment names (comma-separated)"),
+        Query(description="Filter by environment names"),
     ] = None,
     test_cases: Annotated[
         list[str] | None,
-        Query(description="Filter by test case names (comma-separated)"),
+        Query(description="Filter by test case names"),
     ] = None,
     template_ids: Annotated[
-        list[str] | None, Query(description="Filter by template IDs (comma-separated)")
+        list[str] | None, Query(description="Filter by template IDs")
     ] = None,
     execution_metadata: Annotated[
         list[tuple[str, str]] | None, Depends(parse_execution_metadata)
     ] = None,
     issues: Annotated[
         list[int] | None,
-        Query(description="Filter by Jira or GitHub issue IDs (comma-separated)"),
+        Query(description="Filter by Jira or GitHub issue IDs"),
     ] = None,
     from_date: Annotated[
         datetime | None, Query(description="Filter results from this timestamp")

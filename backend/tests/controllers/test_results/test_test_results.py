@@ -358,7 +358,7 @@ class TestSearchTestResults:
 
         # Query test results with matching execution metadata
         response = test_client.get(
-            "/v1/test-results?execution_metadata=category1:value1,category1:value2"
+            "/v1/test-results?execution_metadata=category1:value1&execution_metadata=category1:value2"
         )
         expect = {test_result.id for expect, test_result in test_results if expect}
 
