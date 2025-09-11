@@ -170,7 +170,6 @@ def override_permissions(*permissions: Permission):
     app.dependency_overrides[get_current_application] = lambda: Application(
         name="override", permissions=permissions
     )
-
     try:
         yield
     finally:

@@ -35,10 +35,8 @@ def require_permissions(*required_permissions: str):
             return None
 
         client_permissions: set[str] = set()
-
         if user:
             client_permissions = {p for t in user.teams for p in t.permissions}
-
         if app:
             client_permissions = client_permissions.union(app.permissions)
 
