@@ -35,7 +35,13 @@ depends_on = None
 
 def upgrade() -> None:
     op.add_column(
-        "team", sa.Column("permissions", postgresql.ARRAY(sa.String()), nullable=False)
+        "team",
+        sa.Column(
+            "permissions",
+            postgresql.ARRAY(sa.String()),
+            nullable=False,
+            server_default=sa.text("'{}'"),
+        ),
     )
 
 
