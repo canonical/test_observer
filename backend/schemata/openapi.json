@@ -2050,10 +2050,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by environment names (comma-separated)",
+              "description": "Filter by environment names",
               "title": "Environments"
             },
-            "description": "Filter by environment names (comma-separated)"
+            "description": "Filter by environment names"
           },
           {
             "name": "test_cases",
@@ -2071,10 +2071,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by test case names (comma-separated)",
+              "description": "Filter by test case names",
               "title": "Test Cases"
             },
-            "description": "Filter by test case names (comma-separated)"
+            "description": "Filter by test case names"
           },
           {
             "name": "template_ids",
@@ -2092,10 +2092,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by template IDs (comma-separated)",
+              "description": "Filter by template IDs",
               "title": "Template Ids"
             },
-            "description": "Filter by template IDs (comma-separated)"
+            "description": "Filter by template IDs"
           },
           {
             "name": "issues",
@@ -2113,10 +2113,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by Jira or GitHub issue IDs (comma-separated)",
+              "description": "Filter by Jira or GitHub issue IDs",
               "title": "Issues"
             },
-            "description": "Filter by Jira or GitHub issue IDs (comma-separated)"
+            "description": "Filter by Jira or GitHub issue IDs"
           },
           {
             "name": "from_date",
@@ -2182,6 +2182,27 @@
               "title": "Offset"
             },
             "description": "Number of results to skip for pagination"
+          },
+          {
+            "name": "execution_metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by execution metadata (category:value). Category and value must be percent encoded.",
+              "title": "Execution Metadata"
+            },
+            "description": "Filter by execution metadata (category:value). Category and value must be percent encoded."
           }
         ],
         "responses": {

@@ -250,9 +250,19 @@ class DataGenerator:
         if execution_metadata:
             for category, values in execution_metadata.items():
                 for value in values:
-                    execution_metadata_rows.append(
-                        TestExecutionMetadata(category=category, value=value)
+                    existing_row = (
+                        self.db_session.query(TestExecutionMetadata)
+                        .filter_by(category=category, value=value)
+                        .first()
                     )
+                    if existing_row:
+                        execution_metadata_row = existing_row
+                    else:
+                        execution_metadata_row = TestExecutionMetadata(
+                            category=category, value=value
+                        )
+                        self._add_object(execution_metadata_row)
+                    execution_metadata_rows.append(execution_metadata_row)
 
         test_execution = TestExecution(
             artefact_build=artefact_build,
