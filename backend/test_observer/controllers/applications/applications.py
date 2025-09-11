@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, require_permissions
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -34,7 +35,11 @@ router: APIRouter = APIRouter(tags=["applications"])
 
 
 @router.post("", response_model=ApplicationResponse)
-def create_application(request: ApplicationPost, db: Session = Depends(get_db)):
+def create_application(
+    request: ApplicationPost,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.add_application)),
+):
     result = Application(name=request.name, permissions=request.permissions)
     db.add(result)
     db.commit()
@@ -42,7 +47,10 @@ def create_application(request: ApplicationPost, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[ApplicationResponse])
-def get_applications(db: Session = Depends(get_db)):
+def get_applications(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.view_application)),
+):
     return db.scalars(select(Application))
 
 
@@ -54,7 +62,11 @@ def get_authenticated_application(
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)
-def get_application(application_id: int, db: Session = Depends(get_db)):
+def get_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.view_application)),
+):
     application = db.get(Application, application_id)
     if application is None:
         raise HTTPException(404, f"Application with id {application_id} not found")
@@ -63,7 +75,10 @@ def get_application(application_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{application_id}", response_model=ApplicationResponse)
 def update_application(
-    application_id: int, request: ApplicationPatch, db: Session = Depends(get_db)
+    application_id: int,
+    request: ApplicationPatch,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_application)),
 ):
     application = db.get(Application, application_id)
     if application is None:

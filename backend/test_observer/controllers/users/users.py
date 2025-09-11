@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, require_permissions
 from test_observer.controllers.users.models import UserPatch, UserResponse
 from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
@@ -34,12 +35,19 @@ def get_authenticated_user(user: User | None = Depends(get_current_user)):
 
 
 @router.get("", response_model=list[UserResponse])
-def get_users(db: Session = Depends(get_db)):
+def get_users(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.view_user)),
+):
     return db.scalars(select(User))
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.view_user)),
+):
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(404, f"User with id {user_id} not found")
@@ -47,7 +55,12 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, request: UserPatch, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    request: UserPatch,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_user)),
+):
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(404, f"User with id {user_id} not found")
