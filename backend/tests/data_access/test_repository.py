@@ -17,58 +17,12 @@
 
 """Test services functions"""
 
-from datetime import datetime, UTC
-
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models_enums import FamilyName, StageName
-from test_observer.data_access.repository import (
-    get_artefacts_by_family,
-    create_test_execution_relevant_link,
-)
+from test_observer.data_access.repository import create_test_execution_relevant_link
 from tests.data_generator import DataGenerator
 
 from pydantic import HttpUrl
-
-
-def test_get_artefacts_by_family_charm_unique(
-    db_session: Session, generator: DataGenerator
-):
-    """For charms, artefacts should be returned using the archived field"""
-    # Arrange
-    specs = [
-        ("name-1", "1", False),
-        ("name-1", "2", True),
-        ("name-2", "3", False),
-    ]
-    for name, version, archived in specs:
-        artefact = generator.gen_artefact(
-            StageName.edge,
-            family=FamilyName.charm,
-            name=name,
-            version=version,
-            archived=archived,
-            created_at=datetime(2024, 1, 1, tzinfo=UTC),
-        )
-        generator.gen_artefact_build(
-            artefact,
-            "arch-1",
-        )
-    expected_artefacts = {specs[0], specs[2]}
-
-    # Act
-    artefacts = get_artefacts_by_family(db_session, FamilyName.charm)
-
-    # Assert
-    assert len(artefacts) == len(expected_artefacts)
-    assert {
-        (
-            artefact.name,
-            artefact.version,
-            artefact.archived,
-        )
-        for artefact in artefacts
-    } == expected_artefacts
 
 
 def test_create_test_execution_relevant_link(

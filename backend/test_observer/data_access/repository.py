@@ -49,16 +49,45 @@ def get_artefacts_by_family(
             Artefact.name,
             func.max(Artefact.created_at).label("max_created"),
         )
-        .filter(Artefact.family == family)
+        .filter(Artefact.family == family, Artefact.archived.is_(False))
         .group_by(Artefact.stage, Artefact.name)
     )
 
     match family:
-        case FamilyName.charm | FamilyName.snap | FamilyName.deb:
-            query = session.query(Artefact).where(
+        case FamilyName.snap | FamilyName.charm:
+            subquery = (
+                base_query.add_columns(Artefact.track, Artefact.branch)
+                .group_by(Artefact.track, Artefact.branch)
+                .subquery()
+            )
+
+            query = session.query(Artefact).join(
+                subquery,
                 and_(
-                    Artefact.family == family,
-                    Artefact.archived.is_(False),
+                    Artefact.stage == subquery.c.stage,
+                    Artefact.name == subquery.c.name,
+                    Artefact.created_at == subquery.c.max_created,
+                    Artefact.track == subquery.c.track,
+                    Artefact.branch == subquery.c.branch,
+                ),
+            )
+
+        case FamilyName.deb:
+            subquery = (
+                base_query.add_columns(Artefact.repo, Artefact.series, Artefact.source)
+                .group_by(Artefact.repo, Artefact.series, Artefact.source)
+                .subquery()
+            )
+
+            query = session.query(Artefact).join(
+                subquery,
+                and_(
+                    Artefact.stage == subquery.c.stage,
+                    Artefact.name == subquery.c.name,
+                    Artefact.created_at == subquery.c.max_created,
+                    Artefact.repo == subquery.c.repo,
+                    Artefact.series == subquery.c.series,
+                    Artefact.source == subquery.c.source,
                 ),
             )
 

@@ -20,6 +20,7 @@ from operator import itemgetter
 from typing import Any
 
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Artefact, TestExecution
@@ -87,6 +88,42 @@ def test_get_artefacts_ignores_archived(
     response = test_client.get("/v1/artefacts")
     assert response.status_code == 200
     _assert_get_artefacts_response(response.json(), [a1, a2, a3])
+
+
+@pytest.mark.parametrize(
+    "artefact",
+    [
+        {
+            "family": FamilyName.deb,
+            "stage": StageName.proposed,
+            "name": "server:linux-generic",
+            "series": "noble",
+        },
+        {
+            "family": FamilyName.snap,
+            "stage": StageName.beta,
+            "name": "core",
+            "track": "latest",
+            "store": "ubuntu",
+        },
+        {
+            "stage": StageName.beta,
+            "family": FamilyName.charm,
+            "name": "postgres",
+            "track": "latest",
+        },
+    ],
+)
+def test_get_artefacts_returns_latest_on_each_stage(
+    generator: DataGenerator, test_client: TestClient, artefact: dict
+):
+    """If multiple versions of an artefact exist on the same stage, return the latest"""
+    generator.gen_artefact(**artefact, version="1")
+    new = generator.gen_artefact(**artefact, version="2")
+
+    response = test_client.get("/v1/artefacts", params={"family": artefact["family"]})
+    assert response.status_code == 200
+    _assert_get_artefacts_response(response.json(), [new])
 
 
 def test_get_relevant_image_artefacts(
