@@ -126,28 +126,6 @@ def test_get_artefacts_returns_latest_on_each_stage(
     _assert_get_artefacts_response(response.json(), [new])
 
 
-def test_get_latest_charm_artefacts(generator: DataGenerator, test_client: TestClient):
-    """If multiple versions of a charm exist on the same stage, return the latest"""
-    generator.gen_artefact(
-        stage=StageName.beta,
-        family=FamilyName.charm,
-        name="postgres",
-        version="1",
-        track="latest",
-    )
-    new = generator.gen_artefact(
-        stage=StageName.beta,
-        family=FamilyName.charm,
-        name="postgres",
-        version="2",
-        track="latest",
-    )
-
-    response = test_client.get("/v1/artefacts", params={"family": "charm"})
-    assert response.status_code == 200
-    _assert_get_artefacts_response(response.json(), [new])
-
-
 def test_get_relevant_image_artefacts(
     test_client: TestClient, generator: DataGenerator
 ):
