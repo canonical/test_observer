@@ -2,30 +2,35 @@
 
 ## Development Setup
 
-This project supports [microk8s](https://microk8s.io/) development environment with the help of [Skaffold](https://skaffold.dev/). It also uses [uv](https://github.com/astral-sh/uv) for dependency management.
+The development setup is prepared through the docker compose found in the parent directory. The dependencies are managed through uv. The migrations through alembic. Tests are run using PyTest. And finally we use pre-commit to maintain the OpenAPI schema.
 
-### 1. Install required tools
+## Starting and stopping the backend
 
-- Install [docker](https://docs.docker.com/engine/install/ubuntu/) and [setup permissions](https://docs.docker.com/engine/install/linux-postinstall/)
-- Install [microk8s](https://microk8s.io/docs/getting-started) and setup permissions
-- Install [Skaffold](https://skaffold.dev/docs/install/#standalone-binary)
-- Install [uv](https://github.com/astral-sh/uv#installation)
-- Install [pre-commit](https://pre-commit.com) (best done using `sudo apt install pre-commit`, followed by `pre-commit install` in the `backend` directory)
-- Install [jq](https://github.com/jqlang/jq) (`sudo apt install jq`)
+To start the back-end, run the following command in the project's root directory:
+```bash
+docker compose up --build test-observer-api
+```
 
-### 2. Setup Skaffold and microk8s
+Then to stop it, first press Ctrl+C. Then run the following command:
+```bash
+docker compose down --volumes
+```
 
-- Skaffold requires a k8s registry to push and pull images from so just run `$ microk8s enable registry`
-- Allow pods to communicate together in microk8s through CoreDNS by running `$ microk8s enable dns`
-- Allow persistent volume claims to claim storage using `$ microk8s enable hostpath-storage`
-- Skaffold uses kubectl so create an alias for `microk8s.kubectl` using `snap alias microk8s.kubectl kubectl`
-- In order for Skaffold to connect to microk8s it needs it's configuration, so run `$ microk8s config > ~/.kube/config`. Note that if you get an error connecting to the cluster, it could be that the cluster's IP has changed for some reason, so you have to run this command again
+## Managing dependencies
 
-### 3. Install python dependencies for linting and completions
+Dependencies are managed through uv. To install them locally you can run the following:
+```bash
+uv sync --all-groups
+```
+Note: that if you run docker compose up after installing the dependencies locally, the docker container will overwrite the locally installed dependencies. The issue is that the docker container doesn't install all dependency groups, so you will be missing some dependencies (for instance pytest wont be there). If that happens you can just install the dependencies locally again using the command above.
 
-While technically not required to run the code, it helps to have dependencies installed on host system to get code completions and linting. To do that just run `$ uv sync`. Note that uv will create a virtual environment for you in the `.venv` directory.
+You can add dependencies using:
+```bash
+uv add <dependency>
+```
+Note: if you are adding a test dependency make sure to pass `--group test`, and if it's a dev dependency pass `--group dev`.
 
-Linting and formatting checks are done using ruff, and type checking using mypy. We have CI in place to make those checks, but it's probably a good idea to setup your editor to use these. Note that their settings are in `pyproject.toml`.
+## Set up pre-commit
 
 The project uses [pre-commit](https://pre-commit.com) to auto generate OpenAPI schema file. To set it up for your working copy of the repository:
 
@@ -34,90 +39,46 @@ sudo apt install pre-commit jq
 pre-commit install # in the `backend` directory
 ```
 
-### 4. Start the development environment
-
-Assuming that your microk8s cluster is running, you can start the development environment by simply running `$ skaffold dev --no-prune=false --cache-artifacts=false`. This command will build the docker images and push them to your microk8s registry, then apply your k8s manifest to start the cluster and pull those images. Additionally, skaffold will watch for file changes and either sync them directly inside the running containers or rebuild and redeploy k8s cluster for you automatically.
-
-### 5. [Optional] seed the database
-
-Run `scripts/seed_data.py` script to seed the database with some dummy data. This can be useful when working with front-end. Note that this needs to run within the container.
-
-`$ kubectl exec -it service/test-observer-api -- python scripts/seed_data.py`
-
-## Dependency Management
-
-### Add/Install dependency
-
-`$ uv add foo`
-
-If it's a dev dependency
-
-`$ uv add --dev foo`
-
-### Remove/Uninstall dependency
-
-`$ uv remove foo`
-
 ## Database Migrations
 
-The project uses [Alembic](https://alembic.sqlalchemy.org/en/latest/) to manage database migrations. Migrations will be applied automatically when running Skaffold. But making changes to data models requires manually creating and applying migrations.
+The project uses [Alembic](https://alembic.sqlalchemy.org/en/latest/) to manage database migrations. Migrations will be applied automatically when running the project through docker compose. But making changes to data models requires manually creating and applying migrations.
 
 ### Create Migrations
 
 For more information on how to create migrations, please check [Alembic docs](https://alembic.sqlalchemy.org/en/latest/). Note, that it's worth noting that Alembic can help [auto generate migrations](https://alembic.sqlalchemy.org/en/latest/autogenerate.html) based on differences between SQLAlchemy ORMs and the actual database. But developers have to check these migrations to make sure they're fine. To generate migrations automatically though, just run:
 
-`$ kubectl exec -it service/test-observer-api -- alembic revision --autogenerate -m "Migration description"`
+```bash
+docker compose exec test-observer-api alembic revision --autogenerate -m "Migration description"
+```
 
-Note however that this created migration will reside inside the pod not on your host machine. So you have to copy it over by:
+Note: the created migration file will be owned by root therefore you wont be able to edit it as is. To fix this, you can just run the following commands:
 
-`$ kubectl cp test-observer-api-RESTOFPODNAME:/home/app/migrations/versions ./migrations/versions`
+```bash
+sudo chown youruser:youruser migrations/versions/migration-file.py
+chmod g+w migrations/versions/migration-file.py
+```
 
-You can get RESTOFPODNAME by running
-
-`$ kubectl get pods`
+Note: do not assume the automatically generated migrations are correct. More often than not you have to make changes to make sure it does exactly what you need. For instance, if you're adding a new not nullable column to a table, then you must provide some sort of server default. Alembic doesn't do this for you.
 
 ### Applying Migrations
 
 Since the database is in microk8s cluster, migrations have to be applied inside the cluster and not on the host machine. To do that we can just run the migrations on our api service which will run in one of the api pods through:
 
-`$ kubectl exec -it service/test-observer-api -- alembic upgrade head`
+```bash
+docker compose exec test-observer-api alembic upgrade head
+```
+
+You can also roll back migrations using:
+```bash
+docker compose exec test-observer-api alembic downgrade -1
+```
 
 ## Tests
 
-Tests can be run in several ways:
-
-### Running tests in Kubernetes (Skaffold)
-
-To run the tests in the Kubernetes environment, first make sure that you're running skaffold. Then execute the pytest command in the API pod:
-
-`$ kubectl exec -it service/test-observer-api -- pytest`
-
-### Running tests in Docker Compose
-
-If you're using Docker Compose for development:
-
-`$ docker compose exec test-observer-api pytest`
-
-### Running tests on host machine
-
-You can also run tests directly on your host machine if Docker Compose is running (exposing PostgreSQL on localhost:5432):
-
+Testing is handled using pytest package and can be run using the command:
 ```bash
-# First ensure dependencies are installed
-$ uv sync --all-groups
-$ uv pip install -e .
-
-# Run tests
-$ uv run pytest
+docker compose exec test-observer-api pytest
 ```
-
-The test configuration automatically detects whether to use localhost (for host machine testing) or the Docker service name (for container testing).
-
-### Custom database configuration
-
-You can override the database connection by setting the `TEST_DB_URL` environment variable:
-
-`$ TEST_DB_URL="postgresql+pg8000://user:password@host:port/database" uv run pytest`
 
 ## OCI images
 
