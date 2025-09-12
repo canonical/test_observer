@@ -54,7 +54,7 @@ def get_artefacts_by_family(
     )
 
     match family:
-        case FamilyName.snap:
+        case FamilyName.snap | FamilyName.charm:
             subquery = (
                 base_query.add_columns(Artefact.track, Artefact.branch)
                 .group_by(Artefact.track, Artefact.branch)
@@ -88,14 +88,6 @@ def get_artefacts_by_family(
                     Artefact.repo == subquery.c.repo,
                     Artefact.series == subquery.c.series,
                     Artefact.source == subquery.c.source,
-                ),
-            )
-
-        case FamilyName.charm:
-            query = session.query(Artefact).where(
-                and_(
-                    Artefact.family == family,
-                    Artefact.archived.is_(False),
                 ),
             )
 
