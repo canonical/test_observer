@@ -16,7 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../../models/execution_metadata.dart';
-import '../spacing.dart';
+import 'spacing.dart';
 
 class ExecutionMetadataTable extends StatelessWidget {
   final ExecutionMetadata metadata;
@@ -24,27 +24,22 @@ class ExecutionMetadataTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entries = metadata.data.entries.toList();
-    if (entries.isEmpty) {
+    final sortedEntries = metadata.data.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    if (sortedEntries.isEmpty) {
       return const Text('No execution metadata available.');
     }
     return DataTable(
       dataRowMaxHeight: double.infinity,
       columns: const [
         DataColumn(
-          label: Text(
-            'Category',
-            style: TextStyle(fontStyle: FontStyle.italic),
-          ),
+          label: Text('Category'),
         ),
         DataColumn(
-          label: Text(
-            'Values',
-            style: TextStyle(fontStyle: FontStyle.italic),
-          ),
+          label: Text('Values'),
         ),
       ],
-      rows: entries
+      rows: sortedEntries
           .map(
             (entry) => DataRow(
               cells: [
@@ -52,7 +47,7 @@ class ExecutionMetadataTable extends StatelessWidget {
                 DataCell(
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: entry.value
+                    children: (entry.value.toList()..sort())
                         .expand(
                           (v) => [
                             const SizedBox(height: Spacing.level3),

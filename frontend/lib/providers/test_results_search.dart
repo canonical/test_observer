@@ -17,6 +17,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/detailed_test_results.dart';
+import '../models/execution_metadata.dart';
 import 'api.dart';
 
 part 'test_results_search.g.dart';
@@ -100,8 +101,15 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
         ? testCasesValues.first.split(',').toList()
         : <String>[];
 
+    final executionMetadata = ExecutionMetadata.fromQueryParams(
+      parameters['execution_metadata'] ?? [],
+    );
+
     // Only search if we have filters
-    if (families.isEmpty && environments.isEmpty && testCases.isEmpty) {
+    if (families.isEmpty &&
+        environments.isEmpty &&
+        testCases.isEmpty &&
+        executionMetadata.data.isEmpty) {
       return TestResultsSearchResult.empty();
     }
 
@@ -109,6 +117,8 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
       families: families.isNotEmpty ? families : null,
       environments: environments.isNotEmpty ? environments : null,
       testCases: testCases.isNotEmpty ? testCases : null,
+      executionMetadata:
+          executionMetadata.data.isNotEmpty ? executionMetadata : null,
       limit: limit,
       offset: offset,
     );

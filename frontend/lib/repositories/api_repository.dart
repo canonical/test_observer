@@ -17,6 +17,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/artefact.dart';
+import '../models/execution_metadata.dart';
 import '../models/issue.dart';
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
@@ -232,6 +233,7 @@ class ApiRepository {
     List<String>? environments,
     List<String>? testCases,
     List<String>? templateIds,
+    ExecutionMetadata? executionMetadata,
     List<int>? issues,
     DateTime? fromDate,
     DateTime? untilDate,
@@ -254,6 +256,10 @@ class ApiRepository {
 
     if (templateIds != null && templateIds.isNotEmpty) {
       queryParams['template_ids'] = templateIds;
+    }
+
+    if (executionMetadata != null && executionMetadata.data.isNotEmpty) {
+      queryParams['execution_metadata'] = executionMetadata.toQueryParams();
     }
 
     if (issues != null && issues.isNotEmpty) {
@@ -347,5 +353,10 @@ class ApiRepository {
       return null;
     }
     return User.fromJson(response.data);
+  }
+
+  Future<ExecutionMetadata> getExecutionMetadata() async {
+    final response = await dio.get('/v1/execution-metadata');
+    return ExecutionMetadata.fromJson(response.data['execution_metadata']);
   }
 }
