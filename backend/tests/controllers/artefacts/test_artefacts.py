@@ -90,7 +90,7 @@ def test_get_artefacts_ignores_archived(
 
 
 def test_get_latest_deb_artefacts(generator: DataGenerator, test_client: TestClient):
-    """If multiple versions of an artefact exist on the same stage, return the latest"""
+    """If multiple versions of a deb exist on the same stage, return the latest"""
     generator.gen_artefact(
         stage=StageName.proposed,
         family=FamilyName.deb,
@@ -107,6 +107,30 @@ def test_get_latest_deb_artefacts(generator: DataGenerator, test_client: TestCli
     )
 
     response = test_client.get("/v1/artefacts", params={"family": "deb"})
+    assert response.status_code == 200
+    _assert_get_artefacts_response(response.json(), [new])
+
+
+def test_get_latest_snap_artefacts(generator: DataGenerator, test_client: TestClient):
+    """If multiple versions of a snap exist on the same stage, return the latest"""
+    generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.snap,
+        name="core",
+        version="1.1.1",
+        track="latest",
+        store="ubuntu",
+    )
+    new = generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.snap,
+        name="core",
+        version="1.1.2",
+        track="latest",
+        store="ubuntu",
+    )
+
+    response = test_client.get("/v1/artefacts", params={"family": "snap"})
     assert response.status_code == 200
     _assert_get_artefacts_response(response.json(), [new])
 
