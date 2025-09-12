@@ -49,6 +49,8 @@ app = FastAPI(
         "name": "GNU Affero General Public License v3",
         "url": "https://raw.githubusercontent.com/canonical/test_observer/refs/heads/main/backend/LICENSE",
     },
+    docs_url=None,  # Disable default docs to add custom ones
+    redoc_url="/redocs",  # But keep the default redocs
 )
 
 
