@@ -89,6 +89,28 @@ def test_get_artefacts_ignores_archived(
     _assert_get_artefacts_response(response.json(), [a1, a2, a3])
 
 
+def test_get_latest_deb_artefacts(generator: DataGenerator, test_client: TestClient):
+    """If multiple versions of an artefact exist on the same stage, return the latest"""
+    generator.gen_artefact(
+        stage=StageName.proposed,
+        family=FamilyName.deb,
+        name="server:linux-generic",
+        version="6.8.1",
+        series="noble",
+    )
+    new = generator.gen_artefact(
+        stage=StageName.proposed,
+        family=FamilyName.deb,
+        name="server:linux-generic",
+        version="6.8.2",
+        series="noble",
+    )
+
+    response = test_client.get("/v1/artefacts", params={"family": "deb"})
+    assert response.status_code == 200
+    _assert_get_artefacts_response(response.json(), [new])
+
+
 def test_get_relevant_image_artefacts(
     test_client: TestClient, generator: DataGenerator
 ):
