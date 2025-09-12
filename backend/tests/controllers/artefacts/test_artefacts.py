@@ -20,6 +20,7 @@ from operator import itemgetter
 from typing import Any
 
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Artefact, TestExecution
@@ -89,48 +90,38 @@ def test_get_artefacts_ignores_archived(
     _assert_get_artefacts_response(response.json(), [a1, a2, a3])
 
 
-def test_get_latest_deb_artefacts(generator: DataGenerator, test_client: TestClient):
-    """If multiple versions of a deb exist on the same stage, return the latest"""
-    generator.gen_artefact(
-        stage=StageName.proposed,
-        family=FamilyName.deb,
-        name="server:linux-generic",
-        version="6.8.1",
-        series="noble",
-    )
-    new = generator.gen_artefact(
-        stage=StageName.proposed,
-        family=FamilyName.deb,
-        name="server:linux-generic",
-        version="6.8.2",
-        series="noble",
-    )
+@pytest.mark.parametrize(
+    "artefact",
+    [
+        {
+            "family": FamilyName.deb,
+            "stage": StageName.proposed,
+            "name": "server:linux-generic",
+            "series": "noble",
+        },
+        {
+            "family": FamilyName.snap,
+            "stage": StageName.beta,
+            "name": "core",
+            "track": "latest",
+            "store": "ubuntu",
+        },
+        {
+            "stage": StageName.beta,
+            "family": FamilyName.charm,
+            "name": "postgres",
+            "track": "latest",
+        },
+    ],
+)
+def test_get_artefacts_returns_latest_on_each_stage(
+    generator: DataGenerator, test_client: TestClient, artefact: dict
+):
+    """If multiple versions of an artefact exist on the same stage, return the latest"""
+    generator.gen_artefact(**artefact, version="1")
+    new = generator.gen_artefact(**artefact, version="2")
 
-    response = test_client.get("/v1/artefacts", params={"family": "deb"})
-    assert response.status_code == 200
-    _assert_get_artefacts_response(response.json(), [new])
-
-
-def test_get_latest_snap_artefacts(generator: DataGenerator, test_client: TestClient):
-    """If multiple versions of a snap exist on the same stage, return the latest"""
-    generator.gen_artefact(
-        stage=StageName.beta,
-        family=FamilyName.snap,
-        name="core",
-        version="1.1.1",
-        track="latest",
-        store="ubuntu",
-    )
-    new = generator.gen_artefact(
-        stage=StageName.beta,
-        family=FamilyName.snap,
-        name="core",
-        version="1.1.2",
-        track="latest",
-        store="ubuntu",
-    )
-
-    response = test_client.get("/v1/artefacts", params={"family": "snap"})
+    response = test_client.get("/v1/artefacts", params={"family": artefact["family"]})
     assert response.status_code == 200
     _assert_get_artefacts_response(response.json(), [new])
 
