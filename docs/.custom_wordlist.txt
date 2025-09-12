@@ -1,20 +1,23 @@
 # Leave a blank line at the end of this file to support concatenation
 backend
-backend's
 Backend
+backend's
 cjk
 cryptographically
+CSRF
+cURL
 dvipng
 fonts
 freefont
 frontend
-frontend's
 Frontend
+frontend's
 github
 GPG
 GPLv
 gyre
 https
+hw
 lang
 latexmk
 md
@@ -23,6 +26,7 @@ plantuml
 schemas
 SRU
 SRUs
+SSO
 tex
 texlive
 TOC
