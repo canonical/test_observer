@@ -22,7 +22,7 @@ part 'execution_metadata.freezed.dart';
 abstract class ExecutionMetadata with _$ExecutionMetadata {
   const ExecutionMetadata._();
   const factory ExecutionMetadata({
-    required Map<String, List<String>> data,
+    required Map<String, Set<String>> data,
   }) = _ExecutionMetadata;
 
   factory ExecutionMetadata.fromJson(Map<String, Object?> json) {
@@ -30,7 +30,7 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
       data: json.map(
         (k, v) => MapEntry(
           k,
-          (v as List).map((e) => e.toString()).toList(),
+          (v as List).map((e) => e.toString()).toSet(),
         ),
       ),
     );
@@ -40,5 +40,50 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
     return {
       'data': data,
     };
+  }
+
+  factory ExecutionMetadata.fromRows(Set<(String, String)> rows) {
+    final Map<String, Set<String>> data = {};
+    for (final (category, value) in rows) {
+      data.putIfAbsent(category, () => {}).add(value);
+    }
+    return ExecutionMetadata(data: data);
+  }
+
+  Set<(String, String)> toRows() {
+    final Set<(String, String)> rows = {};
+    data.forEach((category, values) {
+      for (final value in values) {
+        rows.add((category, value));
+      }
+    });
+    return rows;
+  }
+
+  factory ExecutionMetadata.fromQueryParams(List<String> params) {
+    final Set<(String, String)> rows = {};
+    for (final param in params) {
+      final pairs = param.split(',').where((s) => s.isNotEmpty);
+      for (final pair in pairs) {
+        final parts = pair.split(':');
+        if (parts.length == 2) {
+          final category = Uri.decodeComponent(parts[0]);
+          final value = Uri.decodeComponent(parts[1]);
+          if (category.isNotEmpty && value.isNotEmpty) {
+            rows.add((category, value));
+          }
+        }
+      }
+    }
+    return ExecutionMetadata.fromRows(rows);
+  }
+
+  List<String> toQueryParams() {
+    return toRows()
+        .map(
+          (row) =>
+              '${Uri.encodeComponent(row.$1)}:${Uri.encodeComponent(row.$2)}',
+        )
+        .toList();
   }
 }
