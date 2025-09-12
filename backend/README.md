@@ -16,6 +16,8 @@ Then to stop it, first press Ctrl+C. Then run the following command:
 docker compose down --volumes
 ```
 
+Note: the backend has CORS middleware that allows for connections from localhost:30001. That means in order for a locally deployed frontend to connect to a locally deployed backend, the frontend needs to run on port 30001 and on the same host.
+
 ## Managing dependencies
 
 Dependencies are managed through uv. To install them locally you can run the following:
