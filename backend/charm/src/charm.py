@@ -82,6 +82,9 @@ class TestObserverBackendCharm(CharmBase):
         self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
         self.framework.observe(self.on.add_user_action, self._on_add_user_action)
         self.framework.observe(self.on.change_assignee_action, self._on_change_assignee_action)
+        self.framework.observe(
+            self.on.promote_user_to_admin_action, self._on_promote_user_to_admin_action
+        )
 
     def _setup_nginx(self):
         require_nginx_route(
@@ -388,6 +391,19 @@ class TestObserverBackendCharm(CharmBase):
         try:
             process.wait_output()
             event.set_results({"result": "Changed successfuly"})
+        except ExecError as e:
+            event.fail(e.stderr)
+
+    def _on_promote_user_to_admin_action(self, event) -> None:
+        email = event.params["email"]
+        process = self.api_container.exec(
+            command=["python", "-m", "scripts.promote_user_to_admin", email],
+            working_dir="/home/app",
+            environment=self._app_environment,
+        )
+        try:
+            process.wait_output()
+            event.set_results({"result": "Promoted successfuly"})
         except ExecError as e:
             event.fail(e.stderr)
 
