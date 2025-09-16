@@ -116,9 +116,14 @@ class IssueTitleWidget extends StatelessWidget {
 }
 
 class IssueStatusWidget extends StatelessWidget {
-  const IssueStatusWidget({super.key, required this.issue});
+  const IssueStatusWidget({
+    super.key,
+    required this.issue,
+    this.textStyle,
+  });
 
   final Issue issue;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -142,12 +147,16 @@ class IssueStatusWidget extends StatelessWidget {
         icon = Icons.help_outline;
         break;
     }
+
+    final style = textStyle ?? Theme.of(context).textTheme.bodyMedium;
+    final iconSize = style?.fontSize ?? 18.0;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 18),
+        Icon(icon, color: color, size: iconSize),
         const SizedBox(width: 6),
-        Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        Text(label, style: style),
       ],
     );
   }

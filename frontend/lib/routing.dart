@@ -24,6 +24,7 @@ import 'ui/dashboard/dashboard.dart';
 import 'ui/issues_page/issues_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
+import 'ui/issue_page/issue_page.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -102,6 +103,14 @@ final appRouter = GoRouter(
           path: '/issues',
           pageBuilder: (_, __) => const NoTransitionPage(
             child: IssuesPage(),
+          ),
+        ),
+        GoRoute(
+          path: '/issues/:issueId',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: IssuePage(
+              issueId: int.parse(state.pathParameters['issueId']!),
+            ),
           ),
         ),
       ],

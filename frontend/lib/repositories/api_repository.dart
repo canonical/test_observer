@@ -359,4 +359,9 @@ class ApiRepository {
     final response = await dio.get('/v1/execution-metadata');
     return ExecutionMetadata.fromJson(response.data['execution_metadata']);
   }
+
+  Future<Issue> getIssue(int issueId) async {
+    final response = await dio.get('/v1/issues/$issueId');
+    return Issue.fromJson(response.data);
+  }
 }
