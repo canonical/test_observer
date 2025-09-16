@@ -150,17 +150,12 @@ class _TestResultsFiltersViewState
         _box(
           MultiSelectCombobox(
             title: 'Metadata',
-            allOptions: executionMetadata
-                .toRows()
-                .map((pair) => '${pair.$1} ${pair.$2}')
-                .toList(),
-            initialSelected: _executionMetadata
-                .map((pair) => '${pair.$1} ${pair.$2}')
+            allOptions: executionMetadata.toStrings(),
+            initialSelected: ExecutionMetadata.fromRows(_executionMetadata)
+                .toStrings()
                 .toSet(),
             onChanged: (val, isSelected) {
-              final match = executionMetadata.toRows().firstWhere(
-                    (pair) => '${pair.$1} ${pair.$2}' == val,
-                  );
+              final match = executionMetadata.findFromString(val);
               setState(
                 () => isSelected
                     ? _executionMetadata.add(match)

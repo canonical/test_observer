@@ -86,4 +86,12 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
         )
         .toList();
   }
+
+  List<String> toStrings() {
+    return toRows().map((row) => '${row.$1} ${row.$2}').toList();
+  }
+
+  (String, String) findFromString(String s) {
+    return toRows().firstWhere((row) => '${row.$1} ${row.$2}' == s);
+  }
 }
