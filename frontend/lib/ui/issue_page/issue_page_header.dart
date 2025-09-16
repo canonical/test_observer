@@ -29,11 +29,9 @@ class IssuePageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          issue.source.name,
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        IssueSourceWidget(
+          source: issue.source,
+          textStyle: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(width: Spacing.level5),
         IssueProjectWidget(
