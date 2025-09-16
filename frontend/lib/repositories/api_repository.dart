@@ -348,4 +348,9 @@ class ApiRepository {
     }
     return User.fromJson(response.data);
   }
+
+  Future<Issue> getIssue(int issueId) async {
+    final response = await dio.get('/v1/issues/$issueId');
+    return Issue.fromJson(response.data);
+  }
 }
