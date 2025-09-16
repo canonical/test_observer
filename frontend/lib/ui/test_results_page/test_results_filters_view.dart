@@ -153,7 +153,6 @@ class _TestResultsFiltersViewState
             allOptions: executionMetadata
                 .toRows()
                 .map((pair) => '${pair.$1} ${pair.$2}')
-                .sorted()
                 .toList(),
             initialSelected: _executionMetadata
                 .map((pair) => '${pair.$1} ${pair.$2}')
