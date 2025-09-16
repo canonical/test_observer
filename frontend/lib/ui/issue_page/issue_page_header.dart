@@ -30,7 +30,7 @@ class IssuePageHeader extends StatelessWidget {
     return Row(
       children: [
         Text(
-          'Issue',
+          issue.source.name,
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
