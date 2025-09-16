@@ -46,7 +46,10 @@ class IssuePageHeader extends StatelessWidget {
           textStyle: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(width: Spacing.level5),
-        IssueStatusWidget(issue: issue),
+        IssueStatusWidget(
+          issue: issue,
+          textStyle: Theme.of(context).textTheme.headlineSmall,
+        ),
       ],
     );
   }
