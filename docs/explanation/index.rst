@@ -7,3 +7,4 @@ This section covers conceptual questions about Test Observer.
     :maxdepth: 1
 
     glossary
+    authentication-and-authorization
