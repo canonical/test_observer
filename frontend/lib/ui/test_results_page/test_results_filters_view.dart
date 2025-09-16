@@ -185,7 +185,7 @@ class _TestResultsFiltersViewState
         ),
         _box(
           DateTimeSelector(
-            title: 'Results From',
+            title: 'From',
             initialDate: _fromDate,
             onSelected: (date) {
               setState(() => _fromDate = date);
@@ -194,7 +194,7 @@ class _TestResultsFiltersViewState
         ),
         _box(
           DateTimeSelector(
-            title: 'Results Until',
+            title: 'Until',
             initialDate: _untilDate,
             onSelected: (date) {
               setState(() => _untilDate = date);
