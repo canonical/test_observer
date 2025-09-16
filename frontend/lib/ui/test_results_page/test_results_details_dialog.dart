@@ -20,7 +20,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/detailed_test_results.dart';
 import '../execution_metadata.dart';
-import 'test_results_helpers.dart';
+import '../date_time.dart';
 
 class TestResultDetailsDialog extends StatelessWidget {
   final TestResultWithContext result;
@@ -164,9 +164,7 @@ class _DialogContent extends StatelessWidget {
                 ),
                 _DetailRow(
                   label: 'Created',
-                  value: TestResultHelpers.formatFullDate(
-                    result.testExecution.createdAt.toIso8601String(),
-                  ),
+                  value: formatDateTime(result.testExecution.createdAt),
                 ),
                 _DetailRow(
                   label: 'Execution Metadata',

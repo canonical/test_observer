@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/detailed_test_results.dart';
@@ -105,11 +106,23 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
       parameters['execution_metadata'] ?? [],
     );
 
+    final fromDateValues = parameters['from'] ?? [];
+    final fromDate = fromDateValues
+        .map((s) => DateTime.tryParse(s))
+        .firstOrNullWhere((d) => d != null);
+
+    final untilDateValues = parameters['until'] ?? [];
+    final untilDate = untilDateValues
+        .map((s) => DateTime.tryParse(s))
+        .firstOrNullWhere((d) => d != null);
+
     // Only search if we have filters
     if (families.isEmpty &&
         environments.isEmpty &&
         testCases.isEmpty &&
-        executionMetadata.data.isEmpty) {
+        executionMetadata.data.isEmpty &&
+        fromDate == null &&
+        untilDate == null) {
       return TestResultsSearchResult.empty();
     }
 
@@ -119,6 +132,8 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
       testCases: testCases.isNotEmpty ? testCases : null,
       executionMetadata:
           executionMetadata.data.isNotEmpty ? executionMetadata : null,
+      fromDate: fromDate,
+      untilDate: untilDate,
       limit: limit,
       offset: offset,
     );

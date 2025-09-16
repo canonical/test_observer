@@ -26,6 +26,7 @@ import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
 import '../../providers/execution_metadata.dart';
 import '../page_filters/multi_select_combobox.dart';
+import '../page_filters/date_time_selector.dart';
 import '../spacing.dart';
 
 class TestResultsFiltersView extends ConsumerStatefulWidget {
@@ -50,6 +51,8 @@ class _TestResultsFiltersViewState
   late Set<String> _envs;
   late Set<String> _tests;
   late Set<(String, String)> _executionMetadata;
+  late DateTime? _fromDate;
+  late DateTime? _untilDate;
 
   @override
   void initState() {
@@ -73,12 +76,22 @@ class _TestResultsFiltersViewState
       return raw.expand((s) => s.split(',')).where((s) => s.isNotEmpty).toSet();
     }
 
+    DateTime? readDateParam(String key) {
+      final params = widget.pageUri.queryParametersAll;
+      final raw = params[key] ?? const <String>[];
+      return raw
+          .map((s) => DateTime.tryParse(s))
+          .firstOrNullWhere((d) => d != null);
+    }
+
     _families = readParam('families');
     _envs = readParam('environments');
     _tests = readParam('test_cases');
     _executionMetadata = ExecutionMetadata.fromQueryParams(
       widget.pageUri.queryParametersAll['execution_metadata'] ?? [],
     ).toRows();
+    _fromDate = readDateParam('from');
+    _untilDate = readDateParam('until');
   }
 
   Map<String, String> _toQueryParams() {
@@ -96,6 +109,12 @@ class _TestResultsFiltersViewState
       qp['execution_metadata'] = ExecutionMetadata.fromRows(_executionMetadata)
           .toQueryParams()
           .join(',');
+    }
+    if (_fromDate != null) {
+      qp['from'] = _fromDate!.toIso8601String();
+    }
+    if (_untilDate != null) {
+      qp['until'] = _untilDate!.toIso8601String();
     }
     return qp;
   }
@@ -161,6 +180,24 @@ class _TestResultsFiltersViewState
                     ? _executionMetadata.add(match)
                     : _executionMetadata.remove(match),
               );
+            },
+          ),
+        ),
+        _box(
+          DateTimeSelector(
+            title: 'Results From',
+            initialDate: _fromDate,
+            onSelected: (date) {
+              setState(() => _fromDate = date);
+            },
+          ),
+        ),
+        _box(
+          DateTimeSelector(
+            title: 'Results Until',
+            initialDate: _untilDate,
+            onSelected: (date) {
+              setState(() => _untilDate = date);
             },
           ),
         ),
