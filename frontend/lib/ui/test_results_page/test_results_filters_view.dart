@@ -149,7 +149,7 @@ class _TestResultsFiltersViewState
         ),
         _box(
           MultiSelectCombobox(
-            title: 'Execution Metadata',
+            title: 'Metadata',
             allOptions: executionMetadata
                 .toRows()
                 .map((pair) => '${pair.$1} ${pair.$2}')
