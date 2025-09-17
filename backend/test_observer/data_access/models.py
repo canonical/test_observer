@@ -358,8 +358,8 @@ class Environment(Base):
 
     __tablename__ = "environment"
 
-    name: Mapped[str] = mapped_column(String(200))
-    architecture: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(200), index=True)
+    architecture: Mapped[str] = mapped_column(String(100), index=True)
     test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="environment"
     )
@@ -500,8 +500,8 @@ class TestCase(Base):
     __tablename__ = "test_case"
 
     name: Mapped[str] = mapped_column(unique=True)
-    category: Mapped[str]
-    template_id: Mapped[str] = mapped_column(default="")
+    category: Mapped[str] = mapped_column(index=True)
+    template_id: Mapped[str] = mapped_column(default="", index=True)
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name", "category")
