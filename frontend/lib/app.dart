@@ -30,13 +30,9 @@ class App extends StatelessWidget {
           cardTheme: CardThemeData(color: Colors.white),
           datePickerTheme: const DatePickerThemeData(
             headerHeadlineStyle: TextStyle(fontSize: 20),
-            dayStyle: TextStyle(fontSize: 18),
-            yearStyle: TextStyle(fontSize: 18),
-            weekdayStyle: TextStyle(fontSize: 16),
           ),
           timePickerTheme: const TimePickerThemeData(
-            hourMinuteTextStyle: TextStyle(fontSize: 24),
-            dayPeriodTextStyle: TextStyle(fontSize: 18),
+            hourMinuteTextStyle: TextStyle(fontSize: 52),
           ),
         );
 
