@@ -26,8 +26,15 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return YaruTheme(
       builder: (context, yaru, child) {
-        final theme =
-            yaru.theme?.copyWith(cardTheme: CardThemeData(color: Colors.white));
+        final theme = yaru.theme?.copyWith(
+          cardTheme: CardThemeData(color: Colors.white),
+          datePickerTheme: const DatePickerThemeData(
+            headerHeadlineStyle: TextStyle(fontSize: 20),
+          ),
+          timePickerTheme: const TimePickerThemeData(
+            hourMinuteTextStyle: TextStyle(fontSize: 52),
+          ),
+        );
 
         return MaterialApp.router(
           theme: theme,

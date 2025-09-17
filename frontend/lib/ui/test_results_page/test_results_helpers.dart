@@ -38,26 +38,6 @@ class TestResultHelpers {
     return status.getIcon();
   }
 
-  static String formatDate(String? dateStr) {
-    if (dateStr == null) return '';
-    try {
-      final date = DateTime.parse(dateStr);
-      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString().substring(2)}';
-    } catch (e) {
-      return '';
-    }
-  }
-
-  static String formatFullDate(String? dateStr) {
-    if (dateStr == null) return 'N/A';
-    try {
-      final date = DateTime.parse(dateStr);
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateStr;
-    }
-  }
-
   static void navigateToTestExecution(TestResultWithContext result) {
     final testExecution = result.testExecution;
     final artefact = result.artefact;
