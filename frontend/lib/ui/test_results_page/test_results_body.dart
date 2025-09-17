@@ -109,7 +109,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     final searchResults = ref.watch(testResultsSearchFromUriProvider(pageUri));
 
     return searchResults.when(
-      loading: () => _buildLoadingState(),
+      loading: () => _buildLoadingState(context),
       error: (error, stack) => _buildErrorState(context, error),
       data: (data) => _buildResultsContent(context, data),
     );
@@ -117,50 +117,65 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
   Widget _buildEmptyState(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.search, size: 64, color: Colors.grey),
-          const SizedBox(height: Spacing.level4),
-          Text(
-            'Search for test results',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: Spacing.level2),
-          const Text(
-            'Use the filters above and click Apply Filters to search for test results.',
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.only(
+          bottom: Spacing.level6 * 4,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search, size: 64, color: Colors.grey),
+            const SizedBox(height: Spacing.level4),
+            Text(
+              'Search for test results',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: Spacing.level2),
+            const Text(
+              'Use the filters above and click Apply Filters to search for test results.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildLoadingState() {
-    return const Center(
-      child: YaruCircularProgressIndicator(),
+  Widget _buildLoadingState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(
+          bottom: Spacing.level6 * 4,
+        ),
+        child: const YaruCircularProgressIndicator(),
+      ),
     );
   }
 
   Widget _buildErrorState(BuildContext context, Object error) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-          const SizedBox(height: Spacing.level4),
-          Text(
-            'Error loading test results',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: Spacing.level2),
-          Text(
-            error.toString(),
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.only(
+          bottom: Spacing.level6 * 4,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: Spacing.level4),
+            Text(
+              'Error loading test results',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: Spacing.level2),
+            Text(
+              error.toString(),
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -174,22 +189,27 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
     if (testResults.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.search_off, size: 64, color: Colors.grey),
-            const SizedBox(height: Spacing.level4),
-            Text(
-              'No results found',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: Spacing.level2),
-            const Text(
-              'Try adjusting your filters or search criteria.',
-              textAlign: TextAlign.center,
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.only(
+            bottom: Spacing.level6 * 4,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.search_off, size: 64, color: Colors.grey),
+              const SizedBox(height: Spacing.level4),
+              Text(
+                'No results found',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: Spacing.level2),
+              const Text(
+                'Try adjusting your filters or search criteria.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       );
     }
