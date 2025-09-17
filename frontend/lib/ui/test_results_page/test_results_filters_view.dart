@@ -14,14 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/family_name.dart';
+import '../../models/execution_metadata.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
+import '../../providers/execution_metadata.dart';
 import '../page_filters/multi_select_combobox.dart';
 import '../spacing.dart';
 
@@ -46,6 +49,7 @@ class _TestResultsFiltersViewState
   late Set<String> _families;
   late Set<String> _envs;
   late Set<String> _tests;
+  late Set<(String, String)> _executionMetadata;
 
   @override
   void initState() {
@@ -72,6 +76,9 @@ class _TestResultsFiltersViewState
     _families = readParam('families');
     _envs = readParam('environments');
     _tests = readParam('test_cases');
+    _executionMetadata = ExecutionMetadata.fromQueryParams(
+      widget.pageUri.queryParametersAll['execution_metadata'] ?? [],
+    ).toRows();
   }
 
   Map<String, String> _toQueryParams() {
@@ -85,6 +92,11 @@ class _TestResultsFiltersViewState
     if (_tests.isNotEmpty) {
       qp['test_cases'] = _tests.join(',');
     }
+    if (_executionMetadata.isNotEmpty) {
+      qp['execution_metadata'] = ExecutionMetadata.fromRows(_executionMetadata)
+          .toQueryParams()
+          .join(',');
+    }
     return qp;
   }
 
@@ -95,9 +107,13 @@ class _TestResultsFiltersViewState
     final environments = ref.watch(allEnvironmentsProvider).value ?? [];
     final testCases = ref.watch(allTestCasesProvider).value ?? [];
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
+    final executionMetadata = ref.watch(executionMetadataProvider).value ??
+        ExecutionMetadata(data: {});
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.start,
+      spacing: Spacing.level4,
+      runSpacing: Spacing.level4,
       children: [
         _box(
           MultiSelectCombobox(
@@ -111,7 +127,6 @@ class _TestResultsFiltersViewState
             },
           ),
         ),
-        const SizedBox(width: Spacing.level4),
         _box(
           MultiSelectCombobox(
             title: 'Environment',
@@ -122,7 +137,6 @@ class _TestResultsFiltersViewState
             },
           ),
         ),
-        const SizedBox(width: Spacing.level4),
         _box(
           MultiSelectCombobox(
             title: 'Test Case',
@@ -133,7 +147,23 @@ class _TestResultsFiltersViewState
             },
           ),
         ),
-        const SizedBox(width: Spacing.level4),
+        _box(
+          MultiSelectCombobox(
+            title: 'Metadata',
+            allOptions: executionMetadata.toStrings(),
+            initialSelected: ExecutionMetadata.fromRows(_executionMetadata)
+                .toStrings()
+                .toSet(),
+            onChanged: (val, isSelected) {
+              final match = executionMetadata.findFromString(val);
+              setState(
+                () => isSelected
+                    ? _executionMetadata.add(match)
+                    : _executionMetadata.remove(match),
+              );
+            },
+          ),
+        ),
         SizedBox(
           width: _comboWidth,
           height: _controlHeight,

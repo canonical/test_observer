@@ -14,30 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'api.dart';
 
-import '../expandable.dart';
-import '../../models/execution_metadata.dart';
-import '../execution_metadata.dart';
+import '../models/execution_metadata.dart';
 
-class ExecutionMetadataExpandable extends StatelessWidget {
-  const ExecutionMetadataExpandable({
-    super.key,
-    required this.executionMetadata,
-    required this.initiallyExpanded,
-  });
+part 'execution_metadata.g.dart';
 
-  final ExecutionMetadata executionMetadata;
-  final bool initiallyExpanded;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expandable(
-      title: const Text('Execution Metadata'),
-      initiallyExpanded: initiallyExpanded,
-      children: [
-        ExecutionMetadataTable(metadata: executionMetadata),
-      ],
-    );
-  }
+@riverpod
+Future<ExecutionMetadata> executionMetadata(Ref ref) async {
+  final api = ref.watch(apiProvider);
+  return await api.getExecutionMetadata();
 }

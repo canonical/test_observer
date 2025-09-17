@@ -19,6 +19,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/detailed_test_results.dart';
+import '../execution_metadata.dart';
 import 'test_results_helpers.dart';
 
 class TestResultDetailsDialog extends StatelessWidget {
@@ -167,6 +168,12 @@ class _DialogContent extends StatelessWidget {
                     result.testExecution.createdAt.toIso8601String(),
                   ),
                 ),
+                _DetailRow(
+                  label: 'Execution Metadata',
+                  valueWidget: ExecutionMetadataTable(
+                    metadata: result.testExecution.executionMetadata,
+                  ),
+                ),
               ],
             ),
 
@@ -248,10 +255,12 @@ class _DialogSection extends StatelessWidget {
 class _DetailRow extends StatelessWidget {
   final String label;
   final String? value;
+  final Widget? valueWidget;
 
   const _DetailRow({
     required this.label,
-    required this.value,
+    this.value,
+    this.valueWidget,
   });
 
   @override
@@ -262,7 +271,7 @@ class _DetailRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 200,
             child: Text(
               '$label:',
               style: const TextStyle(
@@ -272,10 +281,11 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value ?? 'N/A',
-              style: const TextStyle(color: Colors.black),
-            ),
+            child: valueWidget ??
+                Text(
+                  value ?? 'N/A',
+                  style: const TextStyle(color: Colors.black),
+                ),
           ),
         ],
       ),

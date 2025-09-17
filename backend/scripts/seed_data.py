@@ -629,7 +629,11 @@ ENVIRONMENT_ISSUE_REQUESTS = [
 ]
 
 SAMPLE_EXECUTION_METADATA = [
-    {"category1": ["value1", "value2"], "category2": ["value3"]},
+    {
+        "category1": ["value1", "value2"],
+        "category2": ["value3"],
+        "category3:4-5": ["weird strange value:/!@#$%^&*()"],
+    },
     {
         "category1": ["value1", "long message " + " ".join(str(n) for n in range(50))],
         "category2": ["value3"],
