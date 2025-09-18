@@ -81,10 +81,6 @@ class IssueResponse(BaseModel):
     status: IssueStatus
     url: HttpUrl
 
-    test_results: list[IssueTestResultAttachmentResponse] = Field(
-        validation_alias=AliasPath("test_result_attachments")
-    )
-
     attachment_rules: list[MinimalIssueTestResultAttachmentRuleResponse] = Field(
         validation_alias=AliasPath("test_result_attachment_rules")
     )

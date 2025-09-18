@@ -72,17 +72,7 @@ def get_issue(
     issue = db.get(
         Issue,
         issue_id,
-        options=(
-            selectinload(Issue.test_result_attachments)
-            .selectinload(IssueTestResultAttachment.test_result)
-            .selectinload(TestResult.test_execution)
-            .selectinload(TestExecution.environment),
-            selectinload(Issue.test_result_attachments)
-            .selectinload(IssueTestResultAttachment.test_result)
-            .selectinload(TestResult.test_execution)
-            .selectinload(TestExecution.artefact_build)
-            .selectinload(ArtefactBuild.artefact),
-        ),
+        options=(selectinload(Issue.test_result_attachment_rules)),
     )
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
