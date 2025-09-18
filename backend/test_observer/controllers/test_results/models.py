@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from pydantic import BaseModel, ConfigDict
+from datetime import datetime
 from test_observer.controllers.test_executions.models import (
     TestResultResponse,
     TestExecutionResponse,
@@ -23,6 +24,7 @@ from test_observer.controllers.artefacts.models import (
     ArtefactResponse,
     ArtefactBuildMinimalResponse,
 )
+from test_observer.data_access.models_enums import FamilyName
 
 
 class TestResultSearchResponse(BaseModel):
@@ -48,3 +50,15 @@ class TestResultSearchResponseWithContext(BaseModel):
 
     count: int
     test_results: list[TestResultResponseWithContext]
+
+class TestResultSearchFilters(BaseModel):
+    families: list[FamilyName] | None = None
+    environments: list[str] | None = None
+    test_cases: list[str] | None = None
+    template_ids: list[str] | None = None
+    execution_metadata: list[tuple[str, str]] | None = None
+    issues: list[int] | None = None
+    from_date: datetime | None = None
+    until_date: datetime | None = None
+    offset: int | None = None
+    limit: int | None = None

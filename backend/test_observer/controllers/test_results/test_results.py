@@ -17,37 +17,25 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import (
-    and_,
-    desc,
     func,
     select,
-    exists,
-    values,
-    column,
-    true,
-    ColumnExpressionArgument,
 )
 from sqlalchemy.orm import Session, selectinload
 from typing import Annotated
 import urllib
 
 from test_observer.data_access.models import (
-    Artefact,
     ArtefactBuild,
-    Environment,
-    Issue,
-    IssueTestResultAttachment,
-    TestCase,
     TestExecution,
     TestResult,
-    TestExecutionMetadata,
-    ColumnElement,
 )
 from test_observer.data_access.models_enums import FamilyName
-from test_observer.data_access.models import test_execution_metadata_association_table
 from test_observer.data_access.setup import get_db
-
-from .models import TestResultSearchResponseWithContext, TestResultResponseWithContext
+from .models import (
+    TestResultSearchResponseWithContext,
+    TestResultResponseWithContext,
+    TestResultSearchFilters,
+)
 from test_observer.controllers.test_executions.models import (
     TestResultResponse,
     TestExecutionResponse,
@@ -56,6 +44,7 @@ from test_observer.controllers.artefacts.models import (
     ArtefactResponse,
     ArtefactBuildMinimalResponse,
 )
+from .test_results_search import filter_test_results
 
 router = APIRouter(tags=["test-results"])
 
@@ -84,65 +73,6 @@ def parse_execution_metadata(
         category, value = item.split(":")
         result.append((urllib.parse.unquote(category), urllib.parse.unquote(value)))
     return result
-
-
-def filter_execution_metadata(
-    execution_metadata: list[tuple[str, str]],
-) -> ColumnElement[bool]:
-    # Step 1: Build filter_metadata values table
-    # This table contains all (category, value) pairs to filter against.
-    filter_metadata = (
-        values(
-            column("category"),
-            column("value"),
-        )
-        .data(execution_metadata)
-        .alias("filter_metadata")
-    )
-
-    # Step 2: Build metadata_matches query
-    # For each test execution and required (category, value),
-    # attempt to find a matching metadata row.
-    metadata_matches = (
-        select(
-            TestExecution.id,
-            filter_metadata.c.category,
-        )
-        .join(filter_metadata, true())
-        .outerjoin(
-            test_execution_metadata_association_table,
-            TestExecution.id
-            == test_execution_metadata_association_table.c.test_execution_id,
-        )
-        .outerjoin(
-            TestExecutionMetadata,
-            and_(
-                test_execution_metadata_association_table.c.test_execution_metadata_id
-                == TestExecutionMetadata.id,
-                TestExecutionMetadata.category == filter_metadata.c.category,
-                TestExecutionMetadata.value == filter_metadata.c.value,
-            ),
-        )
-    )
-
-    # Step 3: Group and filter unmatched categories
-    # Group by test execution and category,
-    # keeping only those where no matching metadata value exists.
-    unmatched_categories = metadata_matches.group_by(
-        TestExecution.id,
-        filter_metadata.c.category,
-    ).having(func.count(TestExecutionMetadata.value) == 0)
-
-    # Step 4: Exclude test executions with unmatched categories
-    # Exclude any test execution that has at least one
-    # unmatched category.
-    exclusion_condition = ~exists(
-        select(1)
-        .select_from(unmatched_categories.subquery())
-        .where(unmatched_categories.c.id == TestExecution.id)
-    )
-
-    return exclusion_condition
 
 
 @router.get("", response_model=TestResultSearchResponseWithContext)
@@ -190,70 +120,10 @@ def search_test_results(
     the total count and paginated results in one database round trip.
     """
 
-    # Build filters and track which joins are needed
-    filters: list[ColumnExpressionArgument[bool]] = []
-    joins_needed = set()
-
-    joins_needed.add("test_execution")
-
-    if families:
-        filters.append(Artefact.family.in_(families))
-        joins_needed.update(["test_execution", "artefact_build", "artefact"])
-
-    if environments:
-        filters.append(Environment.name.in_(environments))
-        joins_needed.update(["test_execution", "environment"])
-
-    if test_cases:
-        filters.append(TestCase.name.in_(test_cases))
-        joins_needed.add("test_case")
-
-    if template_ids:
-        filters.append(TestCase.template_id.in_(template_ids))
-        joins_needed.add("test_case")
-
-    if execution_metadata:
-        filters.append(filter_execution_metadata(execution_metadata))
-        joins_needed.add("execution_metadata")
-
-    if issues:
-        filters.append(
-            TestResult.id.in_(
-                select(IssueTestResultAttachment.test_result_id)
-                .join(IssueTestResultAttachment.issue)
-                .where(Issue.id.in_(issues))
-            )
-        )
-
-    if from_date:
-        filters.append(TestExecution.created_at >= from_date)  # type: ignore
-        joins_needed.add("test_execution")
-
-    if until_date:
-        filters.append(TestExecution.created_at <= until_date)  # type: ignore
-        joins_needed.add("test_execution")
-
-    # Build the main query with only necessary joins
+    # Build select query
     query = select(TestResult, func.count().over().label("total_count"))
 
-    if "test_execution" in joins_needed:
-        query = query.join(TestResult.test_execution)
-
-    if "environment" in joins_needed:
-        query = query.join(TestExecution.environment)
-
-    if "artefact_build" in joins_needed:
-        query = query.join(TestExecution.artefact_build)
-
-    if "artefact" in joins_needed:
-        query = query.join(ArtefactBuild.artefact)
-
-    if "test_case" in joins_needed:
-        query = query.join(TestResult.test_case)
-
-    if "execution_metadata" in joins_needed:
-        query = query.join(TestExecution.execution_metadata)
-
+    # Apply necessary eager loading
     query = query.options(
         selectinload(TestResult.test_case),
         selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
@@ -266,19 +136,27 @@ def search_test_results(
         ),
     )
 
-    # Apply ordering and pagination
-    query = (
-        query.order_by(desc(TestExecution.created_at), desc(TestResult.id))
-        .offset(offset)
-        .limit(limit)
+    # Apply filters
+    query = filter_test_results(
+        query,
+        TestResultSearchFilters(
+            families=families,
+            environments=environments,
+            test_cases=test_cases,
+            template_ids=template_ids,
+            execution_metadata=execution_metadata,
+            issues=issues,
+            from_date=from_date,
+            until_date=until_date,
+            limit=limit,
+            offset=offset,
+        ),
     )
 
-    # Apply all filters
-    if filters:
-        query = query.where(and_(*filters))
-
+    # Execute query
     result = db.execute(query).all()
 
+    # Process and return results
     if result:
         test_results = [row[0] for row in result]
         total_count = result[0][1]
