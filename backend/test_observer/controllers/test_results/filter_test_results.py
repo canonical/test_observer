@@ -14,18 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sqlalchemy import (
-    and_,
-    desc,
-    func,
-    select,
-    exists,
-    values,
-    column,
-    true,
-    ColumnExpressionArgument,
-    Select
-)
+from sqlalchemy import and_, desc, func, select, exists, values, column, true, Select
 
 
 from test_observer.data_access.models import (

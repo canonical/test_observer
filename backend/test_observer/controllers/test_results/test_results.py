@@ -44,7 +44,7 @@ from test_observer.controllers.artefacts.models import (
     ArtefactResponse,
     ArtefactBuildMinimalResponse,
 )
-from .test_results_search import filter_test_results
+from .filter_test_results import filter_test_results
 
 router = APIRouter(tags=["test-results"])
 

@@ -51,6 +51,7 @@ class TestResultSearchResponseWithContext(BaseModel):
     count: int
     test_results: list[TestResultResponseWithContext]
 
+
 class TestResultSearchFilters(BaseModel):
     families: list[FamilyName] | None = None
     environments: list[str] | None = None

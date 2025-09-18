@@ -56,16 +56,7 @@ def test_get_all(test_client: TestClient, generator: DataGenerator):
 
 
 def test_get_issue(test_client: TestClient, generator: DataGenerator):
-    environment = generator.gen_environment()
-    test_case = generator.gen_test_case()
-    artefact = generator.gen_artefact()
-    artefact_build = generator.gen_artefact_build(artefact)
-    test_execution = generator.gen_test_execution(artefact_build, environment)
-    test_result = generator.gen_test_result(test_case, test_execution)
     issue = generator.gen_issue()
-    response = test_client.post(
-        f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}
-    )
 
     response = test_client.get(endpoint + f"/{issue.id}")
 
@@ -73,7 +64,6 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
     assert set(response.json().keys()) == {
         "attachment_rules",
         "url",
-        "test_results",
         "key",
         "id",
         "project",
@@ -88,15 +78,6 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
     assert response.json()["title"] == issue.title
     assert response.json()["status"] == issue.status
     assert response.json()["url"] == issue.url
-    assert len(response.json()["test_results"]) == 1
-    assert response.json()["test_results"][0]["test_result"]["id"] == test_result.id
-    assert (
-        response.json()["test_results"][0]["test_execution"]["id"] == test_execution.id
-    )
-    assert response.json()["test_results"][0]["artefact"]["id"] == artefact.id
-    assert (
-        response.json()["test_results"][0]["artefact_build"]["id"] == artefact_build.id
-    )
 
 
 def test_patch_invalid_status(test_client: TestClient):

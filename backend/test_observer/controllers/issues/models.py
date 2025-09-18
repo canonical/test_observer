@@ -30,6 +30,7 @@ from test_observer.controllers.test_executions.models import (
     TestResultResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.test_results.models import TestResultSearchFilters
 
 
 from .shared_models import (
@@ -100,4 +101,5 @@ class IssuePutRequest(IssuePatchRequest):
 
 
 class IssueAttachmentRequest(BaseModel):
-    test_results: list[int] = Field(default_factory=list)
+    test_results: list[int] | None = None
+    test_results_filters: TestResultSearchFilters | None = None

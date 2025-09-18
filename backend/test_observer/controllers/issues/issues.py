@@ -22,10 +22,6 @@ from sqlalchemy.orm import Session, selectinload
 
 from test_observer.data_access.models import (
     Issue,
-    IssueTestResultAttachment,
-    TestResult,
-    TestExecution,
-    ArtefactBuild,
 )
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models_enums import IssueSource
@@ -72,7 +68,7 @@ def get_issue(
     issue = db.get(
         Issue,
         issue_id,
-        options=(selectinload(Issue.test_result_attachment_rules)),
+        options=(selectinload(Issue.test_result_attachment_rules),),
     )
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
