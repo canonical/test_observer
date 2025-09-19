@@ -122,7 +122,6 @@ def build_query_filters_and_joins(
 
     if len(filters.execution_metadata) > 0:
         query_filters.append(filter_execution_metadata(filters.execution_metadata))
-        joins_needed.add("execution_metadata")
 
     if len(filters.issues) > 0:
         query_filters.append(
@@ -159,9 +158,6 @@ def apply_joins(query: Select, joins_needed: set[str]) -> Select:
 
     if "test_case" in joins_needed:
         query = query.join(TestResult.test_case)
-
-    if "execution_metadata" in joins_needed:
-        query = query.join(TestExecution.execution_metadata)
 
     return query
 
