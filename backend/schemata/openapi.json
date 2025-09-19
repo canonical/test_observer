@@ -3746,11 +3746,28 @@
       "IssueAttachmentRequest": {
         "properties": {
           "test_results": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Test Results"
+          },
+          "test_results_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestResultSearchFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -3851,13 +3868,6 @@
             "format": "uri",
             "title": "Url"
           },
-          "test_results": {
-            "items": {
-              "$ref": "#/components/schemas/IssueTestResultAttachmentResponse"
-            },
-            "type": "array",
-            "title": "Test Results"
-          },
           "attachment_rules": {
             "items": {
               "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
@@ -3875,7 +3885,6 @@
           "title",
           "status",
           "url",
-          "test_results",
           "attachment_rules"
         ],
         "title": "IssueResponse"
@@ -3897,30 +3906,6 @@
           "closed"
         ],
         "title": "IssueStatus"
-      },
-      "IssueTestResultAttachmentResponse": {
-        "properties": {
-          "test_result": {
-            "$ref": "#/components/schemas/TestResultResponse"
-          },
-          "test_execution": {
-            "$ref": "#/components/schemas/TestExecutionResponse"
-          },
-          "artefact": {
-            "$ref": "#/components/schemas/ArtefactResponse"
-          },
-          "artefact_build": {
-            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
-          }
-        },
-        "type": "object",
-        "required": [
-          "test_result",
-          "test_execution",
-          "artefact",
-          "artefact_build"
-        ],
-        "title": "IssueTestResultAttachmentResponse"
       },
       "IssueTestResultAttachmentRulePatchRequest": {
         "properties": {
@@ -5178,6 +5163,96 @@
         ],
         "title": "TestResultResponseWithContext",
         "description": "Test result response with artefact and test execution context"
+      },
+      "TestResultSearchFilters": {
+        "properties": {
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environments"
+          },
+          "test_cases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Cases"
+          },
+          "template_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Template Ids"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
+          "issues": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "from_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Date"
+          },
+          "until_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until Date"
+          },
+          "offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "title": "TestResultSearchFilters"
       },
       "TestResultSearchResponseWithContext": {
         "properties": {

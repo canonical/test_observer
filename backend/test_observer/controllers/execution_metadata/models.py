@@ -59,6 +59,9 @@ class ExecutionMetadata(RootModel):
         }
     }
 
+    def __len__(self):
+        return len(self.root)
+
     @classmethod
     def from_rows(cls, values: Sequence[TestExecutionMetadata]) -> "ExecutionMetadata":
         grouped = defaultdict(list)
