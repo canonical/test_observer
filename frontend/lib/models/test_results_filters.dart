@@ -68,10 +68,10 @@ abstract class TestResultsFilters with _$TestResultsFilters {
         .map((s) => int.tryParse(s))
         .whereNotNull()
         .toList();
-    final fromDate = parseParam(parameters['from'])
+    final fromDate = parseParam(parameters['from_date'])
         .map((s) => DateTime.tryParse(s))
         .firstOrNullWhere((v) => v != null);
-    final untilDate = parseParam(parameters['until'])
+    final untilDate = parseParam(parameters['until_date'])
         .map((s) => DateTime.tryParse(s))
         .firstOrNullWhere((v) => v != null);
     final offset = parseParam(parameters['offset'])
@@ -116,10 +116,10 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       params['issues'] = issues.map((i) => i.toString()).toList();
     }
     if (fromDate != null) {
-      params['from'] = [fromDate!.toIso8601String()];
+      params['from_date'] = [fromDate!.toIso8601String()];
     }
     if (untilDate != null) {
-      params['until'] = [untilDate!.toIso8601String()];
+      params['until_date'] = [untilDate!.toIso8601String()];
     }
     if (offset != null) {
       params['offset'] = [offset!.toString()];
