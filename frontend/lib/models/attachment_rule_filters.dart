@@ -17,17 +17,16 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'execution_metadata.dart';
-import 'attachment_rule_filters.dart';
+import 'test_results_filters.dart';
 
-part 'attachment_rule.freezed.dart';
-part 'attachment_rule.g.dart';
+part 'attachment_rule_filters.freezed.dart';
+part 'attachment_rule_filters.g.dart';
 
 @freezed
-abstract class AttachmentRule with _$AttachmentRule {
-  const AttachmentRule._();
-  const factory AttachmentRule({
-    required int id,
-    required bool enabled,
+abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
+  const AttachmentRuleFilters._();
+  const factory AttachmentRuleFilters({
+    @Default(true) bool enabled,
     @JsonKey(name: 'families') @Default([]) List<String> families,
     @JsonKey(name: 'environment_names')
     @Default([])
@@ -37,19 +36,26 @@ abstract class AttachmentRule with _$AttachmentRule {
     @JsonKey(name: 'execution_metadata')
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
-  }) = _AttachmentRule;
+  }) = _AttachmentRuleFilters;
 
-  factory AttachmentRule.fromJson(Map<String, Object?> json) =>
-      _$AttachmentRuleFromJson(json);
+  factory AttachmentRuleFilters.fromJson(Map<String, Object?> json) =>
+      _$AttachmentRuleFiltersFromJson(json);
 
-  AttachmentRuleFilters toFilters() {
-    return AttachmentRuleFilters(
-      enabled: enabled,
+  TestResultsFilters toTestResultsFilters() {
+    return TestResultsFilters(
       families: families,
-      environmentNames: environmentNames,
-      testCaseNames: testCaseNames,
+      environments: environmentNames,
+      testCases: testCaseNames,
       templateIds: templateIds,
       executionMetadata: executionMetadata,
     );
+  }
+
+  get hasFilters {
+    return families.isNotEmpty ||
+        environmentNames.isNotEmpty ||
+        testCaseNames.isNotEmpty ||
+        templateIds.isNotEmpty ||
+        executionMetadata.isNotEmpty;
   }
 }

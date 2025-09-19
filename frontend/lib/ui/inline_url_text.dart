@@ -36,7 +36,11 @@ class InlineUrlText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fontStyle = this.fontStyle ?? DefaultTextStyle.of(context).style;
+    final fontStyle = this.fontStyle ??
+        DefaultTextStyle.of(context).style.apply(
+              decoration: TextDecoration.underline,
+              color: Colors.blue,
+            );
 
     return RichText(
       text: TextSpan(
@@ -45,10 +49,7 @@ class InlineUrlText extends StatelessWidget {
           if (leadingText != null) TextSpan(text: leadingText),
           TextSpan(
             text: urlText ?? url,
-            style: fontStyle.apply(
-              decoration: TextDecoration.underline,
-              color: Colors.blue,
-            ),
+            style: fontStyle,
             recognizer: TapGestureRecognizer()
               ..onTap = () => launchUrlString(url),
           ),

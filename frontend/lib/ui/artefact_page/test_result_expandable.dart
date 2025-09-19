@@ -35,10 +35,12 @@ class TestResultExpandable extends ConsumerWidget {
     super.key,
     required this.testExecutionId,
     required this.testResult,
+    required this.artefactId,
   });
 
   final int testExecutionId;
   final TestResult testResult;
+  final int artefactId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -68,6 +70,7 @@ class TestResultExpandable extends ConsumerWidget {
           IssueAttachmentsExpandable(
             testExecutionId: testExecutionId,
             testResultId: testResult.id,
+            artefactId: artefactId,
           ),
         ],
         _TestResultOutputExpandable(testResult: testResult),

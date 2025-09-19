@@ -77,6 +77,7 @@ class ArtefactPageBody extends ConsumerWidget {
                   // Padding is to avoid scroll bar covering trailing buttons
                   padding: const EdgeInsets.only(right: Spacing.level3),
                   child: EnvironmentExpandable(
+                    artefactId: artefact.id,
                     artefactEnvironment: environments[i],
                   ),
                 ),

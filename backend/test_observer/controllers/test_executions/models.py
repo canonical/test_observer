@@ -174,6 +174,7 @@ class TestResultResponse(BaseModel):
 
     id: int
     name: str = Field(validation_alias=AliasPath("test_case", "name"))
+    created_at: datetime
     category: str = Field(validation_alias=AliasPath("test_case", "category"))
     template_id: str = Field(validation_alias=AliasPath("test_case", "template_id"))
     status: TestResultStatus
