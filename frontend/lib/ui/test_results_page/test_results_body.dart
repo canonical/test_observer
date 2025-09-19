@@ -19,15 +19,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/detailed_test_results.dart';
+import '../../models/test_results_filters.dart';
 import '../../providers/test_results_search.dart';
-import '../../routing.dart';
 import '../spacing.dart';
 import 'test_results_table.dart';
 
 class TestResultsBody extends ConsumerStatefulWidget {
-  const TestResultsBody({super.key, required this.pageUri});
+  const TestResultsBody({super.key, required this.filters});
 
-  final Uri pageUri;
+  final TestResultsFilters filters;
 
   @override
   ConsumerState<TestResultsBody> createState() => _TestResultsBodyState();
@@ -36,7 +36,7 @@ class TestResultsBody extends ConsumerStatefulWidget {
 class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
-  Uri? _lastProcessedUri;
+  TestResultsFilters? _lastProcessedFilters;
 
   @override
   void initState() {
@@ -49,8 +49,8 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   void didUpdateWidget(TestResultsBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Handle URI changes
-    if (oldWidget.pageUri.toString() != widget.pageUri.toString()) {
-      _handleUriChange();
+    if (oldWidget.filters != widget.filters) {
+      _handleFiltersChange();
     }
   }
 
@@ -67,9 +67,9 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     }
   }
 
-  void _handleUriChange() {
-    if (widget.pageUri != _lastProcessedUri) {
-      _lastProcessedUri = widget.pageUri;
+  void _handleFiltersChange() {
+    if (widget.filters != _lastProcessedFilters) {
+      _lastProcessedFilters = widget.filters;
     }
   }
 
@@ -79,7 +79,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
     try {
       await ref
-          .read(testResultsSearchFromUriProvider(widget.pageUri).notifier)
+          .read(testResultsSearchProvider(widget.filters).notifier)
           .loadMore();
     } finally {
       if (mounted) {
@@ -92,7 +92,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     if (_isLoadingMore) return;
 
     final data =
-        ref.read(testResultsSearchFromUriProvider(widget.pageUri)).valueOrNull;
+        ref.read(testResultsSearchProvider(widget.filters)).valueOrNull;
     if (data == null || !data.hasMore) return;
 
     _loadMore();
@@ -100,13 +100,11 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
   @override
   Widget build(BuildContext context) {
-    final hasQueryParams = widget.pageUri.queryParametersAll.isNotEmpty;
-    final pageUri = AppRoutes.uriFromContext(context);
-    if (!hasQueryParams) {
+    if (!widget.filters.hasFilters) {
       return _buildEmptyState(context);
     }
 
-    final searchResults = ref.watch(testResultsSearchFromUriProvider(pageUri));
+    final searchResults = ref.watch(testResultsSearchProvider(widget.filters));
 
     return searchResults.when(
       loading: () => _buildLoadingState(context),
