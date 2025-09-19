@@ -210,7 +210,7 @@ def test_issue_attach_with_filters_execution_metadata(
     # Attach only test results with hw:laptop
     resp = test_client.post(
         attach_endpoint.format(id=issue.id),
-        json={"test_results_filters": {"execution_metadata": [["hw", "laptop"]]}},
+        json={"test_results_filters": {"execution_metadata": {"hw": ["laptop"]}}},
     )
     assert resp.status_code == 200
     attached_ids = {a.test_result.id for a in issue.test_result_attachments}

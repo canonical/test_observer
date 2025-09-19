@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from test_observer.controllers.test_executions.models import (
     TestResultResponse,
@@ -25,6 +25,7 @@ from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
 )
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 
 class TestResultSearchResponse(BaseModel):
@@ -53,12 +54,12 @@ class TestResultSearchResponseWithContext(BaseModel):
 
 
 class TestResultSearchFilters(BaseModel):
-    families: list[FamilyName] | None = None
-    environments: list[str] | None = None
-    test_cases: list[str] | None = None
-    template_ids: list[str] | None = None
-    execution_metadata: list[tuple[str, str]] | None = None
-    issues: list[int] | None = None
+    families: list[FamilyName] = Field(default_factory=list)
+    environments: list[str] = Field(default_factory=list)
+    test_cases: list[str] = Field(default_factory=list)
+    template_ids: list[str] = Field(default_factory=list)
+    execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
+    issues: list[int] = Field(default_factory=list)
     from_date: datetime | None = None
     until_date: datetime | None = None
     offset: int | None = None

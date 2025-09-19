@@ -28,6 +28,7 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
     TestResult,
+    TestExecutionMetadata,
 )
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
@@ -44,6 +45,7 @@ from test_observer.controllers.artefacts.models import (
     ArtefactResponse,
     ArtefactBuildMinimalResponse,
 )
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from .filter_test_results import filter_test_results
 
 router = APIRouter(tags=["test-results"])
@@ -140,12 +142,19 @@ def search_test_results(
     query = filter_test_results(
         query,
         TestResultSearchFilters(
-            families=families,
-            environments=environments,
-            test_cases=test_cases,
-            template_ids=template_ids,
-            execution_metadata=execution_metadata,
-            issues=issues,
+            families=families or [],
+            environments=environments or [],
+            test_cases=test_cases or [],
+            template_ids=template_ids or [],
+            execution_metadata=ExecutionMetadata.from_rows(
+                [
+                    TestExecutionMetadata(category=cat, value=val)
+                    for cat, val in execution_metadata
+                ]
+            )
+            if execution_metadata
+            else ExecutionMetadata(),
+            issues=issues or [],
             from_date=from_date,
             until_date=until_date,
             limit=limit,

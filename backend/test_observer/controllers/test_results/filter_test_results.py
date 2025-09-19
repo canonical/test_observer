@@ -30,6 +30,7 @@ from test_observer.data_access.models import (
     ColumnElement,
 )
 from test_observer.data_access.models import test_execution_metadata_association_table
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 from .models import (
     TestResultSearchFilters,
@@ -37,7 +38,7 @@ from .models import (
 
 
 def filter_execution_metadata(
-    execution_metadata: list[tuple[str, str]],
+    execution_metadata: ExecutionMetadata,
 ) -> ColumnElement[bool]:
     # Step 1: Build filter_metadata values table
     # This table contains all (category, value) pairs to filter against.
@@ -46,7 +47,7 @@ def filter_execution_metadata(
             column("category"),
             column("value"),
         )
-        .data(execution_metadata)
+        .data([(r.category, r.value) for r in execution_metadata.to_rows()])
         .alias("filter_metadata")
     )
 
@@ -103,27 +104,27 @@ def build_query_filters_and_joins(
 
     joins_needed.add("test_execution")
 
-    if filters.families is not None:
+    if len(filters.families) > 0:
         query_filters.append(Artefact.family.in_(filters.families))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
-    if filters.environments is not None:
+    if len(filters.environments) > 0:
         query_filters.append(Environment.name.in_(filters.environments))
         joins_needed.update(["test_execution", "environment"])
 
-    if filters.test_cases is not None:
+    if len(filters.test_cases) > 0:
         query_filters.append(TestCase.name.in_(filters.test_cases))
         joins_needed.add("test_case")
 
-    if filters.template_ids is not None:
+    if len(filters.template_ids) > 0:
         query_filters.append(TestCase.template_id.in_(filters.template_ids))
         joins_needed.add("test_case")
 
-    if filters.execution_metadata is not None:
+    if len(filters.execution_metadata) > 0:
         query_filters.append(filter_execution_metadata(filters.execution_metadata))
         joins_needed.add("execution_metadata")
 
-    if filters.issues is not None:
+    if len(filters.issues) > 0:
         query_filters.append(
             TestResult.id.in_(
                 select(IssueTestResultAttachment.test_result_id)

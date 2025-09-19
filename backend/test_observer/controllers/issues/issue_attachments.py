@@ -72,7 +72,7 @@ def modify_issue_attachments(
     if request.test_results_filters is not None:
         filters = request.test_results_filters
         if all(
-            value in (None, [], {})
+            len(value) == 0
             for key, value in filters.model_dump().items()
             if key not in ("from_date", "until_date", "offset", "limit")
         ):
