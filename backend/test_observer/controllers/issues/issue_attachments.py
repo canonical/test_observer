@@ -71,7 +71,11 @@ def modify_issue_attachments(
     # Add or remove any test results matching the provided filters
     if request.test_results_filters is not None:
         filters = request.test_results_filters
-        if filters.is_empty():
+        if all(
+            value in (None, [], {})
+            for key, value in filters.model_dump().items()
+            if key not in ("from_date", "until_date", "offset", "limit")
+        ):
             raise HTTPException(
                 status_code=422,
                 detail="At least one filter must be provided in test_results_filters",
