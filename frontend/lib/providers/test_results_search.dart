@@ -14,25 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:dartx/dartx.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/detailed_test_results.dart';
-import '../models/execution_metadata.dart';
+import '../models/test_results_filters.dart';
 import 'api.dart';
 
 part 'test_results_search.g.dart';
 
 @riverpod
-class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
+class TestResultsSearch extends _$TestResultsSearch {
   @override
-  AsyncValue<TestResultsSearchResult> build(Uri pageUri) {
+  AsyncValue<TestResultsSearchResult> build(TestResultsFilters filters) {
     // Automatically load initial data when URI has query params
-    if (pageUri.queryParametersAll.isNotEmpty) {
+    if (filters.hasFilters) {
       Future.microtask(() => loadInitial());
     }
 
-    return pageUri.queryParametersAll.isEmpty
+    return !filters.hasFilters
         ? AsyncValue.data(TestResultsSearchResult.empty())
         : const AsyncValue.loading();
   }
@@ -42,7 +41,7 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
     state = const AsyncValue.loading();
 
     try {
-      final result = await _searchWithUri(limit: 100, offset: 0);
+      final result = await _search(limit: 100, offset: 0);
       state = AsyncValue.data(result);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -59,18 +58,18 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
         .copyWithPrevious(state);
 
     try {
-      final result = await _searchWithUri(
+      final results = await _search(
         limit: 100,
         offset: current.testResults.length,
       );
 
       // Merge results
       final merged = List<TestResultWithContext>.of(current.testResults)
-        ..addAll(result.testResults);
+        ..addAll(results.testResults);
 
       state = AsyncValue.data(
         TestResultsSearchResult(
-          count: result.count,
+          count: results.count,
           testResults: merged,
         ),
       );
@@ -79,63 +78,14 @@ class TestResultsSearchFromUri extends _$TestResultsSearchFromUri {
     }
   }
 
-  Future<TestResultsSearchResult> _searchWithUri({
+  Future<TestResultsSearchResult> _search({
     required int limit,
     required int offset,
   }) async {
     final api = ref.read(apiProvider);
-    final parameters = pageUri.queryParametersAll;
-
-    // Parse URI parameters directly
-    final familiesValues = parameters['families'] ?? [];
-    final families = familiesValues.isNotEmpty
-        ? familiesValues.first.split(',').map((f) => f.toLowerCase()).toList()
-        : <String>[];
-
-    final environmentsValues = parameters['environments'] ?? [];
-    final environments = environmentsValues.isNotEmpty
-        ? environmentsValues.first.split(',').toList()
-        : <String>[];
-
-    final testCasesValues = parameters['test_cases'] ?? [];
-    final testCases = testCasesValues.isNotEmpty
-        ? testCasesValues.first.split(',').toList()
-        : <String>[];
-
-    final executionMetadata = ExecutionMetadata.fromQueryParams(
-      parameters['execution_metadata'] ?? [],
-    );
-
-    final fromDateValues = parameters['from'] ?? [];
-    final fromDate = fromDateValues
-        .map((s) => DateTime.tryParse(s))
-        .firstOrNullWhere((d) => d != null);
-
-    final untilDateValues = parameters['until'] ?? [];
-    final untilDate = untilDateValues
-        .map((s) => DateTime.tryParse(s))
-        .firstOrNullWhere((d) => d != null);
-
-    // Only search if we have filters
-    if (families.isEmpty &&
-        environments.isEmpty &&
-        testCases.isEmpty &&
-        executionMetadata.data.isEmpty &&
-        fromDate == null &&
-        untilDate == null) {
+    if (!filters.hasFilters) {
       return TestResultsSearchResult.empty();
     }
-
-    return await api.searchTestResults(
-      families: families.isNotEmpty ? families : null,
-      environments: environments.isNotEmpty ? environments : null,
-      testCases: testCases.isNotEmpty ? testCases : null,
-      executionMetadata:
-          executionMetadata.data.isNotEmpty ? executionMetadata : null,
-      fromDate: fromDate,
-      untilDate: untilDate,
-      limit: limit,
-      offset: offset,
-    );
+    return await api.searchTestResults(filters);
   }
 }
