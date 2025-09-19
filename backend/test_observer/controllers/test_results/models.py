@@ -63,3 +63,10 @@ class TestResultSearchFilters(BaseModel):
     until_date: datetime | None = None
     offset: int | None = None
     limit: int | None = None
+
+    def is_empty(self) -> bool:
+        return all(
+            value in (None, [], {})
+            for key, value in self.model_dump().items()
+            if key not in ("from_date", "until_date", "offset", "limit")
+        )

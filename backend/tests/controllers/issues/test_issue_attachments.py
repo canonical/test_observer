@@ -125,6 +125,15 @@ def test_issue_detach_some(test_client: TestClient, generator: DataGenerator):
     } == {test_results[1].id}
 
 
+def test_issue_attach_no_filters(test_client: TestClient, generator: DataGenerator):
+    issue = generator.gen_issue()
+    resp = test_client.post(
+        attach_endpoint.format(id=issue.id),
+        json={"test_results_filters": {}},
+    )
+    assert resp.status_code == 422
+
+
 def test_issue_attach_with_filters_family(
     test_client: TestClient, generator: DataGenerator
 ):

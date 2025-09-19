@@ -71,6 +71,11 @@ def modify_issue_attachments(
     # Add or remove any test results matching the provided filters
     if request.test_results_filters is not None:
         filters = request.test_results_filters
+        if filters.is_empty():
+            raise HTTPException(
+                status_code=422,
+                detail="At least one filter must be provided in test_results_filters",
+            )
         base_query = select(TestResult.id)
         filtered_ids_query = filter_test_results(base_query, filters).subquery()
         if detach:
