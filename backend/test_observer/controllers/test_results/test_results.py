@@ -59,7 +59,7 @@ def parse_execution_metadata(
             "Category and value must be percent encoded."
         ),
     ),
-) -> list[tuple[str, str]] | None:
+) -> ExecutionMetadata | None:
     if execution_metadata is None:
         return None
     result = []
@@ -73,8 +73,13 @@ def parse_execution_metadata(
                 ),
             )
         category, value = item.split(":")
-        result.append((urllib.parse.unquote(category), urllib.parse.unquote(value)))
-    return result
+        result.append(
+            TestExecutionMetadata(
+                category=urllib.parse.unquote(category),
+                value=urllib.parse.unquote(value),
+            )
+        )
+    return ExecutionMetadata.from_rows(result)
 
 
 @router.get("", response_model=TestResultSearchResponseWithContext)
@@ -95,7 +100,7 @@ def search_test_results(
         list[str] | None, Query(description="Filter by template IDs")
     ] = None,
     execution_metadata: Annotated[
-        list[tuple[str, str]] | None, Depends(parse_execution_metadata)
+        ExecutionMetadata | None, Depends(parse_execution_metadata)
     ] = None,
     issues: Annotated[
         list[int] | None,
@@ -146,14 +151,7 @@ def search_test_results(
             environments=environments or [],
             test_cases=test_cases or [],
             template_ids=template_ids or [],
-            execution_metadata=ExecutionMetadata.from_rows(
-                [
-                    TestExecutionMetadata(category=cat, value=val)
-                    for cat, val in execution_metadata
-                ]
-            )
-            if execution_metadata
-            else ExecutionMetadata(),
+            execution_metadata=execution_metadata or ExecutionMetadata(),
             issues=issues or [],
             from_date=from_date,
             until_date=until_date,
