@@ -22,7 +22,7 @@ part 'execution_metadata.freezed.dart';
 abstract class ExecutionMetadata with _$ExecutionMetadata {
   const ExecutionMetadata._();
   const factory ExecutionMetadata({
-    required Map<String, Set<String>> data,
+    @Default({}) Map<String, Set<String>> data,
   }) = _ExecutionMetadata;
 
   factory ExecutionMetadata.fromJson(Map<String, Object?> json) {
@@ -60,9 +60,9 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
     return rows;
   }
 
-  factory ExecutionMetadata.fromQueryParams(List<String> params) {
+  factory ExecutionMetadata.fromQueryParams(List<String>? params) {
     final Set<(String, String)> rows = {};
-    for (final param in params) {
+    for (final param in params ?? <String>[]) {
       final pairs = param.split(',').where((s) => s.isNotEmpty);
       for (final pair in pairs) {
         final parts = pair.split(':');
@@ -94,4 +94,7 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
   (String, String) findFromString(String s) {
     return toRows().firstWhere((row) => '${row.$1} ${row.$2}' == s);
   }
+
+  bool get isEmpty => data.isEmpty;
+  bool get isNotEmpty => !isEmpty;
 }

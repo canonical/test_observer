@@ -16,12 +16,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:yaru/widgets.dart';
 
+import '../../models/test_results_filters.dart';
+import '../../routing.dart';
 import '../spacing.dart';
-import 'test_results_filters_view.dart';
 import 'test_results_body.dart';
+import 'test_results_filters_view.dart';
 
 class TestResultsPage extends ConsumerStatefulWidget {
   const TestResultsPage({super.key});
@@ -35,7 +36,8 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final uri = GoRouterState.of(context).uri;
+    final uri = AppRoutes.uriFromContext(context);
+    final filters = TestResultsFilters.fromQueryParams(uri.queryParametersAll);
 
     return Padding(
       padding: const EdgeInsets.only(
@@ -65,11 +67,11 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
           ),
           const SizedBox(height: Spacing.level4),
           if (showFilters) ...[
-            TestResultsFiltersView(pageUri: uri),
+            TestResultsFiltersView(initialFilters: filters),
             const SizedBox(height: Spacing.level4),
           ],
           Expanded(
-            child: TestResultsBody(pageUri: uri),
+            child: TestResultsBody(filters: filters),
           ),
         ],
       ),
