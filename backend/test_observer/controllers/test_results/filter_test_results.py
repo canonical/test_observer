@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sqlalchemy import and_, desc, func, select, exists, values, column, true, Select
+from sqlalchemy import and_, func, select, exists, values, column, true, Select
 
 
 from test_observer.data_access.models import (
@@ -169,8 +169,7 @@ def filter_test_results(query: Select, filters: TestResultSearchFilters) -> Sele
     # Build the main query with only necessary joins
     query = apply_joins(query, joins_needed)
 
-    # Apply ordering and pagination
-    query = query.order_by(desc(TestExecution.created_at), desc(TestResult.id))
+    # Apply pagination
     if filters.offset is not None:
         query = query.offset(filters.offset)
     if filters.limit is not None:
