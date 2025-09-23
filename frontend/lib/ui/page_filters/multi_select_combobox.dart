@@ -28,6 +28,12 @@ class MultiSelectCombobox extends StatefulWidget {
   final int maxSuggestions;
   final Set<String> initialSelected;
 
+  // Optional async suggestions callback
+  final Future<List<String>> Function(String pattern)? asyncSuggestionsCallback;
+
+  // Minimum characters to trigger async search
+  final int minCharsForAsyncSearch;
+
   const MultiSelectCombobox({
     super.key,
     required this.title,
@@ -36,6 +42,8 @@ class MultiSelectCombobox extends StatefulWidget {
     this.focusNode,
     this.maxSuggestions = 50,
     this.initialSelected = const {},
+    this.asyncSuggestionsCallback,
+    this.minCharsForAsyncSearch = 2,
   });
 
   @override
@@ -98,13 +106,30 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
     });
   }
 
-  List<String> _getSuggestions(String pattern) {
+  Future<List<String>> _getSuggestions(String pattern) async {
+    if (widget.asyncSuggestionsCallback != null) {
+      if (pattern.trim().length < widget.minCharsForAsyncSearch) {
+        return [];
+      }
+
+      try {
+        final asyncResults = await widget.asyncSuggestionsCallback!(pattern);
+        return asyncResults
+            .where((option) => !_selected.contains(option))
+            .toList();
+      } catch (e) {
+        debugPrint('Error fetching async suggestions: $e');
+        return [];
+      }
+    }
+
     return widget.allOptions
         .where(
           (option) =>
               option.toLowerCase().contains(pattern.toLowerCase()) &&
               !_selected.contains(option),
         )
+        .take(widget.maxSuggestions)
         .toList();
   }
 
@@ -124,6 +149,8 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
           _ComboboxSearchField(
             controller: _controller,
             getSuggestions: _getSuggestions,
+            isAsync: widget.asyncSuggestionsCallback != null,
+            minCharsForSearch: widget.minCharsForAsyncSearch,
             onSelected: (suggestion) {
               setState(() {
                 _selected.add(suggestion);
@@ -196,12 +223,16 @@ class _ComboboxSearchField extends StatelessWidget {
   const _ComboboxSearchField({
     required this.controller,
     required this.getSuggestions,
+    required this.isAsync,
+    required this.minCharsForSearch,
     required this.onSelected,
     required this.onFocusNodeSet,
   });
 
   final TextEditingController controller;
-  final List<String> Function(String) getSuggestions;
+  final Future<List<String>> Function(String) getSuggestions;
+  final bool isAsync;
+  final int minCharsForSearch;
   final Function(String) onSelected;
   final Function(FocusNode) onFocusNodeSet;
 
@@ -219,7 +250,9 @@ class _ComboboxSearchField extends StatelessWidget {
         return VanillaTextInput(
           controller: controller,
           focusNode: focusNode,
-          hintText: 'Search...',
+          hintText: isAsync
+              ? 'Type $minCharsForSearch+ characters to search...'
+              : 'Search...',
         );
       },
       decorationBuilder: (context, child) {
@@ -235,7 +268,23 @@ class _ComboboxSearchField extends StatelessWidget {
       offset: const Offset(0, 4),
       hideOnEmpty: true,
       hideOnError: true,
-      hideOnLoading: true,
+      hideOnLoading: false,
+      loadingBuilder: isAsync
+          ? (context) => const ListTile(
+                title: Text('Searching...'),
+                leading: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+          : null,
+      errorBuilder: isAsync
+          ? (context, error) => const ListTile(
+                title: Text('Error loading suggestions'),
+                leading: Icon(Icons.error, color: Colors.red),
+              )
+          : null,
     );
   }
 }
