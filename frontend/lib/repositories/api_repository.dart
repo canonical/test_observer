@@ -19,6 +19,8 @@ import 'package:dio/dio.dart';
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
 import '../models/artefact.dart';
+import '../models/attachment_rule_filters.dart';
+import '../models/attachment_rule.dart';
 import '../models/detailed_test_results.dart';
 import '../models/environment_issue.dart';
 import '../models/environment_review.dart';
@@ -239,27 +241,33 @@ class ApiRepository {
     return TestResultsSearchResult.fromJson(response.data);
   }
 
-  Future<Issue> attachIssueToTestResults({
+  Future<Issue> attachIssue({
     required int issueId,
-    required List<int> testResultIds,
+    List<int>? testResultIds,
+    TestResultsFilters? filters,
+    int? attachmentRuleId,
   }) async {
     final response = await dio.post(
       '/v1/issues/$issueId/attach',
       data: {
-        'test_results': testResultIds,
+        if (testResultIds != null) 'test_results': testResultIds,
+        if (filters != null) 'test_results_filters': filters.toJson(),
+        if (attachmentRuleId != null) 'attachment_rule': attachmentRuleId,
       },
     );
     return Issue.fromJson(response.data);
   }
 
-  Future<Issue> detachIssueFromTestResults({
+  Future<Issue> detachIssue({
     required int issueId,
-    required List<int> testResultIds,
+    List<int>? testResultIds,
+    TestResultsFilters? filters,
   }) async {
     final response = await dio.post(
       '/v1/issues/$issueId/detach',
       data: {
-        'test_results': testResultIds,
+        if (testResultIds != null) 'test_results': testResultIds,
+        if (filters != null) 'test_results_filters': filters.toJson(),
       },
     );
     return Issue.fromJson(response.data);
@@ -305,8 +313,23 @@ class ApiRepository {
     return ExecutionMetadata.fromJson(response.data['execution_metadata']);
   }
 
-  Future<Issue> getIssue(int issueId) async {
+  Future<IssueWithContext> getIssue(int issueId) async {
     final response = await dio.get('/v1/issues/$issueId');
-    return Issue.fromJson(response.data);
+    return IssueWithContext.fromJson(response.data);
+  }
+
+  Future<AttachmentRule> createAttachmentRule({
+    required int issueId,
+    required bool enabled,
+    required AttachmentRuleFilters filters,
+  }) async {
+    final response = await dio.post(
+      '/v1/issues/$issueId/attachment-rules',
+      data: {
+        'enabled': enabled,
+        ...filters.toJson(),
+      },
+    );
+    return AttachmentRule.fromJson(response.data);
   }
 }

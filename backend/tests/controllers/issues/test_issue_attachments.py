@@ -18,7 +18,7 @@
 from fastapi.testclient import TestClient
 
 from tests.data_generator import DataGenerator
-from test_observer.data_access.models import FamilyName
+from test_observer.data_access.models import FamilyName, IssueTestResultAttachmentRule
 
 attach_endpoint = "/v1/issues/{id}/attach"
 detach_endpoint = "/v1/issues/{id}/detach"
@@ -290,3 +290,29 @@ def test_issue_attach_with_filters_template_id_repeat(
     assert tr1.id in attached_ids
     # Should not duplicate
     assert len(attached_ids) == 1
+
+
+def test_issue_attach_with_attachment_rule(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that attachment_rule_id is set in IssueTestResultAttachment."""
+    # Generate test data
+    test_result = gen_test_results(generator)[0]
+    issue = generator.gen_issue()
+    # Create an attachment rule for this issue
+    rule = IssueTestResultAttachmentRule(issue_id=issue.id, enabled=True)
+    generator.db_session.add(rule)
+    generator.db_session.commit()
+
+    # Attach the test result with the rule
+    resp = test_client.post(
+        attach_endpoint.format(id=issue.id),
+        json={"test_results": [test_result.id], "attachment_rule": rule.id},
+    )
+    assert resp.status_code == 200
+
+    # Check that the attachment has the correct rule attributed
+    attachments = issue.test_result_attachments
+    assert len(attachments) == 1
+    assert attachments[0].test_result.id == test_result.id
+    assert attachments[0].attachment_rule_id == rule.id

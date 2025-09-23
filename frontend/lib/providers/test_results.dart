@@ -18,6 +18,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/test_result.dart';
 import '../models/issue_attachment.dart';
+import '../models/attachment_rule.dart';
 import 'api.dart';
 
 part 'test_results.g.dart';
@@ -30,11 +31,13 @@ class TestResults extends _$TestResults {
     return await api.getTestExecutionResults(testExecutionId);
   }
 
-  Future<void> attachIssueToTestResult(int testResultId, int issueId) async {
+  Future<void> attachIssueToTestResult(int testResultId, int issueId,
+      {AttachmentRule? attachmentRule,}) async {
     final api = ref.read(apiProvider);
-    final attachedIssue = await api.attachIssueToTestResults(
+    final attachedIssue = await api.attachIssue(
       issueId: issueId,
       testResultIds: [testResultId],
+      attachmentRuleId: attachmentRule?.id,
     );
     final testResults = await future;
     final resultIndex =
@@ -50,7 +53,8 @@ class TestResults extends _$TestResults {
       return;
     }
     // Create a new attachment for the issue
-    final newAttachment = IssueAttachment(issue: attachedIssue);
+    final newAttachment =
+        IssueAttachment(issue: attachedIssue, attachmentRule: attachmentRule);
     final updatedAttachments = [...attachments, newAttachment];
     final updatedTestResult =
         testResult.copyWith(issueAttachments: updatedAttachments);
@@ -61,7 +65,7 @@ class TestResults extends _$TestResults {
 
   Future<void> detachIssueFromTestResult(int testResultId, int issueId) async {
     final api = ref.read(apiProvider);
-    await api.detachIssueFromTestResults(
+    await api.detachIssue(
       issueId: issueId,
       testResultIds: [testResultId],
     );

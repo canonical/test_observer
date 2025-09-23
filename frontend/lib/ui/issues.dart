@@ -74,7 +74,10 @@ class IssueLinkWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = textStyle ?? Theme.of(context).textTheme.bodyMedium;
+    final style = (textStyle ?? Theme.of(context).textTheme.bodyMedium)?.apply(
+      decoration: TextDecoration.underline,
+      color: Colors.blue,
+    );
     if (issue.source == IssueSource.jira) {
       return InlineUrlText(
         url: issue.url,

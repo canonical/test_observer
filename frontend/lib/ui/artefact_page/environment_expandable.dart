@@ -25,8 +25,13 @@ import 'environment_review_button.dart';
 import 'test_plan_expandable.dart';
 
 class EnvironmentExpandable extends StatelessWidget {
-  const EnvironmentExpandable({super.key, required this.artefactEnvironment});
+  const EnvironmentExpandable({
+    super.key,
+    required this.artefactId,
+    required this.artefactEnvironment,
+  });
 
+  final int artefactId;
   final ArtefactEnvironment artefactEnvironment;
 
   @override
@@ -48,6 +53,7 @@ class EnvironmentExpandable extends StatelessWidget {
           children: groupedTestExecutions.values
               .map(
                 (testExecutions) => TestPlanExpandable(
+                  artefactId: artefactId,
                   initiallyExpanded: groupedTestExecutions.length == 1,
                   testExecutionsDescending: testExecutions,
                 ),

@@ -26,10 +26,12 @@ class TestPlanExpandable extends StatelessWidget {
   const TestPlanExpandable({
     super.key,
     required this.testExecutionsDescending,
+    required this.artefactId,
     this.initiallyExpanded = false,
   });
 
   final bool initiallyExpanded;
+  final int artefactId;
   final Iterable<TestExecution> testExecutionsDescending;
 
   @override
@@ -51,6 +53,7 @@ class TestPlanExpandable extends StatelessWidget {
       children: testExecutionsDescending
           .mapIndexed(
             (i, te) => TestExecutionExpandable(
+              artefactId: artefactId,
               initiallyExpanded: i == 0,
               testExecution: te,
               runNumber: testExecutionsDescending.length - i,

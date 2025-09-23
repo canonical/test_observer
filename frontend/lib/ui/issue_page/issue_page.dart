@@ -42,9 +42,9 @@ class IssuePage extends ConsumerWidget {
         data: (issue) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IssuePageHeader(issue: issue),
+            IssuePageHeader(issue: issue.toIssue()),
             const SizedBox(height: Spacing.level4),
-            Expanded(child: IssuePageBody(issue: issue)),
+            Expanded(child: IssuePageBody(issue: issue.toIssue())),
           ],
         ),
         loading: () => const Center(child: YaruCircularProgressIndicator()),
