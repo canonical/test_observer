@@ -31,8 +31,11 @@ class TestResults extends _$TestResults {
     return await api.getTestExecutionResults(testExecutionId);
   }
 
-  Future<void> attachIssueToTestResult(int testResultId, int issueId,
-      {AttachmentRule? attachmentRule,}) async {
+  Future<void> attachIssueToTestResult(
+    int testResultId,
+    int issueId, {
+    AttachmentRule? attachmentRule,
+  }) async {
     final api = ref.read(apiProvider);
     final attachedIssue = await api.attachIssue(
       issueId: issueId,
