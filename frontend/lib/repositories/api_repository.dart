@@ -221,13 +221,6 @@ class ApiRepository {
     return environments.cast<String>();
   }
 
-  Future<List<String>> getTestCases() async {
-    final response = await dio.get('/v1/test-cases');
-    final Map<String, dynamic> data = response.data;
-    final List<dynamic> testCasesData = data['test_cases'] ?? [];
-    return testCasesData.map((item) => item['test_case'] as String).toList();
-  }
-
   Future<List<String>> searchTestCases({
     String? query,
     int limit = 50,
@@ -243,10 +236,10 @@ class ApiRepository {
     }
 
     final response =
-        await dio.get('/v1/test-cases/search', queryParameters: queryParams);
+        await dio.get('/v1/test-cases', queryParameters: queryParams);
     final Map<String, dynamic> data = response.data;
     final List<dynamic> testCasesData = data['test_cases'] ?? [];
-    return testCasesData.cast<String>();
+    return testCasesData.map((item) => item['test_case'] as String).toList();
   }
 
   Future<TestResultsSearchResult> searchTestResults({
