@@ -106,3 +106,111 @@ def test_get_test_cases_empty_template_id(
         for case in test_cases
     )
     assert found_case, f"Test case {test_case.name} with empty template_id not found"
+
+def _seed_cases(generator: DataGenerator, count: int, prefix: str = "case", template_prefix: str = "tpl"):
+    """Utility to seed a number of test cases with results so they appear in the API."""
+    env = generator.gen_environment()
+    art = generator.gen_artefact(name=generate_unique_name("artefact"))
+    art_build = generator.gen_artefact_build(art)
+
+    names = []
+    for i in range(count):
+        name = f"{prefix}_{i:03d}_{uuid.uuid4().hex[:6]}"
+        tpl = f"{template_prefix}_{i%3}"
+        tc = generator.gen_test_case(name=name, template_id=tpl)
+        te = generator.gen_test_execution(art_build, env)
+        generator.gen_test_result(tc, te)
+        names.append(name)
+    return names
+
+
+def test_default_limit_is_50(test_client: TestClient, generator: DataGenerator):
+    """When no limit is passed, endpoint should return up to 50 results."""
+    _seed_cases(generator, 60, prefix="default_limit")
+    resp = test_client.get("/v1/test-cases")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "test_cases" in data
+    assert len(data["test_cases"]) <= 50
+    assert len(data["test_cases"]) == 50  # should be exactly 50 when >=50 exist
+
+
+def test_explicit_limit_and_offset_window(test_client: TestClient, generator: DataGenerator):
+    """Verify limit/offset produce expected window with deterministic ordering by name."""
+    names = _seed_cases(generator, 20, prefix="window_check")
+    expected_sorted = sorted(names)  # ORDER BY name, template_id; names are unique
+
+    resp = test_client.get("/v1/test-cases", params={"limit": 5, "offset": 5})
+    assert resp.status_code == 200
+    got = resp.json()["test_cases"]
+    assert len(got) == 5
+    got_names = [c["test_case"] for c in got]
+    assert got_names == expected_sorted[5:10]
+
+
+def test_search_filter_q_ilike(test_client: TestClient, generator: DataGenerator):
+    """Search should filter by name (ILIKE)."""
+    # Manually create one shared environment & artefact_build to avoid unique constraint issues
+    env = generator.gen_environment()
+    art = generator.gen_artefact(name=generate_unique_name("search_art"))
+    art_build = generator.gen_artefact_build(art)
+
+    def seed(count: int, prefix: str, tpl_prefix: str):
+        names = []
+        for i in range(count):
+            name = f"{prefix}_{i:03d}_{uuid.uuid4().hex[:6]}"
+            tpl = f"{tpl_prefix}_{i%3}"
+            tc = generator.gen_test_case(name=name, template_id=tpl)
+            te = generator.gen_test_execution(art_build, env)
+            generator.gen_test_result(tc, te)
+            names.append(name)
+        return names
+
+    seed(5, "cpu_temp", "a")
+    seed(5, "disk_io", "b")
+
+    resp = test_client.get("/v1/test-cases", params={"q": "cpu_temp"})
+    assert resp.status_code == 200
+    data = resp.json()["test_cases"]
+    assert len(data) > 0
+    assert all("cpu_temp" in c["test_case"] for c in data)
+
+
+def test_limit_validation_rejects_zero(test_client: TestClient):
+    """FastAPI should enforce ge=1 on limit and return 422 for limit=0."""
+    resp = test_client.get("/v1/test-cases", params={"limit": 0})
+    assert resp.status_code == 422
+
+
+def test_ordering_by_name(test_client: TestClient, generator: DataGenerator):
+    """
+    Verify that returned items are sorted by name (unique field).
+    """
+    env = generator.gen_environment()
+    art = generator.gen_artefact(name=generate_unique_name("ord_art"))
+    art_build = generator.gen_artefact_build(art)
+
+    names_tpls = [
+        (generate_unique_name("alpha_probe"), "B_tpl"),
+        (generate_unique_name("alpha_zoom"), "A_tpl"),
+        (generate_unique_name("beta_probe"), "A_tpl"),
+        (generate_unique_name("gamma_probe"), "Z_tpl"),
+    ]
+
+    for name, tpl in names_tpls:
+        tc = generator.gen_test_case(name=name, template_id=tpl)
+        te = generator.gen_test_execution(art_build, env)
+        generator.gen_test_result(tc, te)
+
+    resp = test_client.get("/v1/test-cases", params={"limit": 50})
+    assert resp.status_code == 200
+    items = resp.json()["test_cases"]
+
+    ours = [i for i in items if any(i["test_case"] == n for n, _ in names_tpls)]
+    got_names = [i["test_case"] for i in ours]
+
+    expected_names = sorted([n for n, _ in names_tpls])
+    assert got_names == expected_names
+
+    tpl_map = {n: t for n, t in names_tpls}
+    assert all(tpl_map[i["test_case"]] == i["template_id"] for i in ours)

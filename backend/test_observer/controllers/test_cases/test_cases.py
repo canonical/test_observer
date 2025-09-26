@@ -36,11 +36,16 @@ def get_test_cases(
         Query(description="Search term for test case names"),
     ] = None,
     limit: Annotated[
-        int | None,
-        Query(ge=1, le=1000, description="Maximum number of results (optional)"),
-    ] = None,
+        int,
+        Query(
+            ge=1,
+            le=1000,
+            description="Maximum number of results (defaults to 50 if not specified)",
+        ),
+    ] = 50,
     offset: Annotated[
-        int, Query(ge=0, description="Number of results to skip for pagination")
+        int,
+        Query(ge=0, description="Number of results to skip for pagination"),
     ] = 0,
     db: Session = Depends(get_db),
 ) -> TestCasesResponse:
@@ -65,12 +70,8 @@ def get_test_cases(
         search_term = f"%{q.strip()}%"
         query = query.where(TestCase.name.ilike(search_term))
 
-    # Apply pagination if limit is provided
-    if limit is not None:
-        query = query.offset(offset).limit(limit)
-    elif offset > 0:
-        # If offset is provided without limit, still apply offset
-        query = query.offset(offset)
+    # Apply pagination
+    query = query.offset(offset).limit(limit)
 
     rows = db.execute(query).mappings().all()
     return TestCasesResponse.from_rows(rows)
