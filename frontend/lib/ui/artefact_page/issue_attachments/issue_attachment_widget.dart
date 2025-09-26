@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/issue_attachment.dart';
 import '../../spacing.dart';
-import 'issue_attachments_form.dart';
+import 'issue_forms/detach_issue_form.dart';
 import 'issue_widget.dart';
 
 class IssueAttachmentWidget extends StatelessWidget {

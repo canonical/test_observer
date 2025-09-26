@@ -19,7 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/test_results.dart';
 import '../../expandable.dart';
-import 'issue_attachments_form.dart';
+import 'issue_forms/attach_issue_form.dart';
 import 'issue_attachments_list_item.dart';
 import '../../vanilla/vanilla_chip.dart';
 
@@ -28,10 +28,14 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
     super.key,
     required this.testExecutionId,
     required this.testResultId,
+    required this.artefactId,
+    this.initiallyExpanded,
   });
 
   final int testExecutionId;
   final int testResultId;
+  final int artefactId;
+  final bool? initiallyExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,7 +53,7 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
     }
     final attachments = attachmentsAsync.value ?? [];
     return Expandable(
-      initiallyExpanded: attachments.isNotEmpty,
+      initiallyExpanded: initiallyExpanded ?? attachments.isNotEmpty,
       title: Row(
         children: [
           Text('Test Issues (${attachments.length})'),
@@ -71,6 +75,7 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
                   context: context,
                   testExecutionId: testExecutionId,
                   testResultId: testResultId,
+                  artefactId: artefactId,
                 );
               },
             ),

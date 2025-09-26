@@ -29,11 +29,13 @@ import '../execution_metadata_expandable.dart';
 class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({
     super.key,
+    required this.artefactId,
     required this.testExecution,
     required this.runNumber,
     this.initiallyExpanded = false,
   });
 
+  final int artefactId;
   final TestExecution testExecution;
   final int runNumber;
   final bool initiallyExpanded;
@@ -64,6 +66,7 @@ class TestExecutionExpandable extends ConsumerWidget {
                   (status) => TestResultsFilterExpandable(
                     statusToFilterBy: status,
                     testExecutionId: testExecution.id,
+                    artefactId: artefactId,
                   ),
                 )
                 .toList(),

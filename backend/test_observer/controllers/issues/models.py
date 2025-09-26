@@ -15,23 +15,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, ConfigDict, Field, AliasPath
+
 from test_observer.data_access.models_enums import IssueSource, IssueStatus, FamilyName
-
-from pydantic import ConfigDict, Field, AliasPath
-
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
     TestExecutionResponse,
 )
-
 from test_observer.controllers.test_executions.models import (
     TestResultResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_results.models import TestResultSearchFilters
-
 
 from .shared_models import (
     MinimalIssueResponse,
@@ -103,3 +99,4 @@ class IssuePutRequest(IssuePatchRequest):
 class IssueAttachmentRequest(BaseModel):
     test_results: list[int] | None = None
     test_results_filters: TestResultSearchFilters | None = None
+    attachment_rule: int | None = None

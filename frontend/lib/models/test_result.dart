@@ -45,6 +45,7 @@ abstract class TestResult with _$TestResult {
     required int id,
     required String name,
     required TestResultStatus status,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
     @Default('') String category,
     @Default('') String comment,
     @JsonKey(name: 'template_id') @Default('') String templateId,

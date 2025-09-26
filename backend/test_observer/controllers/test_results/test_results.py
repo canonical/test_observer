@@ -18,6 +18,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import (
     func,
+    desc,
     select,
 )
 from sqlalchemy.orm import Session, selectinload
@@ -36,14 +37,6 @@ from .models import (
     TestResultSearchResponseWithContext,
     TestResultResponseWithContext,
     TestResultSearchFilters,
-)
-from test_observer.controllers.test_executions.models import (
-    TestResultResponse,
-    TestExecutionResponse,
-)
-from test_observer.controllers.artefacts.models import (
-    ArtefactResponse,
-    ArtefactBuildMinimalResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from .filter_test_results import filter_test_results
@@ -113,7 +106,7 @@ def search_test_results(
         datetime | None, Query(description="Filter results until this timestamp")
     ] = None,
     limit: Annotated[
-        int, Query(ge=1, le=1000, description="Maximum number of results to return")
+        int, Query(ge=0, le=1000, description="Maximum number of results to return")
     ] = 50,
     offset: Annotated[
         int, Query(ge=0, description="Number of results to skip for pagination")
@@ -126,12 +119,27 @@ def search_test_results(
     This endpoint uses a single optimized query with window functions to get both
     the total count and paginated results in one database round trip.
     """
+    # Build the filters
+    filters = TestResultSearchFilters(
+        families=families or [],
+        environments=environments or [],
+        test_cases=test_cases or [],
+        template_ids=template_ids or [],
+        execution_metadata=execution_metadata or ExecutionMetadata(),
+        issues=issues or [],
+        from_date=from_date,
+        until_date=until_date,
+        limit=limit,
+        offset=offset,
+    )
 
-    # Build select query
-    query = select(TestResult, func.count().over().label("total_count"))
-
-    # Apply necessary eager loading
-    query = query.options(
+    # Run paginated query
+    pagination_query = select(TestResult)
+    paginated_query = filter_test_results(pagination_query, filters)
+    paginated_query = paginated_query.order_by(
+        desc(TestExecution.created_at), desc(TestResult.id)
+    )
+    pagination_query = pagination_query.options(
         selectinload(TestResult.test_case),
         selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
         selectinload(TestResult.test_execution)
@@ -142,56 +150,24 @@ def search_test_results(
             TestExecution.execution_metadata
         ),
     )
+    test_results = db.execute(paginated_query).scalars().all()
 
-    # Apply filters
-    query = filter_test_results(
-        query,
-        TestResultSearchFilters(
-            families=families or [],
-            environments=environments or [],
-            test_cases=test_cases or [],
-            template_ids=template_ids or [],
-            execution_metadata=execution_metadata or ExecutionMetadata(),
-            issues=issues or [],
-            from_date=from_date,
-            until_date=until_date,
-            limit=limit,
-            offset=offset,
-        ),
+    # Run count query
+    count_query = select(func.count()).select_from(TestResult)
+    count_filters = filters.model_copy(update={"limit": None, "offset": None})
+    count_query = filter_test_results(count_query, count_filters)
+    total_count = db.execute(count_query).scalar()
+
+    # Return results
+    return TestResultSearchResponseWithContext(
+        count=total_count or 0,
+        test_results=[
+            TestResultResponseWithContext(
+                test_result=tr,
+                test_execution=tr.test_execution,
+                artefact=tr.test_execution.artefact_build.artefact,
+                artefact_build=tr.test_execution.artefact_build,
+            )
+            for tr in test_results
+        ],
     )
-
-    # Execute query
-    result = db.execute(query).all()
-
-    # Process and return results
-    if result:
-        test_results = [row[0] for row in result]
-        total_count = result[0][1]
-
-        enhanced_results = []
-        for test_result in test_results:
-            test_result_response = TestResultResponse.model_validate(test_result)
-            test_execution_response = TestExecutionResponse.model_validate(
-                test_result.test_execution
-            )
-            artefact_response = ArtefactResponse.model_validate(
-                test_result.test_execution.artefact_build.artefact
-            )
-            artefact_build_response = ArtefactBuildMinimalResponse.model_validate(
-                test_result.test_execution.artefact_build
-            )
-
-            # Create the context object with all the nested data
-            enhanced_result = TestResultResponseWithContext(
-                test_result=test_result_response,
-                test_execution=test_execution_response,
-                artefact=artefact_response,
-                artefact_build=artefact_build_response,
-            )
-            enhanced_results.append(enhanced_result)
-
-        return TestResultSearchResponseWithContext(
-            count=total_count, test_results=enhanced_results
-        )
-    else:
-        return TestResultSearchResponseWithContext(count=0, test_results=[])

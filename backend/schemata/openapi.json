@@ -2220,7 +2220,7 @@
             "schema": {
               "type": "integer",
               "maximum": 1000,
-              "minimum": 1,
+              "minimum": 0,
               "description": "Maximum number of results to return",
               "default": 50,
               "title": "Limit"
@@ -3825,6 +3825,17 @@
                 "type": "null"
               }
             ]
+          },
+          "attachment_rule": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachment Rule"
           }
         },
         "type": "object",
@@ -5147,6 +5158,11 @@
             "type": "string",
             "title": "Name"
           },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
           "category": {
             "type": "string",
             "title": "Category"
@@ -5187,6 +5203,7 @@
         "required": [
           "id",
           "name",
+          "created_at",
           "category",
           "template_id",
           "status",

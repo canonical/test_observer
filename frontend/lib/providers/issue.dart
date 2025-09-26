@@ -14,15 +14,74 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../models/issue.dart';
+import '../models/attachment_rule.dart';
+import '../models/attachment_rule_filters.dart';
+import '../models/test_results_filters.dart';
 import 'api.dart';
 
 part 'issue.g.dart';
 
 @riverpod
-Future<Issue> issue(Ref ref, int issueId) async {
-  final api = ref.watch(apiProvider);
-  return await api.getIssue(issueId);
+class Issue extends _$Issue {
+  @override
+  Future<IssueWithContext> build(int issueId) async {
+    final api = ref.watch(apiProvider);
+    return await api.getIssue(issueId);
+  }
+
+  Future<AttachmentRule> createAttachmentRule({
+    required int issueId,
+    required bool enabled,
+    required AttachmentRuleFilters filters,
+  }) async {
+    final api = ref.read(apiProvider);
+    final attachmentRule = await api.createAttachmentRule(
+      issueId: issueId,
+      enabled: enabled,
+      filters: filters,
+    );
+    final issue = await future;
+    final index = issue.attachmentRules
+        .indexWhere((rule) => rule.id == attachmentRule.id);
+    List<AttachmentRule> updatedAttachmentRules;
+    if (index != -1) {
+      updatedAttachmentRules = List<AttachmentRule>.from(issue.attachmentRules);
+      updatedAttachmentRules[index] = attachmentRule;
+    } else {
+      updatedAttachmentRules = [...issue.attachmentRules, attachmentRule];
+    }
+    state = AsyncData(
+      issue.copyWith(
+        attachmentRules: updatedAttachmentRules,
+      ),
+    );
+    return attachmentRule;
+  }
+
+  Future attachIssueToTestResults({
+    required int issueId,
+    required TestResultsFilters filters,
+    int? attachmentRuleId,
+  }) async {
+    final api = ref.read(apiProvider);
+    await api.attachIssue(
+      issueId: issueId,
+      filters: filters,
+      attachmentRuleId: attachmentRuleId,
+    );
+  }
+
+  Future detachIssueFromTestResults({
+    required int issueId,
+    required TestResultsFilters filters,
+  }) async {
+    final api = ref.read(apiProvider);
+    await api.detachIssue(
+      issueId: issueId,
+      filters: filters,
+    );
+  }
 }
