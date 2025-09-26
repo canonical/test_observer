@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +21,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/family_name.dart';
 import '../../models/execution_metadata.dart';
+import '../../models/test_results_filters.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
 import '../../providers/execution_metadata.dart';
@@ -32,10 +32,10 @@ import '../spacing.dart';
 class TestResultsFiltersView extends ConsumerStatefulWidget {
   const TestResultsFiltersView({
     super.key,
-    required this.pageUri,
+    required this.initialFilters,
   });
 
-  final Uri pageUri;
+  final TestResultsFilters initialFilters;
 
   @override
   ConsumerState<TestResultsFiltersView> createState() =>
@@ -47,76 +47,22 @@ class _TestResultsFiltersViewState
   static const double _comboWidth = 260;
   static const double _controlHeight = 48;
 
-  late Set<String> _families;
-  late Set<String> _envs;
-  late Set<String> _tests;
-  late Set<(String, String)> _executionMetadata;
-  late DateTime? _fromDate;
-  late DateTime? _untilDate;
+  late TestResultsFilters _selectedFilters;
 
   @override
   void initState() {
     super.initState();
-    _loadFromUri();
+    _selectedFilters = widget.initialFilters;
   }
 
   @override
   void didUpdateWidget(covariant TestResultsFiltersView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.pageUri.toString() != widget.pageUri.toString()) {
-      _loadFromUri();
-      setState(() {});
+    if (oldWidget.initialFilters != widget.initialFilters) {
+      setState(() {
+        _selectedFilters = widget.initialFilters;
+      });
     }
-  }
-
-  void _loadFromUri() {
-    Set<String> readParam(String key) {
-      final params = widget.pageUri.queryParametersAll;
-      final raw = params[key] ?? const <String>[];
-      return raw.expand((s) => s.split(',')).where((s) => s.isNotEmpty).toSet();
-    }
-
-    DateTime? readDateParam(String key) {
-      final params = widget.pageUri.queryParametersAll;
-      final raw = params[key] ?? const <String>[];
-      return raw
-          .map((s) => DateTime.tryParse(s))
-          .firstOrNullWhere((d) => d != null);
-    }
-
-    _families = readParam('families');
-    _envs = readParam('environments');
-    _tests = readParam('test_cases');
-    _executionMetadata = ExecutionMetadata.fromQueryParams(
-      widget.pageUri.queryParametersAll['execution_metadata'] ?? [],
-    ).toRows();
-    _fromDate = readDateParam('from');
-    _untilDate = readDateParam('until');
-  }
-
-  Map<String, String> _toQueryParams() {
-    final qp = <String, String>{};
-    if (_families.isNotEmpty) {
-      qp['families'] = _families.map((f) => f.toLowerCase()).join(',');
-    }
-    if (_envs.isNotEmpty) {
-      qp['environments'] = _envs.join(',');
-    }
-    if (_tests.isNotEmpty) {
-      qp['test_cases'] = _tests.join(',');
-    }
-    if (_executionMetadata.isNotEmpty) {
-      qp['execution_metadata'] = ExecutionMetadata.fromRows(_executionMetadata)
-          .toQueryParams()
-          .join(',');
-    }
-    if (_fromDate != null) {
-      qp['from'] = _fromDate!.toIso8601String();
-    }
-    if (_untilDate != null) {
-      qp['until'] = _untilDate!.toIso8601String();
-    }
-    return qp;
   }
 
   Widget _box(Widget child) => SizedBox(width: _comboWidth, child: child);
@@ -138,10 +84,15 @@ class _TestResultsFiltersViewState
           MultiSelectCombobox(
             title: 'Family',
             allOptions: allFamilyOptions,
-            initialSelected: _families,
+            initialSelected: _selectedFilters.families.toSet(),
             onChanged: (val, isSelected) {
               setState(
-                () => isSelected ? _families.add(val) : _families.remove(val),
+                () => _selectedFilters = _selectedFilters.copyWith(
+                  families: [
+                    ..._selectedFilters.families.where((f) => f != val),
+                    if (isSelected) val,
+                  ],
+                ),
               );
             },
           ),
@@ -150,35 +101,53 @@ class _TestResultsFiltersViewState
           MultiSelectCombobox(
             title: 'Environment',
             allOptions: environments,
-            initialSelected: _envs,
-            onChanged: (val, isSelected) {
-              setState(() => isSelected ? _envs.add(val) : _envs.remove(val));
-            },
+            initialSelected: _selectedFilters.environments.toSet(),
+            onChanged: (val, isSelected) => setState(
+              () => _selectedFilters = _selectedFilters.copyWith(
+                environments: [
+                  ..._selectedFilters.environments.where((e) => e != val),
+                  if (isSelected) val,
+                ],
+              ),
+            ),
           ),
         ),
         _box(
           MultiSelectCombobox(
             title: 'Test Case',
             allOptions: testCases,
-            initialSelected: _tests,
-            onChanged: (val, isSelected) {
-              setState(() => isSelected ? _tests.add(val) : _tests.remove(val));
-            },
+            initialSelected: _selectedFilters.testCases.toSet(),
+            onChanged: (val, isSelected) => setState(
+              () => _selectedFilters = _selectedFilters.copyWith(
+                testCases: [
+                  ..._selectedFilters.testCases.where((t) => t != val),
+                  if (isSelected) val,
+                ],
+              ),
+            ),
           ),
         ),
         _box(
           MultiSelectCombobox(
             title: 'Metadata',
             allOptions: executionMetadata.toStrings(),
-            initialSelected: ExecutionMetadata.fromRows(_executionMetadata)
-                .toStrings()
-                .toSet(),
+            initialSelected:
+                _selectedFilters.executionMetadata.toStrings().toSet(),
             onChanged: (val, isSelected) {
               final match = executionMetadata.findFromString(val);
+              final newExecutionMetadata =
+                  _selectedFilters.executionMetadata.toRows();
+              if (isSelected) {
+                newExecutionMetadata.add(match);
+              } else {
+                newExecutionMetadata.remove(match);
+              }
               setState(
-                () => isSelected
-                    ? _executionMetadata.add(match)
-                    : _executionMetadata.remove(match),
+                () => _selectedFilters = _selectedFilters.copyWith(
+                  executionMetadata: ExecutionMetadata.fromRows(
+                    newExecutionMetadata,
+                  ),
+                ),
               );
             },
           ),
@@ -186,18 +155,24 @@ class _TestResultsFiltersViewState
         _box(
           DateTimeSelector(
             title: 'From',
-            initialDate: _fromDate,
+            initialDate: _selectedFilters.fromDate,
             onSelected: (date) {
-              setState(() => _fromDate = date);
+              setState(
+                () => _selectedFilters =
+                    _selectedFilters.copyWith(fromDate: date),
+              );
             },
           ),
         ),
         _box(
           DateTimeSelector(
             title: 'Until',
-            initialDate: _untilDate,
+            initialDate: _selectedFilters.untilDate,
             onSelected: (date) {
-              setState(() => _untilDate = date);
+              setState(
+                () => _selectedFilters =
+                    _selectedFilters.copyWith(untilDate: date),
+              );
             },
           ),
         ),
@@ -206,9 +181,7 @@ class _TestResultsFiltersViewState
           height: _controlHeight,
           child: ElevatedButton(
             onPressed: () {
-              final newUri =
-                  widget.pageUri.replace(queryParameters: _toQueryParams());
-              context.go(newUri.toString());
+              context.go(_selectedFilters.toTestResultsUri().toString());
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: YaruColors.orange,

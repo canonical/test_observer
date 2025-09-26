@@ -16,19 +16,20 @@
 
 import 'package:dio/dio.dart';
 
-import '../models/artefact.dart';
-import '../models/execution_metadata.dart';
-import '../models/issue.dart';
 import '../models/artefact_build.dart';
 import '../models/artefact_version.dart';
+import '../models/artefact.dart';
 import '../models/detailed_test_results.dart';
 import '../models/environment_issue.dart';
 import '../models/environment_review.dart';
+import '../models/execution_metadata.dart';
 import '../models/family_name.dart';
+import '../models/issue.dart';
 import '../models/rerun_request.dart';
+import '../models/test_event.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
-import '../models/test_event.dart';
+import '../models/test_results_filters.dart';
 import '../models/user.dart';
 
 class ApiRepository {
@@ -228,70 +229,14 @@ class ApiRepository {
     return testCasesData.map((item) => item['test_case'] as String).toList();
   }
 
-  Future<TestResultsSearchResult> searchTestResults({
-    List<String>? families,
-    List<String>? environments,
-    List<String>? testCases,
-    List<String>? templateIds,
-    ExecutionMetadata? executionMetadata,
-    List<int>? issues,
-    DateTime? fromDate,
-    DateTime? untilDate,
-    int? limit,
-    int? offset,
-  }) async {
-    final queryParams = <String, dynamic>{};
-
-    if (families != null && families.isNotEmpty) {
-      queryParams['families'] = families;
-    }
-
-    if (environments != null && environments.isNotEmpty) {
-      queryParams['environments'] = environments;
-    }
-
-    if (testCases != null && testCases.isNotEmpty) {
-      queryParams['test_cases'] = testCases;
-    }
-
-    if (templateIds != null && templateIds.isNotEmpty) {
-      queryParams['template_ids'] = templateIds;
-    }
-
-    if (executionMetadata != null && executionMetadata.data.isNotEmpty) {
-      queryParams['execution_metadata'] = executionMetadata.toQueryParams();
-    }
-
-    if (issues != null && issues.isNotEmpty) {
-      queryParams['issues'] = issues;
-    }
-
-    if (fromDate != null) {
-      queryParams['from_date'] = fromDate.toIso8601String();
-    }
-    if (untilDate != null) {
-      queryParams['until_date'] = untilDate.toIso8601String();
-    }
-
-    // Add pagination
-    queryParams['limit'] = limit ?? 500;
-    queryParams['offset'] = offset ?? 0;
-
-    final response =
-        await dio.get('/v1/test-results', queryParameters: queryParams);
-
-    final jsonData = response.data as Map<String, dynamic>;
-    final resultsList =
-        (jsonData['test_results'] as List).cast<Map<String, dynamic>>();
-
-    final testResults = resultsList
-        .map((jsonResult) => TestResultWithContext.fromJson(jsonResult))
-        .toList();
-
-    return TestResultsSearchResult(
-      count: jsonData['count'] as int,
-      testResults: testResults,
+  Future<TestResultsSearchResult> searchTestResults(
+    TestResultsFilters filters,
+  ) async {
+    final response = await dio.get(
+      '/v1/test-results',
+      queryParameters: filters.toQueryParams(),
     );
+    return TestResultsSearchResult.fromJson(response.data);
   }
 
   Future<Issue> attachIssueToTestResults({
