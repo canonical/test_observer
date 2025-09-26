@@ -21,7 +21,12 @@ import 'api.dart';
 part 'test_results_test_cases.g.dart';
 
 @riverpod
-Future<List<String>> allTestCases(Ref ref) async {
+Future<List<String>> suggestedTestCases(Ref ref, String query) async {
+  // Only search if query is long enough
+  if (query.trim().length < 2) {
+    return [];
+  }
+
   final api = ref.watch(apiProvider);
-  return await api.getTestCases();
+  return await api.searchTestCases(query: query.trim(), limit: 50);
 }

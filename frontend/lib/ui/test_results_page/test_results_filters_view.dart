@@ -70,7 +70,6 @@ class _TestResultsFiltersViewState
   @override
   Widget build(BuildContext context) {
     final environments = ref.watch(allEnvironmentsProvider).value ?? [];
-    final testCases = ref.watch(allTestCasesProvider).value ?? [];
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??
         ExecutionMetadata(data: {});
@@ -115,16 +114,19 @@ class _TestResultsFiltersViewState
         _box(
           MultiSelectCombobox(
             title: 'Test Case',
-            allOptions: testCases,
+            allOptions: const [],
             initialSelected: _selectedFilters.testCases.toSet(),
-            onChanged: (val, isSelected) => setState(
-              () => _selectedFilters = _selectedFilters.copyWith(
-                testCases: [
-                  ..._selectedFilters.testCases.where((t) => t != val),
-                  if (isSelected) val,
-                ],
-              ),
-            ),
+            asyncSuggestionsCallback: (pattern) async {
+              return await ref.read(suggestedTestCasesProvider(pattern).future);
+            },
+            minCharsForAsyncSearch: 2,
+            onChanged: (val, isSelected) {
+              setState(
+                () => isSelected
+                    ? _selectedFilters.testCases.add(val)
+                    : _selectedFilters.testCases.remove(val),
+              );
+            },
           ),
         ),
         _box(

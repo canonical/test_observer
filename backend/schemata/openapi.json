@@ -1331,6 +1331,53 @@
         "summary": "Get Test Cases",
         "description": "Returns test cases as a flat list with their template IDs.\n\nTemplate ID represents the generic test (e.g., \"disk/stats_name\")\nTest case name is the specific instance (e.g., \"disk/stats_nvme0n1\")\nMultiple test cases can share the same template ID but have different names.",
         "operationId": "get_test_cases_v1_test_cases_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for test case names",
+              "title": "Q"
+            },
+            "description": "Search term for test case names"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 50 if not specified)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 50 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1338,6 +1385,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TestCasesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }

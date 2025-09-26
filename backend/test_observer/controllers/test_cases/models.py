@@ -70,3 +70,9 @@ class TestCasesResponse(BaseModel):
                 for r in rows
             ]
         )
+
+
+class TestCaseSearchResponse(BaseModel):
+    """Response model for test case search endpoint - optimized for comboboxes"""
+
+    test_cases: list[str]

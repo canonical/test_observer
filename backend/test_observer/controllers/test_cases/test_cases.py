@@ -14,7 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -29,7 +30,25 @@ router.include_router(reported_issues.router)
 
 
 @router.get("", response_model=TestCasesResponse)
-def get_test_cases(db: Session = Depends(get_db)) -> TestCasesResponse:
+def get_test_cases(
+    q: Annotated[
+        str | None,
+        Query(description="Search term for test case names"),
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=1000,
+            description="Maximum number of results (defaults to 50 if not specified)",
+        ),
+    ] = 50,
+    offset: Annotated[
+        int,
+        Query(ge=0, description="Number of results to skip for pagination"),
+    ] = 0,
+    db: Session = Depends(get_db),
+) -> TestCasesResponse:
     """
     Returns test cases as a flat list with their template IDs.
 
@@ -45,6 +64,14 @@ def get_test_cases(db: Session = Depends(get_db)) -> TestCasesResponse:
         .distinct()
         .order_by(TestCase.name, TestCase.template_id)
     )
+
+    # Apply search filter if provided
+    if q and q.strip():
+        search_term = f"%{q.strip()}%"
+        query = query.where(TestCase.name.ilike(search_term))
+
+    # Apply pagination
+    query = query.offset(offset).limit(limit)
 
     rows = db.execute(query).mappings().all()
     return TestCasesResponse.from_rows(rows)
