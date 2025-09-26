@@ -18,8 +18,10 @@
 from fastapi.testclient import TestClient
 import pytest
 
+from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 from sqlalchemy.orm import Session
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRuleExecutionMetadata,
     IssueTestResultAttachmentRule,
@@ -29,6 +31,13 @@ issue_endpoint = "/v1/issues/{issue_id}"
 post_endpoint = issue_endpoint + "/attachment-rules"
 patch_endpoint = post_endpoint + "/{attachment_rule_id}"
 delete_endpoint = patch_endpoint
+
+
+def auth_request(method: str, test_client: TestClient, endpoint: str, **kwargs):
+    return make_authenticated_request(
+        lambda: getattr(test_client, method)(endpoint, **kwargs),
+        Permission.change_attachment_rule,
+    )
 
 
 @pytest.fixture
@@ -74,8 +83,11 @@ def _assert_attachment_rule_response(
 def test_post_attachment_rule_issue_not_found(
     test_client: TestClient, post_attachment_rule: dict
 ):
-    response = test_client.post(
-        post_endpoint.format(issue_id=999), json=post_attachment_rule
+    response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=999),
+        json=post_attachment_rule,
     )
 
     assert response.status_code == 404
@@ -89,8 +101,11 @@ def test_post_attachment_rule(
 ):
     issue = generator.gen_issue()
 
-    response = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
 
     assert response.status_code == 200
@@ -113,12 +128,17 @@ def test_post_attachment_rule_twice(
 ):
     issue = generator.gen_issue()
 
-    response_1 = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    response_1 = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
-
-    response_2 = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    response_2 = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
 
     issue_response = test_client.get(issue_endpoint.format(issue_id=issue.id))
@@ -135,12 +155,17 @@ def test_patch_attachment_rule_no_change(
 ):
     issue = generator.gen_issue()
 
-    post_response = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    post_response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
     attachment_rule_id = post_response.json()["id"]
 
-    patch_response = test_client.patch(
+    patch_response = auth_request(
+        "patch",
+        test_client,
         patch_endpoint.format(issue_id=issue.id, attachment_rule_id=attachment_rule_id),
         json={},
     )
@@ -154,7 +179,9 @@ def test_patch_attachment_rule_not_found(
 ):
     issue = generator.gen_issue()
 
-    response = test_client.patch(
+    response = auth_request(
+        "patch",
+        test_client,
         patch_endpoint.format(issue_id=issue.id, attachment_rule_id=999),
         json={},
     )
@@ -167,12 +194,17 @@ def test_patch_attachment_rule_wrong_issue(
 ):
     issue = generator.gen_issue()
 
-    post_response = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    post_response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
     attachment_rule_id = post_response.json()["id"]
 
-    patch_response = test_client.patch(
+    patch_response = auth_request(
+        "patch",
+        test_client,
         patch_endpoint.format(
             issue_id=issue.id + 1, attachment_rule_id=attachment_rule_id
         ),
@@ -187,12 +219,17 @@ def test_patch_attachment_rule_disable(
 ):
     issue = generator.gen_issue()
 
-    post_response = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    post_response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
     attachment_rule_id = post_response.json()["id"]
 
-    patch_response = test_client.patch(
+    patch_response = auth_request(
+        "patch",
+        test_client,
         patch_endpoint.format(issue_id=issue.id, attachment_rule_id=attachment_rule_id),
         json={"enabled": False},
     )
@@ -202,7 +239,9 @@ def test_patch_attachment_rule_disable(
 
 
 def test_delete_attachment_rule_not_exist(test_client: TestClient):
-    response = test_client.delete(
+    response = auth_request(
+        "delete",
+        test_client,
         delete_endpoint.format(issue_id=999, attachment_rule_id=999),
     )
 
@@ -214,15 +253,20 @@ def test_delete_attachment_rule_wrong_issue(
 ):
     issue = generator.gen_issue()
 
-    post_response = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    post_response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
     attachment_rule_id = post_response.json()["id"]
 
-    delete_response = test_client.delete(
+    delete_response = auth_request(
+        "delete",
+        test_client,
         delete_endpoint.format(
             issue_id=issue.id + 1, attachment_rule_id=attachment_rule_id
-        )
+        ),
     )
 
     assert delete_response.status_code == 400
@@ -236,13 +280,20 @@ def test_delete_attachment_rule(
 ):
     issue = generator.gen_issue()
 
-    post_response = test_client.post(
-        post_endpoint.format(issue_id=issue.id), json=post_attachment_rule
+    post_response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json=post_attachment_rule,
     )
     attachment_rule_id = post_response.json()["id"]
 
-    delete_response = test_client.delete(
-        delete_endpoint.format(issue_id=issue.id, attachment_rule_id=attachment_rule_id)
+    delete_response = auth_request(
+        "delete",
+        test_client,
+        delete_endpoint.format(
+            issue_id=issue.id, attachment_rule_id=attachment_rule_id
+        ),
     )
 
     assert delete_response.status_code == 204
