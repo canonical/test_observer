@@ -29,10 +29,12 @@ class TestResultsFilterExpandable extends StatelessWidget {
     super.key,
     required this.statusToFilterBy,
     required this.testExecutionId,
+    required this.artefactId,
   });
 
   final TestResultStatus statusToFilterBy;
   final int testExecutionId;
+  final int artefactId;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +67,7 @@ class TestResultsFilterExpandable extends StatelessWidget {
                 (testResult) => TestResultExpandable(
                   testExecutionId: testExecutionId,
                   testResult: testResult,
+                  artefactId: artefactId,
                 ),
               )
               .toList(),

@@ -37,9 +37,7 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'data': data,
-    };
+    return data.map((k, v) => MapEntry(k, v.toList()));
   }
 
   factory ExecutionMetadata.fromRows(Set<(String, String)> rows) {

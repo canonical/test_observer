@@ -23,9 +23,13 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
 )
-from test_observer.data_access.models import TestResult
 from test_observer.data_access.setup import get_db
-from test_observer.data_access.models import Issue, IssueTestResultAttachment
+from test_observer.data_access.models import (
+    Issue,
+    IssueTestResultAttachment,
+    TestResult,
+    IssueTestResultAttachmentRule,
+)
 from .models import (
     IssueResponse,
     IssueAttachmentRequest,
@@ -46,6 +50,12 @@ def modify_issue_attachments(
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
 
+    # Retrieve the attachment rule
+    if request.attachment_rule is not None:
+        attachment_rule = db.get(IssueTestResultAttachmentRule, request.attachment_rule)
+        if attachment_rule is None:
+            raise HTTPException(status_code=404, detail="Attachment rule not found")
+
     # Add or remove any requested test result attachments
     if request.test_results is not None and len(request.test_results) > 0:
         test_result_ids = set(request.test_results)
@@ -61,7 +71,11 @@ def modify_issue_attachments(
                 pg_insert(IssueTestResultAttachment)
                 .values(
                     [
-                        {"issue_id": issue_id, "test_result_id": test_result_id}
+                        {
+                            "issue_id": issue_id,
+                            "test_result_id": test_result_id,
+                            "attachment_rule_id": request.attachment_rule,
+                        }
                         for test_result_id in test_result_ids
                     ]
                 )
@@ -95,10 +109,13 @@ def modify_issue_attachments(
             insert_select = select(
                 literal(issue_id).label("issue_id"),
                 filtered_ids_query.c.id.label("test_result_id"),
+                literal(request.attachment_rule).label("attachment_rule_id"),
             )
             db.execute(
                 pg_insert(IssueTestResultAttachment)
-                .from_select(["issue_id", "test_result_id"], insert_select)
+                .from_select(
+                    ["issue_id", "test_result_id", "attachment_rule_id"], insert_select
+                )
                 .on_conflict_do_nothing()
             )
 

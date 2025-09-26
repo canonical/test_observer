@@ -65,6 +65,7 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     assert response.status_code == 200
     json = response.json()
     assert json[0]["name"] == test_case.name
+    assert json[0]["created_at"] == test_result_second.created_at.isoformat()
     assert json[0]["category"] == test_case.category
     assert json[0]["template_id"] == test_case.template_id
     assert json[0]["status"] == test_result_second.status.name
@@ -115,6 +116,7 @@ def test_previous_results_shows_reruns(
         {
             "id": tr2.id,
             "name": tc.name,
+            "created_at": tr2.created_at.isoformat(),
             "category": tc.category,
             "template_id": tc.template_id,
             "status": tr2.status.name,
@@ -157,6 +159,7 @@ def test_previous_results_orders_by_artefact(
         {
             "id": tr2.id,
             "name": tc.name,
+            "created_at": tr2.created_at.isoformat(),
             "category": tc.category,
             "template_id": tc.template_id,
             "status": tr2.status.name,
