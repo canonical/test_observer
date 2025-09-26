@@ -115,13 +115,17 @@ class _TestResultsFiltersViewState
           MultiSelectCombobox(
             title: 'Test Case',
             allOptions: const [],
-            initialSelected: _tests,
+            initialSelected: _selectedFilters.testCases.toSet(),
             asyncSuggestionsCallback: (pattern) async {
               return await ref.read(suggestedTestCasesProvider(pattern).future);
             },
             minCharsForAsyncSearch: 2,
             onChanged: (val, isSelected) {
-              setState(() => isSelected ? _tests.add(val) : _tests.remove(val));
+              setState(
+                () => isSelected
+                    ? _selectedFilters.testCases.add(val)
+                    : _selectedFilters.testCases.remove(val),
+              );
             },
           ),
         ),
