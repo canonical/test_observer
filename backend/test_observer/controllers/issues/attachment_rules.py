@@ -18,6 +18,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, require_permissions
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRule,
@@ -43,6 +44,7 @@ def post_attachment_rule(
     issue_id: int,
     request: IssueTestResultAttachmentRulePostRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_attachment_rule)),
 ):
     # Get the issue
     issue = db.get(Issue, issue_id)
@@ -82,6 +84,7 @@ def patch_attachment_rule(
     attachment_rule_id: int,
     request: IssueTestResultAttachmentRulePatchRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_attachment_rule)),
 ):
     # Get the attachment rule
     attachment_rule = db.get(IssueTestResultAttachmentRule, attachment_rule_id)
@@ -107,6 +110,7 @@ def delete_attachment_rule(
     issue_id: int,
     attachment_rule_id: int,
     db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_attachment_rule)),
 ):
     # Get the attachment rule
     attachment_rule = db.get(IssueTestResultAttachmentRule, attachment_rule_id)

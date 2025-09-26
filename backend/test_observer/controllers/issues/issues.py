@@ -20,6 +20,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.permissions import Permission, require_permissions
 from test_observer.data_access.models import (
     Issue,
 )
@@ -90,6 +91,7 @@ def patch_issue(
     issue_id: int,
     request: IssuePatchRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_issue)),
 ):
     issue = db.get(Issue, issue_id)
     if issue is None:
@@ -101,6 +103,7 @@ def patch_issue(
 def create_or_update_issue(
     request: IssuePutRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(require_permissions(Permission.change_issue)),
 ):
     # Fetch issue source, project, and key
     try:
