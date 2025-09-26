@@ -133,12 +133,10 @@ def build_query_filters_and_joins(
         )
 
     if filters.from_date is not None:
-        query_filters.append(TestExecution.created_at >= filters.from_date)
-        joins_needed.add("test_execution")
+        query_filters.append(TestResult.created_at >= filters.from_date)
 
     if filters.until_date is not None:
-        query_filters.append(TestExecution.created_at <= filters.until_date)
-        joins_needed.add("test_execution")
+        query_filters.append(TestResult.created_at <= filters.until_date)
 
     return query_filters, joins_needed
 

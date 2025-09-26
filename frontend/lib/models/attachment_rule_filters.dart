@@ -18,6 +18,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'execution_metadata.dart';
 import 'test_results_filters.dart';
+import 'attachment_rule.dart';
 
 part 'attachment_rule_filters.freezed.dart';
 part 'attachment_rule_filters.g.dart';
@@ -48,6 +49,16 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
       testCases: testCaseNames,
       templateIds: templateIds,
       executionMetadata: executionMetadata,
+    );
+  }
+
+  factory AttachmentRuleFilters.fromAttachmentRule(AttachmentRule rule) {
+    return AttachmentRuleFilters(
+      families: rule.families,
+      environmentNames: rule.environmentNames,
+      testCaseNames: rule.testCaseNames,
+      templateIds: rule.templateIds,
+      executionMetadata: rule.executionMetadata,
     );
   }
 

@@ -109,6 +109,19 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
               ),
               _buildFilterSection(
                 context: context,
+                label: 'Environments',
+                allValues: filters.environmentNames,
+                selectedValues: selected.environmentNames.toSet(),
+                onChanged: (newEnvironments) {
+                  final newFilters = selected.copyWith(
+                    environmentNames: newEnvironments.toList(),
+                  );
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
+              _buildFilterSection(
+                context: context,
                 label: 'Test Cases',
                 allValues: filters.testCaseNames,
                 selectedValues: selected.testCaseNames.toSet(),

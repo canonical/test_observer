@@ -75,6 +75,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     testCaseNames: ['Sample Test Result'],
   );
 
+  bool attachmentRuleEnabled = false;
   bool attachmentRuleCreated = false;
 
   @override
@@ -147,7 +148,8 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     required AttachmentRuleFilters filters,
   }) async {
     attachmentRuleCreated = true;
-    return dummyAttachmentRule;
+    attachmentRuleEnabled = enabled;
+    return dummyAttachmentRule.copyWith(enabled: enabled);
   }
 
   @override
@@ -160,6 +162,15 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   @override
   Future<IssueWithContext> getIssue(int issueId) async {
     return dummyIssue;
+  }
+
+  @override
+  Future<void> patchAttachmentRule({
+    required int issueId,
+    required int attachmentRuleId,
+    bool? enabled,
+  }) async {
+    if (enabled != null) attachmentRuleEnabled = enabled;
   }
 }
 
@@ -223,7 +234,7 @@ void main() {
 
     // Tap the detach button to open the dialog
     final detachConfirmButton =
-        find.byKey(const Key('detachIssueConfirmButton'));
+        find.byKey(const Key('detachIssueFormSubmitButton'));
     expect(detachConfirmButton, findsOneWidget);
     await tester.tap(detachConfirmButton);
     await tester.pumpAndSettle();
@@ -278,7 +289,7 @@ void main() {
     expect(find.text('Dummy Issue'), findsOneWidget);
   });
 
-  testWidgets('Attach and create attachment rule', (tester) async {
+  testWidgets('Attach and create and disable attachment rule', (tester) async {
     final apiMock = ApiRepositoryMock();
     await tester.pumpWidget(
       ProviderScope(
@@ -343,6 +354,33 @@ void main() {
     expect(apiMock.attachmentRuleCreated, isTrue);
 
     // Assert that the issue attachment is attributed to the attachment rule
-    expect(find.byTooltip('Attached by a rule'), findsOneWidget);
+    expect(find.byTooltip('Attached by an enabled attachment rule'),
+        findsOneWidget,);
+
+    // Tap the detach button to open the dialog
+    final detachButton = find.byKey(const Key('detachIssueButton'));
+    expect(detachButton, findsOneWidget);
+    await tester.tap(detachButton);
+    await tester.pumpAndSettle();
+
+    // Tap the disable attachment rule checkbox
+    final detachAttachmentRuleCheckbox =
+        find.byKey(const Key('disableAttachmentRuleCheckbox'));
+    expect(detachAttachmentRuleCheckbox, findsOneWidget);
+    await tester.tap(detachAttachmentRuleCheckbox);
+    await tester.pumpAndSettle();
+
+    // Tap the detach button to close the dialog
+    final detachConfirmButton =
+        find.byKey(const Key('detachIssueFormSubmitButton'));
+    expect(detachConfirmButton, findsOneWidget);
+    await tester.tap(detachConfirmButton);
+    await tester.pumpAndSettle();
+
+    // Assert that the issue attachment is removed
+    expect(find.text('Dummy Issue'), findsNothing);
+
+    // Assert that the attachment rule was disabled
+    expect(apiMock.attachmentRuleEnabled, isFalse);
   });
 }

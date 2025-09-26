@@ -61,7 +61,76 @@ class Issue extends _$Issue {
     return attachmentRule;
   }
 
-  Future attachIssueToTestResults({
+  Future<void> deleteAttachmentRule({
+    required int issueId,
+    required int attachmentRuleId,
+  }) async {
+    final api = ref.read(apiProvider);
+    await api.deleteAttachmentRule(
+      issueId: issueId,
+      attachmentRuleId: attachmentRuleId,
+    );
+    final issue = await future;
+    final updatedAttachmentRules = issue.attachmentRules
+        .where((rule) => rule.id != attachmentRuleId)
+        .toList();
+    state = AsyncData(
+      issue.copyWith(
+        attachmentRules: updatedAttachmentRules,
+      ),
+    );
+  }
+
+  Future<void> enableAttachmentRule({
+    required int issueId,
+    required int attachmentRuleId,
+  }) async {
+    final api = ref.read(apiProvider);
+    await api.patchAttachmentRule(
+      issueId: issueId,
+      attachmentRuleId: attachmentRuleId,
+      enabled: true,
+    );
+    final issue = await future;
+    final updatedAttachmentRules = issue.attachmentRules
+        .map(
+          (rule) =>
+              rule.id == attachmentRuleId ? rule.copyWith(enabled: true) : rule,
+        )
+        .toList();
+    state = AsyncData(
+      issue.copyWith(
+        attachmentRules: updatedAttachmentRules,
+      ),
+    );
+  }
+
+  Future<void> disableAttachmentRule({
+    required int issueId,
+    required int attachmentRuleId,
+  }) async {
+    final api = ref.read(apiProvider);
+    await api.patchAttachmentRule(
+      issueId: issueId,
+      attachmentRuleId: attachmentRuleId,
+      enabled: false,
+    );
+    final issue = await future;
+    final updatedAttachmentRules = issue.attachmentRules
+        .map(
+          (rule) => rule.id == attachmentRuleId
+              ? rule.copyWith(enabled: false)
+              : rule,
+        )
+        .toList();
+    state = AsyncData(
+      issue.copyWith(
+        attachmentRules: updatedAttachmentRules,
+      ),
+    );
+  }
+
+  Future<void> attachIssueToTestResults({
     required int issueId,
     required TestResultsFilters filters,
     int? attachmentRuleId,
@@ -74,7 +143,7 @@ class Issue extends _$Issue {
     );
   }
 
-  Future detachIssueFromTestResults({
+  Future<void> detachIssueFromTestResults({
     required int issueId,
     required TestResultsFilters filters,
   }) async {
