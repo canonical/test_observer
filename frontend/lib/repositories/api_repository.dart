@@ -332,4 +332,26 @@ class ApiRepository {
     );
     return AttachmentRule.fromJson(response.data);
   }
+
+  Future<void> deleteAttachmentRule({
+    required int issueId,
+    required int attachmentRuleId,
+  }) async {
+    await dio.delete(
+      '/v1/issues/$issueId/attachment-rules/$attachmentRuleId',
+    );
+  }
+
+  Future<void> patchAttachmentRule({
+    required int issueId,
+    required int attachmentRuleId,
+    bool? enabled,
+  }) async {
+    await dio.patch(
+      '/v1/issues/$issueId/attachment-rules/$attachmentRuleId',
+      data: {
+        if (enabled != null) 'enabled': enabled,
+      },
+    );
+  }
 }

@@ -51,7 +51,7 @@ class BulkAttachSection extends ConsumerWidget {
           'Attach to existing test results',
           style: Theme.of(context).textTheme.titleLarge,
         ),
-        _BulkAttachIssueOption(
+        BulkAttachIssueOption(
           title: 'Older test results',
           value: selectedBulkAttachOlder,
           filters: attachmentRuleFilters.toTestResultsFilters().copyWith(
@@ -60,7 +60,7 @@ class BulkAttachSection extends ConsumerWidget {
           loadNumberResults: attachmentRuleFilters.hasFilters,
           onChanged: onBulkAttachOlderChanged,
         ),
-        _BulkAttachIssueOption(
+        BulkAttachIssueOption(
           title: 'Newer test results',
           value: selectedBulkAttachNewer,
           filters: attachmentRuleFilters.toTestResultsFilters().copyWith(
@@ -74,54 +74,64 @@ class BulkAttachSection extends ConsumerWidget {
   }
 }
 
-class _BulkAttachIssueOption extends ConsumerWidget {
-  const _BulkAttachIssueOption({
+class BulkAttachIssueOption extends ConsumerWidget {
+  const BulkAttachIssueOption({
+    super.key,
     required this.title,
     required this.value,
     required this.filters,
     this.loadNumberResults = false,
     required this.onChanged,
+    this.detach = false,
   });
 
   final String title;
   final bool value;
   final TestResultsFilters filters;
   final bool loadNumberResults;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
+  final bool detach;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final matchingTestResults = loadNumberResults
         ? ref.watch(testResultsSearchProvider(filters.copyWith(limit: 0)))
         : null;
-    return CheckboxListTile(
-      title: Row(
-        spacing: Spacing.level3,
-        children: [
-          Text(title),
-          if (loadNumberResults)
-            matchingTestResults!.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: YaruCircularProgressIndicator(),
-                  )
-                : InlineUrlText(
-                    url: '/#${filters.toTestResultsUri()}',
-                    urlText:
-                        'Matches ${matchingTestResults.value?.count ?? 0} test results',
-                    fontStyle: DefaultTextStyle.of(context).style.apply(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontStyle: FontStyle.italic,
-                          decoration: TextDecoration.none,
-                        ),
-                  ),
-        ],
+    final isDisabled = onChanged == null;
+    return Opacity(
+      opacity: isDisabled ? 0.5 : 1.0,
+      child: IgnorePointer(
+        ignoring: isDisabled,
+        child: CheckboxListTile(
+          title: Row(
+            spacing: Spacing.level3,
+            children: [
+              Text(title),
+              if (loadNumberResults)
+                matchingTestResults!.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: YaruCircularProgressIndicator(),
+                      )
+                    : InlineUrlText(
+                        url: '/#${filters.toTestResultsUri()}',
+                        urlText:
+                            'Matches ${matchingTestResults.value?.count ?? 0} test results',
+                        fontStyle: DefaultTextStyle.of(context).style.apply(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontStyle: FontStyle.italic,
+                              decoration: TextDecoration.none,
+                            ),
+                      ),
+            ],
+          ),
+          value: value,
+          onChanged: (selected) {
+            onChanged?.call(selected ?? false);
+          },
+        ),
       ),
-      value: value,
-      onChanged: (selected) {
-        onChanged(selected ?? false);
-      },
     );
   }
 }

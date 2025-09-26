@@ -207,7 +207,7 @@ class _DateTimeSelectorState extends State<DateTimeSelector> {
                         child: TextFormField(
                           controller: _controller,
                           decoration: InputDecoration(
-                            hintText: 'YYYY-MM-DD HH:MM',
+                            hintText: 'YYYY-MM-DD HH:MM:SS',
                             errorText: _errorText,
                           ),
                           onChanged: _onTextChanged,

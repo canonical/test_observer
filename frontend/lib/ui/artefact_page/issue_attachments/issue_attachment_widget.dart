@@ -35,17 +35,22 @@ class IssueAttachmentWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final attachmentRule = issueAttachment.attachmentRule;
     return Row(
       children: [
         Expanded(
           child: IssueWidget(issue: issueAttachment.issue),
         ),
-        if (issueAttachment.attachmentRule != null) ...[
+        if (attachmentRule != null) ...[
           Tooltip(
-            message: 'Attached by a rule',
+            message: attachmentRule.enabled
+                ? 'Attached by an enabled attachment rule'
+                : 'Attached by a disabled attachment rule',
             child: InkWell(
               onTap: () {}, // Placeholder link
-              child: const Icon(Icons.attachment, size: 20),
+              child: attachmentRule.enabled
+                  ? const Icon(Icons.attachment, size: 20)
+                  : const Icon(Icons.link_off, size: 20, color: Colors.grey),
             ),
           ),
           SizedBox(width: Spacing.level3),
