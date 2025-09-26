@@ -56,6 +56,25 @@ class TestSearchTestResults:
             tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
         )
 
+    def test_search_limit_0(self, test_client: TestClient, generator: DataGenerator):
+        """Test searching all test results with limit 0"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("search_all"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        generator.gen_test_result(test_case, test_execution)
+
+        response = test_client.get("/v1/test-results", params={"limit": 0})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "count" in data
+        assert "test_results" in data
+        assert data["count"] >= 1
+        assert len(data["test_results"]) == 0
+
     def test_window_function_count_accuracy(
         self, test_client: TestClient, generator: DataGenerator
     ):
@@ -652,10 +671,6 @@ class TestSearchTestResults:
         """Test pagination parameter validation"""
         # Test maximum limit
         response = test_client.get("/v1/test-results?limit=1001")
-        assert response.status_code == 422
-
-        # Test minimum limit
-        response = test_client.get("/v1/test-results?limit=0")
         assert response.status_code == 422
 
         # Test negative offset
