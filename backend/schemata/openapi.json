@@ -4221,7 +4221,11 @@
           "change_team",
           "add_application",
           "change_application",
-          "view_application"
+          "view_application",
+          "change_issue",
+          "change_issue_attachment",
+          "change_issue_attachment_bulk",
+          "change_attachment_rule"
         ],
         "title": "Permission"
       },

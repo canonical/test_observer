@@ -44,10 +44,11 @@ from test_observer.controllers.issues.models import (
     IssuePutRequest,
     IssueTestResultAttachmentRulePostRequest,
 )
+from test_observer.common.permissions import Permission
 
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
-from test_observer.data_access.models import Artefact, User, TestResult
+from test_observer.data_access.models import Artefact, User, TestResult, Application
 from test_observer.data_access.models_enums import (
     FamilyName,
     SnapStage,
@@ -679,11 +680,25 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
 
     add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
+    # Create an application with all permissions
+    application = session.scalar(
+        select(Application).where(Application.name == "seed_data_app")
+    )
+    if not application:
+        application = Application(
+            name="seed_data_app", permissions=[p.value for p in Permission]
+        )
+        session.add(application)
+        session.commit()
+        session.refresh(application)
+    auth_headers = {"Authorization": f"Bearer {application.api_key}"}
+
     issues = []
     for issue_request in ISSUE_REQUESTS:
         response = client.put(
             ISSUE_URL,
             json=issue_request.model_dump(mode="json"),
+            headers=auth_headers,
         )
         response.raise_for_status()
         issues.append(response.json())
@@ -700,6 +715,7 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
         response = client.post(
             POST_TEST_RESULT_ISSUE_ATTACHMENT_URL.format(id=issue_id),
             json=attachment_rule_request.model_dump(mode="json"),
+            headers=auth_headers,
         )
         response.raise_for_status()
         attachment_rules.append(response.json())
@@ -707,50 +723,62 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     test_executions = []
     for start_request in START_TEST_EXECUTION_REQUESTS:
         response = client.put(
-            START_TEST_EXECUTION_URL, json=start_request.model_dump(mode="json")
+            START_TEST_EXECUTION_URL,
+            json=start_request.model_dump(mode="json"),
+            headers=auth_headers,
         )
         response.raise_for_status()
         test_executions.append(response.json())
 
     for end_request in END_TEST_EXECUTION_REQUESTS:
         client.put(
-            END_TEST_EXECUTION_URL, json=end_request.model_dump(mode="json")
+            END_TEST_EXECUTION_URL,
+            json=end_request.model_dump(mode="json"),
+            headers=auth_headers,
         ).raise_for_status()
 
     for case_issue_request in TEST_CASE_ISSUE_REQUESTS:
         client.post(
-            TEST_CASE_ISSUE_URL, json=case_issue_request.model_dump(mode="json")
+            TEST_CASE_ISSUE_URL,
+            json=case_issue_request.model_dump(mode="json"),
+            headers=auth_headers,
         ).raise_for_status()
 
     for environment_issue_request in ENVIRONMENT_ISSUE_REQUESTS:
         client.post(
             ENVIRONMENT_ISSUE_URL,
             json=environment_issue_request.model_dump(mode="json"),
+            headers=auth_headers,
         ).raise_for_status()
 
-    _rerun_some_test_executions(client, test_executions)
+    _rerun_some_test_executions(client, test_executions, auth_headers)
 
-    _add_some_execution_metadata(client, test_executions)
+    _add_some_execution_metadata(client, test_executions, auth_headers)
 
     _add_bugurl_and_duedate(session)
 
-    _add_issue_attachments(client, session, issues)
+    _add_issue_attachments(client, session, issues, auth_headers)
 
     print("Database seeding completed successfully!")
 
 
 def _rerun_some_test_executions(
-    client: TestClient | requests.Session, test_executions: list[dict]
+    client: TestClient | requests.Session,
+    test_executions: list[dict],
+    auth_headers: dict,
 ) -> None:
     te_ids = [te["id"] for te in test_executions[::2]]
     client.post(
         RERUN_TEST_EXECUTION_URL,
         json={"test_execution_ids": te_ids},
+        headers=auth_headers,
     ).raise_for_status()
 
 
 def _add_some_execution_metadata(
-    client: TestClient | requests.Session, test_executions: list[dict]
+    client: TestClient | requests.Session,
+    test_executions: list[dict],
+    auth_headers: dict,
 ) -> None:
     te_ids = [te["id"] for te in test_executions[::2]]
     for idx, te_id in enumerate(te_ids):
@@ -761,6 +789,7 @@ def _add_some_execution_metadata(
                     idx % len(SAMPLE_EXECUTION_METADATA)
                 ]
             },
+            headers=auth_headers,
         ).raise_for_status()
 
 
@@ -776,7 +805,10 @@ def _add_bugurl_and_duedate(session: Session) -> None:
 
 
 def _add_issue_attachments(
-    client: TestClient | requests.Session, session: Session, issues: list[dict]
+    client: TestClient | requests.Session,
+    session: Session,
+    issues: list[dict],
+    auth_headers: dict,
 ) -> None:
     for idx, test_result in enumerate(session.scalars(select(TestResult)).all()):
         idxs_to_attach = SAMPLE_ISSUE_ATTACHMENT_SEQUENCE[
@@ -788,6 +820,7 @@ def _add_issue_attachments(
             client.post(
                 POST_ISSUE_ATTACHMENT_URL.format(id=issue["id"]),
                 json={"test_results": [test_result.id]},
+                headers=auth_headers,
             ).raise_for_status()
     session.commit()
 

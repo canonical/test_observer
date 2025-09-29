@@ -18,7 +18,9 @@
 from fastapi.testclient import TestClient
 
 from tests.asserts import assert_fails_validation
+from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
+from test_observer.common.permissions import Permission
 
 endpoint = "/v1/issues"
 valid_put_data = {
@@ -26,6 +28,13 @@ valid_put_data = {
     "title": "some title",
     "status": "open",
 }
+
+
+def auth_request(method: str, test_client: TestClient, endpoint: str, **kwargs):
+    return make_authenticated_request(
+        lambda: getattr(test_client, method)(endpoint, **kwargs),
+        Permission.change_issue,
+    )
 
 
 def test_empty_get_all(test_client: TestClient):
@@ -81,68 +90,71 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
 
 
 def test_patch_invalid_status(test_client: TestClient):
-    put_response = test_client.put(endpoint, json=valid_put_data)
-    response = test_client.patch(
+    put_response = auth_request("put", test_client, endpoint, json=valid_put_data)
+    response = auth_request(
+        "patch",
+        test_client,
         endpoint + f"/{put_response.json()['id']}",
-        json={
-            "status": "unknown-status",
-        },
+        json={"status": "unknown-status"},
     )
     assert response.status_code == 422
 
 
 def test_patch_no_change(test_client: TestClient):
-    put_response = test_client.put(endpoint, json=valid_put_data)
-    response = test_client.patch(endpoint + f"/{put_response.json()['id']}", json={})
+    put_response = auth_request("put", test_client, endpoint, json=valid_put_data)
+    response = auth_request(
+        "patch", test_client, endpoint + f"/{put_response.json()['id']}", json={}
+    )
     assert put_response.json() == response.json()
 
 
 def test_patch_all(test_client: TestClient):
-    put_response = test_client.put(endpoint, json=valid_put_data)
-    response = test_client.patch(
+    put_response = auth_request("put", test_client, endpoint, json=valid_put_data)
+    response = auth_request(
+        "patch",
+        test_client,
         endpoint + f"/{put_response.json()['id']}",
-        json={
-            "title": "new title",
-            "status": "closed",
-        },
+        json={"title": "new title", "status": "closed"},
     )
     assert response.json()["title"] == "new title"
     assert response.json()["status"] == "closed"
 
 
 def test_put_requires_url(test_client: TestClient):
-    response = test_client.put(endpoint, json={})
+    response = auth_request("put", test_client, endpoint, json={})
     assert_fails_validation(response, "url", "missing")
 
 
 def test_put_indempotent(test_client: TestClient):
-    test_client.put(endpoint, json=valid_put_data)
-    test_client.put(endpoint, json=valid_put_data)
+    auth_request("put", test_client, endpoint, json=valid_put_data)
+    auth_request("put", test_client, endpoint, json=valid_put_data)
     response = test_client.get(endpoint)
     assert len(response.json()["issues"]) == 1
 
 
 def test_put_update_existing(test_client: TestClient):
-    test_client.put(endpoint, json=valid_put_data)
-    test_client.put(endpoint, json={**valid_put_data, "title": "new title"})
+    auth_request("put", test_client, endpoint, json=valid_put_data)
+    auth_request(
+        "put", test_client, endpoint, json={**valid_put_data, "title": "new title"}
+    )
     response = test_client.get(endpoint)
     assert response.json()["issues"][0]["title"] == "new title"
 
 
 def test_put_invalid_url(test_client: TestClient):
     put_data = {**valid_put_data, "url": "http://unknown.com/bug/1"}
-    response = test_client.put(endpoint, json=put_data)
+    response = auth_request("put", test_client, endpoint, json=put_data)
     assert response.status_code == 422
 
 
 def test_put_invalid_status(test_client: TestClient):
     put_data = {**valid_put_data, "status": "random"}
-    response = test_client.put(endpoint, json=put_data)
+    response = auth_request("put", test_client, endpoint, json=put_data)
     assert response.status_code == 422
 
 
 def test_put_defaults(test_client: TestClient):
     put_data = {"url": valid_put_data["url"]}
-    response = test_client.put(endpoint, json=put_data)
+    response = auth_request("put", test_client, endpoint, json=put_data)
     assert response.json()["title"] == ""
     assert response.json()["status"] == "unknown"

@@ -22,7 +22,10 @@ from fastapi.testclient import TestClient
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.models import TestExecution, TestExecutionMetadata
+
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
+from test_observer.common.permissions import Permission
 
 
 def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
@@ -54,8 +57,12 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     )
 
     issue = generator.gen_issue()
-    response = test_client.post(
-        f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result_second.id]}
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/issues/{issue.id}/attach",
+            json={"test_results": [test_result_second.id]},
+        ),
+        Permission.change_issue_attachment,
     )
 
     response = test_client.get(
@@ -205,16 +212,19 @@ def test_attachment_rule_listed_in_issue_attachment(
         TestExecutionMetadata(category="category1", value="value1")
     )
 
-    attachment_rule_response = test_client.post(
-        f"/v1/issues/{issue.id}/attachment-rules",
-        json={
-            "enabled": True,
-            "families": [test_execution.artefact_build.artefact.family],
-            "environment_names": [test_execution.environment.name],
-            "test_case_names": ["test"],
-            "template_ids": ["test-template-id"],
-            "execution_metadata": {"category1": ["value1"]},
-        },
+    attachment_rule_response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/issues/{issue.id}/attachment-rules",
+            json={
+                "enabled": True,
+                "families": [test_execution.artefact_build.artefact.family],
+                "environment_names": [test_execution.environment.name],
+                "test_case_names": ["test"],
+                "template_ids": ["test-template-id"],
+                "execution_metadata": {"category1": ["value1"]},
+            },
+        ),
+        Permission.change_attachment_rule,
     )
     attachment_rule_id = attachment_rule_response.json()["id"]
 

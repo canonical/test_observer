@@ -54,3 +54,7 @@ class Permission(StrEnum):
     add_application = auto()
     change_application = auto()
     view_application = auto()
+    change_issue = auto()
+    change_issue_attachment = auto()
+    change_issue_attachment_bulk = auto()
+    change_attachment_rule = auto()
