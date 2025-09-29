@@ -23,7 +23,7 @@ import '../../models/test_results_filters.dart';
 import '../../providers/issue_test_results.dart';
 import '../spacing.dart';
 import '../test_results_page/test_results_table.dart';
-import 'issue_filters_view.dart';
+import '../test_results_page/test_results_filters_view.dart';
 
 class IssuePageBody extends ConsumerStatefulWidget {
   const IssuePageBody({super.key, required this.issue});
@@ -74,7 +74,7 @@ class _IssuePageBodyState extends ConsumerState<IssuePageBody> {
         ),
         const SizedBox(height: Spacing.level4),
 
-        // Test Results section
+        // Test Results section with filter toggle
         Row(
           children: [
             Text(
@@ -92,13 +92,18 @@ class _IssuePageBodyState extends ConsumerState<IssuePageBody> {
             ),
           ],
         ),
-        const SizedBox(height: Spacing.level4),
+        const SizedBox(height: Spacing.level3),
 
-        // Filters section
         if (showFilters) ...[
-          IssueFiltersView(
-            currentFilters: _currentFilters,
-            onFiltersChanged: _updateFilters,
+          TestResultsFiltersView(
+            initialFilters: _currentFilters,
+            onApplyFilters: _updateFilters,
+            enabledFilters: const {
+              FilterType.families,
+              FilterType.environments,
+              FilterType.testCases,
+              FilterType.dateRange,
+            },
           ),
           const SizedBox(height: Spacing.level4),
         ],
