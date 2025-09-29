@@ -15,25 +15,129 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../models/issue.dart';
+import '../../models/test_results_filters.dart';
+import '../../providers/issue_test_results.dart';
 import '../spacing.dart';
+import '../test_results_page/test_results_table.dart';
+import 'issue_filters_view.dart';
 
-class IssuePageBody extends StatelessWidget {
+class IssuePageBody extends ConsumerStatefulWidget {
   const IssuePageBody({super.key, required this.issue});
 
   final Issue issue;
 
   @override
+  ConsumerState<IssuePageBody> createState() => _IssuePageBodyState();
+}
+
+class _IssuePageBodyState extends ConsumerState<IssuePageBody> {
+  bool showFilters = false;
+  late TestResultsFilters _currentFilters;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with filters that include this issue ID
+    _currentFilters = TestResultsFilters(
+      issues: [widget.issue.id],
+    );
+  }
+
+  void _updateFilters(TestResultsFilters newFilters) {
+    setState(() {
+      // Always ensure the issue ID is included in the filters
+      _currentFilters = newFilters.copyWith(
+        issues: [widget.issue.id],
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final testResultsAsync = ref.watch(
+      issueTestResultsProvider(
+        widget.issue.id,
+        _currentFilters,
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          issue.title,
+          widget.issue.title,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(height: Spacing.level4),
+
+        // Test Results section
+        Row(
+          children: [
+            Text(
+              'Test Results',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const Spacer(),
+            YaruOptionButton(
+              child: const Icon(Icons.filter_alt),
+              onPressed: () {
+                setState(() {
+                  showFilters = !showFilters;
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: Spacing.level4),
+
+        // Filters section
+        if (showFilters) ...[
+          IssueFiltersView(
+            currentFilters: _currentFilters,
+            onFiltersChanged: _updateFilters,
+          ),
+          const SizedBox(height: Spacing.level4),
+        ],
+
+        testResultsAsync.when(
+          data: (testResultsData) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: Spacing.level3),
+              child: Text(
+                'Found ${testResultsData.count} results (showing ${testResultsData.testResults.length})',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (error, stack) => const SizedBox.shrink(),
+        ),
+
+        Expanded(
+          child: testResultsAsync.when(
+            data: (testResultsData) {
+              if (testResultsData.testResults.isEmpty) {
+                return const Center(
+                  child: Text('No test results found for this issue.'),
+                );
+              }
+
+              return TestResultsTable(
+                testResults: testResultsData.testResults,
+              );
+            },
+            loading: () => const Center(
+              child: YaruCircularProgressIndicator(),
+            ),
+            error: (error, stack) => Center(
+              child: Text('Error loading test results: $error'),
+            ),
+          ),
+        ),
       ],
     );
   }
