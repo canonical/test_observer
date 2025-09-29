@@ -21,7 +21,12 @@ import 'api.dart';
 part 'test_results_environments.g.dart';
 
 @riverpod
-Future<List<String>> allEnvironments(Ref ref) async {
+Future<List<String>> suggestedEnvironments(Ref ref, String query) async {
+  // Only search if query is long enough
+  if (query.trim().length < 2) {
+    return [];
+  }
+
   final api = ref.watch(apiProvider);
-  return await api.getEnvironments();
+  return await api.searchEnvironments(query: query.trim(), limit: 50);
 }

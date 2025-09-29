@@ -217,8 +217,22 @@ class ApiRepository {
     return EnvironmentReview.fromJson(response.data);
   }
 
-  Future<List<String>> getEnvironments() async {
-    final response = await dio.get('/v1/environments');
+  Future<List<String>> searchEnvironments({
+    String? query,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'limit': limit,
+      'offset': offset,
+    };
+
+    if (query != null && query.trim().isNotEmpty) {
+      queryParams['q'] = query.trim();
+    }
+
+    final response =
+        await dio.get('/v1/environments', queryParameters: queryParams);
     final Map<String, dynamic> data = response.data;
     final List<dynamic> environments = data['environments'] ?? [];
     return environments.cast<String>();

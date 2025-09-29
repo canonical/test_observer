@@ -69,7 +69,6 @@ class _TestResultsFiltersViewState
 
   @override
   Widget build(BuildContext context) {
-    final environments = ref.watch(allEnvironmentsProvider).value ?? [];
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??
         ExecutionMetadata(data: {});
@@ -99,8 +98,13 @@ class _TestResultsFiltersViewState
         _box(
           MultiSelectCombobox(
             title: 'Environment',
-            allOptions: environments,
+            allOptions: const [],
             initialSelected: _selectedFilters.environments.toSet(),
+            asyncSuggestionsCallback: (pattern) async {
+              return await ref
+                  .read(suggestedEnvironmentsProvider(pattern).future);
+            },
+            minCharsForAsyncSearch: 2,
             onChanged: (val, isSelected) => setState(
               () => _selectedFilters = _selectedFilters.copyWith(
                 environments: [
