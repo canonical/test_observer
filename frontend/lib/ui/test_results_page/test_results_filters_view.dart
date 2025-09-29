@@ -29,13 +29,28 @@ import '../page_filters/multi_select_combobox.dart';
 import '../page_filters/date_time_selector.dart';
 import '../spacing.dart';
 
+enum FilterType {
+  families,
+  environments,
+  testCases,
+  templateIds,
+  metadata,
+  dateRange,
+}
+
 class TestResultsFiltersView extends ConsumerStatefulWidget {
   const TestResultsFiltersView({
     super.key,
     required this.initialFilters,
+    this.onApplyFilters,
+    this.enabledFilters,
   });
 
   final TestResultsFilters initialFilters;
+
+  final Function(TestResultsFilters)? onApplyFilters;
+
+  final Set<FilterType>? enabledFilters;
 
   @override
   ConsumerState<TestResultsFiltersView> createState() =>
@@ -67,6 +82,21 @@ class _TestResultsFiltersViewState
 
   Widget _box(Widget child) => SizedBox(width: _comboWidth, child: child);
 
+  bool _isFilterEnabled(FilterType filter) {
+    return widget.enabledFilters == null ||
+        widget.enabledFilters!.contains(filter);
+  }
+
+  void _applyFilters() {
+    if (widget.onApplyFilters != null) {
+      // Use callback if provided
+      widget.onApplyFilters!(_selectedFilters);
+    } else {
+      // Otherwise, navigate to test results page
+      context.go(_selectedFilters.toTestResultsUri().toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final environments = ref.watch(allEnvironmentsProvider).value ?? [];
@@ -79,112 +109,141 @@ class _TestResultsFiltersViewState
       spacing: Spacing.level4,
       runSpacing: Spacing.level4,
       children: [
-        _box(
-          MultiSelectCombobox(
-            title: 'Family',
-            allOptions: allFamilyOptions,
-            initialSelected: _selectedFilters.families.toSet(),
-            onChanged: (val, isSelected) {
-              setState(
+        if (_isFilterEnabled(FilterType.families))
+          _box(
+            MultiSelectCombobox(
+              title: 'Family',
+              allOptions: allFamilyOptions,
+              initialSelected: _selectedFilters.families.toSet(),
+              onChanged: (val, isSelected) {
+                setState(
+                  () => _selectedFilters = _selectedFilters.copyWith(
+                    families: [
+                      ..._selectedFilters.families.where((f) => f != val),
+                      if (isSelected) val,
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.environments))
+          _box(
+            MultiSelectCombobox(
+              title: 'Environment',
+              allOptions: environments,
+              initialSelected: _selectedFilters.environments.toSet(),
+              onChanged: (val, isSelected) => setState(
                 () => _selectedFilters = _selectedFilters.copyWith(
-                  families: [
-                    ..._selectedFilters.families.where((f) => f != val),
+                  environments: [
+                    ..._selectedFilters.environments.where((e) => e != val),
                     if (isSelected) val,
                   ],
                 ),
-              );
-            },
-          ),
-        ),
-        _box(
-          MultiSelectCombobox(
-            title: 'Environment',
-            allOptions: environments,
-            initialSelected: _selectedFilters.environments.toSet(),
-            onChanged: (val, isSelected) => setState(
-              () => _selectedFilters = _selectedFilters.copyWith(
-                environments: [
-                  ..._selectedFilters.environments.where((e) => e != val),
-                  if (isSelected) val,
-                ],
               ),
             ),
           ),
-        ),
-        _box(
-          MultiSelectCombobox(
-            title: 'Test Case',
-            allOptions: const [],
-            initialSelected: _selectedFilters.testCases.toSet(),
-            asyncSuggestionsCallback: (pattern) async {
-              return await ref.read(suggestedTestCasesProvider(pattern).future);
-            },
-            minCharsForAsyncSearch: 2,
-            onChanged: (val, isSelected) {
-              setState(
-                () => isSelected
-                    ? _selectedFilters.testCases.add(val)
-                    : _selectedFilters.testCases.remove(val),
-              );
-            },
-          ),
-        ),
-        _box(
-          MultiSelectCombobox(
-            title: 'Metadata',
-            allOptions: executionMetadata.toStrings(),
-            initialSelected:
-                _selectedFilters.executionMetadata.toStrings().toSet(),
-            onChanged: (val, isSelected) {
-              final match = executionMetadata.findFromString(val);
-              final newExecutionMetadata =
-                  _selectedFilters.executionMetadata.toRows();
-              if (isSelected) {
-                newExecutionMetadata.add(match);
-              } else {
-                newExecutionMetadata.remove(match);
-              }
-              setState(
-                () => _selectedFilters = _selectedFilters.copyWith(
-                  executionMetadata: ExecutionMetadata.fromRows(
-                    newExecutionMetadata,
+        if (_isFilterEnabled(FilterType.testCases))
+          _box(
+            MultiSelectCombobox(
+              title: 'Test Case',
+              allOptions: const [],
+              initialSelected: _selectedFilters.testCases.toSet(),
+              asyncSuggestionsCallback: (pattern) async {
+                return await ref
+                    .read(suggestedTestCasesProvider(pattern).future);
+              },
+              minCharsForAsyncSearch: 2,
+              onChanged: (val, isSelected) {
+                setState(
+                  () => _selectedFilters = _selectedFilters.copyWith(
+                    testCases: isSelected
+                        ? (_selectedFilters.testCases + [val])
+                        : _selectedFilters.testCases
+                            .where((tc) => tc != val)
+                            .toList(),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-        _box(
-          DateTimeSelector(
-            title: 'From',
-            initialDate: _selectedFilters.fromDate,
-            onSelected: (date) {
-              setState(
-                () => _selectedFilters =
-                    _selectedFilters.copyWith(fromDate: date),
-              );
-            },
+        if (_isFilterEnabled(FilterType.templateIds))
+          _box(
+            MultiSelectCombobox(
+              title: 'Template ID',
+              allOptions: const [],
+              initialSelected: _selectedFilters.templateIds.toSet(),
+              asyncSuggestionsCallback: (pattern) async {
+                return await ref
+                    .read(suggestedTestCasesProvider(pattern).future);
+              },
+              minCharsForAsyncSearch: 2,
+              onChanged: (val, isSelected) {
+                setState(
+                  () => isSelected
+                      ? _selectedFilters.templateIds.add(val)
+                      : _selectedFilters.templateIds.remove(val),
+                );
+              },
+            ),
           ),
-        ),
-        _box(
-          DateTimeSelector(
-            title: 'Until',
-            initialDate: _selectedFilters.untilDate,
-            onSelected: (date) {
-              setState(
-                () => _selectedFilters =
-                    _selectedFilters.copyWith(untilDate: date),
-              );
-            },
+        if (_isFilterEnabled(FilterType.metadata))
+          _box(
+            MultiSelectCombobox(
+              title: 'Metadata',
+              allOptions: executionMetadata.toStrings(),
+              initialSelected:
+                  _selectedFilters.executionMetadata.toStrings().toSet(),
+              onChanged: (val, isSelected) {
+                final match = executionMetadata.findFromString(val);
+                final newExecutionMetadata =
+                    _selectedFilters.executionMetadata.toRows();
+                if (isSelected) {
+                  newExecutionMetadata.add(match);
+                } else {
+                  newExecutionMetadata.remove(match);
+                }
+                setState(
+                  () => _selectedFilters = _selectedFilters.copyWith(
+                    executionMetadata: ExecutionMetadata.fromRows(
+                      newExecutionMetadata,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
+        if (_isFilterEnabled(FilterType.dateRange)) ...[
+          _box(
+            DateTimeSelector(
+              title: 'From',
+              initialDate: _selectedFilters.fromDate,
+              onSelected: (date) {
+                setState(
+                  () => _selectedFilters =
+                      _selectedFilters.copyWith(fromDate: date),
+                );
+              },
+            ),
+          ),
+          _box(
+            DateTimeSelector(
+              title: 'Until',
+              initialDate: _selectedFilters.untilDate,
+              onSelected: (date) {
+                setState(
+                  () => _selectedFilters =
+                      _selectedFilters.copyWith(untilDate: date),
+                );
+              },
+            ),
+          ),
+        ],
         SizedBox(
           width: _comboWidth,
           height: _controlHeight,
           child: ElevatedButton(
-            onPressed: () {
-              context.go(_selectedFilters.toTestResultsUri().toString());
-            },
+            onPressed: _applyFilters,
             style: ElevatedButton.styleFrom(
               backgroundColor: YaruColors.orange,
               foregroundColor: Colors.white,
