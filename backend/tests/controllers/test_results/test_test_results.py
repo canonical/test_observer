@@ -22,7 +22,10 @@ import pytest
 from test_observer.data_access.models_enums import (
     FamilyName,
 )
+
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
+from test_observer.common.permissions import Permission
 
 
 def generate_unique_name(prefix: str = "test") -> str:
@@ -236,8 +239,11 @@ class TestSearchTestResults:
 
         # Create an issue and attach it to the test result via API
         issue = generator.gen_issue()
-        attach_response = test_client.post(
-            f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}
+        attach_response = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}
+            ),
+            Permission.change_issue_attachment,
         )
         assert attach_response.status_code == 200
 
@@ -267,11 +273,19 @@ class TestSearchTestResults:
         issue1 = generator.gen_issue(key="123")
         issue2 = generator.gen_issue(key="456")
 
-        attach_response1 = test_client.post(
-            f"/v1/issues/{issue1.id}/attach", json={"test_results": [test_result1.id]}
+        attach_response1 = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue1.id}/attach",
+                json={"test_results": [test_result1.id]},
+            ),
+            Permission.change_issue_attachment,
         )
-        attach_response2 = test_client.post(
-            f"/v1/issues/{issue2.id}/attach", json={"test_results": [test_result2.id]}
+        attach_response2 = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue2.id}/attach",
+                json={"test_results": [test_result2.id]},
+            ),
+            Permission.change_issue_attachment,
         )
         assert attach_response1.status_code == 200
         assert attach_response2.status_code == 200
@@ -627,8 +641,11 @@ class TestSearchTestResults:
 
         # Create an issue and attach it
         issue = generator.gen_issue(key="789")
-        attach_response = test_client.post(
-            f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}
+        attach_response = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}
+            ),
+            Permission.change_issue_attachment,
         )
         assert attach_response.status_code == 200
 

@@ -18,10 +18,28 @@
 from fastapi.testclient import TestClient
 
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 from test_observer.data_access.models import FamilyName, IssueTestResultAttachmentRule
+from test_observer.common.permissions import Permission
 
 attach_endpoint = "/v1/issues/{id}/attach"
 detach_endpoint = "/v1/issues/{id}/detach"
+
+
+def auth_post(test_client: TestClient, endpoint: str, json: dict):
+    return make_authenticated_request(
+        lambda: test_client.post(endpoint, json=json),
+        Permission.change_issue_attachment,
+    )
+
+
+def auth_post_bulk(test_client: TestClient, endpoint: str, json: dict):
+    assert auth_post(test_client, endpoint, json).status_code == 403
+    return make_authenticated_request(
+        lambda: test_client.post(endpoint, json=json),
+        Permission.change_issue_attachment,
+        Permission.change_issue_attachment_bulk,
+    )
 
 
 def gen_test_results(generator: DataGenerator):
@@ -37,18 +55,17 @@ def gen_test_results(generator: DataGenerator):
 
 def test_issue_attach_empty(test_client: TestClient, generator: DataGenerator):
     issue = generator.gen_issue()
-    test_client.post(
-        attach_endpoint.format(id=issue.id),
-        json={"test_results": []},
-    )
+    auth_post(test_client, attach_endpoint.format(id=issue.id), {"test_results": []})
     assert issue.test_result_attachments == []
 
 
 def test_issue_attach_one(test_client: TestClient, generator: DataGenerator):
     test_result = gen_test_results(generator)[0]
     issue = generator.gen_issue()
-    test_client.post(
-        attach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
     assert {
         attachment.test_result.id for attachment in issue.test_result_attachments
@@ -58,11 +75,15 @@ def test_issue_attach_one(test_client: TestClient, generator: DataGenerator):
 def test_issue_attach_repeat(test_client: TestClient, generator: DataGenerator):
     test_result = gen_test_results(generator)[0]
     issue = generator.gen_issue()
-    test_client.post(
-        attach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
-    test_client.post(
-        attach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
     assert {
         attachment.test_result.id for attachment in issue.test_result_attachments
@@ -72,11 +93,15 @@ def test_issue_attach_repeat(test_client: TestClient, generator: DataGenerator):
 def test_issue_attach_multiple(test_client: TestClient, generator: DataGenerator):
     test_results = gen_test_results(generator)
     issue = generator.gen_issue()
-    test_client.post(
-        attach_endpoint.format(id=issue.id), json={"test_results": [test_results[0].id]}
+    auth_post(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results": [test_results[0].id]},
     )
-    test_client.post(
-        attach_endpoint.format(id=issue.id), json={"test_results": [test_results[1].id]}
+    auth_post(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results": [test_results[1].id]},
     )
     assert {
         attachment.test_result.id for attachment in issue.test_result_attachments
@@ -86,11 +111,15 @@ def test_issue_attach_multiple(test_client: TestClient, generator: DataGenerator
 def test_issue_detach_one(test_client: TestClient, generator: DataGenerator):
     test_result = gen_test_results(generator)[0]
     issue = generator.gen_issue()
-    test_client.post(
-        attach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
-    test_client.post(
-        detach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        detach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
     assert issue.test_result_attachments == []
 
@@ -98,14 +127,20 @@ def test_issue_detach_one(test_client: TestClient, generator: DataGenerator):
 def test_issue_detach_repeat(test_client: TestClient, generator: DataGenerator):
     test_result = gen_test_results(generator)[0]
     issue = generator.gen_issue()
-    test_client.post(
-        attach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
-    test_client.post(
-        detach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        detach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
-    test_client.post(
-        detach_endpoint.format(id=issue.id), json={"test_results": [test_result.id]}
+    auth_post(
+        test_client,
+        detach_endpoint.format(id=issue.id),
+        {"test_results": [test_result.id]},
     )
     assert issue.test_result_attachments == []
 
@@ -113,12 +148,15 @@ def test_issue_detach_repeat(test_client: TestClient, generator: DataGenerator):
 def test_issue_detach_some(test_client: TestClient, generator: DataGenerator):
     test_results = gen_test_results(generator)
     issue = generator.gen_issue()
-    test_client.post(
+    auth_post_bulk(
+        test_client,
         attach_endpoint.format(id=issue.id),
-        json={"test_results": [test_results[0].id, test_results[1].id]},
+        {"test_results": [test_results[0].id, test_results[1].id]},
     )
-    test_client.post(
-        detach_endpoint.format(id=issue.id), json={"test_results": [test_results[0].id]}
+    auth_post(
+        test_client,
+        detach_endpoint.format(id=issue.id),
+        {"test_results": [test_results[0].id]},
     )
     assert {
         attachment.test_result.id for attachment in issue.test_result_attachments
@@ -127,9 +165,8 @@ def test_issue_detach_some(test_client: TestClient, generator: DataGenerator):
 
 def test_issue_attach_no_filters(test_client: TestClient, generator: DataGenerator):
     issue = generator.gen_issue()
-    resp = test_client.post(
-        attach_endpoint.format(id=issue.id),
-        json={"test_results_filters": {}},
+    resp = auth_post_bulk(
+        test_client, attach_endpoint.format(id=issue.id), {"test_results_filters": {}}
     )
     assert resp.status_code == 422
 
@@ -151,9 +188,10 @@ def test_issue_attach_with_filters_family(
     issue = generator.gen_issue()
 
     # Attach only snap test results using filters
-    resp = test_client.post(
+    resp = auth_post_bulk(
+        test_client,
         attach_endpoint.format(id=issue.id),
-        json={"test_results_filters": {"families": ["snap"]}},
+        {"test_results_filters": {"families": ["snap"]}},
     )
     assert resp.status_code == 200
     attached_ids = {a.test_result.id for a in issue.test_result_attachments}
@@ -176,14 +214,16 @@ def test_issue_detach_with_filters_environment(
     tr2 = generator.gen_test_result(tc, te2)
     issue = generator.gen_issue()
     # Attach both
-    test_client.post(
+    auth_post_bulk(
+        test_client,
         attach_endpoint.format(id=issue.id),
-        json={"test_results": [tr1.id, tr2.id]},
+        {"test_results": [tr1.id, tr2.id]},
     )
     # Detach only env1 using filters
-    resp = test_client.post(
+    resp = auth_post_bulk(
+        test_client,
         detach_endpoint.format(id=issue.id),
-        json={"test_results_filters": {"environments": ["laptop"]}},
+        {"test_results_filters": {"environments": ["laptop"]}},
     )
     assert resp.status_code == 200
     remaining_ids = {a.test_result.id for a in issue.test_result_attachments}
@@ -208,9 +248,10 @@ def test_issue_attach_with_filters_execution_metadata(
     tr2 = generator.gen_test_result(tc, te2)
     issue = generator.gen_issue()
     # Attach only test results with hw:laptop
-    resp = test_client.post(
+    resp = auth_post_bulk(
+        test_client,
         attach_endpoint.format(id=issue.id),
-        json={"test_results_filters": {"execution_metadata": {"hw": ["laptop"]}}},
+        {"test_results_filters": {"execution_metadata": {"hw": ["laptop"]}}},
     )
     assert resp.status_code == 200
     attached_ids = {a.test_result.id for a in issue.test_result_attachments}
@@ -231,9 +272,10 @@ def test_issue_attach_with_filters_template_id_unique_names(
     tr2 = generator.gen_test_result(tc2, te)
     issue = generator.gen_issue()
     # Attach only test results with template_id tmpl-1
-    resp = test_client.post(
+    resp = auth_post_bulk(
+        test_client,
         attach_endpoint.format(id=issue.id),
-        json={"test_results_filters": {"template_ids": ["tmpl-1"]}},
+        {"test_results_filters": {"template_ids": ["tmpl-1"]}},
     )
     assert resp.status_code == 200
     attached_ids = {a.test_result.id for a in issue.test_result_attachments}
@@ -254,14 +296,16 @@ def test_issue_detach_with_filters_template_id_unique_names(
     tr2 = generator.gen_test_result(tc2, te)
     issue = generator.gen_issue()
     # Attach both
-    test_client.post(
+    auth_post_bulk(
+        test_client,
         attach_endpoint.format(id=issue.id),
-        json={"test_results": [tr1.id, tr2.id]},
+        {"test_results": [tr1.id, tr2.id]},
     )
     # Detach only tmpl-1
-    resp = test_client.post(
+    resp = auth_post_bulk(
+        test_client,
         detach_endpoint.format(id=issue.id),
-        json={"test_results_filters": {"template_ids": ["tmpl-1"]}},
+        {"test_results_filters": {"template_ids": ["tmpl-1"]}},
     )
     assert resp.status_code == 200
     remaining_ids = {a.test_result.id for a in issue.test_result_attachments}
@@ -281,9 +325,10 @@ def test_issue_attach_with_filters_template_id_repeat(
     issue = generator.gen_issue()
     # Attach with filter multiple times
     for _ in range(3):
-        resp = test_client.post(
+        resp = auth_post_bulk(
+            test_client,
             attach_endpoint.format(id=issue.id),
-            json={"test_results_filters": {"template_ids": ["tmpl-1"]}},
+            {"test_results_filters": {"template_ids": ["tmpl-1"]}},
         )
         assert resp.status_code == 200
     attached_ids = {a.test_result.id for a in issue.test_result_attachments}
@@ -305,9 +350,10 @@ def test_issue_attach_with_attachment_rule(
     generator.db_session.commit()
 
     # Attach the test result with the rule
-    resp = test_client.post(
+    resp = auth_post_bulk(
+        test_client,
         attach_endpoint.format(id=issue.id),
-        json={"test_results": [test_result.id], "attachment_rule": rule.id},
+        {"test_results": [test_result.id], "attachment_rule": rule.id},
     )
     assert resp.status_code == 200
 

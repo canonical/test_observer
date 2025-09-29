@@ -18,6 +18,8 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission
+from tests.conftest import make_authenticated_request
 from test_observer.data_access.models_enums import (
     StageName,
     TestExecutionStatus,
@@ -190,12 +192,15 @@ def test_apply_test_result_attachment_rules(
     )
     issue = generator.gen_issue()
 
-    attachment_rule_response = test_client.post(
-        f"/v1/issues/{issue.id}/attachment-rules",
-        json={
-            "enabled": True,
-            "families": [test_execution.artefact_build.artefact.family],
-        },
+    attachment_rule_response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/issues/{issue.id}/attachment-rules",
+            json={
+                "enabled": True,
+                "families": [test_execution.artefact_build.artefact.family],
+            },
+        ),
+        Permission.change_attachment_rule,
     )
     attachment_rule_id = attachment_rule_response.json()["id"]
 
