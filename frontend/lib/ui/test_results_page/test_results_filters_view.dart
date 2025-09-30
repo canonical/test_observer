@@ -43,13 +43,13 @@ class TestResultsFiltersView extends ConsumerStatefulWidget {
     super.key,
     required this.initialFilters,
     this.onApplyFilters,
+    this.onChanged,
     this.enabledFilters,
   });
 
   final TestResultsFilters initialFilters;
-
   final Function(TestResultsFilters)? onApplyFilters;
-
+  final Function(TestResultsFilters)? onChanged;
   final Set<FilterType>? enabledFilters;
 
   @override
@@ -97,6 +97,12 @@ class _TestResultsFiltersViewState
     }
   }
 
+  void _notifyChanged(TestResultsFilters filters) {
+    if (widget.onChanged != null) {
+      widget.onChanged!(filters);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
@@ -115,14 +121,15 @@ class _TestResultsFiltersViewState
               allOptions: allFamilyOptions,
               initialSelected: _selectedFilters.families.toSet(),
               onChanged: (val, isSelected) {
-                setState(
-                  () => _selectedFilters = _selectedFilters.copyWith(
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
                     families: [
                       ..._selectedFilters.families.where((f) => f != val),
                       if (isSelected) val,
                     ],
-                  ),
-                );
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
               },
             ),
           ),
@@ -137,14 +144,17 @@ class _TestResultsFiltersViewState
                     .read(suggestedEnvironmentsProvider(pattern).future);
               },
               minCharsForAsyncSearch: 2,
-              onChanged: (val, isSelected) => setState(
-                () => _selectedFilters = _selectedFilters.copyWith(
-                  environments: [
-                    ..._selectedFilters.environments.where((e) => e != val),
-                    if (isSelected) val,
-                  ],
-                ),
-              ),
+              onChanged: (val, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    environments: [
+                      ..._selectedFilters.environments.where((e) => e != val),
+                      if (isSelected) val,
+                    ],
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
             ),
           ),
         if (_isFilterEnabled(FilterType.testCases))
@@ -159,15 +169,16 @@ class _TestResultsFiltersViewState
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
-                setState(
-                  () => _selectedFilters = _selectedFilters.copyWith(
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
                     testCases: isSelected
                         ? (_selectedFilters.testCases + [val])
                         : _selectedFilters.testCases
                             .where((tc) => tc != val)
                             .toList(),
-                  ),
-                );
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
               },
             ),
           ),
@@ -183,11 +194,12 @@ class _TestResultsFiltersViewState
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
-                setState(
-                  () => isSelected
+                setState(() {
+                  isSelected
                       ? _selectedFilters.templateIds.add(val)
-                      : _selectedFilters.templateIds.remove(val),
-                );
+                      : _selectedFilters.templateIds.remove(val);
+                  _notifyChanged(_selectedFilters);
+                });
               },
             ),
           ),
@@ -207,13 +219,14 @@ class _TestResultsFiltersViewState
                 } else {
                   newExecutionMetadata.remove(match);
                 }
-                setState(
-                  () => _selectedFilters = _selectedFilters.copyWith(
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
                     executionMetadata: ExecutionMetadata.fromRows(
                       newExecutionMetadata,
                     ),
-                  ),
-                );
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
               },
             ),
           ),
@@ -223,10 +236,10 @@ class _TestResultsFiltersViewState
               title: 'From',
               initialDate: _selectedFilters.fromDate,
               onSelected: (date) {
-                setState(
-                  () => _selectedFilters =
-                      _selectedFilters.copyWith(fromDate: date),
-                );
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(fromDate: date);
+                  _notifyChanged(_selectedFilters);
+                });
               },
             ),
           ),
@@ -235,10 +248,10 @@ class _TestResultsFiltersViewState
               title: 'Until',
               initialDate: _selectedFilters.untilDate,
               onSelected: (date) {
-                setState(
-                  () => _selectedFilters =
-                      _selectedFilters.copyWith(untilDate: date),
-                );
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(untilDate: date);
+                  _notifyChanged(_selectedFilters);
+                });
               },
             ),
           ),

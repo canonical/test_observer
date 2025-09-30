@@ -16,21 +16,26 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../providers/issues.dart';
-import '../issues.dart';
-import '../notification.dart';
-import '../spacing.dart';
+import '../../../models/test_results_filters.dart';
+import '../../../providers/issue.dart';
+import '../../../models/attachment_rule_filters.dart';
+import '../../attachment_rule.dart';
+import '../../issues.dart';
+import '../../spacing.dart';
 
-class _AddIssueForm extends ConsumerStatefulWidget {
-  const _AddIssueForm();
+class _CreateAttachmentRuleForm extends ConsumerStatefulWidget {
+  const _CreateAttachmentRuleForm(this.filters);
+
+  final TestResultsFilters filters;
 
   @override
-  ConsumerState<_AddIssueForm> createState() => _AddIssueFormState();
+  ConsumerState<_CreateAttachmentRuleForm> createState() =>
+      _CreateAttachmentRuleFormState();
 }
 
-class _AddIssueFormState extends ConsumerState<_AddIssueForm> {
+class _CreateAttachmentRuleFormState
+    extends ConsumerState<_CreateAttachmentRuleForm> {
   late final GlobalKey<FormState> formKey;
   String _issueUrl = '';
 
@@ -49,8 +54,14 @@ class _AddIssueFormState extends ConsumerState<_AddIssueForm> {
   Widget build(BuildContext context) {
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
 
-    final issues = ref.watch(issuesProvider).value ?? [];
-    final existingIssueIds = issues.map((issue) => issue.id).toSet();
+    if (!AttachmentRuleFilters.areFiltersCompatible(widget.filters)) {
+      return Text(
+        'The provided test result filters are not compatible with attachment rules.',
+      );
+    }
+    final attachmentRuleFilters = AttachmentRuleFilters.fromTestResultsFilters(
+      widget.filters,
+    );
 
     return Form(
       key: formKey,
@@ -61,19 +72,26 @@ class _AddIssueFormState extends ConsumerState<_AddIssueForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: Spacing.level4,
           children: [
-            Text('Add Issue', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Create Attachment Rule',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             IssueUrlFormField(
-              allowInternalIssue: false,
+              allowInternalIssue: true,
               onChanged: (value) {
                 setState(() {
                   _issueUrl = value;
                 });
               },
             ),
+            AttachmentRuleFiltersWidget(
+              filters: attachmentRuleFilters,
+              editable: false,
+            ),
             Row(
               children: [
                 TextButton(
-                  onPressed: () => context.pop(),
+                  onPressed: () => Navigator.of(context).pop(),
                   child: Text(
                     'cancel',
                     style: buttonFontStyle?.apply(color: Colors.grey),
@@ -81,26 +99,28 @@ class _AddIssueFormState extends ConsumerState<_AddIssueForm> {
                 ),
                 const Spacer(),
                 TextButton(
-                  key: const Key('addIssueFormSubmitButton'),
+                  key: const Key('createAttachmentRuleFormSubmitButton'),
                   onPressed: () async {
                     // Ensure the form is valid before proceeding.
                     if (formKey.currentState?.validate() != true) return;
 
                     // Create or get the issue.
-                    final newIssueId = await getOrCreateIssueId(ref, _issueUrl);
+                    final issueId = await getOrCreateIssueId(ref, _issueUrl);
 
-                    // Close the form and show a notification if the issue was
-                    // already added.
+                    // Create the attachment rule.
+                    await ref
+                        .read(issueProvider(issueId).notifier)
+                        .createAttachmentRule(
+                          issueId: issueId,
+                          enabled: true,
+                          filters: attachmentRuleFilters,
+                        );
+
+                    // Close the form.
                     if (!context.mounted) return;
-                    if (existingIssueIds.contains(newIssueId)) {
-                      showNotification(context, 'Note: Issue already added.');
-                    }
                     Navigator.of(context).pop();
                   },
-                  child: Text(
-                    'add',
-                    style: buttonFontStyle?.apply(color: Colors.black),
-                  ),
+                  child: Text('create'),
                 ),
               ],
             ),
@@ -111,15 +131,16 @@ class _AddIssueFormState extends ConsumerState<_AddIssueForm> {
   }
 }
 
-void showAddIssueDialog({
+void showCreateAttachmentRuleDialog({
   required BuildContext context,
+  required TestResultsFilters filters,
 }) =>
     showDialog(
       context: context,
       builder: (_) => Dialog(
         child: Padding(
           padding: const EdgeInsets.all(Spacing.level4),
-          child: _AddIssueForm(),
+          child: _CreateAttachmentRuleForm(filters),
         ),
       ),
     );

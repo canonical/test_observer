@@ -15,8 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/issue.dart';
+import '../providers/issues.dart';
+import '../routing.dart';
 import 'inline_url_text.dart';
 
 class IssueSourceWidget extends StatelessWidget {
@@ -162,5 +165,95 @@ class IssueStatusWidget extends StatelessWidget {
         Text(label, style: style),
       ],
     );
+  }
+}
+
+class IssueUrlFormField extends StatefulWidget {
+  const IssueUrlFormField({
+    super.key,
+    this.allowInternalIssue = true,
+    this.onChanged,
+    this.initialValue,
+  });
+
+  final bool allowInternalIssue;
+  final ValueChanged<String>? onChanged;
+  final String? initialValue;
+
+  @override
+  State<IssueUrlFormField> createState() => _IssueUrlFormFieldState();
+}
+
+class _IssueUrlFormFieldState extends State<IssueUrlFormField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue ?? '');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String? _validate(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a URL';
+    }
+    final uri = Uri.tryParse(value);
+    if (uri == null ||
+        !uri.hasScheme ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty) {
+      return 'Please enter a valid URL';
+    }
+    if (widget.allowInternalIssue &&
+        isTestObserverUrl(uri) &&
+        !isValidIssuePage(uri)) {
+      return 'Invalid Test Observer issue URL, expected: ${Uri.base.origin}/#/issues/<id>';
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      key: const Key('issueUrlFormField'),
+      controller: _controller,
+      validator: _validate,
+      decoration: InputDecoration(
+        labelText: widget.allowInternalIssue
+            ? 'Test Observer issue URL or external URL (GitHub, Jira, Launchpad)'
+            : 'External issue URL (GitHub, Jira, Launchpad)',
+      ),
+      onChanged: widget.onChanged,
+    );
+  }
+}
+
+Uri extractRouteUri(Uri uri) {
+  return uri.fragment.isNotEmpty ? Uri.parse(uri.fragment) : uri;
+}
+
+bool isTestObserverUrl(Uri uri) {
+  return uri.origin == Uri.base.origin;
+}
+
+bool isValidIssuePage(Uri uri) {
+  return AppRoutes.isIssuePage(extractRouteUri(uri));
+}
+
+Future<int> getOrCreateIssueId(WidgetRef ref, String issueUrl) async {
+  final uri = Uri.parse(issueUrl.trim());
+  if (isTestObserverUrl(uri)) {
+    return AppRoutes.issueIdFromUri(extractRouteUri(uri));
+  } else {
+    final issue = await ref
+        .read(issuesProvider.notifier)
+        .createIssue(url: uri.toString());
+    return issue.id;
   }
 }

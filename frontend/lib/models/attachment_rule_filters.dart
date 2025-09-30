@@ -42,6 +42,18 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
   factory AttachmentRuleFilters.fromJson(Map<String, dynamic> json) =>
       _$AttachmentRuleFiltersFromJson(json);
 
+  factory AttachmentRuleFilters.fromTestResultsFilters(
+    TestResultsFilters filters,
+  ) {
+    return AttachmentRuleFilters(
+      families: filters.families,
+      environmentNames: filters.environments,
+      testCaseNames: filters.testCases,
+      templateIds: filters.templateIds,
+      executionMetadata: filters.executionMetadata,
+    );
+  }
+
   TestResultsFilters toTestResultsFilters() {
     return TestResultsFilters(
       families: families,
@@ -50,6 +62,12 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
       templateIds: templateIds,
       executionMetadata: executionMetadata,
     );
+  }
+
+  static bool areFiltersCompatible(TestResultsFilters filters) {
+    return AttachmentRuleFilters.fromTestResultsFilters(filters)
+            .toTestResultsFilters() ==
+        filters;
   }
 
   factory AttachmentRuleFilters.fromAttachmentRule(AttachmentRule rule) {

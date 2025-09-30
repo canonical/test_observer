@@ -205,7 +205,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Find the issue URL input field in the dialog and enter a valid URL
-    final urlField = find.byKey(const Key('attachIssueFormUrlInput'));
+    final urlField = find.byKey(const Key('issueUrlFormField'));
     expect(urlField, findsOneWidget);
     await tester.enterText(
       urlField,
@@ -271,7 +271,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Find the issue URL input field in the dialog and enter an existing issue URL
-    final urlField = find.byKey(const Key('attachIssueFormUrlInput'));
+    final urlField = find.byKey(const Key('issueUrlFormField'));
     expect(urlField, findsOneWidget);
     await tester.enterText(urlField, '${Uri.base.origin}/#/issues/123');
 
@@ -317,7 +317,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Find the issue URL input field in the dialog and enter a valid URL
-    final urlField = find.byKey(const Key('attachIssueFormUrlInput'));
+    final urlField = find.byKey(const Key('issueUrlFormField'));
     expect(urlField, findsOneWidget);
     await tester.enterText(
       urlField,
@@ -354,8 +354,10 @@ void main() {
     expect(apiMock.attachmentRuleCreated, isTrue);
 
     // Assert that the issue attachment is attributed to the attachment rule
-    expect(find.byTooltip('Attached by an enabled attachment rule'),
-        findsOneWidget,);
+    expect(
+      find.byTooltip('Attached by an enabled attachment rule'),
+      findsOneWidget,
+    );
 
     // Tap the detach button to open the dialog
     final detachButton = find.byKey(const Key('detachIssueButton'));

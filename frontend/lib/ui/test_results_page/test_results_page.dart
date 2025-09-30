@@ -17,10 +17,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/test_results_filters.dart';
 import '../../routing.dart';
 import '../spacing.dart';
+import 'bulk_operations/bulk_operation_buttons.dart';
 import 'test_results_body.dart';
 import 'test_results_filters_view.dart';
 
@@ -33,11 +35,26 @@ class TestResultsPage extends ConsumerStatefulWidget {
 
 class _TestResultsPageState extends ConsumerState<TestResultsPage> {
   bool showFilters = true;
+  late TestResultsFilters appliedFilters;
+  bool filtersModified = false;
+
+  void _onApplyFilters(TestResultsFilters filters) {
+    context.go(filters.toTestResultsUri().toString());
+    setState(() {
+      filtersModified = false;
+    });
+  }
+
+  void _onFiltersChanged(TestResultsFilters filters) {
+    setState(() {
+      filtersModified = filters != appliedFilters;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final uri = AppRoutes.uriFromContext(context);
-    final filters = TestResultsFilters.fromQueryParams(uri.queryParametersAll);
+    appliedFilters = TestResultsFilters.fromQueryParams(uri.queryParametersAll);
 
     return Padding(
       padding: const EdgeInsets.only(
@@ -47,6 +64,7 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Spacing.level4,
         children: [
           Row(
             children: [
@@ -65,13 +83,18 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
               ),
             ],
           ),
-          const SizedBox(height: Spacing.level4),
-          if (showFilters) ...[
-            TestResultsFiltersView(initialFilters: filters),
-            const SizedBox(height: Spacing.level4),
-          ],
+          if (showFilters)
+            TestResultsFiltersView(
+              initialFilters: appliedFilters,
+              onApplyFilters: _onApplyFilters,
+              onChanged: _onFiltersChanged,
+            ),
+          BulkOperationsButtons(
+            filters: appliedFilters,
+            disabled: filtersModified,
+          ),
           Expanded(
-            child: TestResultsBody(filters: filters),
+            child: TestResultsBody(filters: appliedFilters),
           ),
         ],
       ),
