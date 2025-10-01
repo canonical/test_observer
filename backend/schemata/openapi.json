@@ -1590,8 +1590,55 @@
           "environments"
         ],
         "summary": "Get Environments",
-        "description": "Returns list of distinct environments that have been used in test executions.",
+        "description": "Returns list of distinct environments that have been used in test executions.\n\nSupports pagination and search filtering.",
         "operationId": "get_environments_v1_environments_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for environment names",
+              "title": "Q"
+            },
+            "description": "Search term for environment names"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 50 if not specified)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 50 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1599,6 +1646,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EnvironmentsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
