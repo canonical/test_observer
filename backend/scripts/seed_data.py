@@ -680,6 +680,11 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
 
     add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
+    certbot = add_user(
+        "certbot@canonical.com", session, launchpad_api=FakeLaunchpadAPI()
+    )
+    certbot.is_admin = True
+
     # Create an application with all permissions
     application = session.scalar(
         select(Application).where(Application.name == "seed_data_app")

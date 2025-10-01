@@ -21,15 +21,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../models/attachment_rule_filters.dart';
 import '../../../../models/test_results_filters.dart';
 import '../../../../models/attachment_rule.dart';
-import '../../../../providers/issues.dart';
 import '../../../../providers/issue.dart';
 import '../../../../providers/test_results.dart';
-import '../../../../routing.dart';
+import '../../../issues.dart';
 import '../../../notification.dart';
 import '../../../spacing.dart';
 import 'bulk_attach_section.dart';
 import 'attachment_rule_section.dart';
-import 'issue_url_section.dart';
 import 'create_attachment_rule_section.dart';
 
 class AttachIssueForm extends ConsumerStatefulWidget {
@@ -102,7 +100,8 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: Spacing.level3,
                     children: [
-                      IssueUrlSection(
+                      IssueUrlFormField(
+                        allowInternalIssue: true,
                         onChanged: (value) {
                           setState(() {
                             _issueUrl = value;
@@ -168,7 +167,7 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                     if (formKey.currentState?.validate() != true) return;
 
                     // Get or create the issue ID.
-                    final issueId = await _getOrCreateIssueId();
+                    final issueId = await getOrCreateIssueId(ref, _issueUrl);
 
                     // Create the attachment rule if requested.
                     AttachmentRule? attachmentRule;
@@ -243,18 +242,6 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
         ),
       ),
     );
-  }
-
-  Future<int> _getOrCreateIssueId() async {
-    final uri = Uri.parse(_issueUrl);
-    if (isTestObserverIssueUrl(uri)) {
-      return AppRoutes.issueIdFromUri(extractRouteUri(uri));
-    } else {
-      final issue = await ref
-          .read(issuesProvider.notifier)
-          .createIssue(url: uri.toString());
-      return issue.id;
-    }
   }
 }
 
