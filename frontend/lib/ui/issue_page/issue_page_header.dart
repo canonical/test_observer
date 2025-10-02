@@ -27,26 +27,36 @@ class IssuePageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Spacing.level3,
       children: [
-        IssueSourceWidget(
-          source: issue.source,
-          textStyle: Theme.of(context).textTheme.headlineMedium,
+        Row(
+          children: [
+            IssueSourceWidget(
+              source: issue.source,
+              textStyle: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(width: Spacing.level5),
+            IssueProjectWidget(
+              project: issue.project,
+              textStyle: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(width: Spacing.level5),
+            IssueLinkWidget(
+              issue: issue,
+              textStyle: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(width: Spacing.level5),
+            IssueStatusWidget(
+              issue: issue,
+              textStyle: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ],
         ),
-        const SizedBox(width: Spacing.level5),
-        IssueProjectWidget(
-          project: issue.project,
-          textStyle: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(width: Spacing.level5),
-        IssueLinkWidget(
-          issue: issue,
-          textStyle: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(width: Spacing.level5),
-        IssueStatusWidget(
-          issue: issue,
-          textStyle: Theme.of(context).textTheme.headlineSmall,
+        Text(
+          issue.title,
+          style: Theme.of(context).textTheme.headlineSmall,
         ),
       ],
     );

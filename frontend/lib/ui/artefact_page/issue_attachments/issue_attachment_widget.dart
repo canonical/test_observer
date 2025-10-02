@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/issue_attachment.dart';
+import '../../../routing.dart';
 import '../../spacing.dart';
 import 'issue_forms/detach_issue_form.dart';
 import 'issue_widget.dart';
@@ -47,7 +48,11 @@ class IssueAttachmentWidget extends StatelessWidget {
                 ? 'Attached by an enabled attachment rule'
                 : 'Attached by a disabled attachment rule',
             child: InkWell(
-              onTap: () {}, // Placeholder link
+              onTap: () => navigateToIssuePage(
+                context,
+                issueAttachment.issue.id,
+                attachmentRuleId: attachmentRule.id,
+              ),
               child: attachmentRule.enabled
                   ? const Icon(Icons.attachment, size: 20)
                   : const Icon(Icons.link_off, size: 20, color: Colors.grey),
@@ -60,14 +65,12 @@ class IssueAttachmentWidget extends StatelessWidget {
           child: TextButton(
             key: const Key('detachIssueButton'),
             child: const Text('detach'),
-            onPressed: () {
-              showDetachIssueDialog(
-                context: context,
-                issue: issueAttachment.issue,
-                testResultId: testResultId,
-                testExecutionId: testExecutionId,
-              );
-            },
+            onPressed: () => showDetachIssueDialog(
+              context: context,
+              issue: issueAttachment.issue,
+              testResultId: testResultId,
+              testExecutionId: testExecutionId,
+            ),
           ),
         ),
       ],

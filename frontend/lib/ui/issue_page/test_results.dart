@@ -25,16 +25,16 @@ import '../spacing.dart';
 import '../test_results_page/test_results_table.dart';
 import '../test_results_page/test_results_filters_view.dart';
 
-class IssuePageBody extends ConsumerStatefulWidget {
-  const IssuePageBody({super.key, required this.issue});
+class TestResultsSection extends ConsumerStatefulWidget {
+  const TestResultsSection({super.key, required this.issue});
 
   final Issue issue;
 
   @override
-  ConsumerState<IssuePageBody> createState() => _IssuePageBodyState();
+  ConsumerState<TestResultsSection> createState() => _TestResultsSectionState();
 }
 
-class _IssuePageBodyState extends ConsumerState<IssuePageBody> {
+class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
   bool showFilters = false;
   late TestResultsFilters _currentFilters;
 
@@ -68,12 +68,6 @@ class _IssuePageBodyState extends ConsumerState<IssuePageBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.issue.title,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: Spacing.level4),
-
         // Test Results section with filter toggle
         Row(
           children: [
@@ -123,25 +117,23 @@ class _IssuePageBodyState extends ConsumerState<IssuePageBody> {
           error: (error, stack) => const SizedBox.shrink(),
         ),
 
-        Expanded(
-          child: testResultsAsync.when(
-            data: (testResultsData) {
-              if (testResultsData.testResults.isEmpty) {
-                return const Center(
-                  child: Text('No test results found for this issue.'),
-                );
-              }
-
-              return TestResultsTable(
-                testResults: testResultsData.testResults,
+        testResultsAsync.when(
+          data: (testResultsData) {
+            if (testResultsData.testResults.isEmpty) {
+              return const Center(
+                child: Text('No test results found for this issue.'),
               );
-            },
-            loading: () => const Center(
-              child: YaruCircularProgressIndicator(),
-            ),
-            error: (error, stack) => Center(
-              child: Text('Error loading test results: $error'),
-            ),
+            }
+
+            return TestResultsTable(
+              testResults: testResultsData.testResults,
+            );
+          },
+          loading: () => const Center(
+            child: YaruCircularProgressIndicator(),
+          ),
+          error: (error, stack) => Center(
+            child: Text('Error loading test results: $error'),
           ),
         ),
       ],
