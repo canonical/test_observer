@@ -21,7 +21,8 @@ import 'package:yaru/yaru.dart';
 import '../../providers/issue.dart';
 import '../spacing.dart';
 import 'issue_page_header.dart';
-import 'issue_page_body.dart';
+import 'test_results.dart';
+import 'attachment_rules.dart';
 
 class IssuePage extends ConsumerWidget {
   const IssuePage({super.key, required this.issueId});
@@ -39,13 +40,20 @@ class IssuePage extends ConsumerWidget {
         top: Spacing.level5,
       ),
       child: issueAsync.when(
-        data: (issue) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            IssuePageHeader(issue: issue.toIssue()),
-            const SizedBox(height: Spacing.level4),
-            Expanded(child: IssuePageBody(issue: issue.toIssue())),
-          ],
+        data: (issue) => SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IssuePageHeader(issue: issue.toIssue()),
+              SizedBox(height: Spacing.level4),
+              AttachmentRulesSection(
+                issueId: issue.id,
+                attachmentRules: issue.attachmentRules,
+              ),
+              SizedBox(height: Spacing.level4),
+              TestResultsSection(issue: issue.toIssue()),
+            ],
+          ),
         ),
         loading: () => const Center(child: YaruCircularProgressIndicator()),
         error: (error, stack) => Center(

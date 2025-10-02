@@ -127,6 +127,7 @@ class CommonQueryParameters {
   static const searchQuery = 'q';
   static const sortBy = 'sortBy';
   static const sortDirection = 'direction';
+  static const attachmentRule = 'attachmentRule';
 }
 
 class AppRoutes {
@@ -202,6 +203,14 @@ void navigateToArtefactPage(BuildContext context, int artefactId) {
   context.go(path);
 }
 
-void navigateToIssuePage(BuildContext context, int issueId) {
-  context.go('/issues/$issueId');
+void navigateToIssuePage(
+  BuildContext context,
+  int issueId, {
+  int? attachmentRuleId,
+}) {
+  var path = '/issues/$issueId';
+  if (attachmentRuleId != null) {
+    path += '?${CommonQueryParameters.attachmentRule}=$attachmentRuleId';
+  }
+  context.go(path);
 }
