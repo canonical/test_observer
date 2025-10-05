@@ -100,6 +100,7 @@ class _IssuePageBodyState extends ConsumerState<IssuePageBody> {
             onApplyFilters: _updateFilters,
             enabledFilters: const {
               FilterType.families,
+              FilterType.artefacts,
               FilterType.environments,
               FilterType.testCases,
               FilterType.dateRange,

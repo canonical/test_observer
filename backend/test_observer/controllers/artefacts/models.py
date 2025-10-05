@@ -162,6 +162,10 @@ class ArtefactBuildMinimalResponse(BaseModel):
     revision: int | None
 
 
+class ArtefactSearchResponse(BaseModel):
+    artefacts: list[str]
+
+
 class ArtefactBuildEnvironmentReviewResponse(BaseModel):
     id: int
     review_decision: list[ArtefactBuildEnvironmentReviewDecision]

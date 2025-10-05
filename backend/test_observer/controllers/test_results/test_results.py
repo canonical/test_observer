@@ -81,6 +81,10 @@ def search_test_results(
         list[FamilyName] | None,
         Query(description="Filter by artefact families (e.g., charm,snap)"),
     ] = None,
+    artefacts: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact names"),
+    ] = None,
     environments: Annotated[
         list[str] | None,
         Query(description="Filter by environment names"),
@@ -122,6 +126,7 @@ def search_test_results(
     # Build the filters
     filters = TestResultSearchFilters(
         families=families or [],
+        artefacts=artefacts or [],
         environments=environments or [],
         test_cases=test_cases or [],
         template_ids=template_ids or [],

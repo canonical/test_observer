@@ -666,6 +666,277 @@
         }
       }
     },
+    "/v1/artefacts": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefacts",
+        "description": "Get latest artefacts optionally by family",
+        "operationId": "get_artefacts_v1_artefacts_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FamilyName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactResponse"
+                  },
+                  "title": "Response Get Artefacts V1 Artefacts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/search": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Search Artefacts",
+        "description": "Search for artefacts by name with pagination support.\n\nReturns a list of distinct artefact names that match the search query.",
+        "operationId": "search_artefacts_v1_artefacts_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for artefact names",
+              "title": "Q"
+            },
+            "description": "Search term for artefact names"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 50 if not specified)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 50 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/{artefact_id}": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact",
+        "operationId": "get_artefact_v1_artefacts__artefact_id__get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Patch Artefact",
+        "operationId": "patch_artefact_v1_artefacts__artefact_id__patch",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/artefacts/{artefact_id}/versions": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact Versions",
+        "operationId": "get_artefact_versions_v1_artefacts__artefact_id__versions_get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactVersionResponse"
+                  },
+                  "title": "Response Get Artefact Versions V1 Artefacts  Artefact Id  Versions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/artefacts/{artefact_id}/environment-reviews": {
       "get": {
         "tags": [
@@ -806,198 +1077,6 @@
                     "$ref": "#/components/schemas/ArtefactBuildResponse"
                   },
                   "title": "Response Get Artefact Builds V1 Artefacts  Artefact Id  Builds Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/artefacts": {
-      "get": {
-        "tags": [
-          "artefacts"
-        ],
-        "summary": "Get Artefacts",
-        "description": "Get latest artefacts optionally by family",
-        "operationId": "get_artefacts_v1_artefacts_get",
-        "parameters": [
-          {
-            "name": "family",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/FamilyName"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Family"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ArtefactResponse"
-                  },
-                  "title": "Response Get Artefacts V1 Artefacts Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/artefacts/{artefact_id}": {
-      "get": {
-        "tags": [
-          "artefacts"
-        ],
-        "summary": "Get Artefact",
-        "operationId": "get_artefact_v1_artefacts__artefact_id__get",
-        "parameters": [
-          {
-            "name": "artefact_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Artefact Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ArtefactResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "artefacts"
-        ],
-        "summary": "Patch Artefact",
-        "operationId": "patch_artefact_v1_artefacts__artefact_id__patch",
-        "parameters": [
-          {
-            "name": "artefact_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Artefact Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ArtefactPatch"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ArtefactResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/artefacts/{artefact_id}/versions": {
-      "get": {
-        "tags": [
-          "artefacts"
-        ],
-        "summary": "Get Artefact Versions",
-        "operationId": "get_artefact_versions_v1_artefacts__artefact_id__versions_get",
-        "parameters": [
-          {
-            "name": "artefact_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Artefact Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ArtefactVersionResponse"
-                  },
-                  "title": "Response Get Artefact Versions V1 Artefacts  Artefact Id  Versions Get"
                 }
               }
             }
@@ -2147,6 +2226,27 @@
               "title": "Families"
             },
             "description": "Filter by artefact families (e.g., charm,snap)"
+          },
+          {
+            "name": "artefacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact names",
+              "title": "Artefacts"
+            },
+            "description": "Filter by artefact names"
           },
           {
             "name": "environments",
@@ -3417,6 +3517,22 @@
           "completed_environment_reviews_count"
         ],
         "title": "ArtefactResponse"
+      },
+      "ArtefactSearchResponse": {
+        "properties": {
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "artefacts"
+        ],
+        "title": "ArtefactSearchResponse"
       },
       "ArtefactStatus": {
         "type": "string",
@@ -5307,6 +5423,13 @@
             },
             "type": "array",
             "title": "Families"
+          },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
           },
           "environments": {
             "items": {
