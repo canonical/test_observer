@@ -34,7 +34,6 @@ def test_search_artefacts_endpoint_exists(test_client: TestClient):
 
 def test_search_artefacts_no_query(test_client: TestClient, generator: DataGenerator):
     """Test searching without query returns all artefacts"""
-    # Create some artefacts
     unique_marker = uuid.uuid4().hex[:8]
     artefact1 = generator.gen_artefact(name=f"test_artefact_1_{unique_marker}")
     artefact2 = generator.gen_artefact(name=f"test_artefact_2_{unique_marker}")
@@ -45,7 +44,6 @@ def test_search_artefacts_no_query(test_client: TestClient, generator: DataGener
     data = response.json()
     artefacts = data["artefacts"]
 
-    # Should contain our created artefacts
     assert artefact1.name in artefacts
     assert artefact2.name in artefacts
 
@@ -54,7 +52,6 @@ def test_search_artefacts_with_query(test_client: TestClient, generator: DataGen
     """Test searching with query filters results"""
     unique_marker = uuid.uuid4().hex[:8]
 
-    # Create artefacts with specific patterns
     target_artefact = generator.gen_artefact(name=f"special_search_{unique_marker}")
     other_artefact = generator.gen_artefact(name=f"other_artefact_{unique_marker}")
 
@@ -65,7 +62,6 @@ def test_search_artefacts_with_query(test_client: TestClient, generator: DataGen
     data = response.json()
     artefacts = data["artefacts"]
 
-    # Should only find the target artefact
     assert target_artefact.name in artefacts
     assert other_artefact.name not in artefacts
 
@@ -79,7 +75,6 @@ def test_search_artefacts_case_insensitive(
 
     generator.gen_artefact(name=artefact_name)
 
-    # Search with different cases
     for search_term in ["mixedcase", "MIXEDCASE", "MixedCase"]:
         response = test_client.get(f"/v1/artefacts/search?q={search_term}")
         assert response.status_code == 200
@@ -96,7 +91,6 @@ def test_search_artefacts_partial_match(
 
     generator.gen_artefact(name=artefact_name)
 
-    # Search with partial term
     response = test_client.get("/v1/artefacts/search?q=desktop")
 
     assert response.status_code == 200
@@ -109,7 +103,6 @@ def test_search_artefacts_pagination(test_client: TestClient, generator: DataGen
     unique_marker = uuid.uuid4().hex[:8]
     names = []
 
-    # Create 10 artefacts
     for i in range(10):
         name = f"paginated_artefact_{unique_marker}_{i:02d}"
         generator.gen_artefact(name=name)
@@ -171,7 +164,6 @@ def test_search_artefacts_strips_whitespace(
 
     generator.gen_artefact(name=artefact_name)
 
-    # Search with extra whitespace
     response = test_client.get("/v1/artefacts/search?q=  whitespace_test  ")
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]
@@ -184,10 +176,8 @@ def test_search_artefacts_excludes_archived(
     """Test that archived artefacts are excluded from search"""
     unique_marker = uuid.uuid4().hex[:8]
 
-    # Create active artefact
     active_artefact = generator.gen_artefact(name=f"active_artefact_{unique_marker}")
 
-    # Create archived artefact
     archived_artefact = generator.gen_artefact(
         name=f"archived_artefact_{unique_marker}", archived=True
     )
@@ -197,7 +187,6 @@ def test_search_artefacts_excludes_archived(
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]
 
-    # Active should be included, archived should not
     assert active_artefact.name in artefacts
     assert archived_artefact.name not in artefacts
 
@@ -208,7 +197,6 @@ def test_search_artefacts_default_limit(
     """Test that default limit is 50"""
     unique_marker = uuid.uuid4().hex[:8]
 
-    # Create 60 artefacts
     for i in range(60):
         generator.gen_artefact(name=f"limit_test_{unique_marker}_{i:03d}")
 
@@ -217,4 +205,4 @@ def test_search_artefacts_default_limit(
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]
     assert len(artefacts) <= 50
-    assert len(artefacts) == 50  # exactly 50 when >=50 exist
+    assert len(artefacts) == 50
