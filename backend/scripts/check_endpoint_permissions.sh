@@ -19,7 +19,7 @@ EXCEPTIONS='[
   {"method": "get", "path": "/v1/applications/me"}
 ]'
 
-missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '
+missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '[
   .paths
   | to_entries[]
   | .key as $path
@@ -32,10 +32,12 @@ missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '
     )
   | select($op["x-permissions"] | length == 0)
   | {path: $path, method: $method}
-' "$OPENAPI_JSON")
+]' "$OPENAPI_JSON")
 
 if [ -n "$missing_permissions" ]; then
   echo "Endpoints missing permissions:"
-  echo "$missing_permissions" | jq -r '. | "\(.method) \(.path)"'
+  echo "$missing_permissions" | jq -r '.[] | .method + " " + .path'
   exit 1
 fi
+
+echo "All endpoints have permissions defined."
