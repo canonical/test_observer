@@ -88,7 +88,7 @@ def test_search_artefacts_case_insensitive(
 
     for search_term in ["mixedcase", "MIXEDCASE", "MixedCase"]:
         response = make_authenticated_request(
-            lambda url=f"/v1/artefacts/search?q={search_term}": test_client.get(url),
+            lambda: test_client.get(f"/v1/artefacts/search?q={search_term}"),  # noqa: B023
             Permission.view_artefact,
         )
         assert response.status_code == 200

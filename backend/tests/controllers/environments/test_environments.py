@@ -191,7 +191,7 @@ def test_search_case_insensitive(test_client: TestClient, generator: DataGenerat
     # Search with different cases
     for search_term in ["mixedcase", "MIXEDCASE", "MixedCase"]:
         resp = make_authenticated_request(
-            lambda q=search_term: test_client.get("/v1/environments", params={"q": q}),
+            lambda: test_client.get("/v1/environments", params={"q": search_term}),  # noqa: B023
             Permission.view_test,
         )
         assert resp.status_code == 200
