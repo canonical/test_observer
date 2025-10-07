@@ -769,6 +769,117 @@ class TestSearchTestResults:
             # Should have both results
             assert len(our_results) == 2
 
+    def test_search_by_artefact_name(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by artefact name"""
+        # Create test data with specific artefact names
+        unique_marker = uuid.uuid4().hex[:8]
+        artefact_name = f"test_artefact_{unique_marker}"
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(
+            name=generate_unique_name("artefact_filter")
+        )
+        artefact = generator.gen_artefact(name=artefact_name)
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result = generator.gen_test_result(test_case, test_execution)
+
+        # Create another artefact that shouldn't be in results
+        other_artefact = generator.gen_artefact(name=f"other_artefact_{unique_marker}")
+        other_build = generator.gen_artefact_build(other_artefact)
+        other_execution = generator.gen_test_execution(other_build, environment)
+        other_result = generator.gen_test_result(test_case, other_execution)
+
+        # Search with artefact filter
+        response = test_client.get(f"/v1/test-results?artefacts={artefact_name}")
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include our artefact's result
+        assert test_result.id in result_ids
+        # Should not include other artefact's result
+        assert other_result.id not in result_ids
+
+    def test_search_by_multiple_artefacts(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by multiple artefact names"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("multi_artefact"))
+
+        # Create two artefacts with results
+        artefact1 = generator.gen_artefact(name=f"artefact1_{unique_marker}")
+        build1 = generator.gen_artefact_build(artefact1)
+        execution1 = generator.gen_test_execution(build1, environment)
+        result1 = generator.gen_test_result(test_case, execution1)
+
+        artefact2 = generator.gen_artefact(name=f"artefact2_{unique_marker}")
+        build2 = generator.gen_artefact_build(artefact2)
+        execution2 = generator.gen_test_execution(build2, environment)
+        result2 = generator.gen_test_result(test_case, execution2)
+
+        # Create third artefact that shouldn't be in results
+        artefact3 = generator.gen_artefact(name=f"artefact3_{unique_marker}")
+        build3 = generator.gen_artefact_build(artefact3)
+        execution3 = generator.gen_test_execution(build3, environment)
+        result3 = generator.gen_test_result(test_case, execution3)
+
+        # Search with multiple artefacts
+        response = test_client.get(
+            f"/v1/test-results?artefacts={artefact1.name}&artefacts={artefact2.name}"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include results from first two artefacts
+        assert result1.id in result_ids
+        assert result2.id in result_ids
+        # Should not include third artefact's result
+        assert result3.id not in result_ids
+
+    def test_search_artefacts_combined_with_other_filters(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test combining artefact filter with other filters"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        # Create specific environment and artefact
+        env_name = f"test_env_{unique_marker}"
+        artefact_name = f"test_artefact_{unique_marker}"
+
+        environment = generator.gen_environment(name=env_name)
+        test_case = generator.gen_test_case(name=generate_unique_name("combined"))
+        artefact = generator.gen_artefact(name=artefact_name)
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result = generator.gen_test_result(test_case, test_execution)
+
+        # Create result with same artefact but different environment
+        other_env = generator.gen_environment(name=f"other_env_{unique_marker}")
+        other_execution = generator.gen_test_execution(artefact_build, other_env)
+        other_result = generator.gen_test_result(test_case, other_execution)
+
+        # Search with both artefact and environment filters
+        response = test_client.get(
+            f"/v1/test-results?artefacts={artefact_name}&environments={env_name}"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should only include result matching both filters
+        assert test_result.id in result_ids
+        assert other_result.id not in result_ids
+
 
 class TestWindowFunctionSpecific:
     """Test class specifically for window function behavior and edge cases"""

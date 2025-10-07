@@ -25,12 +25,14 @@ import '../../models/test_results_filters.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
 import '../../providers/execution_metadata.dart';
+import '../../providers/test_results_artefacts.dart';
 import '../page_filters/multi_select_combobox.dart';
 import '../page_filters/date_time_selector.dart';
 import '../spacing.dart';
 
 enum FilterType {
   families,
+  artefacts,
   environments,
   testCases,
   templateIds,
@@ -125,6 +127,30 @@ class _TestResultsFiltersViewState
                   _selectedFilters = _selectedFilters.copyWith(
                     families: [
                       ..._selectedFilters.families.where((f) => f != val),
+                      if (isSelected) val,
+                    ],
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.artefacts))
+          _box(
+            MultiSelectCombobox(
+              title: 'Artefact',
+              allOptions: const [],
+              initialSelected: _selectedFilters.artefacts.toSet(),
+              asyncSuggestionsCallback: (pattern) async {
+                return await ref
+                    .read(suggestedArtefactsProvider(pattern).future);
+              },
+              minCharsForAsyncSearch: 2,
+              onChanged: (val, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    artefacts: [
+                      ..._selectedFilters.artefacts.where((a) => a != val),
                       if (isSelected) val,
                     ],
                   );

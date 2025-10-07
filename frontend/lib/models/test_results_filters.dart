@@ -28,6 +28,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
   const TestResultsFilters._();
   const factory TestResultsFilters({
     @Default([]) List<String> families,
+    @Default([]) List<String> artefacts,
     @Default([]) List<String> environments,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
@@ -58,6 +59,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
 
     final families = parseParam(parameters['families']);
+    final artefacts = parseParam(parameters['artefacts']);
     final environments = parseParam(parameters['environments']);
     final testCases = parseParam(parameters['test_cases']);
     final templateIds = parseParam(parameters['template_ids']);
@@ -83,6 +85,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
 
     return TestResultsFilters(
       families: families,
+      artefacts: artefacts,
       environments: environments,
       testCases: testCases,
       templateIds: templateIds,
@@ -99,6 +102,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     final params = <String, List<String>>{};
     if (families.isNotEmpty) {
       params['families'] = families;
+    }
+    if (artefacts.isNotEmpty) {
+      params['artefacts'] = artefacts;
     }
     if (environments.isNotEmpty) {
       params['environments'] = environments;
@@ -132,6 +138,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
 
   bool get hasFilters =>
       families.isNotEmpty ||
+      artefacts.isNotEmpty ||
       environments.isNotEmpty ||
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||

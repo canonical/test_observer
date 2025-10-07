@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, distinct
 from sqlalchemy.orm import Session, selectinload
+from typing import Annotated
 
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
@@ -46,11 +47,10 @@ from .models import (
     ArtefactResponse,
     ArtefactPatch,
     ArtefactVersionResponse,
+    ArtefactSearchResponse,
 )
 
 router = APIRouter(tags=["artefacts"])
-router.include_router(environment_reviews.router)
-router.include_router(builds.router)
 
 
 @router.get("", response_model=list[ArtefactResponse])
@@ -76,6 +76,49 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             )
 
     return artefacts
+
+
+@router.get("/search", response_model=ArtefactSearchResponse)
+def search_artefacts(
+    q: Annotated[
+        str | None,
+        Query(description="Search term for artefact names"),
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=1000,
+            description="Maximum number of results (defaults to 50 if not specified)",
+        ),
+    ] = 50,
+    offset: Annotated[
+        int,
+        Query(ge=0, description="Number of results to skip for pagination"),
+    ] = 0,
+    db: Session = Depends(get_db),
+) -> ArtefactSearchResponse:
+    """
+    Search for artefacts by name with pagination support.
+
+    Returns a list of distinct artefact names that match the search query.
+    """
+    query = (
+        select(distinct(Artefact.name))
+        .where(Artefact.archived.is_(False))
+        .order_by(Artefact.name)
+    )
+
+    # Apply search filter if provided
+    if q and q.strip():
+        search_term = f"%{q.strip()}%"
+        query = query.where(Artefact.name.ilike(search_term))
+
+    # Apply pagination
+    query = query.offset(offset).limit(limit)
+
+    artefacts = db.execute(query).scalars().all()
+    return ArtefactSearchResponse(artefacts=list(artefacts))
 
 
 @router.get("/{artefact_id}", response_model=ArtefactResponse)
@@ -209,3 +252,7 @@ def get_artefact_versions(
         .where(Artefact.release == artefact.release)
         .order_by(Artefact.id.desc())
     )
+
+
+router.include_router(environment_reviews.router)
+router.include_router(builds.router)
