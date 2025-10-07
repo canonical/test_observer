@@ -5,16 +5,18 @@ OPENAPI_JSON="$1"
 
 # List exceptions as path/method pairs (method in lowercase)
 EXCEPTIONS='[
-  {"path": "/v1/version", "method": "get"},
-  {"path": "/", "method": "get"},
-  {"path": "/sentry-debug", "method": "get"},
-  {"path": "/openapi.json", "method": "get"},
-  {"path": "/docs", "method": "get"},
-  {"path": "/v1/auth/saml/login", "method": "get"},
-  {"path": "/v1/auth/saml/logout", "method": "get"},
-  {"path": "/v1/auth/saml/acs", "method": "post"},
-  {"path": "/v1/auth/saml/sls", "method": "get"},
-  {"path": "/v1/auth/saml/sls", "method": "post"}
+  {"method": "get", "path": "/v1/version"},
+  {"method": "get", "path": "/"},
+  {"method": "get", "path": "/sentry-debug"},
+  {"method": "get", "path": "/openapi.json"},
+  {"method": "get", "path": "/docs"},
+  {"method": "get", "path": "/v1/auth/saml/login"},
+  {"method": "get", "path": "/v1/auth/saml/logout"},
+  {"method": "post", "path": "/v1/auth/saml/acs"},
+  {"method": "get", "path": "/v1/auth/saml/sls"},
+  {"method": "post", "path": "/v1/auth/saml/sls"},
+  {"method": "get", "path": "/v1/users/me"},
+  {"method": "get", "path": "/v1/applications/me"}
 ]'
 
 missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '
@@ -28,7 +30,7 @@ missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '
   | select(
       ($exceptions | map(.path == $path and .method == $method) | any) | not
     )
-  | select((.op["x-permissions"] | length) == 0)
+  | select($op["x-permissions"] | length == 0)
   | {path: $path, method: $method}
 ' "$OPENAPI_JSON")
 

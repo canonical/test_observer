@@ -85,7 +85,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       }
     },
     "/v1/test-executions/{id}/test-results": {
@@ -132,7 +135,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
       },
       "post": {
         "tags": [
@@ -185,7 +191,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       }
     },
     "/v1/test-executions/end-test": {
@@ -224,7 +233,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       }
     },
     "/v1/test-executions/{id}": {
@@ -276,7 +288,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       }
     },
     "/v1/test-executions/reruns": {
@@ -321,7 +336,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_rerun"
+        ]
       },
       "get": {
         "tags": [
@@ -388,7 +406,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_rerun"
+        ]
       },
       "delete": {
         "tags": [
@@ -425,7 +446,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_rerun"
+        ]
       }
     },
     "/v1/test-executions/{id}/status_update": {
@@ -475,7 +499,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       },
       "get": {
         "tags": [
@@ -519,7 +546,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
       },
       "post": {
         "tags": [
@@ -567,7 +597,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       }
     },
     "/v1/test-executions/{id}/links": {
@@ -619,7 +652,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       }
     },
     "/v1/test-executions/{id}/links/{link_id}": {
@@ -663,7 +699,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
       }
     },
     "/v1/artefacts": {
@@ -717,7 +756,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
       }
     },
     "/v1/artefacts/search": {
@@ -796,7 +838,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
       }
     },
     "/v1/artefacts/{artefact_id}": {
@@ -838,7 +883,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
       },
       "patch": {
         "tags": [
@@ -888,7 +936,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_artefact"
+        ]
       }
     },
     "/v1/artefacts/{artefact_id}/versions": {
@@ -934,7 +985,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
       }
     },
     "/v1/artefacts/{artefact_id}/environment-reviews": {
@@ -981,7 +1035,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_environment_review"
+        ]
       }
     },
     "/v1/artefacts/{artefact_id}/environment-reviews/{review_id}": {
@@ -1043,7 +1100,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_environment_review"
+        ]
       }
     },
     "/v1/artefacts/{artefact_id}/builds": {
@@ -1091,7 +1151,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
       }
     },
     "/v1/reports/test-results": {
@@ -1146,7 +1209,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_report"
+        ]
       }
     },
     "/v1/reports/test-executions": {
@@ -1201,7 +1267,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_report"
+        ]
       }
     },
     "/v1/test-cases/reported-issues": {
@@ -1270,7 +1339,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_test_case_reported_issue"
+        ]
       },
       "post": {
         "tags": [
@@ -1309,7 +1381,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test_case_reported_issue"
+        ]
       }
     },
     "/v1/test-cases/reported-issues/{issue_id}": {
@@ -1361,7 +1436,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test_case_reported_issue"
+        ]
       },
       "delete": {
         "tags": [
@@ -1399,7 +1477,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_test_case_reported_issue"
+        ]
       }
     },
     "/v1/test-cases": {
@@ -1478,7 +1559,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
       }
     },
     "/v1/environments/reported-issues": {
@@ -1531,7 +1615,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_environment_reported_issue"
+        ]
       },
       "post": {
         "tags": [
@@ -1570,7 +1657,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_environment_reported_issue"
+        ]
       }
     },
     "/v1/environments/reported-issues/{issue_id}": {
@@ -1622,7 +1712,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_environment_reported_issue"
+        ]
       },
       "delete": {
         "tags": [
@@ -1660,7 +1753,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_environment_reported_issue"
+        ]
       }
     },
     "/v1/environments": {
@@ -1739,7 +1835,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
       }
     },
     "/v1/issues/{issue_id}/attach": {
@@ -2469,7 +2568,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
       }
     },
     "/v1/execution-metadata": {
@@ -2490,7 +2592,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
       }
     },
     "/v1/auth/saml/login": {
@@ -2939,7 +3044,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_permission"
+        ]
       }
     },
     "/v1/applications": {
@@ -4454,6 +4562,7 @@
           "add_application",
           "change_application",
           "view_application",
+          "view_permission",
           "view_issue",
           "change_issue",
           "change_issue_attachment",
@@ -4463,6 +4572,7 @@
           "change_test",
           "view_rerun",
           "change_rerun",
+          "view_artefact",
           "change_artefact",
           "view_environment_review",
           "change_environment_review",

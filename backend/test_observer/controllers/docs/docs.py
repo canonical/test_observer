@@ -27,7 +27,7 @@ async def custom_openapi(request: Request):
     app = request.app
     openapi_schema = app.openapi()
 
-    # Iterate over all routes in the app
+    # Iterate over all routes in the app to add permissions
     for route in app.routes:
         if not hasattr(route, "dependant"):
             continue

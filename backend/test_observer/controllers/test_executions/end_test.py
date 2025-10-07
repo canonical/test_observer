@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestCase,
@@ -41,7 +42,10 @@ from .models import C3TestResult, C3TestResultStatus, EndTestExecutionRequest
 router = APIRouter()
 
 
-@router.put("/end-test")
+@router.put(
+    "/end-test",
+    dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
+)
 def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(get_db)):
     test_execution = _find_related_test_execution(request, db)
 

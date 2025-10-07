@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     TestExecution,
     TestResult,
@@ -32,7 +33,11 @@ from .models import TestResultResponse
 router = APIRouter(tags=["test-results"])
 
 
-@router.get("/{id}/test-results", response_model=list[TestResultResponse])
+@router.get(
+    "/{id}/test-results",
+    response_model=list[TestResultResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_test])],
+)
 def get_test_results(id: int, db: Session = Depends(get_db)):
     test_execution = db.get(TestExecution, id)
 

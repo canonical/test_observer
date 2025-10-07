@@ -36,6 +36,7 @@ class Permission(StrEnum):
     add_application = auto()
     change_application = auto()
     view_application = auto()
+    view_permission = auto()
 
     # Issues
     view_issue = auto()
@@ -51,6 +52,7 @@ class Permission(StrEnum):
     change_rerun = auto()
 
     # Artefacts
+    view_artefact = auto()
     change_artefact = auto()
 
     # Environment reviews

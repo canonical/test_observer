@@ -19,12 +19,13 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, Security
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -65,7 +66,11 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
 ]
 
 
-@router.get("/test-results", response_class=FileResponse)
+@router.get(
+    "/test-results",
+    response_class=FileResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_report])],
+)
 def get_testresults_report(
     background_tasks: BackgroundTasks,
     start_date: datetime = datetime.min,
