@@ -16,7 +16,10 @@
 
 import uuid
 from fastapi.testclient import TestClient
+
+from test_observer.common.permissions import Permission
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def generate_unique_name(prefix: str) -> str:
@@ -25,7 +28,10 @@ def generate_unique_name(prefix: str) -> str:
 
 def test_get_test_cases(test_client: TestClient):
     """Test getting test cases endpoint"""
-    response = test_client.get("/v1/test-cases")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -35,7 +41,10 @@ def test_get_test_cases(test_client: TestClient):
 
 def test_get_test_cases_response_format(test_client: TestClient):
     """Test response format"""
-    response = test_client.get("/v1/test-cases")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -59,7 +68,10 @@ def test_get_test_cases_with_actual_data(
     test_execution = generator.gen_test_execution(artefact_build, environment)
     generator.gen_test_result(test_case, test_execution)
 
-    response = test_client.get("/v1/test-cases")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases"),
+        Permission.view_test,
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -94,7 +106,10 @@ def test_get_test_cases_empty_template_id(
     test_execution = generator.gen_test_execution(artefact_build, environment)
     generator.gen_test_result(test_case, test_execution)
 
-    response = test_client.get("/v1/test-cases")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases"),
+        Permission.view_test,
+    )
     assert response.status_code == 200
 
     data = response.json()
@@ -139,7 +154,10 @@ def _seed_cases(
 def test_default_limit_is_50(test_client: TestClient, generator: DataGenerator):
     """When no limit is passed, endpoint should return up to 50 results."""
     _seed_cases(generator, 60, prefix="default_limit")
-    resp = test_client.get("/v1/test-cases")
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases"),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "test_cases" in data
@@ -158,7 +176,10 @@ def test_explicit_limit_and_offset_window(
     # ORDER BY name, template_id; names are unique so sort by name is enough
     expected_sorted = sorted(names)
 
-    resp = test_client.get("/v1/test-cases", params={"limit": 5, "offset": 5})
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases", params={"limit": 5, "offset": 5}),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     got = resp.json()["test_cases"]
     assert len(got) == 5
@@ -188,7 +209,10 @@ def test_search_filter_q_ilike(test_client: TestClient, generator: DataGenerator
     seed(5, "cpu_temp", "a")
     seed(5, "disk_io", "b")
 
-    resp = test_client.get("/v1/test-cases", params={"q": "cpu_temp"})
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases", params={"q": "cpu_temp"}),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     data = resp.json()["test_cases"]
     assert len(data) > 0
@@ -197,7 +221,10 @@ def test_search_filter_q_ilike(test_client: TestClient, generator: DataGenerator
 
 def test_limit_validation_rejects_zero(test_client: TestClient):
     """FastAPI should enforce ge=1 on limit and return 422 for limit=0."""
-    resp = test_client.get("/v1/test-cases", params={"limit": 0})
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases", params={"limit": 0}),
+        Permission.view_test,
+    )
     assert resp.status_code == 422
 
 
@@ -219,7 +246,10 @@ def test_ordering_by_name(test_client: TestClient, generator: DataGenerator):
         te = generator.gen_test_execution(art_build, env)
         generator.gen_test_result(tc, te)
 
-    resp = test_client.get("/v1/test-cases", params={"limit": 50})
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/test-cases", params={"limit": 50}),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     items = resp.json()["test_cases"]
 

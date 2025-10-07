@@ -24,12 +24,14 @@ from httpx import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     TestExecution,
 )
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 EXPECTED_COLUMN_NAMES = [
     "Artefact.family",
@@ -70,9 +72,12 @@ def test_get_testexecutions_report_in_range_with_test_events(
     generator.gen_test_event(test_execution, "job_start")
     generator.gen_test_event(test_execution, "provision_fail")
 
-    response = test_client.get(
-        "/v1/reports/test-executions",
-        params={"start_date": (datetime.now() - timedelta(days=1)).isoformat()},
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/reports/test-executions",
+            params={"start_date": (datetime.now() - timedelta(days=1)).isoformat()},
+        ),
+        Permission.view_report,
     )
 
     table = _read_csv_response(response)
@@ -93,9 +98,12 @@ def test_get_testexecutions_report_in_range_without_test_events(
     )
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
-    response = test_client.get(
-        "/v1/reports/test-executions",
-        params={"start_date": (datetime.now() - timedelta(days=1)).isoformat()},
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/reports/test-executions",
+            params={"start_date": (datetime.now() - timedelta(days=1)).isoformat()},
+        ),
+        Permission.view_report,
     )
 
     table = _read_csv_response(response)
@@ -118,12 +126,15 @@ def test_get_testexecutions_report_out_range(
     )
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
-    response = test_client.get(
-        "/v1/reports/test-executions",
-        params={
-            "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
-            "end_date": datetime.now().isoformat(),
-        },
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/reports/test-executions",
+            params={
+                "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
+                "end_date": datetime.now().isoformat(),
+            },
+        ),
+        Permission.view_report,
     )
 
     table = _read_csv_response(response)

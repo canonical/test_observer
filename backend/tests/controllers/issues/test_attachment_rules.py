@@ -114,7 +114,10 @@ def test_post_attachment_rule(
     )
     _assert_attachment_rule_response(response.json(), attachment_rule)
 
-    issue_response = test_client.get(issue_endpoint.format(issue_id=issue.id))
+    issue_response = make_authenticated_request(
+        lambda: test_client.get(issue_endpoint.format(issue_id=issue.id)),
+        Permission.view_issue,
+    )
 
     assert issue_response.status_code == 200
     assert len(issue_response.json()["attachment_rules"]) == 1
@@ -141,7 +144,10 @@ def test_post_attachment_rule_twice(
         json=post_attachment_rule,
     )
 
-    issue_response = test_client.get(issue_endpoint.format(issue_id=issue.id))
+    issue_response = make_authenticated_request(
+        lambda: test_client.get(issue_endpoint.format(issue_id=issue.id)),
+        Permission.view_issue,
+    )
 
     assert issue_response.status_code == 200
     assert {rule["id"] for rule in issue_response.json()["attachment_rules"]} == {

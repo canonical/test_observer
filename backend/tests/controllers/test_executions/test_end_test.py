@@ -46,34 +46,37 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     generator.gen_artefact_build_environment_review(artefact_build, environment)
     test_case = generator.gen_test_case()
 
-    response = test_client.put(
-        "/v1/test-executions/end-test",
-        json={
-            "ci_link": test_execution.ci_link,
-            "c3_link": c3_link,
-            "checkbox_version": "3.3.0",
-            "test_results": [
-                {
-                    "name": test_case.name,
-                    "status": "pass",
-                    "category": test_case.category,
-                    "comment": "",
-                    "io_log": "",
-                },
-                {
-                    "name": "disk/stats_nvme0n1",
-                    "template_id": "disk/stats_name",
-                    "status": "skip",
-                    "category": "",
-                    "comment": "",
-                    "io_log": "",
-                },
-            ],
-            "relevant_links": [
-                {"label": link.label, "url": link.url}
-                for link in test_execution.relevant_links
-            ],
-        },
+    response = make_authenticated_request(
+        lambda: test_client.put(
+            "/v1/test-executions/end-test",
+            json={
+                "ci_link": test_execution.ci_link,
+                "c3_link": c3_link,
+                "checkbox_version": "3.3.0",
+                "test_results": [
+                    {
+                        "name": test_case.name,
+                        "status": "pass",
+                        "category": test_case.category,
+                        "comment": "",
+                        "io_log": "",
+                    },
+                    {
+                        "name": "disk/stats_nvme0n1",
+                        "template_id": "disk/stats_name",
+                        "status": "skip",
+                        "category": "",
+                        "comment": "",
+                        "io_log": "",
+                    },
+                ],
+                "relevant_links": [
+                    {"label": link.label, "url": link.url}
+                    for link in test_execution.relevant_links
+                ],
+            },
+        ),
+        Permission.change_test,
     )
 
     assert response.status_code == 200
@@ -108,24 +111,27 @@ def test_end_test_is_idempotent(
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
     for _ in range(2):
-        test_client.put(
-            "/v1/test-executions/end-test",
-            json={
-                "ci_link": test_execution.ci_link,
-                "test_results": [
-                    {
-                        "name": "test name",
-                        "status": "pass",
-                        "category": "test category",
-                        "comment": "",
-                        "io_log": "",
-                    }
-                ],
-                "relevant_links": [
-                    {"label": link.label, "url": link.url}
-                    for link in test_execution.relevant_links
-                ],
-            },
+        make_authenticated_request(
+            lambda: test_client.put(
+                "/v1/test-executions/end-test",
+                json={
+                    "ci_link": test_execution.ci_link,
+                    "test_results": [
+                        {
+                            "name": "test name",
+                            "status": "pass",
+                            "category": "test category",
+                            "comment": "",
+                            "io_log": "",
+                        }
+                    ],
+                    "relevant_links": [
+                        {"label": link.label, "url": link.url}
+                        for link in test_execution.relevant_links
+                    ],
+                },
+            ),
+            Permission.change_test,
         )
 
     db_session.refresh(test_execution)
@@ -150,26 +156,29 @@ def test_end_test_updates_template_id(
     generator.gen_artefact_build_environment_review(artefact_build, environment)
     test_case = generator.gen_test_case(template_id="")
 
-    response = test_client.put(
-        "/v1/test-executions/end-test",
-        json={
-            "ci_link": test_execution.ci_link,
-            "c3_link": "",
-            "test_results": [
-                {
-                    "name": test_case.name,
-                    "status": "pass",
-                    "category": test_case.category,
-                    "template_id": "some template id",
-                    "comment": "",
-                    "io_log": "",
-                }
-            ],
-            "relevant_links": [
-                {"label": link.label, "url": link.url}
-                for link in test_execution.relevant_links
-            ],
-        },
+    response = make_authenticated_request(
+        lambda: test_client.put(
+            "/v1/test-executions/end-test",
+            json={
+                "ci_link": test_execution.ci_link,
+                "c3_link": "",
+                "test_results": [
+                    {
+                        "name": test_case.name,
+                        "status": "pass",
+                        "category": test_case.category,
+                        "template_id": "some template id",
+                        "comment": "",
+                        "io_log": "",
+                    }
+                ],
+                "relevant_links": [
+                    {"label": link.label, "url": link.url}
+                    for link in test_execution.relevant_links
+                ],
+            },
+        ),
+        Permission.change_test,
     )
 
     assert response.status_code == 200
@@ -204,21 +213,24 @@ def test_apply_test_result_attachment_rules(
     )
     attachment_rule_id = attachment_rule_response.json()["id"]
 
-    response = test_client.put(
-        "/v1/test-executions/end-test",
-        json={
-            "ci_link": test_execution.ci_link,
-            "test_results": [
-                {
-                    "name": "some-name",
-                    "status": "pass",
-                    "category": "",
-                    "template_id": "",
-                    "comment": "",
-                    "io_log": "",
-                }
-            ],
-        },
+    response = make_authenticated_request(
+        lambda: test_client.put(
+            "/v1/test-executions/end-test",
+            json={
+                "ci_link": test_execution.ci_link,
+                "test_results": [
+                    {
+                        "name": "some-name",
+                        "status": "pass",
+                        "category": "",
+                        "template_id": "",
+                        "comment": "",
+                        "io_log": "",
+                    }
+                ],
+            },
+        ),
+        Permission.change_test,
     )
     response.raise_for_status()
 

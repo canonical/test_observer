@@ -22,7 +22,9 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
+from tests.conftest import make_authenticated_request
 
 endpoint = "/v1/test-cases/reported-issues"
 valid_post_data = {
@@ -36,7 +38,10 @@ valid_post_data = {
 @pytest.fixture
 def post(test_client: TestClient):
     def post_helper(data: Any) -> Response:  # noqa: ANN401
-        return test_client.post(endpoint, json=data)
+        return make_authenticated_request(
+            lambda: test_client.post(endpoint, json=data),
+            Permission.change_test_case_reported_issue,
+        )
 
     return post_helper
 
@@ -44,7 +49,10 @@ def post(test_client: TestClient):
 @pytest.fixture
 def get(test_client: TestClient):
     def get_helper(query_parameters: dict[str, str] | None = None) -> Response:
-        return test_client.get(endpoint, params=query_parameters)
+        return make_authenticated_request(
+            lambda: test_client.get(endpoint, params=query_parameters),
+            Permission.view_test_case_reported_issue,
+        )
 
     return get_helper
 
@@ -52,7 +60,10 @@ def get(test_client: TestClient):
 @pytest.fixture
 def put(test_client: TestClient):
     def put_helper(id: int, data: Any) -> Response:  # noqa: ANN401
-        return test_client.put(f"{endpoint}/{id}", json=data)
+        return make_authenticated_request(
+            lambda: test_client.put(f"{endpoint}/{id}", json=data),
+            Permission.change_test_case_reported_issue,
+        )
 
     return put_helper
 
@@ -60,7 +71,10 @@ def put(test_client: TestClient):
 @pytest.fixture
 def delete(test_client: TestClient):
     def delete_helper(id: int) -> Response:
-        return test_client.delete(f"{endpoint}/{id}")
+        return make_authenticated_request(
+            lambda: test_client.delete(f"{endpoint}/{id}"),
+            Permission.change_test_case_reported_issue,
+        )
 
     return delete_helper
 

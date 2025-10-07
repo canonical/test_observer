@@ -24,9 +24,11 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import StageName, FamilyName
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 reruns_url = "/v1/test-executions/reruns"
 
@@ -34,7 +36,10 @@ reruns_url = "/v1/test-executions/reruns"
 @pytest.fixture
 def post(test_client: TestClient):
     def post_helper(data: Any) -> Response:  # noqa: ANN401
-        return test_client.post(reruns_url, json=data)
+        return make_authenticated_request(
+            lambda: test_client.post(reruns_url, json=data),
+            Permission.change_rerun,
+        )
 
     return post_helper
 
@@ -50,7 +55,10 @@ def get(test_client: TestClient):
             params["family"] = family.value
         if limit is not None:
             params["limit"] = limit
-        return test_client.get(reruns_url, params=params)
+        return make_authenticated_request(
+            lambda: test_client.get(reruns_url, params=params),
+            Permission.view_rerun,
+        )
 
     return get_helper
 
@@ -58,7 +66,10 @@ def get(test_client: TestClient):
 @pytest.fixture
 def delete(test_client: TestClient):
     def delete_helper(data: Any) -> Response:  # noqa: ANN401
-        return test_client.request("DELETE", reruns_url, json=data)
+        return make_authenticated_request(
+            lambda: test_client.request("DELETE", reruns_url, json=data),
+            Permission.change_rerun,
+        )
 
     return delete_helper
 

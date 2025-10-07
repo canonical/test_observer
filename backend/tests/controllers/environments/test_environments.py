@@ -16,7 +16,9 @@
 
 import uuid
 from fastapi.testclient import TestClient
+from test_observer.common.permissions import Permission
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def generate_unique_name(prefix: str) -> str:
@@ -46,7 +48,10 @@ def _seed_environments(
 
 def test_get_environments(test_client: TestClient):
     """Test getting environments endpoint"""
-    response = test_client.get("/v1/environments")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/environments"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -56,7 +61,10 @@ def test_get_environments(test_client: TestClient):
 
 def test_get_environments_response_format(test_client: TestClient):
     """Test response format"""
-    response = test_client.get("/v1/environments")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/environments"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -85,7 +93,10 @@ def test_create_environment_and_validate_returned(
     generator.gen_test_result(test_case, test_execution)
 
     # Get environments and verify our created environment is included
-    response = test_client.get("/v1/environments")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/environments"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -102,7 +113,10 @@ def test_create_environment_and_validate_returned(
 def test_default_limit_is_50(test_client: TestClient, generator: DataGenerator):
     """When no limit is passed, endpoint should return up to 50 results."""
     _seed_environments(generator, 60, prefix="default_limit")
-    resp = test_client.get("/v1/environments")
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/environments"),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "environments" in data
@@ -120,7 +134,10 @@ def test_explicit_limit_and_offset_window(
     names = _seed_environments(generator, 20, prefix="window_check")
     expected_sorted = sorted(names)
 
-    resp = test_client.get("/v1/environments", params={"limit": 5, "offset": 5})
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/environments", params={"limit": 5, "offset": 5}),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     got = resp.json()["environments"]
     assert len(got) == 5
@@ -145,7 +162,10 @@ def test_search_filter_q_ilike(test_client: TestClient, generator: DataGenerator
         generator.gen_test_result(test_case, te)
 
     # Search for the specific pattern
-    resp = test_client.get("/v1/environments", params={"q": "special_search"})
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/environments", params={"q": "special_search"}),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     got_environments = resp.json()["environments"]
 
@@ -170,7 +190,10 @@ def test_search_case_insensitive(test_client: TestClient, generator: DataGenerat
 
     # Search with different cases
     for search_term in ["mixedcase", "MIXEDCASE", "MixedCase"]:
-        resp = test_client.get("/v1/environments", params={"q": search_term})
+        resp = make_authenticated_request(
+            lambda: test_client.get("/v1/environments", params={"q": search_term}),
+            Permission.view_test,
+        )
         assert resp.status_code == 200
         got_environments = resp.json()["environments"]
         assert env_name in got_environments
@@ -190,7 +213,10 @@ def test_search_partial_match(test_client: TestClient, generator: DataGenerator)
     generator.gen_test_result(test_case, te)
 
     # Search with partial term
-    resp = test_client.get("/v1/environments", params={"q": "production"})
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/environments", params={"q": "production"}),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     got_environments = resp.json()["environments"]
     assert env_name in got_environments
@@ -215,9 +241,12 @@ def test_search_with_pagination(test_client: TestClient, generator: DataGenerato
     expected_sorted = sorted(names)
 
     # Get first page
-    resp = test_client.get(
-        "/v1/environments",
-        params={"q": f"paginated_env_{unique_marker}", "limit": 3, "offset": 0},
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments",
+            params={"q": f"paginated_env_{unique_marker}", "limit": 3, "offset": 0},
+        ),
+        Permission.view_test,
     )
     assert resp.status_code == 200
     page1 = resp.json()["environments"]
@@ -225,9 +254,12 @@ def test_search_with_pagination(test_client: TestClient, generator: DataGenerato
     assert page1 == expected_sorted[0:3]
 
     # Get second page
-    resp = test_client.get(
-        "/v1/environments",
-        params={"q": f"paginated_env_{unique_marker}", "limit": 3, "offset": 3},
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments",
+            params={"q": f"paginated_env_{unique_marker}", "limit": 3, "offset": 3},
+        ),
+        Permission.view_test,
     )
     assert resp.status_code == 200
     page2 = resp.json()["environments"]
@@ -238,22 +270,34 @@ def test_search_with_pagination(test_client: TestClient, generator: DataGenerato
 def test_pagination_limits(test_client: TestClient):
     """Test pagination parameter validation"""
     # Test maximum limit
-    response = test_client.get("/v1/environments?limit=1001")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/environments?limit=1001"),
+        Permission.view_test,
+    )
     assert response.status_code == 422
 
     # Test negative offset
-    response = test_client.get("/v1/environments?offset=-1")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/environments?offset=-1"),
+        Permission.view_test,
+    )
     assert response.status_code == 422
 
     # Test minimum limit
-    response = test_client.get("/v1/environments?limit=0")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/environments?limit=0"),
+        Permission.view_test,
+    )
     assert response.status_code == 422
 
 
 def test_empty_search_returns_empty_list(test_client: TestClient):
     """Test search with no results returns empty list."""
-    resp = test_client.get(
-        "/v1/environments", params={"q": "nonexistent_environment_xyz_123"}
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments", params={"q": "nonexistent_environment_xyz_123"}
+        ),
+        Permission.view_test,
     )
     assert resp.status_code == 200
     assert resp.json()["environments"] == []
@@ -273,7 +317,12 @@ def test_search_strips_whitespace(test_client: TestClient, generator: DataGenera
     generator.gen_test_result(test_case, te)
 
     # Search with extra whitespace
-    resp = test_client.get("/v1/environments", params={"q": "  whitespace_test  "})
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments", params={"q": "  whitespace_test  "}
+        ),
+        Permission.view_test,
+    )
     assert resp.status_code == 200
     got_environments = resp.json()["environments"]
     assert env_name in got_environments

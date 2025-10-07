@@ -22,12 +22,14 @@ from io import StringIO
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from test_observer.common.permissions import Permission
 from test_observer.controllers.reports.test_results import (
     TESTRESULTS_REPORT_COLUMNS,
 )
 from test_observer.data_access.models import TestResult
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def test_get_testresults_report_in_range(
@@ -40,12 +42,15 @@ def test_get_testresults_report_in_range(
     test_case = generator.gen_test_case()
     test_result = generator.gen_test_result(test_case, test_execution)
 
-    response = test_client.get(
-        "/v1/reports/test-results",
-        params={
-            "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
-            "end_date": datetime.now().isoformat(),
-        },
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/reports/test-results",
+            params={
+                "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
+                "end_date": datetime.now().isoformat(),
+            },
+        ),
+        Permission.view_report,
     )
 
     table = _read_csv_response(response)
@@ -67,12 +72,15 @@ def test_get_testresults_report_out_range(
     test_case = generator.gen_test_case()
     generator.gen_test_result(test_case, test_execution)
 
-    response = test_client.get(
-        "/v1/reports/test-results",
-        params={
-            "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
-            "end_date": datetime.now().isoformat(),
-        },
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/reports/test-results",
+            params={
+                "start_date": (datetime.now() - timedelta(days=1)).isoformat(),
+                "end_date": datetime.now().isoformat(),
+            },
+        ),
+        Permission.view_report,
     )
 
     table = _read_csv_response(response)
