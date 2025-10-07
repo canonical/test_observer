@@ -27,3 +27,7 @@ options:
   sessions_secret:
     description: Randomly generated secret key to use for signing session cookies
     type: string
+  ignore_permissions:
+    description: Comma separated list of API permissions to ignore for all requests
+    type: string
+  

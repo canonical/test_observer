@@ -14,12 +14,43 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 
 
 router: APIRouter = APIRouter()
+
+
+@router.get("/openapi.json", include_in_schema=False)
+async def custom_openapi(request: Request):
+    app = request.app
+    openapi_schema = app.openapi()
+
+    # Iterate over all routes in the app
+    for route in app.routes:
+        if not hasattr(route, "dependant"):
+            continue
+
+        # Get security scopes for all dependencies
+        security_scopes = []
+        for dep in route.dependant.dependencies:
+            security_scopes.extend(dep.security_scopes)
+        if len(security_scopes) == 0:
+            continue
+
+        # Add security scopes to OpenAPI schema
+        for method in route.methods:
+            method_lower = method.lower()
+            if (
+                route.path in openapi_schema["paths"]
+                and method_lower in openapi_schema["paths"][route.path]
+            ):
+                openapi_schema["paths"][route.path][method_lower]["x-permissions"] = (
+                    security_scopes
+                )
+
+    return JSONResponse(openapi_schema)
 
 
 @router.get("/docs", include_in_schema=False)
