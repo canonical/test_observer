@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, require_permissions
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -34,11 +34,14 @@ from test_observer.data_access.setup import get_db
 router: APIRouter = APIRouter(tags=["applications"])
 
 
-@router.post("", response_model=ApplicationResponse)
+@router.post(
+    "",
+    response_model=ApplicationResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.add_application])],
+)
 def create_application(
     request: ApplicationPost,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.add_application)),
 ):
     result = Application(name=request.name, permissions=request.permissions)
     db.add(result)
@@ -46,10 +49,13 @@ def create_application(
     return result
 
 
-@router.get("", response_model=list[ApplicationResponse])
+@router.get(
+    "",
+    response_model=list[ApplicationResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_application])],
+)
 def get_applications(
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.view_application)),
 ):
     return db.scalars(select(Application))
 
@@ -61,11 +67,14 @@ def get_authenticated_application(
     return app
 
 
-@router.get("/{application_id}", response_model=ApplicationResponse)
+@router.get(
+    "/{application_id}",
+    response_model=ApplicationResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_application])],
+)
 def get_application(
     application_id: int,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.view_application)),
 ):
     application = db.get(Application, application_id)
     if application is None:
@@ -73,12 +82,15 @@ def get_application(
     return application
 
 
-@router.patch("/{application_id}", response_model=ApplicationResponse)
+@router.patch(
+    "/{application_id}",
+    response_model=ApplicationResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_application])],
+)
 def update_application(
     application_id: int,
     request: ApplicationPatch,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_application)),
 ):
     application = db.get(Application, application_id)
     if application is None:

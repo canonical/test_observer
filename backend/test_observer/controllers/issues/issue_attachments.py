@@ -15,13 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends
-from fastapi import HTTPException
+from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session
 from sqlalchemy import delete, select, literal
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from test_observer.common.permissions import Permission, require_permissions
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
 )
@@ -134,6 +134,7 @@ def modify_issue_attachments(
 
 def require_bulk_permission(
     request: IssueAttachmentRequest,
+    security_scopes: SecurityScopes,
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ) -> None:
@@ -142,26 +143,40 @@ def require_bulk_permission(
         or (request.test_results_filters is not None)
         or (request.attachment_rule is not None)
     ):
-        return require_permissions(Permission.change_issue_attachment_bulk)(user, app)
+        return permission_checker(security_scopes, user, app)
 
 
-@router.post("/{issue_id}/attach", response_model=IssueResponse)
+@router.post(
+    "/{issue_id}/attach",
+    response_model=IssueResponse,
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue_attachment]),
+        Security(
+            require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]
+        ),
+    ],
+)
 def add_issue_attachments(
     issue_id: int,
     request: IssueAttachmentRequest,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_issue_attachment)),
-    __: None = Depends(require_bulk_permission),
 ):
     return modify_issue_attachments(db, issue_id, request, detach=False)
 
 
-@router.post("/{issue_id}/detach", response_model=IssueResponse)
+@router.post(
+    "/{issue_id}/detach",
+    response_model=IssueResponse,
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue_attachment]),
+        Security(
+            require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]
+        ),
+    ],
+)
 def remove_issue_attachments(
     issue_id: int,
     request: IssueAttachmentRequest,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_issue_attachment)),
-    __: None = Depends(require_bulk_permission),
 ):
     return modify_issue_attachments(db, issue_id, request, detach=True)
