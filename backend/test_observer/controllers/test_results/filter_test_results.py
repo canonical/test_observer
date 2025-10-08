@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sqlalchemy import and_, func, select, exists, values, column, true, Select
+from sqlalchemy import and_, select, exists, true, Select
 
 
 from test_observer.data_access.models import (
@@ -40,60 +40,26 @@ from .models import (
 def filter_execution_metadata(
     execution_metadata: ExecutionMetadata,
 ) -> ColumnElement[bool]:
-    # Step 1: Build filter_metadata values table
-    # This table contains all (category, value) pairs to filter against.
-    filter_metadata = (
-        values(
-            column("category"),
-            column("value"),
-        )
-        .data([(r.category, r.value) for r in execution_metadata.to_rows()])
-        .alias("filter_metadata")
-    )
-
-    # Step 2: Build metadata_matches query
-    # For each test execution and required (category, value),
-    # attempt to find a matching metadata row.
-    metadata_matches = (
-        select(
-            TestExecution.id,
-            filter_metadata.c.category,
-        )
-        .join(filter_metadata, true())
-        .outerjoin(
-            test_execution_metadata_association_table,
-            TestExecution.id
-            == test_execution_metadata_association_table.c.test_execution_id,
-        )
-        .outerjoin(
+    # For each category, require that a matching value exists for the execution
+    conditions = []
+    for category, values in execution_metadata.root.items():
+        subq = select(true()).select_from(test_execution_metadata_association_table)
+        subq = subq.join(
             TestExecutionMetadata,
-            and_(
-                test_execution_metadata_association_table.c.test_execution_metadata_id
-                == TestExecutionMetadata.id,
-                TestExecutionMetadata.category == filter_metadata.c.category,
-                TestExecutionMetadata.value == filter_metadata.c.value,
-            ),
+            test_execution_metadata_association_table.c.test_execution_metadata_id
+            == TestExecutionMetadata.id,
         )
-    )
+        subq = subq.where(
+            test_execution_metadata_association_table.c.test_execution_id
+            == TestExecution.id,
+            TestExecutionMetadata.category == category,
+            TestExecutionMetadata.value.in_(values),
+        )
+        subq = subq.limit(1)
+        conditions.append(exists(subq))
 
-    # Step 3: Group and filter unmatched categories
-    # Group by test execution and category,
-    # keeping only those where no matching metadata value exists.
-    unmatched_categories = metadata_matches.group_by(
-        TestExecution.id,
-        filter_metadata.c.category,
-    ).having(func.count(TestExecutionMetadata.value) == 0)
-
-    # Step 4: Exclude test executions with unmatched categories
-    # Exclude any test execution that has at least one
-    # unmatched category.
-    exclusion_condition = ~exists(
-        select(1)
-        .select_from(unmatched_categories.subquery())
-        .where(unmatched_categories.c.id == TestExecution.id)
-    )
-
-    return exclusion_condition
+    # All categories must match
+    return and_(*conditions)
 
 
 def build_query_filters_and_joins(
@@ -126,6 +92,7 @@ def build_query_filters_and_joins(
 
     if len(filters.execution_metadata) > 0:
         query_filters.append(filter_execution_metadata(filters.execution_metadata))
+        joins_needed.add("test_execution")
 
     if len(filters.issues) > 0:
         query_filters.append(
