@@ -22,7 +22,7 @@ This makes it easy to understand the scope and impact of each issue, and to mana
     :alt: Screenshot showing the issue page and its features
 
 Attaching and Detaching Issues from Test Results
------------------------------------------------
+------------------------------------------------
 
 - Issues attached to individual test results are distinct from test case issues and environment issues. They only appear on the specific test result where they are attached.
 - Supported issue types: GitHub issues, Jira tickets, and Launchpad bugs.
