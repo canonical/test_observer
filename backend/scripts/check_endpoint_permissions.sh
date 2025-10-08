@@ -34,7 +34,7 @@ missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '[
   | {path: $path, method: $method}
 ]' "$OPENAPI_JSON")
 
-if [ -n "$missing_permissions" ]; then
+if [ "$missing_permissions" != "[]" ]; then
   echo "Endpoints missing permissions:"
   echo "$missing_permissions" | jq -r '.[] | .method + " " + .path'
   exit 1
