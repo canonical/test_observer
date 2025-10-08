@@ -35,3 +35,5 @@ VPN
 WCAG
 xetex
 xindy
+jira
+Jira

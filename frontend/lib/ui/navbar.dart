@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -75,11 +74,10 @@ class Navbar extends ConsumerWidget {
                     title: 'Test Results',
                     route: AppRoutes.testResults,
                   ),
-                  if (kDebugMode)
-                    const _NavbarEntry(
-                      title: 'Issues',
-                      route: '/issues',
-                    ),
+                  const _NavbarEntry(
+                    title: 'Issues',
+                    route: '/issues',
+                  ),
                   _NavbarDropdownEntry(
                     label: 'Help',
                     dropdownChildren: [
@@ -87,6 +85,12 @@ class Navbar extends ConsumerWidget {
                         label: 'Docs',
                         onPressed: () => launchUrlString(
                           'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                        ),
+                      ),
+                      _NavbarDropdownItem(
+                        label: 'Feedback',
+                        onPressed: () => launchUrlString(
+                          'https://github.com/canonical/test_observer/issues',
                         ),
                       ),
                       _NavbarDropdownItem(

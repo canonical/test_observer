@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../providers/test_results.dart';
 import '../../expandable.dart';
-import 'issue_forms/attach_issue_form.dart';
-import 'issue_attachments_list_item.dart';
+import '../../spacing.dart';
 import '../../vanilla/vanilla_chip.dart';
+import 'issue_attachments_list_item.dart';
+import 'issue_forms/attach_issue_form.dart';
 
 class IssueAttachmentsExpandable extends ConsumerWidget {
   const IssueAttachmentsExpandable({
@@ -55,9 +57,18 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
     return Expandable(
       initiallyExpanded: initiallyExpanded ?? attachments.isNotEmpty,
       title: Row(
+        spacing: Spacing.level2,
         children: [
           Text('Test Issues (${attachments.length})'),
-          const SizedBox(width: 6),
+          Tooltip(
+            message: 'Learn more',
+            child: IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () => launchUrlString(
+                'https://canonical-test-observer.readthedocs-hosted.com/en/latest/how-to/triage-test-results/',
+              ),
+            ),
+          ),
           const VanillaChip(
             text: 'NEW',
             fontColor: Colors.white,
