@@ -142,8 +142,12 @@ class _TestResultsFiltersViewState
               allOptions: const [],
               initialSelected: _selectedFilters.artefacts.toSet(),
               asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedArtefactsProvider(pattern).future);
+                return await ref.read(
+                  suggestedArtefactsProvider(
+                    pattern,
+                    _selectedFilters.families,
+                  ).future,
+                );
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
@@ -166,8 +170,12 @@ class _TestResultsFiltersViewState
               allOptions: const [],
               initialSelected: _selectedFilters.environments.toSet(),
               asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedEnvironmentsProvider(pattern).future);
+                return await ref.read(
+                  suggestedEnvironmentsProvider(
+                    pattern,
+                    _selectedFilters.families,
+                  ).future,
+                );
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
@@ -190,8 +198,10 @@ class _TestResultsFiltersViewState
               allOptions: const [],
               initialSelected: _selectedFilters.testCases.toSet(),
               asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedTestCasesProvider(pattern).future);
+                return await ref.read(
+                  suggestedTestCasesProvider(pattern, _selectedFilters.families)
+                      .future,
+                );
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
@@ -215,8 +225,12 @@ class _TestResultsFiltersViewState
               allOptions: const [],
               initialSelected: _selectedFilters.templateIds.toSet(),
               asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedTestCasesProvider(pattern).future);
+                return await ref.read(
+                  suggestedTestCasesProvider(
+                    pattern,
+                    _selectedFilters.families,
+                  ).future,
+                );
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {

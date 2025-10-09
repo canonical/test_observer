@@ -23,7 +23,11 @@ from .models import EnvironmentsResponse
 
 from test_observer.data_access.models import (
     Environment,
+    TestExecution,
+    ArtefactBuild,
+    Artefact,
 )
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 router = APIRouter(tags=["environments"])
@@ -35,6 +39,10 @@ def get_environments(
     q: Annotated[
         str | None,
         Query(description="Search term for environment names"),
+    ] = None,
+    families: Annotated[
+        list[FamilyName] | None,
+        Query(description="Filter by artefact families"),
     ] = None,
     limit: Annotated[
         int,
@@ -56,6 +64,15 @@ def get_environments(
     Supports pagination and search filtering.
     """
     query = select(distinct(Environment.name)).order_by(Environment.name)
+
+    # Filter by families if provided
+    if families and len(families) > 0:
+        query = (
+            query.join(TestExecution, TestExecution.environment_id == Environment.id)
+            .join(ArtefactBuild, ArtefactBuild.id == TestExecution.artefact_build_id)
+            .join(Artefact, Artefact.id == ArtefactBuild.artefact_id)
+            .where(Artefact.family.in_(families))
+        )
 
     # Apply search filter if provided
     if q and q.strip():
