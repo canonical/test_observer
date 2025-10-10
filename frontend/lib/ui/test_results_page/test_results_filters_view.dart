@@ -218,31 +218,6 @@ class _TestResultsFiltersViewState
               },
             ),
           ),
-        if (_isFilterEnabled(FilterType.templateIds))
-          _box(
-            MultiSelectCombobox(
-              title: 'Template ID',
-              allOptions: const [],
-              initialSelected: _selectedFilters.templateIds.toSet(),
-              asyncSuggestionsCallback: (pattern) async {
-                return await ref.read(
-                  suggestedTestCasesProvider(
-                    pattern,
-                    _selectedFilters.families,
-                  ).future,
-                );
-              },
-              minCharsForAsyncSearch: 2,
-              onChanged: (val, isSelected) {
-                setState(() {
-                  isSelected
-                      ? _selectedFilters.templateIds.add(val)
-                      : _selectedFilters.templateIds.remove(val);
-                  _notifyChanged(_selectedFilters);
-                });
-              },
-            ),
-          ),
         if (_isFilterEnabled(FilterType.metadata))
           _box(
             MultiSelectCombobox(
