@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.repository import (
@@ -31,7 +32,11 @@ from test_observer.controllers.artefacts.models import (
 router = APIRouter(tags=["test-executions"])
 
 
-@router.post("/{id}/links", response_model=TestExecutionRelevantLinkResponse)
+@router.post(
+    "/{id}/links",
+    response_model=TestExecutionRelevantLinkResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
+)
 def post_link(
     id: int, request: TestExecutionRelevantLinkCreate, db: Session = Depends(get_db)
 ):
@@ -41,7 +46,11 @@ def post_link(
     return create_test_execution_relevant_link(db, id, request.label, request.url)
 
 
-@router.delete("/{id}/links/{link_id}", status_code=204)
+@router.delete(
+    "/{id}/links/{link_id}",
+    status_code=204,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
+)
 def delete_link(id: int, link_id: int, db: Session = Depends(get_db)):
     test_execution = db.get(TestExecution, id)
     if test_execution is None:

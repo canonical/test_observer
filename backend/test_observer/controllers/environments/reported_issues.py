@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import EnvironmentIssue
 from test_observer.data_access.setup import get_db
 
@@ -29,7 +30,15 @@ router = APIRouter()
 endpoint = "/reported-issues"
 
 
-@router.get(endpoint, response_model=list[EnvironmentReportedIssueResponse])
+@router.get(
+    endpoint,
+    response_model=list[EnvironmentReportedIssueResponse],
+    dependencies=[
+        Security(
+            permission_checker, scopes=[Permission.view_environment_reported_issue]
+        )
+    ],
+)
 def get_reported_issues(
     is_confirmed: bool | None = None, db: Session = Depends(get_db)
 ):
@@ -39,7 +48,15 @@ def get_reported_issues(
     return db.execute(stmt).scalars()
 
 
-@router.post(endpoint, response_model=EnvironmentReportedIssueResponse)
+@router.post(
+    endpoint,
+    response_model=EnvironmentReportedIssueResponse,
+    dependencies=[
+        Security(
+            permission_checker, scopes=[Permission.change_environment_reported_issue]
+        )
+    ],
+)
 def create_reported_issue(
     request: EnvironmentReportedIssueRequest, db: Session = Depends(get_db)
 ):
@@ -55,7 +72,15 @@ def create_reported_issue(
     return issue
 
 
-@router.put(endpoint + "/{issue_id}", response_model=EnvironmentReportedIssueResponse)
+@router.put(
+    endpoint + "/{issue_id}",
+    response_model=EnvironmentReportedIssueResponse,
+    dependencies=[
+        Security(
+            permission_checker, scopes=[Permission.change_environment_reported_issue]
+        )
+    ],
+)
 def update_reported_issue(
     issue_id: int,
     request: EnvironmentReportedIssueRequest,
@@ -68,7 +93,14 @@ def update_reported_issue(
     return issue
 
 
-@router.delete(endpoint + "/{issue_id}")
+@router.delete(
+    endpoint + "/{issue_id}",
+    dependencies=[
+        Security(
+            permission_checker, scopes=[Permission.change_environment_reported_issue]
+        )
+    ],
+)
 def delete_reported_issue(issue_id: int, db: Session = Depends(get_db)):
     db.delete(db.get(EnvironmentIssue, issue_id))
     db.commit()

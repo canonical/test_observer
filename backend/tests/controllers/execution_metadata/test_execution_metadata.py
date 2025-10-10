@@ -19,9 +19,11 @@ import pytest
 
 from fastapi.testclient import TestClient
 
-from tests.data_generator import DataGenerator
-
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
+
+from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 test_executions_patch_endpoint = "/v1/test-executions/{id}"
 get_endpoint = "/v1/execution-metadata"
@@ -40,7 +42,10 @@ def sample_test_executions(
 
 
 def test_execution_metadata_get_empty(test_client: TestClient):
-    response = test_client.get(get_endpoint)
+    response = make_authenticated_request(
+        lambda: test_client.get(get_endpoint),
+        Permission.view_test,
+    )
     assert response.json() == {"execution_metadata": {}}
 
 
@@ -48,35 +53,44 @@ def test_execution_metadata_get_all(
     test_client: TestClient,
     sample_test_executions: tuple[TestExecution, TestExecution],
 ):
-    test_client.patch(
-        test_executions_patch_endpoint.format(id=sample_test_executions[0].id),
-        json={
-            "execution_metadata": {
-                "category1": [
-                    "value1",
-                    "value2",
-                ],
-                "category2": [
-                    "value1",
-                ],
-            }
-        },
+    make_authenticated_request(
+        lambda: test_client.patch(
+            test_executions_patch_endpoint.format(id=sample_test_executions[0].id),
+            json={
+                "execution_metadata": {
+                    "category1": [
+                        "value1",
+                        "value2",
+                    ],
+                    "category2": [
+                        "value1",
+                    ],
+                }
+            },
+        ),
+        Permission.change_test,
     )
-    test_client.patch(
-        test_executions_patch_endpoint.format(id=sample_test_executions[0].id),
-        json={
-            "execution_metadata": {
-                "category2": [
-                    "value2",
-                ],
-                "category3": [
-                    "value1",
-                    "value2",
-                ],
-            }
-        },
+    make_authenticated_request(
+        lambda: test_client.patch(
+            test_executions_patch_endpoint.format(id=sample_test_executions[0].id),
+            json={
+                "execution_metadata": {
+                    "category2": [
+                        "value2",
+                    ],
+                    "category3": [
+                        "value1",
+                        "value2",
+                    ],
+                }
+            },
+        ),
+        Permission.change_test,
     )
-    response = test_client.get(get_endpoint)
+    response = make_authenticated_request(
+        lambda: test_client.get(get_endpoint),
+        Permission.view_test,
+    )
     assert response.json() == {
         "execution_metadata": {
             "category1": [

@@ -250,6 +250,7 @@ class TestObserverBackendCharm(CharmBase):
             "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
             "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
             "SESSIONS_SECRET": self.config["sessions_secret"],
+            "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):

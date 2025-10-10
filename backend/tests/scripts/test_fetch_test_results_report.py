@@ -21,8 +21,10 @@ import pytest
 import subprocess
 
 from scripts.fetch_test_results_report import fetch_test_results_report
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
+from tests.conftest import override_permissions
 
 
 from fastapi.testclient import TestClient
@@ -91,11 +93,12 @@ def test_fetch_test_results_report(
     test_case = generator.gen_test_case()
     generator.gen_test_result(test_case, test_execution)
 
-    fetch_test_results_report(
-        datetime.now() - timedelta(days=1),
-        datetime.now() + timedelta(days=1),
-        "output.csv",
-        test_client,
-    )
+    with override_permissions(Permission.view_report):
+        fetch_test_results_report(
+            datetime.now() - timedelta(days=1),
+            datetime.now() + timedelta(days=1),
+            "output.csv",
+            test_client,
+        )
 
     _verify_csv_file("output.csv")

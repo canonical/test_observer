@@ -22,11 +22,13 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import (
     TestExecution,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 type Execute = Callable[[int, dict[str, Any]], Response]
 
@@ -34,7 +36,10 @@ type Execute = Callable[[int, dict[str, Any]], Response]
 @pytest.fixture
 def execute(test_client: TestClient) -> Execute:
     def execute_helper(id: int, data: dict[str, Any]) -> Response:
-        return test_client.patch(f"/v1/test-executions/{id}", json=data)
+        return make_authenticated_request(
+            lambda: test_client.patch(f"/v1/test-executions/{id}", json=data),
+            Permission.change_test,
+        )
 
     return execute_helper
 

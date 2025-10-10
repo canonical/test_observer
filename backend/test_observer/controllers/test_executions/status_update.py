@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session, joinedload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     TestEvent,
     TestExecution,
@@ -32,7 +33,10 @@ from .testflinger_event_parser import TestflingerEventParser
 router = APIRouter()
 
 
-@router.put("/{id}/status_update")
+@router.put(
+    "/{id}/status_update",
+    dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
+)
 def put_status_update(
     id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
 ):
@@ -67,7 +71,11 @@ def put_status_update(
     db.commit()
 
 
-@router.get("/{id}/status_update", response_model=list[TestEventResponse])
+@router.get(
+    "/{id}/status_update",
+    response_model=list[TestEventResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_test])],
+)
 def get_status_update(id: int, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
@@ -81,7 +89,10 @@ def get_status_update(id: int, db: Session = Depends(get_db)):
     return test_execution.test_events
 
 
-@router.post("/{id}/status_update")
+@router.post(
+    "/{id}/status_update",
+    dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
+)
 def post_status_update(
     id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
 ):

@@ -37,7 +37,7 @@ jobs:
         run: docker compose exec test-observer-api pytest
       - name: Check if alembic migrations are up to date
         run: docker compose exec test-observer-api alembic check
-      - name: Fetch OpenAPI schema
-        run: curl http://localhost:30000/openapi.json | jq > fetched_openapi.json
-      - name: Compare with schema in repository
-        run: diff fetched_openapi.json schemata/openapi.json
+      - name: Compare schema with repository
+        run: diff <(curl -s http://localhost:30000/openapi.json | jq) schemata/openapi.json
+      - name: Ensure all endpoints are secured
+        run: ./scripts/check_endpoint_permissions.sh schemata/openapi.json

@@ -16,7 +16,9 @@
 
 import uuid
 from fastapi.testclient import TestClient
+from test_observer.common.permissions import Permission
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def generate_unique_name(prefix: str) -> str:
@@ -25,7 +27,10 @@ def generate_unique_name(prefix: str) -> str:
 
 def test_search_artefacts_endpoint_exists(test_client: TestClient):
     """Test that the search endpoint exists and returns proper format"""
-    response = test_client.get("/v1/artefacts/search")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     data = response.json()
     assert "artefacts" in data
@@ -38,7 +43,10 @@ def test_search_artefacts_no_query(test_client: TestClient, generator: DataGener
     artefact1 = generator.gen_artefact(name=f"test_artefact_1_{unique_marker}")
     artefact2 = generator.gen_artefact(name=f"test_artefact_2_{unique_marker}")
 
-    response = test_client.get("/v1/artefacts/search")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -56,7 +64,10 @@ def test_search_artefacts_with_query(test_client: TestClient, generator: DataGen
     other_artefact = generator.gen_artefact(name=f"other_artefact_{unique_marker}")
 
     # Search for the specific pattern
-    response = test_client.get("/v1/artefacts/search?q=special_search")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?q=special_search"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -76,7 +87,10 @@ def test_search_artefacts_case_insensitive(
     generator.gen_artefact(name=artefact_name)
 
     for search_term in ["mixedcase", "MIXEDCASE", "MixedCase"]:
-        response = test_client.get(f"/v1/artefacts/search?q={search_term}")
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/artefacts/search?q={search_term}"),  # noqa: B023
+            Permission.view_artefact,
+        )
         assert response.status_code == 200
         artefacts = response.json()["artefacts"]
         assert artefact_name in artefacts
@@ -91,7 +105,10 @@ def test_search_artefacts_partial_match(
 
     generator.gen_artefact(name=artefact_name)
 
-    response = test_client.get("/v1/artefacts/search?q=desktop")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?q=desktop"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]
@@ -111,8 +128,11 @@ def test_search_artefacts_pagination(test_client: TestClient, generator: DataGen
     expected_sorted = sorted(names)
 
     # Get first page
-    response = test_client.get(
-        f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=0"
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=0"
+        ),
+        Permission.view_artefact,
     )
     assert response.status_code == 200
     page1 = response.json()["artefacts"]
@@ -120,8 +140,11 @@ def test_search_artefacts_pagination(test_client: TestClient, generator: DataGen
     assert page1 == expected_sorted[0:3]
 
     # Get second page
-    response = test_client.get(
-        f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=3"
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=3"
+        ),
+        Permission.view_artefact,
     )
     assert response.status_code == 200
     page2 = response.json()["artefacts"]
@@ -132,24 +155,36 @@ def test_search_artefacts_pagination(test_client: TestClient, generator: DataGen
 def test_search_artefacts_limit_validation(test_client: TestClient):
     """Test that limit parameter is validated"""
     # Test maximum limit
-    response = test_client.get("/v1/artefacts/search?limit=1001")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?limit=1001"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 422
 
     # Test minimum limit
-    response = test_client.get("/v1/artefacts/search?limit=0")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?limit=0"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 422
 
 
 def test_search_artefacts_offset_validation(test_client: TestClient):
     """Test that offset parameter is validated"""
     # Test negative offset
-    response = test_client.get("/v1/artefacts/search?offset=-1")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?offset=-1"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 422
 
 
 def test_search_artefacts_empty_result(test_client: TestClient):
     """Test that search with no results returns empty list"""
-    response = test_client.get("/v1/artefacts/search?q=nonexistent_artefact_xyz_123")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?q=nonexistent_artefact_xyz_123"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     assert response.json()["artefacts"] == []
@@ -164,7 +199,10 @@ def test_search_artefacts_strips_whitespace(
 
     generator.gen_artefact(name=artefact_name)
 
-    response = test_client.get("/v1/artefacts/search?q=  whitespace_test  ")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?q=  whitespace_test  "),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]
     assert artefact_name in artefacts
@@ -182,7 +220,10 @@ def test_search_artefacts_excludes_archived(
         name=f"archived_artefact_{unique_marker}", archived=True
     )
 
-    response = test_client.get(f"/v1/artefacts/search?q=artefact_{unique_marker}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/search?q=artefact_{unique_marker}"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]
@@ -200,7 +241,10 @@ def test_search_artefacts_default_limit(
     for i in range(60):
         generator.gen_artefact(name=f"limit_test_{unique_marker}_{i:03d}")
 
-    response = test_client.get(f"/v1/artefacts/search?q=limit_test_{unique_marker}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/search?q=limit_test_{unique_marker}"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]

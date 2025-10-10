@@ -65,8 +65,11 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
         Permission.change_issue_attachment,
     )
 
-    response = test_client.get(
-        f"/v1/test-executions/{test_execution_second.id}/test-results"
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/test-executions/{test_execution_second.id}/test-results"
+        ),
+        Permission.view_test,
     )
 
     assert response.status_code == 200
@@ -116,7 +119,10 @@ def test_previous_results_shows_reruns(
     tr1 = generator.gen_test_result(tc, te1)
     tr2 = generator.gen_test_result(tc, te2)
 
-    response = test_client.get(f"/v1/test-executions/{te2.id}/test-results")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/test-executions/{te2.id}/test-results"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     assert response.json() == [
@@ -159,7 +165,10 @@ def test_previous_results_orders_by_artefact(
     tr2 = generator.gen_test_result(tc, te2)
     tr1 = generator.gen_test_result(tc, te1)
 
-    response = test_client.get(f"/v1/test-executions/{te2.id}/test-results")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/test-executions/{te2.id}/test-results"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     assert response.json() == [
@@ -197,7 +206,10 @@ def test_shows_up_to_maximum_previous_results(
         te = generator.gen_test_execution(ab, e)
         generator.gen_test_result(tc, te)
 
-    response = test_client.get(f"/v1/test-executions/{te.id}/test-results")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/test-executions/{te.id}/test-results"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     assert len(response.json()[0]["previous_results"]) == PREVIOUS_TEST_RESULT_COUNT
@@ -228,12 +240,22 @@ def test_attachment_rule_listed_in_issue_attachment(
     )
     attachment_rule_id = attachment_rule_response.json()["id"]
 
-    test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results",
-        json=[{"name": "test", "status": "FAILED", "template_id": "test-template-id"}],
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results",
+            json=[
+                {"name": "test", "status": "FAILED", "template_id": "test-template-id"}
+            ],
+        ),
+        Permission.change_test,
     )
 
-    response = test_client.get(f"/v1/test-executions/{test_execution.id}/test-results")
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/test-executions/{test_execution.id}/test-results"
+        ),
+        Permission.view_test,
+    )
     assert response.json()[0]["issues"] == [
         {
             "issue": {

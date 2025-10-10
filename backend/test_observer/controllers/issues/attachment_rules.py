@@ -15,10 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, require_permissions
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRule,
@@ -39,12 +39,14 @@ router = APIRouter()
 @router.post(
     "/{issue_id}/attachment-rules",
     response_model=MinimalIssueTestResultAttachmentRuleResponse,
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_attachment_rule])
+    ],
 )
 def post_attachment_rule(
     issue_id: int,
     request: IssueTestResultAttachmentRulePostRequest,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_attachment_rule)),
 ):
     # Get the issue
     issue = db.get(Issue, issue_id)
@@ -78,13 +80,15 @@ def post_attachment_rule(
 @router.patch(
     "/{issue_id}/attachment-rules/{attachment_rule_id}",
     response_model=MinimalIssueTestResultAttachmentRuleResponse,
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_attachment_rule])
+    ],
 )
 def patch_attachment_rule(
     issue_id: int,
     attachment_rule_id: int,
     request: IssueTestResultAttachmentRulePatchRequest,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_attachment_rule)),
 ):
     # Get the attachment rule
     attachment_rule = db.get(IssueTestResultAttachmentRule, attachment_rule_id)
@@ -105,12 +109,17 @@ def patch_attachment_rule(
     return attachment_rule
 
 
-@router.delete("/{issue_id}/attachment-rules/{attachment_rule_id}", status_code=204)
+@router.delete(
+    "/{issue_id}/attachment-rules/{attachment_rule_id}",
+    status_code=204,
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_attachment_rule])
+    ],
+)
 def delete_attachment_rule(
     issue_id: int,
     attachment_rule_id: int,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_attachment_rule)),
 ):
     # Get the attachment rule
     attachment_rule = db.get(IssueTestResultAttachmentRule, attachment_rule_id)

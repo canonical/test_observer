@@ -18,9 +18,13 @@
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
+from tests.conftest import make_authenticated_request
 
 
 def test_get_permissions(test_client: TestClient):
-    response = test_client.get("/v1/permissions")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/permissions"),
+        Permission.view_permission,
+    )
     assert response.status_code == 200
     assert response.json() == [p.value for p in Permission]

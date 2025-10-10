@@ -18,7 +18,10 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from test_observer.common.permissions import Permission
+
 from tests.asserts import assert_fails_validation
+from tests.conftest import make_authenticated_request
 
 endpoint = "/v1/environments/reported-issues"
 valid_post_data = {
@@ -30,7 +33,10 @@ valid_post_data = {
 
 
 def test_empty_get(test_client: TestClient):
-    response = test_client.get(endpoint)
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_environment_reported_issue,
+    )
     assert response.status_code == 200
     assert response.json() == []
 
@@ -41,14 +47,20 @@ def test_empty_get(test_client: TestClient):
 )
 def test_post_requires_field(test_client: TestClient, field: str):
     data = {k: v for k, v in valid_post_data.items() if k != field}
-    response = test_client.post(endpoint, json=data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=data),
+        Permission.change_environment_reported_issue,
+    )
     assert_fails_validation(response, field, "missing")
 
 
 def test_url_is_required_if_confirmed(test_client: TestClient):
     data = {**valid_post_data, "url": None}
 
-    response = test_client.post(endpoint, json=data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=data),
+        Permission.change_environment_reported_issue,
+    )
 
     assert response.status_code == 422
 
@@ -57,7 +69,10 @@ def test_url_not_required_if_unconfirmed(test_client: TestClient):
     data = {**valid_post_data, "is_confirmed": False}
     data.pop("url")
 
-    response = test_client.post(endpoint, json=data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=data),
+        Permission.change_environment_reported_issue,
+    )
     json = response.json()
 
     assert response.status_code == 200
@@ -66,23 +81,32 @@ def test_url_not_required_if_unconfirmed(test_client: TestClient):
 
 def test_post_validates_url(test_client: TestClient):
     data = {**valid_post_data, "url": "invalid url"}
-    response = test_client.post(endpoint, json=data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=data),
+        Permission.change_environment_reported_issue,
+    )
     assert_fails_validation(response, "url", "url_parsing")
 
 
 def test_url_cannot_be_canonical_chat(test_client: TestClient):
-    response = test_client.post(
-        endpoint,
-        json={
-            **valid_post_data,
-            "url": "https://chat.canonical.com/canonical/pl/n7oahef13jdpde7p6nf7s5yisw",
-        },
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            endpoint,
+            json={
+                **valid_post_data,
+                "url": "https://chat.canonical.com/canonical/pl/n7oahef13jdpde7p6nf7s5yisw",
+            },
+        ),
+        Permission.change_environment_reported_issue,
     )
     assert response.status_code == 422
 
 
 def test_valid_post(test_client: TestClient):
-    response = test_client.post(endpoint, json=valid_post_data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=valid_post_data),
+        Permission.change_environment_reported_issue,
+    )
     assert response.status_code == 200
     _assert_reported_issue(response.json(), valid_post_data)
 
@@ -92,11 +116,23 @@ def test_post_three_then_get(test_client: TestClient):
     issue2 = {**valid_post_data, "description": "Description 2"}
     issue3 = {**valid_post_data, "description": "Description 3"}
 
-    test_client.post(endpoint, json=issue1)
-    test_client.post(endpoint, json=issue2)
-    test_client.post(endpoint, json=issue3)
+    make_authenticated_request(
+        lambda: test_client.post(endpoint, json=issue1),
+        Permission.change_environment_reported_issue,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(endpoint, json=issue2),
+        Permission.change_environment_reported_issue,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(endpoint, json=issue3),
+        Permission.change_environment_reported_issue,
+    )
 
-    response = test_client.get(endpoint)
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_environment_reported_issue,
+    )
     assert response.status_code == 200
     json = response.json()
     _assert_reported_issue(json[0], issue1)
@@ -116,10 +152,19 @@ def test_get_needs_confirmation(test_client: TestClient):
         "is_confirmed": False,
     }
 
-    test_client.post(endpoint, json=confirmed_issue)
-    test_client.post(endpoint, json=unconfirmed_issue)
+    make_authenticated_request(
+        lambda: test_client.post(endpoint, json=confirmed_issue),
+        Permission.change_environment_reported_issue,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(endpoint, json=unconfirmed_issue),
+        Permission.change_environment_reported_issue,
+    )
 
-    response = test_client.get(endpoint, params={"is_confirmed": False})
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"is_confirmed": False}),
+        Permission.view_environment_reported_issue,
+    )
     assert response.status_code == 200
     json = response.json()
     assert len(json) == 1
@@ -127,39 +172,66 @@ def test_get_needs_confirmation(test_client: TestClient):
 
 
 def test_update_description(test_client: TestClient):
-    response = test_client.post(endpoint, json=valid_post_data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=valid_post_data),
+        Permission.change_environment_reported_issue,
+    )
     issue = response.json()
     issue["description"] = "Updated"
-    response = test_client.put(f"{endpoint}/{issue['id']}", json=issue)
+    response = make_authenticated_request(
+        lambda: test_client.put(f"{endpoint}/{issue['id']}", json=issue),
+        Permission.change_environment_reported_issue,
+    )
 
     assert response.status_code == 200
     _assert_reported_issue(response.json(), issue)
 
-    response = test_client.get(endpoint)
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_environment_reported_issue,
+    )
     _assert_reported_issue(response.json()[0], issue)
 
 
 def test_mark_unconfirmed(test_client: TestClient):
-    response = test_client.post(endpoint, json=valid_post_data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=valid_post_data),
+        Permission.change_environment_reported_issue,
+    )
     issue = response.json()
     issue["is_confirmed"] = False
-    response = test_client.put(f"{endpoint}/{issue['id']}", json=issue)
+    response = make_authenticated_request(
+        lambda: test_client.put(f"{endpoint}/{issue['id']}", json=issue),
+        Permission.change_environment_reported_issue,
+    )
 
     assert response.status_code == 200
     _assert_reported_issue(response.json(), issue)
 
-    response = test_client.get(endpoint)
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_environment_reported_issue,
+    )
     _assert_reported_issue(response.json()[0], issue)
 
 
 def test_delete_issue(test_client: TestClient):
-    response = test_client.post(endpoint, json=valid_post_data)
+    response = make_authenticated_request(
+        lambda: test_client.post(endpoint, json=valid_post_data),
+        Permission.change_environment_reported_issue,
+    )
     issue_id = response.json()["id"]
 
-    response = test_client.delete(f"{endpoint}/{issue_id}")
+    response = make_authenticated_request(
+        lambda: test_client.delete(f"{endpoint}/{issue_id}"),
+        Permission.change_environment_reported_issue,
+    )
     assert response.status_code == 200
 
-    response = test_client.get(endpoint)
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_environment_reported_issue,
+    )
     assert response.json() == []
 
 

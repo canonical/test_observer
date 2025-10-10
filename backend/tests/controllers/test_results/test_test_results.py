@@ -22,10 +22,10 @@ import pytest
 from test_observer.data_access.models_enums import (
     FamilyName,
 )
+from test_observer.common.permissions import Permission
 
 from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
-from test_observer.common.permissions import Permission
 
 
 def generate_unique_name(prefix: str = "test") -> str:
@@ -48,7 +48,10 @@ class TestSearchTestResults:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -69,7 +72,10 @@ class TestSearchTestResults:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results", params={"limit": 0})
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results", params={"limit": 0}),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -96,7 +102,10 @@ class TestSearchTestResults:
         for _ in range(7):
             test_results.append(generator.gen_test_result(test_case, test_execution))
 
-        response = test_client.get("/v1/test-results?families=snap&limit=3")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=snap&limit=3"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -128,12 +137,18 @@ class TestSearchTestResults:
             generator.gen_test_result(test_case, test_execution)
 
         # Test first page
-        response1 = test_client.get("/v1/test-results?families=charm&limit=2&offset=0")
+        response1 = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=charm&limit=2&offset=0"),
+            Permission.view_test,
+        )
         assert response1.status_code == 200
         data1 = response1.json()
 
         # Test second page
-        response2 = test_client.get("/v1/test-results?families=charm&limit=2&offset=2")
+        response2 = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=charm&limit=2&offset=2"),
+            Permission.view_test,
+        )
         assert response2.status_code == 200
         data2 = response2.json()
 
@@ -188,7 +203,10 @@ class TestSearchTestResults:
         te_no = generator.gen_test_execution(ab_no, env)
         tr_no = generator.gen_test_result(tc, te_no)
 
-        resp = test_client.get(f"/v1/test-results?families={family.value}")
+        resp = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?families={family.value}"),
+            Permission.view_test,
+        )
         assert resp.status_code == 200
         data = resp.json()
 
@@ -218,7 +236,10 @@ class TestSearchTestResults:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results?template_ids=test_template_123")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?template_ids=test_template_123"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -247,7 +268,10 @@ class TestSearchTestResults:
         )
         assert attach_response.status_code == 200
 
-        response = test_client.get(f"/v1/test-results?issues={issue.id}")
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?issues={issue.id}"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -290,8 +314,11 @@ class TestSearchTestResults:
         assert attach_response1.status_code == 200
         assert attach_response2.status_code == 200
 
-        response = test_client.get(
-            f"/v1/test-results?issues={issue1.id}&issues={issue2.id}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?issues={issue1.id}&issues={issue2.id}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -390,8 +417,11 @@ class TestSearchTestResults:
         ]
 
         # Query test results with matching execution metadata
-        response = test_client.get(
-            "/v1/test-results?execution_metadata=category1:value1&execution_metadata=category1:value2"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results?execution_metadata=category1:value1&execution_metadata=category1:value2"
+            ),
+            Permission.view_test,
         )
         expect = {test_result.id for expect, test_result in test_results if expect}
 
@@ -401,7 +431,12 @@ class TestSearchTestResults:
 
     def test_invalid_execution_metadata_format(self, test_client: TestClient):
         # Test with invalid execution metadata format
-        response = test_client.get("/v1/test-results?execution_metadata=invalid-format")
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results?execution_metadata=invalid-format"
+            ),
+            Permission.view_test,
+        )
         assert response.status_code == 422
 
     def test_search_with_date_range(
@@ -420,8 +455,11 @@ class TestSearchTestResults:
         from_date = (datetime.now() - timedelta(days=1)).isoformat()
         until_date = (datetime.now() + timedelta(days=1)).isoformat()
 
-        response = test_client.get(
-            f"/v1/test-results?from_date={from_date}&until_date={until_date}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?from_date={from_date}&until_date={until_date}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -440,8 +478,11 @@ class TestSearchTestResults:
         from_date = (datetime.now() + timedelta(days=1)).isoformat()
         until_date = (datetime.now() + timedelta(days=2)).isoformat()
 
-        response = test_client.get(
-            f"/v1/test-results?from_date={from_date}&until_date={until_date}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?from_date={from_date}&until_date={until_date}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -468,7 +509,10 @@ class TestSearchTestResults:
         # Test with from_date before the test execution was created
         from_date_before = (execution_created_at - timedelta(minutes=1)).isoformat()
 
-        response = test_client.get(f"/v1/test-results?from_date={from_date_before}")
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?from_date={from_date_before}"),
+            Permission.view_test,
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
@@ -479,7 +523,10 @@ class TestSearchTestResults:
         # Test with from_date after the test execution was created
         from_date_after = (execution_created_at + timedelta(minutes=1)).isoformat()
 
-        response = test_client.get(f"/v1/test-results?from_date={from_date_after}")
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?from_date={from_date_after}"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -509,7 +556,10 @@ class TestSearchTestResults:
         # Test with until date after the test execution was created
         until_date_after = (execution_created_at + timedelta(minutes=1)).isoformat()
 
-        response = test_client.get(f"/v1/test-results?until_date={until_date_after}")
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?until_date={until_date_after}"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -521,7 +571,10 @@ class TestSearchTestResults:
         # Test with until date before the test execution was created
         until_date_before = (execution_created_at - timedelta(minutes=1)).isoformat()
 
-        response = test_client.get(f"/v1/test-results?until_date={until_date_before}")
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?until_date={until_date_before}"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -550,8 +603,11 @@ class TestSearchTestResults:
         range_before = (execution_created_at - timedelta(minutes=1)).isoformat()
         range_after = (execution_created_at + timedelta(minutes=1)).isoformat()
 
-        response = test_client.get(
-            f"/v1/test-results?from_date={range_before}&until_date={range_after}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?from_date={range_before}&until_date={range_after}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -583,8 +639,11 @@ class TestSearchTestResults:
         until_date = (execution_created_at + timedelta(minutes=1)).isoformat()
 
         # Test combining date filter with family filter
-        response = test_client.get(
-            f"/v1/test-results?families=snap&from_date={from_date}&until_date={until_date}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?families=snap&from_date={from_date}&until_date={until_date}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -595,8 +654,11 @@ class TestSearchTestResults:
         )
 
         # Test that wrong family + date range excludes our result
-        response = test_client.get(
-            f"/v1/test-results?families=deb&from_date={from_date}&until_date={until_date}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?families=deb&from_date={from_date}&until_date={until_date}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -609,14 +671,23 @@ class TestSearchTestResults:
     def test_search_invalid_date_formats(self, test_client: TestClient):
         """Test handling of invalid date format parameters"""
         # Test with invalid date format
-        response = test_client.get("/v1/test-results?from_date=invalid-date")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?from_date=invalid-date"),
+            Permission.view_test,
+        )
         assert response.status_code == 422
 
-        response = test_client.get("/v1/test-results?until_date=not-a-date")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?until_date=not-a-date"),
+            Permission.view_test,
+        )
         assert response.status_code == 422
 
         # Test with malformed ISO date
-        response = test_client.get("/v1/test-results?from_date=2025-13-45T25:99:99")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?from_date=2025-13-45T25:99:99"),
+            Permission.view_test,
+        )
         assert response.status_code == 422
 
     def test_search_multiple_filters_complex(
@@ -649,8 +720,11 @@ class TestSearchTestResults:
         )
         assert attach_response.status_code == 200
 
-        response = test_client.get(
-            f"/v1/test-results?families=snap&environments={environment_name}&test_cases={test_case_name}&template_ids=multi_filter_template&issues={issue.id}&limit=5"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?families=snap&environments={environment_name}&test_cases={test_case_name}&template_ids=multi_filter_template&issues={issue.id}&limit=5"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -669,14 +743,20 @@ class TestSearchTestResults:
 
     def test_search_invalid_family(self, test_client: TestClient):
         """Test handling invalid family name"""
-        response = test_client.get("/v1/test-results?families=invalid_family")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=invalid_family"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 422
 
     def test_search_no_results(self, test_client: TestClient):
         """Test search with filters that match no results"""
-        response = test_client.get(
-            "/v1/test-results?test_cases=nonexistent_test_case_12345"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results?test_cases=nonexistent_test_case_12345"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -687,22 +767,34 @@ class TestSearchTestResults:
     def test_pagination_limits(self, test_client: TestClient):
         """Test pagination parameter validation"""
         # Test maximum limit
-        response = test_client.get("/v1/test-results?limit=1001")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?limit=1001"),
+            Permission.view_test,
+        )
         assert response.status_code == 422
 
         # Test negative offset
-        response = test_client.get("/v1/test-results?offset=-1")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?offset=-1"),
+            Permission.view_test,
+        )
         assert response.status_code == 422
 
     def test_large_offset_pagination(self, test_client: TestClient):
         # Create test data
 
-        response_check = test_client.get(
-            "/v1/test-results?families=deb&limit=10&offset=0"
+        response_check = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=deb&limit=10&offset=0"),
+            Permission.view_test,
         )
         actual_count = response_check.json()["count"]
 
-        response = test_client.get("/v1/test-results?families=deb&limit=10&offset=1000")
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results?families=deb&limit=10&offset=1000"
+            ),
+            Permission.view_test,
+        )
         data = response.json()
 
         assert data["count"] == actual_count
@@ -725,7 +817,10 @@ class TestSearchTestResults:
         test_result = generator.gen_test_result(test_case, test_execution)
 
         # Test with different cases
-        response = test_client.get("/v1/test-results?families=snap")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=snap"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -752,7 +847,10 @@ class TestSearchTestResults:
         test_execution2 = generator.gen_test_execution(artefact_build, environment)
         test_result2 = generator.gen_test_result(test_case2, test_execution2)
 
-        response = test_client.get("/v1/test-results?limit=5")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?limit=5"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -793,7 +891,10 @@ class TestSearchTestResults:
         other_result = generator.gen_test_result(test_case, other_execution)
 
         # Search with artefact filter
-        response = test_client.get(f"/v1/test-results?artefacts={artefact_name}")
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?artefacts={artefact_name}"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -831,8 +932,11 @@ class TestSearchTestResults:
         result3 = generator.gen_test_result(test_case, execution3)
 
         # Search with multiple artefacts
-        response = test_client.get(
-            f"/v1/test-results?artefacts={artefact1.name}&artefacts={artefact2.name}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?artefacts={artefact1.name}&artefacts={artefact2.name}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -868,8 +972,11 @@ class TestSearchTestResults:
         other_result = generator.gen_test_result(test_case, other_execution)
 
         # Search with both artefact and environment filters
-        response = test_client.get(
-            f"/v1/test-results?artefacts={artefact_name}&environments={env_name}"
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?artefacts={artefact_name}&environments={env_name}"
+            ),
+            Permission.view_test,
         )
 
         assert response.status_code == 200
@@ -886,7 +993,10 @@ class TestWindowFunctionSpecific:
 
     def test_window_function_with_empty_results(self, test_client: TestClient):
         """Test window function behavior when no results match"""
-        response = test_client.get("/v1/test-results?families=nonexistent")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=nonexistent"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 422
 
@@ -903,7 +1013,10 @@ class TestWindowFunctionSpecific:
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
 
-        response = test_client.get("/v1/test-results?families=image")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=image"),
+            Permission.view_test,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -929,14 +1042,20 @@ class TestWindowFunctionSpecific:
             generator.gen_test_result(test_case, test_execution)
 
         # Test if offset is at exact boundary
-        response = test_client.get("/v1/test-results?limit=5&offset=5")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?limit=5&offset=5"),
+            Permission.view_test,
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 10
         assert len(data["test_results"]) <= 5
 
         # Test if limit is larger than total results
-        response = test_client.get("/v1/test-results?limit=1000")
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?limit=1000"),
+            Permission.view_test,
+        )
         assert response.status_code == 200
         data = response.json()
         assert len(data["test_results"]) <= data["count"]

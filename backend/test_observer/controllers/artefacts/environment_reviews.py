@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
@@ -38,6 +39,9 @@ router = APIRouter(tags=["environment-reviews"])
 @router.get(
     "/{artefact_id}/environment-reviews",
     response_model=list[ArtefactBuildEnvironmentReviewResponse],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.view_environment_review])
+    ],
 )
 def get_environment_reviews(
     artefact: Artefact = Depends(
@@ -58,6 +62,9 @@ def get_environment_reviews(
 @router.patch(
     "/{artefact_id}/environment-reviews/{review_id}",
     response_model=ArtefactBuildEnvironmentReviewResponse,
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_environment_review])
+    ],
 )
 def update_environment_review(
     artefact_id: int,

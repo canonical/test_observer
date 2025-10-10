@@ -30,7 +30,9 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
 )
+from test_observer.common.permissions import Permission
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def test_get_artefacts_ignores_archived(
@@ -85,7 +87,10 @@ def test_get_artefacts_ignores_archived(
         archived=True,
     )
 
-    response = test_client.get("/v1/artefacts")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     _assert_get_artefacts_response(response.json(), [a1, a2, a3])
 
@@ -121,7 +126,10 @@ def test_get_artefacts_returns_latest_on_each_stage(
     generator.gen_artefact(**artefact, version="1")
     new = generator.gen_artefact(**artefact, version="2")
 
-    response = test_client.get("/v1/artefacts", params={"family": artefact["family"]})
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts", params={"family": artefact["family"]}),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     _assert_get_artefacts_response(response.json(), [new])
 
@@ -136,7 +144,10 @@ def test_get_relevant_image_artefacts(
         created_at=old_image.created_at + timedelta(days=1),
     )
 
-    response = test_client.get("/v1/artefacts", params={"family": "image"})
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts", params={"family": "image"}),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     response_data = response.json()
@@ -151,7 +162,10 @@ def test_get_artefacts_treats_branches_as_unique(
     generator.gen_artefact(StageName.beta)
     generator.gen_artefact(StageName.beta, branch="test-branch")
 
-    response = test_client.get("/v1/artefacts")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     response_data = response.json()
@@ -169,7 +183,10 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         assignee_id=u.id,
     )
 
-    response = test_client.get(f"/v1/artefacts/{a.id}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     _assert_get_artefact_response(response.json(), a)
@@ -194,7 +211,10 @@ def test_get_artefact_environment_reviews_counts_only_latest_build(
         ],
     )
 
-    response = test_client.get(f"/v1/artefacts/{a.id}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     # Verify only the counts of the latest build is returned
     assert response.json()["all_environment_reviews_count"] == 1
@@ -212,7 +232,10 @@ def test_get_artefact_environment_reviews_counts(
     er = generator.gen_artefact_build_environment_review(ab, e)
 
     # Verify completed test execution count is zero, it is not reviewed yet
-    response = test_client.get(f"/v1/artefacts/{a.id}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     assert response.json()["all_environment_reviews_count"] == 1
     assert response.json()["completed_environment_reviews_count"] == 0
@@ -224,7 +247,10 @@ def test_get_artefact_environment_reviews_counts(
     db_session.refresh(er)
 
     # Verify completed test execution count is one, it is reviewed
-    response = test_client.get(f"/v1/artefacts/{a.id}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     assert response.json()["all_environment_reviews_count"] == 1
     assert response.json()["completed_environment_reviews_count"] == 1
@@ -233,9 +259,12 @@ def test_get_artefact_environment_reviews_counts(
 def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"status": ArtefactStatus.APPROVED},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"status": ArtefactStatus.APPROVED},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -249,9 +278,12 @@ def test_artefact_signoff_disallow_approve(
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     generator.gen_artefact_build_environment_review(ab, e)
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"status": ArtefactStatus.APPROVED},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"status": ArtefactStatus.APPROVED},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 400
@@ -261,9 +293,12 @@ def test_artefact_signoff_disallow_reject(
     test_client: TestClient, test_execution: TestExecution
 ):
     artefact_id = test_execution.artefact_build.artefact_id
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact_id}",
-        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact_id}",
+            json={"status": ArtefactStatus.MARKED_AS_FAILED},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 400
@@ -293,9 +328,12 @@ def test_artefact_signoff_ignore_old_build_on_approve(
         ],
     )
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"status": ArtefactStatus.APPROVED},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"status": ArtefactStatus.APPROVED},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -318,9 +356,12 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     )
     generator.gen_artefact_build_environment_review(build_2, environment)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"status": ArtefactStatus.MARKED_AS_FAILED},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 400
@@ -334,18 +375,24 @@ def test_artefact_rejection_requires_comment(
         ArtefactBuildEnvironmentReviewDecision.REJECTED
     ]
 
-    response = test_client.patch(
-        f"/v1/artefacts/{test_execution.artefact_build.artefact_id}",
-        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{test_execution.artefact_build.artefact_id}",
+            json={"status": ArtefactStatus.MARKED_AS_FAILED},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 400
 
     test_execution.artefact_build.artefact.comment = "some comment"
 
-    response = test_client.patch(
-        f"/v1/artefacts/{test_execution.artefact_build.artefact_id}",
-        json={"status": ArtefactStatus.MARKED_AS_FAILED},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{test_execution.artefact_build.artefact_id}",
+            json={"status": ArtefactStatus.MARKED_AS_FAILED},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -357,9 +404,12 @@ def test_artefact_rejection_requires_comment(
 def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate, archived=False)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"archived": True},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"archived": True},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -369,9 +419,12 @@ def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
 def test_artefact_unarchive(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate, archived=True)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"archived": False},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"archived": False},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -381,9 +434,12 @@ def test_artefact_unarchive(test_client: TestClient, generator: DataGenerator):
 def test_artefact_promote(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"stage": StageName.stable},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"stage": StageName.stable},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -396,9 +452,12 @@ def test_artefact_promote_invalid_stage(
 ):
     artefact = generator.gen_artefact(family=FamilyName.charm)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"stage": StageName.current},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"stage": StageName.current},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 400
@@ -410,9 +469,12 @@ def test_artefact_promote_unknown_stage(
 ):
     artefact = generator.gen_artefact()
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"stage": "unknown"},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"stage": "unknown"},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code > 400
@@ -422,9 +484,12 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
     a = generator.gen_artefact()
     comment = "Updated comment"
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"comment": comment},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"comment": comment},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -435,9 +500,12 @@ def test_update_artefact_assignee(test_client: TestClient, generator: DataGenera
     a = generator.gen_artefact()
     u = generator.gen_user()
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"assignee_id": u.id},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_id": u.id},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -450,9 +518,12 @@ def test_update_artefact_assignee_nonexistent_user(
     a = generator.gen_artefact()
     nonexistent_user_id = 99999
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"assignee_id": nonexistent_user_id},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_id": nonexistent_user_id},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 422
@@ -469,9 +540,12 @@ def test_update_artefact_assignee_clear(
     assert a.assignee_id == u.id
 
     # Clear the assignee
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"assignee_id": None},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_id": None},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -484,9 +558,12 @@ def test_update_artefact_assignee_by_email(
     a = generator.gen_artefact()
     u = generator.gen_user()
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"assignee_email": u.email},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_email": u.email},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -499,9 +576,12 @@ def test_update_artefact_assignee_by_email_nonexistent(
     a = generator.gen_artefact()
     nonexistent_email = "nonexistent@example.com"
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"assignee_email": nonexistent_email},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_email": nonexistent_email},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 422
@@ -519,9 +599,12 @@ def test_update_artefact_assignee_clear_by_email(
     assert a.assignee_id == u.id
 
     # Clear the assignee using email
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={"assignee_email": None},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_email": None},
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 200
@@ -534,12 +617,15 @@ def test_update_artefact_assignee_both_id_and_email_error(
     a = generator.gen_artefact()
     u = generator.gen_user()
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}",
-        json={
-            "assignee_id": u.id,
-            "assignee_email": u.email,
-        },
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={
+                "assignee_id": u.id,
+                "assignee_email": u.email,
+            },
+        ),
+        Permission.change_artefact,
     )
 
     assert response.status_code == 422
@@ -557,15 +643,24 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
         {"version": "1", "artefact_id": artefact1.id},
     ]
 
-    response = test_client.get(f"/v1/artefacts/{artefact1.id}/versions")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact1.id}/versions"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     assert response.json() == expected_result
 
-    response = test_client.get(f"/v1/artefacts/{artefact2.id}/versions")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact2.id}/versions"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     assert response.json() == expected_result
 
-    response = test_client.get(f"/v1/artefacts/{artefact3.id}/versions")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact3.id}/versions"),
+        Permission.view_artefact,
+    )
     assert response.status_code == 200
     assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 

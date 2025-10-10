@@ -36,8 +36,10 @@ from test_observer.data_access.models_enums import (
     ImageStage,
     TestExecutionStatus,
 )
+from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 type Execute = Callable[[dict[str, Any]], Response]
 
@@ -45,7 +47,10 @@ type Execute = Callable[[dict[str, Any]], Response]
 @pytest.fixture
 def execute(test_client: TestClient) -> Execute:
     def execute_helper(data: dict[str, Any]) -> Response:
-        return test_client.put("/v1/test-executions/start-test", json=data)
+        return make_authenticated_request(
+            lambda: test_client.put("/v1/test-executions/start-test", json=data),
+            Permission.change_test,
+        )
 
     return execute_helper
 

@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, require_permissions
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.teams.models import TeamPatch, TeamResponse
 from test_observer.data_access.models import Team
 from test_observer.data_access.setup import get_db
@@ -27,19 +27,25 @@ from test_observer.data_access.setup import get_db
 router: APIRouter = APIRouter(tags=["teams"])
 
 
-@router.get("", response_model=list[TeamResponse])
+@router.get(
+    "",
+    response_model=list[TeamResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_team])],
+)
 def get_teams(
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.view_team)),
 ):
     return db.scalars(select(Team))
 
 
-@router.get("/{team_id}", response_model=TeamResponse)
+@router.get(
+    "/{team_id}",
+    response_model=TeamResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_team])],
+)
 def get_team(
     team_id: int,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.view_team)),
 ):
     team = db.get(Team, team_id)
     if team is None:
@@ -47,12 +53,15 @@ def get_team(
     return team
 
 
-@router.patch("/{team_id}", response_model=TeamResponse)
+@router.patch(
+    "/{team_id}",
+    response_model=TeamResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_team])],
+)
 def update_team(
     team_id: int,
     request: TeamPatch,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_team)),
 ):
     team = db.get(Team, team_id)
     if team is None:

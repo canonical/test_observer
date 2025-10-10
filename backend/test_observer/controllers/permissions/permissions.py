@@ -14,14 +14,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Security
 
-from test_observer.common.permissions import Permission
+from test_observer.common.permissions import Permission, permission_checker
 
 
 router: APIRouter = APIRouter(tags=["permissions"])
 
 
-@router.get("")
+@router.get(
+    "", dependencies=[Security(permission_checker, scopes=[Permission.view_permission])]
+)
 def get_permissions():
     return [p.value for p in Permission]

@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
@@ -37,7 +38,11 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 router = APIRouter()
 
 
-@router.patch("/{id}", response_model=TestExecutionResponse)
+@router.patch(
+    "/{id}",
+    response_model=TestExecutionResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
+)
 def patch_test_execution(
     id: int,
     request: TestExecutionsPatchRequest,

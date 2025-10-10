@@ -15,12 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Security
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, require_permissions
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     Issue,
 )
@@ -44,7 +44,11 @@ router.include_router(issue_attachments.router)
 router.include_router(attachment_rules.router)
 
 
-@router.get("", response_model=IssuesGetResponse)
+@router.get(
+    "",
+    response_model=IssuesGetResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_issue])],
+)
 def get_issues(
     source: IssueSource | None = None,
     project: str | None = None,
@@ -61,7 +65,11 @@ def get_issues(
     )
 
 
-@router.get("/{issue_id}", response_model=IssueResponse)
+@router.get(
+    "/{issue_id}",
+    response_model=IssueResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_issue])],
+)
 def get_issue(
     issue_id: int,
     db: Session = Depends(get_db),
@@ -86,12 +94,15 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     return issue
 
 
-@router.patch("/{issue_id}", response_model=IssueResponse)
+@router.patch(
+    "/{issue_id}",
+    response_model=IssueResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+)
 def patch_issue(
     issue_id: int,
     request: IssuePatchRequest,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_issue)),
 ):
     issue = db.get(Issue, issue_id)
     if issue is None:
@@ -99,11 +110,14 @@ def patch_issue(
     return update_issue(db, issue, request)
 
 
-@router.put("", response_model=IssueResponse)
+@router.put(
+    "",
+    response_model=IssueResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+)
 def create_or_update_issue(
     request: IssuePutRequest,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_issue)),
 ):
     # Fetch issue source, project, and key
     try:

@@ -19,11 +19,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.data_access.models import TestExecution, TestResult
+from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
-
 from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
-from test_observer.common.permissions import Permission
 
 maximum_result = {
     "name": "camera detect",
@@ -49,13 +48,20 @@ def _assert_results(request: list[dict[str, str]], results: list[TestResult]) ->
 
 
 def test_missing_test_execution(test_client: TestClient):
-    response = test_client.post("/v1/test-executions/1/test-results", json=[])
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/test-executions/1/test-results", json=[]),
+        Permission.change_test,
+    )
     assert response.status_code == 404
 
 
 def test_one_full_test_result(test_client: TestClient, test_execution: TestExecution):
-    response = test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=[maximum_result]
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results",
+            json=[maximum_result],
+        ),
+        Permission.change_test,
     )
 
     assert response.status_code == 200
@@ -63,8 +69,12 @@ def test_one_full_test_result(test_client: TestClient, test_execution: TestExecu
 
 
 def test_one_minimum_result(test_client: TestClient, test_execution: TestExecution):
-    response = test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=[minimum_result]
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results",
+            json=[minimum_result],
+        ),
+        Permission.change_test,
     )
 
     assert response.status_code == 200
@@ -77,8 +87,11 @@ def test_required_fields(
 ):
     result = minimum_result.copy()
     result.pop(field)
-    response = test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=[result]
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results", json=[result]
+        ),
+        Permission.change_test,
     )
 
     assert_fails_validation(response, field, "missing")
@@ -91,9 +104,12 @@ def test_batch_request(test_client: TestClient, test_execution: TestExecution):
         {**maximum_result, "name": "test 3", "status": "SKIPPED"},
     ]
 
-    response = test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results",
-        json=request,
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results",
+            json=request,
+        ),
+        Permission.change_test,
     )
 
     assert response.status_code == 200
@@ -115,11 +131,17 @@ def test_multiple_batch_requests(
         {**maximum_result, "name": "test 6", "status": "SKIPPED"},
     ]
 
-    test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=request1
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results", json=request1
+        ),
+        Permission.change_test,
     )
-    test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=request2
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results", json=request2
+        ),
+        Permission.change_test,
     )
 
     _assert_results([*request1, *request2], test_execution.test_results)
@@ -131,11 +153,17 @@ def test_overwrites_result_if_matching_case_name(
     request1 = [{**minimum_result, "name": "same", "status": "FAILED"}]
     request2 = [{**minimum_result, "name": "same", "status": "PASSED"}]
 
-    test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=request1
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results", json=request1
+        ),
+        Permission.change_test,
     )
-    test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=request2
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results", json=request2
+        ),
+        Permission.change_test,
     )
 
     _assert_results(request2, test_execution.test_results)
@@ -158,8 +186,12 @@ def test_apply_test_result_attachment_rules(
     )
     attachment_rule_id = attachment_rule_response.json()["id"]
 
-    response = test_client.post(
-        f"/v1/test-executions/{test_execution.id}/test-results", json=[minimum_result]
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results",
+            json=[minimum_result],
+        ),
+        Permission.change_test,
     )
 
     assert response.status_code == 200

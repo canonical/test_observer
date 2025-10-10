@@ -19,11 +19,12 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, Security
 from fastapi.responses import FileResponse
 from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -138,7 +139,11 @@ def _get_test_executions_reports_query(
     )
 
 
-@router.get("/test-executions", response_class=FileResponse)
+@router.get(
+    "/test-executions",
+    response_class=FileResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_report])],
+)
 def get_test_execution_reports(
     background_tasks: BackgroundTasks,
     start_date: datetime = datetime.min,

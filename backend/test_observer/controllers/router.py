@@ -20,7 +20,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.applications import applications
-from test_observer.controllers.docs import custom_swagger_docs
+from test_observer.controllers.docs import docs
 from test_observer.controllers.permissions import permissions
 from test_observer.controllers.users import users
 from test_observer.data_access.setup import get_db
@@ -56,7 +56,7 @@ router.include_router(users.router, prefix="/v1/users")
 router.include_router(teams.router, prefix="/v1/teams")
 router.include_router(permissions.router, prefix="/v1/permissions")
 router.include_router(applications.router, prefix="/v1/applications")
-router.include_router(custom_swagger_docs.router)
+router.include_router(docs.router)
 
 
 @router.get("/")

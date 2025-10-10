@@ -15,11 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, require_permissions
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.users.models import UserPatch, UserResponse
 from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
@@ -34,19 +34,25 @@ def get_authenticated_user(user: User | None = Depends(get_current_user)):
     return user
 
 
-@router.get("", response_model=list[UserResponse])
+@router.get(
+    "",
+    response_model=list[UserResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_user])],
+)
 def get_users(
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.view_user)),
 ):
     return db.scalars(select(User))
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_user])],
+)
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.view_user)),
 ):
     user = db.get(User, user_id)
     if user is None:
@@ -54,12 +60,15 @@ def get_user(
     return user
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.patch(
+    "/{user_id}",
+    response_model=UserResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_user])],
+)
 def update_user(
     user_id: int,
     request: UserPatch,
     db: Session = Depends(get_db),
-    _: None = Depends(require_permissions(Permission.change_user)),
 ):
     user = db.get(User, user_id)
     if user is None:

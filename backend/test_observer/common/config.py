@@ -29,3 +29,4 @@ SAML_SP_KEY = os.getenv("SAML_SP_KEY", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
 SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")
 SESSIONS_HTTPS_ONLY = os.getenv("SESSIONS_HTTPS_ONLY", "true").lower() == "true"
+IGNORE_PERMISSIONS = set(os.getenv("IGNORE_PERMISSIONS", "").lower().split(","))

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Security
 from sqlalchemy import (
     func,
     desc,
@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session, selectinload
 from typing import Annotated
 import urllib
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
@@ -75,7 +76,11 @@ def parse_execution_metadata(
     return ExecutionMetadata.from_rows(result)
 
 
-@router.get("", response_model=TestResultSearchResponseWithContext)
+@router.get(
+    "",
+    response_model=TestResultSearchResponseWithContext,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_test])],
+)
 def search_test_results(
     families: Annotated[
         list[FamilyName] | None,

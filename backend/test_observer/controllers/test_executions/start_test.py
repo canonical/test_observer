@@ -18,10 +18,11 @@
 from datetime import date, timedelta
 import random
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -190,7 +191,10 @@ class StartTestExecutionController:
         return None
 
 
-@router.put("/start-test")
+@router.put(
+    "/start-test",
+    dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
+)
 def start_test_execution(
     test_starter: StartTestExecutionController = Depends(StartTestExecutionController),
 ):
