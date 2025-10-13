@@ -19,15 +19,20 @@ from operator import itemgetter
 
 from fastapi.testclient import TestClient
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     StageName,
 )
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def test_get_404_when_artefact_is_not_found(test_client: TestClient):
-    response = test_client.get("/v1/artefacts/1/environment-reviews")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/1/environment-reviews"),
+        Permission.view_environment_review,
+    )
     assert response.status_code == 404
 
 
@@ -35,7 +40,10 @@ def test_get_no_environment_reviews_exist(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact(StageName.beta)
-    response = test_client.get(f"/v1/artefacts/{a.id}/environment-reviews")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}/environment-reviews"),
+        Permission.view_environment_review,
+    )
     assert response.status_code == 200
 
 
@@ -49,7 +57,10 @@ def test_get_with_two_environment_reviews(
     review1 = generator.gen_artefact_build_environment_review(ab, e1)
     review2 = generator.gen_artefact_build_environment_review(ab, e2)
 
-    response = test_client.get(f"/v1/artefacts/{a.id}/environment-reviews")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}/environment-reviews"),
+        Permission.view_environment_review,
+    )
     assert response.status_code == 200
     assert sorted(response.json(), key=itemgetter("id")) == [
         {
@@ -85,7 +96,7 @@ def test_get_with_two_environment_reviews(
     ]
 
 
-def test_get_only_consideres_latest_builds(
+def test_get_only_considers_latest_builds(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact(StageName.beta)
@@ -96,7 +107,10 @@ def test_get_only_consideres_latest_builds(
     generator.gen_artefact_build_environment_review(ab1, e1)
     review2 = generator.gen_artefact_build_environment_review(ab2, e2)
 
-    response = test_client.get(f"/v1/artefacts/{a.id}/environment-reviews")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}/environment-reviews"),
+        Permission.view_environment_review,
+    )
     assert response.status_code == 200
     assert response.json() == [
         {
@@ -129,8 +143,11 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
             ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
         ],
     }
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update
+        ),
+        Permission.change_environment_review,
     )
 
     assert response.status_code == 200
@@ -160,8 +177,11 @@ def test_requires_review_to_belong_to_artefact(
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a2.id}/environment-reviews/{er.id}", json={}
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a2.id}/environment-reviews/{er.id}", json={}
+        ),
+        Permission.change_environment_review,
     )
 
     assert response.status_code == 422
@@ -175,14 +195,17 @@ def test_environment_review_fails_if_both_rejected_and_approved(
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}/environment-reviews/{er.id}",
-        json={
-            "review_decision": [
-                ArtefactBuildEnvironmentReviewDecision.REJECTED.name,
-                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST.name,
-            ],
-        },
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews/{er.id}",
+            json={
+                "review_decision": [
+                    ArtefactBuildEnvironmentReviewDecision.REJECTED.name,
+                    ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST.name,
+                ],
+            },
+        ),
+        Permission.change_environment_review,
     )
 
     assert response.status_code == 422
@@ -201,9 +224,12 @@ def test_environment_review_reset_review(
         review_comment="some comment",
     )
 
-    response = test_client.patch(
-        f"/v1/artefacts/{a.id}/environment-reviews/{er.id}",
-        json={"review_decision": [], "review_comment": ""},
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews/{er.id}",
+            json={"review_decision": [], "review_comment": ""},
+        ),
+        Permission.change_environment_review,
     )
 
     assert response.status_code == 200

@@ -17,10 +17,11 @@
 
 import contextlib
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Security
 from sqlalchemy import delete, select, asc
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
@@ -36,7 +37,11 @@ from .models import DeleteReruns, PendingRerun, RerunRequest
 router = APIRouter()
 
 
-@router.post("/reruns", response_model=list[PendingRerun])
+@router.post(
+    "/reruns",
+    response_model=list[PendingRerun],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_rerun])],
+)
 def create_rerun_requests(
     request: RerunRequest, response: Response, db: Session = Depends(get_db)
 ):
@@ -67,7 +72,11 @@ def _create_rerun_request(
     return get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
 
 
-@router.get("/reruns", response_model=list[PendingRerun])
+@router.get(
+    "/reruns",
+    response_model=list[PendingRerun],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_rerun])],
+)
 def get_rerun_requests(
     family: FamilyName | None = None,
     limit: int | None = None,
@@ -102,7 +111,10 @@ def get_rerun_requests(
     return db.scalars(stmt)
 
 
-@router.delete("/reruns")
+@router.delete(
+    "/reruns",
+    dependencies=[Security(permission_checker, scopes=[Permission.change_rerun])],
+)
 def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
     db.execute(
         delete(TestExecutionRerunRequest).where(

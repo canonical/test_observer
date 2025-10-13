@@ -17,36 +17,18 @@
 
 from enum import StrEnum, auto
 
-
 from fastapi import Depends, HTTPException
+from fastapi.security import SecurityScopes
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, User
 from test_observer.users.user_injection import get_current_user
-
-
-def require_permissions(*required_permissions: str):
-    def permission_checker(
-        user: User | None = Depends(get_current_user),
-        app: Application | None = Depends(get_current_application),
-    ) -> None:
-        if user and user.is_admin:
-            return None
-
-        client_permissions: set[str] = set()
-        if user:
-            client_permissions = {p for t in user.teams for p in t.permissions}
-        if app:
-            client_permissions = client_permissions.union(app.permissions)
-
-        if not all(p in client_permissions for p in required_permissions):
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-    return permission_checker
+from test_observer.common.config import IGNORE_PERMISSIONS
 
 
 class Permission(StrEnum):
+    # Authentication
     view_user = auto()
     change_user = auto()
     view_team = auto()
@@ -54,7 +36,56 @@ class Permission(StrEnum):
     add_application = auto()
     change_application = auto()
     view_application = auto()
+    view_permission = auto()
+
+    # Issues
+    view_issue = auto()
     change_issue = auto()
     change_issue_attachment = auto()
     change_issue_attachment_bulk = auto()
     change_attachment_rule = auto()
+
+    # Tests
+    view_test = auto()
+    change_test = auto()
+    view_rerun = auto()
+    change_rerun = auto()
+
+    # Artefacts
+    view_artefact = auto()
+    change_artefact = auto()
+
+    # Environment reviews
+    view_environment_review = auto()
+    change_environment_review = auto()
+
+    # Reports
+    view_report = auto()
+
+    # Test cases
+    view_test_case_reported_issue = auto()
+    change_test_case_reported_issue = auto()
+
+    # Environments
+    view_environment_reported_issue = auto()
+    change_environment_reported_issue = auto()
+
+
+def permission_checker(
+    security_scopes: SecurityScopes,
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+) -> None:
+    if user and user.is_admin:
+        return None
+
+    required_permissions: set[str] = set(security_scopes.scopes) - IGNORE_PERMISSIONS
+
+    client_permissions: set[str] = set()
+    if user:
+        client_permissions = {p for t in user.teams for p in t.permissions}
+    if app:
+        client_permissions = client_permissions.union(app.permissions)
+
+    if not required_permissions <= client_permissions:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")

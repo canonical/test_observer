@@ -18,7 +18,9 @@
 from fastapi.testclient import TestClient
 
 from test_observer.data_access.models_enums import StageName
+from test_observer.common.permissions import Permission
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
@@ -27,7 +29,10 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)
 
-    response = test_client.get(f"/v1/artefacts/{a.id}/builds")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}/builds"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     assert response.json() == [
@@ -67,7 +72,10 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
     te2 = generator.gen_test_execution(ab, e2)
     te1 = generator.gen_test_execution(ab, e1)
 
-    assert test_client.get(f"/v1/artefacts/{a.id}/builds").json() == [
+    assert make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}/builds"),
+        Permission.view_artefact,
+    ).json() == [
         {
             "id": ab.id,
             "revision": ab.revision,
@@ -117,7 +125,10 @@ def test_get_artefact_builds_only_latest(
     generator.gen_artefact_build(artefact=artefact, revision=1)
     artefact_build2 = generator.gen_artefact_build(artefact=artefact, revision=2)
 
-    response = test_client.get(f"/v1/artefacts/{artefact.id}/builds")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}/builds"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     assert response.json() == [
@@ -139,7 +150,10 @@ def test_get_artefact_builds_with_rerun_requested(
     te = generator.gen_test_execution(ab, e)
     generator.gen_rerun_request(te)
 
-    response = test_client.get(f"/v1/artefacts/{a.id}/builds")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}/builds"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     assert response.json() == [

@@ -15,12 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Security
 from sqlalchemy import distinct, select
 from sqlalchemy.orm import Session
+
 from . import reported_issues
 from .models import EnvironmentsResponse
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     Environment,
     TestExecution,
@@ -34,7 +36,11 @@ router = APIRouter(tags=["environments"])
 router.include_router(reported_issues.router)
 
 
-@router.get("", response_model=EnvironmentsResponse)
+@router.get(
+    "",
+    response_model=EnvironmentsResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_test])],
+)
 def get_environments(
     q: Annotated[
         str | None,

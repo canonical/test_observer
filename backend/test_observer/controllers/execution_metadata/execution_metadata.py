@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import TestExecutionMetadata
 from test_observer.data_access.setup import get_db
 
@@ -31,7 +32,11 @@ router = APIRouter(tags=["execution-metadata"])
 router.include_router(execution_metadata.router)
 
 
-@router.get("", response_model=ExecutionMetadataGetResponse)
+@router.get(
+    "",
+    response_model=ExecutionMetadataGetResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_test])],
+)
 def get_execution_metadata(db: Session = Depends(get_db)):
     return ExecutionMetadataGetResponse(
         execution_metadata=ExecutionMetadata.from_rows(

@@ -17,8 +17,10 @@
 
 from fastapi.testclient import TestClient
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def test_get_test_results_sorts_by_execution_order(
@@ -37,7 +39,10 @@ def test_get_test_results_sorts_by_execution_order(
     generator.gen_test_result(tc_integration, te)
     generator.gen_test_result(tc_teardown, te)
 
-    response = test_client.get(f"/v1/test-executions/{te.id}/test-results")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/test-executions/{te.id}/test-results"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     json_response = response.json()

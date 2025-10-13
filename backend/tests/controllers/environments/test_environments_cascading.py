@@ -16,8 +16,11 @@
 
 import uuid
 from fastapi.testclient import TestClient
+
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.common.permissions import Permission
 
 
 def test_environments_filter_by_family(
@@ -44,7 +47,12 @@ def test_environments_filter_by_family(
     generator.gen_test_result(test_case, deb_execution)
 
     # Filter environments by snap family
-    response = test_client.get(f"/v1/environments?families=snap&q=env_{unique_marker}")
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/environments?families=snap&q=env_{unique_marker}"
+        ),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     environments = response.json()["environments"]

@@ -50,6 +50,7 @@ app = FastAPI(
         "url": "https://raw.githubusercontent.com/canonical/test_observer/refs/heads/main/backend/LICENSE",
     },
     docs_url=None,  # Disable default docs to add custom ones
+    openapi_url=None,  # Disable default openapi.json to add custom one
     redoc_url="/redocs",  # But keep the default redocs
 )
 

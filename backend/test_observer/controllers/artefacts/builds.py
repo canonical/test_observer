@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Security
 from sqlalchemy.orm import selectinload
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
@@ -32,7 +33,11 @@ from .models import (
 router = APIRouter(tags=["artefact-builds"])
 
 
-@router.get("/{artefact_id}/builds", response_model=list[ArtefactBuildResponse])
+@router.get(
+    "/{artefact_id}/builds",
+    response_model=list[ArtefactBuildResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
+)
 def get_artefact_builds(
     artefact: Artefact = Depends(
         ArtefactRetriever(

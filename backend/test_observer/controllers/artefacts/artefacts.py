@@ -15,11 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import select, distinct
 from sqlalchemy.orm import Session, selectinload
 from typing import Annotated
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
@@ -53,7 +54,11 @@ from .models import (
 router = APIRouter(tags=["artefacts"])
 
 
-@router.get("", response_model=list[ArtefactResponse])
+@router.get(
+    "",
+    response_model=list[ArtefactResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
+)
 def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
     artefacts = []
@@ -78,7 +83,11 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
     return artefacts
 
 
-@router.get("/search", response_model=ArtefactSearchResponse)
+@router.get(
+    "/search",
+    response_model=ArtefactSearchResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
+)
 def search_artefacts(
     q: Annotated[
         str | None,
@@ -128,7 +137,11 @@ def search_artefacts(
     return ArtefactSearchResponse(artefacts=list(artefacts))
 
 
-@router.get("/{artefact_id}", response_model=ArtefactResponse)
+@router.get(
+    "/{artefact_id}",
+    response_model=ArtefactResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
+)
 def get_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
@@ -141,7 +154,11 @@ def get_artefact(
     return artefact
 
 
-@router.patch("/{artefact_id}", response_model=ArtefactResponse)
+@router.patch(
+    "/{artefact_id}",
+    response_model=ArtefactResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_artefact])],
+)
 def patch_artefact(
     request: ArtefactPatch,
     db: Session = Depends(get_db),
@@ -244,7 +261,11 @@ def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
         ) from e
 
 
-@router.get("/{artefact_id}/versions", response_model=list[ArtefactVersionResponse])
+@router.get(
+    "/{artefact_id}/versions",
+    response_model=list[ArtefactVersionResponse],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
+)
 def get_artefact_versions(
     artefact: Artefact = Depends(ArtefactRetriever()), db: Session = Depends(get_db)
 ):

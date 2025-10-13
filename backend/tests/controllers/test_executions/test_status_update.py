@@ -20,8 +20,11 @@ import datetime
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName, TestExecutionStatus
+
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 
 
 def test_status_updates_stored(test_client: TestClient, generator: DataGenerator):
@@ -35,29 +38,32 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
         relevant_links=[{"label": "Doc Link", "url": "http://example.com/doc"}],
     )
 
-    response = test_client.put(
-        f"/v1/test-executions/{test_execution.id}/status_update",
-        json={
-            "agent_id": "test_agent",
-            "job_queue": "test_job_queue",
-            "events": [
-                {
-                    "event_name": "started_setup",
-                    "timestamp": "2015-03-21T11:08:14.859831",
-                    "detail": "my_detail_one",
-                },
-                {
-                    "event_name": "ended_setup",
-                    "timestamp": "2015-03-21T11:08:15.859831",
-                    "detail": "my_detail_two",
-                },
-                {
-                    "event_name": "job_end",
-                    "timestamp": "2015-03-21T11:08:15.859831",
-                    "detail": "my_detail_three",
-                },
-            ],
-        },
+    response = make_authenticated_request(
+        lambda: test_client.put(
+            f"/v1/test-executions/{test_execution.id}/status_update",
+            json={
+                "agent_id": "test_agent",
+                "job_queue": "test_job_queue",
+                "events": [
+                    {
+                        "event_name": "started_setup",
+                        "timestamp": "2015-03-21T11:08:14.859831",
+                        "detail": "my_detail_one",
+                    },
+                    {
+                        "event_name": "ended_setup",
+                        "timestamp": "2015-03-21T11:08:15.859831",
+                        "detail": "my_detail_two",
+                    },
+                    {
+                        "event_name": "job_end",
+                        "timestamp": "2015-03-21T11:08:15.859831",
+                        "detail": "my_detail_three",
+                    },
+                ],
+            },
+        ),
+        Permission.change_test,
     )
     assert response.status_code == 200
     assert test_execution.test_events[0].event_name == "started_setup"
@@ -89,24 +95,27 @@ def test_status_updates_is_idempotent(
     )
 
     for _ in range(3):
-        test_client.put(
-            f"/v1/test-executions/{test_execution.id}/status_update",
-            json={
-                "agent_id": "test_agent",
-                "job_queue": "test_job_queue",
-                "events": [
-                    {
-                        "event_name": "started_setup",
-                        "timestamp": "2015-03-21T11:08:14.859831",
-                        "detail": "my_detail_one",
-                    },
-                    {
-                        "event_name": "ended_setup",
-                        "timestamp": "2015-03-21T11:08:15.859831",
-                        "detail": "my_detail_two",
-                    },
-                ],
-            },
+        make_authenticated_request(
+            lambda: test_client.put(
+                f"/v1/test-executions/{test_execution.id}/status_update",
+                json={
+                    "agent_id": "test_agent",
+                    "job_queue": "test_job_queue",
+                    "events": [
+                        {
+                            "event_name": "started_setup",
+                            "timestamp": "2015-03-21T11:08:14.859831",
+                            "detail": "my_detail_one",
+                        },
+                        {
+                            "event_name": "ended_setup",
+                            "timestamp": "2015-03-21T11:08:15.859831",
+                            "detail": "my_detail_two",
+                        },
+                    ],
+                },
+            ),
+            Permission.change_test,
         )
 
     db_session.refresh(test_execution)
@@ -126,32 +135,38 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
         ],
     )
 
-    test_client.put(
-        f"/v1/test-executions/{test_execution.id}/status_update",
-        json={
-            "agent_id": "test_agent",
-            "job_queue": "test_job_queue",
-            "events": [
-                {
-                    "event_name": "started_setup",
-                    "timestamp": "2015-03-21T11:08:14.859831",
-                    "detail": "my_detail_one",
-                },
-                {
-                    "event_name": "ended_setup",
-                    "timestamp": "2015-03-21T11:08:15.859831",
-                    "detail": "my_detail_two",
-                },
-                {
-                    "event_name": "job_end",
-                    "timestamp": "2015-03-21T11:08:15.859831",
-                    "detail": "my_detail_three",
-                },
-            ],
-        },
+    make_authenticated_request(
+        lambda: test_client.put(
+            f"/v1/test-executions/{test_execution.id}/status_update",
+            json={
+                "agent_id": "test_agent",
+                "job_queue": "test_job_queue",
+                "events": [
+                    {
+                        "event_name": "started_setup",
+                        "timestamp": "2015-03-21T11:08:14.859831",
+                        "detail": "my_detail_one",
+                    },
+                    {
+                        "event_name": "ended_setup",
+                        "timestamp": "2015-03-21T11:08:15.859831",
+                        "detail": "my_detail_two",
+                    },
+                    {
+                        "event_name": "job_end",
+                        "timestamp": "2015-03-21T11:08:15.859831",
+                        "detail": "my_detail_three",
+                    },
+                ],
+            },
+        ),
+        Permission.change_test,
     )
-    get_response = test_client.get(
-        f"/v1/test-executions/{test_execution.id}/status_update"
+    get_response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/test-executions/{test_execution.id}/status_update"
+        ),
+        Permission.view_test,
     )
 
     assert get_response.status_code == 200
@@ -177,24 +192,27 @@ def test_status_updates_invalid_timestamp(
         relevant_links=[{"label": "External Info", "url": "http://example.com/info"}],
     )
 
-    response = test_client.put(
-        f"/v1/test-executions/{test_execution.id}/status_update",
-        json={
-            "agent_id": "test_agent",
-            "job_queue": "test_job_queue",
-            "events": [
-                {
-                    "event_name": "started_setup",
-                    "timestamp": "201-03-21T11:08:14.859831",
-                    "detail": "my_detail_one",
-                },
-                {
-                    "event_name": "ended_setup",
-                    "timestamp": "20-03-21T11:08:15.859831",
-                    "detail": "my_detail_two",
-                },
-            ],
-        },
+    response = make_authenticated_request(
+        lambda: test_client.put(
+            f"/v1/test-executions/{test_execution.id}/status_update",
+            json={
+                "agent_id": "test_agent",
+                "job_queue": "test_job_queue",
+                "events": [
+                    {
+                        "event_name": "started_setup",
+                        "timestamp": "201-03-21T11:08:14.859831",
+                        "detail": "my_detail_one",
+                    },
+                    {
+                        "event_name": "ended_setup",
+                        "timestamp": "20-03-21T11:08:15.859831",
+                        "detail": "my_detail_two",
+                    },
+                ],
+            },
+        ),
+        Permission.change_test,
     )
     assert response.status_code == 422
 
@@ -210,29 +228,32 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
         relevant_links=[{"label": "Logs", "url": "http://example.com/logs"}],
     )
 
-    test_client.put(
-        f"/v1/test-executions/{test_execution.id}/status_update",
-        json={
-            "agent_id": "test_agent",
-            "job_queue": "test_job_queue",
-            "events": [
-                {
-                    "event_name": "started_setup",
-                    "timestamp": "2015-03-21T11:08:14.859831",
-                    "detail": "my_detail_one",
-                },
-                {
-                    "event_name": "ended_setup",
-                    "timestamp": "2015-03-21T11:08:15.859831",
-                    "detail": "my_detail_two",
-                },
-                {
-                    "event_name": "job_end",
-                    "timestamp": "2015-03-21T11:08:16.859831",
-                    "detail": "normal_exit",
-                },
-            ],
-        },
+    make_authenticated_request(
+        lambda: test_client.put(
+            f"/v1/test-executions/{test_execution.id}/status_update",
+            json={
+                "agent_id": "test_agent",
+                "job_queue": "test_job_queue",
+                "events": [
+                    {
+                        "event_name": "started_setup",
+                        "timestamp": "2015-03-21T11:08:14.859831",
+                        "detail": "my_detail_one",
+                    },
+                    {
+                        "event_name": "ended_setup",
+                        "timestamp": "2015-03-21T11:08:15.859831",
+                        "detail": "my_detail_two",
+                    },
+                    {
+                        "event_name": "job_end",
+                        "timestamp": "2015-03-21T11:08:16.859831",
+                        "detail": "normal_exit",
+                    },
+                ],
+            },
+        ),
+        Permission.change_test,
     )
     assert test_execution.status == TestExecutionStatus.ENDED_PREMATURELY
 
@@ -250,31 +271,37 @@ def test_post_status_update_appends_events(
         relevant_links=[{"label": "CI", "url": "http://example.com/ci"}],
     )
 
-    response1 = test_client.post(
-        f"/v1/test-executions/{test_execution.id}/status_update",
-        json={
-            "events": [
-                {
-                    "event_name": "started_setup",
-                    "timestamp": "2025-06-21T10:00:00.000000",
-                    "detail": "Initial setup started",
-                }
-            ]
-        },
+    response1 = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/status_update",
+            json={
+                "events": [
+                    {
+                        "event_name": "started_setup",
+                        "timestamp": "2025-06-21T10:00:00.000000",
+                        "detail": "Initial setup started",
+                    }
+                ]
+            },
+        ),
+        Permission.change_test,
     )
     assert response1.status_code == 200
 
-    response2 = test_client.post(
-        f"/v1/test-executions/{test_execution.id}/status_update",
-        json={
-            "events": [
-                {
-                    "event_name": "ended_setup",
-                    "timestamp": "2025-06-21T10:05:00.000000",
-                    "detail": "Setup completed",
-                }
-            ]
-        },
+    response2 = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/status_update",
+            json={
+                "events": [
+                    {
+                        "event_name": "ended_setup",
+                        "timestamp": "2025-06-21T10:05:00.000000",
+                        "detail": "Setup completed",
+                    }
+                ]
+            },
+        ),
+        Permission.change_test,
     )
     assert response2.status_code == 200
 
