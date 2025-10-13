@@ -114,3 +114,8 @@ variable "sessions_secret" {
   description = "Randomly generated secret key to use for signing session cookies"
   type        = string
 }
+
+variable "ignore_permissions" {
+  description = "List of API permissions to ignore for all requests"
+  type        = list(string)
+}

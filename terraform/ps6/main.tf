@@ -113,6 +113,7 @@ resource "juju_application" "test-observer-api" {
     saml_sp_cert          = var.saml_sp_cert
     saml_sp_key           = var.saml_sp_key
     sessions_secret       = var.sessions_secret
+    ignore_permissions    = join(",", var.ignore_permissions)
   }
 
   units = 3
