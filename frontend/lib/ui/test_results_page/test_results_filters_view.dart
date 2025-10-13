@@ -142,8 +142,12 @@ class _TestResultsFiltersViewState
               allOptions: const [],
               initialSelected: _selectedFilters.artefacts.toSet(),
               asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedArtefactsProvider(pattern).future);
+                return await ref.read(
+                  suggestedArtefactsProvider(
+                    pattern,
+                    _selectedFilters.families,
+                  ).future,
+                );
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
@@ -166,8 +170,12 @@ class _TestResultsFiltersViewState
               allOptions: const [],
               initialSelected: _selectedFilters.environments.toSet(),
               asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedEnvironmentsProvider(pattern).future);
+                return await ref.read(
+                  suggestedEnvironmentsProvider(
+                    pattern,
+                    _selectedFilters.families,
+                  ).future,
+                );
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
@@ -190,8 +198,10 @@ class _TestResultsFiltersViewState
               allOptions: const [],
               initialSelected: _selectedFilters.testCases.toSet(),
               asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedTestCasesProvider(pattern).future);
+                return await ref.read(
+                  suggestedTestCasesProvider(pattern, _selectedFilters.families)
+                      .future,
+                );
               },
               minCharsForAsyncSearch: 2,
               onChanged: (val, isSelected) {
@@ -203,27 +213,6 @@ class _TestResultsFiltersViewState
                             .where((tc) => tc != val)
                             .toList(),
                   );
-                  _notifyChanged(_selectedFilters);
-                });
-              },
-            ),
-          ),
-        if (_isFilterEnabled(FilterType.templateIds))
-          _box(
-            MultiSelectCombobox(
-              title: 'Template ID',
-              allOptions: const [],
-              initialSelected: _selectedFilters.templateIds.toSet(),
-              asyncSuggestionsCallback: (pattern) async {
-                return await ref
-                    .read(suggestedTestCasesProvider(pattern).future);
-              },
-              minCharsForAsyncSearch: 2,
-              onChanged: (val, isSelected) {
-                setState(() {
-                  isSelected
-                      ? _selectedFilters.templateIds.add(val)
-                      : _selectedFilters.templateIds.remove(val);
                   _notifyChanged(_selectedFilters);
                 });
               },

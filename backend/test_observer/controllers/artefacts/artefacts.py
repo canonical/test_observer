@@ -93,6 +93,10 @@ def search_artefacts(
         str | None,
         Query(description="Search term for artefact names"),
     ] = None,
+    families: Annotated[
+        list[FamilyName] | None,
+        Query(description="Filter by artefact families"),
+    ] = None,
     limit: Annotated[
         int,
         Query(
@@ -117,6 +121,9 @@ def search_artefacts(
         .where(Artefact.archived.is_(False))
         .order_by(Artefact.name)
     )
+
+    if families and len(families) > 0:
+        query = query.where(Artefact.family.in_(families))
 
     # Apply search filter if provided
     if q and q.strip():

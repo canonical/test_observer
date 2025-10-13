@@ -790,6 +790,27 @@
             "description": "Search term for artefact names"
           },
           {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -1511,6 +1532,27 @@
             "description": "Search term for test case names"
           },
           {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -1785,6 +1827,27 @@
               "title": "Q"
             },
             "description": "Search term for environment names"
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families"
           },
           {
             "name": "limit",

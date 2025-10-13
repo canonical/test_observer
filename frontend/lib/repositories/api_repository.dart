@@ -219,6 +219,7 @@ class ApiRepository {
 
   Future<List<String>> searchArtefacts({
     String? query,
+    List<String>? families,
     int limit = 50,
     int offset = 0,
   }) async {
@@ -229,6 +230,10 @@ class ApiRepository {
 
     if (query != null && query.trim().isNotEmpty) {
       queryParams['q'] = query.trim();
+    }
+
+    if (families != null && families.isNotEmpty) {
+      queryParams['families'] = families;
     }
 
     final response =
@@ -240,6 +245,7 @@ class ApiRepository {
 
   Future<List<String>> searchEnvironments({
     String? query,
+    List<String>? families,
     int limit = 50,
     int offset = 0,
   }) async {
@@ -252,6 +258,10 @@ class ApiRepository {
       queryParams['q'] = query.trim();
     }
 
+    if (families != null && families.isNotEmpty) {
+      queryParams['families'] = families;
+    }
+
     final response =
         await dio.get('/v1/environments', queryParameters: queryParams);
     final Map<String, dynamic> data = response.data;
@@ -261,6 +271,7 @@ class ApiRepository {
 
   Future<List<String>> searchTestCases({
     String? query,
+    List<String>? families,
     int limit = 50,
     int offset = 0,
   }) async {
@@ -271,6 +282,10 @@ class ApiRepository {
 
     if (query != null && query.trim().isNotEmpty) {
       queryParams['q'] = query.trim();
+    }
+
+    if (families != null && families.isNotEmpty) {
+      queryParams['families'] = families;
     }
 
     final response =

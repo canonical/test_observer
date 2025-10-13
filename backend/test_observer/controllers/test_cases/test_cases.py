@@ -21,9 +21,15 @@ from sqlalchemy.orm import Session
 
 from . import reported_issues
 from .models import TestCasesResponse
-
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.data_access.models import TestCase
+from test_observer.data_access.models import (
+    TestCase,
+    TestResult,
+    TestExecution,
+    ArtefactBuild,
+    Artefact,
+)
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 router = APIRouter(tags=["test-cases"])
@@ -39,6 +45,10 @@ def get_test_cases(
     q: Annotated[
         str | None,
         Query(description="Search term for test case names"),
+    ] = None,
+    families: Annotated[
+        list[FamilyName] | None,
+        Query(description="Filter by artefact families"),
     ] = None,
     limit: Annotated[
         int,
@@ -69,6 +79,16 @@ def get_test_cases(
         .distinct()
         .order_by(TestCase.name, TestCase.template_id)
     )
+
+    # Filter by families if provided
+    if families and len(families) > 0:
+        query = (
+            query.join(TestResult, TestResult.test_case_id == TestCase.id)
+            .join(TestExecution, TestExecution.id == TestResult.test_execution_id)
+            .join(ArtefactBuild, ArtefactBuild.id == TestExecution.artefact_build_id)
+            .join(Artefact, Artefact.id == ArtefactBuild.artefact_id)
+            .where(Artefact.family.in_(families))
+        )
 
     # Apply search filter if provided
     if q and q.strip():
