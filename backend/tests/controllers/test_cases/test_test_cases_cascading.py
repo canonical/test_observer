@@ -16,8 +16,11 @@
 
 import uuid
 from fastapi.testclient import TestClient
+
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.common.permissions import Permission
 
 
 def test_test_cases_filter_by_family(test_client: TestClient, generator: DataGenerator):
@@ -43,7 +46,10 @@ def test_test_cases_filter_by_family(test_client: TestClient, generator: DataGen
     generator.gen_test_result(deb_test, deb_execution)
 
     # Filter test cases by snap family
-    response = test_client.get(f"/v1/test-cases?families=snap&q=test_{unique_marker}")
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/test-cases?families=snap&q=test_{unique_marker}"),
+        Permission.view_test,
+    )
 
     assert response.status_code == 200
     test_cases = response.json()["test_cases"]

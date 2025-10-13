@@ -16,8 +16,11 @@
 
 import uuid
 from fastapi.testclient import TestClient
+
 from tests.data_generator import DataGenerator
+from tests.conftest import make_authenticated_request
 from test_observer.data_access.models_enums import FamilyName
+from test_observer.common.permissions import Permission
 
 
 def generate_unique_name(prefix: str) -> str:
@@ -37,8 +40,11 @@ def test_artefacts_filter_by_family(test_client: TestClient, generator: DataGene
     )
 
     # Search for only snap family
-    response = test_client.get(
-        f"/v1/artefacts/search?families=snap&q=artefact_{unique_marker}"
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/artefacts/search?families=snap&q=artefact_{unique_marker}"
+        ),
+        Permission.view_artefact,
     )
 
     assert response.status_code == 200
@@ -66,7 +72,10 @@ def test_artefacts_filter_by_multiple_families(
     )
 
     # Search for snap and deb families
-    response = test_client.get("/v1/artefacts/search?families=snap&families=deb")
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/search?families=snap&families=deb"),
+        Permission.view_artefact,
+    )
 
     assert response.status_code == 200
     artefacts = response.json()["artefacts"]
