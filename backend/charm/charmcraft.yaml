@@ -6,3 +6,11 @@ bases:
     run-on:
       - name: ubuntu
         channel: "22.04"
+
+charm-libs:
+  - lib: data_platform_libs.data_interfaces
+    version: "0"
+  - lib: nginx_ingress_integrator.nginx_route
+    version: "0"
+  - lib: redis_k8s.redis
+    version: "0"
