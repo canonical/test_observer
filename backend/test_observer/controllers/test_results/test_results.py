@@ -147,7 +147,7 @@ def search_test_results(
     pagination_query = select(TestResult)
     paginated_query = filter_test_results(pagination_query, filters)
     paginated_query = paginated_query.order_by(
-        desc(TestExecution.created_at), desc(TestResult.id)
+        desc(TestResult.created_at), desc(TestResult.id)
     )
     pagination_query = pagination_query.options(
         selectinload(TestResult.test_case),
