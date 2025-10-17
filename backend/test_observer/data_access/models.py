@@ -519,6 +519,8 @@ class TestResult(Base):
     comment: Mapped[str]
     io_log: Mapped[str]
 
+    __table_args__ = (Index(None, "created_at"),)
+
     test_execution_id: Mapped[int] = mapped_column(
         ForeignKey("test_execution.id", ondelete="CASCADE"), index=True
     )
