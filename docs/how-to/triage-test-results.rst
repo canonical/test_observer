@@ -1,9 +1,6 @@
 Triage Runs
 ===========
 
-.. contents:: Table of Contents
-    :local:
-
 Issues Page
 -----------
 
