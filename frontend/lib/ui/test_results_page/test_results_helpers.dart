@@ -50,6 +50,7 @@ class TestResultHelpers {
         : 'unknown'; // there exists test results without test plans
 
     final environmentName = environment.name;
+    final testExecutionId = testExecution.id;
 
     final currentUri = Uri.base;
 
@@ -57,7 +58,7 @@ class TestResultHelpers {
     final encodedEnvironment = Uri.encodeQueryComponent(environmentName);
 
     final fragment =
-        '/${family}s/$artefactId?Test plan=$encodedTestPlan&Environment=$encodedEnvironment';
+        '/${family}s/$artefactId?Test plan=$encodedTestPlan&Environment=$encodedEnvironment&testExecutionId=$testExecutionId';
 
     final targetUri = currentUri.replace(fragment: fragment);
 
