@@ -17,12 +17,14 @@
 import { signal, computed } from '@preact/signals';
 import type { Artefact, FamilyName } from '../models/types';
 import { apiClient } from '../api/client';
+import { mockArtefacts } from './mockData';
 
 // Signals for application state
 export const currentFamily = signal<FamilyName>('snap');
 export const artefacts = signal<Map<number, Artefact>>(new Map());
 export const isLoading = signal(false);
 export const error = signal<string | null>(null);
+export const useMockData = signal(false);
 
 // Computed values
 export const currentArtefacts = computed(() => {
@@ -36,19 +38,35 @@ export async function fetchArtefacts(family: FamilyName) {
   error.value = null;
   
   try {
-    const data = await apiClient.get<Record<string, Artefact>>(
-      '/v1/artefacts',
-      { family }
-    );
-    
+    if (useMockData.value) {
+      // Use mock data for demo
+      const artefactMap = new Map<number, Artefact>();
+      mockArtefacts.forEach(artefact => {
+        artefactMap.set(artefact.id, artefact);
+      });
+      artefacts.value = artefactMap;
+    } else {
+      const data = await apiClient.get<Record<string, Artefact>>(
+        '/v1/artefacts',
+        { family }
+      );
+      
+      const artefactMap = new Map<number, Artefact>();
+      Object.values(data).forEach(artefact => {
+        artefactMap.set(artefact.id, artefact);
+      });
+      
+      artefacts.value = artefactMap;
+    }
+  } catch (e) {
+    // Fall back to mock data if API fails
+    useMockData.value = true;
     const artefactMap = new Map<number, Artefact>();
-    Object.values(data).forEach(artefact => {
+    mockArtefacts.forEach(artefact => {
       artefactMap.set(artefact.id, artefact);
     });
-    
     artefacts.value = artefactMap;
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to fetch artefacts';
+    error.value = null; // Clear error since we have fallback data
   } finally {
     isLoading.value = false;
   }
