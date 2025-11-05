@@ -34,6 +34,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Create the enum type first
+    op.execute("CREATE TYPE reviewerteam AS ENUM ('sqa', 'cert')")
+    
+    # Then add the column
     op.add_column(
         "app_user",
         sa.Column(

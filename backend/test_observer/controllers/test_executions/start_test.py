@@ -92,6 +92,19 @@ class StartTestExecutionController:
                 .all()
             )
             
+            # Fall back to reviewers without a team (backward compatibility)
+            if not users:
+                users = (
+                    self.db.execute(
+                        select(User).where(
+                            User.is_reviewer == True,
+                            User.reviewer_team == None
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+            
             if users:
                 self.artefact.assignee = random.choice(users)
                 self.artefact.due_date = self.determine_due_date()
@@ -103,8 +116,8 @@ class StartTestExecutionController:
         SQA team reviews charms, Cert team reviews everything else.
         """
         if family == FamilyName.charm:
-            return ReviewerTeam.SQA
-        return ReviewerTeam.CERT
+            return ReviewerTeam.sqa
+        return ReviewerTeam.cert
 
     def create_test_execution(self):
         self.test_execution = get_or_create(

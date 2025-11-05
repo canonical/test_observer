@@ -123,5 +123,5 @@ class IssueStatus(StrEnum):
 
 
 class ReviewerTeam(StrEnum):
-    SQA = "sqa"
-    CERT = "cert"
+    sqa = "sqa"
+    cert = "cert"

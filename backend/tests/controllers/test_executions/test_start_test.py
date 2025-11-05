@@ -510,12 +510,12 @@ def test_charm_assigned_to_sqa_team_reviewer(
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.SQA,
+        reviewer_team=ReviewerTeam.sqa,
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.CERT,
+        reviewer_team=ReviewerTeam.cert,
     )
 
     # Execute a charm test
@@ -525,7 +525,7 @@ def test_charm_assigned_to_sqa_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    assert assignee.reviewer_team == ReviewerTeam.SQA
+    assert assignee.reviewer_team == ReviewerTeam.sqa
     assert assignee.id == sqa_reviewer.id
 
 
@@ -539,12 +539,12 @@ def test_snap_assigned_to_cert_team_reviewer(
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.SQA,
+        reviewer_team=ReviewerTeam.sqa,
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.CERT,
+        reviewer_team=ReviewerTeam.cert,
     )
 
     # Execute a snap test
@@ -554,7 +554,7 @@ def test_snap_assigned_to_cert_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    assert assignee.reviewer_team == ReviewerTeam.CERT
+    assert assignee.reviewer_team == ReviewerTeam.cert
     assert assignee.id == cert_reviewer.id
 
 
@@ -568,12 +568,12 @@ def test_deb_assigned_to_cert_team_reviewer(
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.SQA,
+        reviewer_team=ReviewerTeam.sqa,
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.CERT,
+        reviewer_team=ReviewerTeam.cert,
     )
 
     # Execute a deb test
@@ -583,7 +583,7 @@ def test_deb_assigned_to_cert_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    assert assignee.reviewer_team == ReviewerTeam.CERT
+    assert assignee.reviewer_team == ReviewerTeam.cert
     assert assignee.id == cert_reviewer.id
 
 
@@ -597,12 +597,12 @@ def test_image_assigned_to_cert_team_reviewer(
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.SQA,
+        reviewer_team=ReviewerTeam.sqa,
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.CERT,
+        reviewer_team=ReviewerTeam.cert,
     )
 
     # Execute an image test
@@ -612,7 +612,7 @@ def test_image_assigned_to_cert_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    assert assignee.reviewer_team == ReviewerTeam.CERT
+    assert assignee.reviewer_team == ReviewerTeam.cert
     assert assignee.id == cert_reviewer.id
 
 
@@ -626,7 +626,7 @@ def test_no_assignment_when_no_team_reviewers_available(
     generator.gen_user(
         email="sqa@example.com",
         is_reviewer=True,
-        reviewer_team=ReviewerTeam.SQA,
+        reviewer_team=ReviewerTeam.sqa,
     )
 
     # Execute a snap test (requires Cert team)
