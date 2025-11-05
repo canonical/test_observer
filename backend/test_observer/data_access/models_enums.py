@@ -120,3 +120,8 @@ class IssueStatus(StrEnum):
     UNKNOWN = "unknown"
     OPEN = "open"
     CLOSED = "closed"
+
+
+class ReviewerTeam(StrEnum):
+    SQA = "sqa"
+    CERT = "cert"

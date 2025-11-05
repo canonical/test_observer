@@ -77,6 +77,9 @@ def update_user(
     if request.is_reviewer is not None:
         user.is_reviewer = request.is_reviewer
 
+    if request.reviewer_team is not None:
+        user.reviewer_team = request.reviewer_team
+
     if request.is_admin is not None:
         user.is_admin = request.is_admin
 

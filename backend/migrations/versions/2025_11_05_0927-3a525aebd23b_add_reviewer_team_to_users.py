@@ -14,29 +14,36 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel
+"""Add reviewer_team to users
 
-from test_observer.data_access.models_enums import ReviewerTeam
+Revision ID: 3a525aebd23b
+Revises: 3f6a99085db7
+Create Date: 2025-11-05 09:27:00.000000+00:00
 
+"""
 
-class TeamMinimalResponse(BaseModel):
-    id: int
-    name: str
-    permissions: list[str]
-
-
-class UserResponse(BaseModel):
-    id: int
-    email: str
-    name: str
-    launchpad_handle: str | None = None
-    teams: list[TeamMinimalResponse]
-    is_reviewer: bool
-    reviewer_team: ReviewerTeam | None = None
-    is_admin: bool
+from alembic import op
+import sqlalchemy as sa
 
 
-class UserPatch(BaseModel):
-    is_reviewer: bool | None = None
-    reviewer_team: ReviewerTeam | None = None
-    is_admin: bool | None = None
+# revision identifiers, used by Alembic.
+revision = "3a525aebd23b"
+down_revision = "3f6a99085db7"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.add_column(
+        "app_user",
+        sa.Column(
+            "reviewer_team",
+            sa.Enum("sqa", "cert", name="reviewerteam"),
+            nullable=True,
+        ),
+    )
+
+
+def downgrade() -> None:
+    op.drop_column("app_user", "reviewer_team")
+    op.execute("DROP TYPE reviewerteam")

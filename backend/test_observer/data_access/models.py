@@ -51,6 +51,7 @@ from test_observer.data_access.models_enums import (
     TestResultStatus,
     IssueSource,
     IssueStatus,
+    ReviewerTeam,
 )
 
 
@@ -105,6 +106,7 @@ class User(Base):
     launchpad_handle: Mapped[str | None] = mapped_column(default=None)
     name: Mapped[str]
     is_reviewer: Mapped[bool] = mapped_column(default=False)
+    reviewer_team: Mapped[ReviewerTeam | None] = mapped_column(default=None)
     is_admin: Mapped[bool] = mapped_column(default=False)
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")

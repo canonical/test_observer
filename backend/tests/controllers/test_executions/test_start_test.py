@@ -498,3 +498,141 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     response = execute(request)
 
     assert response.status_code == 422
+
+
+def test_charm_assigned_to_sqa_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Charms should be assigned to SQA team reviewers"""
+    from test_observer.data_access.models_enums import ReviewerTeam
+    
+    # Create reviewers from different teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.SQA,
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.CERT,
+    )
+
+    # Execute a charm test
+    response = execute({**charm_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert assignee.reviewer_team == ReviewerTeam.SQA
+    assert assignee.id == sqa_reviewer.id
+
+
+def test_snap_assigned_to_cert_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Snaps should be assigned to Cert team reviewers"""
+    from test_observer.data_access.models_enums import ReviewerTeam
+    
+    # Create reviewers from different teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.SQA,
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.CERT,
+    )
+
+    # Execute a snap test
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert assignee.reviewer_team == ReviewerTeam.CERT
+    assert assignee.id == cert_reviewer.id
+
+
+def test_deb_assigned_to_cert_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Debs should be assigned to Cert team reviewers"""
+    from test_observer.data_access.models_enums import ReviewerTeam
+    
+    # Create reviewers from different teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.SQA,
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.CERT,
+    )
+
+    # Execute a deb test
+    response = execute({**deb_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert assignee.reviewer_team == ReviewerTeam.CERT
+    assert assignee.id == cert_reviewer.id
+
+
+def test_image_assigned_to_cert_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Images should be assigned to Cert team reviewers"""
+    from test_observer.data_access.models_enums import ReviewerTeam
+    
+    # Create reviewers from different teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.SQA,
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.CERT,
+    )
+
+    # Execute an image test
+    response = execute({**image_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert assignee.reviewer_team == ReviewerTeam.CERT
+    assert assignee.id == cert_reviewer.id
+
+
+def test_no_assignment_when_no_team_reviewers_available(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When no reviewers from the required team are available, no assignment should occur"""
+    from test_observer.data_access.models_enums import ReviewerTeam
+    
+    # Create only SQA team reviewers
+    generator.gen_user(
+        email="sqa@example.com",
+        is_reviewer=True,
+        reviewer_team=ReviewerTeam.SQA,
+    )
+
+    # Execute a snap test (requires Cert team)
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is None

@@ -46,6 +46,7 @@ from test_observer.data_access.models_enums import (
     TestResultStatus,
     IssueSource,
     IssueStatus,
+    ReviewerTeam,
 )
 
 DEFAULT_ARCHITECTURE = "amd64"
@@ -75,6 +76,7 @@ class DataGenerator:
         launchpad_handle: str | None = "jd",
         email: str = "john@doe.com",
         is_reviewer: bool = False,
+        reviewer_team: ReviewerTeam | None = None,
         teams: list[Team] | None = None,
     ) -> User:
         user = User(
@@ -82,6 +84,7 @@ class DataGenerator:
             email=email,
             launchpad_handle=launchpad_handle,
             is_reviewer=is_reviewer,
+            reviewer_team=reviewer_team,
             teams=teams or [],
         )
         self._add_object(user)
