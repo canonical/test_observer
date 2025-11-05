@@ -6,31 +6,194 @@
   --color-in-progress: #0066cc;
   --color-not-started: #666666;
   --color-skipped: #cdcdcd;
+  --color-dark: #262626;
+  --color-mid: #666666;
+  --color-light: #f7f7f7;
+  --color-x-light: #ffffff;
 }
 
 /* General layout */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
   font-family: Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Cantarell, "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #111;
 }
 
 #app {
   min-height: 100vh;
 }
 
-/* Navigation */
-.app-header {
-  background-color: #262626;
+/* Navigation - Vanilla Framework style fallback */
+.p-navigation {
+  background-color: var(--color-dark);
   color: white;
-  padding: 1rem;
-  border-bottom: 1px solid #4d4d4d;
+  position: relative;
+  z-index: 10;
 }
 
-.app-header h1 {
+.p-navigation.is-dark {
+  background-color: var(--color-dark);
+}
+
+.p-navigation__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  min-height: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.p-navigation__banner {
+  display: flex;
+  align-items: center;
+}
+
+.p-navigation__logo {
+  margin-right: 1.5rem;
+}
+
+.p-navigation__items {
+  display: flex;
+  list-style: none;
   margin: 0;
+  padding: 0;
+  gap: 0.5rem;
+}
+
+.p-navigation__item {
+  position: relative;
+}
+
+.p-navigation__item.is-selected .p-navigation__link {
+  background-color: #e95420;
+}
+
+.p-navigation__link {
+  color: white;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  display: block;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.p-navigation__link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Vanilla Framework utility classes fallback */
+.u-fixed-width {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.u-no-margin {
+  margin: 0 !important;
+}
+
+.u-sv3 {
+  margin-bottom: 1.5rem;
+}
+
+/* Strip / Section */
+.p-strip {
+  padding: 2rem 0;
+}
+
+.p-strip.is-shallow {
+  padding: 1rem 0;
+}
+
+.p-section {
+  margin-bottom: 2rem;
+}
+
+/* Grid / Row */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.5rem;
+}
+
+.col-12 {
+  flex: 0 0 100%;
+  padding: 0 0.5rem;
+}
+
+/* Headings */
+.p-heading--2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+}
+
+.p-heading--4 {
   font-size: 1.5rem;
   font-weight: 300;
+  line-height: 1.3;
+  margin: 0 0 0.75rem 0;
+}
+
+.p-heading--5 {
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.4;
+  margin: 0 0 0.5rem 0;
+}
+
+/* Cards */
+.p-card {
+  background-color: white;
+  border: 1px solid #cdcdcd;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.p-card__content {
+  padding: 1rem;
+}
+
+/* Tables */
+.p-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.p-table thead {
+  border-bottom: 2px solid #cdcdcd;
+}
+
+.p-table th {
+  text-align: left;
+  font-weight: 500;
+  padding: 0.75rem;
+  background-color: var(--color-light);
+}
+
+.p-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.p-table--compact td,
+.p-table--compact th {
+  padding: 0.5rem;
+}
+
+.p-table tbody tr:hover {
+  background-color: var(--color-light);
 }
 
 /* Status indicators */
