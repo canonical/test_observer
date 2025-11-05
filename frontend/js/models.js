@@ -330,3 +330,108 @@ export class RerunRequest {
     this.ciLink = data.ci_link;
   }
 }
+
+// Issue Source and Status
+export const IssueSource = {
+  GITHUB: 'github',
+  JIRA: 'jira',
+  LAUNCHPAD: 'launchpad'
+};
+
+export const IssueStatus = {
+  UNKNOWN: 'unknown',
+  CLOSED: 'closed',
+  OPEN: 'open',
+  
+  getName(status) {
+    switch (status) {
+      case this.UNKNOWN: return 'Unknown';
+      case this.CLOSED: return 'Closed';
+      case this.OPEN: return 'Open';
+      default: return status;
+    }
+  }
+};
+
+// Attachment Rule model
+export class AttachmentRule {
+  constructor(data) {
+    this.id = data.id;
+    this.issueId = data.issue_id;
+    this.testName = data.test_name || '';
+    this.templateId = data.template_id || '';
+  }
+  
+  toJson() {
+    return {
+      id: this.id,
+      issue_id: this.issueId,
+      test_name: this.testName,
+      template_id: this.templateId
+    };
+  }
+}
+
+// Issue with Context model
+export class IssueWithContext {
+  constructor(data) {
+    this.id = data.id;
+    this.source = data.source;
+    this.project = data.project;
+    this.key = data.key;
+    this.title = data.title;
+    this.status = data.status;
+    this.url = data.url;
+    this.attachmentRules = (data.attachment_rules || []).map(rule => new AttachmentRule(rule));
+  }
+  
+  toIssue() {
+    return new Issue({
+      id: this.id,
+      source: this.source,
+      project: this.project,
+      key: this.key,
+      title: this.title,
+      status: this.status,
+      url: this.url
+    });
+  }
+}
+
+// Artefact Build Minimal model
+export class ArtefactBuildMinimal {
+  constructor(data) {
+    this.id = data.id;
+    this.architecture = data.architecture;
+    this.revision = data.revision || null;
+  }
+}
+
+// Test Result with Context model
+export class TestResultWithContext {
+  constructor(data) {
+    this.testResult = new TestResult(data.test_result);
+    this.testExecution = new TestExecution(data.test_execution);
+    this.artefact = new Artefact(data.artefact);
+    this.artefactBuild = new ArtefactBuildMinimal(data.artefact_build);
+  }
+}
+
+// Test Results Search Result model
+export class TestResultsSearchResult {
+  constructor(data) {
+    this.count = data.count;
+    this.testResults = (data.test_results || []).map(tr => new TestResultWithContext(tr));
+  }
+  
+  get hasMore() {
+    return this.count > this.testResults.length;
+  }
+  
+  static empty() {
+    return new TestResultsSearchResult({
+      count: 0,
+      test_results: []
+    });
+  }
+}

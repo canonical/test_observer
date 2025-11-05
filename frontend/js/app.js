@@ -23,6 +23,9 @@ import { FamilyName } from './models.js';
 import { createElement } from './utils/helpers.js';
 import { createDashboardPage } from './components/DashboardPage.js';
 import { createArtefactPage } from './components/ArtefactPage.js';
+import { createTestResultsPage } from './components/TestResultsPage.js';
+import { createIssuesPage } from './components/IssuesPage.js';
+import { createIssuePage } from './components/IssuePage.js';
 
 // Application state
 const state = {
@@ -116,6 +119,7 @@ function parseRoute() {
     path: hash,
     family: null,
     artefactId: null,
+    issueId: null,
     page: 'dashboard'
   };
   
@@ -150,6 +154,15 @@ function parseRoute() {
     if (!isNaN(id)) {
       route.artefactId = id;
       route.page = 'artefact';
+    }
+  }
+  
+  // Check for issue ID in second segment
+  if (parts.length > 1 && parts[0] === 'issues') {
+    const id = parseInt(parts[1], 10);
+    if (!isNaN(id)) {
+      route.issueId = id;
+      route.page = 'issue';
     }
   }
   
@@ -192,15 +205,11 @@ async function render() {
     if (route.page === 'artefact') {
       pageContent = await createArtefactPage(state, route.artefactId);
     } else if (route.page === 'test-results') {
-      pageContent = createElement('div', {}, [
-        createElement('h1', {}, 'Test Results'),
-        createElement('p', {}, 'Test results page coming soon...')
-      ]);
+      pageContent = await createTestResultsPage(state);
     } else if (route.page === 'issues') {
-      pageContent = createElement('div', {}, [
-        createElement('h1', {}, 'Issues'),
-        createElement('p', {}, 'Issues page coming soon...')
-      ]);
+      pageContent = await createIssuesPage(state);
+    } else if (route.page === 'issue') {
+      pageContent = await createIssuePage(state, route.issueId);
     } else if (route.family) {
       // Dashboard for specific family
       pageContent = await createDashboardPage(state, route.family);

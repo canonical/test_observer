@@ -92,13 +92,15 @@ Default: `http://localhost:30000/`
 
 ## Migration Status
 
-This is a work in progress migration from Flutter to vanilla JavaScript:
+Migration from Flutter to vanilla JavaScript is now complete for all major pages:
 
 - ✅ Foundation (HTML, models, API layer)
 - ✅ Routing and state management
 - ✅ Dashboard page
 - ✅ Artefact detail page
-- 🚧 Test Results page
-- 🚧 Issues page
-- 🚧 Filtering and search
-- 🚧 User authentication UI
+- ✅ Test Results page (with filters)
+- ✅ Issues page (with search and CRUD operations)
+- ✅ Issue detail page (with attachment rules)
+- ✅ Basic filtering and search
+- 🚧 User authentication UI (future enhancement)
+- 🚧 Advanced features (bulk operations, etc.)

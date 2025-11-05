@@ -28,7 +28,9 @@ import {
   RerunRequest,
   TestIssue,
   EnvironmentIssue,
-  EnvironmentReview
+  EnvironmentReview,
+  IssueWithContext,
+  TestResultsSearchResult
 } from './models.js';
 
 // Get base API URL from window or default
@@ -326,6 +328,29 @@ export async function searchArtefacts({ query = null, families = null, limit = 5
 }
 
 /**
+ * Search test cases
+ * @param {Object} params - Search parameters
+ * @returns {Promise<string[]>}
+ */
+export async function searchTestCases({ query = null, families = null, limit = 50, offset = 0 } = {}) {
+  const queryParams = new URLSearchParams({ limit, offset });
+  
+  if (query && query.trim().length > 0) {
+    queryParams.append('q', query.trim());
+  }
+  
+  if (families && families.length > 0) {
+    for (const family of families) {
+      queryParams.append('families', family);
+    }
+  }
+  
+  const data = await apiFetch(`v1/test-cases?${queryParams}`);
+  const testCases = data.test_cases || [];
+  return testCases.map(item => item.test_case);
+}
+
+/**
  * Search environments
  * @param {Object} params - Search parameters
  * @returns {Promise<string[]>}
@@ -345,4 +370,113 @@ export async function searchEnvironments({ query = null, families = null, limit 
   
   const data = await apiFetch(`v1/environments/search?${queryParams}`);
   return data.environments || [];
+}
+
+/**
+ * Search test results with filters
+ * @param {Object} filters - Filter parameters
+ * @returns {Promise<TestResultsSearchResult>}
+ */
+export async function searchTestResults(filters) {
+  const queryParams = new URLSearchParams();
+  
+  // Add filter parameters
+  if (filters.artefactName) queryParams.append('artefact_name', filters.artefactName);
+  if (filters.environment) queryParams.append('environment', filters.environment);
+  if (filters.testCase) queryParams.append('test_case', filters.testCase);
+  if (filters.status) queryParams.append('status', filters.status);
+  if (filters.sortBy) queryParams.append('sort_by', filters.sortBy);
+  if (filters.sortDirection) queryParams.append('sort_direction', filters.sortDirection);
+  if (filters.limit) queryParams.append('limit', filters.limit);
+  if (filters.offset) queryParams.append('offset', filters.offset);
+  
+  const data = await apiFetch(`v1/test-results?${queryParams}`);
+  return new TestResultsSearchResult(data);
+}
+
+/**
+ * Get all issues
+ * @returns {Promise<IssueWithContext[]>}
+ */
+export async function getIssues() {
+  const data = await apiFetch('v1/issues');
+  return (data.issues || []).map(issue => new IssueWithContext(issue));
+}
+
+/**
+ * Get issue by ID
+ * @param {number} issueId - Issue ID
+ * @returns {Promise<IssueWithContext>}
+ */
+export async function getIssue(issueId) {
+  const data = await apiFetch(`v1/issues/${issueId}`);
+  return new IssueWithContext(data);
+}
+
+/**
+ * Create a new issue
+ * @param {string} url - Issue URL
+ * @param {string|null} title - Issue title
+ * @returns {Promise<IssueWithContext>}
+ */
+export async function createIssue(url, title = null) {
+  const body = { url };
+  if (title) body.title = title;
+  
+  const data = await apiFetch('v1/issues', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  return new IssueWithContext(data);
+}
+
+/**
+ * Delete an issue
+ * @param {number} issueId - Issue ID
+ * @returns {Promise<void>}
+ */
+export async function deleteIssue(issueId) {
+  await apiFetch(`v1/issues/${issueId}`, {
+    method: 'DELETE'
+  });
+}
+
+/**
+ * Attach issue to test results
+ * @param {number} issueId - Issue ID
+ * @param {Array<number>} testResultIds - Test result IDs
+ * @param {Object} filters - Filter object
+ * @param {number} attachmentRuleId - Attachment rule ID
+ * @returns {Promise<IssueWithContext>}
+ */
+export async function attachIssue({ issueId, testResultIds = null, filters = null, attachmentRuleId = null }) {
+  const body = {};
+  if (testResultIds) body.test_results = testResultIds;
+  if (filters) body.test_results_filters = filters;
+  if (attachmentRuleId) body.attachment_rule = attachmentRuleId;
+  
+  const data = await apiFetch(`v1/issues/${issueId}/attach`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  return new IssueWithContext(data);
+}
+
+/**
+ * Detach issue from test results
+ * @param {number} issueId - Issue ID
+ * @param {Array<number>} testResultIds - Test result IDs
+ * @param {Object} filters - Filter object
+ * @returns {Promise<IssueWithContext>}
+ */
+export async function detachIssue({ issueId, testResultIds = null, filters = null }) {
+  const body = {};
+  if (testResultIds) body.test_results = testResultIds;
+  if (filters) body.test_results_filters = filters;
+  
+  const data = await apiFetch(`v1/issues/${issueId}/detach`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  return new IssueWithContext(data);
 }
