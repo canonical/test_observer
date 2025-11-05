@@ -33,6 +33,8 @@ import {
   TestResultsSearchResult
 } from './models.js';
 
+import { isMockMode, getMockData } from './mockData.js';
+
 // Get base API URL from window or default
 const API_BASE_URL = window.testObserverAPIBaseURI || 'http://localhost:30000/';
 
@@ -41,6 +43,16 @@ const API_BASE_URL = window.testObserverAPIBaseURI || 'http://localhost:30000/';
  */
 async function apiFetch(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
+  
+  // Check if mock mode is enabled
+  if (isMockMode()) {
+    const mockData = getMockData(url);
+    if (mockData) {
+      console.log('[Mock Mode] Returning mock data for:', url);
+      return mockData;
+    }
+  }
+  
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
