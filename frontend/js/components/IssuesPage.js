@@ -22,6 +22,7 @@
 import { getIssues, createIssue, deleteIssue } from '../api.js';
 import { IssueStatus, IssueSource } from '../models.js';
 import { createElement, getStatusClass } from '../utils/helpers.js';
+import { showConfirm, showAlert } from '../utils/modal.js';
 
 let issues = [];
 let filteredIssues = [];
@@ -118,7 +119,7 @@ function createAddIssueForm(onIssueAdded) {
     const title = titleInput.value.trim() || null;
     
     if (!url) {
-      alert('Please enter an issue URL');
+      await showAlert('Missing URL', 'Please enter an issue URL', { isError: true });
       return;
     }
     
@@ -135,7 +136,7 @@ function createAddIssueForm(onIssueAdded) {
       
     } catch (error) {
       console.error('Error adding issue:', error);
-      alert(`Error adding issue: ${error.message}`);
+      await showAlert('Error', `Error adding issue: ${error.message}`, { isError: true });
     } finally {
       addButton.disabled = false;
       addButton.textContent = 'Add Issue';
@@ -229,7 +230,12 @@ function createIssuesTable(issuesToDisplay, onDelete) {
     });
     deleteButton.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (confirm(`Delete issue ${issue.key}?`)) {
+      const confirmed = await showConfirm(
+        'Delete Issue',
+        `Are you sure you want to delete issue ${issue.key}? This action cannot be undone.`,
+        { confirmText: 'Delete', isDangerous: true }
+      );
+      if (confirmed) {
         await onDelete(issue.id);
       }
     });
@@ -307,7 +313,7 @@ export async function createIssuesPage(state) {
         await loadIssues();
       } catch (error) {
         console.error('Error deleting issue:', error);
-        alert(`Error deleting issue: ${error.message}`);
+        await showAlert('Error', `Error deleting issue: ${error.message}`, { isError: true });
       }
     }));
   }

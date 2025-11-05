@@ -628,3 +628,99 @@ select.p-form__control {
 .text-center {
   text-align: center;
 }
+
+/* Modal - Vanilla Framework fallback styles */
+.p-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999;
+  background-color: rgba(17, 17, 17, 0.4);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.p-modal__dialog {
+  background: white;
+  border-radius: 0.25rem;
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  max-width: 30rem;
+  min-width: 20rem;
+  padding: 0;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.p-modal__header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.p-modal__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+  flex: 1;
+}
+
+.p-modal__close {
+  background: none;
+  border: none;
+  color: var(--color-mid);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+  margin: -0.25rem 0 -0.25rem 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.p-modal__close:hover {
+  color: var(--color-dark);
+}
+
+.p-modal__dialog > p {
+  padding: 1rem 1.5rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.p-modal__footer {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.p-modal__footer .p-button--neutral,
+.p-modal__footer .p-button--positive,
+.p-modal__footer .p-button--negative {
+  margin: 0;
+}
