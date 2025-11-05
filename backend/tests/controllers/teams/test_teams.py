@@ -94,7 +94,7 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
     assert response.json() == {
         "id": team.id,
         "name": team.name,
-        "permissions": [Permission.view_user.value],
+        "permissions": [Permission.view_user],
         "members": [
             {
                 "id": user.id,

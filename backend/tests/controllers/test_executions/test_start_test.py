@@ -35,6 +35,7 @@ from test_observer.data_access.models_enums import (
     CharmStage,
     ImageStage,
     TestExecutionStatus,
+    ReviewerTeam,
 )
 from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
@@ -504,8 +505,6 @@ def test_charm_assigned_to_sqa_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Charms should be assigned to SQA team reviewers"""
-    from test_observer.data_access.models_enums import ReviewerTeam
-    
     # Create reviewers from different teams
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
@@ -533,8 +532,6 @@ def test_snap_assigned_to_cert_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Snaps should be assigned to Cert team reviewers"""
-    from test_observer.data_access.models_enums import ReviewerTeam
-    
     # Create reviewers from different teams
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
@@ -562,8 +559,6 @@ def test_deb_assigned_to_cert_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Debs should be assigned to Cert team reviewers"""
-    from test_observer.data_access.models_enums import ReviewerTeam
-    
     # Create reviewers from different teams
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
@@ -591,8 +586,6 @@ def test_image_assigned_to_cert_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Images should be assigned to Cert team reviewers"""
-    from test_observer.data_access.models_enums import ReviewerTeam
-    
     # Create reviewers from different teams
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
@@ -620,8 +613,6 @@ def test_no_assignment_when_no_team_reviewers_available(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """When no reviewers from the required team are available, no assignment should occur"""
-    from test_observer.data_access.models_enums import ReviewerTeam
-    
     # Create only SQA team reviewers
     generator.gen_user(
         email="sqa@example.com",
