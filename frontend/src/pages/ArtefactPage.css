@@ -1,0 +1,72 @@
+.artefact-page {
+  padding: 2rem;
+}
+
+.artefact-page-loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.artefact-page-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.artefact-page-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 300;
+}
+
+.artefact-version {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.artefact-page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.artefact-detail-section {
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 1.5rem;
+}
+
+.artefact-detail-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.artefact-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.artefact-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.artefact-detail-item .label {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.artefact-detail-item .value {
+  font-size: 1rem;
+  color: #111;
+  font-weight: 500;
+}

@@ -1,0 +1,60 @@
+.artefact-card {
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.artefact-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.artefact-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.artefact-card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: #111;
+  flex: 1;
+}
+
+.artefact-card-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: white;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.artefact-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.artefact-card-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.artefact-card-label {
+  color: #666;
+}
+
+.artefact-card-value {
+  color: #111;
+  font-weight: 500;
+}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Test Observer - Dashboard for viewing test results" />
+    
+    <!-- iOS meta tags & icons -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Test Observer" />
+    <link rel="apple-touch-icon" href="/icons/canonical-logo-ios-touch.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/icons/canonical-logo-32x32.png" />
+    
+    <title>Test Observer</title>
+    
+    <script>
+      // Actual URL is set at runtime with some nginx config level trickery.
+      window.testObserverAPIBaseURI = 'http://localhost:30000/';
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
