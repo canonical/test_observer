@@ -17,7 +17,12 @@
 from pydantic import BaseModel
 
 from test_observer.common.permissions import Permission
-from test_observer.data_access.models_enums import ReviewerTeam
+
+
+class TeamMinimalResponse(BaseModel):
+    id: int
+    name: str
+    permissions: list[str]
 
 
 class UserMinimalResponse(BaseModel):
@@ -26,7 +31,7 @@ class UserMinimalResponse(BaseModel):
     email: str
     name: str
     is_reviewer: bool
-    reviewer_team: ReviewerTeam | None = None
+    reviewer_team: TeamMinimalResponse | None = None
     is_admin: bool
 
 

@@ -28,10 +28,11 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
+    FamilyReviewerTeam,
     TestExecution,
     User,
 )
-from test_observer.data_access.models_enums import FamilyName, ReviewerTeam
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
@@ -77,20 +78,27 @@ class StartTestExecutionController:
             self.request.needs_assignment
             and self.artefact.assignee_id is None
         ):
-            # Determine which reviewer team should handle this artefact
-            reviewer_team = self._get_reviewer_team_for_family(self.artefact.family)
-            
-            # Get reviewers from the appropriate team
-            users = (
-                self.db.execute(
-                    select(User).where(
-                        User.is_reviewer == True,
-                        User.reviewer_team == reviewer_team
-                    )
+            # Look up which team should review this artefact family
+            family_team_mapping = self.db.scalar(
+                select(FamilyReviewerTeam).where(
+                    FamilyReviewerTeam.family == self.artefact.family
                 )
-                .scalars()
-                .all()
             )
+            
+            if family_team_mapping:
+                # Get reviewers from the mapped team
+                users = (
+                    self.db.execute(
+                        select(User).where(
+                            User.is_reviewer == True,
+                            User.reviewer_team_id == family_team_mapping.team_id
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+            else:
+                users = []
             
             # Fall back to reviewers without a team (backward compatibility)
             if not users:
@@ -98,7 +106,7 @@ class StartTestExecutionController:
                     self.db.execute(
                         select(User).where(
                             User.is_reviewer == True,
-                            User.reviewer_team == None
+                            User.reviewer_team_id == None
                         )
                     )
                     .scalars()
@@ -109,15 +117,6 @@ class StartTestExecutionController:
                 self.artefact.assignee = random.choice(users)
                 self.artefact.due_date = self.determine_due_date()
                 self.db.commit()
-
-    def _get_reviewer_team_for_family(self, family: FamilyName) -> ReviewerTeam:
-        """Determine which reviewer team should review an artefact based on its family.
-        
-        SQA team reviews charms, Cert team reviews everything else.
-        """
-        if family == FamilyName.charm:
-            return ReviewerTeam.sqa
-        return ReviewerTeam.cert
 
     def create_test_execution(self):
         self.test_execution = get_or_create(

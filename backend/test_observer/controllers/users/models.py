@@ -16,8 +16,6 @@
 
 from pydantic import BaseModel
 
-from test_observer.data_access.models_enums import ReviewerTeam
-
 
 class TeamMinimalResponse(BaseModel):
     id: int
@@ -32,11 +30,11 @@ class UserResponse(BaseModel):
     launchpad_handle: str | None = None
     teams: list[TeamMinimalResponse]
     is_reviewer: bool
-    reviewer_team: ReviewerTeam | None = None
+    reviewer_team: TeamMinimalResponse | None = None
     is_admin: bool
 
 
 class UserPatch(BaseModel):
     is_reviewer: bool | None = None
-    reviewer_team: ReviewerTeam | None = None
+    reviewer_team_id: int | None = None
     is_admin: bool | None = None

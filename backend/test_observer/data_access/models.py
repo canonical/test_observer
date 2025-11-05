@@ -51,7 +51,6 @@ from test_observer.data_access.models_enums import (
     TestResultStatus,
     IssueSource,
     IssueStatus,
-    ReviewerTeam,
 )
 
 
@@ -106,7 +105,9 @@ class User(Base):
     launchpad_handle: Mapped[str | None] = mapped_column(default=None)
     name: Mapped[str]
     is_reviewer: Mapped[bool] = mapped_column(default=False)
-    reviewer_team: Mapped[ReviewerTeam | None] = mapped_column(default=None)
+    reviewer_team_id: Mapped[int | None] = mapped_column(
+        ForeignKey("team.id"), default=None, index=True
+    )
     is_admin: Mapped[bool] = mapped_column(default=False)
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
@@ -115,6 +116,9 @@ class User(Base):
     )
     teams: Mapped[list["Team"]] = relationship(
         secondary=team_users_association, back_populates="members"
+    )
+    reviewer_team: Mapped["Team | None"] = relationship(
+        foreign_keys=[reviewer_team_id]
     )
 
     def __repr__(self) -> str:
@@ -155,6 +159,23 @@ class Team(Base):
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")
+
+
+class FamilyReviewerTeam(Base):
+    """
+    Maps artefact families to reviewer teams.
+    Determines which team should review which artefact family.
+    """
+
+    __tablename__ = "family_reviewer_team"
+
+    family: Mapped[FamilyName] = mapped_column(unique=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("team.id"), index=True)
+    
+    team: Mapped[Team] = relationship()
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "family", "team_id")
 
 
 class UserSession(Base):
