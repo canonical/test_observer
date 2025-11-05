@@ -63,8 +63,9 @@ export function formatRelativeTime(date) {
  * @returns {string} Escaped text
  */
 export function escapeHtml(text) {
+  if (text == null) return '';
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = String(text);
   return div.innerHTML;
 }
 
@@ -84,7 +85,8 @@ export function createElement(tag, attrs = {}, children = []) {
       element.className = value;
     } else if (key === 'textContent') {
       element.textContent = value;
-    } else if (key === 'innerHTML') {
+    } else if (key === 'html') {
+      // Only use for trusted content - caller must ensure safety
       element.innerHTML = value;
     } else if (key.startsWith('on') && typeof value === 'function') {
       const eventName = key.substring(2).toLowerCase();

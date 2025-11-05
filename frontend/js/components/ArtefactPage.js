@@ -186,9 +186,10 @@ export async function createArtefactPage(state, artefactId) {
     
     // Stage
     if (artefact.stage) {
-      detailsContent.appendChild(createElement('p', {
-        innerHTML: `<strong>Stage:</strong> ${artefact.stage}`
-      }));
+      detailsContent.appendChild(createElement('p', {}, [
+        createElement('strong', { textContent: 'Stage: ' }),
+        document.createTextNode(artefact.stage)
+      ]));
     }
     
     // Add other fields if present
@@ -207,9 +208,10 @@ export async function createArtefactPage(state, artefactId) {
     
     fields.forEach(([label, value]) => {
       if (value) {
-        detailsContent.appendChild(createElement('p', {
-          innerHTML: `<strong>${label}:</strong> ${value}`
-        }));
+        detailsContent.appendChild(createElement('p', {}, [
+          createElement('strong', { textContent: `${label}: ` }),
+          document.createTextNode(value)
+        ]));
       }
     });
     
@@ -227,16 +229,20 @@ export async function createArtefactPage(state, artefactId) {
     // Due date
     if (artefact.dueDate) {
       detailsContent.appendChild(createElement('p', {
-        className: 'mt-2',
-        innerHTML: `<strong>Due Date:</strong> ${artefact.dueDateString}`
-      }));
+        className: 'mt-2'
+      }, [
+        createElement('strong', { textContent: 'Due Date: ' }),
+        document.createTextNode(artefact.dueDateString)
+      ]));
     }
     
     // Review progress
     detailsContent.appendChild(createElement('p', {
-      className: 'mt-2',
-      innerHTML: `<strong>Reviews:</strong> ${artefact.completedEnvironmentReviewsCount}/${artefact.allEnvironmentReviewsCount} completed`
-    }));
+      className: 'mt-2'
+    }, [
+      createElement('strong', { textContent: 'Reviews: ' }),
+      document.createTextNode(`${artefact.completedEnvironmentReviewsCount}/${artefact.allEnvironmentReviewsCount} completed`)
+    ]));
     
     detailsCard.appendChild(detailsContent);
     container.appendChild(detailsCard);

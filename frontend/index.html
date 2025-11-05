@@ -10,8 +10,13 @@
   
   <title>Test Observer</title>
   
-  <!-- Vanilla Framework CSS - with fallback -->
-  <link rel="stylesheet" href="https://assets.ubuntu.com/v1/vanilla-framework-version-4.13.0.min.css" onerror="console.log('Vanilla CSS blocked, using fallback styles')">
+  <!-- Vanilla Framework CSS - with fallback and SRI -->
+  <link 
+    rel="stylesheet" 
+    href="https://assets.ubuntu.com/v1/vanilla-framework-version-4.13.0.min.css"
+    integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb"
+    crossorigin="anonymous"
+    onerror="console.log('Vanilla CSS blocked or unavailable, using fallback styles')">
   
   <!-- Custom styles (includes fallback styling) -->
   <link rel="stylesheet" href="/css/style.css">
