@@ -51,28 +51,21 @@ docker compose exec backend python scripts/seed_data.py
 kubectl exec -it service/test-observer-api -- python scripts/seed_data.py
 ```
 
-### Frontend (Flutter/Dart)
+### Frontend (Vanilla JavaScript)
 
 ```bash
-# Install dependencies
+# No build step required! The frontend uses native ES6 modules.
 
-cd frontend && flutter pub get
+# Serve the frontend locally for development
+cd frontend && python3 -m http.server 8080
+# Or use any other HTTP server:
+# npx http-server -p 8080
+# php -S localhost:8080
 
-# Generate code (required before running)
-dart run build_runner build
+# Access at http://localhost:8080
 
-# Run application (development with hot reload)
-flutter run -d chrome --web-experimental-hot-reload
-
-# Build for production (with WASM)
-flutter build web --wasm
-
-# Run tests
-flutter analyze
-flutter test --platform chrome
-
-# Run integration tests
-./run_integration_tests.sh
+# The frontend automatically connects to backend at http://localhost:30000/
+# To use a different backend, set window.testObserverAPIBaseURI or modify js/config.js
 ```
 
 ### Development Environment
@@ -113,7 +106,7 @@ skaffold dev --no-prune=false --cache-artifacts=false
 **Docker Compose Services:**
 
 - `backend`: FastAPI server on port 30000
-- `frontend`: Flutter web app on port 8080  
+- `frontend`: Vanilla JS web app served via nginx on port 30001
 - `db`: PostgreSQL database with persistent volume
 - Automatic migrations and seeding via `dev_entrypoint.sh`
 
@@ -135,11 +128,12 @@ skaffold dev --no-prune=false --cache-artifacts=false
 
 ### Frontend Architecture
 
-- **Framework**: Flutter web application with Riverpod state management
-- **Entry Point**: `frontend/lib/main.dart`
-- **Navigation**: Router-based SPA with family-specific routes (snaps, debs, charms, images)
-- **State Management**: Riverpod providers for API state and caching
-- **API Communication**: HTTP REST calls via Dio client through `ApiRepository`
+- **Framework**: Vanilla JavaScript (ES6+ modules) with HTML and CSS
+- **Entry Point**: `frontend/index.html` and `frontend/js/app.js`
+- **Navigation**: Component-based SPA with routes for different artefact types (snaps, debs, charms, images)
+- **Styling**: Vanilla Framework CSS with custom styles
+- **Configuration**: Centralized config in `js/config.js` for artefact types and API settings
+- **Components**: Modular JavaScript classes in `js/components/` directory
 
 ### Core Data Model
 
@@ -171,16 +165,17 @@ The system centers around **Artefacts** (software packages) that go through test
 - **Development Docker**: Migrations run automatically on container startup via `dev_entrypoint.sh`
 - **Test Data Seeding**: Development Docker automatically seeds test data unless `SEED_DATA=false`
 
-### Code Generation (Frontend)
+### Code Structure (Frontend)
 
-- Flutter uses code generation for models and providers
-- Always run `dart run build_runner build` after model changes
-- Generated files (`.g.dart`, `.freezed.dart`) are committed to version control
+- Frontend uses native ES6 modules - no build step required
+- Components are organized in `js/components/` directory
+- Configuration is centralized in `js/config.js`
+- Custom CSS extends Vanilla Framework in `css/style.css`
 
 ### Testing Approach
 
 - Backend: pytest within Docker containers or Kubernetes pods
-- Frontend: Chrome-based unit tests and integration tests
+- Frontend: Manual testing in browser (automated testing to be added in future PRs)
 - Use existing test data generators in `tests/data_generator.py`
 - Docker Compose: `docker-compose exec backend pytest`
 - Kubernetes: `kubectl exec -it service/test-observer-api -- pytest`

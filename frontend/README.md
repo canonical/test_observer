@@ -1,102 +1,77 @@
 # Test Observer Frontend
 
-The frontend of Test Observer is a web application developed in Flutter.
+The frontend of Test Observer is a web application developed with Vanilla JavaScript (ES6+ modules), HTML, and CSS using the Vanilla Framework.
+
+## Architecture
+
+- **HTML**: Single page application structure in `index.html`
+- **CSS**: Vanilla Framework with custom styles in `css/style.css`
+- **JavaScript**: ES6+ modules with components in `js/components/`
+- **Configuration**: Centralized configuration in `js/config.js`
 
 ## Setup
 
-Install flutter snap:
-
-```bash
-$ sudo snap install flutter --classic
-```
-
-Check the version of flutter installed:
-
-```bash
-$ flutter --version
-```
-
-Change flutter to the version used in production (note that the below directory doesn't get created until you run some flutter command like `flutter --version`):
-
-```bash
-$ cd ~/snap/flutter/common/flutter
-$ git checkout 3.29.3
-```
-
-Then install dependencies via:
-```bash
-$ flutter pub get
-```
-
-And finally, make sure to install chrome.
+No build tools or dependencies are required! The frontend uses native ES6 modules and runs directly in modern browsers.
 
 ## Run
 
-This project uses code generation, so you must first generate the required code:
+To run the frontend locally, simply serve the directory with any HTTP server:
 
 ```bash
-$ dart run build_runner build
+# Using Python's built-in server
+python3 -m http.server 8080
+
+# Or using Node's http-server (if installed)
+npx http-server -p 8080
+
+# Or using PHP's built-in server
+php -S localhost:8080
 ```
 
-Then you can launch the fontend on chrome:
+Then open your browser to `http://localhost:8080`
 
-```bash
-# You can use --experimental-hot-reload with Flutter versions >= 3.32.0
-$ flutter run -d chrome # --experimental-hot-reload
+## Development
+
+The frontend uses ES6 modules, so you need to serve it via HTTP (not file://) for the modules to work.
+
+### Project Structure
+
+```
+frontend/
+├── index.html              # Main HTML shell
+├── css/
+│   └── style.css          # Custom styles and Vanilla Framework fallback
+├── js/
+│   ├── app.js             # Main application entry point
+│   ├── config.js          # Configuration (API URL, artefact types, etc.)
+│   └── components/
+│       └── NavBar.js      # Navigation bar component
 ```
 
-## Test
+### Adding New Components
 
-### Static analysis
+1. Create a new file in `js/components/`
+2. Export your component class
+3. Import and use it in `js/app.js`
 
-```bash
-$ flutter analyze
+Example:
+```javascript
+// js/components/MyComponent.js
+export class MyComponent {
+  constructor(containerId) {
+    this.container = document.getElementById(containerId);
+  }
+  
+  render() {
+    this.container.innerHTML = '<div>My Component</div>';
+  }
+}
 ```
-
-### Unit tests
-
-```bash
-$ flutter test --platform chrome # requires chrome
-```
-
-### Integration tests
-
-To run integration tests you first need to install chromedriver.
-
-Then you can run it via:
-```bash
-$ chromedriver --port=4444
-```
-
-While it's running you can launch a single integration test via:
-```bash
-$ flutter drive --driver=test_driver/integration_test.dart --target=integration_test/<integration-test-file> -d chrome
-```
-
-You can even run it in headless mode via:
-```bash
-$ flutter drive --driver=test_driver/integration_test.dart --target=integration_test/<integration-test-file> -d web-server
-```
-
-And you can run all integration tests via the bash script:
-```bash
-$ ./run_integration_tests.sh
-```
-
-## Benchmark
-
-There are some benchmarks written under the `/benchmarks` directory. You can run these using:
-
-```bash
-$ dart run_benchmark_tests.dart
-```
-
-This will open up chrome and run the benchmarks infront of you.
-
-You can also pass `--headless` to run the above command in headless mode.
-
-Either way the command will produce json files with results under the `/benchmarks` directory.
 
 ## Connect to backend
 
-By default the Test Observer frontend will use `http://localhost:30000/` to communicate with the backend. To use a different address you can modify `window.testObserverAPIBaseURI` attribute in `web/index.html`.
+By default the Test Observer frontend will use `http://localhost:30000/` to communicate with the backend. To use a different address you can set `window.testObserverAPIBaseURI` before the app initializes, or modify the `API_BASE_URL` in `js/config.js`.
+
+## Docker
+
+The frontend is served via nginx in production. See the `Dockerfile` in this directory for the containerized setup.
