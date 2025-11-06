@@ -1,11 +1,11 @@
 # Test Observer Frontend
 
-The frontend of Test Observer is a web application developed with Vanilla JavaScript (ES6+ modules), HTML, and CSS using the Vanilla Framework.
+The frontend of Test Observer is a web application developed with Vanilla JavaScript (ES6+ modules), HTML, and CSS using the [Vanilla Framework](https://vanillaframework.io/).
 
 ## Architecture
 
 - **HTML**: Single page application structure in `index.html`
-- **CSS**: Vanilla Framework with custom styles in `css/style.css`
+- **CSS**: [Vanilla Framework](https://vanillaframework.io/) (Ubuntu's CSS framework) with minimal custom styles in `css/style.css`
 - **JavaScript**: ES6+ modules with components in `js/components/`
 - **Configuration**: Centralized configuration in `js/config.js`
 
@@ -40,13 +40,24 @@ The frontend uses ES6 modules, so you need to serve it via HTTP (not file://) fo
 frontend/
 ├── index.html              # Main HTML shell
 ├── css/
-│   └── style.css          # Custom styles and Vanilla Framework fallback
+│   └── style.css          # Custom styles (minimal overrides)
 ├── js/
 │   ├── app.js             # Main application entry point
 │   ├── config.js          # Configuration (API URL, artefact types, etc.)
 │   └── components/
 │       └── NavBar.js      # Navigation bar component
 ```
+
+### Vanilla Framework
+
+This project uses [Vanilla Framework](https://vanillaframework.io/) - Ubuntu's CSS framework. The framework is loaded from the CDN and provides:
+
+- Navigation patterns (`.p-navigation`)
+- Layout utilities (`.p-strip`, `.row`, `.col-*`)
+- Typography and spacing
+- Component styles
+
+Custom styles in `css/style.css` are kept minimal and only used for Test Observer-specific overrides.
 
 ### Adding New Components
 

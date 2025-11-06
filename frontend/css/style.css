@@ -1,179 +1,21 @@
 /* Custom styles for Test Observer */
-/* This includes base Vanilla Framework-like styles as fallback */
+/* Relies on Vanilla Framework (https://vanillaframework.io/) for base styling */
 
-/* Reset and base styles */
-* {
-  box-sizing: border-box;
-}
-
+/* Ensure full height layout */
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: "Ubuntu", -apple-system, "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
 }
 
 /* Main content area */
 #app-content {
-  min-height: calc(100vh - 4rem);
+  min-height: calc(100vh - 3rem);
   padding: 2rem;
 }
 
-/* Navigation bar base styles */
-.p-navigation {
-  width: 100%;
-  z-index: 100;
-}
-
-.p-navigation.is-dark {
-  background-color: #262626;
-  color: #fff;
-}
-
-.p-navigation__row {
-  display: flex;
-  align-items: center;
-  padding: 0 1rem;
-  min-height: 3rem;
-}
-
-.p-navigation__banner {
-  display: flex;
-  align-items: center;
-}
-
-.p-navigation__tagged-logo {
-  display: flex;
-  align-items: center;
-  margin-right: 2rem;
-}
-
-.p-navigation__link {
-  color: #fff;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  transition: background-color 0.2s;
-}
-
-.p-navigation__link:hover {
-  background-color: #333;
-}
-
-.p-navigation__logo-tag {
-  display: flex;
-  align-items: center;
-  margin-right: 0.75rem;
-}
-
-.p-navigation__logo-icon {
-  width: 30px;
-  height: 30px;
-}
-
-.p-navigation__logo-title {
-  font-weight: 400;
-  font-size: 1.125rem;
-  color: #fff;
-}
-
-.p-navigation__nav {
-  flex: 1;
-}
-
-.p-navigation__items {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  align-items: center;
-}
-
-.p-navigation__item {
-  position: relative;
-  margin: 0;
-}
-
+/* Custom override: Ensure is-selected state uses Ubuntu orange */
 .p-navigation__link.is-selected {
   background-color: #E95420;
 }
 
-/* Dropdown menu styling */
-.p-navigation__item--dropdown-toggle {
-  position: relative;
-  cursor: pointer;
-}
-
-.p-navigation__item--dropdown-toggle.is-active > .p-navigation__link {
-  background-color: #333;
-}
-
-.p-navigation__dropdown {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background-color: #262626;
-  min-width: 200px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  z-index: 1000;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.p-navigation__dropdown[aria-hidden="false"] {
-  display: block;
-}
-
-.p-navigation__dropdown li {
-  margin: 0;
-}
-
-.p-navigation__dropdown a {
-  display: block;
-  padding: 0.75rem 1rem;
-  color: #fff;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.p-navigation__dropdown a:hover {
-  background-color: #333;
-}
-
-/* Content area styles */
-.p-strip {
-  padding: 3rem 0;
-}
-
-.p-strip__inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 -0.5rem;
-}
-
-.col-12 {
-  flex: 0 0 100%;
-  padding: 0 0.5rem;
-}
-
-h1 {
-  font-size: 2.5rem;
-  font-weight: 300;
-  margin: 0 0 1rem;
-  line-height: 1.2;
-}
-
-p {
-  margin: 0 0 1rem;
-}

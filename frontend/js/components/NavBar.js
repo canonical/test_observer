@@ -45,7 +45,7 @@ export class NavBar {
 
     this.container.innerHTML = navBarHTML;
     this._highlightActiveLink();
-    this._setupDropdownListeners();
+    this._initializeVanillaDropdowns();
   }
 
   _renderArtefactTypeLinks() {
@@ -66,25 +66,39 @@ export class NavBar {
     });
   }
 
-  _setupDropdownListeners() {
-    const helpToggle = document.getElementById('help-menu-toggle');
-    const helpMenu = document.getElementById('help-menu');
+  _initializeVanillaDropdowns() {
+    // Use Vanilla Framework's dropdown pattern
+    const dropdownToggles = this.container.querySelectorAll('.p-navigation__item--dropdown-toggle');
     
-    if (helpToggle && helpMenu) {
-      helpToggle.addEventListener('click', (e) => {
-        e.preventDefault();
-        const isHidden = helpMenu.getAttribute('aria-hidden') === 'true';
-        helpMenu.setAttribute('aria-hidden', !isHidden);
-        helpToggle.classList.toggle('is-active');
-      });
+    dropdownToggles.forEach(toggle => {
+      const link = toggle.querySelector('.p-navigation__link');
+      const dropdown = toggle.querySelector('.p-navigation__dropdown');
+      
+      if (link && dropdown) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const isHidden = dropdown.getAttribute('aria-hidden') === 'true';
+          
+          // Close all other dropdowns first
+          this.container.querySelectorAll('.p-navigation__dropdown').forEach(d => {
+            if (d !== dropdown) {
+              d.setAttribute('aria-hidden', 'true');
+            }
+          });
+          
+          // Toggle current dropdown
+          dropdown.setAttribute('aria-hidden', !isHidden);
+        });
+      }
+    });
 
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!helpToggle.contains(e.target)) {
-          helpMenu.setAttribute('aria-hidden', 'true');
-          helpToggle.classList.remove('is-active');
-        }
-      });
-    }
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!this.container.contains(e.target)) {
+        this.container.querySelectorAll('.p-navigation__dropdown').forEach(dropdown => {
+          dropdown.setAttribute('aria-hidden', 'true');
+        });
+      }
+    });
   }
 }
