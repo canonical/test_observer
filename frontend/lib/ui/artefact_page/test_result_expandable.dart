@@ -14,10 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intersperse/intersperse.dart';
 import 'package:yaru/widgets.dart';
 
 import '../../models/test_result.dart';
@@ -35,11 +33,13 @@ class TestResultExpandable extends ConsumerWidget {
     required this.testExecutionId,
     required this.testResult,
     required this.artefactId,
+    this.testResultIdToExpand,
   });
 
   final int testExecutionId;
   final TestResult testResult;
   final int artefactId;
+  final String? testResultIdToExpand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,7 +52,11 @@ class TestResultExpandable extends ConsumerWidget {
       title += ' (${issues.length} reported issues)';
     }
 
+    final initiallyExpanded = testResultIdToExpand != null &&
+        testResult.id == int.tryParse(testResultIdToExpand!);
+
     return Expandable(
+      initiallyExpanded: initiallyExpanded,
       title: Row(
         children: [
           Text(title),
@@ -126,82 +130,29 @@ class _PreviousTestResultsWidget extends ConsumerWidget {
                   .select((data) => data.whenData((a) => a.version)),
             )
             .value ??
-        '';
+        'unknown';
 
-    final statusGroups = {
-      currentVersion: [
-        PreviousTestResult(
-          artefactId: artefactId,
-          status: currentResult.status,
-          version: currentVersion,
-        ),
-      ],
-    };
-    for (final result in previousResults) {
-      final statuses = statusGroups[result.version];
-      if (statuses != null) {
-        statuses.add(result);
-      } else {
-        statusGroups[result.version] = [result];
-      }
+    if (previousResults.isEmpty) {
+      return const SizedBox.shrink();
     }
 
-    return Row(
-      children: statusGroups.entries
-          .mapIndexed<Widget>(
-            (groupIndex, entry) => _TestResultsGroup(
-              groupIndex: groupIndex,
-              version: entry.key,
-              results: entry.value,
-            ),
-          )
-          .reversed
-          .intersperse(const SizedBox(width: Spacing.level2))
-          .toList(),
-    );
-  }
-}
-
-class _TestResultsGroup extends StatelessWidget {
-  const _TestResultsGroup({
-    required this.groupIndex,
-    required this.version,
-    required this.results,
-  });
-
-  final int groupIndex;
-  final String version;
-  final List<PreviousTestResult> results;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: (groupIndex > 0)
-          ? () => navigateToArtefactPage(
-                context,
-                results.first.artefactId,
-              )
-          : null,
-      child: Tooltip(
-        message: 'Version: $version',
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: -5,
-          children: results
-              .mapIndexed(
-                (index, result) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: result.status.getIcon(
-                    scale: (groupIndex == index && index == 0) ? 1.5 : 1,
+    return Padding(
+      padding: const EdgeInsets.only(left: Spacing.level2),
+      child: PopupMenuButton(
+        tooltip: 'Previous test results',
+        itemBuilder: (context) {
+          return previousResults
+              .map(
+                (result) => PopupMenuItem(
+                  enabled: result.version != currentVersion,
+                  child: Text(
+                    '${result.version} - ${result.status.name.toUpperCase()}',
                   ),
                 ),
               )
-              .reversed
-              .toList(),
-        ),
+              .toList();
+        },
+        child: const Text('prev'),
       ),
     );
   }
