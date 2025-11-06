@@ -16,7 +16,33 @@ html, body {
   padding: 2rem;
 }
 
-// Custom override: Ensure is-selected state uses Ubuntu orange
+// Navigation bar customizations
+.p-navigation.is-dark {
+  background-color: #262626;
+}
+
+// CANONICAL logo styling
+.p-navigation__logo-title {
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+
+// Right-align utility for second nav section
+.u-align--right {
+  margin-left: auto;
+}
+
+// Custom override: is-selected state uses Ubuntu orange
 .p-navigation__link.is-selected {
   background-color: #E95420;
+  
+  &:hover {
+    background-color: #E95420;
+  }
+}
+
+// Dropdown positioning
+.p-navigation__dropdown {
+  right: 0;
+  left: auto;
 }

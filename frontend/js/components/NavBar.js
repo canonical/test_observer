@@ -12,16 +12,23 @@ export class NavBar {
           <div class="p-navigation__banner">
             <div class="p-navigation__tagged-logo">
               <a class="p-navigation__link" href="/">
-                <div class="p-navigation__logo-tag">
-                  <img class="p-navigation__logo-icon" src="https://assets.ubuntu.com/v1/82818827-CoF_white.svg" alt="Canonical" width="30">
-                </div>
-                <span class="p-navigation__logo-title">Test Observer</span>
+                <span class="p-navigation__logo-title">CANONICAL</span>
               </a>
             </div>
           </div>
           <nav class="p-navigation__nav">
             <ul class="p-navigation__items">
               ${this._renderArtefactTypeLinks()}
+            </ul>
+          </nav>
+          <nav class="p-navigation__nav u-align--right">
+            <ul class="p-navigation__items">
+              <li class="p-navigation__item">
+                <a class="p-navigation__link" href="/test-results">Test Results</a>
+              </li>
+              <li class="p-navigation__item">
+                <a class="p-navigation__link" href="/issues">Issues</a>
+              </li>
               <li class="p-navigation__item--dropdown-toggle">
                 <a class="p-navigation__link" href="#" aria-controls="help-menu">Help</a>
                 <ul class="p-navigation__dropdown" id="help-menu" aria-hidden="true">
@@ -29,12 +36,6 @@ export class NavBar {
                   <li><a href="https://github.com/canonical/test_observer/issues" target="_blank">Feedback</a></li>
                   <li><a href="https://github.com/canonical/test_observer" target="_blank">Source Code</a></li>
                 </ul>
-              </li>
-              <li class="p-navigation__item">
-                <a class="p-navigation__link" href="/test-results">Test Results</a>
-              </li>
-              <li class="p-navigation__item">
-                <a class="p-navigation__link" href="/issues">Issues</a>
               </li>
             </ul>
           </nav>
