@@ -3,7 +3,6 @@ import { ARTEFACT_TYPES } from '../config.js';
 export class NavBar {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
-    this.currentPath = window.location.pathname;
   }
 
   render() {
@@ -20,10 +19,10 @@ export class NavBar {
               </a>
             </div>
           </div>
-          <nav class="p-navigation__nav" aria-label="Main navigation">
+          <nav class="p-navigation__nav">
             <ul class="p-navigation__items">
               ${this._renderArtefactTypeLinks()}
-              <li class="p-navigation__item--dropdown-toggle" id="help-menu-toggle">
+              <li class="p-navigation__item--dropdown-toggle">
                 <a class="p-navigation__link" href="#" aria-controls="help-menu">Help</a>
                 <ul class="p-navigation__dropdown" id="help-menu" aria-hidden="true">
                   <li><a href="https://canonical-test-observer.readthedocs-hosted.com/en/latest/" target="_blank">Docs</a></li>
@@ -45,7 +44,7 @@ export class NavBar {
 
     this.container.innerHTML = navBarHTML;
     this._highlightActiveLink();
-    this._initializeVanillaDropdowns();
+    this._setupDropdowns();
   }
 
   _renderArtefactTypeLinks() {
@@ -60,43 +59,41 @@ export class NavBar {
     const links = this.container.querySelectorAll('.p-navigation__link');
     links.forEach(link => {
       const href = link.getAttribute('href');
-      if (href && href !== '#' && window.location.pathname.startsWith(href)) {
+      if (href && href !== '#' && href !== '/' && window.location.pathname.startsWith(href)) {
         link.classList.add('is-selected');
       }
     });
   }
 
-  _initializeVanillaDropdowns() {
-    // Use Vanilla Framework's dropdown pattern
-    const dropdownToggles = this.container.querySelectorAll('.p-navigation__item--dropdown-toggle');
+  _setupDropdowns() {
+    // Simple dropdown toggle on click
+    const dropdowns = this.container.querySelectorAll('.p-navigation__item--dropdown-toggle');
     
-    dropdownToggles.forEach(toggle => {
+    dropdowns.forEach(toggle => {
       const link = toggle.querySelector('.p-navigation__link');
-      const dropdown = toggle.querySelector('.p-navigation__dropdown');
+      const menu = toggle.querySelector('.p-navigation__dropdown');
       
-      if (link && dropdown) {
+      if (link && menu) {
         link.addEventListener('click', (e) => {
           e.preventDefault();
-          const isHidden = dropdown.getAttribute('aria-hidden') === 'true';
+          const isHidden = menu.getAttribute('aria-hidden') === 'true';
           
-          // Close all other dropdowns first
-          this.container.querySelectorAll('.p-navigation__dropdown').forEach(d => {
-            if (d !== dropdown) {
-              d.setAttribute('aria-hidden', 'true');
-            }
+          // Close other dropdowns
+          this.container.querySelectorAll('.p-navigation__dropdown').forEach(m => {
+            if (m !== menu) m.setAttribute('aria-hidden', 'true');
           });
           
           // Toggle current dropdown
-          dropdown.setAttribute('aria-hidden', !isHidden);
+          menu.setAttribute('aria-hidden', String(!isHidden));
         });
       }
     });
 
-    // Close dropdowns when clicking outside
+    // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!this.container.contains(e.target)) {
-        this.container.querySelectorAll('.p-navigation__dropdown').forEach(dropdown => {
-          dropdown.setAttribute('aria-hidden', 'true');
+        this.container.querySelectorAll('.p-navigation__dropdown').forEach(menu => {
+          menu.setAttribute('aria-hidden', 'true');
         });
       }
     });
