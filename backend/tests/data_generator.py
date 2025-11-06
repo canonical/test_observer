@@ -25,7 +25,6 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
-    FamilyReviewerTeam,
     Issue,
     Team,
     TestCase,
@@ -76,7 +75,7 @@ class DataGenerator:
         launchpad_handle: str | None = "jd",
         email: str = "john@doe.com",
         is_reviewer: bool = False,
-        reviewer_team: Team | None = None,
+        reviewer_families: list[str] | None = None,
         teams: list[Team] | None = None,
     ) -> User:
         user = User(
@@ -84,23 +83,11 @@ class DataGenerator:
             email=email,
             launchpad_handle=launchpad_handle,
             is_reviewer=is_reviewer,
-            reviewer_team=reviewer_team,
+            reviewer_families=reviewer_families or [],
             teams=teams or [],
         )
         self._add_object(user)
         return user
-
-    def gen_family_reviewer_team(
-        self,
-        family: FamilyName,
-        team: Team,
-    ) -> FamilyReviewerTeam:
-        mapping = FamilyReviewerTeam(
-            family=family,
-            team_id=team.id,
-        )
-        self._add_object(mapping)
-        return mapping
 
     def gen_application(
         self,

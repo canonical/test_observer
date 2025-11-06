@@ -28,7 +28,6 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
-    FamilyReviewerTeam,
     TestExecution,
     User,
 )
@@ -78,35 +77,26 @@ class StartTestExecutionController:
             self.request.needs_assignment
             and self.artefact.assignee_id is None
         ):
-            # Look up which team should review this artefact family
-            family_team_mapping = self.db.scalar(
-                select(FamilyReviewerTeam).where(
-                    FamilyReviewerTeam.family == self.artefact.family
+            # Get reviewers who can review this artefact family
+            family_str = self.artefact.family.value
+            users = (
+                self.db.execute(
+                    select(User).where(
+                        User.is_reviewer == True,
+                        User.reviewer_families.contains([family_str])
+                    )
                 )
+                .scalars()
+                .all()
             )
             
-            if family_team_mapping:
-                # Get reviewers from the mapped team
-                users = (
-                    self.db.execute(
-                        select(User).where(
-                            User.is_reviewer == True,
-                            User.reviewer_team_id == family_team_mapping.team_id
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
-            else:
-                users = []
-            
-            # Fall back to reviewers without a team (backward compatibility)
+            # Fall back to reviewers without specific families (backward compatibility)
             if not users:
                 users = (
                     self.db.execute(
                         select(User).where(
                             User.is_reviewer == True,
-                            User.reviewer_team_id == None
+                            User.reviewer_families == []
                         )
                     )
                     .scalars()

@@ -31,7 +31,7 @@ class UserMinimalResponse(BaseModel):
     email: str
     name: str
     is_reviewer: bool
-    reviewer_team: TeamMinimalResponse | None = None
+    reviewer_families: list[str] = []
     is_admin: bool
 
 
