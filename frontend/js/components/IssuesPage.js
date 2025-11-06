@@ -33,14 +33,10 @@ let searchQuery = '';
  */
 function createFiltersSidebar(onFilterChange) {
   const container = createElement('div', {
-    className: 'p-card',
-    style: 'width: 250px;'
+    className: 'sidebar-section'
   });
   
-  const content = createElement('div', { className: 'p-card__content' });
-  
-  content.appendChild(createElement('h4', {
-    className: 'p-heading--5',
+  container.appendChild(createElement('h4', {
     textContent: 'Search'
   }));
   
@@ -55,9 +51,8 @@ function createFiltersSidebar(onFilterChange) {
     searchQuery = e.target.value.toLowerCase();
     onFilterChange();
   });
-  content.appendChild(searchInput);
+  container.appendChild(searchInput);
   
-  container.appendChild(content);
   return container;
 }
 
@@ -66,13 +61,10 @@ function createFiltersSidebar(onFilterChange) {
  */
 function createAddIssueForm(onIssueAdded) {
   const container = createElement('div', {
-    className: 'p-card mt-2'
+    className: 'sidebar-section'
   });
   
-  const content = createElement('div', { className: 'p-card__content' });
-  
-  content.appendChild(createElement('h4', {
-    className: 'p-heading--5',
+  container.appendChild(createElement('h4', {
     textContent: 'Add New Issue'
   }));
   
@@ -106,7 +98,7 @@ function createAddIssueForm(onIssueAdded) {
     placeholder: 'Issue title'
   });
   titleGroup.appendChild(titleInput);
-  content.appendChild(titleGroup);
+  container.appendChild(titleGroup);
   
   // Add button
   const addButton = createElement('button', {
@@ -142,9 +134,8 @@ function createAddIssueForm(onIssueAdded) {
       addButton.textContent = 'Add Issue';
     }
   });
-  content.appendChild(addButton);
+  container.appendChild(addButton);
   
-  container.appendChild(content);
   return container;
 }
 
@@ -253,15 +244,13 @@ function createIssuesTable(issuesToDisplay, onDelete) {
  * Create the issues page
  */
 export async function createIssuesPage(state) {
-  const container = createElement('div', { className: 'p-strip is-shallow' });
+  const container = createElement('div', { className: 'page-container' });
   
   // Page header
-  const headerRow = createElement('div', { className: 'row' });
-  const headerCol = createElement('div', { className: 'col-12' });
-  const headerFlex = createElement('div', { className: 'flex-between' });
+  const header = createElement('div', { className: 'page-header' });
   
-  headerFlex.appendChild(createElement('h1', {
-    className: 'p-heading--2',
+  header.appendChild(createElement('h1', {
+    className: 'page-title',
     textContent: 'Linked External Issues'
   }));
   
@@ -271,20 +260,18 @@ export async function createIssuesPage(state) {
     className: 'p-button',
     textContent: '🔍 Toggle Filters'
   });
-  headerFlex.appendChild(filterButton);
+  header.appendChild(filterButton);
   
-  headerCol.appendChild(headerFlex);
-  headerRow.appendChild(headerCol);
-  container.appendChild(headerRow);
+  container.appendChild(header);
+  
+  // Page content with sidebar and main
+  const pageContent = createElement('div', { className: 'page-content' });
+  
+  // Filters sidebar
+  const sidebar = createElement('div', { className: 'sidebar' });
   
   // Main content
-  const contentRow = createElement('div', { className: 'row mt-2' });
-  
-  // Filters sidebar (col-3)
-  const filtersCol = createElement('div', { className: 'col-3' });
-  
-  // Issues table area (col-9)
-  const issuesCol = createElement('div', { className: 'col-9' });
+  const mainContent = createElement('div', { className: 'main-content' });
   
   // Filter function
   function applyFilters() {
@@ -302,12 +289,12 @@ export async function createIssuesPage(state) {
   
   // Render issues table
   function renderIssuesTable() {
-    issuesCol.innerHTML = '';
-    issuesCol.appendChild(createElement('p', {
+    mainContent.innerHTML = '';
+    mainContent.appendChild(createElement('p', {
       className: 'text-muted mb-2',
       textContent: `Showing ${filteredIssues.length} of ${issues.length} issues`
     }));
-    issuesCol.appendChild(createIssuesTable(filteredIssues, async (issueId) => {
+    mainContent.appendChild(createIssuesTable(filteredIssues, async (issueId) => {
       try {
         await deleteIssue(issueId);
         await loadIssues();
@@ -320,8 +307,8 @@ export async function createIssuesPage(state) {
   
   // Load issues
   async function loadIssues() {
-    issuesCol.innerHTML = '';
-    issuesCol.appendChild(createElement('div', {
+    mainContent.innerHTML = '';
+    mainContent.appendChild(createElement('div', {
       className: 'loading',
       textContent: 'Loading...'
     }));
@@ -329,28 +316,29 @@ export async function createIssuesPage(state) {
     try {
       issues = await getIssues();
       applyFilters();
+      renderIssuesTable();
     } catch (error) {
       console.error('Error loading issues:', error);
-      issuesCol.innerHTML = '';
-      issuesCol.appendChild(createElement('div', { className: 'error' }, [
+      mainContent.innerHTML = '';
+      mainContent.appendChild(createElement('div', { className: 'error' }, [
         createElement('p', {}, `Error loading issues: ${error.message}`)
       ]));
     }
   }
   
   // Create filters
-  filtersCol.appendChild(createFiltersSidebar(applyFilters));
-  filtersCol.appendChild(createAddIssueForm(loadIssues));
+  sidebar.appendChild(createFiltersSidebar(applyFilters));
+  sidebar.appendChild(createAddIssueForm(loadIssues));
   
   // Filter toggle functionality
   filterButton.addEventListener('click', () => {
     showFilters = !showFilters;
-    filtersCol.style.display = showFilters ? 'block' : 'none';
+    sidebar.style.display = showFilters ? 'block' : 'none';
   });
   
-  contentRow.appendChild(filtersCol);
-  contentRow.appendChild(issuesCol);
-  container.appendChild(contentRow);
+  pageContent.appendChild(sidebar);
+  pageContent.appendChild(mainContent);
+  container.appendChild(pageContent);
   
   // Initial load
   await loadIssues();

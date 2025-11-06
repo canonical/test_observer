@@ -43,14 +43,11 @@ let loading = false;
  */
 function createFilters(onApplyFilters) {
   const container = createElement('div', {
-    className: 'p-card'
+    className: 'sidebar-section'
   });
   
-  const cardContent = createElement('div', { className: 'p-card__content' });
-  
   // Title
-  cardContent.appendChild(createElement('h4', {
-    className: 'p-heading--5',
+  container.appendChild(createElement('h4', {
     textContent: 'Filters'
   }));
   
@@ -67,12 +64,12 @@ function createFilters(onApplyFilters) {
     className: 'p-form__control',
     placeholder: 'Search artefacts...',
     value: currentFilters.artefactName
-  });
+  }));
   artefactInput.addEventListener('input', (e) => {
     currentFilters.artefactName = e.target.value;
   });
   artefactGroup.appendChild(artefactInput);
-  cardContent.appendChild(artefactGroup);
+  container.appendChild(artefactGroup);
   
   // Environment filter
   const envGroup = createElement('div', { className: 'p-form__group mt-2' });
@@ -87,12 +84,12 @@ function createFilters(onApplyFilters) {
     className: 'p-form__control',
     placeholder: 'Search environments...',
     value: currentFilters.environment
-  });
+  }));
   envInput.addEventListener('input', (e) => {
     currentFilters.environment = e.target.value;
   });
   envGroup.appendChild(envInput);
-  cardContent.appendChild(envGroup);
+  container.appendChild(envGroup);
   
   // Test case filter
   const testCaseGroup = createElement('div', { className: 'p-form__group mt-2' });
@@ -112,7 +109,7 @@ function createFilters(onApplyFilters) {
     currentFilters.testCase = e.target.value;
   });
   testCaseGroup.appendChild(testCaseInput);
-  cardContent.appendChild(testCaseGroup);
+  container.appendChild(testCaseGroup);
   
   // Status filter
   const statusGroup = createElement('div', { className: 'p-form__group mt-2' });
@@ -134,7 +131,7 @@ function createFilters(onApplyFilters) {
     currentFilters.status = e.target.value;
   });
   statusGroup.appendChild(statusSelect);
-  cardContent.appendChild(statusGroup);
+  container.appendChild(statusGroup);
   
   // Apply button
   const applyButton = createElement('button', {
@@ -145,9 +142,8 @@ function createFilters(onApplyFilters) {
     currentFilters.offset = 0;
     onApplyFilters();
   });
-  cardContent.appendChild(applyButton);
+  container.appendChild(applyButton);
   
-  container.appendChild(cardContent);
   return container;
 }
 
@@ -235,15 +231,13 @@ function createTestResultsTable(results) {
  * Create the test results page
  */
 export async function createTestResultsPage(state) {
-  const container = createElement('div', { className: 'p-strip is-shallow' });
+  const container = createElement('div', { className: 'page-container' });
   
   // Page header
-  const headerRow = createElement('div', { className: 'row' });
-  const headerCol = createElement('div', { className: 'col-12' });
-  const headerFlex = createElement('div', { className: 'flex-between' });
+  const header = createElement('div', { className: 'page-header' });
   
-  headerFlex.appendChild(createElement('h1', {
-    className: 'p-heading--2',
+  header.appendChild(createElement('h1', {
+    className: 'page-title',
     textContent: 'Test Results'
   }));
   
@@ -253,25 +247,23 @@ export async function createTestResultsPage(state) {
     className: 'p-button',
     textContent: '🔍 Toggle Filters'
   });
-  headerFlex.appendChild(filterButton);
+  header.appendChild(filterButton);
   
-  headerCol.appendChild(headerFlex);
-  headerRow.appendChild(headerCol);
-  container.appendChild(headerRow);
+  container.appendChild(header);
+  
+  // Page content with sidebar and main
+  const pageContent = createElement('div', { className: 'page-content' });
+  
+  // Filters sidebar
+  const sidebar = createElement('div', { className: 'sidebar' });
   
   // Main content
-  const contentRow = createElement('div', { className: 'row mt-2' });
-  
-  // Filters sidebar (col-3)
-  const filtersCol = createElement('div', { className: 'col-3' });
-  
-  // Results area (col-9)
-  const resultsCol = createElement('div', { className: 'col-9' });
+  const mainContent = createElement('div', { className: 'main-content' });
   
   // Load and render results
   async function loadResults() {
-    resultsCol.innerHTML = '';
-    resultsCol.appendChild(createElement('div', {
+    mainContent.innerHTML = '';
+    mainContent.appendChild(createElement('div', {
       className: 'loading',
       textContent: 'Loading...'
     }));
@@ -283,16 +275,16 @@ export async function createTestResultsPage(state) {
       totalCount = searchResult.count;
       loading = false;
       
-      resultsCol.innerHTML = '';
+      mainContent.innerHTML = '';
       
       // Results summary
-      resultsCol.appendChild(createElement('p', {
+      mainContent.appendChild(createElement('p', {
         className: 'text-muted mb-2',
         textContent: `Showing ${testResults.length} of ${totalCount} results`
       }));
       
       // Table
-      resultsCol.appendChild(createTestResultsTable(testResults));
+      mainContent.appendChild(createTestResultsTable(testResults));
       
       // Load more button
       if (searchResult.hasMore) {
@@ -304,13 +296,13 @@ export async function createTestResultsPage(state) {
           currentFilters.offset += currentFilters.limit;
           await loadResults();
         });
-        resultsCol.appendChild(loadMoreButton);
+        mainContent.appendChild(loadMoreButton);
       }
       
     } catch (error) {
       console.error('Error loading test results:', error);
-      resultsCol.innerHTML = '';
-      resultsCol.appendChild(createElement('div', { className: 'error' }, [
+      mainContent.innerHTML = '';
+      mainContent.appendChild(createElement('div', { className: 'error' }, [
         createElement('p', {}, `Error loading test results: ${error.message}`)
       ]));
     }
@@ -318,17 +310,17 @@ export async function createTestResultsPage(state) {
   
   // Create filters
   const filtersElement = createFilters(loadResults);
-  filtersCol.appendChild(filtersElement);
+  sidebar.appendChild(filtersElement);
   
   // Filter toggle functionality
   filterButton.addEventListener('click', () => {
     showFilters = !showFilters;
-    filtersCol.style.display = showFilters ? 'block' : 'none';
+    sidebar.style.display = showFilters ? 'block' : 'none';
   });
   
-  contentRow.appendChild(filtersCol);
-  contentRow.appendChild(resultsCol);
-  container.appendChild(contentRow);
+  pageContent.appendChild(sidebar);
+  pageContent.appendChild(mainContent);
+  container.appendChild(pageContent);
   
   // Initial load
   await loadResults();
