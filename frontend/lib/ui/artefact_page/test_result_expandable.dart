@@ -17,6 +17,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
+import 'package:intersperse/intersperse.dart';
+import 'package:dartx/dartx.dart';
 
 import '../../models/test_result.dart';
 import '../../providers/artefact.dart';
@@ -39,7 +41,7 @@ class TestResultExpandable extends ConsumerWidget {
   final int testExecutionId;
   final TestResult testResult;
   final int artefactId;
-  final String? testResultIdToExpand;
+  final int? testResultIdToExpand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,8 +54,8 @@ class TestResultExpandable extends ConsumerWidget {
       title += ' (${issues.length} reported issues)';
     }
 
-    final initiallyExpanded = testResultIdToExpand != null &&
-        testResult.id == int.tryParse(testResultIdToExpand!);
+    final initiallyExpanded =
+        testResultIdToExpand != null && testResult.id == testResultIdToExpand;
 
     return Expandable(
       initiallyExpanded: initiallyExpanded,
@@ -130,29 +132,82 @@ class _PreviousTestResultsWidget extends ConsumerWidget {
                   .select((data) => data.whenData((a) => a.version)),
             )
             .value ??
-        'unknown';
+        '';
 
-    if (previousResults.isEmpty) {
-      return const SizedBox.shrink();
+    final statusGroups = {
+      currentVersion: [
+        PreviousTestResult(
+          artefactId: artefactId,
+          status: currentResult.status,
+          version: currentVersion,
+        ),
+      ],
+    };
+    for (final result in previousResults) {
+      final statuses = statusGroups[result.version];
+      if (statuses != null) {
+        statuses.add(result);
+      } else {
+        statusGroups[result.version] = [result];
+      }
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(left: Spacing.level2),
-      child: PopupMenuButton(
-        tooltip: 'Previous test results',
-        itemBuilder: (context) {
-          return previousResults
-              .map(
-                (result) => PopupMenuItem(
-                  enabled: result.version != currentVersion,
-                  child: Text(
-                    '${result.version} - ${result.status.name.toUpperCase()}',
+    return Row(
+      children: statusGroups.entries
+          .mapIndexed<Widget>(
+            (groupIndex, entry) => _TestResultsGroup(
+              groupIndex: groupIndex,
+              version: entry.key,
+              results: entry.value,
+            ),
+          )
+          .reversed
+          .intersperse(const SizedBox(width: Spacing.level2))
+          .toList(),
+    );
+  }
+}
+
+class _TestResultsGroup extends StatelessWidget {
+  const _TestResultsGroup({
+    required this.groupIndex,
+    required this.version,
+    required this.results,
+  });
+
+  final int groupIndex;
+  final String version;
+  final List<PreviousTestResult> results;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: (groupIndex > 0)
+          ? () => navigateToArtefactPage(
+                context,
+                results.first.artefactId,
+              )
+          : null,
+      child: Tooltip(
+        message: 'Version: $version',
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: -5,
+          children: results
+              .mapIndexed(
+                (index, result) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: result.status.getIcon(
+                    scale: (groupIndex == index && index == 0) ? 1.5 : 1,
                   ),
                 ),
               )
-              .toList();
-        },
-        child: const Text('prev'),
+              .reversed
+              .toList(),
+        ),
       ),
     );
   }

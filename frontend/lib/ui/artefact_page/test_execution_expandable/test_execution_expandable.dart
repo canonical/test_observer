@@ -44,7 +44,9 @@ class TestExecutionExpandable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
-    final testResultIdToExpand = pageUri.queryParameters['testResultId'];
+    final testResultIdString = pageUri.queryParameters['testResultId'];
+    final testResultIdToExpand =
+        testResultIdString != null ? int.tryParse(testResultIdString) : null;
 
     return Expandable(
       initiallyExpanded: initiallyExpanded,

@@ -35,7 +35,7 @@ class TestResultsFilterExpandable extends ConsumerWidget {
   final TestResultStatus statusToFilterBy;
   final int testExecutionId;
   final int artefactId;
-  final String? testResultIdToExpand;
+  final int? testResultIdToExpand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -50,9 +50,7 @@ class TestResultsFilterExpandable extends ConsumerWidget {
             .toList();
 
         final shouldExpandStatus = testResultIdToExpand != null &&
-            filteredResults.any(
-              (result) => result.id == int.tryParse(testResultIdToExpand!),
-            );
+            filteredResults.any((result) => result.id == testResultIdToExpand);
 
         return Expandable(
           initiallyExpanded: shouldExpandStatus,
