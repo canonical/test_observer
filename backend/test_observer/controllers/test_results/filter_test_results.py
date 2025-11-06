@@ -68,8 +68,6 @@ def build_query_filters_and_joins(
     query_filters: list[ColumnElement[bool]] = []
     joins_needed = set()
 
-    joins_needed.add("test_execution")
-
     if len(filters.families) > 0:
         query_filters.append(Artefact.family.in_(filters.families))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
