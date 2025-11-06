@@ -5,17 +5,47 @@ The frontend of Test Observer is a web application developed with Vanilla JavaSc
 ## Architecture
 
 - **HTML**: Single page application structure in `index.html`
-- **CSS**: [Vanilla Framework](https://vanillaframework.io/) (Ubuntu's CSS framework) with minimal custom styles in `css/style.css`
+- **CSS**: [Vanilla Framework](https://vanillaframework.io/) compiled from SCSS
 - **JavaScript**: ES6+ modules with components in `js/components/`
 - **Configuration**: Centralized configuration in `js/config.js`
+- **Build Tools**: npm with SASS for CSS compilation
 
 ## Setup
 
-No build tools or dependencies are required! The frontend uses native ES6 modules and runs directly in modern browsers.
+Install dependencies:
 
-## Run
+```bash
+cd frontend
+npm install
+```
 
-To run the frontend locally, simply serve the directory with any HTTP server:
+Build the CSS:
+
+```bash
+npm run build
+```
+
+This compiles the SCSS files from `sass/` into optimized CSS in `css/`.
+
+## Development
+
+### Build CSS
+
+```bash
+npm run build-css
+```
+
+### Watch for Changes
+
+For development, you can watch for SCSS changes and automatically recompile:
+
+```bash
+npm run watch-css
+```
+
+### Serve Locally
+
+To run the frontend locally, serve the directory with any HTTP server:
 
 ```bash
 # Using Python's built-in server
@@ -30,54 +60,58 @@ php -S localhost:8080
 
 Then open your browser to `http://localhost:8080`
 
-## Development
+**Note**: The frontend uses ES6 modules, so you need to serve it via HTTP (not file://) for the modules to work.
 
-The frontend uses ES6 modules, so you need to serve it via HTTP (not file://) for the modules to work.
-
-### Project Structure
+## Project Structure
 
 ```
 frontend/
 ├── index.html              # Main HTML shell
-├── css/
-│   └── style.css          # Custom styles (minimal overrides)
+├── package.json            # Dependencies and build scripts
+├── sass/
+│   └── styles.scss        # Main SCSS file (imports Vanilla Framework)
+├── css/                    # Compiled CSS (generated, not in git)
+│   └── styles.css         # Compiled from SCSS
 ├── js/
 │   ├── app.js             # Main application entry point
 │   ├── config.js          # Configuration (API URL, artefact types, etc.)
 │   └── components/
 │       └── NavBar.js      # Navigation bar component
+├── Dockerfile              # Production Docker image
+└── nginx.conf              # Nginx configuration
 ```
 
-### Vanilla Framework
+## Vanilla Framework
 
-This project uses [Vanilla Framework](https://vanillaframework.io/) - Ubuntu's CSS framework. The framework is loaded from the CDN and provides:
+This project uses [Vanilla Framework](https://vanillaframework.io/) - Ubuntu's CSS framework. The framework is installed via npm and compiled from SCSS, following the recommended setup:
 
-- Navigation patterns (`.p-navigation`)
-- Layout utilities (`.p-strip`, `.row`, `.col-*`)
-- Typography and spacing
-- Component styles
+- **Installation**: `npm install vanilla-framework`
+- **Compilation**: SCSS files import Vanilla Framework and compile to CSS
+- **Build tool**: SASS with load-path to node_modules
+- **Customization**: Add custom styles in `sass/styles.scss` after importing Vanilla Framework
 
-Custom styles in `css/style.css` are kept minimal and only used for Test Observer-specific overrides.
+This approach provides:
+- Full Vanilla Framework features and components
+- Ability to customize and extend styles
+- Optimized, compressed CSS output
+- Source maps for debugging
 
-### Adding New Components
+### Adding Custom Styles
 
-1. Create a new file in `js/components/`
-2. Export your component class
-3. Import and use it in `js/app.js`
+Edit `sass/styles.scss` to add custom styles:
 
-Example:
-```javascript
-// js/components/MyComponent.js
-export class MyComponent {
-  constructor(containerId) {
-    this.container = document.getElementById(containerId);
-  }
-  
-  render() {
-    this.container.innerHTML = '<div>My Component</div>';
-  }
+```scss
+// Import Vanilla Framework
+@import 'vanilla-framework';
+@include vanilla;
+
+// Your custom styles here
+.my-custom-class {
+  // ...
 }
 ```
+
+Then rebuild: `npm run build-css`
 
 ## Connect to backend
 
@@ -85,4 +119,14 @@ By default the Test Observer frontend will use `http://localhost:30000/` to comm
 
 ## Docker
 
-The frontend is served via nginx in production. See the `Dockerfile` in this directory for the containerized setup.
+The frontend is served via nginx in production. The Dockerfile includes a build step to compile CSS:
+
+```bash
+# Build the Docker image (includes CSS compilation)
+docker build -t test-observer-frontend .
+
+# Or using docker-compose
+docker compose build test-observer-frontend
+```
+
+See the `Dockerfile` in this directory for the containerized setup.

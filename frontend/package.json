@@ -1,0 +1,23 @@
+{
+  "name": "test-observer-frontend",
+  "version": "1.0.0",
+  "description": "Test Observer frontend with Vanilla Framework",
+  "scripts": {
+    "build-css": "sass --load-path=node_modules sass:css --style=compressed",
+    "watch-css": "sass --load-path=node_modules sass:css --watch",
+    "build": "npm run build-css",
+    "watch": "npm run watch-css"
+  },
+  "keywords": [
+    "vanilla-framework",
+    "test-observer"
+  ],
+  "author": "Canonical",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "vanilla-framework": "4.13.0"
+  },
+  "devDependencies": {
+    "sass": "1.77.4"
+  }
+}

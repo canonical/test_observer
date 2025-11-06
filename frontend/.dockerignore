@@ -1,3 +1,6 @@
 README.md
-Dockerfile
 .dockerignore
+node_modules
+css/*.map
+.git
+.gitignore
