@@ -51,7 +51,8 @@ class TestResultsFilterExpandable extends ConsumerWidget {
 
         final shouldExpandStatus = testResultIdToExpand != null &&
             filteredResults.any(
-                (result) => result.id == int.tryParse(testResultIdToExpand!));
+              (result) => result.id == int.tryParse(testResultIdToExpand!),
+            );
 
         return Expandable(
           initiallyExpanded: shouldExpandStatus,
