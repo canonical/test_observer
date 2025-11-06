@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Add reviewer_families to users
+"""Add reviewer_families to users and remove is_reviewer
 
 Revision ID: f619878b3a1f
 Revises: 3f6a99085db7
@@ -45,7 +45,36 @@ def upgrade() -> None:
             server_default="{}",
         ),
     )
+    
+    # Migrate existing is_reviewer=True users to have snap and deb families
+    op.execute("""
+        UPDATE app_user 
+        SET reviewer_families = ARRAY['snap', 'deb']::varchar[]
+        WHERE is_reviewer = true
+    """)
+    
+    # Drop the is_reviewer column
+    op.drop_column("app_user", "is_reviewer")
 
 
 def downgrade() -> None:
+    # Re-add is_reviewer column
+    op.add_column(
+        "app_user",
+        sa.Column(
+            "is_reviewer",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("FALSE"),
+        ),
+    )
+    
+    # Set is_reviewer to true for users with any reviewer_families
+    op.execute("""
+        UPDATE app_user 
+        SET is_reviewer = true
+        WHERE array_length(reviewer_families, 1) > 0
+    """)
+    
+    # Drop reviewer_families column
     op.drop_column("app_user", "reviewer_families")

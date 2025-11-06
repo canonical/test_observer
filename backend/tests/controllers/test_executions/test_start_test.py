@@ -172,7 +172,8 @@ class TestFamilyIndependentTests:
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        user = generator.gen_user(is_reviewer=True)
+        # User can review all families
+        user = generator.gen_user(reviewer_families=["snap", "deb", "charm", "image"])
 
         response = execute({**start_request, "needs_assignment": True})
 
@@ -185,6 +186,7 @@ class TestFamilyIndependentTests:
     def test_only_a_reviewer_user_is_assigned(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
+        # User with no families cannot be assigned
         generator.gen_user()
 
         response = execute({**start_request, "needs_assignment": True})
@@ -508,12 +510,12 @@ def test_charm_assigned_to_sqa_team_reviewer(
     # Create reviewers with different families
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["charm"],
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["snap", "deb", "image"],
     )
 
@@ -535,12 +537,12 @@ def test_snap_assigned_to_cert_team_reviewer(
     # Create reviewers with different families
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["charm"],
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["snap", "deb", "image"],
     )
 
@@ -562,24 +564,24 @@ def test_deb_assigned_to_cert_team_reviewer(
     # Create reviewers with different families
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["charm"],
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["snap", "deb", "image"],
     )
     
     # Create reviewers from different teams
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
-        is_reviewer=True,
+        
         reviewer_team=sqa_team,
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["snap", "deb", "image"],
     )
 
@@ -601,12 +603,12 @@ def test_image_assigned_to_cert_team_reviewer(
     # Create reviewers with different families
     sqa_reviewer = generator.gen_user(
         email="sqa@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["charm"],
     )
     cert_reviewer = generator.gen_user(
         email="cert@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["snap", "deb", "image"],
     )
 
@@ -628,7 +630,7 @@ def test_no_assignment_when_no_team_reviewers_available(
     # Create only reviewers who can review charms
     generator.gen_user(
         email="sqa@example.com",
-        is_reviewer=True,
+        
         reviewer_families=["charm"],
     )
 

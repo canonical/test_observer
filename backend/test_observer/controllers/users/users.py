@@ -74,9 +74,6 @@ def update_user(
     if user is None:
         raise HTTPException(404, f"User with id {user_id} not found")
 
-    if request.is_reviewer is not None:
-        user.is_reviewer = request.is_reviewer
-
     if request.reviewer_families is not None:
         user.reviewer_families = request.reviewer_families
 

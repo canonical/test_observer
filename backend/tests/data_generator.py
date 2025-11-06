@@ -74,7 +74,6 @@ class DataGenerator:
         name: str = "John Doe",
         launchpad_handle: str | None = "jd",
         email: str = "john@doe.com",
-        is_reviewer: bool = False,
         reviewer_families: list[str] | None = None,
         teams: list[Team] | None = None,
     ) -> User:
@@ -82,7 +81,6 @@ class DataGenerator:
             name=name,
             email=email,
             launchpad_handle=launchpad_handle,
-            is_reviewer=is_reviewer,
             reviewer_families=reviewer_families or [],
             teams=teams or [],
         )

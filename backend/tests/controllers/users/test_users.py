@@ -121,7 +121,6 @@ def test_get_users(test_client: TestClient, generator: DataGenerator):
             "name": user.name,
             "email": user.email,
             "launchpad_handle": user.launchpad_handle,
-            "is_reviewer": user.is_reviewer,
             "reviewer_families": user.reviewer_families,
             "is_admin": user.is_admin,
             "teams": [
@@ -149,7 +148,6 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
         "name": user.name,
         "email": user.email,
         "launchpad_handle": user.launchpad_handle,
-        "is_reviewer": user.is_reviewer,
         "reviewer_families": user.reviewer_families,
         "is_admin": user.is_admin,
         "teams": [
@@ -166,12 +164,15 @@ def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator)
     user = generator.gen_user()
 
     response = make_authenticated_request(
-        lambda: test_client.patch(f"/v1/users/{user.id}", json={"is_reviewer": True}),
+        lambda: test_client.patch(
+            f"/v1/users/{user.id}",
+            json={"reviewer_families": ["snap", "deb"]}
+        ),
         Permission.change_user,
     )
 
     assert response.status_code == 200
-    assert user.is_reviewer
+    assert user.reviewer_families == ["snap", "deb"]
 
 
 def test_promote_user_to_admin(test_client: TestClient, generator: DataGenerator):

@@ -29,12 +29,10 @@ class UserResponse(BaseModel):
     name: str
     launchpad_handle: str | None = None
     teams: list[TeamMinimalResponse]
-    is_reviewer: bool
     reviewer_families: list[str] = []
     is_admin: bool
 
 
 class UserPatch(BaseModel):
-    is_reviewer: bool | None = None
     reviewer_families: list[str] | None = None
     is_admin: bool | None = None

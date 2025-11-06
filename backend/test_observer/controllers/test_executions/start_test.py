@@ -82,26 +82,12 @@ class StartTestExecutionController:
             users = (
                 self.db.execute(
                     select(User).where(
-                        User.is_reviewer == True,
-                        User.reviewer_families.contains([family_str])
+                        User.reviewer_families.any(family_str)
                     )
                 )
                 .scalars()
                 .all()
             )
-            
-            # Fall back to reviewers without specific families (backward compatibility)
-            if not users:
-                users = (
-                    self.db.execute(
-                        select(User).where(
-                            User.is_reviewer == True,
-                            User.reviewer_families == []
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
             
             if users:
                 self.artefact.assignee = random.choice(users)

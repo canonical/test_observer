@@ -30,7 +30,6 @@ class UserMinimalResponse(BaseModel):
     launchpad_handle: str | None = None
     email: str
     name: str
-    is_reviewer: bool
     reviewer_families: list[str] = []
     is_admin: bool
 
