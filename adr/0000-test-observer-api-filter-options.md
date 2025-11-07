@@ -9,7 +9,7 @@ The Test Observer API needs to support filtering test results based on various a
 - Get all test results regardless of that attribute
 
 Using issues as an example, users need to:
-- Find test results that have specific issues attached
+- Find test results that have some issues from a list attached
 - Find test results that have any issues attached
 - Find test results that have no issues attached  
 - Get all test results regardless of issue status
