@@ -178,6 +178,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
         version="1",
         track="latest",
         branch="main",
+        archived=False,
     )
     a2 = generator.gen_artefact(
         stage=StageName.beta,
@@ -186,6 +187,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
         version="2",
         track="latest",
         branch="main",
+        archived=False,
     )
     # This one is archived, so shouldn't be returned
     generator.gen_artefact(
