@@ -20,8 +20,6 @@ header:
         along with this program.  If not, see <https://www.gnu.org/licenses/>.
     paths-ignore:
       - "backend/charm/**"
-    paths-ignore:
-      - "adr/**"
   - paths:
       - "frontend/**/*.dart"
     license:
