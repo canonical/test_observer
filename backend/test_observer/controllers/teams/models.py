@@ -23,6 +23,7 @@ class TeamMinimalResponse(BaseModel):
     id: int
     name: str
     permissions: list[str]
+    reviewer_families: list[str] = []
 
 
 class UserMinimalResponse(BaseModel):
@@ -30,7 +31,6 @@ class UserMinimalResponse(BaseModel):
     launchpad_handle: str | None = None
     email: str
     name: str
-    reviewer_families: list[str] = []
     is_admin: bool
 
 
@@ -38,8 +38,10 @@ class TeamResponse(BaseModel):
     id: int
     name: str
     permissions: list[str]
+    reviewer_families: list[str] = []
     members: list[UserMinimalResponse]
 
 
 class TeamPatch(BaseModel):
     permissions: list[Permission] | None = None
+    reviewer_families: list[str] | None = None

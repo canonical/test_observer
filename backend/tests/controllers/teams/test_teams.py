@@ -36,13 +36,13 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
             "id": team.id,
             "name": team.name,
             "permissions": team.permissions,
+            "reviewer_families": team.reviewer_families,
             "members": [
                 {
                     "id": user.id,
                     "name": user.name,
                     "email": user.email,
                     "launchpad_handle": user.launchpad_handle,
-                    "reviewer_families": user.reviewer_families,
                     "is_admin": user.is_admin,
                 }
             ],
@@ -63,13 +63,13 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
         "id": team.id,
         "name": team.name,
         "permissions": team.permissions,
+        "reviewer_families": team.reviewer_families,
         "members": [
             {
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
                 "launchpad_handle": user.launchpad_handle,
-                "reviewer_families": user.reviewer_families,
                 "is_admin": user.is_admin,
             }
         ],
@@ -93,13 +93,13 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
         "id": team.id,
         "name": team.name,
         "permissions": [Permission.view_user],
+        "reviewer_families": team.reviewer_families,
         "members": [
             {
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
                 "launchpad_handle": user.launchpad_handle,
-                "reviewer_families": user.reviewer_families,
                 "is_admin": user.is_admin,
             }
         ],

@@ -28,6 +28,7 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
     Environment,
+    Team,
     TestExecution,
     User,
 )
@@ -77,22 +78,38 @@ class StartTestExecutionController:
             self.request.needs_assignment
             and self.artefact.assignee_id is None
         ):
-            # Get reviewers who can review this artefact family
+            # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
-            users = (
+            
+            # Find all teams that can review this family
+            teams_for_family = (
                 self.db.execute(
-                    select(User).where(
-                        User.reviewer_families.any(family_str)
+                    select(Team).where(
+                        Team.reviewer_families.any(family_str)
                     )
                 )
                 .scalars()
                 .all()
             )
             
-            if users:
-                self.artefact.assignee = random.choice(users)
-                self.artefact.due_date = self.determine_due_date()
-                self.db.commit()
+            if teams_for_family:
+                # Get all users who are members of these teams
+                team_ids = [team.id for team in teams_for_family]
+                users = (
+                    self.db.execute(
+                        select(User)
+                        .join(User.teams)
+                        .where(Team.id.in_(team_ids))
+                        .distinct()
+                    )
+                    .scalars()
+                    .all()
+                )
+                
+                if users:
+                    self.artefact.assignee = random.choice(users)
+                    self.artefact.due_date = self.determine_due_date()
+                    self.db.commit()
 
     def create_test_execution(self):
         self.test_execution = get_or_create(
