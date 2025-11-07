@@ -32,7 +32,7 @@ This pattern should be applied consistently to all filterable attributes in the 
 
 ```json
 {
-    "issues": "any",        // has any issue
+    "issues": "any",        // has at least one issue
     "issues": "none",       // has no issues
     "issues": [1, 2, 3],    // has any of these specific issues
     "issues": null,         // no issue filter (default)
