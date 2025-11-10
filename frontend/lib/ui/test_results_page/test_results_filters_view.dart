@@ -142,7 +142,7 @@ class _TestResultsFiltersViewState
         if (_isFilterEnabled(FilterType.testResultStatuses))
           _box(
             MultiSelectCombobox(
-              title: 'Result Status',
+              title: 'Status',
               allOptions: allTestResultStatusesOptions,
               initialSelected: _selectedFilters.testResultStatuses
                   .map((s) => s.name)
