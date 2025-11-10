@@ -119,7 +119,7 @@ class Navbar extends ConsumerWidget {
                           },
                         )
                       : _NavbarDropdownEntry(
-                          label: '${user.name}',
+                          label: user.name,
                           dropdownChildren: [
                             _NavbarDropdownItem(
                               label: 'Log out',
