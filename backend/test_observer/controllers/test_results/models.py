@@ -24,7 +24,11 @@ from test_observer.controllers.artefacts.models import (
     ArtefactResponse,
     ArtefactBuildMinimalResponse,
 )
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestResultStatus,
+    TestExecutionStatus,
+)
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 
@@ -61,6 +65,8 @@ class TestResultSearchFilters(BaseModel):
     template_ids: list[str] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
     issues: list[int] = Field(default_factory=list)
+    test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
+    test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
     from_date: datetime | None = None
     until_date: datetime | None = None
     offset: int | None = None
