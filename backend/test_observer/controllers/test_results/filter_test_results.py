@@ -101,6 +101,13 @@ def build_query_filters_and_joins(
             )
         )
 
+    if len(filters.test_result_statuses) > 0:
+        query_filters.append(TestResult.status.in_(filters.test_result_statuses))
+
+    if len(filters.test_execution_statuses) > 0:
+        query_filters.append(TestExecution.status.in_(filters.test_execution_statuses))
+        joins_needed.add("test_execution")
+
     if filters.from_date is not None:
         query_filters.append(TestResult.created_at >= filters.from_date)
 

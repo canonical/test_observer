@@ -32,7 +32,11 @@ from test_observer.data_access.models import (
     TestResult,
     TestExecutionMetadata,
 )
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestResultStatus,
+    TestExecutionStatus,
+)
 from test_observer.data_access.setup import get_db
 from .models import (
     TestResultSearchResponseWithContext,
@@ -108,6 +112,14 @@ def search_test_results(
         list[int] | None,
         Query(description="Filter by Jira or GitHub issue IDs"),
     ] = None,
+    test_result_statuses: Annotated[
+        list[TestResultStatus] | None,
+        Query(description="Filter by test result statuses"),
+    ] = None,
+    test_execution_statuses: Annotated[
+        list[TestExecutionStatus] | None,
+        Query(description="Filter by test execution statuses"),
+    ] = None,
     from_date: Annotated[
         datetime | None, Query(description="Filter results from this timestamp")
     ] = None,
@@ -137,6 +149,8 @@ def search_test_results(
         template_ids=template_ids or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
         issues=issues or [],
+        test_result_statuses=test_result_statuses or [],
+        test_execution_statuses=test_execution_statuses or [],
         from_date=from_date,
         until_date=until_date,
         limit=limit,

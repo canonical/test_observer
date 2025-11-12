@@ -2524,6 +2524,48 @@
             "description": "Filter by Jira or GitHub issue IDs"
           },
           {
+            "name": "test_result_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestResultStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test result statuses",
+              "title": "Test Result Statuses"
+            },
+            "description": "Filter by test result statuses"
+          },
+          {
+            "name": "test_execution_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestExecutionStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test execution statuses",
+              "title": "Test Execution Statuses"
+            },
+            "description": "Filter by test execution statuses"
+          },
+          {
             "name": "from_date",
             "in": "query",
             "required": false,
@@ -5706,6 +5748,20 @@
             },
             "type": "array",
             "title": "Issues"
+          },
+          "test_result_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultStatus"
+            },
+            "type": "array",
+            "title": "Test Result Statuses"
+          },
+          "test_execution_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionStatus"
+            },
+            "type": "array",
+            "title": "Test Execution Statuses"
           },
           "from_date": {
             "anyOf": [
