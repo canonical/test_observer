@@ -24,6 +24,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     TestExecution,
+    TestResult,
 )
 
 from .models import (
@@ -47,6 +48,9 @@ def get_artefact_builds(
                 selectinload(TestExecution.environment),
                 selectinload(TestExecution.rerun_request),
                 selectinload(TestExecution.relevant_links),
+                selectinload(TestExecution.test_results).selectinload(
+                    TestResult.issue_attachments
+                ),
             )
         )
     ),

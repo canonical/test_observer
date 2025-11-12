@@ -278,7 +278,7 @@ class Artefact(Base):
 
     @hybrid_property
     def is_kernel(self) -> bool:
-        """Kernel artefacts start with 'linix-' or end with '-kernel'"""
+        """Kernel artefacts start with 'linux-' or end with '-kernel'"""
         return self.name.startswith("linux-") or self.name.endswith("-kernel")
 
     @property
@@ -479,6 +479,14 @@ class TestExecution(Base):
     @property
     def has_failures(self) -> bool:
         return any(tr.status == TestResultStatus.FAILED for tr in self.test_results)
+
+    @property
+    def is_triaged(self) -> bool:
+        return all(
+            len(tr.issue_attachments) > 0
+            for tr in self.test_results
+            if tr.status in (TestResultStatus.FAILED, TestResultStatus.SKIPPED)
+        )
 
     def __repr__(self) -> str:
         return data_model_repr(
