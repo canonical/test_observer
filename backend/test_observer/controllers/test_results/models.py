@@ -14,8 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
+
+from test_observer.common.constants import QueryValue
 from test_observer.controllers.test_executions.models import (
     TestResultResponse,
     TestExecutionResponse,
@@ -64,7 +67,9 @@ class TestResultSearchFilters(BaseModel):
     test_cases: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
-    issues: list[int] = Field(default_factory=list)
+    issues: list[int] | Literal[QueryValue.ANY] | Literal[QueryValue.NONE] = Field(
+        default_factory=list
+    )
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
     test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
     from_date: datetime | None = None

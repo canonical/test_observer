@@ -102,6 +102,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "is_rerun_requested": bool(test_execution.rerun_request),
             "created_at": test_execution.created_at.isoformat(),
             "execution_metadata": {},
+            "is_triaged": test_execution.is_triaged,
         },
         "artefact": {
             "id": test_execution.artefact_build.artefact.id,
