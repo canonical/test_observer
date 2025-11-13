@@ -2201,8 +2201,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Filter by issue source (e.g., github, jira, launchpad)",
               "title": "Source"
-            }
+            },
+            "description": "Filter by issue source (e.g., github, jira, launchpad)"
           },
           {
             "name": "project",
@@ -2217,8 +2219,55 @@
                   "type": "null"
                 }
               ],
+              "description": "Filter by project name",
               "title": "Project"
-            }
+            },
+            "description": "Filter by project name"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for issue source, project, keys, title, and status",
+              "title": "Q"
+            },
+            "description": "Search term for issue source, project, keys, title, and status"
           }
         ],
         "responses": {
@@ -2515,13 +2564,27 @@
                   }
                 },
                 {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
                   "type": "null"
                 }
               ],
-              "description": "Filter by Jira or GitHub issue IDs",
+              "description": "Filter by issue IDs",
               "title": "Issues"
             },
-            "description": "Filter by Jira or GitHub issue IDs"
+            "description": "Filter by issue IDs"
           },
           {
             "name": "test_result_statuses",
@@ -5405,6 +5468,10 @@
           "execution_metadata": {
             "$ref": "#/components/schemas/ExecutionMetadata"
           },
+          "is_triaged": {
+            "type": "boolean",
+            "title": "Is Triaged"
+          },
           "is_rerun_requested": {
             "type": "boolean",
             "title": "Is Rerun Requested",
@@ -5421,6 +5488,7 @@
           "test_plan",
           "created_at",
           "execution_metadata",
+          "is_triaged",
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponse"
@@ -5743,10 +5811,22 @@
             "$ref": "#/components/schemas/ExecutionMetadata"
           },
           "issues": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "const": "any"
+              },
+              {
+                "type": "string",
+                "const": "none"
+              }
+            ],
             "title": "Issues"
           },
           "test_result_statuses": {

@@ -330,6 +330,82 @@ class TestSearchTestResults:
         assert test_result1.id in result_ids
         assert test_result2.id in result_ids
 
+    def test_search_by_issues_any(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by issues=any to find test results with any issue attached"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("issues_any"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result_with_issue = generator.gen_test_result(test_case, test_execution)
+        test_result_without_issue = generator.gen_test_result(test_case, test_execution)
+
+        # Create an issue and attach it to one test result
+        issue = generator.gen_issue()
+        attach_response = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue.id}/attach",
+                json={"test_results": [test_result_with_issue.id]},
+            ),
+            Permission.change_issue_attachment,
+        )
+        assert attach_response.status_code == 200
+
+        # Search for test results with any issue
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?issues=any"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+        # Should include test result with issue
+        assert test_result_with_issue.id in result_ids
+        # Should not include test result without issue
+        assert test_result_without_issue.id not in result_ids
+
+    def test_search_by_issues_none(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by issues=none (test results without any issue attached)"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("issues_none"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result_with_issue = generator.gen_test_result(test_case, test_execution)
+        test_result_without_issue = generator.gen_test_result(test_case, test_execution)
+
+        # Create an issue and attach it to one test result
+        issue = generator.gen_issue()
+        attach_response = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue.id}/attach",
+                json={"test_results": [test_result_with_issue.id]},
+            ),
+            Permission.change_issue_attachment,
+        )
+        assert attach_response.status_code == 200
+
+        # Search for test results without any issue
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?issues=none"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+        # Should not include test result with issue
+        assert test_result_with_issue.id not in result_ids
+        # Should include test result without issue
+        assert test_result_without_issue.id in result_ids
+
     def test_search_by_execution_metadata(
         self, test_client: TestClient, generator: DataGenerator
     ):
