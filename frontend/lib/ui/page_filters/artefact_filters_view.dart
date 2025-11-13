@@ -80,10 +80,11 @@ class ArtefactFiltersView extends ConsumerWidget {
           .toSet();
 
       widgets.add(
-        MultiSelectCombobox(
+        MultiSelectCombobox<String>(
           key: key,
           title: filter.name,
           allOptions: options,
+          itemToString: (option) => option,
           initialSelected: initialSelected,
           maxSuggestions: 10,
           onChanged: (option, isSelected) {

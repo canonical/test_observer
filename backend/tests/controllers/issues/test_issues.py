@@ -202,3 +202,266 @@ def test_put_defaults(test_client: TestClient):
     )
     assert response.json()["title"] == ""
     assert response.json()["status"] == "unknown"
+
+
+def test_get_all_filter_by_source(test_client: TestClient, generator: DataGenerator):
+    github_issue = generator.gen_issue(source="github")
+    jira_issue = generator.gen_issue(source="jira")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"source": "github"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == github_issue.id
+    assert issues[0]["source"] == "github"
+
+
+def test_get_all_filter_by_project(test_client: TestClient, generator: DataGenerator):
+    project_a_issue = generator.gen_issue(project="ProjectA")
+    project_b_issue = generator.gen_issue(project="ProjectB")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"project": "ProjectA"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == project_a_issue.id
+    assert issues[0]["project"] == "ProjectA"
+
+
+def test_get_all_filter_by_source_and_project(
+    test_client: TestClient, generator: DataGenerator
+):
+    target_issue = generator.gen_issue(source="github", project="ProjectA")
+    generator.gen_issue(source="github", project="ProjectB")
+    generator.gen_issue(source="jira", project="ProjectA")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            endpoint, params={"source": "github", "project": "ProjectA"}
+        ),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id
+
+
+def test_get_all_with_limit(test_client: TestClient, generator: DataGenerator):
+    for i in range(5):
+        generator.gen_issue(key=f"ISSUE-{i}")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"limit": 3}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["issues"]) == 3
+
+
+def test_get_all_with_offset(test_client: TestClient, generator: DataGenerator):
+    issues = [generator.gen_issue(key=f"ISSUE-{i}") for i in range(5)]
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"offset": 2}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["issues"]) == 3
+
+
+def test_get_all_with_limit_and_offset(
+    test_client: TestClient, generator: DataGenerator
+):
+    for i in range(10):
+        generator.gen_issue(key=f"ISSUE-{i}")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"limit": 3, "offset": 5}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["issues"]) == 3
+
+
+def test_get_all_search_by_key(test_client: TestClient, generator: DataGenerator):
+    target_issue = generator.gen_issue(key="KERNEL-123")
+    generator.gen_issue(key="LP-456")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"q": "KERNEL-123"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id
+
+
+def test_get_all_search_by_title(test_client: TestClient, generator: DataGenerator):
+    target_issue = generator.gen_issue(key="MEM-1", title="Memory leak in kernel")
+    generator.gen_issue(key="UI-1", title="UI rendering bug")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"q": "memory leak"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id
+
+
+def test_get_all_search_case_insensitive(
+    test_client: TestClient, generator: DataGenerator
+):
+    target_issue = generator.gen_issue(title="Bug in System Startup")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"q": "bug system"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id
+
+
+def test_get_all_search_multiple_segments(
+    test_client: TestClient, generator: DataGenerator
+):
+    target_issue = generator.gen_issue(
+        key="KERN-1", source="jira", project="KERNEL", title="Memory leak"
+    )
+    generator.gen_issue(
+        key="KERN-2", source="jira", project="KERNEL", title="Other bug"
+    )
+    generator.gen_issue(
+        key="TEST-1", source="github", project="TEST", title="Memory leak"
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"q": "jira kernel memory"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id
+
+
+def test_get_all_search_by_id(test_client: TestClient, generator: DataGenerator):
+    target_issue = generator.gen_issue()
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"q": str(target_issue.id)}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id
+
+
+def test_get_all_search_by_status(test_client: TestClient, generator: DataGenerator):
+    open_issue = generator.gen_issue(key="OPEN-1", status="open")
+    closed_issue = generator.gen_issue(key="CLOSED-1", status="closed")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"q": "open"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == open_issue.id
+
+
+def test_get_all_search_no_results(test_client: TestClient, generator: DataGenerator):
+    generator.gen_issue(title="Some bug")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"q": "nonexistent"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["issues"] == []
+
+
+def test_get_all_ordering(test_client: TestClient, generator: DataGenerator):
+    # Create issues in mixed order
+    # IssueSource enum order is: JIRA, GITHUB, LAUNCHPAD
+    issue3 = generator.gen_issue(source="launchpad", project="B", key="LP-3")
+    issue1 = generator.gen_issue(source="github", project="A", key="GH-1")
+    issue4 = generator.gen_issue(source="launchpad", project="B", key="LP-1")
+    issue2 = generator.gen_issue(source="jira", project="C", key="JIRA-1")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    # Should be ordered by source (enum order), then project, then key
+    # Filter to only the 4 issues we created (in case there are others from other tests)
+    created_ids = {issue1.id, issue2.id, issue3.id, issue4.id}
+    our_issues = [i for i in issues if i["id"] in created_ids]
+    
+    assert len(our_issues) == 4
+    # Verify the relative ordering of our issues
+    # Expected order: jira (C, JIRA-1) < github (A, GH-1) < launchpad (B, LP-1) < launchpad (B, LP-3)
+    id_to_index = {i["id"]: idx for idx, i in enumerate(our_issues)}
+    assert id_to_index[issue2.id] < id_to_index[issue1.id]  # jira < github (enum order)
+    assert id_to_index[issue1.id] < id_to_index[issue4.id]  # github < launchpad
+    assert id_to_index[issue4.id] < id_to_index[issue3.id]  # LP-1 < LP-3 (same source/project)
+
+
+def test_get_all_combined_filters(test_client: TestClient, generator: DataGenerator):
+    target_issue = generator.gen_issue(
+        key="KERN-MEM-1",
+        source="jira",
+        project="KERNEL",
+        title="Memory leak in startup",
+    )
+    generator.gen_issue(
+        key="KERN-OTHER-1", source="jira", project="KERNEL", title="Other bug"
+    )
+    generator.gen_issue(
+        key="UI-MEM-1", source="jira", project="UI", title="Memory leak"
+    )
+    generator.gen_issue(
+        key="GH-MEM-1", source="github", project="KERNEL", title="Memory leak"
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            endpoint,
+            params={"source": "jira", "project": "KERNEL", "q": "memory", "limit": 10},
+        ),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id

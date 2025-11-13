@@ -15,9 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, Security
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query, Security
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, String
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -50,8 +52,33 @@ router.include_router(attachment_rules.router)
     dependencies=[Security(permission_checker, scopes=[Permission.view_issue])],
 )
 def get_issues(
-    source: IssueSource | None = None,
-    project: str | None = None,
+    source: Annotated[
+        IssueSource | None,
+        Query(description="Filter by issue source (e.g., github, jira, launchpad)"),
+    ] = None,
+    project: Annotated[
+        str | None,
+        Query(description="Filter by project name"),
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=1000,
+            description="Maximum number of results to return (default: 50)",
+        ),
+    ] = 50,
+    offset: Annotated[
+        int,
+        Query(
+            ge=0,
+            description="Number of results to skip for pagination (default: 0)",
+        ),
+    ] = 0,
+    q: Annotated[
+        str | None,
+        Query(description="Search term for issue source, project, keys, title, and status"),
+    ] = None,
     db: Session = Depends(get_db),
 ):
     stmt = select(Issue)
@@ -59,6 +86,31 @@ def get_issues(
         stmt = stmt.where(Issue.source == source)
     if project:
         stmt = stmt.where(Issue.project == project)
+    
+    # Apply search filter if query string provided
+    if q:
+        # Split query into segments and filter out empty ones
+        segments = [seg.lower() for seg in q.split() if seg.strip()]
+        
+        # For each segment, create a condition that matches any field
+        for segment in segments:
+            segment_condition = (
+                Issue.id.cast(String).contains(segment)
+                | Issue.source.cast(String).ilike(f"%{segment}%")
+                | Issue.project.ilike(f"%{segment}%")
+                | Issue.key.ilike(f"%{segment}%")
+                | Issue.title.ilike(f"%{segment}%")
+                | Issue.status.cast(String).ilike(f"%{segment}%")
+                | Issue.url.ilike(f"%{segment}%")
+            )
+            stmt = stmt.where(segment_condition)
+    
+    # Order by source, project, then key for consistent pagination
+    stmt = stmt.order_by(Issue.source, Issue.project, Issue.key)
+    
+    # Apply limit and offset
+    stmt = stmt.limit(limit).offset(offset)
+    
     issues = db.execute(stmt).scalars().all()
     return IssuesGetResponse(
         issues=[MinimalIssueResponse.model_validate(issue) for issue in issues]
