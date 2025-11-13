@@ -77,7 +77,9 @@ def get_issues(
     ] = 0,
     q: Annotated[
         str | None,
-        Query(description="Search term for issue source, project, keys, title, and status"),
+        Query(
+            description="Search term for issue source, project, keys, title, and status"
+        ),
     ] = None,
     db: Session = Depends(get_db),
 ):
@@ -86,12 +88,12 @@ def get_issues(
         stmt = stmt.where(Issue.source == source)
     if project:
         stmt = stmt.where(Issue.project == project)
-    
+
     # Apply search filter if query string provided
     if q:
         # Split query into segments and filter out empty ones
         segments = [seg.lower() for seg in q.split() if seg.strip()]
-        
+
         # For each segment, create a condition that matches any field
         for segment in segments:
             segment_condition = (
@@ -104,13 +106,13 @@ def get_issues(
                 | Issue.url.ilike(f"%{segment}%")
             )
             stmt = stmt.where(segment_condition)
-    
+
     # Order by source, project, then key for consistent pagination
     stmt = stmt.order_by(Issue.source, Issue.project, Issue.key)
-    
+
     # Apply limit and offset
     stmt = stmt.limit(limit).offset(offset)
-    
+
     issues = db.execute(stmt).scalars().all()
     return IssuesGetResponse(
         issues=[MinimalIssueResponse.model_validate(issue) for issue in issues]

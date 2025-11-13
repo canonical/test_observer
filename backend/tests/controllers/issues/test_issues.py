@@ -21,6 +21,7 @@ from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import IssueSource, IssueStatus
 
 endpoint = "/v1/issues"
 valid_put_data = {
@@ -205,8 +206,8 @@ def test_put_defaults(test_client: TestClient):
 
 
 def test_get_all_filter_by_source(test_client: TestClient, generator: DataGenerator):
-    github_issue = generator.gen_issue(source="github")
-    jira_issue = generator.gen_issue(source="jira")
+    github_issue = generator.gen_issue(source=IssueSource.GITHUB)
+    generator.gen_issue(source=IssueSource.JIRA)
 
     response = make_authenticated_request(
         lambda: test_client.get(endpoint, params={"source": "github"}),
@@ -222,7 +223,7 @@ def test_get_all_filter_by_source(test_client: TestClient, generator: DataGenera
 
 def test_get_all_filter_by_project(test_client: TestClient, generator: DataGenerator):
     project_a_issue = generator.gen_issue(project="ProjectA")
-    project_b_issue = generator.gen_issue(project="ProjectB")
+    generator.gen_issue(project="ProjectB")
 
     response = make_authenticated_request(
         lambda: test_client.get(endpoint, params={"project": "ProjectA"}),
@@ -239,9 +240,9 @@ def test_get_all_filter_by_project(test_client: TestClient, generator: DataGener
 def test_get_all_filter_by_source_and_project(
     test_client: TestClient, generator: DataGenerator
 ):
-    target_issue = generator.gen_issue(source="github", project="ProjectA")
-    generator.gen_issue(source="github", project="ProjectB")
-    generator.gen_issue(source="jira", project="ProjectA")
+    target_issue = generator.gen_issue(source=IssueSource.GITHUB, project="ProjectA")
+    generator.gen_issue(source=IssueSource.GITHUB, project="ProjectB")
+    generator.gen_issue(source=IssueSource.JIRA, project="ProjectA")
 
     response = make_authenticated_request(
         lambda: test_client.get(
@@ -270,7 +271,7 @@ def test_get_all_with_limit(test_client: TestClient, generator: DataGenerator):
 
 
 def test_get_all_with_offset(test_client: TestClient, generator: DataGenerator):
-    issues = [generator.gen_issue(key=f"ISSUE-{i}") for i in range(5)]
+    [generator.gen_issue(key=f"ISSUE-{i}") for i in range(5)]
 
     response = make_authenticated_request(
         lambda: test_client.get(endpoint, params={"offset": 2}),
@@ -346,13 +347,13 @@ def test_get_all_search_multiple_segments(
     test_client: TestClient, generator: DataGenerator
 ):
     target_issue = generator.gen_issue(
-        key="KERN-1", source="jira", project="KERNEL", title="Memory leak"
+        key="KERN-1", source=IssueSource.JIRA, project="KERNEL", title="Memory leak"
     )
     generator.gen_issue(
-        key="KERN-2", source="jira", project="KERNEL", title="Other bug"
+        key="KERN-2", source=IssueSource.JIRA, project="KERNEL", title="Other bug"
     )
     generator.gen_issue(
-        key="TEST-1", source="github", project="TEST", title="Memory leak"
+        key="TEST-1", source=IssueSource.GITHUB, project="TEST", title="Memory leak"
     )
 
     response = make_authenticated_request(
@@ -381,8 +382,8 @@ def test_get_all_search_by_id(test_client: TestClient, generator: DataGenerator)
 
 
 def test_get_all_search_by_status(test_client: TestClient, generator: DataGenerator):
-    open_issue = generator.gen_issue(key="OPEN-1", status="open")
-    closed_issue = generator.gen_issue(key="CLOSED-1", status="closed")
+    open_issue = generator.gen_issue(key="OPEN-1", status=IssueStatus.OPEN)
+    generator.gen_issue(key="CLOSED-1", status=IssueStatus.CLOSED)
 
     response = make_authenticated_request(
         lambda: test_client.get(endpoint, params={"q": "open"}),
@@ -410,10 +411,10 @@ def test_get_all_search_no_results(test_client: TestClient, generator: DataGener
 def test_get_all_ordering(test_client: TestClient, generator: DataGenerator):
     # Create issues in mixed order
     # IssueSource enum order is: JIRA, GITHUB, LAUNCHPAD
-    issue3 = generator.gen_issue(source="launchpad", project="B", key="LP-3")
-    issue1 = generator.gen_issue(source="github", project="A", key="GH-1")
-    issue4 = generator.gen_issue(source="launchpad", project="B", key="LP-1")
-    issue2 = generator.gen_issue(source="jira", project="C", key="JIRA-1")
+    issue3 = generator.gen_issue(source=IssueSource.LAUNCHPAD, project="B", key="LP-3")
+    issue1 = generator.gen_issue(source=IssueSource.GITHUB, project="A", key="GH-1")
+    issue4 = generator.gen_issue(source=IssueSource.LAUNCHPAD, project="B", key="LP-1")
+    issue2 = generator.gen_issue(source=IssueSource.JIRA, project="C", key="JIRA-1")
 
     response = make_authenticated_request(
         lambda: test_client.get(endpoint),
@@ -426,31 +427,33 @@ def test_get_all_ordering(test_client: TestClient, generator: DataGenerator):
     # Filter to only the 4 issues we created (in case there are others from other tests)
     created_ids = {issue1.id, issue2.id, issue3.id, issue4.id}
     our_issues = [i for i in issues if i["id"] in created_ids]
-    
+
     assert len(our_issues) == 4
     # Verify the relative ordering of our issues
-    # Expected order: jira (C, JIRA-1) < github (A, GH-1) < launchpad (B, LP-1) < launchpad (B, LP-3)
+    # Expected: jira C JIRA-1, then github A GH-1, then launchpad B LP-1, LP-3
     id_to_index = {i["id"]: idx for idx, i in enumerate(our_issues)}
     assert id_to_index[issue2.id] < id_to_index[issue1.id]  # jira < github (enum order)
     assert id_to_index[issue1.id] < id_to_index[issue4.id]  # github < launchpad
-    assert id_to_index[issue4.id] < id_to_index[issue3.id]  # LP-1 < LP-3 (same source/project)
+    assert (
+        id_to_index[issue4.id] < id_to_index[issue3.id]
+    )  # LP-1 < LP-3 (same source/project)
 
 
 def test_get_all_combined_filters(test_client: TestClient, generator: DataGenerator):
     target_issue = generator.gen_issue(
         key="KERN-MEM-1",
-        source="jira",
+        source=IssueSource.JIRA,
         project="KERNEL",
         title="Memory leak in startup",
     )
     generator.gen_issue(
-        key="KERN-OTHER-1", source="jira", project="KERNEL", title="Other bug"
+        key="KERN-OTHER-1", source=IssueSource.JIRA, project="KERNEL", title="Other bug"
     )
     generator.gen_issue(
-        key="UI-MEM-1", source="jira", project="UI", title="Memory leak"
+        key="UI-MEM-1", source=IssueSource.JIRA, project="UI", title="Memory leak"
     )
     generator.gen_issue(
-        key="GH-MEM-1", source="github", project="KERNEL", title="Memory leak"
+        key="GH-MEM-1", source=IssueSource.GITHUB, project="KERNEL", title="Memory leak"
     )
 
     response = make_authenticated_request(

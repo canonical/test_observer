@@ -101,6 +101,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
               artefactBuildId: 1,
               testPlan: 'test plan',
               createdAt: DateTime.now(),
+              isTriaged: false,
             ),
         ],
       ),
@@ -123,6 +124,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
               artefactBuildId: i,
               testPlan: 'test plan',
               createdAt: DateTime.now(),
+              isTriaged: false,
             ),
         ],
       ),
@@ -134,10 +136,11 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     return [
       for (int i = 0; i < 300; i++)
         TestResult(
-            id: i,
-            name: 'result $i',
-            status: TestResultStatus.passed,
-            createdAt: DateTime.now(),),
+          id: i,
+          name: 'result $i',
+          status: TestResultStatus.passed,
+          createdAt: DateTime.now(),
+        ),
     ];
   }
 }

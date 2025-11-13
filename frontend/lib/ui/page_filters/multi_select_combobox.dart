@@ -131,8 +131,12 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
 
     // Update selected items when widget rebuilds with new initialSelected
     // Simple set comparison instead of sorting
-    if (!oldWidget.initialSelected.difference(widget.initialSelected).isEmpty ||
-        !widget.initialSelected.difference(oldWidget.initialSelected).isEmpty) {
+    if (oldWidget.initialSelected
+            .difference(widget.initialSelected)
+            .isNotEmpty ||
+        widget.initialSelected
+            .difference(oldWidget.initialSelected)
+            .isNotEmpty) {
       setState(() {
         _selected = Set.from(widget.initialSelected);
         // Keep expanded state if there are still selections, or expand if new selections appeared
