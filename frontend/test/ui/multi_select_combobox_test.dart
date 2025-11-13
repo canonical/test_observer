@@ -249,8 +249,9 @@ void main() {
       Future<List<String>> asyncSuggestions(String pattern) async {
         await Future.delayed(const Duration(milliseconds: 100));
         return testOptions
-            .where((option) =>
-                option.toLowerCase().contains(pattern.toLowerCase()))
+            .where(
+              (option) => option.toLowerCase().contains(pattern.toLowerCase()),
+            )
             .toList();
       }
 
@@ -388,8 +389,9 @@ void main() {
       Future<List<String>> asyncSuggestions(String pattern) async {
         await Future.delayed(const Duration(milliseconds: 50));
         return testOptions
-            .where((option) =>
-                option.toLowerCase().contains(pattern.toLowerCase()))
+            .where(
+              (option) => option.toLowerCase().contains(pattern.toLowerCase()),
+            )
             .toList();
       }
 
