@@ -20,38 +20,91 @@ import 'package:yaru/yaru.dart';
 
 import '../vanilla/vanilla_text_input.dart';
 
-class MultiSelectCombobox extends StatefulWidget {
+/// Represents a meta option that can override normal selection behavior
+class MetaOption<V> {
+  final V value;
+  final String label;
+
+  const MetaOption({
+    required this.value,
+    required this.label,
+  });
+}
+
+class MultiSelectCombobox<T> extends StatefulWidget {
   final String title;
-  final List<String> allOptions;
-  final Function(String optionName, bool isSelected) onChanged;
+  final List<T>? allOptions;
+  final Function(T option, bool isSelected) onChanged;
   final FocusNode? focusNode;
   final int maxSuggestions;
-  final Set<String> initialSelected;
+  final Set<T> initialSelected;
+
+  // Meta options - mutually exclusive special options
+  final List<MetaOption>? metaOptions;
+  final dynamic selectedMetaOption;
+  final Function(dynamic metaValue)? onMetaOptionChanged;
+
+  // For local filtering: provide allOptions and itemToString for search
+  // For async search: provide asyncSuggestionsCallback
+  final String Function(T item)? itemToString;
 
   // Optional async suggestions callback
-  final Future<List<String>> Function(String pattern)? asyncSuggestionsCallback;
+  final Future<List<T>> Function(String pattern)? asyncSuggestionsCallback;
 
   // Minimum characters to trigger async search
   final int minCharsForAsyncSearch;
 
+  // Builder for custom display of items (both suggestions and selected)
+  // If not provided, uses default tooltip with text display
+  final Widget Function(T item)? itemBuilder;
+
   const MultiSelectCombobox({
     super.key,
     required this.title,
-    required this.allOptions,
     required this.onChanged,
+    this.allOptions,
+    this.itemBuilder,
+    this.itemToString,
     this.focusNode,
     this.maxSuggestions = 50,
     this.initialSelected = const {},
     this.asyncSuggestionsCallback,
     this.minCharsForAsyncSearch = 2,
-  });
+    this.metaOptions,
+    this.selectedMetaOption,
+    this.onMetaOptionChanged,
+  })  : assert(
+          asyncSuggestionsCallback != null ||
+              (allOptions != null && itemToString != null),
+          'Must provide either asyncSuggestionsCallback or both allOptions and itemToString for local filtering',
+        ),
+        assert(
+          (metaOptions == null &&
+                  selectedMetaOption == null &&
+                  onMetaOptionChanged == null) ||
+              (metaOptions != null && onMetaOptionChanged != null),
+          'If using metaOptions, must provide both metaOptions and onMetaOptionChanged',
+        );
+
+  Widget _defaultItemBuilder(T item) {
+    final toString = itemToString ?? (item) => item.toString();
+    final text = toString(item);
+    return Tooltip(
+      message: text,
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
 
   @override
-  State<MultiSelectCombobox> createState() => MultiSelectComboboxState();
+  State<MultiSelectCombobox<T>> createState() => MultiSelectComboboxState<T>();
 }
 
-class MultiSelectComboboxState extends State<MultiSelectCombobox> {
-  late Set<String> _selected;
+class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
+  late Set<T> _selected;
   late bool _isExpanded;
 
   late TextEditingController _controller;
@@ -67,23 +120,35 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
     // Initialize with URL parameters
     _selected = Set.from(widget.initialSelected);
 
-    // Auto-expand if there are pre-selected items
-    _isExpanded = widget.initialSelected.isNotEmpty;
+    // Auto-expand if there are pre-selected items or a meta option is selected
+    _isExpanded =
+        widget.initialSelected.isNotEmpty || widget.selectedMetaOption != null;
   }
 
   @override
-  void didUpdateWidget(MultiSelectCombobox oldWidget) {
+  void didUpdateWidget(MultiSelectCombobox<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     // Update selected items when widget rebuilds with new initialSelected
-    final oldSorted = oldWidget.initialSelected.toList()..sort();
-    final newSorted = widget.initialSelected.toList()..sort();
-
-    if (oldSorted.join(',') != newSorted.join(',')) {
+    // Simple set comparison instead of sorting
+    if (oldWidget.initialSelected
+            .difference(widget.initialSelected)
+            .isNotEmpty ||
+        widget.initialSelected
+            .difference(oldWidget.initialSelected)
+            .isNotEmpty) {
       setState(() {
         _selected = Set.from(widget.initialSelected);
         // Keep expanded state if there are still selections, or expand if new selections appeared
         _isExpanded = _isExpanded || widget.initialSelected.isNotEmpty;
+      });
+    }
+
+    // Expand if meta option changes from null to non-null
+    if (oldWidget.selectedMetaOption != widget.selectedMetaOption &&
+        widget.selectedMetaOption != null) {
+      setState(() {
+        _isExpanded = true;
       });
     }
   }
@@ -94,6 +159,11 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
     _internalFocusNode.dispose();
     super.dispose();
   }
+
+  // Getters for DRY
+  bool get _isAsyncMode => widget.asyncSuggestionsCallback != null;
+  Widget Function(T) get _itemBuilder =>
+      widget.itemBuilder ?? widget._defaultItemBuilder;
 
   // Method to focus on the combobox (for Ctrl+F functionality)
   void focusCombobox() {
@@ -106,65 +176,109 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
     });
   }
 
-  Future<List<String>> _getSuggestions(String pattern) async {
-    if (widget.asyncSuggestionsCallback != null) {
+  List<T> _filterSelected(List<T> items) {
+    return items.where((option) => !_selected.contains(option)).toList();
+  }
+
+  Future<List<T>> _getSuggestions(String pattern) async {
+    if (_isAsyncMode) {
       if (pattern.trim().length < widget.minCharsForAsyncSearch) {
         return [];
       }
 
       try {
         final asyncResults = await widget.asyncSuggestionsCallback!(pattern);
-        return asyncResults
-            .where((option) => !_selected.contains(option))
-            .toList();
+        return _filterSelected(asyncResults);
       } catch (e) {
         debugPrint('Error fetching async suggestions: $e');
         return [];
       }
     }
 
-    return widget.allOptions
+    // Local filtering - allOptions and itemToString are guaranteed by assertion
+    final toString = widget.itemToString!;
+    final options = widget.allOptions!;
+    final filtered = options
         .where(
           (option) =>
-              option.toLowerCase().contains(pattern.toLowerCase()) &&
-              !_selected.contains(option),
+              toString(option).toLowerCase().contains(pattern.toLowerCase()),
         )
         .take(widget.maxSuggestions)
         .toList();
+    return _filterSelected(filtered);
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasMetaOptionSelected = widget.selectedMetaOption != null;
+
+    // Determine display text
+    String displayText;
+    if (hasMetaOptionSelected && widget.metaOptions != null) {
+      // Find the label for the selected meta option
+      final selectedMeta = widget.metaOptions!
+          .firstWhere((opt) => opt.value == widget.selectedMetaOption);
+      displayText = '${widget.title} (${selectedMeta.label})';
+    } else {
+      displayText = '${widget.title} (${_selected.length} selected)';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ComboboxHeader(
-          title: widget.title,
-          selectedCount: _selected.length,
+          title: displayText,
           isExpanded: _isExpanded,
           onTap: () => setState(() => _isExpanded = !_isExpanded),
         ),
         if (_isExpanded) ...[
           const SizedBox(height: 8),
-          _ComboboxSearchField(
+          // Meta options (if provided)
+          if (widget.metaOptions != null) ...[
+            _MetaOptionsRow(
+              metaOptions: widget.metaOptions!,
+              selectedMetaOption: widget.selectedMetaOption,
+              onMetaOptionChanged: (value) {
+                // Clear regular selections when meta option is selected
+                if (value != null && _selected.isNotEmpty) {
+                  for (final item in _selected.toList()) {
+                    widget.onChanged(item, false);
+                  }
+                  setState(() {
+                    _selected.clear();
+                  });
+                }
+                // Notify parent of meta option change
+                widget.onMetaOptionChanged!(value);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+          _ComboboxSearchField<T>(
             controller: _controller,
             getSuggestions: _getSuggestions,
-            isAsync: widget.asyncSuggestionsCallback != null,
+            isAsync: _isAsyncMode,
             minCharsForSearch: widget.minCharsForAsyncSearch,
+            itemBuilder: _itemBuilder,
             onSelected: (suggestion) {
               setState(() {
                 _selected.add(suggestion);
                 widget.onChanged(suggestion, true);
                 _controller.clear();
               });
+              // Clear meta option when regular selection is made
+              if (widget.selectedMetaOption != null) {
+                widget.onMetaOptionChanged!(null);
+              }
             },
             onFocusNodeSet: (focusNode) {
               _typeAheadFocusNode = focusNode;
             },
           ),
           const SizedBox(height: 8),
-          _SelectedItemsList(
+          _SelectedItemsList<T>(
             selectedItems: _selected,
+            itemBuilder: _itemBuilder,
             onRemove: (option) {
               setState(() {
                 _selected.remove(option);
@@ -178,17 +292,65 @@ class MultiSelectComboboxState extends State<MultiSelectCombobox> {
   }
 }
 
+// Meta options row - mutually exclusive checkboxes
+class _MetaOptionsRow extends StatelessWidget {
+  const _MetaOptionsRow({
+    required this.metaOptions,
+    required this.selectedMetaOption,
+    required this.onMetaOptionChanged,
+  });
+
+  final List<MetaOption> metaOptions;
+  final dynamic selectedMetaOption;
+  final Function(dynamic) onMetaOptionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 16,
+      children: metaOptions.map((option) {
+        final isSelected = selectedMetaOption == option.value;
+        return InkWell(
+          onTap: () {
+            // Toggle: if already selected, deselect; otherwise select
+            onMetaOptionChanged(isSelected ? null : option.value);
+          },
+          borderRadius: BorderRadius.circular(4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                YaruCheckbox(
+                  value: isSelected,
+                  onChanged: (_) {
+                    onMetaOptionChanged(isSelected ? null : option.value);
+                  },
+                ),
+                Text(
+                  option.label,
+                  style: TextStyle(
+                    color: isSelected ? null : Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
 // Header with title, count, and expand/collapse button
 class _ComboboxHeader extends StatelessWidget {
   const _ComboboxHeader({
     required this.title,
-    required this.selectedCount,
     required this.isExpanded,
     required this.onTap,
   });
 
   final String title;
-  final int selectedCount;
   final bool isExpanded;
   final VoidCallback onTap;
 
@@ -206,7 +368,7 @@ class _ComboboxHeader extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '$title ($selectedCount selected)',
+                title,
                 style: const TextStyle(fontSize: 16),
               ),
             ),
@@ -219,7 +381,7 @@ class _ComboboxHeader extends StatelessWidget {
 }
 
 // Search field with TypeAhead functionality
-class _ComboboxSearchField extends StatelessWidget {
+class _ComboboxSearchField<T> extends StatelessWidget {
   const _ComboboxSearchField({
     required this.controller,
     required this.getSuggestions,
@@ -227,21 +389,23 @@ class _ComboboxSearchField extends StatelessWidget {
     required this.minCharsForSearch,
     required this.onSelected,
     required this.onFocusNodeSet,
+    required this.itemBuilder,
   });
 
   final TextEditingController controller;
-  final Future<List<String>> Function(String) getSuggestions;
+  final Future<List<T>> Function(String) getSuggestions;
   final bool isAsync;
   final int minCharsForSearch;
-  final Function(String) onSelected;
+  final Function(T) onSelected;
   final Function(FocusNode) onFocusNodeSet;
+  final Widget Function(T item) itemBuilder;
 
   @override
   Widget build(BuildContext context) {
-    return TypeAheadField<String>(
+    return TypeAheadField<T>(
       suggestionsCallback: getSuggestions,
       itemBuilder: (context, suggestion) {
-        return ListTile(title: Text(suggestion));
+        return ListTile(title: itemBuilder(suggestion));
       },
       onSelected: onSelected,
       builder: (context, controller, focusNode) {
@@ -290,14 +454,16 @@ class _ComboboxSearchField extends StatelessWidget {
 }
 
 // List of selected items with checkboxes for removal
-class _SelectedItemsList extends StatelessWidget {
+class _SelectedItemsList<T> extends StatelessWidget {
   const _SelectedItemsList({
     required this.selectedItems,
     required this.onRemove,
+    required this.itemBuilder,
   });
 
-  final Set<String> selectedItems;
-  final Function(String) onRemove;
+  final Set<T> selectedItems;
+  final Function(T) onRemove;
+  final Widget Function(T item) itemBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -309,16 +475,7 @@ class _SelectedItemsList extends StatelessWidget {
               value: true,
               onChanged: (_) => onRemove(option),
             ),
-            Flexible(
-              child: Tooltip(
-                message: option,
-                child: Text(
-                  option,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
+            Flexible(child: itemBuilder(option)),
           ],
         );
       }).toList(),

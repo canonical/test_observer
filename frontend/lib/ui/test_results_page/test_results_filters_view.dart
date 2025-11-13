@@ -21,12 +21,15 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/execution_metadata.dart';
 import '../../models/family_name.dart';
+import '../../models/issue.dart';
 import '../../models/test_result.dart';
 import '../../models/test_results_filters.dart';
 import '../../providers/execution_metadata.dart';
+import '../../providers/issues.dart';
 import '../../providers/test_results_artefacts.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
+import '../issues.dart';
 import '../page_filters/date_time_selector.dart';
 import '../page_filters/multi_select_combobox.dart';
 import '../spacing.dart';
@@ -34,6 +37,7 @@ import '../spacing.dart';
 enum FilterType {
   families,
   testResultStatuses,
+  issues,
   artefacts,
   environments,
   testCases,
@@ -63,7 +67,7 @@ class TestResultsFiltersView extends ConsumerStatefulWidget {
 
 class _TestResultsFiltersViewState
     extends ConsumerState<TestResultsFiltersView> {
-  static const double _comboWidth = 260;
+  static const double _comboWidth = 350;
   static const double _controlHeight = 48;
 
   late TestResultsFilters _selectedFilters;
@@ -107,6 +111,30 @@ class _TestResultsFiltersViewState
     }
   }
 
+  Widget _buildIssueDisplay(Issue issue) {
+    return Padding(
+      padding: const EdgeInsets.all(Spacing.level3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        spacing: Spacing.level2,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            spacing: Spacing.level3,
+            children: [
+              IssueSourceWidget(source: issue.source),
+              IssueProjectWidget(project: issue.project),
+              IssueLinkWidget(issue: issue),
+            ],
+          ),
+          IssueTitleWidget(issue: issue),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
@@ -122,9 +150,10 @@ class _TestResultsFiltersViewState
       children: [
         if (_isFilterEnabled(FilterType.families))
           _box(
-            MultiSelectCombobox(
+            MultiSelectCombobox<String>(
               title: 'Family',
               allOptions: allFamilyOptions,
+              itemToString: (family) => family,
               initialSelected: _selectedFilters.families.toSet(),
               onChanged: (val, isSelected) {
                 setState(() {
@@ -141,9 +170,10 @@ class _TestResultsFiltersViewState
           ),
         if (_isFilterEnabled(FilterType.testResultStatuses))
           _box(
-            MultiSelectCombobox(
+            MultiSelectCombobox<String>(
               title: 'Status',
               allOptions: allTestResultStatusesOptions,
+              itemToString: (status) => status,
               initialSelected: _selectedFilters.testResultStatuses
                   .map((s) => s.name)
                   .toSet(),
@@ -162,11 +192,110 @@ class _TestResultsFiltersViewState
               },
             ),
           ),
+        if (_isFilterEnabled(FilterType.issues))
+          _box(
+            Builder(
+              builder: (context) {
+                // Extract current state from IssuesFilter union
+                String? selectedMetaOption;
+                Set<int> selectedIssueIds = {};
+
+                if (_selectedFilters.issues.isAny) {
+                  selectedMetaOption = 'any';
+                } else if (_selectedFilters.issues.isNone) {
+                  selectedMetaOption = 'none';
+                } else {
+                  selectedIssueIds = _selectedFilters.issues.issuesList.toSet();
+                }
+
+                return MultiSelectCombobox<int>(
+                  title: 'Issues',
+                  metaOptions: const [
+                    MetaOption(value: 'any', label: 'Has any issue'),
+                    MetaOption(value: 'none', label: 'Has no issues'),
+                  ],
+                  selectedMetaOption: selectedMetaOption,
+                  onMetaOptionChanged: (value) {
+                    setState(() {
+                      if (value == 'any') {
+                        _selectedFilters = _selectedFilters.copyWith(
+                          issues: const IssuesFilter.any(),
+                        );
+                      } else if (value == 'none') {
+                        _selectedFilters = _selectedFilters.copyWith(
+                          issues: const IssuesFilter.none(),
+                        );
+                      } else {
+                        // Cleared - go back to list mode
+                        _selectedFilters = _selectedFilters.copyWith(
+                          issues: const IssuesFilter.list([]),
+                        );
+                      }
+                      _notifyChanged(_selectedFilters);
+                    });
+                  },
+                  asyncSuggestionsCallback: (pattern) async {
+                    final issues = await ref.read(
+                      issuesProvider(
+                        q: pattern,
+                        limit: 10,
+                      ).future,
+                    );
+                    return issues.map((issue) => issue.id).toList();
+                  },
+                  itemBuilder: (issueId) {
+                    // Use Consumer to load issue from cache
+                    return Consumer(
+                      builder: (context, ref, child) {
+                        final issue = ref.watch(simpleIssueProvider(issueId));
+
+                        // If not in cache, fetch it
+                        if (issue == null) {
+                          // Trigger fetch and show loading
+                          ref
+                              .read(simpleIssueProvider(issueId).notifier)
+                              .fetchIfNeeded();
+                          return const Padding(
+                            padding: EdgeInsets.all(Spacing.level3),
+                            child: Center(
+                              child: YaruCircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return _buildIssueDisplay(issue);
+                      },
+                    );
+                  },
+                  initialSelected: selectedIssueIds,
+                  onChanged: (issueId, isSelected) {
+                    setState(() {
+                      final currentIssueIds =
+                          _selectedFilters.issues.issuesList;
+                      final newIssueIds = Set<int>.from(currentIssueIds);
+
+                      if (isSelected) {
+                        newIssueIds.add(issueId);
+                      } else {
+                        newIssueIds.remove(issueId);
+                      }
+
+                      _selectedFilters = _selectedFilters.copyWith(
+                        issues: IssuesFilter.list(newIssueIds.toList()),
+                      );
+                      _notifyChanged(_selectedFilters);
+                    });
+                  },
+                );
+              },
+            ),
+          ),
         if (_isFilterEnabled(FilterType.artefacts))
           _box(
-            MultiSelectCombobox(
+            MultiSelectCombobox<String>(
               title: 'Artefact',
-              allOptions: const [],
               initialSelected: _selectedFilters.artefacts.toSet(),
               asyncSuggestionsCallback: (pattern) async {
                 return await ref.read(
@@ -192,9 +321,8 @@ class _TestResultsFiltersViewState
           ),
         if (_isFilterEnabled(FilterType.environments))
           _box(
-            MultiSelectCombobox(
+            MultiSelectCombobox<String>(
               title: 'Environment',
-              allOptions: const [],
               initialSelected: _selectedFilters.environments.toSet(),
               asyncSuggestionsCallback: (pattern) async {
                 return await ref.read(
@@ -220,9 +348,8 @@ class _TestResultsFiltersViewState
           ),
         if (_isFilterEnabled(FilterType.testCases))
           _box(
-            MultiSelectCombobox(
+            MultiSelectCombobox<String>(
               title: 'Test Case',
-              allOptions: const [],
               initialSelected: _selectedFilters.testCases.toSet(),
               asyncSuggestionsCallback: (pattern) async {
                 return await ref.read(
@@ -247,9 +374,10 @@ class _TestResultsFiltersViewState
           ),
         if (_isFilterEnabled(FilterType.metadata))
           _box(
-            MultiSelectCombobox(
+            MultiSelectCombobox<String>(
               title: 'Metadata',
               allOptions: executionMetadata.toStrings(),
+              itemToString: (metadata) => metadata,
               initialSelected:
                   _selectedFilters.executionMetadata.toStrings().toSet(),
               onChanged: (val, isSelected) {

@@ -20,25 +20,68 @@ import 'api.dart';
 
 part 'issues.g.dart';
 
+// Simple cache for Issue objects (not IssueWithContext)
+// This allows us to display issues without fetching full context
+@Riverpod(keepAlive: true)
+class SimpleIssue extends _$SimpleIssue {
+  @override
+  Issue? build(int id) {
+    // Return null initially - will be populated from search or fetched
+    return null;
+  }
+
+  void setIssue(Issue issue) {
+    state = issue;
+  }
+
+  Future<Issue> fetchIfNeeded() async {
+    if (state != null) return state!;
+
+    // Fetch from API if not in cache
+    final api = ref.read(apiProvider);
+    final issueWithContext = await api.getIssue(id);
+    final issue = issueWithContext.toIssue();
+    state = issue;
+    return issue;
+  }
+}
+
 @Riverpod(keepAlive: true)
 class Issues extends _$Issues {
   @override
-  Future<List<Issue>> build() async {
+  Future<List<Issue>> build({
+    String? source,
+    String? project,
+    int? limit,
+    int? offset,
+    String? q,
+  }) async {
     final api = ref.watch(apiProvider);
-    return await api.getIssues();
+    final issues = await api.getIssues(
+      source: source,
+      project: project,
+      limit: limit,
+      offset: offset,
+      q: q,
+    );
+
+    // Populate the simple issue cache with these results
+    for (final issue in issues) {
+      ref.read(simpleIssueProvider(issue.id).notifier).setIssue(issue);
+    }
+
+    return issues;
   }
 
   Future<Issue> createIssue({
     required String url,
     String? title,
-    String? description,
     String? status,
   }) async {
     final api = ref.read(apiProvider);
     final newIssue = await api.createIssue(
       url: url,
       title: title,
-      description: description,
       status: status,
     );
     final issues = await future;
