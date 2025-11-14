@@ -41,23 +41,36 @@ class TestResultHelpers {
   static void navigateToTestExecution(TestResultWithContext result) {
     final testExecution = result.testExecution;
     final artefact = result.artefact;
+    final testResult = result.testResult;
     final environment = testExecution.environment;
 
     final family = artefact.family;
     final artefactId = artefact.id;
     final testPlan = testExecution.testPlan.trim().isNotEmpty
         ? testExecution.testPlan
-        : 'unknown'; // there exists test results without test plans
+        : 'unknown';
 
     final environmentName = environment.name;
+    final testExecutionId = testExecution.id;
+    final testResultId = testResult.id;
 
     final currentUri = Uri.base;
 
-    final encodedTestPlan = Uri.encodeQueryComponent(testPlan);
-    final encodedEnvironment = Uri.encodeQueryComponent(environmentName);
+    final queryParams = {
+      'Test plan': testPlan,
+      'Environment': environmentName,
+      'testExecutionId': testExecutionId.toString(),
+      'testResultId': testResultId.toString(),
+    };
 
-    final fragment =
-        '/${family}s/$artefactId?Test plan=$encodedTestPlan&Environment=$encodedEnvironment';
+    final encodedParams = queryParams.entries
+        .map(
+          (e) =>
+              '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}',
+        )
+        .join('&');
+
+    final fragment = '/${family}s/$artefactId?$encodedParams';
 
     final targetUri = currentUri.replace(fragment: fragment);
 

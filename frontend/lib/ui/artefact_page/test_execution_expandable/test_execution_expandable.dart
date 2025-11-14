@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/test_execution.dart';
 import '../../../models/test_result.dart';
+import '../../../routing.dart';
 import '../../expandable.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
@@ -42,6 +43,11 @@ class TestExecutionExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pageUri = AppRoutes.uriFromContext(context);
+    final testResultIdString = pageUri.queryParameters['testResultId'];
+    final testResultIdToExpand =
+        testResultIdString != null ? int.tryParse(testResultIdString) : null;
+
     return Expandable(
       initiallyExpanded: initiallyExpanded,
       title: _TestExecutionTileTitle(
@@ -67,6 +73,7 @@ class TestExecutionExpandable extends ConsumerWidget {
                     statusToFilterBy: status,
                     testExecutionId: testExecution.id,
                     artefactId: artefactId,
+                    testResultIdToExpand: testResultIdToExpand,
                   ),
                 )
                 .toList(),
