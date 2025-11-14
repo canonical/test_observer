@@ -35,6 +35,7 @@ from test_observer.data_access.models_enums import (
     CharmStage,
     ImageStage,
     TestExecutionStatus,
+    FamilyName,
 )
 from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
@@ -171,7 +172,13 @@ class TestFamilyIndependentTests:
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        user = generator.gen_user(is_reviewer=True)
+        # Create a team that can review all families
+        team = generator.gen_team(
+            name="reviewers",
+            reviewer_families=["snap", "deb", "charm", "image"]
+        )
+        # User is member of this team
+        user = generator.gen_user(teams=[team])
 
         response = execute({**start_request, "needs_assignment": True})
 
@@ -184,6 +191,7 @@ class TestFamilyIndependentTests:
     def test_only_a_reviewer_user_is_assigned(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
+        # User with no team or team with no families cannot be assigned
         generator.gen_user()
 
         response = execute({**start_request, "needs_assignment": True})
@@ -498,3 +506,167 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     response = execute(request)
 
     assert response.status_code == 422
+
+
+def test_charm_assigned_to_sqa_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Charms should be assigned to reviewers whose teams can review charms"""
+    # Create teams with different families
+    sqa_team = generator.gen_team(
+        name="sqa",
+        reviewer_families=["charm"],
+    )
+    cert_team = generator.gen_team(
+        name="cert",
+        reviewer_families=["snap", "deb", "image"],
+    )
+    
+    # Create users in these teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        teams=[sqa_team],
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        teams=[cert_team],
+    )
+
+    # Execute a charm test
+    response = execute({**charm_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    # Check that assignee is in sqa_team
+    assert any(team.id == sqa_team.id for team in assignee.teams)
+    assert assignee.id == sqa_reviewer.id
+
+
+def test_snap_assigned_to_cert_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Snaps should be assigned to reviewers whose teams can review snaps"""
+    # Create teams with different families
+    sqa_team = generator.gen_team(
+        name="sqa",
+        reviewer_families=["charm"],
+    )
+    cert_team = generator.gen_team(
+        name="cert",
+        reviewer_families=["snap", "deb", "image"],
+    )
+    
+    # Create users in these teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        teams=[sqa_team],
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        teams=[cert_team],
+    )
+
+    # Execute a snap test
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert any(team.id == cert_team.id for team in assignee.teams)
+    assert assignee.id == cert_reviewer.id
+
+
+def test_deb_assigned_to_cert_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Debs should be assigned to reviewers whose teams can review debs"""
+    # Create teams with different families
+    sqa_team = generator.gen_team(
+        name="sqa",
+        reviewer_families=["charm"],
+    )
+    cert_team = generator.gen_team(
+        name="cert",
+        reviewer_families=["snap", "deb", "image"],
+    )
+    
+    # Create users in these teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        teams=[sqa_team],
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        teams=[cert_team],
+    )
+
+    # Execute a deb test
+    response = execute({**deb_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert any(team.id == cert_team.id for team in assignee.teams)
+    assert assignee.id == cert_reviewer.id
+
+
+def test_image_assigned_to_cert_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Images should be assigned to reviewers whose teams can review images"""
+    # Create teams with different families
+    sqa_team = generator.gen_team(
+        name="sqa",
+        reviewer_families=["charm"],
+    )
+    cert_team = generator.gen_team(
+        name="cert",
+        reviewer_families=["snap", "deb", "image"],
+    )
+    
+    # Create users in these teams
+    sqa_reviewer = generator.gen_user(
+        email="sqa@example.com",
+        teams=[sqa_team],
+    )
+    cert_reviewer = generator.gen_user(
+        email="cert@example.com",
+        teams=[cert_team],
+    )
+
+    # Execute an image test
+    response = execute({**image_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert any(team.id == cert_team.id for team in assignee.teams)
+    assert assignee.id == cert_reviewer.id
+
+
+def test_no_assignment_when_no_team_reviewers_available(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When no teams can review the family, no assignment should occur"""
+    # Create a team that can only review charms
+    sqa_team = generator.gen_team(
+        name="sqa",
+        reviewer_families=["charm"],
+    )
+    generator.gen_user(
+        email="sqa@example.com",
+        teams=[sqa_team],
+    )
+
+    # Execute a snap test (no one can review snaps)
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is None

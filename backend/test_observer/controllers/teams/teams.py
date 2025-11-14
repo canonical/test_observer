@@ -69,6 +69,10 @@ def update_team(
 
     if request.permissions:
         team.permissions = [p.value for p in request.permissions]
-        db.commit()
+    
+    if request.reviewer_families is not None:
+        team.reviewer_families = request.reviewer_families
+    
+    db.commit()
 
     return team
