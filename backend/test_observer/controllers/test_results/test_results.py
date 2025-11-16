@@ -54,7 +54,7 @@ def parse_execution_metadata(
         None,
         description=(
             "Filter by execution metadata (category:value). "
-            "Category and value must be percent encoded."
+            "Category and value must be URL encoded."
         ),
     ),
 ) -> ExecutionMetadata | None:
@@ -62,19 +62,31 @@ def parse_execution_metadata(
         return None
     result = []
     for item in execution_metadata:
-        if item.count(":") != 1:
+        colon_index = item.find(":")
+        if colon_index == -1:
             raise HTTPException(
                 status_code=422,
                 detail=(
                     f"Invalid execution metadata format: '{item}'. "
-                    "Expected 'category:value' with a single colon."
+                    "Expected 'category:value' with at least one colon."
                 ),
             )
-        category, value = item.split(":")
+        category = urllib.parse.unquote(item[:colon_index])
+        value = urllib.parse.unquote(item[colon_index + 1 :])
+
+        if not category or not value:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Invalid execution metadata format: '{item}'. "
+                    "Both category and value must be non-empty."
+                ),
+            )
+
         result.append(
             TestExecutionMetadata(
-                category=urllib.parse.unquote(category),
-                value=urllib.parse.unquote(value),
+                category=category,
+                value=value,
             )
         )
     return ExecutionMetadata.from_rows(result)

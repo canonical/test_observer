@@ -63,10 +63,10 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
     for (final param in params ?? <String>[]) {
       final pairs = param.split(',').where((s) => s.isNotEmpty);
       for (final pair in pairs) {
-        final parts = pair.split(':');
-        if (parts.length == 2) {
-          final category = Uri.decodeComponent(parts[0]);
-          final value = Uri.decodeComponent(parts[1]);
+        final colonIndex = pair.indexOf(':');
+        if (colonIndex != -1) {
+          final category = pair.substring(0, colonIndex);
+          final value = pair.substring(colonIndex + 1);
           if (category.isNotEmpty && value.isNotEmpty) {
             rows.add((category, value));
           }
@@ -77,12 +77,7 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
   }
 
   List<String> toQueryParams() {
-    return toRows()
-        .map(
-          (row) =>
-              '${Uri.encodeComponent(row.$1)}:${Uri.encodeComponent(row.$2)}',
-        )
-        .toList();
+    return toRows().map((row) => '${row.$1}:${row.$2}').toList();
   }
 
   List<String> toStrings() {
