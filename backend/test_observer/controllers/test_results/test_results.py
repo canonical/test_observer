@@ -126,11 +126,7 @@ def search_test_results(
     the total count and paginated results in one database round trip.
     """
     # Build the filters
-    issues_filter: list[int] | Literal[QueryValue.ANY] | Literal[QueryValue.NONE]
-    if issues and len(issues) > 0 and isinstance(issues[0], QueryValue):
-        issues_filter = issues[0]
-    else:
-        issues_filter = issues or []  # type: ignore[assignment]
+    issues_filter = issues[0] if issues and len(issues) > 0 and isinstance(issues[0], QueryValue) else issues or []  # type: ignore[assignment]
 
     filters = TestResultSearchFilters(
         families=families or [],
