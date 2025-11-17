@@ -406,10 +406,20 @@ class TestSearchTestResults:
         # Should include test result without issue
         assert test_result_without_issue.id in result_ids
 
-    def test_search_by_issues_any_and_none_conflict(self, test_client: TestClient):
-        """Test that using both issues=any and issues=none returns an error"""
+    @pytest.mark.parametrize(
+        "query_params",
+        [
+            "issues=any&issues=none",
+            "issues=1&issues=none",
+            "issues=1&issues=any",
+        ],
+    )
+    def test_search_by_issues_conflicting_params(
+        self, test_client: TestClient, query_params: str
+    ):
+        """Test that using conflicting issue parameters returns an error"""
         response = make_authenticated_request(
-            lambda: test_client.get("/v1/test-results?issues=any&issues=none"),
+            lambda: test_client.get(f"/v1/test-results?{query_params}"),
             Permission.view_test,
         )
 
