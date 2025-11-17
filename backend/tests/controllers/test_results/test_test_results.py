@@ -406,6 +406,16 @@ class TestSearchTestResults:
         # Should include test result without issue
         assert test_result_without_issue.id in result_ids
 
+    def test_search_by_issues_any_and_none_conflict(self, test_client: TestClient):
+        """Test that using both issues=any and issues=none returns an error"""
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?issues=any&issues=none"),
+            Permission.view_test,
+        )
+
+        # Should return 422 for conflicting parameters
+        assert response.status_code == 422
+
     def test_search_by_execution_metadata(
         self, test_client: TestClient, generator: DataGenerator
     ):
