@@ -5820,11 +5820,10 @@
               },
               {
                 "type": "string",
-                "const": "any"
-              },
-              {
-                "type": "string",
-                "const": "none"
+                "enum": [
+                  "any",
+                  "none"
+                ]
               }
             ],
             "title": "Issues"
