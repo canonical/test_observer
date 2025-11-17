@@ -48,17 +48,13 @@ def get_artefact_builds(
                 selectinload(TestExecution.environment),
                 selectinload(TestExecution.rerun_request),
                 selectinload(TestExecution.relevant_links),
-                selectinload(TestExecution.test_results).selectinload(
-                    TestResult.issue_attachments
-                ),
+                selectinload(TestExecution.test_results).selectinload(TestResult.issue_attachments),
             )
         )
     ),
 ):
     """Get latest artefact builds of an artefact together with their test executions"""
     for artefact_build in artefact.latest_builds:
-        artefact_build.test_executions.sort(
-            key=lambda test_execution: test_execution.environment.name
-        )
+        artefact_build.test_executions.sort(key=lambda test_execution: test_execution.environment.name)
 
     return artefact.latest_builds

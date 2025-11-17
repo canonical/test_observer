@@ -26,9 +26,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/teams"), Permission.view_team
-    )
+    response = make_authenticated_request(lambda: test_client.get("/v1/teams"), Permission.view_team)
 
     assert response.status_code == 200
     assert response.json() == [
@@ -54,9 +52,7 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(permissions=["create_artefact"], members=[user])
 
-    response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team
-    )
+    response = make_authenticated_request(lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team)
 
     assert response.status_code == 200
     assert response.json() == {

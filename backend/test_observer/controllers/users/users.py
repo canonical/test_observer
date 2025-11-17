@@ -25,7 +25,6 @@ from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
-
 router = APIRouter(tags=["users"])
 
 

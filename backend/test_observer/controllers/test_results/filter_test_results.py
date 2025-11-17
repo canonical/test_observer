@@ -14,23 +14,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sqlalchemy import and_, select, exists, true, Select
-
+from sqlalchemy import Select, and_, exists, select, true
 
 from test_observer.common.constants import QueryValue
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    ColumnElement,
     Environment,
     IssueTestResultAttachment,
     TestCase,
     TestExecution,
-    TestResult,
     TestExecutionMetadata,
-    ColumnElement,
+    TestResult,
+    test_execution_metadata_association_table,
 )
-from test_observer.data_access.models import test_execution_metadata_association_table
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 from .models import (
     TestResultSearchFilters,
@@ -46,12 +45,10 @@ def filter_execution_metadata(
         subq = select(true()).select_from(test_execution_metadata_association_table)
         subq = subq.join(
             TestExecutionMetadata,
-            test_execution_metadata_association_table.c.test_execution_metadata_id
-            == TestExecutionMetadata.id,
+            test_execution_metadata_association_table.c.test_execution_metadata_id == TestExecutionMetadata.id,
         )
         subq = subq.where(
-            test_execution_metadata_association_table.c.test_execution_id
-            == TestExecution.id,
+            test_execution_metadata_association_table.c.test_execution_id == TestExecution.id,
             TestExecutionMetadata.category == category,
             TestExecutionMetadata.value.in_(values),
         )

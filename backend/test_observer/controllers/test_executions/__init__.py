@@ -22,10 +22,10 @@ from . import (
     get_test_results,
     patch,
     post_results,
+    relevant_links,
     reruns,
     start_test,
     status_update,
-    relevant_links,
 )
 
 router = APIRouter(tags=["test-executions"])

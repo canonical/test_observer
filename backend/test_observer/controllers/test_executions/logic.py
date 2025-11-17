@@ -35,9 +35,7 @@ def delete_previous_results(
     db: Session,
     test_execution: TestExecution,
 ):
-    db.execute(
-        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
-    )
+    db.execute(delete(TestResult).where(TestResult.test_execution_id == test_execution.id))
     db.commit()
 
 
@@ -45,9 +43,7 @@ def delete_previous_test_events(
     db: Session,
     test_execution: TestExecution,
 ):
-    db.execute(
-        delete(TestEvent).where(TestEvent.test_execution_id == test_execution.id)
-    )
+    db.execute(delete(TestEvent).where(TestEvent.test_execution_id == test_execution.id))
     db.commit()
 
 

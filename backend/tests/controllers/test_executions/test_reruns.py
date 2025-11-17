@@ -26,9 +26,9 @@ from httpx import Response
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
-from test_observer.data_access.models_enums import StageName, FamilyName
-from tests.data_generator import DataGenerator
+from test_observer.data_access.models_enums import FamilyName, StageName
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
 
@@ -89,8 +89,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "ci_link": test_execution.ci_link,
             "c3_link": test_execution.c3_link,
             "relevant_links": [
-                {"id": link.id, "label": link.label, "url": link.url}
-                for link in test_execution.relevant_links
+                {"id": link.id, "label": link.label, "url": link.url} for link in test_execution.relevant_links
             ],
             "environment": {
                 "id": test_execution.environment.id,
@@ -126,16 +125,12 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "assignee": test_execution.artefact_build.artefact.assignee,
             "due_date": test_execution.artefact_build.artefact.due_date,
             "bug_link": test_execution.artefact_build.artefact.bug_link,
-            "all_environment_reviews_count": (
-                test_execution.artefact_build.artefact.all_environment_reviews_count
-            ),
+            "all_environment_reviews_count": (test_execution.artefact_build.artefact.all_environment_reviews_count),
             "completed_environment_reviews_count": (
                 test_execution.artefact_build.artefact.completed_environment_reviews_count
             ),
             "family": test_execution.artefact_build.artefact.family,
-            "created_at": (
-                test_execution.artefact_build.artefact.created_at.isoformat()
-            ),
+            "created_at": (test_execution.artefact_build.artefact.created_at.isoformat()),
         },
         "artefact_build": {
             "id": test_execution.artefact_build.id,
@@ -184,9 +179,7 @@ def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution)
     assert get().json() == [test_execution_to_pending_rerun(test_execution)]
 
 
-def test_get_after_two_identical_posts(
-    get: Get, post: Post, test_execution: TestExecution
-):
+def test_get_after_two_identical_posts(get: Get, post: Post, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
 
     post({"test_execution_ids": [test_execution.id]})
@@ -195,9 +188,7 @@ def test_get_after_two_identical_posts(
     assert get().json() == [test_execution_to_pending_rerun(test_execution)]
 
 
-def test_get_after_two_different_posts(
-    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
-):
+def test_get_after_two_different_posts(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
     te1.ci_link = "ci1.link"
 
@@ -213,9 +204,7 @@ def test_get_after_two_different_posts(
     ]
 
 
-def test_get_after_post_with_two_test_execution_ids(
-    get: Get, post: Post, generator: DataGenerator
-):
+def test_get_after_post_with_two_test_execution_ids(get: Get, post: Post, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("e1")
@@ -231,9 +220,7 @@ def test_get_after_post_with_two_test_execution_ids(
     ]
 
 
-def test_get_with_limit(
-    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
-):
+def test_get_with_limit(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
     te2 = generator.gen_test_execution(te1.artefact_build, te1.environment)
 
@@ -243,9 +230,7 @@ def test_get_with_limit(
     assert get(limit=1).json() == [test_execution_to_pending_rerun(te1)]
 
 
-def test_get_with_family(
-    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
-):
+def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
     a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
     ab = generator.gen_artefact_build(a)
@@ -260,9 +245,7 @@ def test_get_with_family(
     assert get(family=FamilyName.image).json() == []
 
 
-def test_post_delete_get(
-    get: Get, post: Post, delete: Delete, test_execution: TestExecution
-):
+def test_post_delete_get(get: Get, post: Post, delete: Delete, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
     post({"test_execution_ids": [test_execution.id]})
     response = delete({"test_execution_ids": [test_execution.id]})
@@ -271,9 +254,7 @@ def test_post_delete_get(
     assert get().json() == []
 
 
-def test_rerun_preserves_ci_and_relevant_links(
-    get: Get, post: Post, generator: DataGenerator
-):
+def test_rerun_preserves_ci_and_relevant_links(get: Get, post: Post, generator: DataGenerator):
     environment = generator.gen_environment()
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)

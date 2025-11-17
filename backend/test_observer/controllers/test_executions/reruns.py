@@ -17,17 +17,17 @@
 
 import contextlib
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Security
-from sqlalchemy import delete, select, asc
+from fastapi import APIRouter, Depends, HTTPException, Response, Security, status
+from sqlalchemy import asc, delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
+    Artefact,
     ArtefactBuild,
+    FamilyName,
     TestExecution,
     TestExecutionRerunRequest,
-    Artefact,
-    FamilyName,
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
@@ -42,9 +42,7 @@ router = APIRouter()
     response_model=list[PendingRerun],
     dependencies=[Security(permission_checker, scopes=[Permission.change_rerun])],
 )
-def create_rerun_requests(
-    request: RerunRequest, response: Response, db: Session = Depends(get_db)
-):
+def create_rerun_requests(request: RerunRequest, response: Response, db: Session = Depends(get_db)):
     rerun_requests = []
     for test_execution_id in request.test_execution_ids:
         with contextlib.suppress(_TestExecutionNotFound):
@@ -62,9 +60,7 @@ def create_rerun_requests(
     return rerun_requests
 
 
-def _create_rerun_request(
-    test_execution_id: int, db: Session
-) -> TestExecutionRerunRequest:
+def _create_rerun_request(test_execution_id: int, db: Session) -> TestExecutionRerunRequest:
     te = db.get(TestExecution, test_execution_id)
     if not te:
         raise _TestExecutionNotFound
@@ -92,12 +88,8 @@ def get_rerun_requests(
             .selectinload(TestExecution.artefact_build)
             .selectinload(ArtefactBuild.artefact)
             .selectinload(Artefact.assignee),
-            selectinload(TestExecutionRerunRequest.test_execution).selectinload(
-                TestExecution.environment
-            ),
-            selectinload(TestExecutionRerunRequest.test_execution).selectinload(
-                TestExecution.relevant_links
-            ),
+            selectinload(TestExecutionRerunRequest.test_execution).selectinload(TestExecution.environment),
+            selectinload(TestExecutionRerunRequest.test_execution).selectinload(TestExecution.relevant_links),
         )
         .order_by(asc(TestExecutionRerunRequest.created_at))
     )

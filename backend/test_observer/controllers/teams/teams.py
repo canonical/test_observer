@@ -23,7 +23,6 @@ from test_observer.controllers.teams.models import TeamPatch, TeamResponse
 from test_observer.data_access.models import Team
 from test_observer.data_access.setup import get_db
 
-
 router: APIRouter = APIRouter(tags=["teams"])
 
 

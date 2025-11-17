@@ -20,10 +20,10 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.controllers.test_executions.models import TestResultRequest
 from test_observer.controllers.issues.attachment_rules_logic import (
     apply_test_result_attachment_rules,
 )
+from test_observer.controllers.test_executions.models import TestResultRequest
 from test_observer.data_access.models import TestCase, TestExecution, TestResult
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
