@@ -235,7 +235,7 @@ class _DialogSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        SelectableText(
           title,
           style: const TextStyle(
             fontSize: 16,
@@ -270,7 +270,7 @@ class _DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 200,
-            child: Text(
+            child: SelectableText(
               '$label:',
               style: const TextStyle(
                 fontWeight: FontWeight.w500,
@@ -280,7 +280,7 @@ class _DetailRow extends StatelessWidget {
           ),
           Expanded(
             child: valueWidget ??
-                Text(
+                SelectableText(
                   value ?? 'N/A',
                   style: const TextStyle(color: Colors.black),
                 ),
@@ -306,10 +306,10 @@ class _LogContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Text(
+      child: SelectableText(
         logContent,
         style: const TextStyle(
-          fontFamily: 'monospace',
+          fontFamily: 'UbuntuMono',
           fontSize: 12,
         ),
       ),
