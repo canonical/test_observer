@@ -24,11 +24,13 @@ import '../../models/family_name.dart';
 import '../../models/issue.dart';
 import '../../models/test_result.dart';
 import '../../models/test_results_filters.dart';
+import '../../models/user.dart';
 import '../../providers/execution_metadata.dart';
 import '../../providers/issues.dart';
 import '../../providers/test_results_artefacts.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
+import '../../providers/users.dart';
 import '../issues.dart';
 import '../page_filters/date_time_selector.dart';
 import '../page_filters/multi_select_combobox.dart';
@@ -38,6 +40,7 @@ enum FilterType {
   families,
   testResultStatuses,
   issues,
+  assignees,
   artefacts,
   environments,
   testCases,
@@ -135,6 +138,31 @@ class _TestResultsFiltersViewState
     );
   }
 
+  Widget _buildUserDisplay(User user) {
+    final secondaryStyle = TextStyle(
+      fontSize: 12,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(Spacing.level3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        spacing: Spacing.level2,
+        children: [
+          Text(
+            user.name,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          if (user.launchpadHandle != null)
+            Text(user.launchpadHandle!, style: secondaryStyle),
+          Text(user.email, style: secondaryStyle),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
@@ -196,7 +224,7 @@ class _TestResultsFiltersViewState
           _box(
             Builder(
               builder: (context) {
-                // Extract current state from IssuesFilter union
+                // Extract current state from IntListFilter union
                 String? selectedMetaOption;
                 Set<int> selectedIssueIds = {};
 
@@ -205,7 +233,7 @@ class _TestResultsFiltersViewState
                 } else if (_selectedFilters.issues.isNone) {
                   selectedMetaOption = 'none';
                 } else {
-                  selectedIssueIds = _selectedFilters.issues.issuesList.toSet();
+                  selectedIssueIds = _selectedFilters.issues.values.toSet();
                 }
 
                 return MultiSelectCombobox<int>(
@@ -219,19 +247,30 @@ class _TestResultsFiltersViewState
                     setState(() {
                       if (value == 'any') {
                         _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IssuesFilter.any(),
+                          issues: const IntListFilter.any(),
                         );
+                        _notifyChanged(_selectedFilters);
                       } else if (value == 'none') {
                         _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IssuesFilter.none(),
+                          issues: const IntListFilter.none(),
                         );
+                        _notifyChanged(_selectedFilters);
                       } else {
-                        // Cleared - go back to list mode
-                        _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IssuesFilter.list([]),
-                        );
+                        // Clearing meta option - only reset to empty list if we don't already have items
+                        // (onChanged may have been called first when selecting an item)
+                        if (_selectedFilters.issues.isList &&
+                            _selectedFilters.issues.values.isEmpty) {
+                          _selectedFilters = _selectedFilters.copyWith(
+                            issues: const IntListFilter.list([]),
+                          );
+                        } else if (!_selectedFilters.issues.isList) {
+                          // Transition from any/none to list mode with empty list
+                          _selectedFilters = _selectedFilters.copyWith(
+                            issues: const IntListFilter.list([]),
+                          );
+                        }
+                        // If already in list mode with items, don't clear them
                       }
-                      _notifyChanged(_selectedFilters);
                     });
                   },
                   asyncSuggestionsCallback: (pattern) async {
@@ -272,8 +311,10 @@ class _TestResultsFiltersViewState
                   initialSelected: selectedIssueIds,
                   onChanged: (issueId, isSelected) {
                     setState(() {
-                      final currentIssueIds =
-                          _selectedFilters.issues.issuesList;
+                      // If currently in meta mode (any/none), start fresh when selecting items
+                      final currentIssueIds = _selectedFilters.issues.isList
+                          ? _selectedFilters.issues.values
+                          : <int>[];
                       final newIssueIds = Set<int>.from(currentIssueIds);
 
                       if (isSelected) {
@@ -283,7 +324,121 @@ class _TestResultsFiltersViewState
                       }
 
                       _selectedFilters = _selectedFilters.copyWith(
-                        issues: IssuesFilter.list(newIssueIds.toList()),
+                        issues: IntListFilter.list(newIssueIds.toList()),
+                      );
+                      _notifyChanged(_selectedFilters);
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.assignees))
+          _box(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                String? selectedMetaOption;
+                Set<int> selectedAssigneeIds = {};
+
+                if (_selectedFilters.assignees.isAny) {
+                  selectedMetaOption = 'any';
+                } else if (_selectedFilters.assignees.isNone) {
+                  selectedMetaOption = 'none';
+                } else {
+                  selectedAssigneeIds =
+                      _selectedFilters.assignees.values.toSet();
+                }
+
+                return MultiSelectCombobox<int>(
+                  title: 'Assignees',
+                  metaOptions: const [
+                    MetaOption(value: 'any', label: 'Has any assignee'),
+                    MetaOption(value: 'none', label: 'Has no assignee'),
+                  ],
+                  selectedMetaOption: selectedMetaOption,
+                  onMetaOptionChanged: (value) {
+                    setState(() {
+                      if (value == 'any') {
+                        _selectedFilters = _selectedFilters.copyWith(
+                          assignees: const IntListFilter.any(),
+                        );
+                        _notifyChanged(_selectedFilters);
+                      } else if (value == 'none') {
+                        _selectedFilters = _selectedFilters.copyWith(
+                          assignees: const IntListFilter.none(),
+                        );
+                        _notifyChanged(_selectedFilters);
+                      } else {
+                        // Clearing meta option - only reset to empty list if we don't already have items
+                        // (onChanged may have been called first when selecting an item)
+                        if (_selectedFilters.assignees.isList &&
+                            _selectedFilters.assignees.values.isEmpty) {
+                          _selectedFilters = _selectedFilters.copyWith(
+                            assignees: const IntListFilter.list([]),
+                          );
+                        } else if (!_selectedFilters.assignees.isList) {
+                          // Transition from any/none to list mode with empty list
+                          _selectedFilters = _selectedFilters.copyWith(
+                            assignees: const IntListFilter.list([]),
+                          );
+                        }
+                        // If already in list mode with items, don't clear them
+                      }
+                    });
+                  },
+                  asyncSuggestionsCallback: (pattern) async {
+                    final users = await ref.read(
+                      usersProvider(
+                        q: pattern,
+                        limit: 10,
+                      ).future,
+                    );
+                    return users.map((user) => user.id).toList();
+                  },
+                  itemBuilder: (userId) {
+                    // Use Consumer to load user from cache
+                    return Consumer(
+                      builder: (context, ref, child) {
+                        final user = ref.watch(simpleUserProvider(userId));
+
+                        // If not in cache, fetch it
+                        if (user == null) {
+                          // Trigger fetch and show loading
+                          ref
+                              .read(simpleUserProvider(userId).notifier)
+                              .fetchIfNeeded();
+                          return const Padding(
+                            padding: EdgeInsets.all(Spacing.level3),
+                            child: Center(
+                              child: YaruCircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return _buildUserDisplay(user);
+                      },
+                    );
+                  },
+                  initialSelected: selectedAssigneeIds,
+                  onChanged: (userId, isSelected) {
+                    setState(() {
+                      // If currently in meta mode (any/none), start fresh when selecting items
+                      final currentAssigneeIds =
+                          _selectedFilters.assignees.isList
+                              ? _selectedFilters.assignees.values
+                              : <int>[];
+                      final newAssigneeIds = Set<int>.from(currentAssigneeIds);
+
+                      if (isSelected) {
+                        newAssigneeIds.add(userId);
+                      } else {
+                        newAssigneeIds.remove(userId);
+                      }
+
+                      _selectedFilters = _selectedFilters.copyWith(
+                        assignees: IntListFilter.list(newAssigneeIds.toList()),
                       );
                       _notifyChanged(_selectedFilters);
                     });

@@ -30,7 +30,7 @@ AsyncValue<TestResultsSearchResult> issueTestResults(
   TestResultsFilters filters,
 ) {
   final finalFilters = filters.copyWith(
-    issues: IssuesFilter.list([
+    issues: IntListFilter.list([
       issueId,
     ]),
   );
