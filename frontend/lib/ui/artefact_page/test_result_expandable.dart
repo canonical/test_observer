@@ -103,7 +103,7 @@ class _TestResultOutputExpandable extends StatelessWidget {
             subtitle: SelectableText(
               testResult.ioLog,
               style: const TextStyle(
-                fontFamily: 'Courier New',
+                fontFamily: 'UbuntuMono',
                 fontSize: 12,
               ),
             ),

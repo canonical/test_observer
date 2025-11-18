@@ -309,7 +309,7 @@ class _LogContainer extends StatelessWidget {
       child: SelectableText(
         logContent,
         style: const TextStyle(
-          fontFamily: 'Courier New',
+          fontFamily: 'UbuntuMono',
           fontSize: 12,
         ),
       ),
