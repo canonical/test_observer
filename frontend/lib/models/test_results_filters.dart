@@ -125,7 +125,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       parseParam(parameters['issues']),
     );
     final assignees = IntListFilter.fromQueryParam(
-      parseParam(parameters['assignees']),
+      parseParam(parameters['assignee_ids']),
     );
     final fromDate = parseParam(parameters['from_date'])
         .map((s) => DateTime.tryParse(s))
@@ -187,7 +187,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
     final assigneesParam = assignees.toQueryParam();
     if (assigneesParam.isNotEmpty) {
-      params['assignees'] = assigneesParam;
+      params['assignee_ids'] = assigneesParam;
     }
     if (fromDate != null) {
       params['from_date'] = [fromDate!.toIso8601String()];
