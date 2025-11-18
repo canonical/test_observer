@@ -19,19 +19,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
-import '../../models/family_name.dart';
 import '../../models/execution_metadata.dart';
+import '../../models/family_name.dart';
+import '../../models/test_result.dart';
 import '../../models/test_results_filters.dart';
-import '../../providers/test_results_environments.dart';
-import '../../providers/test_results_test_cases.dart';
 import '../../providers/execution_metadata.dart';
 import '../../providers/test_results_artefacts.dart';
-import '../page_filters/multi_select_combobox.dart';
+import '../../providers/test_results_environments.dart';
+import '../../providers/test_results_test_cases.dart';
 import '../page_filters/date_time_selector.dart';
+import '../page_filters/multi_select_combobox.dart';
 import '../spacing.dart';
 
 enum FilterType {
   families,
+  testResultStatuses,
   artefacts,
   environments,
   testCases,
@@ -108,6 +110,8 @@ class _TestResultsFiltersViewState
   @override
   Widget build(BuildContext context) {
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
+    final allTestResultStatusesOptions =
+        TestResultStatus.values.map((s) => s.name).toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??
         ExecutionMetadata(data: {});
 
@@ -128,6 +132,29 @@ class _TestResultsFiltersViewState
                     families: [
                       ..._selectedFilters.families.where((f) => f != val),
                       if (isSelected) val,
+                    ],
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.testResultStatuses))
+          _box(
+            MultiSelectCombobox(
+              title: 'Status',
+              allOptions: allTestResultStatusesOptions,
+              initialSelected: _selectedFilters.testResultStatuses
+                  .map((s) => s.name)
+                  .toSet(),
+              onChanged: (val, isSelected) {
+                setState(() {
+                  final status = TestResultStatus.fromString(val);
+                  _selectedFilters = _selectedFilters.copyWith(
+                    testResultStatuses: [
+                      ..._selectedFilters.testResultStatuses
+                          .where((s) => s != status),
+                      if (isSelected) status,
                     ],
                   );
                   _notifyChanged(_selectedFilters);

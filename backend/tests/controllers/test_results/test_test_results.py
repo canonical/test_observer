@@ -21,6 +21,8 @@ import pytest
 
 from test_observer.data_access.models_enums import (
     FamilyName,
+    TestResultStatus,
+    TestExecutionStatus,
 )
 from test_observer.common.permissions import Permission
 
@@ -173,7 +175,7 @@ class TestSearchTestResults:
     def test_search_by_family(
         self, test_client: TestClient, generator: DataGenerator, family: FamilyName
     ):
-        """Parametric: the filter returns only results from the requested family."""
+        """the filter returns only results from the requested family"""
         env = generator.gen_environment()
         tc = generator.gen_test_case(
             name=generate_unique_name(f"family_{family.value}")
@@ -327,6 +329,102 @@ class TestSearchTestResults:
         result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
         assert test_result1.id in result_ids
         assert test_result2.id in result_ids
+
+    def test_search_by_issues_any(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by issues=any to find test results with any issue attached"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("issues_any"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result_with_issue = generator.gen_test_result(test_case, test_execution)
+        test_result_without_issue = generator.gen_test_result(test_case, test_execution)
+
+        # Create an issue and attach it to one test result
+        issue = generator.gen_issue()
+        attach_response = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue.id}/attach",
+                json={"test_results": [test_result_with_issue.id]},
+            ),
+            Permission.change_issue_attachment,
+        )
+        assert attach_response.status_code == 200
+
+        # Search for test results with any issue
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?issues=any"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+        # Should include test result with issue
+        assert test_result_with_issue.id in result_ids
+        # Should not include test result without issue
+        assert test_result_without_issue.id not in result_ids
+
+    def test_search_by_issues_none(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by issues=none (test results without any issue attached)"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("issues_none"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result_with_issue = generator.gen_test_result(test_case, test_execution)
+        test_result_without_issue = generator.gen_test_result(test_case, test_execution)
+
+        # Create an issue and attach it to one test result
+        issue = generator.gen_issue()
+        attach_response = make_authenticated_request(
+            lambda: test_client.post(
+                f"/v1/issues/{issue.id}/attach",
+                json={"test_results": [test_result_with_issue.id]},
+            ),
+            Permission.change_issue_attachment,
+        )
+        assert attach_response.status_code == 200
+
+        # Search for test results without any issue
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?issues=none"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+        # Should not include test result with issue
+        assert test_result_with_issue.id not in result_ids
+        # Should include test result without issue
+        assert test_result_without_issue.id in result_ids
+
+    @pytest.mark.parametrize(
+        "query_params",
+        [
+            "issues=any&issues=none",
+            "issues=1&issues=none",
+            "issues=1&issues=any",
+        ],
+    )
+    def test_search_by_issues_conflicting_params(
+        self, test_client: TestClient, query_params: str
+    ):
+        """Test that using conflicting issue parameters returns an error"""
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?{query_params}"),
+            Permission.view_test,
+        )
+
+        # Should return 422 for conflicting parameters
+        assert response.status_code == 422
 
     def test_search_by_execution_metadata(
         self, test_client: TestClient, generator: DataGenerator
@@ -986,6 +1084,279 @@ class TestSearchTestResults:
         # Should only include result matching both filters
         assert test_result.id in result_ids
         assert other_result.id not in result_ids
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            TestResultStatus.PASSED,
+            TestResultStatus.FAILED,
+            TestResultStatus.SKIPPED,
+        ],
+    )
+    def test_search_by_test_result_status(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        status: TestResultStatus,
+    ):
+        """The filter returns only results with the requested status"""
+        env = generator.gen_environment()
+        tc = generator.gen_test_case(
+            name=generate_unique_name(f"status_{status.value}")
+        )
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        ab = generator.gen_artefact_build(artefact)
+        te = generator.gen_test_execution(ab, env)
+
+        # Create test result with matching status
+        tr_yes = generator.gen_test_result(tc, te, status=status)
+
+        # Create test results with other statuses
+        other_statuses = [s for s in TestResultStatus if s != status]
+        tr_no_list = [
+            generator.gen_test_result(tc, te, status=other_status)
+            for other_status in other_statuses
+        ]
+
+        resp = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?test_result_statuses={status.value}"
+            ),
+            Permission.view_test,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # Includes the matching result
+        ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+        assert tr_yes.id in ids
+
+        # Excludes results with other statuses
+        for tr_no in tr_no_list:
+            assert tr_no.id not in ids
+
+        # Every returned row has the requested status
+        assert all(
+            tr["test_result"]["status"] == status.value for tr in data["test_results"]
+        )
+
+    def test_search_by_multiple_test_result_statuses(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by multiple test result statuses"""
+        env = generator.gen_environment()
+        tc = generator.gen_test_case(name=generate_unique_name("multi_status"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        ab = generator.gen_artefact_build(artefact)
+        te = generator.gen_test_execution(ab, env)
+
+        # Create test results with different statuses
+        tr_passed = generator.gen_test_result(tc, te, status=TestResultStatus.PASSED)
+        tr_failed = generator.gen_test_result(tc, te, status=TestResultStatus.FAILED)
+        tr_skipped = generator.gen_test_result(tc, te, status=TestResultStatus.SKIPPED)
+
+        # Query for PASSED and FAILED
+        resp = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?test_result_statuses={TestResultStatus.PASSED.value}"
+                f"&test_result_statuses={TestResultStatus.FAILED.value}"
+            ),
+            Permission.view_test,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+
+        ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include PASSED and FAILED
+        assert tr_passed.id in ids
+        assert tr_failed.id in ids
+
+        # Should not include SKIPPED
+        assert tr_skipped.id not in ids
+
+        # Every returned row has one of the requested statuses
+        assert all(
+            tr["test_result"]["status"]
+            in [TestResultStatus.PASSED.value, TestResultStatus.FAILED.value]
+            for tr in data["test_results"]
+        )
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            TestExecutionStatus.NOT_STARTED,
+            TestExecutionStatus.IN_PROGRESS,
+            TestExecutionStatus.PASSED,
+            TestExecutionStatus.FAILED,
+            TestExecutionStatus.NOT_TESTED,
+            TestExecutionStatus.ENDED_PREMATURELY,
+        ],
+    )
+    def test_search_by_test_execution_status(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        status: TestExecutionStatus,
+    ):
+        """The filter returns only results with the requested execution status"""
+        env = generator.gen_environment()
+        tc = generator.gen_test_case(
+            name=generate_unique_name(f"exec_status_{status.value}")
+        )
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        ab = generator.gen_artefact_build(artefact)
+
+        # Create test execution with matching status
+        te_yes = generator.gen_test_execution(ab, env, status=status)
+        tr_yes = generator.gen_test_result(tc, te_yes)
+
+        # Create test execution with different status
+        other_statuses = [s for s in TestExecutionStatus if s != status]
+        tr_no_list = []
+        for other_status in other_statuses:
+            te_no = generator.gen_test_execution(ab, env, status=other_status)
+            tr_no = generator.gen_test_result(tc, te_no)
+            tr_no_list.append(tr_no)
+
+        resp = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?test_execution_statuses={status.value}"
+            ),
+            Permission.view_test,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # Includes the matching result
+        ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+        assert tr_yes.id in ids
+
+        # Excludes results with other execution statuses
+        for tr_no in tr_no_list:
+            assert tr_no.id not in ids
+
+        # Every returned row has the requested execution status
+        assert all(
+            tr["test_execution"]["status"] == status.value
+            for tr in data["test_results"]
+        )
+
+    def test_search_by_multiple_test_execution_statuses(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by multiple test execution statuses"""
+        env = generator.gen_environment()
+        tc = generator.gen_test_case(name=generate_unique_name("multi_exec_status"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        ab = generator.gen_artefact_build(artefact)
+
+        # Create test executions with different statuses
+        te_passed = generator.gen_test_execution(
+            ab, env, status=TestExecutionStatus.PASSED
+        )
+        tr_passed = generator.gen_test_result(tc, te_passed)
+
+        te_failed = generator.gen_test_execution(
+            ab, env, status=TestExecutionStatus.FAILED
+        )
+        tr_failed = generator.gen_test_result(tc, te_failed)
+
+        te_not_started = generator.gen_test_execution(
+            ab, env, status=TestExecutionStatus.NOT_STARTED
+        )
+        tr_not_started = generator.gen_test_result(tc, te_not_started)
+
+        # Query for PASSED and FAILED
+        resp = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?test_execution_statuses={TestExecutionStatus.PASSED.value}"
+                f"&test_execution_statuses={TestExecutionStatus.FAILED.value}"
+            ),
+            Permission.view_test,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+
+        ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include PASSED and FAILED executions
+        assert tr_passed.id in ids
+        assert tr_failed.id in ids
+
+        # Should not include NOT_STARTED
+        assert tr_not_started.id not in ids
+
+        # Every returned row has one of the requested execution statuses
+        assert all(
+            tr["test_execution"]["status"]
+            in [TestExecutionStatus.PASSED.value, TestExecutionStatus.FAILED.value]
+            for tr in data["test_results"]
+        )
+
+    def test_search_combined_result_and_execution_statuses(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering by both test result and test execution statuses"""
+        env = generator.gen_environment()
+        tc = generator.gen_test_case(name=generate_unique_name("combined_statuses"))
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        ab = generator.gen_artefact_build(artefact)
+
+        # Create combinations of result and execution statuses
+        # Match both filters
+        te_passed = generator.gen_test_execution(
+            ab, env, status=TestExecutionStatus.PASSED
+        )
+        tr_passed_passed = generator.gen_test_result(
+            tc, te_passed, status=TestResultStatus.PASSED
+        )
+
+        # Match execution status but not result status
+        tr_failed_passed = generator.gen_test_result(
+            tc, te_passed, status=TestResultStatus.FAILED
+        )
+
+        # Match result status but not execution status
+        te_failed = generator.gen_test_execution(
+            ab, env, status=TestExecutionStatus.FAILED
+        )
+        tr_passed_failed = generator.gen_test_result(
+            tc, te_failed, status=TestResultStatus.PASSED
+        )
+
+        # Match neither
+        tr_failed_failed = generator.gen_test_result(
+            tc, te_failed, status=TestResultStatus.FAILED
+        )
+
+        # Query for PASSED result status and PASSED execution status
+        resp = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?test_result_statuses={TestResultStatus.PASSED.value}"
+                f"&test_execution_statuses={TestExecutionStatus.PASSED.value}"
+            ),
+            Permission.view_test,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+
+        ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should only include result matching both filters
+        assert tr_passed_passed.id in ids
+
+        # Should not include results matching only one filter or neither
+        assert tr_failed_passed.id not in ids
+        assert tr_passed_failed.id not in ids
+        assert tr_failed_failed.id not in ids
+
+        # Every returned row matches both filters
+        assert all(
+            tr["test_result"]["status"] == TestResultStatus.PASSED.value
+            and tr["test_execution"]["status"] == TestExecutionStatus.PASSED.value
+            for tr in data["test_results"]
+        )
 
 
 class TestWindowFunctionSpecific:
