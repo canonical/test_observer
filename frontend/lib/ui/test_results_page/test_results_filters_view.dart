@@ -156,8 +156,18 @@ class _TestResultsFiltersViewState
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
           if (user.launchpadHandle != null)
-            Text(user.launchpadHandle!, style: secondaryStyle),
-          Text(user.email, style: secondaryStyle),
+            Text('@${user.launchpadHandle!}', style: secondaryStyle),
+          Row(
+            spacing: Spacing.level1,
+            children: [
+              Icon(
+                Icons.email,
+                size: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              Text(user.email, style: secondaryStyle),
+            ],
+          ),
         ],
       ),
     );
