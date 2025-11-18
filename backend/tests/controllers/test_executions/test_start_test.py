@@ -517,23 +517,23 @@ def test_charm_assigned_to_sqa_team_reviewer(
 ):
     """Charms should be assigned to reviewers whose teams can review charms"""
     # Create teams with different families
-    sqa_team = generator.gen_team(
-        name="sqa",
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
         reviewer_families=["charm"],
     )
-    cert_team = generator.gen_team(
-        name="cert",
+    other_team = generator.gen_team(
+        name="other_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
     
     # Create users in these teams
-    sqa_reviewer = generator.gen_user(
-        email="sqa@example.com",
-        teams=[sqa_team],
+    charm_reviewer = generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
     )
-    cert_reviewer = generator.gen_user(
-        email="cert@example.com",
-        teams=[cert_team],
+    other_reviewer = generator.gen_user(
+        email="other@example.com",
+        teams=[other_team],
     )
 
     # Execute a charm test
@@ -543,9 +543,9 @@ def test_charm_assigned_to_sqa_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    # Check that assignee is in sqa_team
-    assert any(team.id == sqa_team.id for team in assignee.teams)
-    assert assignee.id == sqa_reviewer.id
+    # Check that assignee is in charm_team
+    assert any(team.id == charm_team.id for team in assignee.teams)
+    assert assignee.id == charm_reviewer.id
 
 
 def test_snap_assigned_to_cert_team_reviewer(
@@ -553,23 +553,23 @@ def test_snap_assigned_to_cert_team_reviewer(
 ):
     """Snaps should be assigned to reviewers whose teams can review snaps"""
     # Create teams with different families
-    sqa_team = generator.gen_team(
-        name="sqa",
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
         reviewer_families=["charm"],
     )
-    cert_team = generator.gen_team(
-        name="cert",
+    snap_team = generator.gen_team(
+        name="snap_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
     
     # Create users in these teams
-    sqa_reviewer = generator.gen_user(
-        email="sqa@example.com",
-        teams=[sqa_team],
+    charm_reviewer = generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
     )
-    cert_reviewer = generator.gen_user(
-        email="cert@example.com",
-        teams=[cert_team],
+    snap_reviewer = generator.gen_user(
+        email="snap@example.com",
+        teams=[snap_team],
     )
 
     # Execute a snap test
@@ -579,8 +579,8 @@ def test_snap_assigned_to_cert_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    assert any(team.id == cert_team.id for team in assignee.teams)
-    assert assignee.id == cert_reviewer.id
+    assert any(team.id == snap_team.id for team in assignee.teams)
+    assert assignee.id == snap_reviewer.id
 
 
 def test_deb_assigned_to_cert_team_reviewer(
@@ -588,23 +588,23 @@ def test_deb_assigned_to_cert_team_reviewer(
 ):
     """Debs should be assigned to reviewers whose teams can review debs"""
     # Create teams with different families
-    sqa_team = generator.gen_team(
-        name="sqa",
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
         reviewer_families=["charm"],
     )
-    cert_team = generator.gen_team(
-        name="cert",
+    deb_team = generator.gen_team(
+        name="deb_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
     
     # Create users in these teams
-    sqa_reviewer = generator.gen_user(
-        email="sqa@example.com",
-        teams=[sqa_team],
+    charm_reviewer = generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
     )
-    cert_reviewer = generator.gen_user(
-        email="cert@example.com",
-        teams=[cert_team],
+    deb_reviewer = generator.gen_user(
+        email="deb@example.com",
+        teams=[deb_team],
     )
 
     # Execute a deb test
@@ -614,8 +614,8 @@ def test_deb_assigned_to_cert_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    assert any(team.id == cert_team.id for team in assignee.teams)
-    assert assignee.id == cert_reviewer.id
+    assert any(team.id == deb_team.id for team in assignee.teams)
+    assert assignee.id == deb_reviewer.id
 
 
 def test_image_assigned_to_cert_team_reviewer(
@@ -623,23 +623,23 @@ def test_image_assigned_to_cert_team_reviewer(
 ):
     """Images should be assigned to reviewers whose teams can review images"""
     # Create teams with different families
-    sqa_team = generator.gen_team(
-        name="sqa",
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
         reviewer_families=["charm"],
     )
-    cert_team = generator.gen_team(
-        name="cert",
+    image_team = generator.gen_team(
+        name="image_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
     
     # Create users in these teams
-    sqa_reviewer = generator.gen_user(
-        email="sqa@example.com",
-        teams=[sqa_team],
+    charm_reviewer = generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
     )
-    cert_reviewer = generator.gen_user(
-        email="cert@example.com",
-        teams=[cert_team],
+    image_reviewer = generator.gen_user(
+        email="image@example.com",
+        teams=[image_team],
     )
 
     # Execute an image test
@@ -649,8 +649,8 @@ def test_image_assigned_to_cert_team_reviewer(
     assert test_execution
     assignee = test_execution.artefact_build.artefact.assignee
     assert assignee is not None
-    assert any(team.id == cert_team.id for team in assignee.teams)
-    assert assignee.id == cert_reviewer.id
+    assert any(team.id == image_team.id for team in assignee.teams)
+    assert assignee.id == image_reviewer.id
 
 
 def test_no_assignment_when_no_team_reviewers_available(
@@ -658,13 +658,13 @@ def test_no_assignment_when_no_team_reviewers_available(
 ):
     """When no teams can review the family, no assignment should occur"""
     # Create a team that can only review charms
-    sqa_team = generator.gen_team(
-        name="sqa",
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
         reviewer_families=["charm"],
     )
     generator.gen_user(
-        email="sqa@example.com",
-        teams=[sqa_team],
+        email="charm@example.com",
+        teams=[charm_team],
     )
 
     # Execute a snap test (no one can review snaps)
