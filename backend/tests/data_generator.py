@@ -59,12 +59,6 @@ class DataGenerator:
         self,
         name: str = "canonical",
         permissions: list[str] | None = None,
-        members: list[User] | None = None,
-    ) -> Team:
-    def gen_team(
-        self,
-        name: str = "canonical",
-        permissions: list[str] | None = None,
         reviewer_families: list[str] | None = None,
         members: list[User] | None = None,
     ) -> Team:
