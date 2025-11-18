@@ -379,7 +379,11 @@ def test_non_kernel_artefact_due_date(
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    generator.gen_user(is_reviewer=True)
+    snap_reviewers = generator.gen_team(
+        name="snap_reviewers",
+        reviewer_families=["snap"],
+    )
+    generator.gen_user(teams=[snap_reviewers])
 
     execute({**snap_test_request, "needs_assignment": True})
 
