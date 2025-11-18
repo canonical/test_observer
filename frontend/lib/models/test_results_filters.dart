@@ -19,6 +19,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'execution_metadata.dart';
 import '../routing.dart';
+import 'test_result.dart';
 
 part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
@@ -28,6 +29,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
   const TestResultsFilters._();
   const factory TestResultsFilters({
     @Default([]) List<String> families,
+    @Default([]) List<TestResultStatus> testResultStatuses,
     @Default([]) List<String> artefacts,
     @Default([]) List<String> environments,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
@@ -59,6 +61,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
 
     final families = parseParam(parameters['families']);
+    final testResultStatuses = parseParam(parameters['test_result_statuses'])
+        .map((s) => TestResultStatus.fromString(s))
+        .toList();
     final artefacts = parseParam(parameters['artefacts']);
     final environments = parseParam(parameters['environments']);
     final testCases = parseParam(parameters['test_cases']);
@@ -85,6 +90,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
 
     return TestResultsFilters(
       families: families,
+      testResultStatuses: testResultStatuses,
       artefacts: artefacts,
       environments: environments,
       testCases: testCases,
@@ -102,6 +108,10 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     final params = <String, List<String>>{};
     if (families.isNotEmpty) {
       params['families'] = families;
+    }
+    if (testResultStatuses.isNotEmpty) {
+      params['test_result_statuses'] =
+          testResultStatuses.map((s) => s.name.toUpperCase()).toList();
     }
     if (artefacts.isNotEmpty) {
       params['artefacts'] = artefacts;
@@ -138,6 +148,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
 
   bool get hasFilters =>
       families.isNotEmpty ||
+      testResultStatuses.isNotEmpty ||
       artefacts.isNotEmpty ||
       environments.isNotEmpty ||
       testCases.isNotEmpty ||
