@@ -71,7 +71,7 @@ class Navbar extends ConsumerWidget {
                   ),
                   const Spacer(),
                   const _NavbarEntry(
-                    title: 'Test Results',
+                    title: 'Search',
                     route: AppRoutes.testResults,
                   ),
                   const _NavbarEntry(
