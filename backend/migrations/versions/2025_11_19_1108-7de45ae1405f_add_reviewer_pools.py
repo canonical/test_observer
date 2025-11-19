@@ -38,7 +38,7 @@ def upgrade() -> None:
     op.drop_index("pool_members_pool_id_ix", table_name="pool_members", if_exists=True)
     op.drop_table("pool_members", if_exists=True)
     op.drop_table("reviewer_pool", if_exists=True)
-    
+
     # Create reviewer_pool table (fresh)
     op.create_table(
         "reviewer_pool",
