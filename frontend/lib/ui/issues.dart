@@ -252,7 +252,7 @@ Future<int> getOrCreateIssueId(WidgetRef ref, String issueUrl) async {
     return AppRoutes.issueIdFromUri(extractRouteUri(uri));
   } else {
     final issue = await ref
-        .read(issuesProvider.notifier)
+        .read(issuesProvider().notifier)
         .createIssue(url: uri.toString());
     return issue.id;
   }

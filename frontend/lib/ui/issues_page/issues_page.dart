@@ -32,7 +32,7 @@ class IssuesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return BlockingProviderPreloader(
-      provider: issuesProvider,
+      provider: issuesProvider(),
       builder: (_, issues) {
         final showSide = ref.watch(issuesPageSideVisibilityProvider);
         return Column(
