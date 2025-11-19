@@ -24,6 +24,31 @@ import 'test_result.dart';
 part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
 
+class IssuesFilterConverter implements JsonConverter<IssuesFilter, dynamic> {
+  const IssuesFilterConverter();
+
+  @override
+  IssuesFilter fromJson(dynamic json) {
+    if (json is String) {
+      if (json == 'any') return const IssuesFilter.any();
+      if (json == 'none') return const IssuesFilter.none();
+    }
+    if (json is List) {
+      return IssuesFilter.list(json.cast<int>());
+    }
+    return const IssuesFilter.list([]);
+  }
+
+  @override
+  dynamic toJson(IssuesFilter filter) {
+    return switch (filter) {
+      _IssuesFilterList(:final issues) => issues,
+      _IssuesFilterAny() => 'any',
+      _IssuesFilterNone() => 'none',
+    };
+  }
+}
+
 @freezed
 sealed class IssuesFilter with _$IssuesFilter {
   // ignore: unused_element
@@ -59,7 +84,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @JsonKey(name: 'execution_metadata')
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
-    @Default(IssuesFilter.list([])) IssuesFilter issues,
+    @IssuesFilterConverter()
+    @Default(IssuesFilter.list([]))
+    IssuesFilter issues,
     @JsonKey(name: 'from_date') DateTime? fromDate,
     @JsonKey(name: 'until_date') DateTime? untilDate,
     int? offset,
