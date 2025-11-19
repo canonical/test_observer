@@ -22,17 +22,22 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.orm import Session, selectinload
-from typing import Annotated
+from typing import Annotated, Literal
 import urllib
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.constants import QueryValue
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
     TestResult,
     TestExecutionMetadata,
 )
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    TestResultStatus,
+    TestExecutionStatus,
+)
 from test_observer.data_access.setup import get_db
 from .models import (
     TestResultSearchResponseWithContext,
@@ -105,8 +110,19 @@ def search_test_results(
         ExecutionMetadata | None, Depends(parse_execution_metadata)
     ] = None,
     issues: Annotated[
-        list[int] | None,
-        Query(description="Filter by Jira or GitHub issue IDs"),
+        list[int]
+        | list[Literal[QueryValue.NONE]]
+        | list[Literal[QueryValue.ANY]]
+        | None,
+        Query(description="Filter by issue IDs"),
+    ] = None,
+    test_result_statuses: Annotated[
+        list[TestResultStatus] | None,
+        Query(description="Filter by test result statuses"),
+    ] = None,
+    test_execution_statuses: Annotated[
+        list[TestExecutionStatus] | None,
+        Query(description="Filter by test execution statuses"),
     ] = None,
     from_date: Annotated[
         datetime | None, Query(description="Filter results from this timestamp")
@@ -129,6 +145,12 @@ def search_test_results(
     the total count and paginated results in one database round trip.
     """
     # Build the filters
+    issues_filter: list[int] | Literal[QueryValue.ANY] | Literal[QueryValue.NONE]
+    if issues and len(issues) > 0 and isinstance(issues[0], QueryValue):
+        issues_filter = issues[0]
+    else:
+        issues_filter = issues or []  # type: ignore[assignment]
+
     filters = TestResultSearchFilters(
         families=families or [],
         artefacts=artefacts or [],
@@ -136,7 +158,9 @@ def search_test_results(
         test_cases=test_cases or [],
         template_ids=template_ids or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
-        issues=issues or [],
+        issues=issues_filter,
+        test_result_statuses=test_result_statuses or [],
+        test_execution_statuses=test_execution_statuses or [],
         from_date=from_date,
         until_date=until_date,
         limit=limit,

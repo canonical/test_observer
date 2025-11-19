@@ -56,6 +56,7 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
                     "test_plan": te.test_plan,
                     "created_at": te.created_at.isoformat(),
                     "execution_metadata": {},
+                    "is_triaged": te.is_triaged,
                 }
             ],
         }
@@ -96,6 +97,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     "test_plan": te1.test_plan,
                     "created_at": te1.created_at.isoformat(),
                     "execution_metadata": {},
+                    "is_triaged": te1.is_triaged,
                 },
                 {
                     "id": te2.id,
@@ -112,6 +114,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
                     "test_plan": te2.test_plan,
                     "created_at": te2.created_at.isoformat(),
                     "execution_metadata": {},
+                    "is_triaged": te2.is_triaged,
                 },
             ],
         }
@@ -177,6 +180,7 @@ def test_get_artefact_builds_with_rerun_requested(
                     "test_plan": te.test_plan,
                     "created_at": te.created_at.isoformat(),
                     "execution_metadata": {},
+                    "is_triaged": te.is_triaged,
                 }
             ],
         }
