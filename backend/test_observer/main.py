@@ -28,6 +28,9 @@ from test_observer.common.config import (
     SESSIONS_HTTPS_ONLY,
 )
 from test_observer.controllers.router import router
+from test_observer.controllers.reviewer_pools.reviewer_pools import (
+    router as reviewer_pools_router,
+)
 
 if SENTRY_DSN:
     sentry_sdk.init(SENTRY_DSN)  # type: ignore
@@ -71,3 +74,4 @@ app.add_middleware(
 
 
 app.include_router(router)
+app.include_router(reviewer_pools_router, prefix="/v1/reviewer-pools")

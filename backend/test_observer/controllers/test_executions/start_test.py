@@ -30,6 +30,7 @@ from test_observer.data_access.models import (
     Environment,
     TestExecution,
     User,
+    ReviewerPool,
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
@@ -72,18 +73,29 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
-        if (
-            self.request.needs_assignment
-            and self.artefact.assignee_id is None
-            and (
-                users := self.db.execute(select(User).where(User.is_reviewer))
-                .scalars()
-                .all()
-            )
-        ):
-            self.artefact.assignee = random.choice(users)
-            self.artefact.due_date = self.determine_due_date()
-            self.db.commit()
+        if self.request.needs_assignment and self.artefact.assignee_id is None:
+            pool = self.db.execute(
+                select(ReviewerPool).where(
+                    ReviewerPool.families.any(self.artefact.family.value)
+                )
+            ).scalar()
+
+            if pool:
+                reviewers = (
+                    self.db.execute(
+                        select(User).where(
+                            User.reviewer_pools.any(ReviewerPool.id == pool.id),
+                            User.is_reviewer,
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+
+                if reviewers:
+                    self.artefact.assignee = random.choice(reviewers)
+                    self.artefact.due_date = self.determine_due_date()
+                    self.db.commit()
 
     def create_test_execution(self):
         self.test_execution = get_or_create(

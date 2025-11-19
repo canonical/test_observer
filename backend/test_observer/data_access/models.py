@@ -92,6 +92,15 @@ team_users_association = Table(
     Column("team_id", ForeignKey("team.id"), primary_key=True),
 )
 
+pool_members_association = Table(
+    "pool_members",
+    Base.metadata,
+    Column(
+        "pool_id", ForeignKey("reviewer_pool.id", ondelete="CASCADE"), primary_key=True
+    ),
+    Column("user_id", ForeignKey("app_user.id", ondelete="CASCADE"), primary_key=True),
+)
+
 
 class User(Base):
     """
@@ -114,9 +123,30 @@ class User(Base):
     teams: Mapped[list["Team"]] = relationship(
         secondary=team_users_association, back_populates="members"
     )
+    reviewer_pools: Mapped[list["ReviewerPool"]] = relationship(
+        secondary=pool_members_association, back_populates="members"
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
+
+
+class ReviewerPool(Base):
+    """
+    A pool of reviewers that handle specific artifact families
+    """
+
+    __tablename__ = "reviewer_pool"
+
+    name: Mapped[str] = mapped_column(unique=True)
+    families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+
+    members: Mapped[list[User]] = relationship(
+        secondary=pool_members_association, back_populates="reviewer_pools"
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "name")
 
 
 class Application(Base):
