@@ -37,12 +37,12 @@ This pattern should be applied consistently to all filterable attributes in the 
     "issues": [1, 2, 3],    // has any of these specific issues
     "issues": null,         // no issue filter (default)
     
-    "artefacts": "any",     // has any artefact
+    "artefacts": "any",     // has at least one artefact
     "artefacts": "none",    // has no artefacts
     "artefacts": [4, 5, 6], // has any of these specific artefacts
     "artefacts": null,      // no artefact filter (default)
     
-    "families": "any",      // belongs to any family
+    "families": "any",      // has at least one family
     "families": "none",     // belongs to no family
     "families": ["focal", "jammy"], // belongs to any of these families
     "families": null        // no family filter (default)
