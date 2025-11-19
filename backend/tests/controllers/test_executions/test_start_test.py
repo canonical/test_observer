@@ -512,7 +512,7 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     assert response.status_code == 422
 
 
-def test_charm_assigned_to_sqa_team_reviewer(
+def test_charm_assigned_to_charm_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Charms should be assigned to reviewers whose teams can review charms"""
@@ -548,7 +548,7 @@ def test_charm_assigned_to_sqa_team_reviewer(
     assert assignee.id == charm_reviewer.id
 
 
-def test_snap_assigned_to_cert_team_reviewer(
+def test_snap_assigned_to_snap_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Snaps should be assigned to reviewers whose teams can review snaps"""
@@ -583,7 +583,7 @@ def test_snap_assigned_to_cert_team_reviewer(
     assert assignee.id == snap_reviewer.id
 
 
-def test_deb_assigned_to_cert_team_reviewer(
+def test_deb_assigned_to_deb_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Debs should be assigned to reviewers whose teams can review debs"""
@@ -618,7 +618,7 @@ def test_deb_assigned_to_cert_team_reviewer(
     assert assignee.id == deb_reviewer.id
 
 
-def test_image_assigned_to_cert_team_reviewer(
+def test_image_assigned_to_image_team_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
     """Images should be assigned to reviewers whose teams can review images"""
