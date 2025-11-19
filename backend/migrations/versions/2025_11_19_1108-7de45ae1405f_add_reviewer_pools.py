@@ -51,18 +51,18 @@ def upgrade() -> None:
         sa.UniqueConstraint("name"),
     )
 
-    # Create pool_members table (foreign key to app_user handled by ORM)
+    # Create pool_members table
     op.create_table(
         "pool_members",
         sa.Column("pool_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["pool_id"],
+            ["reviewer_pool.id"],
+            name="pool_members_pool_id_fkey",
+            ondelete="CASCADE",
+        ),
         sa.PrimaryKeyConstraint("pool_id", "user_id"),
-    )
-
-    # Add foreign key constraint to reviewer_pool only
-    op.execute(
-        "ALTER TABLE pool_members ADD CONSTRAINT pool_members_pool_id_fkey "
-        "FOREIGN KEY(pool_id) REFERENCES reviewer_pool(id) ON DELETE CASCADE"
     )
 
     # Create indexes
@@ -91,5 +91,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Drop pool_members first (has foreign keys)
+    op.drop_index("pool_members_user_id_ix", table_name="pool_members")
+    op.drop_index("pool_members_pool_id_ix", table_name="pool_members")
     op.drop_table("pool_members")
+
+    # Then drop reviewer_pool
     op.drop_table("reviewer_pool")
