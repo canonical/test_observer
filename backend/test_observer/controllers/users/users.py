@@ -17,7 +17,7 @@
 
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Security, Query
-from sqlalchemy import select, func, or_, and_, ColumnElement, BinaryExpression
+from sqlalchemy import select, func, or_, and_, ColumnElement
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
