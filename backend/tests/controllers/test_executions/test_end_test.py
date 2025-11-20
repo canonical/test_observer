@@ -96,6 +96,74 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.relevant_links[1].url == "http://example.com/wiki"
 
 
+def test_report_test_execution_data_all_skipped(test_client: TestClient, generator: DataGenerator):
+    c3_link = "http://c3.localhost"
+    artefact = generator.gen_artefact(StageName.beta)
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    initial_relevant_links_for_gen = [
+        {"label": "Build Log", "url": "http://example.com/build-log"},
+        {"label": "Wiki", "url": "http://example.com/wiki"},
+    ]
+    test_execution = generator.gen_test_execution(
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=initial_relevant_links_for_gen,
+    )
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
+    test_case = generator.gen_test_case()
+
+    response = make_authenticated_request(
+        lambda: test_client.put(
+            "/v1/test-executions/end-test",
+            json={
+                "ci_link": test_execution.ci_link,
+                "c3_link": c3_link,
+                "checkbox_version": "3.3.0",
+                "test_results": [
+                    {
+                        "name": test_case.name,
+                        "status": "skip",
+                        "category": test_case.category,
+                        "comment": "",
+                        "io_log": "",
+                    },
+                    {
+                        "name": "disk/stats_nvme0n2",
+                        "template_id": "disk/stats_name",
+                        "status": "skip",
+                        "category": "",
+                        "comment": "",
+                        "io_log": "",
+                    },
+                ],
+                "relevant_links": [
+                    {"label": link.label, "url": link.url}
+                    for link in test_execution.relevant_links
+                ],
+            },
+        ),
+        Permission.change_test,
+    )
+
+    assert response.status_code == 200
+    assert test_execution.status == TestExecutionStatus.FAILED
+    assert test_execution.c3_link == c3_link
+    assert test_execution.checkbox_version == "3.3.0"
+    assert test_execution.test_results[0].test_case.name == test_case.name
+    assert test_execution.test_results[0].status == TestResultStatus.SKIPPED
+    assert test_execution.test_results[0].test_case.template_id == test_case.template_id
+    assert test_execution.test_results[1].test_case.name == "disk/stats_nvme0n2"
+    assert test_execution.test_results[1].status == TestResultStatus.SKIPPED
+    assert test_execution.test_results[1].test_case.template_id == "disk/stats_name"
+    assert len(test_execution.relevant_links) == 2
+    assert test_execution.relevant_links[0].label == "Build Log"
+    assert test_execution.relevant_links[0].url == "http://example.com/build-log"
+    assert test_execution.relevant_links[1].label == "Wiki"
+    assert test_execution.relevant_links[1].url == "http://example.com/wiki"
+
+
 def test_end_test_is_idempotent(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
