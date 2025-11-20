@@ -221,15 +221,15 @@ void main() {
           families: ['family1', 'family2'],
           testResultStatuses: [
             TestResultStatus.passed,
-            TestResultStatus.failed
+            TestResultStatus.failed,
           ],
           artefacts: ['artefact1'],
           environments: ['env1'],
           testCases: ['test1', 'test2'],
           templateIds: ['template1'],
           executionMetadata: ExecutionMetadata(data: {
-            'key': {'value1', 'value2'}
-          }),
+            'key': {'value1', 'value2'},
+          },),
           issues: const IntListFilter.list([1, 2]),
           assignees: const IntListFilter.any(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -299,7 +299,7 @@ void main() {
           'test_cases': ['test1'],
           'template_ids': ['template1'],
           'execution_metadata': {
-            'key': ['value1', 'value2']
+            'key': ['value1', 'value2'],
           },
           'issues': [1, 2, 3],
           'assignees': 'any',
@@ -329,7 +329,7 @@ void main() {
       test('deserializes IntListFilter variants correctly', () {
         final jsonWithList = {
           'issues': [1, 2],
-          'assignees': []
+          'assignees': [],
         };
         final filtersWithList = TestResultsFilters.fromJson(jsonWithList);
         expect(filtersWithList.issues.values, equals([1, 2]));
@@ -363,8 +363,8 @@ void main() {
           testCases: ['test1'],
           templateIds: ['template1'],
           executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'}
-          }),
+            'key': {'value'},
+          },),
           issues: const IntListFilter.list([1, 2, 3]),
           assignees: const IntListFilter.none(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -402,7 +402,7 @@ void main() {
 
         expect(filters.families, equals(['family1', 'family2']));
         expect(filters.testResultStatuses,
-            equals([TestResultStatus.passed, TestResultStatus.failed]));
+            equals([TestResultStatus.passed, TestResultStatus.failed]),);
         expect(filters.artefacts, equals(['artefact1']));
         expect(filters.environments, equals(['env1', 'env2']));
         expect(filters.testCases, equals(['test1']));
@@ -459,8 +459,8 @@ void main() {
           testCases: ['test1'],
           templateIds: ['template1'],
           executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'}
-          }),
+            'key': {'value'},
+          },),
           issues: const IntListFilter.list([1, 2]),
           assignees: const IntListFilter.any(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -504,7 +504,7 @@ void main() {
         final paramsWithList = filtersWithList.toQueryParams();
         expect(paramsWithList['issues'], equals(['1', '2']));
         expect(
-            paramsWithList.containsKey('assignee_ids'), isFalse); // empty list
+            paramsWithList.containsKey('assignee_ids'), isFalse,); // empty list
 
         final filtersWithKeywords = TestResultsFilters(
           issues: const IntListFilter.any(),
@@ -522,15 +522,15 @@ void main() {
           families: ['family1', 'family2'],
           testResultStatuses: [
             TestResultStatus.passed,
-            TestResultStatus.failed
+            TestResultStatus.failed,
           ],
           artefacts: ['artefact1'],
           environments: ['env1'],
           testCases: ['test1'],
           templateIds: ['template1'],
           executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'}
-          }),
+            'key': {'value'},
+          },),
           issues: const IntListFilter.list([1, 2, 3]),
           assignees: const IntListFilter.none(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -544,13 +544,13 @@ void main() {
 
         expect(restored.families, equals(original.families));
         expect(
-            restored.testResultStatuses, equals(original.testResultStatuses));
+            restored.testResultStatuses, equals(original.testResultStatuses),);
         expect(restored.artefacts, equals(original.artefacts));
         expect(restored.environments, equals(original.environments));
         expect(restored.testCases, equals(original.testCases));
         expect(restored.templateIds, equals(original.templateIds));
         expect(restored.executionMetadata.data,
-            equals(original.executionMetadata.data));
+            equals(original.executionMetadata.data),);
         expect(restored.issues.values, equals(original.issues.values));
         expect(restored.assignees.isNone, equals(original.assignees.isNone));
         expect(restored.fromDate, equals(original.fromDate));
@@ -601,8 +601,8 @@ void main() {
       test('returns true when executionMetadata is not empty', () {
         final filters = TestResultsFilters(
           executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'}
-          }),
+            'key': {'value'},
+          },),
         );
         expect(filters.hasFilters, isTrue);
       });
