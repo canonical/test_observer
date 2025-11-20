@@ -85,7 +85,7 @@ class _DetachIssueFormState extends ConsumerState<DetachIssueForm> {
     final deleteNewerAttachmentsTestResultFilters =
         attachmentRuleFilters != null
             ? attachmentRuleFilters.toTestResultsFilters().copyWith(
-                  issues: IssuesFilter.list([widget.issue.id]),
+                  issues: IntListFilter.list([widget.issue.id]),
                   fromDate: testResult?.createdAt,
                 )
             : null;

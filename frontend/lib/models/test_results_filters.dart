@@ -24,51 +24,80 @@ import 'test_result.dart';
 part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
 
-class IssuesFilterConverter implements JsonConverter<IssuesFilter, dynamic> {
-  const IssuesFilterConverter();
+class IntListFilterConverter implements JsonConverter<IntListFilter, dynamic> {
+  const IntListFilterConverter();
 
   @override
-  IssuesFilter fromJson(dynamic json) {
+  IntListFilter fromJson(dynamic json) {
     if (json is String) {
-      if (json == 'any') return const IssuesFilter.any();
-      if (json == 'none') return const IssuesFilter.none();
+      if (json == 'any') return const IntListFilter.any();
+      if (json == 'none') return const IntListFilter.none();
     }
     if (json is List) {
-      return IssuesFilter.list(json.cast<int>());
+      return IntListFilter.list(json.cast<int>());
     }
-    return const IssuesFilter.list([]);
+    return const IntListFilter.list([]);
   }
 
   @override
-  dynamic toJson(IssuesFilter filter) {
+  dynamic toJson(IntListFilter filter) {
     return switch (filter) {
-      _IssuesFilterList(:final issues) => issues,
-      _IssuesFilterAny() => 'any',
-      _IssuesFilterNone() => 'none',
+      _IntListFilterList(:final values) => values,
+      _IntListFilterAny() => 'any',
+      _IntListFilterNone() => 'none',
     };
   }
 }
 
 @freezed
-sealed class IssuesFilter with _$IssuesFilter {
+sealed class IntListFilter with _$IntListFilter {
   // ignore: unused_element
-  const IssuesFilter._();
-  const factory IssuesFilter.list(List<int> issues) = _IssuesFilterList;
-  const factory IssuesFilter.any() = _IssuesFilterAny;
-  const factory IssuesFilter.none() = _IssuesFilterNone;
+  const IntListFilter._();
+  const factory IntListFilter.list(List<int> values) = _IntListFilterList;
+  const factory IntListFilter.any() = _IntListFilterAny;
+  const factory IntListFilter.none() = _IntListFilterNone;
 
-  factory IssuesFilter.fromJson(Map<String, Object?> json) =>
-      _$IssuesFilterFromJson(json);
+  factory IntListFilter.fromJson(Map<String, Object?> json) =>
+      _$IntListFilterFromJson(json);
 
   // Helper methods to extract values
-  List<int> get issuesList => switch (this) {
-        _IssuesFilterList(:final issues) => issues,
+  List<int> get values => switch (this) {
+        _IntListFilterList(:final values) => values,
         _ => [],
       };
 
-  bool get isAny => this is _IssuesFilterAny;
-  bool get isNone => this is _IssuesFilterNone;
-  bool get isList => this is _IssuesFilterList;
+  bool get isAny => this is _IntListFilterAny;
+  bool get isNone => this is _IntListFilterNone;
+  bool get isList => this is _IntListFilterList;
+
+  bool get isNotEmpty => switch (this) {
+        _IntListFilterList(:final values) => values.isNotEmpty,
+        _ => true,
+      };
+
+  bool get isEmpty => !isNotEmpty;
+
+  static IntListFilter fromQueryParam(List<String> params) {
+    if (params.length == 1 && params.first == 'any') {
+      return const IntListFilter.any();
+    } else if (params.length == 1 && params.first == 'none') {
+      return const IntListFilter.none();
+    } else {
+      return IntListFilter.list(
+        params.map((s) => int.tryParse(s)).whereNotNull().toList(),
+      );
+    }
+  }
+
+  List<String> toQueryParam() {
+    return switch (this) {
+      _IntListFilterList(:final values) when values.isNotEmpty =>
+        values.map((i) => i.toString()).toList(),
+      _IntListFilterAny() => ['any'],
+      _IntListFilterNone() => ['none'],
+      _ => [],
+    };
+  }
 }
 
 @freezed
@@ -84,9 +113,12 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @JsonKey(name: 'execution_metadata')
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
-    @IssuesFilterConverter()
-    @Default(IssuesFilter.list([]))
-    IssuesFilter issues,
+    @IntListFilterConverter()
+    @Default(IntListFilter.list([]))
+    IntListFilter issues,
+    @IntListFilterConverter()
+    @Default(IntListFilter.list([]))
+    IntListFilter assignees,
     @JsonKey(name: 'from_date') DateTime? fromDate,
     @JsonKey(name: 'until_date') DateTime? untilDate,
     int? offset,
@@ -120,14 +152,12 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     final executionMetadata = ExecutionMetadata.fromQueryParams(
       parameters['execution_metadata'],
     );
-    final issuesParam = parseParam(parameters['issues']);
-    final issues = issuesParam.length == 1 && issuesParam.first == 'any'
-        ? const IssuesFilter.any()
-        : issuesParam.length == 1 && issuesParam.first == 'none'
-            ? const IssuesFilter.none()
-            : IssuesFilter.list(
-                issuesParam.map((s) => int.tryParse(s)).whereNotNull().toList(),
-              );
+    final issues = IntListFilter.fromQueryParam(
+      parseParam(parameters['issues']),
+    );
+    final assignees = IntListFilter.fromQueryParam(
+      parseParam(parameters['assignee_ids']),
+    );
     final fromDate = parseParam(parameters['from_date'])
         .map((s) => DateTime.tryParse(s))
         .firstOrNullWhere((v) => v != null);
@@ -150,6 +180,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       templateIds: templateIds,
       executionMetadata: executionMetadata,
       issues: issues,
+      assignees: assignees,
       fromDate: fromDate,
       untilDate: untilDate,
       offset: offset,
@@ -181,15 +212,13 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     if (executionMetadata.data.isNotEmpty) {
       params['execution_metadata'] = executionMetadata.toQueryParams();
     }
-    switch (issues) {
-      case _IssuesFilterList(:final issues):
-        if (issues.isNotEmpty) {
-          params['issues'] = issues.map((i) => i.toString()).toList();
-        }
-      case _IssuesFilterAny():
-        params['issues'] = ['any'];
-      case _IssuesFilterNone():
-        params['issues'] = ['none'];
+    final issuesParam = issues.toQueryParam();
+    if (issuesParam.isNotEmpty) {
+      params['issues'] = issuesParam;
+    }
+    final assigneesParam = assignees.toQueryParam();
+    if (assigneesParam.isNotEmpty) {
+      params['assignee_ids'] = assigneesParam;
     }
     if (fromDate != null) {
       params['from_date'] = [fromDate!.toIso8601String()];
@@ -214,10 +243,8 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||
       executionMetadata.isNotEmpty ||
-      switch (issues) {
-        _IssuesFilterList(:final issues) => issues.isNotEmpty,
-        _ => true,
-      } ||
+      issues.isNotEmpty ||
+      assignees.isNotEmpty ||
       fromDate != null ||
       untilDate != null;
 
