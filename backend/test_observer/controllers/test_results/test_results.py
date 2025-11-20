@@ -22,7 +22,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.orm import Session, selectinload
-from typing import Annotated, TypeVar
+from typing import Annotated, Literal, TypeVar
 import urllib
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -97,7 +97,7 @@ def parse_list_or_query_value(
     """
     if input is None:
         return []
-    if all(isinstance(item, QueryValue) for item in input):
+    if len(input) > 0 and all(item in QueryValue for item in input):
         return input[-1]  # type: ignore[return-value]
     return input  # type: ignore[return-value]
 
@@ -131,7 +131,10 @@ def search_test_results(
         ExecutionMetadata | None, Depends(parse_execution_metadata)
     ] = None,
     issues: Annotated[
-        list[int] | list[QueryValue] | None,
+        list[int]
+        | list[Literal[QueryValue.ANY]]
+        | list[Literal[QueryValue.NONE]]
+        | None,
         Query(description="Filter by issue IDs"),
     ] = None,
     test_result_statuses: Annotated[
@@ -143,7 +146,10 @@ def search_test_results(
         Query(description="Filter by test execution statuses"),
     ] = None,
     assignee_ids: Annotated[
-        list[int] | list[QueryValue] | None,
+        list[int]
+        | list[Literal[QueryValue.ANY]]
+        | list[Literal[QueryValue.NONE]]
+        | None,
         Query(description="Filter by assignee user ids"),
     ] = None,
     from_date: Annotated[
@@ -174,10 +180,10 @@ def search_test_results(
         test_cases=test_cases or [],
         template_ids=template_ids or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
-        issues=parse_list_or_query_value(issues),
+        issues=parse_list_or_query_value(issues),  # type: ignore[arg-type]
         test_result_statuses=test_result_statuses or [],
         test_execution_statuses=test_execution_statuses or [],
-        assignee_ids=parse_list_or_query_value(assignee_ids),
+        assignee_ids=parse_list_or_query_value(assignee_ids),  # type: ignore[arg-type]
         from_date=from_date,
         until_date=until_date,
         limit=limit,

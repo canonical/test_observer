@@ -2566,7 +2566,15 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/QueryValue"
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
                   }
                 },
                 {
@@ -2635,7 +2643,15 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/QueryValue"
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
                   }
                 },
                 {
@@ -4845,14 +4861,6 @@
           "artefact_id"
         ],
         "title": "PreviousTestResult"
-      },
-      "QueryValue": {
-        "type": "string",
-        "enum": [
-          "any",
-          "none"
-        ],
-        "title": "QueryValue"
       },
       "RerunRequest": {
         "properties": {

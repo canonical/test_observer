@@ -409,6 +409,7 @@ class TestSearchTestResults:
     @pytest.mark.parametrize(
         "query_params",
         [
+            "issues=any&issues=none",
             "issues=1&issues=none",
             "issues=1&issues=any",
             "issues=any&issues=1",
