@@ -72,6 +72,9 @@ class TestResultSearchFilters(BaseModel):
     )
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
     test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
+    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
+        default_factory=list
+    )
     from_date: datetime | None = None
     until_date: datetime | None = None
     offset: int | None = None
