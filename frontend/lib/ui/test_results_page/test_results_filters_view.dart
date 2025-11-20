@@ -173,6 +173,60 @@ class _TestResultsFiltersViewState
     );
   }
 
+  Widget _buildIntListFilterCombobox<T>({
+    required String title,
+    required IntListFilter currentFilter,
+    required List<MetaOption> metaOptions,
+    required void Function(IntListFilter) onFilterChanged,
+    required Future<List<int>> Function(String) asyncSuggestionsCallback,
+    required Widget Function(int) itemBuilder,
+  }) {
+    String? selectedMetaOption;
+    Set<int> selectedIds = {};
+
+    if (currentFilter.isAny) {
+      selectedMetaOption = 'any';
+    } else if (currentFilter.isNone) {
+      selectedMetaOption = 'none';
+    } else {
+      selectedIds = currentFilter.values.toSet();
+    }
+
+    return MultiSelectCombobox<int>(
+      title: title,
+      metaOptions: metaOptions,
+      selectedMetaOption: selectedMetaOption,
+      onMetaOptionChanged: (value) {
+        setState(() {
+          if (value == 'any') {
+            onFilterChanged(const IntListFilter.any());
+          } else if (value == 'none') {
+            onFilterChanged(const IntListFilter.none());
+          } else {
+            onFilterChanged(const IntListFilter.list([]));
+          }
+        });
+      },
+      asyncSuggestionsCallback: asyncSuggestionsCallback,
+      itemBuilder: itemBuilder,
+      initialSelected: selectedIds,
+      onChanged: (id, isSelected) {
+        setState(() {
+          final currentIds = currentFilter.values;
+          final newIds = Set<int>.from(currentIds);
+
+          if (isSelected) {
+            newIds.add(id);
+          } else {
+            newIds.remove(id);
+          }
+
+          onFilterChanged(IntListFilter.list(newIds.toList()));
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
@@ -232,99 +286,41 @@ class _TestResultsFiltersViewState
           ),
         if (_isFilterEnabled(FilterType.issues))
           _box(
-            Builder(
-              builder: (context) {
-                // Extract current state from IntListFilter union
-                String? selectedMetaOption;
-                Set<int> selectedIssueIds = {};
+            _buildIntListFilterCombobox(
+              title: 'Issues',
+              currentFilter: _selectedFilters.issues,
+              metaOptions: const [
+                MetaOption(value: 'any', label: 'Has any issue'),
+                MetaOption(value: 'none', label: 'Has no issues'),
+              ],
+              onFilterChanged: (filter) {
+                _selectedFilters = _selectedFilters.copyWith(issues: filter);
+                _notifyChanged(_selectedFilters);
+              },
+              asyncSuggestionsCallback: (pattern) async {
+                final issues = await ref.read(
+                  issuesProvider(q: pattern, limit: 10).future,
+                );
+                return issues.map((issue) => issue.id).toList();
+              },
+              itemBuilder: (issueId) {
+                return Consumer(
+                  builder: (context, ref, child) {
+                    final issue = ref.watch(simpleIssueProvider(issueId));
 
-                if (_selectedFilters.issues.isAny) {
-                  selectedMetaOption = 'any';
-                } else if (_selectedFilters.issues.isNone) {
-                  selectedMetaOption = 'none';
-                } else {
-                  selectedIssueIds = _selectedFilters.issues.values.toSet();
-                }
-
-                return MultiSelectCombobox<int>(
-                  title: 'Issues',
-                  metaOptions: const [
-                    MetaOption(value: 'any', label: 'Has any issue'),
-                    MetaOption(value: 'none', label: 'Has no issues'),
-                  ],
-                  selectedMetaOption: selectedMetaOption,
-                  onMetaOptionChanged: (value) {
-                    setState(() {
-                      if (value == 'any') {
-                        _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IntListFilter.any(),
-                        );
-                      } else if (value == 'none') {
-                        _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IntListFilter.none(),
-                        );
-                      } else {
-                        // Cleared - go back to list mode
-                        _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IntListFilter.list([]),
-                        );
-                      }
-                      _notifyChanged(_selectedFilters);
-                    });
-                  },
-                  asyncSuggestionsCallback: (pattern) async {
-                    final issues = await ref.read(
-                      issuesProvider(
-                        q: pattern,
-                        limit: 10,
-                      ).future,
-                    );
-                    return issues.map((issue) => issue.id).toList();
-                  },
-                  itemBuilder: (issueId) {
-                    // Use Consumer to load issue from cache
-                    return Consumer(
-                      builder: (context, ref, child) {
-                        final issue = ref.watch(simpleIssueProvider(issueId));
-
-                        // If not in cache, fetch it
-                        if (issue == null) {
-                          // Trigger fetch and show loading
-                          ref
-                              .read(simpleIssueProvider(issueId).notifier)
-                              .fetchIfNeeded();
-                          return const Padding(
-                            padding: EdgeInsets.all(Spacing.level3),
-                            child: Center(
-                              child: YaruCircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            ),
-                          );
-                        }
-
-                        return _buildIssueDisplay(issue);
-                      },
-                    );
-                  },
-                  initialSelected: selectedIssueIds,
-                  onChanged: (issueId, isSelected) {
-                    setState(() {
-                      // If currently in meta mode (any/none), start fresh when selecting items
-                      final currentIssueIds = _selectedFilters.issues.values;
-                      final newIssueIds = Set<int>.from(currentIssueIds);
-
-                      if (isSelected) {
-                        newIssueIds.add(issueId);
-                      } else {
-                        newIssueIds.remove(issueId);
-                      }
-
-                      _selectedFilters = _selectedFilters.copyWith(
-                        issues: IntListFilter.list(newIssueIds.toList()),
+                    if (issue == null) {
+                      ref
+                          .read(simpleIssueProvider(issueId).notifier)
+                          .fetchIfNeeded();
+                      return const Padding(
+                        padding: EdgeInsets.all(Spacing.level3),
+                        child: Center(
+                          child: YaruCircularProgressIndicator(strokeWidth: 2),
+                        ),
                       );
-                      _notifyChanged(_selectedFilters);
-                    });
+                    }
+
+                    return _buildIssueDisplay(issue);
                   },
                 );
               },
@@ -332,113 +328,41 @@ class _TestResultsFiltersViewState
           ),
         if (_isFilterEnabled(FilterType.assignees))
           _box(
-            LayoutBuilder(
-              builder: (context, constraints) {
-                String? selectedMetaOption;
-                Set<int> selectedAssigneeIds = {};
+            _buildIntListFilterCombobox(
+              title: 'Assignees',
+              currentFilter: _selectedFilters.assignees,
+              metaOptions: const [
+                MetaOption(value: 'any', label: 'Has any assignee'),
+                MetaOption(value: 'none', label: 'Has no assignee'),
+              ],
+              onFilterChanged: (filter) {
+                _selectedFilters = _selectedFilters.copyWith(assignees: filter);
+                _notifyChanged(_selectedFilters);
+              },
+              asyncSuggestionsCallback: (pattern) async {
+                final users = await ref.read(
+                  usersProvider(q: pattern, limit: 10).future,
+                );
+                return users.map((user) => user.id).toList();
+              },
+              itemBuilder: (userId) {
+                return Consumer(
+                  builder: (context, ref, child) {
+                    final user = ref.watch(simpleUserProvider(userId));
 
-                if (_selectedFilters.assignees.isAny) {
-                  selectedMetaOption = 'any';
-                } else if (_selectedFilters.assignees.isNone) {
-                  selectedMetaOption = 'none';
-                } else {
-                  selectedAssigneeIds =
-                      _selectedFilters.assignees.values.toSet();
-                }
-
-                return MultiSelectCombobox<int>(
-                  title: 'Assignees',
-                  metaOptions: const [
-                    MetaOption(value: 'any', label: 'Has any assignee'),
-                    MetaOption(value: 'none', label: 'Has no assignee'),
-                  ],
-                  selectedMetaOption: selectedMetaOption,
-                  onMetaOptionChanged: (value) {
-                    setState(() {
-                      if (value == 'any') {
-                        _selectedFilters = _selectedFilters.copyWith(
-                          assignees: const IntListFilter.any(),
-                        );
-                        _notifyChanged(_selectedFilters);
-                      } else if (value == 'none') {
-                        _selectedFilters = _selectedFilters.copyWith(
-                          assignees: const IntListFilter.none(),
-                        );
-                        _notifyChanged(_selectedFilters);
-                      } else {
-                        // Clearing meta option - only reset to empty list if we don't already have items
-                        // (onChanged may have been called first when selecting an item)
-                        if (_selectedFilters.assignees.isList &&
-                            _selectedFilters.assignees.values.isEmpty) {
-                          _selectedFilters = _selectedFilters.copyWith(
-                            assignees: const IntListFilter.list([]),
-                          );
-                        } else if (!_selectedFilters.assignees.isList) {
-                          // Transition from any/none to list mode with empty list
-                          _selectedFilters = _selectedFilters.copyWith(
-                            assignees: const IntListFilter.list([]),
-                          );
-                        }
-                        // If already in list mode with items, don't clear them
-                      }
-                    });
-                  },
-                  asyncSuggestionsCallback: (pattern) async {
-                    final users = await ref.read(
-                      usersProvider(
-                        q: pattern,
-                        limit: 10,
-                      ).future,
-                    );
-                    return users.map((user) => user.id).toList();
-                  },
-                  itemBuilder: (userId) {
-                    // Use Consumer to load user from cache
-                    return Consumer(
-                      builder: (context, ref, child) {
-                        final user = ref.watch(simpleUserProvider(userId));
-
-                        // If not in cache, fetch it
-                        if (user == null) {
-                          // Trigger fetch and show loading
-                          ref
-                              .read(simpleUserProvider(userId).notifier)
-                              .fetchIfNeeded();
-                          return const Padding(
-                            padding: EdgeInsets.all(Spacing.level3),
-                            child: Center(
-                              child: YaruCircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            ),
-                          );
-                        }
-
-                        return _buildUserDisplay(user);
-                      },
-                    );
-                  },
-                  initialSelected: selectedAssigneeIds,
-                  onChanged: (userId, isSelected) {
-                    setState(() {
-                      // If currently in meta mode (any/none), start fresh when selecting items
-                      final currentAssigneeIds =
-                          _selectedFilters.assignees.isList
-                              ? _selectedFilters.assignees.values
-                              : <int>[];
-                      final newAssigneeIds = Set<int>.from(currentAssigneeIds);
-
-                      if (isSelected) {
-                        newAssigneeIds.add(userId);
-                      } else {
-                        newAssigneeIds.remove(userId);
-                      }
-
-                      _selectedFilters = _selectedFilters.copyWith(
-                        assignees: IntListFilter.list(newAssigneeIds.toList()),
+                    if (user == null) {
+                      ref
+                          .read(simpleUserProvider(userId).notifier)
+                          .fetchIfNeeded();
+                      return const Padding(
+                        padding: EdgeInsets.all(Spacing.level3),
+                        child: Center(
+                          child: YaruCircularProgressIndicator(strokeWidth: 2),
+                        ),
                       );
-                      _notifyChanged(_selectedFilters);
-                    });
+                    }
+
+                    return _buildUserDisplay(user);
                   },
                 );
               },
