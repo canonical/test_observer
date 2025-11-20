@@ -478,7 +478,9 @@ class TestExecution(Base):
 
     @property
     def has_failures(self) -> bool:
-        return any(tr.status == TestResultStatus.FAILED for tr in self.test_results) or all(tr.status == TestResultStatus.SKIPPED for tr in self.test_results)
+        return any(
+            tr.status == TestResultStatus.FAILED for tr in self.test_results
+        ) or all(tr.status == TestResultStatus.SKIPPED for tr in self.test_results)
 
     @property
     def is_triaged(self) -> bool:

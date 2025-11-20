@@ -96,7 +96,9 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.relevant_links[1].url == "http://example.com/wiki"
 
 
-def test_report_test_execution_data_all_skipped(test_client: TestClient, generator: DataGenerator):
+def test_report_test_execution_data_all_skipped(
+    test_client: TestClient, generator: DataGenerator
+):
     c3_link = "http://c3.localhost"
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
