@@ -257,16 +257,16 @@ class _TestResultsFiltersViewState
                     setState(() {
                       if (value == 'any') {
                         _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IssuesFilter.any(),
+                          issues: const IntListFilter.any(),
                         );
                       } else if (value == 'none') {
                         _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IssuesFilter.none(),
+                          issues: const IntListFilter.none(),
                         );
                       } else {
                         // Cleared - go back to list mode
                         _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IssuesFilter.list([]),
+                          issues: const IntListFilter.list([]),
                         );
                       }
                       _notifyChanged(_selectedFilters);
