@@ -14,38 +14,40 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import urllib
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, HTTPException, Security
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import (
-    func,
     desc,
+    func,
     select,
 )
 from sqlalchemy.orm import Session, selectinload
-from typing import Annotated, Literal
-import urllib
 
-from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.constants import QueryValue
+from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
-    TestResult,
     TestExecutionMetadata,
+    TestResult,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 from test_observer.data_access.setup import get_db
+
+from .filter_test_results import filter_test_results
 from .models import (
-    TestResultSearchResponseWithContext,
     TestResultResponseWithContext,
     TestResultSearchFilters,
+    TestResultSearchResponseWithContext,
 )
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from .filter_test_results import filter_test_results
 
 router = APIRouter(tags=["test-results"])
 
@@ -53,10 +55,7 @@ router = APIRouter(tags=["test-results"])
 def parse_execution_metadata(
     execution_metadata: list[str] | None = Query(
         None,
-        description=(
-            "Filter by execution metadata (category:value). "
-            "Category and value must be percent encoded."
-        ),
+        description=("Filter by execution metadata (category:value). Category and value must be percent encoded."),
     ),
 ) -> ExecutionMetadata | None:
     if execution_metadata is None:
@@ -66,10 +65,7 @@ def parse_execution_metadata(
         if item.count(":") != 1:
             raise HTTPException(
                 status_code=422,
-                detail=(
-                    f"Invalid execution metadata format: '{item}'. "
-                    "Expected 'category:value' with a single colon."
-                ),
+                detail=(f"Invalid execution metadata format: '{item}'. Expected 'category:value' with a single colon."),
             )
         category, value = item.split(":")
         result.append(
@@ -103,17 +99,10 @@ def search_test_results(
         list[str] | None,
         Query(description="Filter by test case names"),
     ] = None,
-    template_ids: Annotated[
-        list[str] | None, Query(description="Filter by template IDs")
-    ] = None,
-    execution_metadata: Annotated[
-        ExecutionMetadata | None, Depends(parse_execution_metadata)
-    ] = None,
+    template_ids: Annotated[list[str] | None, Query(description="Filter by template IDs")] = None,
+    execution_metadata: Annotated[ExecutionMetadata | None, Depends(parse_execution_metadata)] = None,
     issues: Annotated[
-        list[int]
-        | list[Literal[QueryValue.NONE]]
-        | list[Literal[QueryValue.ANY]]
-        | None,
+        list[int] | list[Literal[QueryValue.NONE]] | list[Literal[QueryValue.ANY]] | None,
         Query(description="Filter by issue IDs"),
     ] = None,
     test_result_statuses: Annotated[
@@ -124,18 +113,10 @@ def search_test_results(
         list[TestExecutionStatus] | None,
         Query(description="Filter by test execution statuses"),
     ] = None,
-    from_date: Annotated[
-        datetime | None, Query(description="Filter results from this timestamp")
-    ] = None,
-    until_date: Annotated[
-        datetime | None, Query(description="Filter results until this timestamp")
-    ] = None,
-    limit: Annotated[
-        int, Query(ge=0, le=1000, description="Maximum number of results to return")
-    ] = 50,
-    offset: Annotated[
-        int, Query(ge=0, description="Number of results to skip for pagination")
-    ] = 0,
+    from_date: Annotated[datetime | None, Query(description="Filter results from this timestamp")] = None,
+    until_date: Annotated[datetime | None, Query(description="Filter results until this timestamp")] = None,
+    limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
+    offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
 ) -> TestResultSearchResponseWithContext:
     """
@@ -145,11 +126,7 @@ def search_test_results(
     the total count and paginated results in one database round trip.
     """
     # Build the filters
-    issues_filter: list[int] | Literal[QueryValue.ANY] | Literal[QueryValue.NONE]
-    if issues and len(issues) > 0 and isinstance(issues[0], QueryValue):
-        issues_filter = issues[0]
-    else:
-        issues_filter = issues or []  # type: ignore[assignment]
+    issues_filter = issues[0] if issues and len(issues) > 0 and isinstance(issues[0], QueryValue) else issues or []  # type: ignore[assignment]
 
     filters = TestResultSearchFilters(
         families=families or [],
@@ -170,9 +147,7 @@ def search_test_results(
     # Run paginated query
     pagination_query = select(TestResult)
     paginated_query = filter_test_results(pagination_query, filters)
-    paginated_query = paginated_query.order_by(
-        desc(TestResult.created_at), desc(TestResult.id)
-    )
+    paginated_query = paginated_query.order_by(desc(TestResult.created_at), desc(TestResult.id))
     pagination_query = pagination_query.options(
         selectinload(TestResult.test_case),
         selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
@@ -180,9 +155,7 @@ def search_test_results(
         .selectinload(TestExecution.artefact_build)
         .selectinload(ArtefactBuild.artefact),
         selectinload(TestResult.issue_attachments),
-        selectinload(TestResult.test_execution).selectinload(
-            TestExecution.execution_metadata
-        ),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
     )
     test_results = db.execute(paginated_query).scalars().all()
 

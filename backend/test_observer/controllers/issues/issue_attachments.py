@@ -15,33 +15,34 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import SecurityScopes
-from sqlalchemy.orm import Session
-from sqlalchemy import delete, select, literal
+from sqlalchemy import delete, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.controllers.test_results.filter_test_results import (
-    filter_test_results,
-)
-from test_observer.data_access.setup import get_db
-from test_observer.data_access.models import (
-    Issue,
-    IssueTestResultAttachment,
-    TestResult,
-    IssueTestResultAttachmentRule,
-)
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.data_access.models import Application, User
-from test_observer.users.user_injection import get_current_user
-from .models import (
-    IssueResponse,
-    IssueAttachmentRequest,
+from test_observer.controllers.test_results.filter_test_results import (
+    filter_test_results,
 )
+from test_observer.data_access.models import (
+    Application,
+    Issue,
+    IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
+    TestResult,
+    User,
+)
+from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
+from .models import (
+    IssueAttachmentRequest,
+    IssueResponse,
+)
 
 router = APIRouter()
 
@@ -107,9 +108,7 @@ def modify_issue_attachments(
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
-                    IssueTestResultAttachment.test_result_id.in_(
-                        select(filtered_ids_query.c.id)
-                    ),
+                    IssueTestResultAttachment.test_result_id.in_(select(filtered_ids_query.c.id)),
                 )
             )
         else:
@@ -120,9 +119,7 @@ def modify_issue_attachments(
             )
             db.execute(
                 pg_insert(IssueTestResultAttachment)
-                .from_select(
-                    ["issue_id", "test_result_id", "attachment_rule_id"], insert_select
-                )
+                .from_select(["issue_id", "test_result_id", "attachment_rule_id"], insert_select)
                 .on_conflict_do_nothing()
             )
 
@@ -151,9 +148,7 @@ def require_bulk_permission(
     response_model=IssueResponse,
     dependencies=[
         Security(permission_checker, scopes=[Permission.change_issue_attachment]),
-        Security(
-            require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]
-        ),
+        Security(require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]),
     ],
 )
 def add_issue_attachments(
@@ -169,9 +164,7 @@ def add_issue_attachments(
     response_model=IssueResponse,
     dependencies=[
         Security(permission_checker, scopes=[Permission.change_issue_attachment]),
-        Security(
-            require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]
-        ),
+        Security(require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]),
     ],
 )
 def remove_issue_attachments(

@@ -20,6 +20,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.issues.attachment_rules_logic import (
+    apply_test_result_attachment_rules,
+)
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestCase,
@@ -32,9 +35,6 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
-from test_observer.controllers.issues.attachment_rules_logic import (
-    apply_test_result_attachment_rules,
-)
 
 from .logic import delete_previous_results
 from .models import C3TestResult, C3TestResultStatus, EndTestExecutionRequest
@@ -57,9 +57,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
 
     has_failures = test_execution.has_failures
 
-    test_execution.status = (
-        TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
-    )
+    test_execution.status = TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
 
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
@@ -69,9 +67,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     db.commit()
 
 
-def _find_related_test_execution(
-    request: EndTestExecutionRequest, db: Session
-) -> TestExecution | None:
+def _find_related_test_execution(request: EndTestExecutionRequest, db: Session) -> TestExecution | None:
     stmt = (
         select(TestExecution)
         .where(TestExecution.ci_link == request.ci_link)

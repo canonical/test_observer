@@ -16,24 +16,22 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, Security
+from sqlalchemy import tuple_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.models import TestExecutionResponse
-from test_observer.data_access.models import TestExecution
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.data_access.models import (
+    TestExecution,
+    TestExecutionMetadata,
+    test_execution_metadata_association_table,
+)
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionsPatchRequest
-
-from sqlalchemy import tuple_
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
-from test_observer.data_access.models import (
-    TestExecutionMetadata,
-    test_execution_metadata_association_table,
-)
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 router = APIRouter()
 
@@ -73,17 +71,13 @@ def patch_test_execution(
     return test_execution
 
 
-def _set_test_execution_status(
-    request: TestExecutionsPatchRequest, test_execution: TestExecution
-) -> None:
+def _set_test_execution_status(request: TestExecutionsPatchRequest, test_execution: TestExecution) -> None:
     match (request.status, test_execution.test_results):
         case (TestExecutionStatus(), _):
             test_execution.status = request.status
         case ("COMPLETED", []):
             test_execution.status = TestExecutionStatus.ENDED_PREMATURELY
-        case ("COMPLETED", results) if any(
-            r.status == TestResultStatus.FAILED for r in results
-        ):
+        case ("COMPLETED", results) if any(r.status == TestResultStatus.FAILED for r in results):
             test_execution.status = TestExecutionStatus.FAILED
         case ("COMPLETED", _):
             test_execution.status = TestExecutionStatus.PASSED

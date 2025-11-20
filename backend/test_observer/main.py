@@ -16,16 +16,17 @@
 
 
 import logging
+
 import sentry_sdk
-from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from test_observer.common.config import (
     FRONTEND_URL,
     SENTRY_DSN,
-    SESSIONS_SECRET,
     SESSIONS_HTTPS_ONLY,
+    SESSIONS_SECRET,
 )
 from test_observer.controllers.router import router
 

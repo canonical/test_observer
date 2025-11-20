@@ -16,7 +16,9 @@
 
 
 import re
+
 from pydantic import HttpUrl
+
 from test_observer.data_access.models_enums import IssueSource
 
 

@@ -15,33 +15,31 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from sqlalchemy.orm import Session
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy import (
-    select,
-    or_,
-    func,
-    exists,
-    and_,
     ColumnElement,
     Select,
+    and_,
+    exists,
+    func,
     literal,
+    or_,
+    select,
 )
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from test_observer.data_access.models import (
-    TestResult,
+    IssueTestResultAttachment,
     IssueTestResultAttachmentRule,
     IssueTestResultAttachmentRuleExecutionMetadata,
-    TestExecutionMetadata,
     TestExecution,
-    IssueTestResultAttachment,
+    TestExecutionMetadata,
+    TestResult,
 )
 
 
-def _array_empty_or_contains(
-    array: InstrumentedAttribute, value: ColumnElement
-) -> ColumnElement[bool]:
+def _array_empty_or_contains(array: InstrumentedAttribute, value: ColumnElement) -> ColumnElement[bool]:
     return or_(
         func.cardinality(array) == 0,
         array.any(value),
@@ -58,13 +56,9 @@ def _filter_by_execution_metadata(
     # This join condition ensures that only metadata for the current test execution,
     # with matching category and value, is considered.
     join_condition = and_(
-        TestExecutionMetadata.test_executions.any(
-            TestExecution.id == test_result.test_execution_id
-        ),
-        TestExecutionMetadata.category
-        == IssueTestResultAttachmentRuleExecutionMetadata.category,
-        TestExecutionMetadata.value
-        == IssueTestResultAttachmentRuleExecutionMetadata.value,
+        TestExecutionMetadata.test_executions.any(TestExecution.id == test_result.test_execution_id),
+        TestExecutionMetadata.category == IssueTestResultAttachmentRuleExecutionMetadata.category,
+        TestExecutionMetadata.value == IssueTestResultAttachmentRuleExecutionMetadata.value,
     )
 
     # Step 2: Build the unmatched_categories subquery
@@ -84,9 +78,7 @@ def _filter_by_execution_metadata(
         IssueTestResultAttachmentRuleExecutionMetadata.attachment_rule_id,
         IssueTestResultAttachmentRuleExecutionMetadata.category,
     )
-    unmatched_categories_query = unmatched_categories_query.having(
-        func.count(TestExecutionMetadata.value) == 0
-    )
+    unmatched_categories_query = unmatched_categories_query.having(func.count(TestExecutionMetadata.value) == 0)
     unmatched_categories = unmatched_categories_query.subquery()
 
     # Step 3: Exclude rules with unmatched categories
@@ -97,10 +89,7 @@ def _filter_by_execution_metadata(
     exclusion_condition = ~exists(
         select(1)
         .select_from(unmatched_categories)
-        .where(
-            unmatched_categories.c.attachment_rule_id
-            == IssueTestResultAttachmentRule.id
-        )
+        .where(unmatched_categories.c.attachment_rule_id == IssueTestResultAttachmentRule.id)
     )
     stmt = stmt.where(exclusion_condition)
 
@@ -159,9 +148,7 @@ def apply_test_result_attachment_rules(db: Session, test_result: TestResult):
     attachment_rules_stmt = query_matching_test_result_attachment_rules(test_result)
 
     # Apply attachment rules based on creation
-    attachment_rules_stmt = attachment_rules_stmt.order_by(
-        IssueTestResultAttachmentRule.id
-    )
+    attachment_rules_stmt = attachment_rules_stmt.order_by(IssueTestResultAttachmentRule.id)
 
     # Create a subquery
     attachment_rules_subquery = attachment_rules_stmt.subquery()

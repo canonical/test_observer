@@ -15,8 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from datetime import date, timedelta
 import random
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
 from sqlalchemy import select
@@ -75,11 +75,7 @@ class StartTestExecutionController:
         if (
             self.request.needs_assignment
             and self.artefact.assignee_id is None
-            and (
-                users := self.db.execute(select(User).where(User.is_reviewer))
-                .scalars()
-                .all()
-            )
+            and (users := self.db.execute(select(User).where(User.is_reviewer)).scalars().all())
         ):
             self.artefact.assignee = random.choice(users)
             self.artefact.due_date = self.determine_due_date()

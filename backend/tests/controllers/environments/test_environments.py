@@ -15,19 +15,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import uuid
+
 from fastapi.testclient import TestClient
+
 from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def generate_unique_name(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
 
-def _seed_environments(
-    generator: DataGenerator, count: int, prefix: str = "test_env"
-) -> list[str]:
+def _seed_environments(generator: DataGenerator, count: int, prefix: str = "test_env") -> list[str]:
     """
     Helper to create test environments with test results.
     Creates its own artefact build for each environment.
@@ -72,21 +72,15 @@ def test_get_environments_response_format(test_client: TestClient):
     assert "environments" in data
 
 
-def test_create_environment_and_validate_returned(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_create_environment_and_validate_returned(test_client: TestClient, generator: DataGenerator):
     """Test that creates an environment and validates it is returned in the response"""
     # Create a unique environment name to ensure we can find it
     unique_env_name = f"test_validation_env_{uuid.uuid4().hex[:8]}"
 
     # Create test data with the specific environment
     environment = generator.gen_environment(name=unique_env_name)
-    test_case = generator.gen_test_case(
-        name=generate_unique_name("env_validation_test")
-    )
-    artefact = generator.gen_artefact(
-        name=generate_unique_name("env_validation_artefact")
-    )
+    test_case = generator.gen_test_case(name=generate_unique_name("env_validation_test"))
+    artefact = generator.gen_artefact(name=generate_unique_name("env_validation_artefact"))
     artefact_build = generator.gen_artefact_build(artefact)
     test_execution = generator.gen_test_execution(artefact_build, environment)
     # Create test result to ensure the environment appears in queries
@@ -105,9 +99,7 @@ def test_create_environment_and_validate_returned(
     assert isinstance(environments, list)
 
     # Verify our specific environment is in the response
-    assert unique_env_name in environments, (
-        f"Environment {unique_env_name} not found in response: {environments}"
-    )
+    assert unique_env_name in environments, f"Environment {unique_env_name} not found in response: {environments}"
 
 
 def test_default_limit_is_50(test_client: TestClient, generator: DataGenerator):
@@ -124,9 +116,7 @@ def test_default_limit_is_50(test_client: TestClient, generator: DataGenerator):
     assert len(data["environments"]) == 50  # exactly 50 when >=50 exist
 
 
-def test_explicit_limit_and_offset_window(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_explicit_limit_and_offset_window(test_client: TestClient, generator: DataGenerator):
     """
     Verify limit/offset produce expected window with deterministic
     ordering by name.
@@ -294,9 +284,7 @@ def test_pagination_limits(test_client: TestClient):
 def test_empty_search_returns_empty_list(test_client: TestClient):
     """Test search with no results returns empty list."""
     resp = make_authenticated_request(
-        lambda: test_client.get(
-            "/v1/environments", params={"q": "nonexistent_environment_xyz_123"}
-        ),
+        lambda: test_client.get("/v1/environments", params={"q": "nonexistent_environment_xyz_123"}),
         Permission.view_test,
     )
     assert resp.status_code == 200
@@ -318,9 +306,7 @@ def test_search_strips_whitespace(test_client: TestClient, generator: DataGenera
 
     # Search with extra whitespace
     resp = make_authenticated_request(
-        lambda: test_client.get(
-            "/v1/environments", params={"q": "  whitespace_test  "}
-        ),
+        lambda: test_client.get("/v1/environments", params={"q": "  whitespace_test  "}),
         Permission.view_test,
     )
     assert resp.status_code == 200

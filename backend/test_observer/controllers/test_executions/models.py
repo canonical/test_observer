@@ -33,21 +33,21 @@ from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
-    TestExecutionResponse,
     TestExecutionRelevantLinkCreate,
+    TestExecutionResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.data_access.models_enums import (
-    FamilyName,
-    SnapStage,
-    DebStage,
-    CharmStage,
-    ImageStage,
-    TestExecutionStatus,
-    TestResultStatus,
-)
 from test_observer.controllers.issues.shared_models import (
     MinimalIssueTestResultAttachmentResponse,
+)
+from test_observer.data_access.models_enums import (
+    CharmStage,
+    DebStage,
+    FamilyName,
+    ImageStage,
+    SnapStage,
+    TestExecutionStatus,
+    TestResultStatus,
 )
 
 
@@ -62,8 +62,7 @@ class _StartTestExecutionRequest(BaseModel):
     relevant_links: list[TestExecutionRelevantLinkCreate] = Field(default_factory=list)
     needs_assignment: bool = Field(
         default=False,
-        description="Whether the artefact created from "
-        "this test execution requires assignment of a reviewer",
+        description="Whether the artefact created from this test execution requires assignment of a reviewer",
     )
 
     @field_validator("version")
@@ -201,20 +200,10 @@ class RerunRequest(BaseModel):
 class PendingRerun(BaseModel):
     test_execution_id: int
     ci_link: str | None = Field(validation_alias=AliasPath("test_execution", "ci_link"))
-    family: FamilyName = Field(
-        validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "family"
-        )
-    )
-    test_execution: TestExecutionResponse = Field(
-        validation_alias=AliasPath("test_execution")
-    )
-    artefact: ArtefactResponse = Field(
-        validation_alias=AliasPath("test_execution", "artefact_build", "artefact")
-    )
-    artefact_build: ArtefactBuildMinimalResponse = Field(
-        validation_alias=AliasPath("test_execution", "artefact_build")
-    )
+    family: FamilyName = Field(validation_alias=AliasPath("test_execution", "artefact_build", "artefact", "family"))
+    test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_execution"))
+    artefact: ArtefactResponse = Field(validation_alias=AliasPath("test_execution", "artefact_build", "artefact"))
+    artefact_build: ArtefactBuildMinimalResponse = Field(validation_alias=AliasPath("test_execution", "artefact_build"))
 
 
 class DeleteReruns(BaseModel):

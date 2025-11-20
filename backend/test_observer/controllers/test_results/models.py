@@ -14,25 +14,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from test_observer.common.constants import QueryValue
-from test_observer.controllers.test_executions.models import (
-    TestResultResponse,
-    TestExecutionResponse,
-)
 from test_observer.controllers.artefacts.models import (
-    ArtefactResponse,
     ArtefactBuildMinimalResponse,
+    ArtefactResponse,
+)
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.test_executions.models import (
+    TestExecutionResponse,
+    TestResultResponse,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 
 class TestResultSearchResponse(BaseModel):
@@ -67,9 +68,7 @@ class TestResultSearchFilters(BaseModel):
     test_cases: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
-    issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
-        default_factory=list
-    )
+    issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
     test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
     from_date: datetime | None = None

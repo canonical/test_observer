@@ -14,11 +14,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel, HttpUrl, field_validator, model_validator
-from datetime import datetime
-from test_observer.common.constants import VALID_ISSUE_HOSTS
-from sqlalchemy.engine import RowMapping
 from collections.abc import Sequence
+from datetime import datetime
+
+from pydantic import BaseModel, HttpUrl, field_validator, model_validator
+from sqlalchemy.engine import RowMapping
+
+from test_observer.common.constants import VALID_ISSUE_HOSTS
 
 
 class TestReportedIssueRequest(BaseModel):
@@ -36,9 +38,7 @@ class TestReportedIssueRequest(BaseModel):
 
     @field_validator("url")
     @classmethod
-    def name_must_contain_space(
-        cls: type["TestReportedIssueRequest"], url: HttpUrl
-    ) -> HttpUrl:
+    def name_must_contain_space(cls: type["TestReportedIssueRequest"], url: HttpUrl) -> HttpUrl:
         if url.host not in VALID_ISSUE_HOSTS:
             raise ValueError(f"Issue url must belong to one of {VALID_ISSUE_HOSTS}")
         return url
@@ -64,12 +64,7 @@ class TestCasesResponse(BaseModel):
 
     @classmethod
     def from_rows(cls, rows: Sequence[RowMapping]) -> "TestCasesResponse":
-        return cls(
-            test_cases=[
-                TestCaseInfo(test_case=r["test_case"], template_id=r["template_id"])
-                for r in rows
-            ]
-        )
+        return cls(test_cases=[TestCaseInfo(test_case=r["test_case"], template_id=r["template_id"]) for r in rows])
 
 
 class TestCaseSearchResponse(BaseModel):
