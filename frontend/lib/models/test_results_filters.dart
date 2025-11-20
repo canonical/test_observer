@@ -100,17 +100,35 @@ sealed class IntListFilter with _$IntListFilter {
   }
 }
 
+class ExecutionMetadataConverter
+    implements JsonConverter<ExecutionMetadata, Map<String, dynamic>> {
+  const ExecutionMetadataConverter();
+
+  @override
+  ExecutionMetadata fromJson(Map<String, dynamic> json) {
+    return ExecutionMetadata.fromJson(json);
+  }
+
+  @override
+  Map<String, dynamic> toJson(ExecutionMetadata metadata) {
+    return metadata.toJson();
+  }
+}
+
 @freezed
 abstract class TestResultsFilters with _$TestResultsFilters {
   const TestResultsFilters._();
   const factory TestResultsFilters({
     @Default([]) List<String> families,
-    @Default([]) List<TestResultStatus> testResultStatuses,
+    @JsonKey(name: 'test_result_statuses')
+    @Default([])
+    List<TestResultStatus> testResultStatuses,
     @Default([]) List<String> artefacts,
     @Default([]) List<String> environments,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
     @JsonKey(name: 'execution_metadata')
+    @ExecutionMetadataConverter()
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
     @IntListFilterConverter()
@@ -132,13 +150,16 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     Map<String, List<String>> parameters,
   ) {
     List<String> parseParam(List<String>? values) {
-      return values != null && values.isNotEmpty
-          ? values.first
-              .split(',')
-              .map((s) => s.trim())
-              .where((s) => s.isNotEmpty)
-              .toList()
-          : <String>[];
+      if (values == null || values.isEmpty) return <String>[];
+
+      // Handle both formats:
+      // 1. Multiple list entries: ['value1', 'value2']
+      // 2. Comma-separated in single entry: ['value1,value2']
+      return values
+          .expand((v) => v.split(','))
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
     }
 
     final families = parseParam(parameters['families']);
