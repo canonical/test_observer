@@ -24,6 +24,31 @@ import 'test_result.dart';
 part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
 
+class IntListFilterConverter implements JsonConverter<IntListFilter, dynamic> {
+  const IntListFilterConverter();
+
+  @override
+  IntListFilter fromJson(dynamic json) {
+    if (json is String) {
+      if (json == 'any') return const IntListFilter.any();
+      if (json == 'none') return const IntListFilter.none();
+    }
+    if (json is List) {
+      return IntListFilter.list(json.cast<int>());
+    }
+    return const IntListFilter.list([]);
+  }
+
+  @override
+  dynamic toJson(IntListFilter filter) {
+    return switch (filter) {
+      _IntListFilterList(:final values) => values,
+      _IntListFilterAny() => 'any',
+      _IntListFilterNone() => 'none',
+    };
+  }
+}
+
 @freezed
 sealed class IntListFilter with _$IntListFilter {
   // ignore: unused_element
@@ -45,10 +70,12 @@ sealed class IntListFilter with _$IntListFilter {
   bool get isNone => this is _IntListFilterNone;
   bool get isList => this is _IntListFilterList;
 
-  bool get hasValues => switch (this) {
+  bool get isNotEmpty => switch (this) {
         _IntListFilterList(:final values) => values.isNotEmpty,
         _ => true,
       };
+
+  bool get isEmpty => !isNotEmpty;
 
   static IntListFilter fromQueryParam(List<String> params) {
     if (params.length == 1 && params.first == 'any') {
@@ -86,8 +113,12 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @JsonKey(name: 'execution_metadata')
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
-    @Default(IntListFilter.list([])) IntListFilter issues,
-    @Default(IntListFilter.list([])) IntListFilter assignees,
+    @IntListFilterConverter()
+    @Default(IntListFilter.list([]))
+    IntListFilter issues,
+    @IntListFilterConverter()
+    @Default(IntListFilter.list([]))
+    IntListFilter assignees,
     @JsonKey(name: 'from_date') DateTime? fromDate,
     @JsonKey(name: 'until_date') DateTime? untilDate,
     int? offset,
@@ -212,8 +243,8 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||
       executionMetadata.isNotEmpty ||
-      issues.hasValues ||
-      assignees.hasValues ||
+      issues.isNotEmpty ||
+      assignees.isNotEmpty ||
       fromDate != null ||
       untilDate != null;
 

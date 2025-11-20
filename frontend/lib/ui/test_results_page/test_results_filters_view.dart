@@ -257,30 +257,19 @@ class _TestResultsFiltersViewState
                     setState(() {
                       if (value == 'any') {
                         _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IntListFilter.any(),
+                          issues: const IssuesFilter.any(),
                         );
-                        _notifyChanged(_selectedFilters);
                       } else if (value == 'none') {
                         _selectedFilters = _selectedFilters.copyWith(
-                          issues: const IntListFilter.none(),
+                          issues: const IssuesFilter.none(),
                         );
-                        _notifyChanged(_selectedFilters);
                       } else {
-                        // Clearing meta option - only reset to empty list if we don't already have items
-                        // (onChanged may have been called first when selecting an item)
-                        if (_selectedFilters.issues.isList &&
-                            _selectedFilters.issues.values.isEmpty) {
-                          _selectedFilters = _selectedFilters.copyWith(
-                            issues: const IntListFilter.list([]),
-                          );
-                        } else if (!_selectedFilters.issues.isList) {
-                          // Transition from any/none to list mode with empty list
-                          _selectedFilters = _selectedFilters.copyWith(
-                            issues: const IntListFilter.list([]),
-                          );
-                        }
-                        // If already in list mode with items, don't clear them
+                        // Cleared - go back to list mode
+                        _selectedFilters = _selectedFilters.copyWith(
+                          issues: const IssuesFilter.list([]),
+                        );
                       }
+                      _notifyChanged(_selectedFilters);
                     });
                   },
                   asyncSuggestionsCallback: (pattern) async {
@@ -322,9 +311,7 @@ class _TestResultsFiltersViewState
                   onChanged: (issueId, isSelected) {
                     setState(() {
                       // If currently in meta mode (any/none), start fresh when selecting items
-                      final currentIssueIds = _selectedFilters.issues.isList
-                          ? _selectedFilters.issues.values
-                          : <int>[];
+                      final currentIssueIds = _selectedFilters.issues.values;
                       final newIssueIds = Set<int>.from(currentIssueIds);
 
                       if (isSelected) {
