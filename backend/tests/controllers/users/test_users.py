@@ -17,10 +17,10 @@
 
 from base64 import b64encode
 from datetime import datetime, timedelta
-import json
-
-import itsdangerous
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+import itsdangerous
+import json
 
 from test_observer.common.config import SESSIONS_SECRET
 from test_observer.common.permissions import Permission
@@ -160,8 +160,11 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
     }
 
 
-def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator):
+def test_set_user_as_reviewer(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     user = generator.gen_user()
+    assert not user.is_reviewer
 
     response = make_authenticated_request(
         lambda: test_client.patch(f"/v1/users/{user.id}", json={"is_reviewer": True}),
@@ -169,11 +172,15 @@ def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator)
     )
 
     assert response.status_code == 200
+    db_session.refresh(user)
     assert user.is_reviewer
 
 
-def test_promote_user_to_admin(test_client: TestClient, generator: DataGenerator):
+def test_promote_user_to_admin(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     user = generator.gen_user()
+    assert not user.is_admin
 
     response = make_authenticated_request(
         lambda: test_client.patch(f"/v1/users/{user.id}", json={"is_admin": True}),
@@ -181,4 +188,5 @@ def test_promote_user_to_admin(test_client: TestClient, generator: DataGenerator
     )
 
     assert response.status_code == 200
+    db_session.refresh(user)
     assert user.is_admin

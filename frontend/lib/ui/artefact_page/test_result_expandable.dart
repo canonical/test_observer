@@ -106,7 +106,13 @@ class _TestResultOutputExpandable extends StatelessWidget {
         if (testResult.ioLog != '')
           YaruTile(
             title: const Text('IO Log'),
-            subtitle: Text(testResult.ioLog),
+            subtitle: SelectableText(
+              testResult.ioLog,
+              style: const TextStyle(
+                fontFamily: 'UbuntuMono',
+                fontSize: 12,
+              ),
+            ),
           ),
       ],
     );

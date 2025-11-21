@@ -71,7 +71,7 @@ class Navbar extends ConsumerWidget {
                   ),
                   const Spacer(),
                   const _NavbarEntry(
-                    title: 'Test Results',
+                    title: 'Search',
                     route: AppRoutes.testResults,
                   ),
                   const _NavbarEntry(
@@ -119,7 +119,7 @@ class Navbar extends ConsumerWidget {
                           },
                         )
                       : _NavbarDropdownEntry(
-                          label: 'hi ${user.name}',
+                          label: user.name,
                           dropdownChildren: [
                             _NavbarDropdownItem(
                               label: 'Log out',

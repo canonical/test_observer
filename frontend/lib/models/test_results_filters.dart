@@ -19,15 +19,64 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'execution_metadata.dart';
 import '../routing.dart';
+import 'test_result.dart';
 
 part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
+
+class IssuesFilterConverter implements JsonConverter<IssuesFilter, dynamic> {
+  const IssuesFilterConverter();
+
+  @override
+  IssuesFilter fromJson(dynamic json) {
+    if (json is String) {
+      if (json == 'any') return const IssuesFilter.any();
+      if (json == 'none') return const IssuesFilter.none();
+    }
+    if (json is List) {
+      return IssuesFilter.list(json.cast<int>());
+    }
+    return const IssuesFilter.list([]);
+  }
+
+  @override
+  dynamic toJson(IssuesFilter filter) {
+    return switch (filter) {
+      _IssuesFilterList(:final issues) => issues,
+      _IssuesFilterAny() => 'any',
+      _IssuesFilterNone() => 'none',
+    };
+  }
+}
+
+@freezed
+sealed class IssuesFilter with _$IssuesFilter {
+  // ignore: unused_element
+  const IssuesFilter._();
+  const factory IssuesFilter.list(List<int> issues) = _IssuesFilterList;
+  const factory IssuesFilter.any() = _IssuesFilterAny;
+  const factory IssuesFilter.none() = _IssuesFilterNone;
+
+  factory IssuesFilter.fromJson(Map<String, Object?> json) =>
+      _$IssuesFilterFromJson(json);
+
+  // Helper methods to extract values
+  List<int> get issuesList => switch (this) {
+        _IssuesFilterList(:final issues) => issues,
+        _ => [],
+      };
+
+  bool get isAny => this is _IssuesFilterAny;
+  bool get isNone => this is _IssuesFilterNone;
+  bool get isList => this is _IssuesFilterList;
+}
 
 @freezed
 abstract class TestResultsFilters with _$TestResultsFilters {
   const TestResultsFilters._();
   const factory TestResultsFilters({
     @Default([]) List<String> families,
+    @Default([]) List<TestResultStatus> testResultStatuses,
     @Default([]) List<String> artefacts,
     @Default([]) List<String> environments,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
@@ -35,7 +84,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @JsonKey(name: 'execution_metadata')
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
-    @Default([]) List<int> issues,
+    @IssuesFilterConverter()
+    @Default(IssuesFilter.list([]))
+    IssuesFilter issues,
     @JsonKey(name: 'from_date') DateTime? fromDate,
     @JsonKey(name: 'until_date') DateTime? untilDate,
     int? offset,
@@ -59,6 +110,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
 
     final families = parseParam(parameters['families']);
+    final testResultStatuses = parseParam(parameters['test_result_statuses'])
+        .map((s) => TestResultStatus.fromString(s))
+        .toList();
     final artefacts = parseParam(parameters['artefacts']);
     final environments = parseParam(parameters['environments']);
     final testCases = parseParam(parameters['test_cases']);
@@ -66,10 +120,14 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     final executionMetadata = ExecutionMetadata.fromQueryParams(
       parameters['execution_metadata'],
     );
-    final issues = parseParam(parameters['issues'])
-        .map((s) => int.tryParse(s))
-        .whereNotNull()
-        .toList();
+    final issuesParam = parseParam(parameters['issues']);
+    final issues = issuesParam.length == 1 && issuesParam.first == 'any'
+        ? const IssuesFilter.any()
+        : issuesParam.length == 1 && issuesParam.first == 'none'
+            ? const IssuesFilter.none()
+            : IssuesFilter.list(
+                issuesParam.map((s) => int.tryParse(s)).whereNotNull().toList(),
+              );
     final fromDate = parseParam(parameters['from_date'])
         .map((s) => DateTime.tryParse(s))
         .firstOrNullWhere((v) => v != null);
@@ -85,6 +143,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
 
     return TestResultsFilters(
       families: families,
+      testResultStatuses: testResultStatuses,
       artefacts: artefacts,
       environments: environments,
       testCases: testCases,
@@ -103,6 +162,10 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     if (families.isNotEmpty) {
       params['families'] = families;
     }
+    if (testResultStatuses.isNotEmpty) {
+      params['test_result_statuses'] =
+          testResultStatuses.map((s) => s.name.toUpperCase()).toList();
+    }
     if (artefacts.isNotEmpty) {
       params['artefacts'] = artefacts;
     }
@@ -118,8 +181,15 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     if (executionMetadata.data.isNotEmpty) {
       params['execution_metadata'] = executionMetadata.toQueryParams();
     }
-    if (issues.isNotEmpty) {
-      params['issues'] = issues.map((i) => i.toString()).toList();
+    switch (issues) {
+      case _IssuesFilterList(:final issues):
+        if (issues.isNotEmpty) {
+          params['issues'] = issues.map((i) => i.toString()).toList();
+        }
+      case _IssuesFilterAny():
+        params['issues'] = ['any'];
+      case _IssuesFilterNone():
+        params['issues'] = ['none'];
     }
     if (fromDate != null) {
       params['from_date'] = [fromDate!.toIso8601String()];
@@ -138,12 +208,16 @@ abstract class TestResultsFilters with _$TestResultsFilters {
 
   bool get hasFilters =>
       families.isNotEmpty ||
+      testResultStatuses.isNotEmpty ||
       artefacts.isNotEmpty ||
       environments.isNotEmpty ||
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||
       executionMetadata.isNotEmpty ||
-      issues.isNotEmpty ||
+      switch (issues) {
+        _IssuesFilterList(:final issues) => issues.isNotEmpty,
+        _ => true,
+      } ||
       fromDate != null ||
       untilDate != null;
 
