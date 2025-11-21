@@ -24,6 +24,8 @@ import 'test_result.dart';
 part 'test_results_filters.freezed.dart';
 part 'test_results_filters.g.dart';
 
+// Code generator for the TestResultsFilters class will not call IntListFilter.fromJson
+// but instead uses the instance which does not work properly.
 class IntListFilterConverter implements JsonConverter<IntListFilter, dynamic> {
   const IntListFilterConverter();
 
@@ -100,6 +102,8 @@ sealed class IntListFilter with _$IntListFilter {
   }
 }
 
+// Code generator for the TestResultsFilters class will not call ExecutionMetadata.fromJson
+// but instead uses the instance which does not work properly.
 class ExecutionMetadataConverter
     implements JsonConverter<ExecutionMetadata, Map<String, dynamic>> {
   const ExecutionMetadataConverter();
