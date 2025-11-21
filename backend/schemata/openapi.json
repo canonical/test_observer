@@ -2566,14 +2566,14 @@
                 {
                   "type": "array",
                   "items": {
-                    "const": "none",
+                    "const": "any",
                     "type": "string"
                   }
                 },
                 {
                   "type": "array",
                   "items": {
-                    "const": "any",
+                    "const": "none",
                     "type": "string"
                   }
                 },
@@ -2627,6 +2627,41 @@
               "title": "Test Execution Statuses"
             },
             "description": "Filter by test execution statuses"
+          },
+          {
+            "name": "assignee_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by assignee user ids",
+              "title": "Assignee Ids"
+            },
+            "description": "Filter by assignee user ids"
           },
           {
             "name": "from_date",
@@ -2951,17 +2986,70 @@
         ],
         "summary": "Get Users",
         "operationId": "get_users_v1_users_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for user email, name, launchpad handle, or id",
+              "title": "Q"
+            },
+            "description": "Search term for user email, name, launchpad handle, or id"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/UserResponse"
-                  },
-                  "type": "array",
-                  "title": "Response Get Users V1 Users Get"
+                  "$ref": "#/components/schemas/UsersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -5842,6 +5930,24 @@
             "type": "array",
             "title": "Test Execution Statuses"
           },
+          "assignee_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              }
+            ],
+            "title": "Assignee Ids"
+          },
           "from_date": {
             "anyOf": [
               {
@@ -6046,6 +6152,27 @@
           "is_admin"
         ],
         "title": "UserResponse"
+      },
+      "UsersResponse": {
+        "properties": {
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/UserResponse"
+            },
+            "type": "array",
+            "title": "Users"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "users",
+          "count"
+        ],
+        "title": "UsersResponse"
       },
       "ValidationError": {
         "properties": {

@@ -124,6 +124,15 @@ def build_query_filters_and_joins(
         query_filters.append(TestExecution.status.in_(filters.test_execution_statuses))
         joins_needed.add("test_execution")
 
+    if filters.assignee_ids != []:
+        if filters.assignee_ids == QueryValue.ANY:
+            query_filters.append(Artefact.assignee_id.isnot(None))
+        elif filters.assignee_ids == QueryValue.NONE:
+            query_filters.append(Artefact.assignee_id.is_(None))
+        elif len(filters.assignee_ids) > 0:
+            query_filters.append(Artefact.assignee_id.in_(filters.assignee_ids))
+        joins_needed.update(["test_execution", "artefact_build", "artefact"])
+
     if filters.from_date is not None:
         query_filters.append(TestResult.created_at >= filters.from_date)
 
