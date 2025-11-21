@@ -42,23 +42,13 @@ class TestResultHelpers {
     final testExecution = result.testExecution;
     final artefact = result.artefact;
     final testResult = result.testResult;
-    final environment = testExecution.environment;
-
     final family = artefact.family;
     final artefactId = artefact.id;
-    final testPlan = testExecution.testPlan.trim().isNotEmpty
-        ? testExecution.testPlan
-        : 'unknown';
-
-    final environmentName = environment.name;
     final testExecutionId = testExecution.id;
     final testResultId = testResult.id;
-
     final currentUri = Uri.base;
 
     final queryParams = {
-      'Test plan': testPlan,
-      'Environment': environmentName,
       'testExecutionId': testExecutionId.toString(),
       'testResultId': testResultId.toString(),
     };
