@@ -385,6 +385,27 @@ class ApiRepository {
     return User.fromJson(response.data);
   }
 
+  Future<List<User>> getUsers({
+    int? limit,
+    int? offset,
+    String? q,
+  }) async {
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+    if (offset != null) queryParams['offset'] = offset;
+    if (q != null && q.trim().isNotEmpty) queryParams['q'] = q.trim();
+
+    final response = await dio.get('/v1/users', queryParameters: queryParams);
+    final Map<String, dynamic> data = response.data;
+    final List<dynamic> users = data['users'] ?? [];
+    return users.map((json) => User.fromJson(json)).toList();
+  }
+
+  Future<User> getUser(int userId) async {
+    final response = await dio.get('/v1/users/$userId');
+    return User.fromJson(response.data);
+  }
+
   Future<ExecutionMetadata> getExecutionMetadata() async {
     final response = await dio.get('/v1/execution-metadata');
     return ExecutionMetadata.fromJson(response.data['execution_metadata']);

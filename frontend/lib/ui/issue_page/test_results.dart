@@ -43,7 +43,7 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
     super.initState();
     // Initialize with filters that include this issue ID
     _currentFilters = TestResultsFilters(
-      issues: IssuesFilter.list([widget.issue.id]),
+      issues: IntListFilter.list([widget.issue.id]),
     );
   }
 
@@ -51,7 +51,7 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
     setState(() {
       // Always ensure the issue ID is included in the filters
       _currentFilters = newFilters.copyWith(
-        issues: IssuesFilter.list([widget.issue.id]),
+        issues: IntListFilter.list([widget.issue.id]),
       );
     });
   }
