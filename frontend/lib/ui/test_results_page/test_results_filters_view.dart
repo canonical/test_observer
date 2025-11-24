@@ -42,6 +42,7 @@ enum FilterType {
   issues,
   assignees,
   artefacts,
+  artefactIsArchived,
   environments,
   testCases,
   templateIds,
@@ -390,6 +391,28 @@ class _TestResultsFiltersViewState
                       ..._selectedFilters.artefacts.where((a) => a != val),
                       if (isSelected) val,
                     ],
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.artefactIsArchived))
+          _box(
+            MultiSelectCombobox<bool>(
+              title: 'Archived',
+              allOptions: const [false, true],
+              showAllOptionsWithoutSearch: true,
+              isMutuallyExclusive: true,
+              itemToString: (value) =>
+                  value ? 'Archived only' : 'Non archived only',
+              initialSelected: _selectedFilters.artefactIsArchived != null
+                  ? {_selectedFilters.artefactIsArchived!}
+                  : {},
+              onChanged: (value, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    artefactIsArchived: isSelected ? value : null,
                   );
                   _notifyChanged(_selectedFilters);
                 });
