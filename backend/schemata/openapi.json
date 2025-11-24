@@ -2489,6 +2489,24 @@
             "description": "Filter by artefact names"
           },
           {
+            "name": "artefact_is_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the artefact is archived",
+              "title": "Artefact Is Archived"
+            },
+            "description": "Filter by whether the artefact is archived"
+          },
+          {
             "name": "environments",
             "in": "query",
             "required": false,
@@ -5873,6 +5891,17 @@
             },
             "type": "array",
             "title": "Artefacts"
+          },
+          "artefact_is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artefact Is Archived"
           },
           "environments": {
             "items": {

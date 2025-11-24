@@ -63,6 +63,7 @@ class TestResultSearchResponseWithContext(BaseModel):
 class TestResultSearchFilters(BaseModel):
     families: list[FamilyName] = Field(default_factory=list)
     artefacts: list[str] = Field(default_factory=list)
+    artefact_is_archived: bool | None = None
     environments: list[str] = Field(default_factory=list)
     test_cases: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
