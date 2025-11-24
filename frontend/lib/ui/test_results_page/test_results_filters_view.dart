@@ -245,6 +245,7 @@ class _TestResultsFiltersViewState
             MultiSelectCombobox<String>(
               title: 'Family',
               allOptions: allFamilyOptions,
+              showAllOptionsWithoutSearch: true,
               itemToString: (family) => family,
               initialSelected: _selectedFilters.families.toSet(),
               onChanged: (val, isSelected) {

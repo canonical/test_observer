@@ -58,6 +58,9 @@ class MultiSelectCombobox<T> extends StatefulWidget {
   // If not provided, uses default tooltip with text display
   final Widget Function(T item)? itemBuilder;
 
+  // Show all options without search box
+  final bool showAllOptionsWithoutSearch;
+
   const MultiSelectCombobox({
     super.key,
     required this.title,
@@ -73,6 +76,7 @@ class MultiSelectCombobox<T> extends StatefulWidget {
     this.metaOptions,
     this.selectedMetaOption,
     this.onMetaOptionChanged,
+    this.showAllOptionsWithoutSearch = false,
   })  : assert(
           asyncSuggestionsCallback != null ||
               (allOptions != null && itemToString != null),
@@ -84,6 +88,10 @@ class MultiSelectCombobox<T> extends StatefulWidget {
                   onMetaOptionChanged == null) ||
               (metaOptions != null && onMetaOptionChanged != null),
           'If using metaOptions, must provide both metaOptions and onMetaOptionChanged',
+        ),
+        assert(
+          !showAllOptionsWithoutSearch || allOptions != null,
+          'Must provide allOptions when showAllOptionsWithoutSearch is true',
         );
 
   Widget _defaultItemBuilder(T item) {
@@ -254,38 +262,60 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
             ),
             const SizedBox(height: 8),
           ],
-          _ComboboxSearchField<T>(
-            controller: _controller,
-            getSuggestions: _getSuggestions,
-            isAsync: _isAsyncMode,
-            minCharsForSearch: widget.minCharsForAsyncSearch,
-            itemBuilder: _itemBuilder,
-            onSelected: (suggestion) {
-              setState(() {
-                _selected.add(suggestion);
-                widget.onChanged(suggestion, true);
-                _controller.clear();
-              });
-              // Clear meta option when regular selection is made
-              if (widget.selectedMetaOption != null) {
-                widget.onMetaOptionChanged!(null);
-              }
-            },
-            onFocusNodeSet: (focusNode) {
-              _typeAheadFocusNode = focusNode;
-            },
-          ),
-          const SizedBox(height: 8),
-          _SelectedItemsList<T>(
-            selectedItems: _selected,
-            itemBuilder: _itemBuilder,
-            onRemove: (option) {
-              setState(() {
-                _selected.remove(option);
-                widget.onChanged(option, false);
-              });
-            },
-          ),
+          if (widget.showAllOptionsWithoutSearch)
+            _AllOptionsList<T>(
+              allOptions: widget.allOptions!,
+              selectedItems: _selected,
+              itemBuilder: _itemBuilder,
+              onChanged: (option, isSelected) {
+                setState(() {
+                  if (isSelected) {
+                    _selected.add(option);
+                  } else {
+                    _selected.remove(option);
+                  }
+                  widget.onChanged(option, isSelected);
+                });
+                // Clear meta option when regular selection is made
+                if (widget.selectedMetaOption != null) {
+                  widget.onMetaOptionChanged!(null);
+                }
+              },
+            )
+          else ...[
+            _ComboboxSearchField<T>(
+              controller: _controller,
+              getSuggestions: _getSuggestions,
+              isAsync: _isAsyncMode,
+              minCharsForSearch: widget.minCharsForAsyncSearch,
+              itemBuilder: _itemBuilder,
+              onSelected: (suggestion) {
+                setState(() {
+                  _selected.add(suggestion);
+                  widget.onChanged(suggestion, true);
+                  _controller.clear();
+                });
+                // Clear meta option when regular selection is made
+                if (widget.selectedMetaOption != null) {
+                  widget.onMetaOptionChanged!(null);
+                }
+              },
+              onFocusNodeSet: (focusNode) {
+                _typeAheadFocusNode = focusNode;
+              },
+            ),
+            const SizedBox(height: 8),
+            _SelectedItemsList<T>(
+              selectedItems: _selected,
+              itemBuilder: _itemBuilder,
+              onRemove: (option) {
+                setState(() {
+                  _selected.remove(option);
+                  widget.onChanged(option, false);
+                });
+              },
+            ),
+          ],
         ],
       ],
     );
@@ -474,6 +504,39 @@ class _SelectedItemsList<T> extends StatelessWidget {
             YaruCheckbox(
               value: true,
               onChanged: (_) => onRemove(option),
+            ),
+            Flexible(child: itemBuilder(option)),
+          ],
+        );
+      }).toList(),
+    );
+  }
+}
+
+// List of all available options with checkboxes (no search)
+class _AllOptionsList<T> extends StatelessWidget {
+  const _AllOptionsList({
+    required this.allOptions,
+    required this.selectedItems,
+    required this.onChanged,
+    required this.itemBuilder,
+  });
+
+  final List<T> allOptions;
+  final Set<T> selectedItems;
+  final Function(T, bool) onChanged;
+  final Widget Function(T item) itemBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: allOptions.map((option) {
+        final isSelected = selectedItems.contains(option);
+        return Row(
+          children: [
+            YaruCheckbox(
+              value: isSelected,
+              onChanged: (value) => onChanged(option, value ?? false),
             ),
             Flexible(child: itemBuilder(option)),
           ],
