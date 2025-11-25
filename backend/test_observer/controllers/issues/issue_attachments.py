@@ -92,20 +92,18 @@ def modify_issue_attachments(
     # Add or remove any test results matching the provided filters
     if request.test_results_filters is not None:
         filters = request.test_results_filters
-        if (
-            all(
-                len(value) == 0
-                for key, value in filters.model_dump().items()
-                if key
-                not in (
-                    "from_date",
-                    "until_date",
-                    "offset",
-                    "limit",
-                    "artefact_is_archived",
-                )
+        if all(
+            (isinstance(value, list) and len(value) == 0)
+            or (isinstance(value, dict) and len(value) == 0)
+            or value is None
+            for key, value in filters.model_dump().items()
+            if key
+            not in (
+                "from_date",
+                "until_date",
+                "offset",
+                "limit",
             )
-            and filters.artefact_is_archived is None
         ):
             raise HTTPException(
                 status_code=422,
