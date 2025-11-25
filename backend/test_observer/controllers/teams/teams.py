@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.teams.models import TeamPatch, TeamResponse
-from test_observer.data_access.models import Team
+from test_observer.data_access.models import Team, User
 from test_observer.data_access.setup import get_db
 
 
@@ -89,8 +89,6 @@ def add_team_member(
     db: Session = Depends(get_db),
 ):
     """Add a user to a team"""
-    from test_observer.data_access.models import User
-    
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(404, f"Team {team_id} doesn't exist")
@@ -118,8 +116,6 @@ def remove_team_member(
     db: Session = Depends(get_db),
 ):
     """Remove a user from a team"""
-    from test_observer.data_access.models import User
-    
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(404, f"Team {team_id} doesn't exist")
