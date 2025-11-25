@@ -81,35 +81,21 @@ class StartTestExecutionController:
             # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
             
-            # Find all teams that can review this family
-            teams_for_family = (
+            users = (
                 self.db.execute(
-                    select(Team).where(
-                        Team.reviewer_families.any(family_str)
-                    )
+                    select(User)
+                    .join(User.teams)
+                    .where(Team.reviewer_families.any(family_str))
+                    .distinct()
                 )
                 .scalars()
                 .all()
             )
             
-            if teams_for_family:
-                # Get all users who are members of these teams
-                team_ids = [team.id for team in teams_for_family]
-                users = (
-                    self.db.execute(
-                        select(User)
-                        .join(User.teams)
-                        .where(Team.id.in_(team_ids))
-                        .distinct()
-                    )
-                    .scalars()
-                    .all()
-                )
-                
-                if users:
-                    self.artefact.assignee = random.choice(users)
-                    self.artefact.due_date = self.determine_due_date()
-                    self.db.commit()
+            if users:
+                self.artefact.assignee = random.choice(users)
+                self.artefact.due_date = self.determine_due_date()
+                self.db.commit()
 
     def create_test_execution(self):
         self.test_execution = get_or_create(
