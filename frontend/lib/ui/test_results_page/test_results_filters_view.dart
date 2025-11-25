@@ -267,6 +267,7 @@ class _TestResultsFiltersViewState
             MultiSelectCombobox<String>(
               title: 'Status',
               allOptions: allTestResultStatusesOptions,
+              showAllOptionsWithoutSearch: true,
               itemToString: (status) => status,
               initialSelected: _selectedFilters.testResultStatuses
                   .map((s) => s.name)
