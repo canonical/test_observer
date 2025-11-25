@@ -33,6 +33,14 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
     assert response.status_code == 200
     assert response.json() == [
         {
+            # this team is created by the add_reviewer_families_to_teams migration
+            "id": 1,
+            "name": "certification-reviewers",
+            "permissions": [],
+            "reviewer_families": ["snap", "deb", "image"],
+            "members": [],
+        },
+        {
             "id": team.id,
             "name": team.name,
             "permissions": team.permissions,

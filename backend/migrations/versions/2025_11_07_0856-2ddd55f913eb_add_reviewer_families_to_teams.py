@@ -58,6 +58,8 @@ def upgrade() -> None:
         column("name", sa.String),
         column("permissions", postgresql.ARRAY(sa.String())),
         column("reviewer_families", postgresql.ARRAY(sa.String())),
+        column("created_at", sa.DateTime),
+        column("updated_at", sa.DateTime),
     )
     
     user_table = table(
@@ -87,12 +89,16 @@ def upgrade() -> None:
         )
     else:
         # Create new certification-reviewers team
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
         result = connection.execute(
             insert(team_table)
             .values(
                 name="certification-reviewers",
                 permissions=[],
                 reviewer_families=["snap", "deb", "image"],
+                created_at=now,
+                updated_at=now,
             )
             .returning(team_table.c.id)
         )
