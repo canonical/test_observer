@@ -28,6 +28,8 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy import select, insert, update
 from sqlalchemy.sql import table, column
 
+from datetime import datetime, timezone
+
 
 # revision identifiers, used by Alembic.
 revision = "2ddd55f913eb"
@@ -74,35 +76,28 @@ def upgrade() -> None:
         column("team_id", sa.Integer),
     )
     
-    # Create certification-reviewers team if it doesn't exist
-    result = connection.execute(
-        select(team_table.c.id).where(team_table.c.name == "certification-reviewers")
-    ).first()
-    
-    if result:
-        cert_team_id = result[0]
-        # Update existing team to have reviewer_families
-        connection.execute(
-            update(team_table)
-            .where(team_table.c.id == cert_team_id)
-            .values(reviewer_families=["snap", "deb", "image"])
-        )
-    else:
-        # Create new certification-reviewers team
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
+    def create_team_if_doesnt_exist(team_name, reviewer_families):
         result = connection.execute(
-            insert(team_table)
-            .values(
-                name="certification-reviewers",
-                permissions=[],
-                reviewer_families=["snap", "deb", "image"],
-                created_at=now,
-                updated_at=now,
+            select(team_table.c.id).where(team_table.c.name == team_name)
+        ).first()
+        if not result:
+            now = datetime.now(timezone.utc)
+            result = connection.execute(
+                insert(team_table)
+                .values(
+                    name=team_name,
+                    permissions=[],
+                    reviewer_families=reviewer_families,
+                    created_at=now,
+                    updated_at=now,
+                )
+                .returning(team_table.c.id)
             )
-            .returning(team_table.c.id)
-        )
-        cert_team_id = result.fetchone()[0]
+            return result.fetchone()[0]
+        return result[0]
+
+    cert_team_id = create_team_if_doesnt_exist("certification-reviewers", ["snap", "deb", "image"])
+    create_team_if_doesnt_exist("charm-reviewers", ["charm"])
     
     # Get all users with is_reviewer=True
     reviewers = connection.execute(
