@@ -100,7 +100,7 @@ def upgrade() -> None:
     
     # Get all users with is_reviewer=True
     reviewers = connection.execute(
-        select(user_table.c.id).where(user_table.c.is_reviewer == True)
+        select(user_table.c.id).where(user_table.c.is_reviewer.is_(True))
     ).fetchall()
     
     # Add them to the certification-reviewers team
