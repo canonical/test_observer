@@ -49,7 +49,7 @@ def get_team(
 ):
     team = db.get(Team, team_id)
     if team is None:
-        raise HTTPException(404, f"Team {team_id} doesn't exist")
+        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
     return team
 
 
@@ -65,7 +65,7 @@ def update_team(
 ):
     team = db.get(Team, team_id)
     if team is None:
-        raise HTTPException(404, f"Team {team_id} doesn't exist")
+        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
 
     if request.permissions:
         team.permissions = [p.value for p in request.permissions]
@@ -91,11 +91,11 @@ def add_team_member(
     """Add a user to a team"""
     team = db.get(Team, team_id)
     if team is None:
-        raise HTTPException(404, f"Team {team_id} doesn't exist")
+        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
     
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(404, f"User {user_id} doesn't exist")
+        raise HTTPException(status_code=404, detail=f"User {user_id} doesn't exist")
     
     # Check if user is already a member
     if user not in team.members:
@@ -118,11 +118,11 @@ def remove_team_member(
     """Remove a user from a team"""
     team = db.get(Team, team_id)
     if team is None:
-        raise HTTPException(404, f"Team {team_id} doesn't exist")
+        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
     
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(404, f"User {user_id} doesn't exist")
+        raise HTTPException(status_code=404, detail=f"User {user_id} doesn't exist")
     
     # Check if user is a member
     if user in team.members:
