@@ -76,3 +76,61 @@ def update_team(
     db.commit()
 
     return team
+
+
+@router.post(
+    "/{team_id}/members/{user_id}",
+    response_model=TeamResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_team])],
+)
+def add_team_member(
+    team_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    """Add a user to a team"""
+    from test_observer.data_access.models import User
+    
+    team = db.get(Team, team_id)
+    if team is None:
+        raise HTTPException(404, f"Team {team_id} doesn't exist")
+    
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(404, f"User {user_id} doesn't exist")
+    
+    # Check if user is already a member
+    if user not in team.members:
+        team.members.append(user)
+        db.commit()
+    
+    return team
+
+
+@router.delete(
+    "/{team_id}/members/{user_id}",
+    response_model=TeamResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_team])],
+)
+def remove_team_member(
+    team_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    """Remove a user from a team"""
+    from test_observer.data_access.models import User
+    
+    team = db.get(Team, team_id)
+    if team is None:
+        raise HTTPException(404, f"Team {team_id} doesn't exist")
+    
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(404, f"User {user_id} doesn't exist")
+    
+    # Check if user is a member
+    if user in team.members:
+        team.members.remove(user)
+        db.commit()
+    
+    return team

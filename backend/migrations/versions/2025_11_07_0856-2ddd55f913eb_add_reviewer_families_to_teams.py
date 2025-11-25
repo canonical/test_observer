@@ -25,6 +25,8 @@ Create Date: 2025-11-07 08:56:00.000000+00:00
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import select, insert, update
+from sqlalchemy.sql import table, column
 
 
 # revision identifiers, used by Alembic.
@@ -45,8 +47,134 @@ def upgrade() -> None:
             server_default="{}",
         ),
     )
+    
+    # Migrate existing is_reviewer users to certification-reviewers team
+    connection = op.get_bind()
+    
+    # Define tables for migration
+    team_table = table(
+        "team",
+        column("id", sa.Integer),
+        column("name", sa.String),
+        column("permissions", postgresql.ARRAY(sa.String())),
+        column("reviewer_families", postgresql.ARRAY(sa.String())),
+    )
+    
+    user_table = table(
+        "app_user",
+        column("id", sa.Integer),
+        column("is_reviewer", sa.Boolean),
+    )
+    
+    team_users_table = table(
+        "team_users_association",
+        column("user_id", sa.Integer),
+        column("team_id", sa.Integer),
+    )
+    
+    # Create certification-reviewers team if it doesn't exist
+    result = connection.execute(
+        select(team_table.c.id).where(team_table.c.name == "certification-reviewers")
+    ).first()
+    
+    if result:
+        cert_team_id = result[0]
+        # Update existing team to have reviewer_families
+        connection.execute(
+            update(team_table)
+            .where(team_table.c.id == cert_team_id)
+            .values(reviewer_families=["snap", "deb", "image"])
+        )
+    else:
+        # Create new certification-reviewers team
+        result = connection.execute(
+            insert(team_table)
+            .values(
+                name="certification-reviewers",
+                permissions=[],
+                reviewer_families=["snap", "deb", "image"],
+            )
+            .returning(team_table.c.id)
+        )
+        cert_team_id = result.fetchone()[0]
+    
+    # Get all users with is_reviewer=True
+    reviewers = connection.execute(
+        select(user_table.c.id).where(user_table.c.is_reviewer == True)
+    ).fetchall()
+    
+    # Add them to the certification-reviewers team
+    if reviewers:
+        # Check which users are not already in the team
+        for reviewer in reviewers:
+            user_id = reviewer[0]
+            exists = connection.execute(
+                select(team_users_table.c.user_id)
+                .where(team_users_table.c.user_id == user_id)
+                .where(team_users_table.c.team_id == cert_team_id)
+            ).first()
+            
+            if not exists:
+                connection.execute(
+                    insert(team_users_table).values(
+                        user_id=user_id,
+                        team_id=cert_team_id,
+                    )
+                )
+    
+    # Drop the is_reviewer column
+    op.drop_column("app_user", "is_reviewer")
 
 
 def downgrade() -> None:
+    # Add back is_reviewer column
+    op.add_column(
+        "app_user",
+        sa.Column("is_reviewer", sa.Boolean(), nullable=False, server_default="false"),
+    )
+    
+    # Restore is_reviewer for users in certification-reviewers team
+    connection = op.get_bind()
+    
+    team_table = table(
+        "team",
+        column("id", sa.Integer),
+        column("name", sa.String),
+    )
+    
+    user_table = table(
+        "app_user",
+        column("id", sa.Integer),
+        column("is_reviewer", sa.Boolean),
+    )
+    
+    team_users_table = table(
+        "team_users_association",
+        column("user_id", sa.Integer),
+        column("team_id", sa.Integer),
+    )
+    
+    # Get certification-reviewers team id
+    result = connection.execute(
+        select(team_table.c.id).where(team_table.c.name == "certification-reviewers")
+    ).first()
+    
+    if result:
+        cert_team_id = result[0]
+        # Get all users in the certification-reviewers team
+        members = connection.execute(
+            select(team_users_table.c.user_id).where(
+                team_users_table.c.team_id == cert_team_id
+            )
+        ).fetchall()
+        
+        # Set is_reviewer=True for those users
+        for member in members:
+            connection.execute(
+                update(user_table)
+                .where(user_table.c.id == member[0])
+                .values(is_reviewer=True)
+            )
+    
     # Drop reviewer_families from team
     op.drop_column("team", "reviewer_families")
