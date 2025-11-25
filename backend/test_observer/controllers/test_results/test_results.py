@@ -23,7 +23,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, selectinload
 from typing import Annotated
-import urllib
+import base64
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
@@ -53,8 +53,7 @@ def parse_execution_metadata(
     execution_metadata: list[str] | None = Query(
         None,
         description=(
-            "Filter by execution metadata (category:value). "
-            "Category and value must be percent encoded."
+            "Filter by execution metadata (base64 encoded category:value pairs)."
         ),
     ),
 ) -> ExecutionMetadata | None:
@@ -62,21 +61,48 @@ def parse_execution_metadata(
         return None
     result = []
     for item in execution_metadata:
-        if item.count(":") != 1:
+        try:
+            # Decode base64 to get "category:value"
+            decoded = base64.b64decode(item).decode("utf-8")
+            colon_index = decoded.find(":")
+
+            if colon_index == -1:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Invalid execution metadata format: '{item}'. "
+                        "Expected 'category:value' after base64 decoding."
+                    ),
+                )
+
+            category = decoded[:colon_index]
+            value = decoded[colon_index + 1 :]
+
+            if not category or not value:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Invalid execution metadata format: '{item}'. "
+                        "Both category and value must be non-empty."
+                    ),
+                )
+
+            result.append(
+                TestExecutionMetadata(
+                    category=category,
+                    value=value,
+                )
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
             raise HTTPException(
                 status_code=422,
                 detail=(
-                    f"Invalid execution metadata format: '{item}'. "
-                    "Expected 'category:value' with a single colon."
+                    f"Invalid execution metadata format: '{item}'. Error: {str(e)}"
                 ),
-            )
-        category, value = item.split(":")
-        result.append(
-            TestExecutionMetadata(
-                category=urllib.parse.unquote(category),
-                value=urllib.parse.unquote(value),
-            )
-        )
+            ) from e
+
     return ExecutionMetadata.from_rows(result)
 
 

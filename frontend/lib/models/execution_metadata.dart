@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:convert';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'execution_metadata.freezed.dart';
@@ -63,10 +64,13 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
     for (final param in params ?? <String>[]) {
       final pairs = param.split(',').where((s) => s.isNotEmpty);
       for (final pair in pairs) {
-        final colonIndex = pair.indexOf(':');
+        final decoded = utf8.decode(base64Decode(pair));
+        final colonIndex = decoded.indexOf(':');
+
         if (colonIndex != -1) {
-          final category = pair.substring(0, colonIndex);
-          final value = pair.substring(colonIndex + 1);
+          final category = decoded.substring(0, colonIndex);
+          final value = decoded.substring(colonIndex + 1);
+
           if (category.isNotEmpty && value.isNotEmpty) {
             rows.add((category, value));
           }
@@ -77,7 +81,9 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
   }
 
   List<String> toQueryParams() {
-    return toRows().map((row) => '${row.$1}:${row.$2}').toList();
+    return toRows()
+        .map((row) => base64Encode(utf8.encode('${row.$1}:${row.$2}')))
+        .toList();
   }
 
   List<String> toStrings() {
