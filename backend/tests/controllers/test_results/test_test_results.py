@@ -1180,7 +1180,10 @@ class TestSearchTestResults:
     def test_search_without_artefact_is_archived_filter(
         self, test_client: TestClient, generator: DataGenerator
     ):
-        """Test that without the filter, both are returned"""
+        """
+        Test that without the artefact_is_archived filter,
+        both archived and active artefacts are returned
+        """
         unique_marker = uuid.uuid4().hex[:8]
 
         environment = generator.gen_environment()
