@@ -17,11 +17,11 @@
 from sqlalchemy import and_, select, exists, true, Select
 
 
+from test_observer.common.constants import QueryValue
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
-    Issue,
     IssueTestResultAttachment,
     TestCase,
     TestExecution,
@@ -92,12 +92,28 @@ def build_query_filters_and_joins(
         query_filters.append(filter_execution_metadata(filters.execution_metadata))
         joins_needed.add("test_execution")
 
-    if len(filters.issues) > 0:
+    if filters.issues == QueryValue.ANY:
+        query_filters.append(
+            exists(
+                select(1)
+                .select_from(IssueTestResultAttachment)
+                .where(IssueTestResultAttachment.test_result_id == TestResult.id)
+            )
+        )
+    elif filters.issues == QueryValue.NONE:
+        query_filters.append(
+            ~exists(
+                select(1)
+                .select_from(IssueTestResultAttachment)
+                .where(IssueTestResultAttachment.test_result_id == TestResult.id)
+            )
+        )
+    elif len(filters.issues) > 0:
         query_filters.append(
             TestResult.id.in_(
-                select(IssueTestResultAttachment.test_result_id)
-                .join(IssueTestResultAttachment.issue)
-                .where(Issue.id.in_(filters.issues))
+                select(IssueTestResultAttachment.test_result_id).where(
+                    IssueTestResultAttachment.issue_id.in_(filters.issues)
+                )
             )
         )
 
@@ -107,6 +123,15 @@ def build_query_filters_and_joins(
     if len(filters.test_execution_statuses) > 0:
         query_filters.append(TestExecution.status.in_(filters.test_execution_statuses))
         joins_needed.add("test_execution")
+
+    if filters.assignee_ids != []:
+        if filters.assignee_ids == QueryValue.ANY:
+            query_filters.append(Artefact.assignee_id.isnot(None))
+        elif filters.assignee_ids == QueryValue.NONE:
+            query_filters.append(Artefact.assignee_id.is_(None))
+        elif len(filters.assignee_ids) > 0:
+            query_filters.append(Artefact.assignee_id.in_(filters.assignee_ids))
+        joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
     if filters.from_date is not None:
         query_filters.append(TestResult.created_at >= filters.from_date)

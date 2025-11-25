@@ -79,7 +79,13 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   bool attachmentRuleCreated = false;
 
   @override
-  Future<List<Issue>> getIssues() async {
+  Future<List<Issue>> getIssues({
+    String? source,
+    String? project,
+    int? limit,
+    int? offset,
+    String? q,
+  }) async {
     return [dummyIssue.toIssue()];
   }
 

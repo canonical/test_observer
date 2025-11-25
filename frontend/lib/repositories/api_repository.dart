@@ -337,8 +337,23 @@ class ApiRepository {
     return Issue.fromJson(response.data);
   }
 
-  Future<List<Issue>> getIssues() async {
-    final response = await dio.get('/v1/issues');
+  Future<List<Issue>> getIssues({
+    String? source,
+    String? project,
+    int? limit,
+    int? offset,
+    String? q,
+  }) async {
+    final response = await dio.get(
+      '/v1/issues',
+      queryParameters: {
+        if (source != null) 'source': source,
+        if (project != null) 'project': project,
+        if (limit != null) 'limit': limit,
+        if (offset != null) 'offset': offset,
+        if (q != null) 'q': q,
+      },
+    );
     final Map issuesJson = response.data;
     return (issuesJson['issues'] as List)
         .map((json) => Issue.fromJson(json))
@@ -348,7 +363,6 @@ class ApiRepository {
   Future<Issue> createIssue({
     required String url,
     String? title,
-    String? description,
     String? status,
   }) async {
     final response = await dio.put(
@@ -356,7 +370,6 @@ class ApiRepository {
       data: {
         'url': url,
         if (title != null) 'title': title,
-        if (description != null) 'description': description,
         if (status != null) 'status': status,
       },
     );
@@ -369,6 +382,27 @@ class ApiRepository {
     if (data == null) {
       return null;
     }
+    return User.fromJson(response.data);
+  }
+
+  Future<List<User>> getUsers({
+    int? limit,
+    int? offset,
+    String? q,
+  }) async {
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+    if (offset != null) queryParams['offset'] = offset;
+    if (q != null && q.trim().isNotEmpty) queryParams['q'] = q.trim();
+
+    final response = await dio.get('/v1/users', queryParameters: queryParams);
+    final Map<String, dynamic> data = response.data;
+    final List<dynamic> users = data['users'] ?? [];
+    return users.map((json) => User.fromJson(json)).toList();
+  }
+
+  Future<User> getUser(int userId) async {
+    final response = await dio.get('/v1/users/$userId');
     return User.fromJson(response.data);
   }
 

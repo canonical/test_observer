@@ -22,10 +22,12 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.orm import Session, selectinload
-from typing import Annotated
+from typing import Annotated, Literal, TypeVar
 import base64
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.constants import QueryValue
+
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
@@ -47,6 +49,8 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 from .filter_test_results import filter_test_results
 
 router = APIRouter(tags=["test-results"])
+
+T = TypeVar("T")
 
 
 def parse_execution_metadata(
@@ -106,6 +110,24 @@ def parse_execution_metadata(
     return ExecutionMetadata.from_rows(result)
 
 
+def parse_list_or_query_value(
+    input: list[T] | list[QueryValue] | None,
+) -> list[T] | QueryValue:
+    """
+    Parse a list that may contain integers or QueryValue literals.
+
+    Returns:
+    - Empty list if input is None
+    - The last QueryValue (mimicking FastAPI behavior)
+    - The list of items otherwise
+    """
+    if input is None:
+        return []
+    if len(input) > 0 and all(item in QueryValue for item in input):
+        return input[-1]  # type: ignore[return-value]
+    return input  # type: ignore[return-value]
+
+
 @router.get(
     "",
     response_model=TestResultSearchResponseWithContext,
@@ -135,8 +157,11 @@ def search_test_results(
         ExecutionMetadata | None, Depends(parse_execution_metadata)
     ] = None,
     issues: Annotated[
-        list[int] | None,
-        Query(description="Filter by Jira or GitHub issue IDs"),
+        list[int]
+        | list[Literal[QueryValue.ANY]]
+        | list[Literal[QueryValue.NONE]]
+        | None,
+        Query(description="Filter by issue IDs"),
     ] = None,
     test_result_statuses: Annotated[
         list[TestResultStatus] | None,
@@ -145,6 +170,13 @@ def search_test_results(
     test_execution_statuses: Annotated[
         list[TestExecutionStatus] | None,
         Query(description="Filter by test execution statuses"),
+    ] = None,
+    assignee_ids: Annotated[
+        list[int]
+        | list[Literal[QueryValue.ANY]]
+        | list[Literal[QueryValue.NONE]]
+        | None,
+        Query(description="Filter by assignee user ids"),
     ] = None,
     from_date: Annotated[
         datetime | None, Query(description="Filter results from this timestamp")
@@ -174,9 +206,10 @@ def search_test_results(
         test_cases=test_cases or [],
         template_ids=template_ids or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
-        issues=issues or [],
+        issues=parse_list_or_query_value(issues),  # type: ignore[arg-type]
         test_result_statuses=test_result_statuses or [],
         test_execution_statuses=test_execution_statuses or [],
+        assignee_ids=parse_list_or_query_value(assignee_ids),  # type: ignore[arg-type]
         from_date=from_date,
         until_date=until_date,
         limit=limit,
