@@ -29,46 +29,50 @@ class ExecutionMetadataTable extends StatelessWidget {
     if (sortedEntries.isEmpty) {
       return const Text('No execution metadata available.');
     }
-    return DataTable(
-      dataRowMaxHeight: double.infinity,
-      columns: const [
-        DataColumn(
-          label: Text('Category'),
-        ),
-        DataColumn(
-          label: Text('Values'),
-        ),
-      ],
-      rows: sortedEntries
-          .map(
-            (entry) => DataRow(
-              cells: [
-                DataCell(Text(entry.key)),
-                DataCell(
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: (entry.value.toList()..sort())
-                        .expand(
-                          (v) => [
-                            const SizedBox(height: Spacing.level3),
-                            Tooltip(
-                              message: v,
-                              child: Text(
-                                v,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        dataRowMaxHeight: double.infinity,
+        columns: const [
+          DataColumn(
+            label: Text('Category'),
+          ),
+          DataColumn(
+            label: Text('Values'),
+          ),
+        ],
+        rows: sortedEntries
+            .map(
+              (entry) => DataRow(
+                cells: [
+                  DataCell(Text(entry.key)),
+                  DataCell(
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: (entry.value.toList()..sort())
+                          .expand(
+                            (v) => [
+                              const SizedBox(height: Spacing.level3),
+                              Tooltip(
+                                message: v,
+                                child: Text(
+                                  v,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: Spacing.level3),
-                          ],
-                        )
-                        .toList(),
+                              const SizedBox(height: Spacing.level3),
+                            ],
+                          )
+                          .toList(),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          )
-          .toList(),
+                ],
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }
