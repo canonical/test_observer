@@ -1,21 +1,15 @@
 #!/bin/bash
+# Script to fetch the OpenAPI schema from the running server and save it to schemata/openapi.json
 
 # Get the directory of this script
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Go to backend directory (parent of scripts)
 cd "$SCRIPT_DIR/.."
 
-uv sync
-
-echo "Starting a transient copy of test-observer-api to fetch the OpenAPI schema..."
-trap 'kill $(jobs -p)' EXIT
-uv run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 &
-
 for i in {1..5}; do
-    if curl --output /dev/null --silent --head --fail "http://localhost:30000/openapi.json"; then
+    if curl --output /dev/null --silent --fail "http://localhost:30000/openapi.json"; then
         curl --silent http://localhost:30000/openapi.json | jq > schemata/openapi.json
-        git add schemata/openapi.json
-        echo "OpenAPI schema fetched."
+        echo "OpenAPI schema fetched and written to schemata/openapi.json"
         success=true
         break
     else
@@ -24,5 +18,5 @@ for i in {1..5}; do
 done
 
 if [ -z "$success" ]; then
-    echo "Failed to fetch /openapi.json after multiple attempts."
+    echo "Failed to fetch openapi.json after multiple attempts."
 fi
