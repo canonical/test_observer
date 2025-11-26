@@ -22,4 +22,5 @@ done
 
 if [ -z "$success" ]; then
     echo "Failed to fetch openapi.json after multiple attempts."
+    exit 1
 fi
