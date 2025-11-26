@@ -7,12 +7,15 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/.."
 
 for i in {1..5}; do
-    if curl --output /dev/null --silent --fail "http://localhost:30000/openapi.json"; then
-        curl --silent http://localhost:30000/openapi.json | jq > schemata/openapi.json
+    tmpfile=$(mktemp)
+    if curl --silent --fail "http://localhost:30000/openapi.json" -o "$tmpfile"; then
+        jq < "$tmpfile" > schemata/openapi.json
         echo "OpenAPI schema fetched and written to schemata/openapi.json"
         success=true
+        rm "$tmpfile"
         break
     else
+        rm "$tmpfile"
         sleep 1
     fi
 done
