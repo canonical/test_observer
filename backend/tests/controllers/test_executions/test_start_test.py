@@ -173,8 +173,7 @@ class TestFamilyIndependentTests:
     ):
         # Create a team that can review all families
         team = generator.gen_team(
-            name="reviewers",
-            reviewer_families=["snap", "deb", "charm", "image"]
+            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
         )
         # User is member of this team
         user = generator.gen_user(teams=[team])
@@ -524,7 +523,7 @@ def test_charm_assigned_to_charm_team_reviewer(
         name="other_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
-    
+
     # Create users in these teams
     charm_reviewer = generator.gen_user(
         email="charm@example.com",
@@ -560,7 +559,7 @@ def test_snap_assigned_to_snap_team_reviewer(
         name="snap_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
-    
+
     # Create users in these teams
     generator.gen_user(
         email="charm@example.com",
@@ -595,7 +594,7 @@ def test_deb_assigned_to_deb_team_reviewer(
         name="deb_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
-    
+
     # Create users in these teams
     generator.gen_user(
         email="charm@example.com",
@@ -630,7 +629,7 @@ def test_image_assigned_to_image_team_reviewer(
         name="image_reviewers",
         reviewer_families=["snap", "deb", "image"],
     )
-    
+
     # Create users in these teams
     generator.gen_user(
         email="charm@example.com",
