@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:testcase_dashboard/models/execution_metadata.dart';
 import 'package:testcase_dashboard/models/test_result.dart';
 import 'package:testcase_dashboard/models/test_results_filters.dart';
+import 'dart:convert';
 
 void main() {
   group('IntListFilter', () {
@@ -227,9 +228,11 @@ void main() {
           environments: ['env1'],
           testCases: ['test1', 'test2'],
           templateIds: ['template1'],
-          executionMetadata: ExecutionMetadata(data: {
-            'key': {'value1', 'value2'},
-          },),
+          executionMetadata: ExecutionMetadata(
+            data: {
+              'key': {'value1', 'value2'},
+            },
+          ),
           issues: const IntListFilter.list([1, 2]),
           assignees: const IntListFilter.any(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -362,9 +365,11 @@ void main() {
           environments: ['env1'],
           testCases: ['test1'],
           templateIds: ['template1'],
-          executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'},
-          },),
+          executionMetadata: ExecutionMetadata(
+            data: {
+              'key': {'value'},
+            },
+          ),
           issues: const IntListFilter.list([1, 2, 3]),
           assignees: const IntListFilter.none(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -389,7 +394,7 @@ void main() {
           'environments': ['env1,env2'],
           'test_cases': ['test1'],
           'template_ids': ['template1,template2'],
-          'execution_metadata': ['key:value'],
+          'execution_metadata': [base64Encode(utf8.encode('key:value'))],
           'issues': ['1,2,3'],
           'assignee_ids': ['any'],
           'from_date': ['2024-01-01T00:00:00.000Z'],
@@ -401,8 +406,10 @@ void main() {
         final filters = TestResultsFilters.fromQueryParams(params);
 
         expect(filters.families, equals(['family1', 'family2']));
-        expect(filters.testResultStatuses,
-            equals([TestResultStatus.passed, TestResultStatus.failed]),);
+        expect(
+          filters.testResultStatuses,
+          equals([TestResultStatus.passed, TestResultStatus.failed]),
+        );
         expect(filters.artefacts, equals(['artefact1']));
         expect(filters.environments, equals(['env1', 'env2']));
         expect(filters.testCases, equals(['test1']));
@@ -458,9 +465,11 @@ void main() {
           environments: ['env1'],
           testCases: ['test1'],
           templateIds: ['template1'],
-          executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'},
-          },),
+          executionMetadata: ExecutionMetadata(
+            data: {
+              'key': {'value'},
+            },
+          ),
           issues: const IntListFilter.list([1, 2]),
           assignees: const IntListFilter.any(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -477,7 +486,10 @@ void main() {
         expect(params['environments'], equals(['env1']));
         expect(params['test_cases'], equals(['test1']));
         expect(params['template_ids'], equals(['template1']));
-        expect(params['execution_metadata'], equals(['key:value']));
+        expect(
+          params['execution_metadata'],
+          equals([base64Encode(utf8.encode('key:value'))]),
+        );
         expect(params['issues'], equals(['1', '2']));
         expect(params['assignee_ids'], equals(['any']));
         expect(params['from_date'], equals(['2024-01-01T00:00:00.000Z']));
@@ -504,7 +516,9 @@ void main() {
         final paramsWithList = filtersWithList.toQueryParams();
         expect(paramsWithList['issues'], equals(['1', '2']));
         expect(
-            paramsWithList.containsKey('assignee_ids'), isFalse,); // empty list
+          paramsWithList.containsKey('assignee_ids'),
+          isFalse,
+        ); // empty list
 
         final filtersWithKeywords = TestResultsFilters(
           issues: const IntListFilter.any(),
@@ -528,9 +542,11 @@ void main() {
           environments: ['env1'],
           testCases: ['test1'],
           templateIds: ['template1'],
-          executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'},
-          },),
+          executionMetadata: ExecutionMetadata(
+            data: {
+              'key': {'value'},
+            },
+          ),
           issues: const IntListFilter.list([1, 2, 3]),
           assignees: const IntListFilter.none(),
           fromDate: DateTime.utc(2024, 1, 1),
@@ -544,13 +560,17 @@ void main() {
 
         expect(restored.families, equals(original.families));
         expect(
-            restored.testResultStatuses, equals(original.testResultStatuses),);
+          restored.testResultStatuses,
+          equals(original.testResultStatuses),
+        );
         expect(restored.artefacts, equals(original.artefacts));
         expect(restored.environments, equals(original.environments));
         expect(restored.testCases, equals(original.testCases));
         expect(restored.templateIds, equals(original.templateIds));
-        expect(restored.executionMetadata.data,
-            equals(original.executionMetadata.data),);
+        expect(
+          restored.executionMetadata.data,
+          equals(original.executionMetadata.data),
+        );
         expect(restored.issues.values, equals(original.issues.values));
         expect(restored.assignees.isNone, equals(original.assignees.isNone));
         expect(restored.fromDate, equals(original.fromDate));
@@ -600,9 +620,11 @@ void main() {
 
       test('returns true when executionMetadata is not empty', () {
         final filters = TestResultsFilters(
-          executionMetadata: ExecutionMetadata(data: {
-            'key': {'value'},
-          },),
+          executionMetadata: ExecutionMetadata(
+            data: {
+              'key': {'value'},
+            },
+          ),
         );
         expect(filters.hasFilters, isTrue);
       });
