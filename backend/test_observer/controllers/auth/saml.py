@@ -159,7 +159,10 @@ def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
             "launchpad_handle": lp_user.handle if lp_user else None,
         },
     )
-    user.teams = [get_or_create(db, Team, {"name": t}) for t in attributes["lp_teams"]]
+
+    teams_to_add = [get_or_create(db, Team, {"name": t}) for t in attributes["lp_teams"]]   
+    user_teams = user.teams
+    user.teams = list({*user_teams, *teams_to_add})
     db.commit()
     return user
 
