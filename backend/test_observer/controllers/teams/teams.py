@@ -69,10 +69,10 @@ def update_team(
 
     if request.permissions:
         team.permissions = [p.value for p in request.permissions]
-    
+
     if request.reviewer_families is not None:
         team.reviewer_families = request.reviewer_families
-    
+
     db.commit()
 
     return team
@@ -92,16 +92,16 @@ def add_team_member(
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
-    
+
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail=f"User {user_id} doesn't exist")
-    
+
     # Check if user is already a member
     if user not in team.members:
         team.members.append(user)
         db.commit()
-    
+
     return team
 
 
@@ -119,14 +119,14 @@ def remove_team_member(
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
-    
+
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail=f"User {user_id} doesn't exist")
-    
+
     # Check if user is a member
     if user in team.members:
         team.members.remove(user)
         db.commit()
-    
+
     return team

@@ -61,7 +61,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
                     "is_admin": user.is_admin,
                 }
             ],
-        }
+        },
     ]
 
 
@@ -137,7 +137,8 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
 
 
 def test_update_team_reviewer_families(
-        test_client: TestClient, generator: DataGenerator):
+    test_client: TestClient, generator: DataGenerator
+):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
@@ -214,7 +215,8 @@ def test_remove_team_member(test_client: TestClient, generator: DataGenerator):
 
 
 def test_remove_team_member_not_member(
-        test_client: TestClient, generator: DataGenerator):
+    test_client: TestClient, generator: DataGenerator
+):
     team = generator.gen_team()
     user = generator.gen_user()
 
@@ -228,7 +230,8 @@ def test_remove_team_member_not_member(
 
 
 def test_remove_team_member_not_found(
-        test_client: TestClient, generator: DataGenerator):
+    test_client: TestClient, generator: DataGenerator
+):
     team = generator.gen_team()
     user = generator.gen_user()
 

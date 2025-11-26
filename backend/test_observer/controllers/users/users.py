@@ -76,7 +76,7 @@ def update_user(
 
     if request.is_admin is not None:
         user.is_admin = request.is_admin
-    
+
     db.commit()
 
     return user

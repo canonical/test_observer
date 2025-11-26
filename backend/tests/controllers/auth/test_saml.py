@@ -165,7 +165,7 @@ class TestSAMLAuthentication:
 
         session = self.db_session.get(UserSession, self._session_id)
         assert session is None
-    
+
     def _create_session_and_login(self) -> requests.Response:
         self.session = requests.Session()
 
@@ -173,12 +173,12 @@ class TestSAMLAuthentication:
         auth_state, login_form_url = self._fetch_and_parse_login_form(sso_url)
         auth_response = self._submit_credentials(auth_state, login_form_url)
         login_response = self._process_saml_response(auth_response)
-        
+
         return login_response
 
     def test_team_membership_persists_after_login(self, db_session: Session):
         """Test that team membership persists after user logs in again
-        
+
         This test verifies that when a user is added to a team, their membership
         is maintained even after logging in again. The SAML _create_user function
         should preserve existing team memberships when reassigning teams from
@@ -190,36 +190,37 @@ class TestSAMLAuthentication:
         # Create user by logging in for the first time
         login_response = self._create_session_and_login()
         assert login_response.status_code == 200
-        
+
         # Get user from database
         user = db_session.query(User).filter_by(email="mark@electricdemon.com").first()
         assert user.name == "Mark"
-        
+
         # Create a team
         test_team = get_or_create(
             db_session,
             Team,
             {"name": "test-team"},
-            {"permissions": [], "reviewer_families": []}
+            {"permissions": [], "reviewer_families": []},
         )
         db_session.commit()
-        
+
         # Add user to the team
         if user not in test_team.members:
             test_team.members.append(user)
             db_session.commit()
-        
+
         # Verify user is in the team
         db_session.refresh(user)
         team_names = [t.name for t in user.teams]
         assert "test-team" in team_names
-        
+
         # Log the user in again (create a new session to make it a fresh login)
         second_login_response = self._create_session_and_login()
         assert second_login_response.status_code == 200
-        
+
         # User should still belong to the team
         db_session.refresh(user)
         team_names_after_login = [t.name for t in user.teams]
-        assert "test-team" in team_names_after_login, \
-            f"User should still be in test-team after login. Teams: {team_names_after_login}"
+        assert "test-team" in team_names_after_login, (
+            f"User should be in test-team after login. Teams: {team_names_after_login}"
+        )

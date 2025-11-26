@@ -49,10 +49,10 @@ def upgrade() -> None:
             server_default="{}",
         ),
     )
-    
+
     # Migrate existing is_reviewer users to certification-reviewers team
     connection = op.get_bind()
-    
+
     # Define tables for migration
     team_table = table(
         "team",
@@ -63,21 +63,22 @@ def upgrade() -> None:
         column("created_at", sa.DateTime),
         column("updated_at", sa.DateTime),
     )
-    
+
     user_table = table(
         "app_user",
         column("id", sa.Integer),
         column("is_reviewer", sa.Boolean),
     )
-    
+
     team_users_table = table(
         "team_users_association",
         column("user_id", sa.Integer),
         column("team_id", sa.Integer),
     )
-    
+
     def create_team_if_doesnt_exist(
-            team_name: str, reviewer_families: list[str]) -> int:
+        team_name: str, reviewer_families: list[str]
+    ) -> int:
         result = connection.execute(
             select(team_table.c.id).where(team_table.c.name == team_name)
         ).first()
@@ -98,14 +99,15 @@ def upgrade() -> None:
         return result[0]
 
     cert_team_id = create_team_if_doesnt_exist(
-        "certification-reviewers", ["snap", "deb", "image"])
+        "certification-reviewers", ["snap", "deb", "image"]
+    )
     create_team_if_doesnt_exist("charm-reviewers", ["charm"])
-    
+
     # Get all users with is_reviewer=True
     reviewers = connection.execute(
         select(user_table.c.id).where(user_table.c.is_reviewer.is_(True))
     ).fetchall()
-    
+
     # Add them to the certification-reviewers team
     if reviewers:
         # Check which users are not already in the team
@@ -116,7 +118,7 @@ def upgrade() -> None:
                 .where(team_users_table.c.user_id == user_id)
                 .where(team_users_table.c.team_id == cert_team_id)
             ).first()
-            
+
             if not exists:
                 connection.execute(
                     insert(team_users_table).values(
@@ -124,7 +126,7 @@ def upgrade() -> None:
                         team_id=cert_team_id,
                     )
                 )
-    
+
     # Drop the is_reviewer column
     op.drop_column("app_user", "is_reviewer")
 
@@ -135,33 +137,33 @@ def downgrade() -> None:
         "app_user",
         sa.Column("is_reviewer", sa.Boolean(), nullable=False, server_default="false"),
     )
-    
+
     # Restore is_reviewer for users in certification-reviewers team
     connection = op.get_bind()
-    
+
     team_table = table(
         "team",
         column("id", sa.Integer),
         column("name", sa.String),
     )
-    
+
     user_table = table(
         "app_user",
         column("id", sa.Integer),
         column("is_reviewer", sa.Boolean),
     )
-    
+
     team_users_table = table(
         "team_users_association",
         column("user_id", sa.Integer),
         column("team_id", sa.Integer),
     )
-    
+
     # Get certification-reviewers team id
     result = connection.execute(
         select(team_table.c.id).where(team_table.c.name == "certification-reviewers")
     ).first()
-    
+
     if result:
         cert_team_id = result[0]
         # Get all users in the certification-reviewers team
@@ -170,7 +172,7 @@ def downgrade() -> None:
                 team_users_table.c.team_id == cert_team_id
             )
         ).fetchall()
-        
+
         # Set is_reviewer=True for those users
         for member in members:
             connection.execute(
@@ -178,6 +180,6 @@ def downgrade() -> None:
                 .where(user_table.c.id == member[0])
                 .values(is_reviewer=True)
             )
-    
+
     # Drop reviewer_families from team
     op.drop_column("team", "reviewer_families")

@@ -145,9 +145,7 @@ class Team(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    reviewer_families: Mapped[list[str]] = mapped_column(
-        ARRAY(String), default=list
-    )
+    reviewer_families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
     members: Mapped[list[User]] = relationship(
         secondary=team_users_association, back_populates="teams"
