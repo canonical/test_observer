@@ -136,7 +136,8 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
     assert response.status_code == 422
 
 
-def test_update_team_reviewer_families(test_client: TestClient, generator: DataGenerator):
+def test_update_team_reviewer_families(
+        test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
@@ -212,7 +213,8 @@ def test_remove_team_member(test_client: TestClient, generator: DataGenerator):
     assert response.json()["members"] == []
 
 
-def test_remove_team_member_not_member(test_client: TestClient, generator: DataGenerator):
+def test_remove_team_member_not_member(
+        test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user()
 
@@ -225,7 +227,8 @@ def test_remove_team_member_not_member(test_client: TestClient, generator: DataG
     assert response.json()["members"] == []
 
 
-def test_remove_team_member_not_found(test_client: TestClient, generator: DataGenerator):
+def test_remove_team_member_not_found(
+        test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user()
 

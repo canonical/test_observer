@@ -35,7 +35,6 @@ from test_observer.data_access.models_enums import (
     CharmStage,
     ImageStage,
     TestExecutionStatus,
-    FamilyName,
 )
 from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
@@ -531,7 +530,7 @@ def test_charm_assigned_to_charm_team_reviewer(
         email="charm@example.com",
         teams=[charm_team],
     )
-    other_reviewer = generator.gen_user(
+    generator.gen_user(
         email="other@example.com",
         teams=[other_team],
     )
@@ -563,7 +562,7 @@ def test_snap_assigned_to_snap_team_reviewer(
     )
     
     # Create users in these teams
-    charm_reviewer = generator.gen_user(
+    generator.gen_user(
         email="charm@example.com",
         teams=[charm_team],
     )
@@ -598,7 +597,7 @@ def test_deb_assigned_to_deb_team_reviewer(
     )
     
     # Create users in these teams
-    charm_reviewer = generator.gen_user(
+    generator.gen_user(
         email="charm@example.com",
         teams=[charm_team],
     )
@@ -633,7 +632,7 @@ def test_image_assigned_to_image_team_reviewer(
     )
     
     # Create users in these teams
-    charm_reviewer = generator.gen_user(
+    generator.gen_user(
         email="charm@example.com",
         teams=[charm_team],
     )

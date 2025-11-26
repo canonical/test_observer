@@ -28,7 +28,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy import select, insert, update
 from sqlalchemy.sql import table, column
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 
 # revision identifiers, used by Alembic.
@@ -76,12 +76,13 @@ def upgrade() -> None:
         column("team_id", sa.Integer),
     )
     
-    def create_team_if_doesnt_exist(team_name, reviewer_families):
+    def create_team_if_doesnt_exist(
+            team_name: str, reviewer_families: list[str]) -> int:
         result = connection.execute(
             select(team_table.c.id).where(team_table.c.name == team_name)
         ).first()
         if not result:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             result = connection.execute(
                 insert(team_table)
                 .values(
@@ -96,7 +97,8 @@ def upgrade() -> None:
             return result.fetchone()[0]
         return result[0]
 
-    cert_team_id = create_team_if_doesnt_exist("certification-reviewers", ["snap", "deb", "image"])
+    cert_team_id = create_team_if_doesnt_exist(
+        "certification-reviewers", ["snap", "deb", "image"])
     create_team_if_doesnt_exist("charm-reviewers", ["charm"])
     
     # Get all users with is_reviewer=True
