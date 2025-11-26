@@ -2,7 +2,10 @@ project: test-observer-charm-tests
 
 # This is the path the project is copied to on the worker systems
 # and it is set to the SPREAD_PATH environment variable after allocation
-path: /test_observer
+# It must be under /root because spread executes the test scripts
+# as root, which means that juju can only see files in root's
+# home directory due to snap confinement.
+path: /root/project
 
 exclude:
   - .coverage
@@ -129,9 +132,9 @@ prepare: |
 
   snap install --classic concierge
   concierge prepare --trace --preset microk8s
-    
-  chown $(id -u):$(id -g) ${SPREAD_PATH}/backend/charm/*.charm
-  chown $(id -u):$(id -g) ${SPREAD_PATH}/frontend/charm/*.charm
+
+  chown $(id -u):$(id -g) "${SPREAD_PATH}"/backend/charm/*.charm
+  chown $(id -u):$(id -g) "${SPREAD_PATH}"/frontend/charm/*.charm
 
 suites:
   spread/:
