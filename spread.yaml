@@ -1,81 +1,8 @@
 project: test-observer-charm-tests
-kill-timeout: 90m
-workers: 1
 
-environment:
-  CI: "$(HOST: echo $CI)"
-  CONCIERGE_JUJU_CHANNEL/juju_3_5: 3.5/stable
-  CONCIERGE_JUJU_CHANNEL/juju_3_6: 3.6/stable
-
-backends:
-  lxd:
-    type: adhoc
-    allocate: |
-      BASE="${BASE:-noble}"
-      VM_NAME="${VM_NAME:-ubuntu-${BASE}-${RANDOM}}"
-      DISK="${DISK:-20}"
-      CPU="${CPU:-4}"
-      MEM="${MEM:-8}"
-
-      cloud_config="$(mktemp)"
-      sed "s|SPREAD_PASSWORD|$SPREAD_PASSWORD|g" spread/cloud-config.yaml > "$cloud_config"
-
-      if lxc list --format csv -c n |  grep -q "${VM_NAME}"; then
-        echo "\"${VM_NAME}\" already exists -> skipping rest of allocation."
-      else
-        echo "No \"${VM_NAME}\" present -> launching"
-        lxc launch --vm \
-          "ubuntu:${BASE}" \
-          "${VM_NAME}" \
-          -c user.user-data="$(cat "$cloud_config")" \
-          -c limits.cpu="${CPU}" \
-          -c limits.memory="${MEM}GiB" \
-          -d root,size="${DISK}GiB"
-      fi
-
-      # Wait for the spread user
-      while ! lxc exec "${VM_NAME}" -- id -u spread &>/dev/null; do sleep 0.5; done
-
-      rm "$cloud_config"
-
-      # Set the instance address for spread
-      ADDRESS "$(lxc ls -f csv | grep "${VM_NAME}" | cut -d"," -f3 | cut -d" " -f1)"
-    discard: |
-      instance_name="$(lxc ls -f csv | grep $SPREAD_SYSTEM_ADDRESS | cut -f1 -d",")"
-      lxc delete -f $instance_name
-
-    systems:
-      - ubuntu-24.04:
-          username: spread
-          workers: 1
-
-  github-ci:
-    type: adhoc
-    manual: true
-    allocate: |
-      sudo sed -i "s|#PasswordAuthentication yes|PasswordAuthentication yes|g" /etc/ssh/sshd_config
-      sudo sed -i "s|KbdInteractiveAuthentication no|KbdInteractiveAuthentication yes|g" /etc/ssh/sshd_config
-      sudo rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
-      sudo systemctl daemon-reload
-      sudo systemctl restart ssh
-
-      sudo useradd spread -s /bin/bash -m || true
-      echo "spread:$SPREAD_PASSWORD" | sudo chpasswd || true
-      echo 'spread ALL=(ALL) NOPASSWD:ALL ' | sudo tee /etc/sudoers.d/99-spread-user || true
-
-      ADDRESS "127.0.0.1"
-    discard: |
-      sudo userdel -f -r spread || true
-      sudo rm -f /etc/sudoers.d/99-spread-user
-
-    systems:
-      - ubuntu-24.04:
-          username: spread
-          workers: 1
-
-suites:
-  spread/:
-    summary: Spread tests
+# This is the path the project is copied to on the worker systems
+# and it is set to the SPREAD_PATH environment variable after allocation
+path: /test_observer
 
 exclude:
   - .coverage
@@ -86,10 +13,112 @@ exclude:
   - .tox
   - .venv
 
-# this needs to be under /root because spread executes the test scripts
-# as root, which means that juju can only see files in root's
-# home directory due to snap confinement.
-path: /root/proj
+backends:
+  # The LXD backend can hit this error, so we define our own lxd backend
+  # https://github.com/canonical/spread/issues/232
+  lxd-vm:
+    type: adhoc
+    systems:
+      - ubuntu-24.04:
+          username: spread
+
+    allocate: |
+      LIMIT_CPU_CORES="${LIMIT_CPU_CORES:-4}"
+      LIMIT_MEMORY_GIB="${LIMIT_MEMORY_GIB:-8}"
+      ROOT_DISK_GIB="${ROOT_DISK_GIB:-20}"
+
+      # We don't have access to SPREAD_VARIANT at this stage,
+      # so we use RANDOM instead
+      NAME="${NAME:-spread-${SPREAD_SYSTEM}-${RANDOM}}"
+      # LXD instance names may only contain alphanumeric characters and hyphens,
+      # so we replace everything else with a hyphen
+      NAME="$(echo "${NAME}" | sed 's/[^a-zA-Z0-9-]/-/g')"
+
+      EXISTS="$(lxc list --format csv --columns n name="${NAME}")"
+      if [[ -z "${EXISTS}" ]]; then
+        # Get the image portion, e.g. 24.04 from ubuntu-24.04
+        IMAGE="$(echo "${SPREAD_SYSTEM}" | cut -d '-' -f 2)"
+
+        CLOUD_INIT_USER_DATA="$(mktemp)"
+        cp spread/cloud-init-user-data.yaml "${CLOUD_INIT_USER_DATA}"
+        sed -i "s|SPREAD_REPLACE_USERNAME|${SPREAD_SYSTEM_USERNAME}|g" "${CLOUD_INIT_USER_DATA}"
+        sed -i "s|SPREAD_REPLACE_PASSWORD|${SPREAD_PASSWORD}|g" "${CLOUD_INIT_USER_DATA}"
+
+        # We need to use the ubuntu: remote, because it provides Ubuntu Server images,
+        # which work with cloud-init. Ubuntu Desktop images do not.
+        lxc launch --vm "ubuntu:${IMAGE}" "${NAME}" \
+          --config cloud-init.user-data="$(cat "${CLOUD_INIT_USER_DATA}")" \
+          --config limits.cpu="${LIMIT_CPU_CORES}" \
+          --config limits.memory="${LIMIT_MEMORY_GIB}GiB" \
+          --device root,size="${ROOT_DISK_GIB}GiB"
+
+        rm "${CLOUD_INIT_USER_DATA}"
+      fi
+
+      # Wait for the VM to come up and have an IP address
+      address=""
+      while [[ -z "${address}" ]]; do
+        # When using the --columns flag, 4 is the shorthand notation for IPv4 address
+        address="$(lxc list --format csv --columns 4 name=${NAME})" 
+
+        # There should only be one IP at this stage, but in principle,
+        # there could be more than one, in which case,
+        # multiple addresses are grouped in a multi-line string,
+        # so we reduce to one line, cut the quotes, then select the first address
+        address="$(echo "${address}" | tr '\n' ' ' | tr -d '"' | cut -d ' ' -f 1)"
+        sleep 5
+      done
+
+      # adhoc backends require the ADDRESS command provided by spread
+      # to set the SSH address
+      ADDRESS "${address}"
+  
+    discard: |
+      # This bug in LXD prevents us from cleanly retrieving just the name from the IP
+      # https://github.com/canonical/lxd/issues/17055
+      # But we can retrieve the name and IP, then select the name
+      NAME="$(lxc list --format csv --columns n4 ipv4="${SPREAD_SYSTEM_ADDRESS}")"
+
+      # There will likely be multiple IP addresses after the tests set up K8s,
+      # so we reduce to one line before cutting
+      NAME="$(echo "${NAME}" | tr '\n' ' ' | cut -d ',' -f 1)"
+      lxc stop "${NAME}"
+      lxc delete "${NAME}"
+
+  localhost:
+    type: adhoc
+    systems:
+      # System names require a hyphen with something after it
+      - localhost-0:
+          username: spread
+
+    # Since this messes with the host system,
+    # it should only run when explicitly requested
+    manual: true
+    allocate: |
+      sudo sed -i "s|#PasswordAuthentication yes|PasswordAuthentication yes|g" /etc/ssh/sshd_config
+      sudo sed -i "s|KbdInteractiveAuthentication no|KbdInteractiveAuthentication yes|g" /etc/ssh/sshd_config
+      sudo cp /etc/ssh/sshd_config.d/60-cloudimg-settings.conf /etc/ssh/sshd_config.d/60-cloudimg-settings.conf.bak || true
+      sudo rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf || true
+      sudo systemctl daemon-reload
+      sudo systemctl restart ssh
+
+      sudo useradd ${SPREAD_SYSTEM_USERNAME} --shell /bin/bash --create-home || true
+      echo "${SPREAD_SYSTEM_USERNAME}:${SPREAD_PASSWORD}" | sudo chpasswd || true
+      echo "${SPREAD_SYSTEM_USERNAME} ALL=(ALL) NOPASSWD:ALL " | sudo tee /etc/sudoers.d/99-${SPREAD_SYSTEM_USERNAME}-user || true
+
+      ADDRESS "127.0.0.1"
+
+    discard: |
+      sudo userdel -f -r ${SPREAD_SYSTEM_USERNAME} || true
+      sudo rm -f /etc/sudoers.d/99-${SPREAD_SYSTEM_USERNAME}-user || true
+      sudo rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf || true
+      sudo mv /etc/ssh/sshd_config.d/60-cloudimg-settings.conf.bak /etc/ssh/sshd_config.d/60-cloudimg-settings.conf || true
+      sudo sed -i "s|KbdInteractiveAuthentication yes|KbdInteractiveAuthentication no|g" /etc/ssh/sshd_config
+      sudo sed -i "s|PasswordAuthentication yes|#PasswordAuthentication yes|g" /etc/ssh/sshd_config
+
+environment:
+  CONCIERGE_JUJU_CHANNEL: 3.6/stable
 
 prepare: |
   snap refresh --hold
@@ -98,22 +127,12 @@ prepare: |
     systemctl mask unattended-upgrades.service
   fi
 
-  apt update
-  apt install -y pipx
-
   snap install --classic concierge
-
-  concierge prepare --trace -p microk8s --extra-snaps astral-uv --extra-snaps juju-crashdump
-
-  pushd "$SPREAD_PATH"
-  chown $(id -u):$(id -g) $PWD/backend/charm/test-observer-api_ubuntu-22.04-amd64.charm
-  chown $(id -u):$(id -g) $PWD/frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm
-
-restore: |
-  if [[ -z "${CI:-}" ]]; then
-    concierge restore --trace
+  concierge prepare --trace --preset microk8s
     
-    apt autoremove -y --purge
-    rm -Rf "$SPREAD_PATH"
-    mkdir -p "$SPREAD_PATH"
-  fi
+  chown $(id -u):$(id -g) ${SPREAD_PATH}/backend/charm/*.charm
+  chown $(id -u):$(id -g) ${SPREAD_PATH}/frontend/charm/*.charm
+
+suites:
+  spread/:
+    summary: Test Observer Spread Suite
