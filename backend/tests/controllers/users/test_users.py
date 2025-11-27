@@ -417,7 +417,9 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
     }
 
 
-def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator, db_session: Session):
+def test_set_user_as_reviewer(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
     team = generator.gen_team(reviewer_families=["snap", "deb"])
     user = generator.gen_user(teams=[team])
 
