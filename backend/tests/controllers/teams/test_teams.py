@@ -32,7 +32,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
 
     assert response.status_code == 200
     assert response.json() == [
-        # The certification-reviewers and charm-reviewers teams are created by migration
+        # certification- and charm-reviewers teams should be created by migration
         {
             "id": 1,
             "name": "certification-reviewers",
