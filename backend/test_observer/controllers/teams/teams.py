@@ -27,15 +27,22 @@ from test_observer.data_access.setup import get_db
 router: APIRouter = APIRouter(tags=["teams"])
 
 
-def _get_entity_or_raise_404(
-    db: Session, entity_class: type[Team | User], entity_id: int
-) -> Team | User:
-    entity = db.get(entity_class, entity_id)
-    if entity is None:
+def _get_team_or_raise_404(db: Session, team_id: int) -> Team:
+    team = db.get(Team, team_id)
+    if team is None:
         raise HTTPException(
-            status_code=404, detail=f"{entity_class.__name__} {entity_id} doesn't exist"
+            status_code=404, detail=f"Team {team_id} doesn't exist"
         )
-    return entity
+    return team
+
+
+def _get_user_or_raise_404(db: Session, user_id: int) -> User:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=404, detail=f"User {user_id} doesn't exist"
+        )
+    return user
 
 
 @router.get(
@@ -58,7 +65,7 @@ def get_team(
     team_id: int,
     db: Session = Depends(get_db),
 ):
-    return _get_entity_or_raise_404(db, Team, team_id)
+    return _get_team_or_raise_404(db, team_id)
 
 
 @router.patch(
@@ -71,7 +78,7 @@ def update_team(
     request: TeamPatch,
     db: Session = Depends(get_db),
 ):
-    team = _get_entity_or_raise_404(db, Team, team_id)
+    team = _get_team_or_raise_404(db, team_id)
 
     if request.permissions:
         team.permissions = [p.value for p in request.permissions]
@@ -95,8 +102,8 @@ def add_team_member(
     db: Session = Depends(get_db),
 ):
     """Add a user to a team"""
-    team = _get_entity_or_raise_404(db, Team, team_id)
-    user = _get_entity_or_raise_404(db, User, user_id)
+    team = _get_team_or_raise_404(db, team_id)
+    user = _get_user_or_raise_404(db, user_id)
 
     # Check if user is already a member
     if user not in team.members:
@@ -117,8 +124,8 @@ def remove_team_member(
     db: Session = Depends(get_db),
 ):
     """Remove a user from a team"""
-    team = _get_entity_or_raise_404(db, Team, team_id)
-    user = _get_entity_or_raise_404(db, User, user_id)
+    team = _get_team_or_raise_404(db, team_id)
+    user = _get_user_or_raise_404(db, user_id)
 
     # Check if user is a member
     if user in team.members:

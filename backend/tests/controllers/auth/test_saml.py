@@ -193,6 +193,7 @@ class TestSAMLAuthentication:
 
         # Get user from database
         user = db_session.query(User).filter_by(email="mark@electricdemon.com").first()
+        assert user is not None
         assert user.name == "Mark"
 
         # Create a team

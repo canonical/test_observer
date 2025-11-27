@@ -79,12 +79,12 @@ def upgrade() -> None:
     def create_team_if_doesnt_exist(
         team_name: str, reviewer_families: list[str]
     ) -> int:
-        result = connection.execute(
+        select_result = connection.execute(
             select(team_table.c.id).where(team_table.c.name == team_name)
         ).first()
-        if not result:
+        if select_result is None:
             now = datetime.now(UTC)
-            result = connection.execute(
+            insert_result = connection.execute(
                 insert(team_table)
                 .values(
                     name=team_name,
@@ -95,8 +95,10 @@ def upgrade() -> None:
                 )
                 .returning(team_table.c.id)
             )
-            return result.fetchone()[0]
-        return result[0]
+            if (row := insert_result.fetchone()) is None:
+                raise Exception("Failed to create team")
+            return row[0]
+        return select_result[0]
 
     cert_team_id = create_team_if_doesnt_exist(
         "certification-reviewers", ["snap", "deb", "image"]
