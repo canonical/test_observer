@@ -497,9 +497,11 @@ class TestSearchTestResults:
             for expect, test_execution in test_executions
         ]
 
-        # Query test results with matching execution metadata (base64 encoded)
-        base64_encoded_1 = base64.b64encode(b"category1:value1").decode("utf-8")
-        base64_encoded_2 = base64.b64encode(b"category1:value2").decode("utf-8")
+        category_b64 = base64.b64encode(b"category1").decode("utf-8")
+        value1_b64 = base64.b64encode(b"value1").decode("utf-8")
+        value2_b64 = base64.b64encode(b"value2").decode("utf-8")
+        base64_encoded_1 = f"{category_b64}:{value1_b64}"
+        base64_encoded_2 = f"{category_b64}:{value2_b64}"
 
         response = make_authenticated_request(
             lambda: test_client.get(

@@ -64,12 +64,12 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
     for (final param in params ?? <String>[]) {
       final pairs = param.split(',').where((s) => s.isNotEmpty);
       for (final pair in pairs) {
-        final decoded = utf8.decode(base64Decode(pair));
-        final colonIndex = decoded.indexOf(':');
-
+        final colonIndex = pair.indexOf(':');
         if (colonIndex != -1) {
-          final category = decoded.substring(0, colonIndex);
-          final value = decoded.substring(colonIndex + 1);
+          final category =
+              utf8.decode(base64Decode(pair.substring(0, colonIndex)));
+          final value =
+              utf8.decode(base64Decode(pair.substring(colonIndex + 1)));
 
           if (category.isNotEmpty && value.isNotEmpty) {
             rows.add((category, value));
@@ -82,7 +82,10 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
 
   List<String> toQueryParams() {
     return toRows()
-        .map((row) => base64Encode(utf8.encode('${row.$1}:${row.$2}')))
+        .map(
+          (row) =>
+              '${base64Encode(utf8.encode(row.$1))}:${base64Encode(utf8.encode(row.$2))}',
+        )
         .toList();
   }
 

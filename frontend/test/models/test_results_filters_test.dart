@@ -394,7 +394,9 @@ void main() {
           'environments': ['env1,env2'],
           'test_cases': ['test1'],
           'template_ids': ['template1,template2'],
-          'execution_metadata': [base64Encode(utf8.encode('key:value'))],
+          'execution_metadata': [
+            '${base64Encode(utf8.encode('key'))}:${base64Encode(utf8.encode('value'))}',
+          ],
           'issues': ['1,2,3'],
           'assignee_ids': ['any'],
           'from_date': ['2024-01-01T00:00:00.000Z'],
@@ -488,7 +490,9 @@ void main() {
         expect(params['template_ids'], equals(['template1']));
         expect(
           params['execution_metadata'],
-          equals([base64Encode(utf8.encode('key:value'))]),
+          equals([
+            '${base64Encode(utf8.encode('key'))}:${base64Encode(utf8.encode('value'))}',
+          ]),
         );
         expect(params['issues'], equals(['1', '2']));
         expect(params['assignee_ids'], equals(['any']));
