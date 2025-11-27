@@ -71,7 +71,7 @@ def get_previous_jenkins_submission_json_urls(url: str, count: int) -> list[str]
 
 
 def extract_build_number_from_jenkins_submission_json_url(url: str) -> int:
-    pattern = ".+/(\d+)/artifact/artifacts/submission\.json"
+    pattern = ".+/(\\d+)/artifact/artifacts/submission\\.json"
     match = re.match(pattern, url)
     if match is None:
         raise ValueError(f"Provided url {url} is not a valid jenkins submission url")
@@ -79,7 +79,7 @@ def extract_build_number_from_jenkins_submission_json_url(url: str) -> int:
 
 
 def extract_build_url_prefix_from_jenkins_submission_json_url(url: str) -> str:
-    pattern = "(.+/)\d+/artifact/artifacts/submission\.json"
+    pattern = "(.+/)\\d+/artifact/artifacts/submission\\.json"
     match = re.match(pattern, url)
     if match is None:
         raise ValueError(f"Provided url {url} is not a valid jenkins submission url")
