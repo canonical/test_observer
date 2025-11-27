@@ -27,6 +27,17 @@ from test_observer.data_access.setup import get_db
 router: APIRouter = APIRouter(tags=["teams"])
 
 
+def _get_entity_or_raise_404(
+    db: Session, entity_class: type[Team | User], entity_id: int
+) -> Team | User:
+    entity = db.get(entity_class, entity_id)
+    if entity is None:
+        raise HTTPException(
+            status_code=404, detail=f"{entity_class.__name__} {entity_id} doesn't exist"
+        )
+    return entity
+
+
 @router.get(
     "",
     response_model=list[TeamResponse],
@@ -47,10 +58,7 @@ def get_team(
     team_id: int,
     db: Session = Depends(get_db),
 ):
-    team = db.get(Team, team_id)
-    if team is None:
-        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
-    return team
+    return _get_entity_or_raise_404(db, Team, team_id)
 
 
 @router.patch(
@@ -63,9 +71,7 @@ def update_team(
     request: TeamPatch,
     db: Session = Depends(get_db),
 ):
-    team = db.get(Team, team_id)
-    if team is None:
-        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
+    team = _get_entity_or_raise_404(db, Team, team_id)
 
     if request.permissions:
         team.permissions = [p.value for p in request.permissions]
@@ -89,13 +95,8 @@ def add_team_member(
     db: Session = Depends(get_db),
 ):
     """Add a user to a team"""
-    team = db.get(Team, team_id)
-    if team is None:
-        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
-
-    user = db.get(User, user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail=f"User {user_id} doesn't exist")
+    team = _get_entity_or_raise_404(db, Team, team_id)
+    user = _get_entity_or_raise_404(db, User, user_id)
 
     # Check if user is already a member
     if user not in team.members:
@@ -116,13 +117,8 @@ def remove_team_member(
     db: Session = Depends(get_db),
 ):
     """Remove a user from a team"""
-    team = db.get(Team, team_id)
-    if team is None:
-        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
-
-    user = db.get(User, user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail=f"User {user_id} doesn't exist")
+    team = _get_entity_or_raise_404(db, Team, team_id)
+    user = _get_entity_or_raise_404(db, User, user_id)
 
     # Check if user is a member
     if user in team.members:
