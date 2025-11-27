@@ -3,6 +3,7 @@ kill-timeout: 90m
 workers: 1
 
 environment:
+  CI: "$(HOST: echo $CI)"
   CONCIERGE_JUJU_CHANNEL: 3.6/stable
 
 backends:
@@ -108,7 +109,9 @@ prepare: |
   chown $(id -u):$(id -g) $PWD/frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm
 
 restore: |
-  concierge restore --trace
-  apt autoremove -y --purge
-  rm -Rf "$SPREAD_PATH"
-  mkdir -p "$SPREAD_PATH"
+  if [[ -z "${CI:-}" ]]; then
+    concierge restore --trace
+    apt autoremove -y --purge
+    rm -Rf "$SPREAD_PATH"
+    mkdir -p "$SPREAD_PATH"
+  fi

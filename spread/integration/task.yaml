@@ -37,6 +37,8 @@ execute: |
   juju ssh --container postgresql db/leader "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='omar.selo@canonical.com'\"" | grep omar-selo
 
 restore: |
-  # The testing model is created by concierge
-  juju destroy-model testing --destroy-storage --force --no-prompt --no-wait
-  juju add-model testing
+  if [[ -z "${CI:-}" ]]; then
+    # The testing model is created by concierge
+    juju destroy-model testing --destroy-storage --force --no-prompt --no-wait
+    juju add-model testing
+  fi
