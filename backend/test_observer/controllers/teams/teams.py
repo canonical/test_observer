@@ -30,18 +30,14 @@ router: APIRouter = APIRouter(tags=["teams"])
 def _get_team_or_raise_404(db: Session, team_id: int) -> Team:
     team = db.get(Team, team_id)
     if team is None:
-        raise HTTPException(
-            status_code=404, detail=f"Team {team_id} doesn't exist"
-        )
+        raise HTTPException(status_code=404, detail=f"Team {team_id} doesn't exist")
     return team
 
 
 def _get_user_or_raise_404(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(
-            status_code=404, detail=f"User {user_id} doesn't exist"
-        )
+        raise HTTPException(status_code=404, detail=f"User {user_id} doesn't exist")
     return user
 
 
