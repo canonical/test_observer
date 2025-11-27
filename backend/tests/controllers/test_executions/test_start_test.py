@@ -189,7 +189,7 @@ class TestFamilyIndependentTests:
     def test_only_a_reviewer_user_is_assigned(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        # User with no team or team with no families cannot be assigned
+        # User with no teams cannot be assigned as reviewer
         generator.gen_user()
 
         response = execute({**start_request, "needs_assignment": True})
