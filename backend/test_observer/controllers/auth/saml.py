@@ -164,8 +164,10 @@ def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
         get_or_create(db, Team, {"name": t}) for t in attributes["lp_teams"]
     ]
     user_teams = user.teams
-    user.teams = list({*user_teams, *teams_to_add})
+
+    user.teams = list({team.id: team for team in user_teams + teams_to_add}.values())
     db.commit()
+
     return user
 
 
