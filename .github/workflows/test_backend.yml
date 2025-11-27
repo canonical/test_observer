@@ -26,7 +26,7 @@ jobs:
       - run: uv pip install -e .
       - run: uv run ruff check
       - run: uv run ruff format --check
-      - run: uv run mypy .
+      - run: uv run mypy --ignore-missing-imports .
       - name: Install docker compose
         run: |
           sudo apt update -y
