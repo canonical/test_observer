@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intersperse/intersperse.dart';
 import 'package:yaru/widgets.dart';
+import 'package:intersperse/intersperse.dart';
+import 'package:dartx/dartx.dart';
 
 import '../../models/test_result.dart';
 import '../../providers/artefact.dart';
@@ -35,11 +35,13 @@ class TestResultExpandable extends ConsumerWidget {
     required this.testExecutionId,
     required this.testResult,
     required this.artefactId,
+    this.testResultIdToExpand,
   });
 
   final int testExecutionId;
   final TestResult testResult;
   final int artefactId;
+  final int? testResultIdToExpand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,7 +54,11 @@ class TestResultExpandable extends ConsumerWidget {
       title += ' (${issues.length} reported issues)';
     }
 
+    final initiallyExpanded =
+        testResultIdToExpand != null && testResult.id == testResultIdToExpand;
+
     return Expandable(
+      initiallyExpanded: initiallyExpanded,
       title: Row(
         children: [
           Text(title),
@@ -100,7 +106,13 @@ class _TestResultOutputExpandable extends StatelessWidget {
         if (testResult.ioLog != '')
           YaruTile(
             title: const Text('IO Log'),
-            subtitle: Text(testResult.ioLog),
+            subtitle: SelectableText(
+              testResult.ioLog,
+              style: const TextStyle(
+                fontFamily: 'UbuntuMono',
+                fontSize: 12,
+              ),
+            ),
           ),
       ],
     );

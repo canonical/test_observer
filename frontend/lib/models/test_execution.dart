@@ -47,6 +47,7 @@ abstract class TestExecution with _$TestExecution {
     @Default(ExecutionMetadata(data: {}))
     @JsonKey(name: 'execution_metadata')
     ExecutionMetadata executionMetadata,
+    @JsonKey(name: 'is_triaged') required bool isTriaged,
   }) = _TestExecution;
 
   factory TestExecution.fromJson(Map<String, Object?> json) =>

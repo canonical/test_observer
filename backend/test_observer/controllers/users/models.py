@@ -14,10 +14,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class TeamMinimalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     permissions: list[str]
@@ -25,12 +27,19 @@ class TeamMinimalResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     email: str
     name: str
     launchpad_handle: str | None = None
     teams: list[TeamMinimalResponse]
     is_admin: bool
+
+
+class UsersResponse(BaseModel):
+    users: list[UserResponse]
+    count: int
 
 
 class UserPatch(BaseModel):

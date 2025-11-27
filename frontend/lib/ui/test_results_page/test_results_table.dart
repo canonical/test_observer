@@ -400,7 +400,7 @@ class _ActionsCell extends StatelessWidget {
                   Icon(Icons.launch, size: 16, color: YaruColors.orange),
                   const SizedBox(width: 4),
                   Text(
-                    'Run',
+                    'View Run',
                     style: TextStyle(
                       fontSize: 12,
                       color: YaruColors.orange,

@@ -71,7 +71,7 @@ To debug the charm integration tests, you can jump into a `spread` provided envi
 
 ```bash
 # open a shell to the execution environment _before_ executing each test task 
-charmcraft.spread -v -shell lxd 
+charmcraft.spread -v -shell-before lxd 
 
 # open a shell to the execution environment _instead of_ executing each test task 
 charmcraft.spread -v -shell lxd

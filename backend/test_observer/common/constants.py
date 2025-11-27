@@ -15,6 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from enum import StrEnum
+
+
 PREVIOUS_TEST_RESULT_COUNT = 10
 
 VALID_ISSUE_HOSTS = {"github.com", "warthogs.atlassian.net", "bugs.launchpad.net"}
+
+
+class QueryValue(StrEnum):
+    ANY = "any"
+    NONE = "none"

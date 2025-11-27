@@ -14,60 +14,61 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:dartx/dartx.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:yaru/yaru.dart';
 
-import '../../models/test_result.dart';
-import '../../providers/test_results.dart';
-import '../blocking_provider_preloader.dart';
+import '../../../models/test_result.dart';
+import '../../../providers/test_results.dart';
+import '../../../ui/test_results_page/test_results_helpers.dart';
 import '../expandable.dart';
 import 'test_result_expandable.dart';
 
-class TestResultsFilterExpandable extends StatelessWidget {
+class TestResultsFilterExpandable extends ConsumerWidget {
   const TestResultsFilterExpandable({
     super.key,
     required this.statusToFilterBy,
     required this.testExecutionId,
     required this.artefactId,
+    this.testResultIdToExpand,
   });
 
   final TestResultStatus statusToFilterBy;
   final int testExecutionId;
   final int artefactId;
+  final int? testResultIdToExpand;
 
   @override
-  Widget build(BuildContext context) {
-    Color? fontColor;
-    if (statusToFilterBy == TestResultStatus.failed) {
-      fontColor = YaruColors.red;
-    } else if (statusToFilterBy == TestResultStatus.passed) {
-      fontColor = YaruColors.light.success;
-    }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final testResultsAsync = ref.watch(testResultsProvider(testExecutionId));
 
-    final headerStyle =
-        Theme.of(context).textTheme.titleMedium?.apply(color: fontColor);
-
-    return BlockingProviderPreloader(
-      provider: testResultsProvider(testExecutionId),
-      builder: (_, testResults) {
-        final filteredTestResults = testResults
-            .filter((testResult) => testResult.status == statusToFilterBy)
+    return testResultsAsync.when(
+      loading: () => const CircularProgressIndicator(),
+      error: (error, stackTrace) => Text('Error: $error'),
+      data: (testResults) {
+        final filteredResults = testResults
+            .where((result) => result.status == statusToFilterBy)
             .toList();
 
+        final shouldExpandStatus = testResultIdToExpand != null &&
+            filteredResults.any((result) => result.id == testResultIdToExpand);
+
         return Expandable(
-          initiallyExpanded: statusToFilterBy == TestResultStatus.failed &&
-              filteredTestResults.isNotEmpty,
-          title: Text(
-            '${statusToFilterBy.name} ${filteredTestResults.length}',
-            style: headerStyle,
+          initiallyExpanded: shouldExpandStatus,
+          title: Row(
+            children: [
+              TestResultHelpers.getStatusIcon(statusToFilterBy),
+              const SizedBox(width: 8),
+              Text(statusToFilterBy.name),
+              Text(' ${filteredResults.length}'),
+            ],
           ),
-          children: filteredTestResults
+          children: filteredResults
               .map(
-                (testResult) => TestResultExpandable(
+                (result) => TestResultExpandable(
                   testExecutionId: testExecutionId,
-                  testResult: testResult,
+                  testResult: result,
                   artefactId: artefactId,
+                  testResultIdToExpand: testResultIdToExpand,
                 ),
               )
               .toList(),

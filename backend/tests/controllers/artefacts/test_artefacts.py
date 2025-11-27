@@ -111,12 +111,6 @@ def test_get_artefacts_ignores_archived(
             "track": "latest",
             "store": "ubuntu",
         },
-        {
-            "stage": StageName.beta,
-            "family": FamilyName.charm,
-            "name": "postgres",
-            "track": "latest",
-        },
     ],
 )
 def test_get_artefacts_returns_latest_on_each_stage(
@@ -170,6 +164,52 @@ def test_get_artefacts_treats_branches_as_unique(
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data) == 2
+
+
+def test_get_charm_artefacts_returns_all_non_archived(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    """Charm family should return all non-archived artefacts, not just the latest"""
+    a1 = generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.charm,
+        name="postgresql",
+        version="1",
+        track="latest",
+        branch="main",
+        archived=False,
+    )
+    a2 = generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.charm,
+        name="postgresql",
+        version="2",
+        track="latest",
+        branch="main",
+        archived=False,
+    )
+    # This one is archived, so shouldn't be returned
+    generator.gen_artefact(
+        stage=StageName.beta,
+        family=FamilyName.charm,
+        name="postgresql",
+        version="0",
+        track="latest",
+        branch="main",
+        archived=True,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts", params={"family": "charm"}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert len(response_data) == 2
+    returned_ids = {r["id"] for r in response_data}
+    assert returned_ids == {a1.id, a2.id}
 
 
 def test_get_artefact(test_client: TestClient, generator: DataGenerator):
