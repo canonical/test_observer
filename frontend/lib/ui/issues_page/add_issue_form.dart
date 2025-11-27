@@ -49,7 +49,7 @@ class _AddIssueFormState extends ConsumerState<_AddIssueForm> {
   Widget build(BuildContext context) {
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
 
-    final issues = ref.watch(issuesProvider).value ?? [];
+    final issues = ref.watch(issuesProvider()).value ?? [];
     final existingIssueIds = issues.map((issue) => issue.id).toSet();
 
     return Form(

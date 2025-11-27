@@ -70,6 +70,13 @@ enum TestResultStatus {
   @JsonValue('SKIPPED')
   skipped;
 
+  static TestResultStatus fromString(String value) {
+    return TestResultStatus.values.firstWhere(
+      (status) => status.name.toUpperCase() == value.toUpperCase(),
+      orElse: () => throw ArgumentError('Invalid TestResultStatus: $value'),
+    );
+  }
+
   String get name {
     switch (this) {
       case failed:

@@ -115,9 +115,10 @@ class IssuesPageSide extends ConsumerWidget {
           setQueryParam(IssuesFilters.statusParam, newStatuses.toList());
         },
       ),
-      MultiSelectCombobox(
+      MultiSelectCombobox<String>(
         title: 'Project',
         allOptions: filtersState.possibleProjects.toList(),
+        itemToString: (project) => project,
         initialSelected: filtersState.selectedProjects,
         onChanged: (option, isSelected) {
           final newProjects = Set<String>.from(filtersState.selectedProjects);

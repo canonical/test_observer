@@ -18,6 +18,7 @@ import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/artefact_environment.dart';
+import '../../routing.dart';
 import '../expandable.dart';
 import '../spacing.dart';
 import 'environment_issues/environment_issues_expandable.dart';
@@ -39,7 +40,14 @@ class EnvironmentExpandable extends StatelessWidget {
     final groupedTestExecutions =
         artefactEnvironment.runsDescending.groupBy((te) => te.testPlan);
 
+    final pageUri = AppRoutes.uriFromContext(context);
+    final targetTestExecutionId = pageUri.queryParameters['testExecutionId'];
+    final shouldExpand = targetTestExecutionId != null &&
+        artefactEnvironment.runsDescending
+            .any((te) => te.id == int.tryParse(targetTestExecutionId));
+
     return Expandable(
+      initiallyExpanded: shouldExpand,
       title: _EnvironmentExpandableTitle(
         artefactEnvironment: artefactEnvironment,
       ),

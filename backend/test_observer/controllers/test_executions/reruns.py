@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session, selectinload
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     ArtefactBuild,
+    Environment,
     TestExecution,
     TestExecutionRerunRequest,
     Artefact,
@@ -80,6 +81,9 @@ def _create_rerun_request(
 def get_rerun_requests(
     family: FamilyName | None = None,
     limit: int | None = None,
+    environment: str | None = None,
+    environment_architecture: str | None = None,
+    build_architecture: str | None = None,
     db: Session = Depends(get_db),
 ):
     stmt = (
@@ -87,6 +91,7 @@ def get_rerun_requests(
         .join(TestExecutionRerunRequest.test_execution)
         .join(TestExecution.artefact_build)
         .join(ArtefactBuild.artefact)
+        .join(TestExecution.environment)
         .options(
             selectinload(TestExecutionRerunRequest.test_execution)
             .selectinload(TestExecution.artefact_build)
@@ -104,6 +109,15 @@ def get_rerun_requests(
 
     if family is not None:
         stmt = stmt.filter(Artefact.family == family)
+
+    if environment is not None:
+        stmt = stmt.filter(Environment.name == environment)
+
+    if build_architecture is not None:
+        stmt = stmt.filter(ArtefactBuild.architecture == build_architecture)
+
+    if environment_architecture is not None:
+        stmt = stmt.filter(Environment.architecture == environment_architecture)
 
     if limit is not None:
         stmt = stmt.limit(limit)

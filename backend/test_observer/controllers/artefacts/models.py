@@ -120,6 +120,7 @@ class TestExecutionResponse(BaseModel):
     test_plan: str
     created_at: datetime
     execution_metadata: ExecutionMetadata
+    is_triaged: bool
 
     @computed_field
     def is_rerun_requested(self) -> bool:
