@@ -9,20 +9,21 @@ execute: |
     --config sessions_secret="$(openssl rand -base64 32)" \
     --resource api-image="${backend_oci_image}"
 
+  juju deploy redis-k8s --channel=latest/edge --revision=27 redis
+  juju relate api redis
+
+  juju deploy postgresql-k8s --channel=14/stable --revision=281 db
+  juju trust db --scope=cluster
+  juju relate api db
+
+  # juju deploy nginx-ingress-integrator --channel=latest/stable --revision=59 ingress
+  # juju trust ingress --scope=cluster
+  # juju relate api ingress
+
   juju deploy "${SPREAD_PATH}"/frontend/charm/*.charm frontend \
     --config hostname=test-observer-frontend.test \
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
-
-  juju deploy redis-k8s --channel=latest/edge --revision=27 redis
-  juju deploy postgresql-k8s --channel=14/stable --revision=281 db
-  juju trust db --scope=cluster
-  # juju deploy nginx-ingress-integrator --channel=latest/stable --revision=59 ingress
-  # juju trust ingress --scope=cluster
-
-  juju relate api ingress
-  juju relate api db
-  juju relate api redis
   juju relate api frontend
 
   juju wait-for application api --timeout=30m
@@ -41,5 +42,5 @@ execute: |
 
 restore: |
   # The testing model is created by concierge
-  juju destroy-model --no-prompt --destroy-storage testing
+  juju destroy-model --destroy-storage --force --no-prompt --no-wait testing
   juju add-model testing
