@@ -66,7 +66,7 @@ def parse_execution_metadata(
     result = []
     for item in execution_metadata:
         colon_index = item.find(":")
-        
+
         if colon_index == -1:
             raise HTTPException(
                 status_code=422,
@@ -75,18 +75,16 @@ def parse_execution_metadata(
                     "Expected base64 encoded 'category:value'."
                 ),
             )
-        
+
         try:
-            category = base64.b64decode(item[:colon_index]).decode('utf-8')
-            value = base64.b64decode(item[colon_index + 1:]).decode('utf-8')
+            category = base64.b64decode(item[:colon_index]).decode("utf-8")
+            value = base64.b64decode(item[colon_index + 1 :]).decode("utf-8")
         except ValueError as e:
             raise HTTPException(
                 status_code=422,
-                detail=(
-                    f"Invalid base64 encoding in execution metadata: '{item}'."
-                ),
+                detail=(f"Invalid base64 encoding in execution metadata: '{item}'."),
             ) from e
-        
+
         if not category or not value:
             raise HTTPException(
                 status_code=422,
@@ -95,14 +93,14 @@ def parse_execution_metadata(
                     "Both category and value must be non-empty."
                 ),
             )
-        
+
         result.append(
             TestExecutionMetadata(
                 category=category,
                 value=value,
             )
         )
-    
+
     return ExecutionMetadata.from_rows(result)
 
 
