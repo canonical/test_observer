@@ -78,7 +78,7 @@ class ArchiveManager:
 
         # Names of deb packages could have swapped '.' with '_'
         # So this regex is to allow such scenarios
-        name_regex = f"^{debname}$".replace("_", "[_\.]")
+        name_regex = f"^{debname}$".replace("_", r"[_\.]")
 
         pkg_list = pkg_data.split("\n\n")
         for pkg in pkg_list:
