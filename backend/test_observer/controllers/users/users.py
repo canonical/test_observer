@@ -136,11 +136,9 @@ def update_user(
     if user is None:
         raise HTTPException(404, f"User with id {user_id} not found")
 
-    if request.is_reviewer is not None:
-        user.is_reviewer = request.is_reviewer
-
     if request.is_admin is not None:
         user.is_admin = request.is_admin
 
     db.commit()
+
     return user

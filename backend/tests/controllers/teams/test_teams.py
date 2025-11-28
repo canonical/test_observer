@@ -32,21 +32,36 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
 
     assert response.status_code == 200
     assert response.json() == [
+        # certification- and charm-reviewers teams should be created by migration
+        {
+            "id": 1,
+            "name": "certification-reviewers",
+            "permissions": [],
+            "reviewer_families": ["snap", "deb", "image"],
+            "members": [],
+        },
+        {
+            "id": 2,
+            "name": "charm-reviewers",
+            "permissions": [],
+            "reviewer_families": ["charm"],
+            "members": [],
+        },
         {
             "id": team.id,
             "name": team.name,
             "permissions": team.permissions,
+            "reviewer_families": team.reviewer_families,
             "members": [
                 {
                     "id": user.id,
                     "name": user.name,
                     "email": user.email,
                     "launchpad_handle": user.launchpad_handle,
-                    "is_reviewer": user.is_reviewer,
                     "is_admin": user.is_admin,
                 }
             ],
-        }
+        },
     ]
 
 
@@ -63,13 +78,13 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
         "id": team.id,
         "name": team.name,
         "permissions": team.permissions,
+        "reviewer_families": team.reviewer_families,
         "members": [
             {
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
                 "launchpad_handle": user.launchpad_handle,
-                "is_reviewer": user.is_reviewer,
                 "is_admin": user.is_admin,
             }
         ],
@@ -93,13 +108,13 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
         "id": team.id,
         "name": team.name,
         "permissions": [Permission.view_user],
+        "reviewer_families": team.reviewer_families,
         "members": [
             {
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
                 "launchpad_handle": user.launchpad_handle,
-                "is_reviewer": user.is_reviewer,
                 "is_admin": user.is_admin,
             }
         ],
@@ -119,3 +134,117 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
     )
 
     assert response.status_code == 422
+
+
+def test_update_team_reviewer_families(
+    test_client: TestClient, generator: DataGenerator
+):
+    user = generator.gen_user()
+    team = generator.gen_team(members=[user])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"reviewer_families": ["snap", "deb"]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reviewer_families"] == ["snap", "deb"]
+
+
+def test_add_team_member(test_client: TestClient, generator: DataGenerator):
+    team = generator.gen_team()
+    user = generator.gen_user()
+
+    response = make_authenticated_request(
+        lambda: test_client.post(f"/v1/teams/{team.id}/members/{user.id}"),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["members"]) == 1
+    assert response.json()["members"][0]["id"] == user.id
+
+
+def test_add_team_member_idempotent(test_client: TestClient, generator: DataGenerator):
+    user = generator.gen_user()
+    team = generator.gen_team(members=[user])
+
+    response = make_authenticated_request(
+        lambda: test_client.post(f"/v1/teams/{team.id}/members/{user.id}"),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["members"]) == 1
+    assert response.json()["members"][0]["id"] == user.id
+
+
+def test_add_team_member_not_found(test_client: TestClient, generator: DataGenerator):
+    team = generator.gen_team()
+    user = generator.gen_user()
+
+    # Test non-existent user
+    response = make_authenticated_request(
+        lambda: test_client.post(f"/v1/teams/{team.id}/members/999999"),
+        Permission.change_team,
+    )
+    assert response.status_code == 404
+
+    # Test non-existent team
+    response = make_authenticated_request(
+        lambda: test_client.post(f"/v1/teams/999999/members/{user.id}"),
+        Permission.change_team,
+    )
+    assert response.status_code == 404
+
+
+def test_remove_team_member(test_client: TestClient, generator: DataGenerator):
+    user = generator.gen_user()
+    team = generator.gen_team(members=[user])
+
+    response = make_authenticated_request(
+        lambda: test_client.delete(f"/v1/teams/{team.id}/members/{user.id}"),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["members"] == []
+
+
+def test_remove_team_member_not_member(
+    test_client: TestClient, generator: DataGenerator
+):
+    team = generator.gen_team()
+    user = generator.gen_user()
+
+    response = make_authenticated_request(
+        lambda: test_client.delete(f"/v1/teams/{team.id}/members/{user.id}"),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["members"] == []
+
+
+def test_remove_team_member_not_found(
+    test_client: TestClient, generator: DataGenerator
+):
+    team = generator.gen_team()
+    user = generator.gen_user()
+
+    # Test non-existent user
+    response = make_authenticated_request(
+        lambda: test_client.delete(f"/v1/teams/{team.id}/members/999999"),
+        Permission.change_team,
+    )
+    assert response.status_code == 404
+
+    # Test non-existent team
+    response = make_authenticated_request(
+        lambda: test_client.delete(f"/v1/teams/999999/members/{user.id}"),
+        Permission.change_team,
+    )
+    assert response.status_code == 404
