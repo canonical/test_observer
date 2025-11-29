@@ -433,5 +433,551 @@ void main() {
       // Now should show suggestions
       expect(find.widgetWithText(ListTile, 'Option 1'), findsOneWidget);
     });
+
+    group('showAllOptionsWithoutSearch mode', () {
+      Widget createWidgetWithAllOptionsMode({
+        List<String> allOptions = testOptions,
+        Set<String> initialSelected = const {},
+        Function(String, bool)? onChanged,
+      }) {
+        return MaterialApp(
+          home: Scaffold(
+            body: MultiSelectCombobox<String>(
+              title: 'All Options Mode',
+              allOptions: allOptions,
+              itemToString: (item) => item,
+              showAllOptionsWithoutSearch: true,
+              initialSelected: initialSelected,
+              onChanged: onChanged ?? (option, isSelected) {},
+            ),
+          ),
+        );
+      }
+
+      testWidgets('displays all options when expanded without search box',
+          (tester) async {
+        await tester.pumpWidget(createWidgetWithAllOptionsMode());
+
+        // Initially collapsed
+        expect(find.text('All Options Mode (0 selected)'), findsOneWidget);
+
+        // Expand combobox
+        await tester.tap(find.text('All Options Mode (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // Should NOT show search field
+        expect(find.byType(TextFormField), findsNothing);
+
+        // Should show all options with checkboxes
+        expect(find.text('Option 1'), findsOneWidget);
+        expect(find.text('Option 2'), findsOneWidget);
+        expect(find.text('Option 3'), findsOneWidget);
+        expect(find.text('Option 4'), findsOneWidget);
+
+        // Should have 4 checkboxes (one for each option)
+        expect(find.byType(YaruCheckbox), findsNWidgets(4));
+      });
+
+      testWidgets('shows initial selections correctly', (tester) async {
+        final initialSelected = {'Option 1', 'Option 3'};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Selection Test',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    initialSelected: initialSelected,
+                    onChanged: (option, isSelected) {},
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Should auto-expand with initial selections
+        await tester.pumpAndSettle();
+
+        // Verify that 4 checkboxes exist
+        expect(find.byType(YaruCheckbox), findsNWidgets(4));
+
+        // Verify selected options are shown
+        expect(find.text('Option 1'), findsOneWidget);
+        expect(find.text('Option 3'), findsOneWidget);
+      });
+
+      testWidgets('toggles selection when checkbox is clicked', (tester) async {
+        final selectedOptions = <String>{};
+
+        await tester.pumpWidget(
+          createWidgetWithAllOptionsMode(
+            onChanged: (option, isSelected) {
+              if (isSelected) {
+                selectedOptions.add(option);
+              } else {
+                selectedOptions.remove(option);
+              }
+            },
+          ),
+        );
+
+        // Expand combobox
+        await tester.tap(find.text('All Options Mode (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // Verify checkboxes exist
+        expect(find.byType(YaruCheckbox), findsNWidgets(4));
+
+        // Select Option 2 by tapping its checkbox
+        await tester.tap(find.byType(YaruCheckbox).at(1));
+        await tester.pumpAndSettle();
+
+        expect(selectedOptions, contains('Option 2'));
+        expect(selectedOptions.length, equals(1));
+      });
+
+      testWidgets('allows multiple selections', (tester) async {
+        final selectedOptions = <String>{};
+
+        await tester.pumpWidget(
+          createWidgetWithAllOptionsMode(
+            onChanged: (option, isSelected) {
+              if (isSelected) {
+                selectedOptions.add(option);
+              } else {
+                selectedOptions.remove(option);
+              }
+            },
+          ),
+        );
+
+        // Expand combobox
+        await tester.tap(find.text('All Options Mode (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // Select multiple options
+        await tester.tap(find.byType(YaruCheckbox).at(0)); // Option 1
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(YaruCheckbox).at(2)); // Option 3
+        await tester.pumpAndSettle();
+
+        expect(selectedOptions, containsAll(['Option 1', 'Option 3']));
+        expect(selectedOptions.length, equals(2));
+      });
+
+      testWidgets('deselects when clicking selected checkbox', (tester) async {
+        final selectedOptions = {'Option 2'};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Deselect Test',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    initialSelected: selectedOptions,
+                    onChanged: (option, isSelected) {
+                      setState(() {
+                        if (isSelected) {
+                          selectedOptions.add(option);
+                        } else {
+                          selectedOptions.remove(option);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Should auto-expand with initial selections
+        await tester.pumpAndSettle();
+
+        // Verify checkboxes exist
+        expect(find.byType(YaruCheckbox), findsNWidgets(4));
+
+        // Click Option 2's checkbox to deselect
+        await tester.tap(find.byType(YaruCheckbox).at(1));
+        await tester.pumpAndSettle();
+
+        expect(selectedOptions, isEmpty);
+      });
+
+      testWidgets('updates display count when selections change',
+          (tester) async {
+        final selectedOptions = <String>{};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Counter Test',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    initialSelected: selectedOptions,
+                    onChanged: (option, isSelected) {
+                      setState(() {
+                        if (isSelected) {
+                          selectedOptions.add(option);
+                        } else {
+                          selectedOptions.remove(option);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Initially shows 0 selected
+        expect(find.text('Counter Test (0 selected)'), findsOneWidget);
+
+        // Expand and select an option
+        await tester.tap(find.text('Counter Test (0 selected)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(YaruCheckbox).first);
+        await tester.pumpAndSettle();
+
+        // Collapse to see updated count
+        await tester.tap(find.textContaining('Counter Test'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Counter Test (1 selected)'), findsOneWidget);
+      });
+
+      testWidgets('works with meta options', (tester) async {
+        String? selectedMetaOption;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MultiSelectCombobox<String>(
+                title: 'Meta Options Test',
+                allOptions: testOptions,
+                itemToString: (item) => item,
+                showAllOptionsWithoutSearch: true,
+                metaOptions: const [
+                  MetaOption(value: 'any', label: 'Any'),
+                  MetaOption(value: 'none', label: 'None'),
+                ],
+                selectedMetaOption: selectedMetaOption,
+                onMetaOptionChanged: (value) {
+                  selectedMetaOption = value;
+                },
+                onChanged: (option, isSelected) {},
+              ),
+            ),
+          ),
+        );
+
+        // Expand combobox
+        await tester.tap(find.text('Meta Options Test (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // Should show meta options
+        expect(find.text('Any'), findsOneWidget);
+        expect(find.text('None'), findsOneWidget);
+
+        // Should also show all regular options
+        expect(find.text('Option 1'), findsOneWidget);
+        expect(find.text('Option 2'), findsOneWidget);
+      });
+
+      testWidgets('displays all options without pagination', (tester) async {
+        final manyOptions = List.generate(5, (i) => 'Option $i');
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MultiSelectCombobox<String>(
+                title: 'Many Options',
+                allOptions: manyOptions,
+                itemToString: (item) => item,
+                showAllOptionsWithoutSearch: true,
+                onChanged: (option, isSelected) {},
+              ),
+            ),
+          ),
+        );
+
+        // Expand combobox
+        await tester.tap(find.text('Many Options (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // All 5 checkboxes should be present
+        expect(find.byType(YaruCheckbox), findsNWidgets(5));
+
+        // Verify first and last options are visible
+        expect(find.text('Option 0'), findsOneWidget);
+        expect(find.text('Option 4'), findsOneWidget);
+      });
+    });
+
+    group('mutually exclusive mode', () {
+      Widget createMutuallyExclusiveWidget({
+        List<String> allOptions = testOptions,
+        Set<String> initialSelected = const {},
+        Function(String, bool)? onChanged,
+      }) {
+        return MaterialApp(
+          home: Scaffold(
+            body: MultiSelectCombobox<String>(
+              title: 'Exclusive Mode',
+              allOptions: allOptions,
+              itemToString: (item) => item,
+              showAllOptionsWithoutSearch: true,
+              isMutuallyExclusive: true,
+              initialSelected: initialSelected,
+              onChanged: onChanged ?? (option, isSelected) {},
+            ),
+          ),
+        );
+      }
+
+      testWidgets('displays checkboxes in mutually exclusive mode',
+          (tester) async {
+        await tester.pumpWidget(createMutuallyExclusiveWidget());
+
+        // Expand combobox
+        await tester.tap(find.text('Exclusive Mode (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // Should have checkboxes
+        expect(find.byType(YaruCheckbox), findsNWidgets(4));
+      });
+
+      testWidgets('allows only one selection at a time', (tester) async {
+        final selectedOptions = <String>{};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Single Select',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    isMutuallyExclusive: true,
+                    initialSelected: selectedOptions,
+                    onChanged: (option, isSelected) {
+                      setState(() {
+                        if (isSelected) {
+                          selectedOptions.clear();
+                          selectedOptions.add(option);
+                        } else {
+                          selectedOptions.remove(option);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Expand combobox
+        await tester.tap(find.text('Single Select (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // Select first option by clicking on text
+        await tester.tap(find.text('Option 1'));
+        await tester.pumpAndSettle();
+
+        expect(selectedOptions, equals({'Option 1'}));
+
+        // Select second option by clicking on text
+        await tester.tap(find.text('Option 2'));
+        await tester.pumpAndSettle();
+
+        // Should only have the second option selected
+        expect(selectedOptions, equals({'Option 2'}));
+        expect(selectedOptions.length, equals(1));
+      });
+
+      testWidgets('can deselect by clicking selected option', (tester) async {
+        final selectedOptions = {'Option 1'};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Deselect Test',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    isMutuallyExclusive: true,
+                    initialSelected: selectedOptions,
+                    onChanged: (option, isSelected) {
+                      setState(() {
+                        if (isSelected) {
+                          selectedOptions.clear();
+                          selectedOptions.add(option);
+                        } else {
+                          selectedOptions.remove(option);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Should auto-expand with initial selection
+        await tester.pumpAndSettle();
+
+        // Verify Option 1 is selected
+        expect(selectedOptions, equals({'Option 1'}));
+
+        // Click the selected option again to deselect
+        await tester.tap(find.text('Option 1'));
+        await tester.pumpAndSettle();
+
+        // Should be deselected
+        expect(selectedOptions, isEmpty);
+      });
+
+      testWidgets('shows correct count in title', (tester) async {
+        final selectedOptions = <String>{};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Count Test',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    isMutuallyExclusive: true,
+                    initialSelected: selectedOptions,
+                    onChanged: (option, isSelected) {
+                      setState(() {
+                        if (isSelected) {
+                          selectedOptions.clear();
+                          selectedOptions.add(option);
+                        } else {
+                          selectedOptions.remove(option);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Initially shows 0 selected
+        expect(find.text('Count Test (0 selected)'), findsOneWidget);
+
+        // Expand and select an option
+        await tester.tap(find.text('Count Test (0 selected)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Option 1'));
+        await tester.pumpAndSettle();
+
+        // Collapse and verify count
+        await tester.tap(find.textContaining('Count Test'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Count Test (1 selected)'), findsOneWidget);
+      });
+
+      testWidgets('works with initial selection', (tester) async {
+        final initialSelected = {'Option 3'};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Initial Test',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    isMutuallyExclusive: true,
+                    initialSelected: initialSelected,
+                    onChanged: (option, isSelected) {},
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Should auto-expand and show Option 3 selected
+        await tester.pumpAndSettle();
+
+        expect(find.text('Option 3'), findsOneWidget);
+        expect(find.byType(YaruCheckbox), findsNWidgets(4));
+      });
+
+      testWidgets('clicking row also selects/deselects option', (tester) async {
+        final selectedOptions = <String>{};
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return MaterialApp(
+                home: Scaffold(
+                  body: MultiSelectCombobox<String>(
+                    title: 'Row Click Test',
+                    allOptions: testOptions,
+                    itemToString: (item) => item,
+                    showAllOptionsWithoutSearch: true,
+                    isMutuallyExclusive: true,
+                    initialSelected: selectedOptions,
+                    onChanged: (option, isSelected) {
+                      setState(() {
+                        if (isSelected) {
+                          selectedOptions.clear();
+                          selectedOptions.add(option);
+                        } else {
+                          selectedOptions.remove(option);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Expand combobox
+        await tester.tap(find.text('Row Click Test (0 selected)'));
+        await tester.pumpAndSettle();
+
+        // Click on the text of Option 2 (not the radio button)
+        await tester.tap(find.text('Option 2'));
+        await tester.pumpAndSettle();
+
+        expect(selectedOptions, equals({'Option 2'}));
+      });
+    });
   });
 }

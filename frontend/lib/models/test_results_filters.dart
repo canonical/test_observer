@@ -128,6 +128,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @Default([])
     List<TestResultStatus> testResultStatuses,
     @Default([]) List<String> artefacts,
+    @JsonKey(name: 'artefact_is_archived') bool? artefactIsArchived,
     @Default([]) List<String> environments,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
@@ -171,6 +172,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
         .map((s) => TestResultStatus.fromString(s))
         .toList();
     final artefacts = parseParam(parameters['artefacts']);
+    final artefactIsArchived = parseParam(parameters['artefact_is_archived'])
+        .map((s) => s.toLowerCase() == 'true')
+        .firstOrNull;
     final environments = parseParam(parameters['environments']);
     final testCases = parseParam(parameters['test_cases']);
     final templateIds = parseParam(parameters['template_ids']);
@@ -200,6 +204,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       families: families,
       testResultStatuses: testResultStatuses,
       artefacts: artefacts,
+      artefactIsArchived: artefactIsArchived,
       environments: environments,
       testCases: testCases,
       templateIds: templateIds,
@@ -224,6 +229,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
     if (artefacts.isNotEmpty) {
       params['artefacts'] = artefacts;
+    }
+    if (artefactIsArchived != null) {
+      params['artefact_is_archived'] = [artefactIsArchived.toString()];
     }
     if (environments.isNotEmpty) {
       params['environments'] = environments;
@@ -264,6 +272,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       families.isNotEmpty ||
       testResultStatuses.isNotEmpty ||
       artefacts.isNotEmpty ||
+      artefactIsArchived != null ||
       environments.isNotEmpty ||
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||

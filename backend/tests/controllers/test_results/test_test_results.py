@@ -1087,6 +1087,193 @@ class TestSearchTestResults:
         assert test_result.id in result_ids
         assert other_result.id not in result_ids
 
+    def test_search_by_artefact_is_archived_true(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering for archived artefacts only"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(
+            name=generate_unique_name(f"archived_{unique_marker}")
+        )
+
+        # Create archived artefact with test result
+        archived_artefact = generator.gen_artefact(
+            name=f"archived_artefact_{unique_marker}", archived=True
+        )
+        archived_build = generator.gen_artefact_build(archived_artefact)
+        archived_execution = generator.gen_test_execution(archived_build, environment)
+        archived_result = generator.gen_test_result(test_case, archived_execution)
+
+        # Create non-archived artefact with test result
+        active_artefact = generator.gen_artefact(
+            name=f"active_artefact_{unique_marker}", archived=False
+        )
+        active_build = generator.gen_artefact_build(active_artefact)
+        active_execution = generator.gen_test_execution(active_build, environment)
+        active_result = generator.gen_test_result(test_case, active_execution)
+
+        # Search for archived artefacts only
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?artefact_is_archived=true"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include archived artefact's result
+        assert archived_result.id in result_ids
+        # Should not include active artefact's result
+        assert active_result.id not in result_ids
+
+        # Verify all returned results are from archived artefacts
+        assert all(tr["artefact"]["archived"] is True for tr in data["test_results"])
+
+    def test_search_by_artefact_is_archived_false(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering for non-archived artefacts only"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(
+            name=generate_unique_name(f"not_archived_{unique_marker}")
+        )
+
+        # Create archived artefact with test result
+        archived_artefact = generator.gen_artefact(
+            name=f"archived_artefact_{unique_marker}", archived=True
+        )
+        archived_build = generator.gen_artefact_build(archived_artefact)
+        archived_execution = generator.gen_test_execution(archived_build, environment)
+        archived_result = generator.gen_test_result(test_case, archived_execution)
+
+        # Create non-archived artefact with test result
+        active_artefact = generator.gen_artefact(
+            name=f"active_artefact_{unique_marker}", archived=False
+        )
+        active_build = generator.gen_artefact_build(active_artefact)
+        active_execution = generator.gen_test_execution(active_build, environment)
+        active_result = generator.gen_test_result(test_case, active_execution)
+
+        # Search for non-archived artefacts only
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?artefact_is_archived=false"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include active artefact's result
+        assert active_result.id in result_ids
+        # Should not include archived artefact's result
+        assert archived_result.id not in result_ids
+
+        # Verify all returned results are from non-archived artefacts
+        assert all(tr["artefact"]["archived"] is False for tr in data["test_results"])
+
+    def test_search_without_artefact_is_archived_filter(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """
+        Test that without the artefact_is_archived filter,
+        both archived and active artefacts are returned
+        """
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(
+            name=generate_unique_name(f"no_filter_{unique_marker}")
+        )
+
+        # Create archived artefact with test result
+        archived_artefact = generator.gen_artefact(
+            name=f"archived_artefact_{unique_marker}", archived=True
+        )
+        archived_build = generator.gen_artefact_build(archived_artefact)
+        archived_execution = generator.gen_test_execution(archived_build, environment)
+        archived_result = generator.gen_test_result(test_case, archived_execution)
+
+        # Create non-archived artefact with test result
+        active_artefact = generator.gen_artefact(
+            name=f"active_artefact_{unique_marker}", archived=False
+        )
+        active_build = generator.gen_artefact_build(active_artefact)
+        active_execution = generator.gen_test_execution(active_build, environment)
+        active_result = generator.gen_test_result(test_case, active_execution)
+
+        # Search without archive filter
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?test_cases={test_case.name}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include both archived and active artefact results
+        assert archived_result.id in result_ids
+        assert active_result.id in result_ids
+
+    def test_search_artefact_is_archived_combined_with_other_filters(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test combining artefact_is_archived filter with other filters"""
+        unique_marker = uuid.uuid4().hex[:8]
+        artefact_name = f"test_artefact_{unique_marker}"
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(
+            name=generate_unique_name(f"combined_{unique_marker}")
+        )
+
+        # Create archived artefact with the specific name
+        archived_artefact = generator.gen_artefact(name=artefact_name, archived=True)
+        archived_build = generator.gen_artefact_build(archived_artefact)
+        archived_execution = generator.gen_test_execution(archived_build, environment)
+        archived_result = generator.gen_test_result(test_case, archived_execution)
+
+        # Create another archived artefact with different name
+        other_archived = generator.gen_artefact(
+            name=f"other_archived_{unique_marker}", archived=True
+        )
+        other_build = generator.gen_artefact_build(other_archived)
+        other_execution = generator.gen_test_execution(other_build, environment)
+        other_result = generator.gen_test_result(test_case, other_execution)
+
+        # Create non-archived artefact with the same name
+        active_artefact = generator.gen_artefact(
+            name=f"{artefact_name}_active", archived=False
+        )
+        active_build = generator.gen_artefact_build(active_artefact)
+        active_execution = generator.gen_test_execution(active_build, environment)
+        active_result = generator.gen_test_result(test_case, active_execution)
+
+        # Search for archived artefacts with specific name
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?artefact_is_archived=true&artefacts={artefact_name}"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
+
+        # Should include only the archived artefact with matching name
+        assert archived_result.id in result_ids
+        # Should not include other archived artefact with different name
+        assert other_result.id not in result_ids
+        # Should not include active artefact
+        assert active_result.id not in result_ids
+
     @pytest.mark.parametrize(
         "status",
         [
