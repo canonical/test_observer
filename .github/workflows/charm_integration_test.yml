@@ -20,18 +20,21 @@ concurrency:
 
 jobs:
   lib-check:
-    name: Check libraries
+    name: Check charm libraries
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        charm: [backend, frontend]
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 0
+
       - name: Check libs
         uses: canonical/charming-actions/check-libraries@934193396735701141a1decc3613818e412da606 # 2.6.3
         with:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+          charm-path: "${{ matrix.charm }}/charm"
 
   pack-charm:
     name: Build charm
