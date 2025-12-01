@@ -30,6 +30,7 @@ abstract class Issue with _$Issue {
     required String project,
     required String key,
     required String title,
+    @JsonKey(fromJson: _issueStatusFromJson, toJson: _issueStatusToJson)
     required IssueStatus status,
     required String url,
   }) = _Issue;
@@ -46,6 +47,7 @@ abstract class IssueWithContext with _$IssueWithContext {
     required String project,
     required String key,
     required String title,
+    @JsonKey(fromJson: _issueStatusFromJson, toJson: _issueStatusToJson)
     required IssueStatus status,
     required String url,
     @JsonKey(name: 'attachment_rules')
@@ -68,6 +70,25 @@ abstract class IssueWithContext with _$IssueWithContext {
   }
 }
 
+String _issueStatusToJson(IssueStatus status) {
+  return status.name;
+}
+
+IssueStatus _issueStatusFromJson(String json) {
+  final camelCase = json.split('_').asMap().entries.map((entry) {
+    if (entry.key == 0) {
+      return entry.value.toLowerCase();
+    }
+    return entry.value[0].toUpperCase() +
+        entry.value.substring(1).toLowerCase();
+  }).join();
+
+  return IssueStatus.values.firstWhere(
+    (e) => e.name == camelCase,
+    orElse: () => IssueStatus.unknown,
+  );
+}
+
 enum IssueSource {
   github,
   jira,
@@ -75,7 +96,28 @@ enum IssueSource {
 }
 
 enum IssueStatus {
-  unknown,
-  closed,
-  open;
+  // GitHub statuses
+  githubOpen,
+  githubClosed,
+
+  // Jira statuses
+  jiraNew,
+  jiraIndeterminate,
+  jiraDone,
+  jiraRejected,
+
+  // Launchpad statuses
+  lpNew,
+  lpIncomplete,
+  lpTriaged,
+  lpInProgress,
+  lpConfirmed,
+  lpFixReleased,
+  lpInvalid,
+  lpWontFix,
+  lpExpired,
+  lpOpinion,
+
+  // Unknown/default
+  unknown;
 }

@@ -27,7 +27,7 @@ endpoint = "/v1/issues"
 valid_put_data = {
     "url": "https://github.com/canonical/test_observer/issues/71",
     "title": "some title",
-    "status": "open",
+    "status": "GITHUB_OPEN",
 }
 
 
@@ -127,12 +127,12 @@ def test_patch_all(test_client: TestClient):
     response = make_authenticated_request(
         lambda: test_client.patch(
             endpoint + f"/{put_response.json()['id']}",
-            json={"title": "new title", "status": "closed"},
+            json={"title": "new title", "status": "GITHUB_CLOSED"},
         ),
         Permission.change_issue,
     )
     assert response.json()["title"] == "new title"
-    assert response.json()["status"] == "closed"
+    assert response.json()["status"] == "GITHUB_CLOSED"
 
 
 def test_put_requires_url(test_client: TestClient):
@@ -202,7 +202,7 @@ def test_put_defaults(test_client: TestClient):
         Permission.change_issue,
     )
     assert response.json()["title"] == ""
-    assert response.json()["status"] == "unknown"
+    assert response.json()["status"] == "UNKNOWN"
 
 
 def test_get_all_filter_by_source(test_client: TestClient, generator: DataGenerator):
@@ -382,11 +382,11 @@ def test_get_all_search_by_id(test_client: TestClient, generator: DataGenerator)
 
 
 def test_get_all_search_by_status(test_client: TestClient, generator: DataGenerator):
-    open_issue = generator.gen_issue(key="OPEN-1", status=IssueStatus.OPEN)
-    generator.gen_issue(key="CLOSED-1", status=IssueStatus.CLOSED)
+    open_issue = generator.gen_issue(key="OPEN-1", status=IssueStatus.GITHUB_OPEN)
+    generator.gen_issue(key="CLOSED-1", status=IssueStatus.GITHUB_CLOSED)
 
     response = make_authenticated_request(
-        lambda: test_client.get(endpoint, params={"q": "open"}),
+        lambda: test_client.get(endpoint, params={"q": "GITHUB_OPEN"}),
         Permission.view_issue,
     )
 

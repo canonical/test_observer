@@ -356,7 +356,7 @@ class DataGenerator:
         project: str = "canonical/test_observer",
         key: str = "42",
         title: str = "there is a bug",
-        status: IssueStatus = IssueStatus.OPEN,
+        status: IssueStatus = IssueStatus.GITHUB_OPEN,
     ) -> Issue:
         issue = Issue(
             source=source,

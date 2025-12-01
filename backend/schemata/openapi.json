@@ -4656,11 +4656,26 @@
       "IssueStatus": {
         "type": "string",
         "enum": [
-          "unknown",
-          "open",
-          "closed"
+          "GITHUB_OPEN",
+          "GITHUB_CLOSED",
+          "JIRA_NEW",
+          "JIRA_INDETERMINATE",
+          "JIRA_DONE",
+          "JIRA_REJECTED",
+          "LP_NEW",
+          "LP_INCOMPLETE",
+          "LP_TRIAGED",
+          "LP_IN_PROGRESS",
+          "LP_CONFIRMED",
+          "LP_FIX_RELEASED",
+          "LP_INVALID",
+          "LP_WONT_FIX",
+          "LP_EXPIRED",
+          "LP_OPINION",
+          "UNKNOWN"
         ],
-        "title": "IssueStatus"
+        "title": "IssueStatus",
+        "description": "Issue status with source-specific values for detailed tracking"
       },
       "IssueTestResultAttachmentRulePatchRequest": {
         "properties": {

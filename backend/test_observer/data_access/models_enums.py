@@ -117,6 +117,29 @@ class IssueSource(StrEnum):
 
 
 class IssueStatus(StrEnum):
-    UNKNOWN = "unknown"
-    OPEN = "open"
-    CLOSED = "closed"
+    """Issue status with source-specific values for detailed tracking"""
+
+    # GitHub statuses
+    GITHUB_OPEN = "GITHUB_OPEN"
+    GITHUB_CLOSED = "GITHUB_CLOSED"
+
+    # Jira statuses
+    JIRA_NEW = "JIRA_NEW"
+    JIRA_INDETERMINATE = "JIRA_INDETERMINATE"
+    JIRA_DONE = "JIRA_DONE"
+    JIRA_REJECTED = "JIRA_REJECTED"
+
+    # Launchpad statuses
+    LP_NEW = "LP_NEW"
+    LP_INCOMPLETE = "LP_INCOMPLETE"
+    LP_TRIAGED = "LP_TRIAGED"
+    LP_IN_PROGRESS = "LP_IN_PROGRESS"
+    LP_CONFIRMED = "LP_CONFIRMED"
+    LP_FIX_RELEASED = "LP_FIX_RELEASED"
+    LP_INVALID = "LP_INVALID"
+    LP_WONT_FIX = "LP_WONT_FIX"
+    LP_EXPIRED = "LP_EXPIRED"
+    LP_OPINION = "LP_OPINION"
+
+    # Unknown/default
+    UNKNOWN = "UNKNOWN"

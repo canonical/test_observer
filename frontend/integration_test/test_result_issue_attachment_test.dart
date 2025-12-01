@@ -44,7 +44,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   final dummyIssue = IssueWithContext(
     id: 123,
     url: 'https://github.com/canonical/test_observer/issues/123',
-    status: IssueStatus.open,
+    status: IssueStatus.githubOpen,
     source: IssueSource.github,
     project: '',
     key: '',

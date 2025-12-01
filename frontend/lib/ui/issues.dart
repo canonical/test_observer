@@ -137,12 +137,29 @@ class IssueStatusWidget extends StatelessWidget {
     late String label;
     late IconData icon;
     switch (issue.status) {
-      case IssueStatus.open:
+      // Open statuses
+      case IssueStatus.githubOpen:
+      case IssueStatus.jiraNew:
+      case IssueStatus.jiraIndeterminate:
+      case IssueStatus.lpNew:
+      case IssueStatus.lpIncomplete:
+      case IssueStatus.lpTriaged:
+      case IssueStatus.lpInProgress:
+      case IssueStatus.lpConfirmed:
         color = Colors.green;
         label = 'Open';
         icon = Icons.adjust;
         break;
-      case IssueStatus.closed:
+
+      // Closed statuses
+      case IssueStatus.githubClosed:
+      case IssueStatus.jiraDone:
+      case IssueStatus.jiraRejected:
+      case IssueStatus.lpFixReleased:
+      case IssueStatus.lpInvalid:
+      case IssueStatus.lpWontFix:
+      case IssueStatus.lpExpired:
+      case IssueStatus.lpOpinion:
         color = Colors.purple;
         label = 'Closed';
         icon = Icons.check_circle_outline;

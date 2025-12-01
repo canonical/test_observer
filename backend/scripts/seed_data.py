@@ -77,12 +77,12 @@ ISSUE_REQUESTS = [
     IssuePutRequest(
         url=HttpUrl("https://github.com/canonical/test_observer/issues/71"),
         title="no way to filter and ctrl+f does not work",
-        status=IssueStatus.CLOSED,
+        status=IssueStatus.GITHUB_CLOSED,
     ),
     IssuePutRequest(
         url=HttpUrl("https://warthogs.atlassian.net/browse/TO-142"),
         title="Create issues model and associated management APIs",
-        status=IssueStatus.OPEN,
+        status=IssueStatus.JIRA_NEW,
     ),
     IssuePutRequest(
         url=HttpUrl("https://bugs.launchpad.net/some-project/+bug/123456"),
