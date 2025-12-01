@@ -1,58 +1,52 @@
 summary: Run the charm integration test
 
 execute: |
-  pipx install git+https://github.com/canonical/juju-k8s-crashdump.git
+  backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
+  frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
 
-  backend_oci_image="$(cat ../../backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
-  frontend_oci_image="$(cat ../../frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
+  juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
+    --config hostname=test-observer-api.test \
+    --config sessions_secret="$(openssl rand -base64 32)" \
+    --resource api-image="${backend_oci_image}"
 
-  juju deploy "$PWD/../../backend/charm/test-observer-api_ubuntu-22.04-amd64.charm" api \
-  --config hostname=test-observer-api.test \
-  --resource api-image="${backend_oci_image}"
-
-  juju deploy "$PWD/../../frontend/charm/test-observer-frontend_ubuntu-22.04-amd64.charm" frontend \
-  --config hostname=test-observer-frontend.test \
-  --config test-observer-api-scheme='http://' \
-  --resource frontend-image="${frontend_oci_image}"
-
-  juju deploy nginx-ingress-integrator --channel=latest/stable --revision=59 ingress
-  juju trust ingress --scope=cluster
+  juju deploy redis-k8s --channel=latest/edge --revision=27 redis
+  juju relate backend redis
 
   juju deploy postgresql-k8s --channel=14/stable --revision=281 db
   juju trust db --scope=cluster
+  juju relate backend db
 
-  juju deploy redis-k8s --channel=latest/edge --revision=27 redis
+  juju deploy "${SPREAD_PATH}"/frontend/charm/*.charm frontend \
+    --config hostname=test-observer-frontend.test \
+    --config test-observer-api-scheme='http://' \
+    --resource frontend-image="${frontend_oci_image}"
+  juju relate backend frontend
 
-  juju relate api ingress
-  juju relate api db
-  juju relate api redis
-  juju relate api frontend
+  juju wait-for application backend --timeout=5m
+  juju show-status-log backend/0
 
-  juju wait-for application frontend --timeout=30m | juju-crashdump
+  juju wait-for application frontend --timeout=5m
   juju show-status-log frontend/0
 
-  juju wait-for application api --timeout=30m
-  juju show-status-log api/0
+  juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
-  juju run api/leader add-user launchpad-email=omar.selo@canonical.com --wait 3m
-
-  PGPASSWORD=$(juju run db/leader get-password --wait 3m | grep password | awk '{print $2;}')
+  PGPASSWORD=$(juju run db/leader get-password | grep password | awk '{print $2;}')
   PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
   PGUSER=operator
   PGDATABASE=test_observer_db
-
-  juju ssh --container postgresql db/leader "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where launchpad_email='omar.selo@canonical.com'\"" | grep omar-selo
-
-  juju debug-log --level=DEBUG
+  juju ssh --container postgresql db/leader \
+    "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
+    | grep oil-ci-bot
 
   microk8s config > kube-config
-  pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s
+  pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s -o integration-juju-k8s-crashdump.tar.gz
 
 artifacts:
-  - juju-k8s-crashdump
+  - integration-juju-k8s-crashdump.tar.gz
 
 restore: |
   if [[ -z "${CI:-}" ]]; then
-    juju destroy-model --no-prompt --destroy-storage testing
+    # The testing model is created by concierge
+    juju destroy-model testing --destroy-storage --force --no-prompt --no-wait
     juju add-model testing
   fi
