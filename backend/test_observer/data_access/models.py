@@ -370,9 +370,29 @@ class Environment(Base):
         return data_model_repr(self, "name", "architecture")
 
 
+class TestPlan(Base):
+    """
+    Represents a test plan name (e.g. 'certification-20.04', 'smoke-tests').
+    Just a normalized list of test plan names.
+    """
+
+    __tablename__ = "test_plan"
+
+    name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+
+    # Relationships
+    test_executions: Mapped[list["TestExecution"]] = relationship(
+        back_populates="test_plan"
+    )
+    rerun_requests: Mapped[list["TestExecutionRerunRequest"]] = relationship(
+        back_populates="test_plan"
+    )
+
+
 class TestExecutionRerunRequest(Base):
     """
-    Stores requests to rerun test executions.
+    Stores requests to rerun test executions for a specific group
+    (test_plan + artefact_build + environment).
 
     Reason for this being a separate table is to make fetching all such
     requests fast. Had we stored this as a column in TestExecution table then
@@ -381,13 +401,29 @@ class TestExecutionRerunRequest(Base):
 
     __test__ = False
     __tablename__ = "test_execution_rerun_request"
+    __table_args__ = (
+        UniqueConstraint(
+            "test_plan_id",
+            "artefact_build_id",
+            "environment_id",
+            name="uq_rerun_request_group"
+        ),
+    )
 
-    test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id", ondelete="CASCADE"), unique=True
+    test_plan_id: Mapped[int] = mapped_column(
+        ForeignKey("test_plan.id", ondelete="CASCADE"), index=True
     )
-    test_execution: Mapped["TestExecution"] = relationship(
-        back_populates="rerun_request"
+    test_plan: Mapped["TestPlan"] = relationship(back_populates="rerun_requests")
+
+    artefact_build_id: Mapped[int] = mapped_column(
+        ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True
     )
+    artefact_build: Mapped["ArtefactBuild"] = relationship()
+
+    environment_id: Mapped[int] = mapped_column(
+        ForeignKey("environment.id", ondelete="CASCADE"), index=True
+    )
+    environment: Mapped["Environment"] = relationship()
 
 
 test_execution_metadata_association_table = Table(
@@ -443,6 +479,12 @@ class TestExecution(Base):
         ForeignKey("environment.id"), index=True
     )
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
+
+    test_plan_id: Mapped[int] = mapped_column(
+        ForeignKey("test_plan.id", ondelete="CASCADE"), index=True
+    )
+    test_plan: Mapped["TestPlan"] = relationship(back_populates="test_executions")
+
     test_results: Mapped[list["TestResult"]] = relationship(
         back_populates="test_execution", cascade="all, delete"
     )
@@ -452,9 +494,7 @@ class TestExecution(Base):
         order_by="TestEvent.timestamp",
     )
     resource_url: Mapped[str] = mapped_column(default="")
-    rerun_request: Mapped[TestExecutionRerunRequest | None] = relationship(
-        back_populates="test_execution", cascade="all, delete"
-    )
+    
     # Default fields
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED
@@ -467,8 +507,6 @@ class TestExecution(Base):
     relevant_links: Mapped[list["TestExecutionRelevantLink"]] = relationship(
         back_populates="test_execution", cascade="all, delete-orphan"
     )
-
-    test_plan: Mapped[str] = mapped_column(String(200))
 
     execution_metadata: Mapped[list["TestExecutionMetadata"]] = relationship(
         secondary=test_execution_metadata_association_table,
