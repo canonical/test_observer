@@ -16,31 +16,37 @@ execute: |
   juju trust db --scope=cluster
   juju relate api db
 
-  # juju deploy nginx-ingress-integrator --channel=latest/stable --revision=59 ingress
-  # juju trust ingress --scope=cluster
-  # juju relate api ingress
-
   juju deploy "${SPREAD_PATH}"/frontend/charm/*.charm frontend \
     --config hostname=test-observer-frontend.test \
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
   juju relate api frontend
 
-  juju wait-for application api --timeout=30m
+  juju wait-for application api --timeout=5m
   juju show-status-log api/0
 
-  juju wait-for application frontend --timeout=30m
+  juju wait-for application frontend --timeout=5m
   juju show-status-log frontend/0
 
-  juju run api/leader add-user launchpad-email=omar.selo@canonical.com --wait 3m
+  juju run api/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
-  PGPASSWORD=$(juju run db/leader get-password --wait 3m | grep password | awk '{print $2;}')
+  PGPASSWORD=$(juju run db/leader get-password | grep password | awk '{print $2;}')
   PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
   PGUSER=operator
   PGDATABASE=test_observer_db
-  juju ssh --container postgresql db/leader "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='omar.selo@canonical.com'\"" | grep omar-selo
+  juju ssh --container postgresql db/leader \
+    "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
+    | grep oil-ci-bot
+
+  microk8s config > kube-config
+  pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s -o integration-juju-k8s-crashdump.tar.gz
+
+artifacts:
+  - integration-juju-k8s-crashdump.tar.gz
 
 restore: |
-  # The testing model is created by concierge
-  juju destroy-model --destroy-storage --force --no-prompt --no-wait testing
-  juju add-model testing
+  if [[ -z "${CI:-}" ]]; then
+    # The testing model is created by concierge
+    juju destroy-model --destroy-storage --force --no-prompt --no-wait testing
+    juju add-model testing
+  fi

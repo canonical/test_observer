@@ -130,6 +130,8 @@ prepare: |
     systemctl mask unattended-upgrades.service
   fi
 
+  apt update
+  apt install -y pipx
   snap install --classic concierge
   concierge prepare --trace --preset microk8s
 
@@ -139,3 +141,10 @@ prepare: |
 suites:
   spread/:
     summary: Test Observer Spread Suite
+
+restore: |
+  if [[ -z "${CI:-}" ]]; then
+    concierge restore --trace
+    snap remove concierge
+    apt remove -y pipx
+  fi

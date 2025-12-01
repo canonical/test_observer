@@ -70,7 +70,7 @@ jobs:
           name: ${{ matrix.charm }}-charm
           path: "${{ matrix.charm }}/charm/*.charm"
 
-  define-matrix:
+  define-spread-matrix:
     name: Define spread matrix
     runs-on: ubuntu-24.04
     outputs:
@@ -93,13 +93,13 @@ jobs:
     name: Spread (${{ matrix.suite }})
     runs-on: ubuntu-24.04
     needs:
-      - define-matrix
+      - define-spread-matrix
       - lib-check
       - pack-charm
     strategy:
       fail-fast: true
       matrix:
-        suite: ${{ fromJSON(needs.define-matrix.outputs.suites) }}
+        suite: ${{ fromJSON(needs.define-spread-matrix.outputs.suites) }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -132,7 +132,7 @@ jobs:
   
       - name: Run integration tests
         run: |
-          spread -v "github-ci:ubuntu-24.04:spread/${{ matrix.suite }}"
+          spread -v -artifacts "localhost:localhost-0:spread/${{ matrix.suite }}"
       
       - name: Sanitize suite name
         if: failure()
