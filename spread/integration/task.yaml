@@ -1,13 +1,13 @@
 summary: Run the charm integration test
 
 execute: |
-  backend_oci_image="$(cat ${SPREAD_PATH}/backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
-  frontend_oci_image="$(cat ${SPREAD_PATH}/frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
+  backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
+  frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
 
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
-  --config hostname=test-observer-api.test \
-  --config sessions_secret="$(openssl rand -base64 32)" \
-  --resource api-image="${backend_oci_image}"
+    --config hostname=test-observer-api.test \
+    --config sessions_secret="$(openssl rand -base64 32)" \
+    --resource api-image="${backend_oci_image}"
 
   juju deploy redis-k8s --channel=latest/edge --revision=27 redis
   juju relate backend redis
@@ -22,19 +22,27 @@ execute: |
     --resource frontend-image="${frontend_oci_image}"
   juju relate backend frontend
 
-  juju wait-for application backend --timeout=30m
+  juju wait-for application backend --timeout=5m
   juju show-status-log backend/0
 
-  juju wait-for application frontend --timeout=30m
+  juju wait-for application frontend --timeout=5m
   juju show-status-log frontend/0
 
-  juju run backend/leader add-user launchpad-email=omar.selo@canonical.com --wait 3m
+  juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
-  PGPASSWORD=$(juju run db/leader get-password --wait 3m | grep password | awk '{print $2;}')
+  PGPASSWORD=$(juju run db/leader get-password | grep password | awk '{print $2;}')
   PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
   PGUSER=operator
   PGDATABASE=test_observer_db
-  juju ssh --container postgresql db/leader "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='omar.selo@canonical.com'\"" | grep omar-selo
+  juju ssh --container postgresql db/leader \
+    "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
+    | grep oil-ci-bot
+
+  microk8s config > kube-config
+  pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s -o integration-juju-k8s-crashdump.tar.gz
+
+artifacts:
+  - integration-juju-k8s-crashdump.tar.gz
 
 restore: |
   if [[ -z "${CI:-}" ]]; then
