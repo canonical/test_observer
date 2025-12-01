@@ -76,36 +76,12 @@ jobs:
           name: ${{ matrix.charm }}-charm
           path: "${{ matrix.charm }}/charm/*.charm"
 
-  define-spread-matrix:
-    name: Define spread matrix
-    runs-on: ubuntu-24.04
-    outputs:
-      suites: ${{ steps.suites.outputs.suites }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Install spread
-        run: sudo snap install spread
-
-      - name: Generate matrix list
-        id: suites
-        run: |
-          list="$(spread --list github-ci | sed "s|github-ci:ubuntu-24.04:spread/||g" | jq -r -ncR '[inputs | select(length>0)]')"
-          echo "suites=$list"
-          echo "suites=$list" >> $GITHUB_OUTPUT
-
   integration-test:
-    name: Spread (${{ matrix.suite }})
+    name: Spread Integration Test
     runs-on: ubuntu-24.04
     needs:
-      - define-spread-matrix
       - lib-check
       - pack-charm
-    strategy:
-      fail-fast: true
-      matrix:
-        suite: ${{ fromJSON(needs.define-spread-matrix.outputs.suites) }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -138,25 +114,18 @@ jobs:
   
       - name: Run integration tests
         run: |
-          spread -v -artifacts "localhost:localhost-0:spread/${{ matrix.suite }}"
-      
-      - name: Sanitize suite name
-        if: failure()
-        id: sanitize
-        run: |
-          SANITIZED_SUITE=$(echo "${{ matrix.suite }}" | tr ':/' '-')
-          echo "sanitized_suite=$SANITIZED_SUITE" >> $GITHUB_OUTPUT
+          spread -v -artifacts "localhost"
 
       - name: Upload charmcraft logs
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: charmcraft-logs-${{ steps.sanitize.outputs.sanitized_suite }}
+          name: charmcraft-logs-spread-integration
           path: /home/ubuntu/.local/state/charmcraft/log/*
       
       - name: Upload spread artifacts
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: spread-artifacts-${{ steps.sanitize.outputs.sanitized_suite }}
+          name: spread-artifacts
           path: ./artifacts
