@@ -13,6 +13,12 @@ on:
       - v*
  
   pull_request:
+    paths:
+      - .github/workflows/charm_integration_test.yml
+      - backend/charm/**
+      - frontend/charm/**
+      - spread/**
+      - spread.yaml
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.job }}
