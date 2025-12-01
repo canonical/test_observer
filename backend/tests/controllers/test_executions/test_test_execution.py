@@ -31,6 +31,18 @@ from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
 
 type Execute = Callable[[int, dict[str, Any]], Response]
+type Get = Callable[[int], Response]
+
+
+@pytest.fixture
+def get(test_client: TestClient) -> Get:
+    def get_helper(id: int) -> Response:
+        return make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions/{id}"),
+            Permission.view_test,
+        )
+
+    return get_helper
 
 
 @pytest.fixture
@@ -55,6 +67,23 @@ def sample_execution_metadata() -> dict:
             "value1",
         ],
     }
+
+
+def test_get_test_execution(get: Get, test_execution: TestExecution):
+    response = get(test_execution.id)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == test_execution.id
+    assert data["ci_link"] == test_execution.ci_link
+    assert data["status"] == test_execution.status.value
+
+
+def test_get_test_execution_not_found(get: Get):
+    response = get(999999)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "TestExecution not found"
 
 
 def test_updates_test_execution(execute: Execute, test_execution: TestExecution):

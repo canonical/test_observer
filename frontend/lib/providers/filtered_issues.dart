@@ -34,7 +34,7 @@ class FilteredIssues extends _$FilteredIssues {
         pageUri.queryParameters[CommonQueryParameters.searchQuery],
       ),
     );
-    final issues = ref.watch(issuesProvider).value ?? [];
+    final issues = ref.watch(issuesProvider()).value ?? [];
 
     var filtered = issues;
     if (filtersState.selectedSources.isNotEmpty) {

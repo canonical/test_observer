@@ -49,12 +49,21 @@ def get(test_client: TestClient):
     def get_helper(
         family: FamilyName | None = None,
         limit: int | None = None,
+        environment: str | None = None,
+        environment_architecture: str | None = None,
+        build_architecture: str | None = None,
     ) -> Response:
         params: dict[str, str | int] = {}
         if family is not None:
             params["family"] = family.value
         if limit is not None:
             params["limit"] = limit
+        if environment is not None:
+            params["environment"] = environment
+        if environment_architecture is not None:
+            params["environment_architecture"] = environment_architecture
+        if build_architecture is not None:
+            params["build_architecture"] = build_architecture
         return make_authenticated_request(
             lambda: test_client.get(reruns_url, params=params),
             Permission.view_rerun,
@@ -306,3 +315,158 @@ def test_rerun_preserves_ci_and_relevant_links(
     retrieved_links = retrieved_rerun["test_execution"]["relevant_links"]
     expected_links = expected_rerun_data["test_execution"]["relevant_links"]
     assert retrieved_links == expected_links
+
+
+def test_get_with_environment_filter(
+    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
+):
+    te1 = test_execution
+    te1.environment.name = "rpi2"
+
+    e2 = generator.gen_environment("dawson-i")
+    te2 = generator.gen_test_execution(
+        te1.artefact_build, e2, ci_link="http://ci2.link"
+    )
+
+    post({"test_execution_ids": [te1.id]})
+    post({"test_execution_ids": [te2.id]})
+
+    assert get(environment="rpi2").json() == [test_execution_to_pending_rerun(te1)]
+    assert get(environment="dawson-i").json() == [test_execution_to_pending_rerun(te2)]
+    assert get(environment="nonexistent").json() == []
+
+
+def test_get_with_build_architecture_filter(
+    get: Get, post: Post, generator: DataGenerator
+):
+    a = generator.gen_artefact(StageName.beta)
+    ab_arm64 = generator.gen_artefact_build(a, architecture="arm64")
+    ab_amd64 = generator.gen_artefact_build(a, architecture="amd64")
+    ab_armhf = generator.gen_artefact_build(a, architecture="armhf")
+
+    e = generator.gen_environment("test-env")
+    te1 = generator.gen_test_execution(ab_arm64, e, ci_link="http://ci1.link")
+    te2 = generator.gen_test_execution(ab_amd64, e, ci_link="http://ci2.link")
+    te3 = generator.gen_test_execution(ab_armhf, e, ci_link="http://ci3.link")
+
+    post({"test_execution_ids": [te1.id, te2.id, te3.id]})
+
+    assert get(build_architecture="arm64").json() == [
+        test_execution_to_pending_rerun(te1)
+    ]
+    assert get(build_architecture="amd64").json() == [
+        test_execution_to_pending_rerun(te2)
+    ]
+    assert get(build_architecture="armhf").json() == [
+        test_execution_to_pending_rerun(te3)
+    ]
+    assert get(build_architecture="riscv64").json() == []
+
+
+def test_get_with_environment_architecture_filter(
+    get: Get, post: Post, generator: DataGenerator
+):
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+
+    e_arm64 = generator.gen_environment("rpi4", architecture="arm64")
+    e_amd64 = generator.gen_environment("laptop", architecture="amd64")
+    e_armhf = generator.gen_environment("rpi2", architecture="armhf")
+
+    te1 = generator.gen_test_execution(ab, e_arm64, ci_link="http://ci1.link")
+    te2 = generator.gen_test_execution(ab, e_amd64, ci_link="http://ci2.link")
+    te3 = generator.gen_test_execution(ab, e_armhf, ci_link="http://ci3.link")
+
+    post({"test_execution_ids": [te1.id, te2.id, te3.id]})
+
+    assert get(environment_architecture="arm64").json() == [
+        test_execution_to_pending_rerun(te1)
+    ]
+    assert get(environment_architecture="amd64").json() == [
+        test_execution_to_pending_rerun(te2)
+    ]
+    assert get(environment_architecture="armhf").json() == [
+        test_execution_to_pending_rerun(te3)
+    ]
+
+
+def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerator):
+    # Create snap artefact with arm64 build
+    snap_artefact = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    snap_build_arm64 = generator.gen_artefact_build(snap_artefact, architecture="arm64")
+
+    # Create deb artefact with amd64 build
+    deb_artefact = generator.gen_artefact(StageName.proposed, family=FamilyName.deb)
+    deb_build_amd64 = generator.gen_artefact_build(deb_artefact, architecture="amd64")
+
+    # Create environments
+    env_rpi4 = generator.gen_environment("rpi4", architecture="arm64")
+    env_laptop = generator.gen_environment("laptop", architecture="amd64")
+
+    # Create test executions
+    te1 = generator.gen_test_execution(snap_build_arm64, env_rpi4, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(
+        deb_build_amd64, env_laptop, ci_link="http://ci2"
+    )
+    te3 = generator.gen_test_execution(
+        snap_build_arm64, env_laptop, ci_link="http://ci3"
+    )
+
+    post({"test_execution_ids": [te1.id, te2.id, te3.id]})
+
+    # Test combining family + build_architecture
+    result = get(family=FamilyName.snap, build_architecture="arm64").json()
+    assert len(result) == 2
+    assert result[0]["test_execution_id"] in [te1.id, te3.id]
+    assert result[1]["test_execution_id"] in [te1.id, te3.id]
+
+    # Test combining family + environment
+    assert get(family=FamilyName.snap, environment="rpi4").json() == [
+        test_execution_to_pending_rerun(te1)
+    ]
+
+    # Test combining all filters
+    assert get(
+        family=FamilyName.snap,
+        build_architecture="arm64",
+        environment="rpi4",
+        environment_architecture="arm64",
+    ).json() == [test_execution_to_pending_rerun(te1)]
+
+    # Test filter combination with no matches
+    assert (
+        get(
+            family=FamilyName.deb,
+            build_architecture="arm64",
+        ).json()
+        == []
+    )
+
+
+def test_get_multiple_reruns_same_build_different_environments(
+    get: Get, post: Post, generator: DataGenerator
+):
+    """Test filtering when same build is tested on multiple environments"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a, architecture="arm64")
+
+    e1 = generator.gen_environment("rpi4", architecture="arm64")
+    e2 = generator.gen_environment("rpi3", architecture="arm64")
+    e3 = generator.gen_environment("cm3", architecture="arm64")
+
+    te1 = generator.gen_test_execution(ab, e1, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e2, ci_link="http://ci2")
+    te3 = generator.gen_test_execution(ab, e3, ci_link="http://ci3")
+
+    post({"test_execution_ids": [te1.id, te2.id, te3.id]})
+
+    # All should be returned with build_architecture filter
+    result = get(build_architecture="arm64").json()
+    assert len(result) == 3
+
+    # Only specific environment
+    assert get(environment="rpi4").json() == [test_execution_to_pending_rerun(te1)]
+
+    # All should be returned with environment_architecture filter
+    result = get(environment_architecture="arm64").json()
+    assert len(result) == 3

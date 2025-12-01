@@ -18,6 +18,7 @@ import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/test_execution.dart';
+import '../../routing.dart';
 import '../expandable.dart';
 import 'test_execution_expandable/test_execution_expandable.dart';
 import 'test_execution_expandable/test_execution_rerun_button.dart';
@@ -41,8 +42,15 @@ class TestPlanExpandable extends StatelessWidget {
       title = TestExecution.defaultTestPlanName;
     }
 
+    final pageUri = AppRoutes.uriFromContext(context);
+    final targetTestExecutionId = pageUri.queryParameters['testExecutionId'];
+    final shouldExpand = initiallyExpanded ||
+        (targetTestExecutionId != null &&
+            testExecutionsDescending
+                .any((te) => te.id == int.tryParse(targetTestExecutionId)));
+
     return Expandable(
-      initiallyExpanded: initiallyExpanded,
+      initiallyExpanded: shouldExpand,
       title: Row(
         children: [
           Text(title),
