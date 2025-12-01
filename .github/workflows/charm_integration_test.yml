@@ -114,7 +114,7 @@ jobs:
   
       - name: Run integration tests
         run: |
-          spread -v -artifacts "localhost"
+          spread -v -artifacts=./artifacts localhost
 
       - name: Upload charmcraft logs
         if: failure()
