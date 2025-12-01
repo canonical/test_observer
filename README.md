@@ -55,14 +55,14 @@ To run the whole system via Terraform, juju and charms simulating production and
 
 A charmed Test Observer deployment can be integration tested using `charmcraft test` (which itself internally uses a classically confined copy of [spread](https://github.com/canonical/spread) bundled with `charmcraft`).
 
-The integration tests are runnable either locally (using [lxd](https://documentation.ubuntu.com/lxd/en/latest/installing/) at the time of writing) or using GitHub. Alternative test execution backends are configurable by adding new `adhoc` backends next to `lxd` and `github` in the [spread.yaml](./spread.yaml).
+The integration tests are runnable either locally or using GitHub. Alternative test execution backends are configurable by adding new `adhoc` backends next to `lxd-vm` and `localhost` in the [spread.yaml](./spread.yaml).
 
 ### Run integration tests locally
 
 Tests can be run locally with either `charmcraft test lxd` or `charmcraft.spread lxd` (the latter gives a bit more verbose log output).
 
 ```bash
-charmcraft.spread -v lxd
+charmcraft.spread -v lxd-vm
 ```
 
 ### Jump into a `spread` provided shell environment
@@ -71,11 +71,11 @@ To debug the charm integration tests, you can jump into a `spread` provided envi
 
 ```bash
 # open a shell to the execution environment _before_ executing each test task 
-charmcraft.spread -v -shell-before lxd 
+charmcraft.spread -v -shell-before lxd-vm
 
 # open a shell to the execution environment _instead of_ executing each test task 
-charmcraft.spread -v -shell lxd
+charmcraft.spread -v -shell lxd-vm
 
 # open a shell to the execution environment _after_ of executing each test task 
-charmcraft.spread -v -shell-after lxd
+charmcraft.spread -v -shell-after lxd-vm
 ```
