@@ -22,6 +22,8 @@ jobs:
         with:
           flutter-version: '3.29.3'
           channel: 'stable'
+      - run: flutter config --no-analytics
+      - run: flutter doctor
       - run: flutter pub get
       - run: flutter pub run build_runner build
       - run: dart format --set-exit-if-changed lib
