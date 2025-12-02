@@ -1,8 +1,8 @@
 summary: Run the charm integration test
 
 execute: |
-  backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
-  frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
+  backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
+  frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
 
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
     --config hostname=test-observer-api.test \
@@ -22,11 +22,19 @@ execute: |
     --resource frontend-image="${frontend_oci_image}"
   juju relate backend frontend
 
-  juju wait-for application backend --timeout=5m
-  juju show-status-log backend/0
+  if ! juju wait-for application backend --timeout=5m; then
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+    exit 1
+  fi
 
-  juju wait-for application frontend --timeout=5m
-  juju show-status-log frontend/0
+  if ! juju wait-for application frontend --timeout=5m; then
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+    exit 1
+  fi
 
   juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
@@ -38,11 +46,8 @@ execute: |
     "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
     | grep oil-ci-bot
 
-  microk8s config > kube-config
-  pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump ./kube-config concierge-microk8s -o integration-juju-k8s-crashdump.tar.gz
-
 artifacts:
-  - integration-juju-k8s-crashdump.tar.gz
+  - juju-k8s-crashdump.tar.gz
 
 restore: |
   if [[ -z "${CI:-}" ]]; then
