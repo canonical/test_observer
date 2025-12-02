@@ -1,8 +1,8 @@
 summary: Run the charm integration test
 
 execute: |
-  backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
-  frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
+  backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/metadata.yaml | yq '.resources.api-image.upstream-source')"
+  frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/metadata.yaml | yq '.resources.frontend-image.upstream-source')"
 
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
     --config hostname=test-observer-api.test \
