@@ -20,7 +20,7 @@ import random
 
 from fastapi import APIRouter, Body, Depends, Security
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
@@ -29,6 +29,7 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     Environment,
     TestExecution,
+    TestPlan,
     User,
 )
 from test_observer.data_access.repository import get_or_create
@@ -63,9 +64,10 @@ class StartTestExecutionController:
         self.create_environment()
         self.create_artefact_build()
         self.create_artefact_build_environment()
+        self.create_test_plan()
         self.create_test_execution()
 
-        self.delete_related_rerun_requests()
+        self.delete_rerun_request()
 
         self.assign_reviewer()
 
@@ -85,6 +87,15 @@ class StartTestExecutionController:
             self.artefact.due_date = self.determine_due_date()
             self.db.commit()
 
+    def create_test_plan(self):
+        self.test_plan = get_or_create(
+            self.db,
+            TestPlan,
+            filter_kwargs={
+                "name": self.request.test_plan,
+            },
+        )
+
     def create_test_execution(self):
         self.test_execution = get_or_create(
             self.db,
@@ -96,7 +107,7 @@ class StartTestExecutionController:
                 "status": self.request.initial_status,
                 "environment_id": self.environment.id,
                 "artefact_build_id": self.artefact_build.id,
-                "test_plan": self.request.test_plan,
+                "test_plan_id": self.test_plan.id,
             },
         )
 
@@ -164,23 +175,10 @@ class StartTestExecutionController:
             creation_kwargs={"stage": self.request.execution_stage},
         )
 
-    def delete_related_rerun_requests(self):
-        related_test_execution_runs = self.db.scalars(
-            select(TestExecution)
-            .where(
-                TestExecution.artefact_build_id == self.artefact_build.id,
-                TestExecution.environment_id == self.environment.id,
-                TestExecution.test_plan == self.test_execution.test_plan,
-            )
-            .options(selectinload(TestExecution.rerun_request))
-        )
-
-        for te in related_test_execution_runs:
-            rerun_request = te.rerun_request
-            if rerun_request:
-                self.db.delete(rerun_request)
-
-        self.db.commit()
+    def delete_rerun_request(self):
+        if self.test_execution.rerun_request:
+            self.db.delete(self.test_execution.rerun_request)
+            self.db.commit()
 
     def determine_due_date(self):
         name = self.artefact.name

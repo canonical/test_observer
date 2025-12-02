@@ -27,9 +27,11 @@ from sqlalchemy import (
     MetaData,
     String,
     UniqueConstraint,
+    and_,
     column,
     Boolean,
     case,
+    desc,
     Table,
     Column,
 )
@@ -40,6 +42,7 @@ from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
+    foreign,
 )
 from sqlalchemy.sql import func, ColumnElement
 
@@ -406,7 +409,7 @@ class TestExecutionRerunRequest(Base):
             "test_plan_id",
             "artefact_build_id",
             "environment_id",
-            name="uq_rerun_request_group"
+            name="uq_rerun_request_group",
         ),
     )
 
@@ -424,6 +427,20 @@ class TestExecutionRerunRequest(Base):
         ForeignKey("environment.id", ondelete="CASCADE"), index=True
     )
     environment: Mapped["Environment"] = relationship()
+
+    test_executions: Mapped[list["TestExecution"]] = relationship(
+        "TestExecution",
+        primaryjoin=lambda: and_(
+            TestExecutionRerunRequest.test_plan_id
+            == foreign(TestExecution.test_plan_id),
+            TestExecutionRerunRequest.artefact_build_id
+            == foreign(TestExecution.artefact_build_id),
+            TestExecutionRerunRequest.environment_id
+            == foreign(TestExecution.environment_id),
+        ),
+        order_by=lambda: desc(TestExecution.created_at),
+        viewonly=True,
+    )
 
 
 test_execution_metadata_association_table = Table(
@@ -485,6 +502,20 @@ class TestExecution(Base):
     )
     test_plan: Mapped["TestPlan"] = relationship(back_populates="test_executions")
 
+    rerun_request: Mapped["TestExecutionRerunRequest | None"] = relationship(
+        "TestExecutionRerunRequest",
+        primaryjoin=lambda: and_(
+            TestExecution.test_plan_id
+            == foreign(TestExecutionRerunRequest.test_plan_id),
+            TestExecution.artefact_build_id
+            == foreign(TestExecutionRerunRequest.artefact_build_id),
+            TestExecution.environment_id
+            == foreign(TestExecutionRerunRequest.environment_id),
+        ),
+        viewonly=True,
+        uselist=False,
+    )
+
     test_results: Mapped[list["TestResult"]] = relationship(
         back_populates="test_execution", cascade="all, delete"
     )
@@ -494,7 +525,7 @@ class TestExecution(Base):
         order_by="TestEvent.timestamp",
     )
     resource_url: Mapped[str] = mapped_column(default="")
-    
+
     # Default fields
     status: Mapped[TestExecutionStatus] = mapped_column(
         default=TestExecutionStatus.NOT_STARTED

@@ -107,7 +107,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "architecture": test_execution.environment.architecture,
             },
             "status": test_execution.status.name,
-            "test_plan": test_execution.test_plan,
+            "test_plan": test_execution.test_plan.name,
             "is_rerun_requested": bool(test_execution.rerun_request),
             "created_at": test_execution.created_at.isoformat(),
             "execution_metadata": {},

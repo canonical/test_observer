@@ -21,21 +21,24 @@ Revises: e85f1be530d4
 Create Date: 2025-11-26 20:19:26.684626+00:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b329c0aa09ac'
-down_revision = 'e85f1be530d4'
+revision = "b329c0aa09ac"
+down_revision = "e85f1be530d4"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
     # Add test_plan_id column (nullable initially)
-    op.add_column('test_execution', sa.Column('test_plan_id', sa.Integer(), nullable=True))
-    
+    op.add_column(
+        "test_execution", sa.Column("test_plan_id", sa.Integer(), nullable=True)
+    )
+
     # Populate test_plan_id by looking up test_plan name
     op.execute("""
         UPDATE test_execution te
@@ -43,27 +46,33 @@ def upgrade() -> None:
         FROM test_plan tp
         WHERE te.test_plan = tp.name
     """)
-    
+
     # Make test_plan_id NOT NULL
-    op.alter_column('test_execution', 'test_plan_id', nullable=False)
-    
+    op.alter_column("test_execution", "test_plan_id", nullable=False)
+
     # Add foreign key and index
     op.create_foreign_key(
-        'fk_test_execution_test_plan_id',
-        'test_execution', 'test_plan',
-        ['test_plan_id'], ['id'],
-        ondelete='CASCADE'
+        "fk_test_execution_test_plan_id",
+        "test_execution",
+        "test_plan",
+        ["test_plan_id"],
+        ["id"],
+        ondelete="CASCADE",
     )
-    op.create_index('idx_test_execution_test_plan_id', 'test_execution', ['test_plan_id'])
-    
+    op.create_index(
+        "idx_test_execution_test_plan_id", "test_execution", ["test_plan_id"]
+    )
+
     # Drop old test_plan string column
-    op.drop_column('test_execution', 'test_plan')
+    op.drop_column("test_execution", "test_plan")
 
 
 def downgrade() -> None:
     # Re-add test_plan string column
-    op.add_column('test_execution', sa.Column('test_plan', sa.String(length=200), nullable=True))
-    
+    op.add_column(
+        "test_execution", sa.Column("test_plan", sa.String(length=200), nullable=True)
+    )
+
     # Populate from test_plan table
     op.execute("""
         UPDATE test_execution te
@@ -71,11 +80,13 @@ def downgrade() -> None:
         FROM test_plan tp
         WHERE te.test_plan_id = tp.id
     """)
-    
+
     # Make test_plan NOT NULL
-    op.alter_column('test_execution', 'test_plan', nullable=False)
-    
+    op.alter_column("test_execution", "test_plan", nullable=False)
+
     # Drop foreign key, index, and test_plan_id column
-    op.drop_index('idx_test_execution_test_plan_id', table_name='test_execution')
-    op.drop_constraint('fk_test_execution_test_plan_id', 'test_execution', type_='foreignkey')
-    op.drop_column('test_execution', 'test_plan_id')
+    op.drop_index("idx_test_execution_test_plan_id", table_name="test_execution")
+    op.drop_constraint(
+        "fk_test_execution_test_plan_id", "test_execution", type_="foreignkey"
+    )
+    op.drop_column("test_execution", "test_plan_id")

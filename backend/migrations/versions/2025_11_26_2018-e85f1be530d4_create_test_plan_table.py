@@ -21,13 +21,14 @@ Revises: 3f6a99085db7
 Create Date: 2025-11-26 20:18:06.935230+00:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e85f1be530d4'
-down_revision = '3f6a99085db7'
+revision = "e85f1be530d4"
+down_revision = "3f6a99085db7"
 branch_labels = None
 depends_on = None
 
@@ -35,16 +36,20 @@ depends_on = None
 def upgrade() -> None:
     # Create test_plan table - just a normalized list of test plan names
     op.create_table(
-        'test_plan',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=200), nullable=False),
-        sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('name')
+        "test_plan",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=200), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("name"),
     )
-    op.create_index('idx_test_plan_name', 'test_plan', ['name'])
-    
+    op.create_index("idx_test_plan_name", "test_plan", ["name"])
+
     # Populate test_plan from existing test_execution data
     op.execute("""
         INSERT INTO test_plan (name)
@@ -56,5 +61,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index('idx_test_plan_name', table_name='test_plan')
-    op.drop_table('test_plan')
+    op.drop_index("idx_test_plan_name", table_name="test_plan")
+    op.drop_table("test_plan")

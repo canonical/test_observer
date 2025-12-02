@@ -180,7 +180,7 @@ def _expected_report_row(
         "" if not test_execution.ci_link else test_execution.ci_link,
         "" if not test_execution.c3_link else test_execution.c3_link,
         "" if not test_execution.checkbox_version else test_execution.checkbox_version,
-        test_execution.test_plan,
+        test_execution.test_plan.name,
         str(test_execution.created_at),
         environment.name,
         environment.architecture,

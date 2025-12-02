@@ -33,6 +33,7 @@ from test_observer.data_access.models import (
     TestExecutionMetadata,
     TestExecutionRelevantLink,
     TestExecutionRerunRequest,
+    TestPlan,
     TestResult,
     User,
     UserSession,
@@ -224,6 +225,13 @@ class DataGenerator:
         self._add_object(environment)
         return environment
 
+    def gen_test_plan(self, name: str = "Test plan") -> TestPlan:
+        test_plan = self.db_session.query(TestPlan).filter_by(name=name).first()
+        if not test_plan:
+            test_plan = TestPlan(name=name)
+            self._add_object(test_plan)
+        return test_plan
+
     def gen_test_execution(
         self,
         artefact_build: ArtefactBuild,
@@ -234,7 +242,7 @@ class DataGenerator:
         status: TestExecutionStatus = TestExecutionStatus.NOT_STARTED,
         checkbox_version: str | None = None,
         created_at: datetime | None = None,
-        test_plan: str | None = "Test plan",
+        test_plan: str = "Test plan",
         execution_metadata: dict | None = None,
     ) -> TestExecution:
         if relevant_links is None:
@@ -264,6 +272,9 @@ class DataGenerator:
                         self._add_object(execution_metadata_row)
                     execution_metadata_rows.append(execution_metadata_row)
 
+        # Get or create TestPlan object
+        test_plan_obj = self.gen_test_plan(test_plan)
+
         test_execution = TestExecution(
             artefact_build=artefact_build,
             environment=environment,
@@ -273,7 +284,7 @@ class DataGenerator:
             status=status,
             checkbox_version=checkbox_version,
             created_at=created_at,
-            test_plan=test_plan,
+            test_plan=test_plan_obj,
             execution_metadata=execution_metadata_rows,
         )
         self._add_object(test_execution)
@@ -314,7 +325,11 @@ class DataGenerator:
     def gen_rerun_request(
         self, test_execution: TestExecution
     ) -> TestExecutionRerunRequest:
-        rerun = TestExecutionRerunRequest(test_execution=test_execution)
+        rerun = TestExecutionRerunRequest(
+            test_plan_id=test_execution.test_plan_id,
+            artefact_build_id=test_execution.artefact_build_id,
+            environment_id=test_execution.environment_id,
+        )
         self._add_object(rerun)
         return rerun
 
