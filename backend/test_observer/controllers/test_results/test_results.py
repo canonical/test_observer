@@ -156,6 +156,23 @@ def search_test_results(
         | None,
         Query(description="Filter by assignee user ids"),
     ] = None,
+    rerun_is_requested: Annotated[
+        bool | None,
+        Query(
+            description=(
+                "Filter by whether a rerun has been requested for the test execution"
+            )
+        ),
+    ] = None,
+    execution_is_latest: Annotated[
+        bool | None,
+        Query(
+            description=(
+                "Filter by whether the test execution is the latest "
+                "in its environment/artifact/test plan combination"
+            )
+        ),
+    ] = None,
     from_date: Annotated[
         datetime | None, Query(description="Filter results from this timestamp")
     ] = None,
@@ -189,6 +206,8 @@ def search_test_results(
         test_result_statuses=test_result_statuses or [],
         test_execution_statuses=test_execution_statuses or [],
         assignee_ids=parse_list_or_query_value(assignee_ids),  # type: ignore[arg-type]
+        rerun_is_requested=rerun_is_requested,
+        execution_is_latest=execution_is_latest,
         from_date=from_date,
         until_date=until_date,
         limit=limit,
