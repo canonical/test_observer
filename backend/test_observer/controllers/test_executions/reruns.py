@@ -18,7 +18,7 @@
 import contextlib
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Security
-from sqlalchemy import delete, select, asc
+from sqlalchemy import delete, select, asc, tuple_
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -134,21 +134,20 @@ def get_rerun_requests(
 )
 def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
     # Delete rerun requests matching any of the test executions in a single query
-    subquery = (
-        select(
-            TestExecution.test_plan_id,
-            TestExecution.artefact_build_id,
-            TestExecution.environment_id,
-        )
-        .where(TestExecution.id.in_(request.test_execution_ids))
-        .subquery()
-    )
+    # Using tuple comparison to match the composite key
+    subquery = select(
+        TestExecution.test_plan_id,
+        TestExecution.artefact_build_id,
+        TestExecution.environment_id,
+    ).where(TestExecution.id.in_(request.test_execution_ids))
 
     db.execute(
         delete(TestExecutionRerunRequest).where(
-            TestExecutionRerunRequest.test_plan_id == subquery.c.test_plan_id,
-            TestExecutionRerunRequest.artefact_build_id == subquery.c.artefact_build_id,
-            TestExecutionRerunRequest.environment_id == subquery.c.environment_id,
+            tuple_(
+                TestExecutionRerunRequest.test_plan_id,
+                TestExecutionRerunRequest.artefact_build_id,
+                TestExecutionRerunRequest.environment_id,
+            ).in_(subquery)
         )
     )
     db.commit()
