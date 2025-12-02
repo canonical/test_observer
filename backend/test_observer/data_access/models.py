@@ -440,6 +440,10 @@ class TestExecutionRerunRequest(Base):
         ),
         order_by=lambda: desc(TestExecution.created_at),
         viewonly=True,
+        doc=(
+            "All test executions matching this rerun request's composite key, "
+            "ordered by creation date descending."
+        ),
     )
 
 
