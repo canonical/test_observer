@@ -130,17 +130,17 @@ def upgrade() -> None:
 
     # Add indexes
     op.create_index(
-        "idx_rerun_request_test_plan_id",
+        op.f("test_execution_rerun_request_test_plan_id_ix"),
         "test_execution_rerun_request",
         ["test_plan_id"],
     )
     op.create_index(
-        "idx_rerun_request_artefact_build_id",
+        op.f("test_execution_rerun_request_artefact_build_id_ix"),
         "test_execution_rerun_request",
         ["artefact_build_id"],
     )
     op.create_index(
-        "idx_rerun_request_environment_id",
+        op.f("test_execution_rerun_request_environment_id_ix"),
         "test_execution_rerun_request",
         ["environment_id"],
     )
@@ -175,13 +175,16 @@ def downgrade() -> None:
 
     # Drop indexes
     op.drop_index(
-        "idx_rerun_request_environment_id", table_name="test_execution_rerun_request"
+        op.f("test_execution_rerun_request_environment_id_ix"),
+        table_name="test_execution_rerun_request",
     )
     op.drop_index(
-        "idx_rerun_request_artefact_build_id", table_name="test_execution_rerun_request"
+        op.f("test_execution_rerun_request_artefact_build_id_ix"),
+        table_name="test_execution_rerun_request",
     )
     op.drop_index(
-        "idx_rerun_request_test_plan_id", table_name="test_execution_rerun_request"
+        op.f("test_execution_rerun_request_test_plan_id_ix"),
+        table_name="test_execution_rerun_request",
     )
 
     # Drop unique constraint and foreign keys

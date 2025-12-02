@@ -46,9 +46,8 @@ def upgrade() -> None:
             "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name"),
     )
-    op.create_index("idx_test_plan_name", "test_plan", ["name"])
+    op.create_index(op.f("test_plan_name_ix"), "test_plan", ["name"], unique=True)
 
     # Populate test_plan from existing test_execution data
     op.execute("""
@@ -61,5 +60,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("idx_test_plan_name", table_name="test_plan")
+    op.drop_index(op.f("test_plan_name_ix"), table_name="test_plan")
     op.drop_table("test_plan")

@@ -60,7 +60,7 @@ def upgrade() -> None:
         ondelete="CASCADE",
     )
     op.create_index(
-        "idx_test_execution_test_plan_id", "test_execution", ["test_plan_id"]
+        op.f("test_execution_test_plan_id_ix"), "test_execution", ["test_plan_id"]
     )
 
     # Drop old test_plan string column
@@ -85,7 +85,7 @@ def downgrade() -> None:
     op.alter_column("test_execution", "test_plan", nullable=False)
 
     # Drop foreign key, index, and test_plan_id column
-    op.drop_index("idx_test_execution_test_plan_id", table_name="test_execution")
+    op.drop_index(op.f("test_execution_test_plan_id_ix"), table_name="test_execution")
     op.drop_constraint(
         "fk_test_execution_test_plan_id", "test_execution", type_="foreignkey"
     )
