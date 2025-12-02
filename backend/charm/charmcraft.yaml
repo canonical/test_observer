@@ -1,11 +1,84 @@
 type: charm
-bases:
-  - build-on:
-      - name: ubuntu
-        channel: "22.04"
-    run-on:
-      - name: ubuntu
-        channel: "22.04"
+name: test-observer-api
+title: Test Observer API
+summary: A FastAPI backend serving test results for snaps, debs, charms, and more
+description: |
+  Test Observer is a tool to track test results of artefacts across environments.
+
+   A user interested in testing an artefact (a deb, snap, charm or image)
+   across different environments (particular machines or cloud setups)
+   can use Test Observer as means for storing, viewing and comparing results
+   with previous runs or versions of an artefact.
+   The last use case is particularly useful for catching regressions.
+   Additionally, Test Observer provides a mechanism
+   to assign reviewers that can look at results
+   and mark artefacts as approved or failed to gate updates.
+   It is important to note that Test Observer does not run the tests itself,
+   but provides an API with which users can report the results of those tests.
+
+  This charm provides the FastAPI-based backend for Test Observer.
+
+base: ubuntu@22.04
+platforms:
+  amd64:
+
+parts:
+  charm:
+    plugin: charm
+    source: .
+    charm-entrypoint: src/charm.py
+    charm-requirements:
+      - requirements.txt
+
+assumes:
+  - juju >= 2.9
+  - k8s-api
+
+config:
+  options:
+    saml_idp_metadata_url:
+      description: SAML metadata endpoint for the identity provider
+      type: string
+    saml_sp_cert:
+      description: SAML service provider X.509 certificate
+      type: string
+    saml_sp_key:
+      description: SAML service provider certificate private key
+      type: string
+    port:
+      default: 30000
+      description: The port to listen on for incoming HTTP requests.
+      type: int
+    hostname:
+      default: test-observer-api
+      description: Public hostname for the service.
+      type: string
+    frontend_hostname:
+      default: test-observer
+      description: Public hostname for the frontend connected to this API
+      type: string
+    sentry_dsn:
+      default: ""
+      description: value for SENTRY_DSN that is used to send errors to sentry
+      type: string
+    sessions_secret:
+      description: Randomly generated secret key to use for signing session cookies
+      type: string
+    ignore_permissions:
+      description: Comma separated list of API permissions to ignore for all requests
+      type: string
+
+resources:
+  api-image:
+    type: oci-image
+    description: OCI image from GitHub Container Repository
+    upstream-source: ghcr.io/canonical/test_observer/api:main
+
+containers:
+  api:
+    resource: api-image
+  celery:
+    resource: api-image
 
 charm-libs:
   - lib: data_platform_libs.data_interfaces
@@ -14,3 +87,52 @@ charm-libs:
     version: "0"
   - lib: redis_k8s.redis
     version: "0"
+
+requires:
+  database:
+    interface: postgresql_client
+    limit: 1
+  nginx-route:
+    interface: nginx-route
+  redis:
+    interface: redis
+provides:
+  test-observer-rest-api:
+    interface: http
+    scope: global
+
+actions:
+  delete-artefact:
+    description: Deletes an Artefact together with it's builds, test executions and test results
+    params:
+      artefact-id:
+        description: "The id of the artefact to be deleted"
+        type: integer
+    required: [artefact-id]
+
+  add-user:
+    description: Adds a launchpad user to the group of users that can review artefacts
+    params:
+      launchpad-email:
+        description: "An email address registered in launchpad"
+        type: string
+    required: [launchpad-email]
+
+  change-assignee:
+    description: Changes the user assigned to review a particular artefact
+    params:
+      artefact-id:
+        description: "The id of the artefact whose assignee should be changed"
+        type: integer
+      user-id:
+        description: "The id of the user that should be assigned to review this artefact"
+        type: integer
+    required: [artefact-id, user-id]
+
+  promote-user-to-admin:
+    description: Promotes a user to admin role via their email address
+    params:
+      email:
+        description: "An email address of the user to promote to admin"
+        type: string
+    required: [email]
