@@ -412,6 +412,8 @@ class TestSearchTestResults:
             "issues=any&issues=none",
             "issues=1&issues=none",
             "issues=1&issues=any",
+            "issues=any&issues=1",
+            "issues=none&issues=1",
         ],
     )
     def test_search_by_issues_conflicting_params(

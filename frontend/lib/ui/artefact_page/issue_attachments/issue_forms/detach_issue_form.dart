@@ -21,6 +21,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../models/attachment_rule_filters.dart';
 import '../../../../models/issue.dart';
+import '../../../../models/test_results_filters.dart';
 import '../../../../providers/test_results.dart';
 import '../../../../providers/issue.dart' as ip;
 import '../../../../routing.dart';
@@ -84,9 +85,9 @@ class _DetachIssueFormState extends ConsumerState<DetachIssueForm> {
     final deleteNewerAttachmentsTestResultFilters =
         attachmentRuleFilters != null
             ? attachmentRuleFilters.toTestResultsFilters().copyWith(
-                issues: [widget.issue.id],
-                fromDate: testResult?.createdAt,
-              )
+                  issues: IntListFilter.list([widget.issue.id]),
+                  fromDate: testResult?.createdAt,
+                )
             : null;
 
     return Form(

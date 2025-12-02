@@ -30,9 +30,9 @@ AsyncValue<TestResultsSearchResult> issueTestResults(
   TestResultsFilters filters,
 ) {
   final finalFilters = filters.copyWith(
-    issues: [
+    issues: IntListFilter.list([
       issueId,
-    ],
+    ]),
   );
 
   return ref.watch(testResultsSearchProvider(finalFilters));

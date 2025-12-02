@@ -43,7 +43,7 @@ class IssuesFilters extends _$IssuesFilters {
 
   @override
   IssuesFiltersState build(Uri pageUri) {
-    final issues = ref.watch(issuesProvider).value ?? [];
+    final issues = ref.watch(issuesProvider()).value ?? [];
     final params = pageUri.queryParametersAll;
 
     // Sources
