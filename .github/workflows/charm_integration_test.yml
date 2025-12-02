@@ -76,6 +76,13 @@ jobs:
           name: ${{ matrix.charm }}-charm
           path: "${{ matrix.charm }}/charm/*.charm"
 
+      - name: Upload charmcraft logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: charmcraft-logs-spread-integration
+          path: /home/ubuntu/.local/state/charmcraft/log/*
+
   integration-test:
     name: Spread Integration Test
     runs-on: ubuntu-24.04
@@ -126,13 +133,6 @@ jobs:
             SANITIZED_PATH=$(echo "${ARTIFACT_PATH}" | tr ':' '-')
             mv "artifacts/${ARTIFACT_PATH}" "artifacts/${SANITIZED_PATH}"
           done
-
-      - name: Upload charmcraft logs
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: charmcraft-logs-spread-integration
-          path: /home/ubuntu/.local/state/charmcraft/log/*
       
       - name: Upload spread artifacts
         if: failure()
