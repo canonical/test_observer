@@ -129,6 +129,8 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     List<TestResultStatus> testResultStatuses,
     @Default([]) List<String> artefacts,
     @JsonKey(name: 'artefact_is_archived') bool? artefactIsArchived,
+    @JsonKey(name: 'rerun_is_requested') bool? rerunIsRequested,
+    @JsonKey(name: 'execution_is_latest') bool? executionIsLatest,
     @Default([]) List<String> environments,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
@@ -175,6 +177,12 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     final artefactIsArchived = parseParam(parameters['artefact_is_archived'])
         .map((s) => s.toLowerCase() == 'true')
         .firstOrNull;
+    final rerunIsRequested = parseParam(parameters['rerun_is_requested'])
+        .map((s) => s.toLowerCase() == 'true')
+        .firstOrNull;
+    final executionIsLatest = parseParam(parameters['execution_is_latest'])
+        .map((s) => s.toLowerCase() == 'true')
+        .firstOrNull;
     final environments = parseParam(parameters['environments']);
     final testCases = parseParam(parameters['test_cases']);
     final templateIds = parseParam(parameters['template_ids']);
@@ -205,6 +213,8 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       testResultStatuses: testResultStatuses,
       artefacts: artefacts,
       artefactIsArchived: artefactIsArchived,
+      rerunIsRequested: rerunIsRequested,
+      executionIsLatest: executionIsLatest,
       environments: environments,
       testCases: testCases,
       templateIds: templateIds,
@@ -232,6 +242,12 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
     if (artefactIsArchived != null) {
       params['artefact_is_archived'] = [artefactIsArchived.toString()];
+    }
+    if (rerunIsRequested != null) {
+      params['rerun_is_requested'] = [rerunIsRequested.toString()];
+    }
+    if (executionIsLatest != null) {
+      params['execution_is_latest'] = [executionIsLatest.toString()];
     }
     if (environments.isNotEmpty) {
       params['environments'] = environments;
@@ -273,6 +289,8 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       testResultStatuses.isNotEmpty ||
       artefacts.isNotEmpty ||
       artefactIsArchived != null ||
+      rerunIsRequested != null ||
+      executionIsLatest != null ||
       environments.isNotEmpty ||
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||
