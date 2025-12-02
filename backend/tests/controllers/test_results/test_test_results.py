@@ -1619,3 +1619,297 @@ class TestWindowFunctionSpecific:
         assert response.status_code == 200
         data = response.json()
         assert len(data["test_results"]) <= data["count"]
+
+    def test_filter_by_rerun_is_requested_true(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering test results by rerun_is_requested=true"""
+        # Create test data
+        env1 = generator.gen_environment(name=generate_unique_name("env1"))
+        env2 = generator.gen_environment(name=generate_unique_name("env2"))
+        test_case = generator.gen_test_case(
+            name=generate_unique_name("rerun_requested")
+        )
+        artefact = generator.gen_artefact(name=generate_unique_name("rerun_artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+
+        # Create a test execution with rerun request (in env1)
+        te_with_rerun = generator.gen_test_execution(artefact_build, env1)
+        generator.gen_rerun_request(te_with_rerun)
+        tr_with_rerun = generator.gen_test_result(test_case, te_with_rerun)
+
+        # Create a test execution without rerun request (in env2)
+        te_without_rerun = generator.gen_test_execution(artefact_build, env2)
+        tr_without_rerun = generator.gen_test_result(test_case, te_without_rerun)
+
+        # Search for test results with rerun requested
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?rerun_is_requested=true"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        assert tr_with_rerun.id in result_ids
+        assert tr_without_rerun.id not in result_ids
+
+    def test_filter_by_rerun_is_requested_false(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering test results by rerun_is_requested=false"""
+        # Create test data
+        env1 = generator.gen_environment(name=generate_unique_name("env1"))
+        env2 = generator.gen_environment(name=generate_unique_name("env2"))
+        test_case = generator.gen_test_case(
+            name=generate_unique_name("no_rerun_requested")
+        )
+        artefact = generator.gen_artefact(
+            name=generate_unique_name("no_rerun_artefact")
+        )
+        artefact_build = generator.gen_artefact_build(artefact)
+
+        # Create a test execution with rerun request (in env1)
+        te_with_rerun = generator.gen_test_execution(artefact_build, env1)
+        generator.gen_rerun_request(te_with_rerun)
+        tr_with_rerun = generator.gen_test_result(test_case, te_with_rerun)
+
+        # Create a test execution without rerun request (in env2)
+        te_without_rerun = generator.gen_test_execution(artefact_build, env2)
+        tr_without_rerun = generator.gen_test_result(test_case, te_without_rerun)
+
+        # Search for test results without rerun requested
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?rerun_is_requested=false"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        assert tr_without_rerun.id in result_ids
+        assert tr_with_rerun.id not in result_ids
+
+    def test_filter_by_execution_is_latest_true(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering test results by execution_is_latest=true"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("latest_exec"))
+        artefact = generator.gen_artefact(name=generate_unique_name("latest_artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+
+        # Create an older test execution
+        older_execution = generator.gen_test_execution(artefact_build, environment)
+        older_result = generator.gen_test_result(test_case, older_execution)
+
+        # Create a newer test execution with same combination
+        newer_execution = generator.gen_test_execution(artefact_build, environment)
+        newer_result = generator.gen_test_result(test_case, newer_execution)
+
+        # Ensure newer execution has higher ID (created later)
+        assert newer_execution.id > older_execution.id
+
+        # Search for latest executions
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?execution_is_latest=true"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        assert newer_result.id in result_ids
+        assert older_result.id not in result_ids
+
+    def test_filter_by_execution_is_latest_false(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test filtering test results by execution_is_latest=false"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(
+            name=generate_unique_name("not_latest_exec")
+        )
+        artefact = generator.gen_artefact(
+            name=generate_unique_name("not_latest_artefact")
+        )
+        artefact_build = generator.gen_artefact_build(artefact)
+
+        # Create an older test execution
+        older_execution = generator.gen_test_execution(artefact_build, environment)
+        older_result = generator.gen_test_result(test_case, older_execution)
+
+        # Create a newer test execution with same combination
+        newer_execution = generator.gen_test_execution(artefact_build, environment)
+        newer_result = generator.gen_test_result(test_case, newer_execution)
+
+        # Ensure newer execution has higher ID
+        assert newer_execution.id > older_execution.id
+
+        # Search for non-latest executions (superseded)
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?execution_is_latest=false"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        assert older_result.id in result_ids
+        assert newer_result.id not in result_ids
+
+    def test_filter_combination_rerun_and_latest(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test combining rerun_is_requested and execution_is_latest filters"""
+        # Create test data
+        env1 = generator.gen_environment(name=generate_unique_name("env1"))
+        env2 = generator.gen_environment(name=generate_unique_name("env2"))
+        env3 = generator.gen_environment(name=generate_unique_name("env3"))
+        test_case = generator.gen_test_case(
+            name=generate_unique_name("combined_filters")
+        )
+        artefact = generator.gen_artefact(
+            name=generate_unique_name("combined_artefact")
+        )
+        artefact_build = generator.gen_artefact_build(artefact)
+
+        # Create latest execution with rerun requested (env1)
+        latest_with_rerun = generator.gen_test_execution(artefact_build, env1)
+        generator.gen_rerun_request(latest_with_rerun)
+        tr_latest_with_rerun = generator.gen_test_result(test_case, latest_with_rerun)
+
+        # Create older execution with rerun requested (env2)
+        older_with_rerun = generator.gen_test_execution(artefact_build, env2)
+        generator.gen_rerun_request(older_with_rerun)
+        tr_older_with_rerun = generator.gen_test_result(test_case, older_with_rerun)
+
+        # Create newer execution for env2 (making older_with_rerun superseded)
+        # This newer execution inherits the rerun request from the group
+        newer_for_env2 = generator.gen_test_execution(artefact_build, env2)
+        tr_newer_with_rerun = generator.gen_test_result(test_case, newer_for_env2)
+
+        # Create latest execution without rerun in env3
+        latest_without_rerun = generator.gen_test_execution(artefact_build, env3)
+        tr_latest_without_rerun = generator.gen_test_result(
+            test_case, latest_without_rerun
+        )
+
+        # Search for results with rerun requested AND latest execution
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results?rerun_is_requested=true&execution_is_latest=true"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        # Should include latest with rerun (env1)
+        assert tr_latest_with_rerun.id in result_ids
+        # Should include newer with rerun (env2 - latest in that group)
+        assert tr_newer_with_rerun.id in result_ids
+        # Should NOT include older with rerun (env2 - not latest)
+        assert tr_older_with_rerun.id not in result_ids
+        # Should NOT include latest without rerun (env3)
+        assert tr_latest_without_rerun.id not in result_ids
+
+    def test_execution_is_latest_different_test_plans(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test that execution_is_latest considers test plan in grouping"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(
+            name=generate_unique_name("test_plan_grouping")
+        )
+        artefact = generator.gen_artefact(
+            name=generate_unique_name("test_plan_artefact")
+        )
+        artefact_build = generator.gen_artefact_build(artefact)
+
+        # Create executions with different test plans
+        te1 = generator.gen_test_execution(
+            artefact_build, environment, test_plan=generate_unique_name("plan1")
+        )
+        tr1 = generator.gen_test_result(test_case, te1)
+
+        te2 = generator.gen_test_execution(
+            artefact_build, environment, test_plan=generate_unique_name("plan2")
+        )
+        tr2 = generator.gen_test_result(test_case, te2)
+
+        # Both should be latest since they have different test plans
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?execution_is_latest=true"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        assert tr1.id in result_ids
+        assert tr2.id in result_ids
+
+    def test_execution_is_latest_different_environments(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test that execution_is_latest considers environment in grouping"""
+        # Create test data
+        env1 = generator.gen_environment(name=generate_unique_name("env1"))
+        env2 = generator.gen_environment(name=generate_unique_name("env2"))
+        test_case = generator.gen_test_case(name=generate_unique_name("env_grouping"))
+        artefact = generator.gen_artefact(name=generate_unique_name("env_artefact"))
+        artefact_build = generator.gen_artefact_build(artefact)
+
+        # Create executions in different environments
+        te1 = generator.gen_test_execution(artefact_build, env1)
+        tr1 = generator.gen_test_result(test_case, te1)
+
+        te2 = generator.gen_test_execution(artefact_build, env2)
+        tr2 = generator.gen_test_result(test_case, te2)
+
+        # Both should be latest since they're in different environments
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?execution_is_latest=true"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        assert tr1.id in result_ids
+        assert tr2.id in result_ids
+
+    def test_execution_is_latest_different_artefact_builds(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Test that execution_is_latest considers artefact_build in grouping"""
+        # Create test data
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("build_grouping"))
+        artefact = generator.gen_artefact(name=generate_unique_name("build_artefact"))
+        build1 = generator.gen_artefact_build(artefact, revision=1)
+        build2 = generator.gen_artefact_build(artefact, revision=2)
+
+        # Create executions with different builds
+        te1 = generator.gen_test_execution(build1, environment)
+        tr1 = generator.gen_test_result(test_case, te1)
+
+        te2 = generator.gen_test_execution(build2, environment)
+        tr2 = generator.gen_test_result(test_case, te2)
+
+        # Both should be latest since they have different artefact builds
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?execution_is_latest=true"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
+        assert tr1.id in result_ids
+        assert tr2.id in result_ids
