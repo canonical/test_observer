@@ -117,6 +117,7 @@ jobs:
           spread -v -artifacts=./artifacts localhost
 
       - name: Sanitize Artifacts Paths
+        if: failure()
         run: |
           # When using spread -artifacts=<path/to/artifacts>,
           # artifacts are generated with paths in the form <backend>:<system>:<suite>/task/artifact
