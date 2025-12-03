@@ -76,6 +76,13 @@ jobs:
           name: ${{ matrix.charm }}-charm
           path: "${{ matrix.charm }}/charm/*.charm"
 
+      - name: Upload charmcraft logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: charmcraft-logs-spread-integration
+          path: /home/ubuntu/.local/state/charmcraft/log/*
+
   integration-test:
     name: Spread Integration Test
     runs-on: ubuntu-24.04
@@ -111,21 +118,25 @@ jobs:
       - name: Install spread
         run: |
           go install github.com/snapcore/spread/cmd/spread@latest
-  
+
       - name: Run integration tests
         run: |
           spread -v -artifacts=./artifacts localhost
 
-      - name: Upload charmcraft logs
+      - name: Sanitize Artifacts Paths
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: charmcraft-logs-spread-integration
-          path: /home/ubuntu/.local/state/charmcraft/log/*
+        run: |
+          # When using spread -artifacts=<path/to/artifacts>,
+          # artifacts are generated with paths in the form <backend>:<system>:<suite>/task/artifact
+          # The upload-artifact action does not allow ':' in paths, so we need to sanitize them
+          for ARTIFACT_PATH in $(ls -1 ./artifacts/); do
+            SANITIZED_PATH=$(echo "${ARTIFACT_PATH}" | tr ':' '-')
+            mv "artifacts/${ARTIFACT_PATH}" "artifacts/${SANITIZED_PATH}"
+          done
       
       - name: Upload spread artifacts
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: spread-artifacts
-          path: ./artifacts
+          path: ./artifacts/
