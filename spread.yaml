@@ -119,6 +119,7 @@ exclude:
   - .venv
 
 environment:
+  CI: "$(HOST: echo $CI)"
   CONCIERGE_JUJU_CHANNEL: 3.6/stable
 
 prepare: |
