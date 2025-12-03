@@ -22,7 +22,7 @@ jobs:
         with:
           flutter-version: '3.29.3'
           channel: 'stable'
-      - run: flutter pub get -vv
+      - run: flutter pub get -vvv
       - run: flutter pub run build_runner build
       - run: dart format --set-exit-if-changed lib
       - run: flutter analyze
