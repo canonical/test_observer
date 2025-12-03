@@ -18,57 +18,79 @@ import 'package:flutter/material.dart';
 import '../../models/execution_metadata.dart';
 import 'spacing.dart';
 
-class ExecutionMetadataTable extends StatelessWidget {
+class ExecutionMetadataTable extends StatefulWidget {
   final ExecutionMetadata metadata;
   const ExecutionMetadataTable({super.key, required this.metadata});
 
   @override
+  State<ExecutionMetadataTable> createState() => _ExecutionMetadataTableState();
+}
+
+class _ExecutionMetadataTableState extends State<ExecutionMetadataTable> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final sortedEntries = metadata.data.entries.toList()
+    final sortedEntries = widget.metadata.data.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
     if (sortedEntries.isEmpty) {
       return const Text('No execution metadata available.');
     }
-    return DataTable(
-      dataRowMaxHeight: double.infinity,
-      columns: const [
-        DataColumn(
-          label: Text('Category'),
-        ),
-        DataColumn(
-          label: Text('Values'),
-        ),
-      ],
-      rows: sortedEntries
-          .map(
-            (entry) => DataRow(
-              cells: [
-                DataCell(Text(entry.key)),
-                DataCell(
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: (entry.value.toList()..sort())
-                        .expand(
-                          (v) => [
-                            const SizedBox(height: Spacing.level3),
-                            Tooltip(
-                              message: v,
-                              child: Text(
-                                v,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                            const SizedBox(height: Spacing.level3),
-                          ],
-                        )
-                        .toList(),
-                  ),
-                ),
-              ],
+    return Scrollbar(
+      controller: _scrollController,
+      interactive: true,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          dataRowMaxHeight: double.infinity,
+          columns: const [
+            DataColumn(
+              label: Text('Category'),
             ),
-          )
-          .toList(),
+            DataColumn(
+              label: Text('Values'),
+            ),
+          ],
+          rows: sortedEntries
+              .map(
+                (entry) => DataRow(
+                  cells: [
+                    DataCell(Text(entry.key)),
+                    DataCell(
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: (entry.value.toList()..sort())
+                            .expand(
+                              (v) => [
+                                const SizedBox(height: Spacing.level3),
+                                Tooltip(
+                                  message: v,
+                                  child: Text(
+                                    v,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: Spacing.level3),
+                              ],
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }
