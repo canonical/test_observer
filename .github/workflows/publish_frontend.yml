@@ -11,7 +11,7 @@ env:
 
 jobs:
   build-and-push-frontend-image:
-    runs-on: [self-hosted, linux, jammy, x64]
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       packages: write
