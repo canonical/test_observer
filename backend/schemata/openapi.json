@@ -3275,6 +3275,49 @@
         "x-permissions": [
           "view_team"
         ]
+      },
+      "post": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Create Team",
+        "description": "Create a new team",
+        "operationId": "create_team_v1_teams_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
       }
     },
     "/v1/teams/{team_id}": {
@@ -3348,6 +3391,114 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      }
+    },
+    "/v1/teams/{team_id}/members/{user_id}": {
+      "post": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Add Team Member",
+        "description": "Add a user to a team",
+        "operationId": "add_team_member_v1_teams__team_id__members__user_id__post",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Team Id"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "teams"
+        ],
+        "summary": "Remove Team Member",
+        "description": "Remove a user from a team",
+        "operationId": "remove_team_member_v1_teams__team_id__members__user_id__delete",
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Team Id"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5402,6 +5553,35 @@
         ],
         "title": "StatusUpdateRequest"
       },
+      "TeamCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Permissions",
+            "default": []
+          },
+          "reviewer_families": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reviewer Families",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "TeamCreate"
+      },
       "TeamMinimalResponse": {
         "properties": {
           "id": {
@@ -5418,6 +5598,14 @@
             },
             "type": "array",
             "title": "Permissions"
+          },
+          "reviewer_families": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reviewer Families",
+            "default": []
           }
         },
         "type": "object",
@@ -5443,6 +5631,20 @@
               }
             ],
             "title": "Permissions"
+          },
+          "reviewer_families": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Families"
           }
         },
         "type": "object",
@@ -5464,6 +5666,14 @@
             },
             "type": "array",
             "title": "Permissions"
+          },
+          "reviewer_families": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reviewer Families",
+            "default": []
           },
           "members": {
             "items": {
@@ -6145,10 +6355,6 @@
             "type": "string",
             "title": "Name"
           },
-          "is_reviewer": {
-            "type": "boolean",
-            "title": "Is Reviewer"
-          },
           "is_admin": {
             "type": "boolean",
             "title": "Is Admin"
@@ -6159,24 +6365,12 @@
           "id",
           "email",
           "name",
-          "is_reviewer",
           "is_admin"
         ],
         "title": "UserMinimalResponse"
       },
       "UserPatch": {
         "properties": {
-          "is_reviewer": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Reviewer"
-          },
           "is_admin": {
             "anyOf": [
               {
@@ -6224,10 +6418,6 @@
             "type": "array",
             "title": "Teams"
           },
-          "is_reviewer": {
-            "type": "boolean",
-            "title": "Is Reviewer"
-          },
           "is_admin": {
             "type": "boolean",
             "title": "Is Admin"
@@ -6239,7 +6429,6 @@
           "email",
           "name",
           "teams",
-          "is_reviewer",
           "is_admin"
         ],
         "title": "UserResponse"

@@ -130,7 +130,6 @@ def test_get_users_response_format(test_client: TestClient, generator: DataGener
     assert user_data["name"] == user.name
     assert user_data["email"] == user.email
     assert user_data["launchpad_handle"] == user.launchpad_handle
-    assert user_data["is_reviewer"] == user.is_reviewer
     assert user_data["is_admin"] == user.is_admin
     assert len(user_data["teams"]) == 1
     assert user_data["teams"][0]["id"] == team.id
@@ -406,13 +405,13 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
         "name": user.name,
         "email": user.email,
         "launchpad_handle": user.launchpad_handle,
-        "is_reviewer": user.is_reviewer,
         "is_admin": user.is_admin,
         "teams": [
             {
                 "id": team.id,
                 "name": team.name,
                 "permissions": team.permissions,
+                "reviewer_families": team.reviewer_families,
             }
         ],
     }
@@ -421,17 +420,20 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
 def test_set_user_as_reviewer(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    user = generator.gen_user()
-    assert not user.is_reviewer
+    team = generator.gen_team(reviewer_families=["snap", "deb"])
+    user = generator.gen_user(teams=[team])
 
+    # Now user can review through their team
     response = make_authenticated_request(
-        lambda: test_client.patch(f"/v1/users/{user.id}", json={"is_reviewer": True}),
-        Permission.change_user,
+        lambda: test_client.get(f"/v1/users/{user.id}"),
+        Permission.view_user,
     )
 
     assert response.status_code == 200
+    # Verify user's team has the reviewer_families
+    assert response.json()["teams"][0]["reviewer_families"] == ["snap", "deb"]
     db_session.refresh(user)
-    assert user.is_reviewer
+    assert user.teams == [team]
 
 
 def test_promote_user_to_admin(
