@@ -2580,6 +2580,24 @@
             "description": "Filter by artefact names"
           },
           {
+            "name": "artefact_is_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the artefact is archived",
+              "title": "Artefact Is Archived"
+            },
+            "description": "Filter by whether the artefact is archived"
+          },
+          {
             "name": "environments",
             "in": "query",
             "required": false,
@@ -2835,10 +2853,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by execution metadata (category:value). Category and value must be percent encoded.",
+              "description": "Filter by execution metadata (base64 encoded category:value pairs).",
               "title": "Execution Metadata"
             },
-            "description": "Filter by execution metadata (category:value). Category and value must be percent encoded."
+            "description": "Filter by execution metadata (base64 encoded category:value pairs)."
           }
         ],
         "responses": {
@@ -6174,6 +6192,17 @@
             },
             "type": "array",
             "title": "Artefacts"
+          },
+          "artefact_is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artefact Is Archived"
           },
           "environments": {
             "items": {

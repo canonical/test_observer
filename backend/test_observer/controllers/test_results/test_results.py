@@ -23,7 +23,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, selectinload
 from typing import Annotated, Literal, TypeVar
-import urllib
+import base64
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.constants import QueryValue
@@ -57,8 +57,7 @@ def parse_execution_metadata(
     execution_metadata: list[str] | None = Query(
         None,
         description=(
-            "Filter by execution metadata (category:value). "
-            "Category and value must be percent encoded."
+            "Filter by execution metadata (base64 encoded category:value pairs)."
         ),
     ),
 ) -> ExecutionMetadata | None:
@@ -66,21 +65,42 @@ def parse_execution_metadata(
         return None
     result = []
     for item in execution_metadata:
-        if item.count(":") != 1:
+        colon_index = item.find(":")
+
+        if colon_index == -1:
             raise HTTPException(
                 status_code=422,
                 detail=(
                     f"Invalid execution metadata format: '{item}'. "
-                    "Expected 'category:value' with a single colon."
+                    "Expected base64 encoded 'category:value'."
                 ),
             )
-        category, value = item.split(":")
+
+        try:
+            category = base64.b64decode(item[:colon_index]).decode("utf-8")
+            value = base64.b64decode(item[colon_index + 1 :]).decode("utf-8")
+        except ValueError as e:
+            raise HTTPException(
+                status_code=422,
+                detail=(f"Invalid base64 encoding in execution metadata: '{item}'."),
+            ) from e
+
+        if not category or not value:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Invalid execution metadata format: '{item}'. "
+                    "Both category and value must be non-empty."
+                ),
+            )
+
         result.append(
             TestExecutionMetadata(
-                category=urllib.parse.unquote(category),
-                value=urllib.parse.unquote(value),
+                category=category,
+                value=value,
             )
         )
+
     return ExecutionMetadata.from_rows(result)
 
 
@@ -115,6 +135,10 @@ def search_test_results(
     artefacts: Annotated[
         list[str] | None,
         Query(description="Filter by artefact names"),
+    ] = None,
+    artefact_is_archived: Annotated[
+        bool | None,
+        Query(description="Filter by whether the artefact is archived"),
     ] = None,
     environments: Annotated[
         list[str] | None,
@@ -176,6 +200,7 @@ def search_test_results(
     filters = TestResultSearchFilters(
         families=families or [],
         artefacts=artefacts or [],
+        artefact_is_archived=artefact_is_archived,
         environments=environments or [],
         test_cases=test_cases or [],
         template_ids=template_ids or [],
