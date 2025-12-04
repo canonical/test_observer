@@ -43,6 +43,8 @@ enum FilterType {
   assignees,
   artefacts,
   artefactIsArchived,
+  rerunIsRequested,
+  executionIsLatest,
   environments,
   testCases,
   templateIds,
@@ -414,6 +416,50 @@ class _TestResultsFiltersViewState
                 setState(() {
                   _selectedFilters = _selectedFilters.copyWith(
                     artefactIsArchived: isSelected ? value : null,
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.rerunIsRequested))
+          _box(
+            MultiSelectCombobox<bool>(
+              title: 'Rerun Requested',
+              allOptions: const [false, true],
+              showAllOptionsWithoutSearch: true,
+              isMutuallyExclusive: true,
+              itemToString: (value) =>
+                  value ? 'Rerun requested' : 'No rerun requested',
+              initialSelected: _selectedFilters.rerunIsRequested != null
+                  ? {_selectedFilters.rerunIsRequested!}
+                  : {},
+              onChanged: (value, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    rerunIsRequested: isSelected ? value : null,
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.executionIsLatest))
+          _box(
+            MultiSelectCombobox<bool>(
+              title: 'Execution Version',
+              allOptions: const [false, true],
+              showAllOptionsWithoutSearch: true,
+              isMutuallyExclusive: true,
+              itemToString: (value) =>
+                  value ? 'Latest execution only' : 'Older executions only',
+              initialSelected: _selectedFilters.executionIsLatest != null
+                  ? {_selectedFilters.executionIsLatest!}
+                  : {},
+              onChanged: (value, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    executionIsLatest: isSelected ? value : null,
                   );
                   _notifyChanged(_selectedFilters);
                 });

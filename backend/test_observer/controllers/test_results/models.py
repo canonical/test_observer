@@ -76,6 +76,8 @@ class TestResultSearchFilters(BaseModel):
     assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
         default_factory=list
     )
+    rerun_is_requested: bool | None = None
+    execution_is_latest: bool | None = None
     from_date: datetime | None = None
     until_date: datetime | None = None
     offset: int | None = None

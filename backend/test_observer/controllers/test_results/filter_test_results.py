@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from sqlalchemy import and_, select, exists, true, Select
+from sqlalchemy.orm import aliased
 
 
 from test_observer.common.constants import QueryValue
@@ -27,6 +28,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
     TestExecutionMetadata,
+    TestExecutionRerunRequest,
     ColumnElement,
 )
 from test_observer.data_access.models import test_execution_metadata_association_table
@@ -136,6 +138,42 @@ def build_query_filters_and_joins(
         elif len(filters.assignee_ids) > 0:
             query_filters.append(Artefact.assignee_id.in_(filters.assignee_ids))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
+
+    if filters.rerun_is_requested is not None:
+        joins_needed.add("test_execution")
+        rerun_exists = exists(
+            select(1)
+            .select_from(TestExecutionRerunRequest)
+            .where(
+                TestExecutionRerunRequest.test_plan_id == TestExecution.test_plan_id,
+                TestExecutionRerunRequest.artefact_build_id
+                == TestExecution.artefact_build_id,
+                TestExecutionRerunRequest.environment_id
+                == TestExecution.environment_id,
+            )
+        )
+        query_filters.append(
+            rerun_exists if filters.rerun_is_requested else ~rerun_exists
+        )
+
+    if filters.execution_is_latest is not None:
+        joins_needed.add("test_execution")
+        newer_execution = aliased(TestExecution)
+        newer_execution_exists = exists(
+            select(1)
+            .select_from(newer_execution)
+            .where(
+                TestExecution.test_plan_id == newer_execution.test_plan_id,
+                TestExecution.artefact_build_id == newer_execution.artefact_build_id,
+                TestExecution.environment_id == newer_execution.environment_id,
+                TestExecution.id < newer_execution.id,
+            )
+        )
+        query_filters.append(
+            ~newer_execution_exists
+            if filters.execution_is_latest
+            else newer_execution_exists
+        )
 
     if filters.from_date is not None:
         query_filters.append(TestResult.created_at >= filters.from_date)
