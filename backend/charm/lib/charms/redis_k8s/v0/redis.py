@@ -9,15 +9,7 @@ from charms.redis_k8s.v0.redis import RedisRequires
 ```
 Define the following attributes in charm charm class for the library to be able to work with it
 ```
- _stored = StoredState()
     on = RedisRelationCharmEvents()
-```
-And then in your charm's `__init__` method:
-```
-# Make sure you set redis_relation in StoredState. Assuming you refer to this
-# as `self._stored`:
-self._stored.set_default(redis_relation={})
-self.redis = RedisRequires(self, self._stored)
 ```
 And then wherever you need to reference the relation data it will be available
 in the property `relation_data`:
@@ -47,7 +39,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version.
-LIBPATCH = 5
+LIBPATCH = 7
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +56,12 @@ class RedisRelationCharmEvents(CharmEvents):
 
 class RedisRequires(Object):
 
-    def __init__(self, charm, _stored, relation_name: str = DEFAULT_REALTION_NAME):
+    def __init__(self, charm, relation_name: str = DEFAULT_REALTION_NAME):
         """A class implementing the redis requires relation."""
         super().__init__(charm, relation_name)
         self.framework.observe(charm.on[relation_name].relation_joined, self._on_relation_changed)
         self.framework.observe(charm.on[relation_name].relation_changed, self._on_relation_changed)
         self.framework.observe(charm.on[relation_name].relation_broken, self._on_relation_broken)
-        self._stored = _stored
         self.charm = charm
         self.relation_name = relation_name
 
@@ -79,20 +70,25 @@ class RedisRequires(Object):
         if not event.unit:
             return
 
-        hostname = event.relation.data[event.unit].get("hostname")
-        port = event.relation.data[event.unit].get("port")
-        self._stored.redis_relation[event.relation.id] = {"hostname": hostname, "port": port}
-
         # Trigger an event that our charm can react to.
         self.charm.on.redis_relation_updated.emit()
 
     def _on_relation_broken(self, event):
         """Handle the relation broken event."""
-        # Remove the unit data from local state.
-        self._stored.redis_relation.pop(event.relation.id, None)
-
         # Trigger an event that our charm can react to.
         self.charm.on.redis_relation_updated.emit()
+
+    @property
+    def app_data(self) -> Optional[Dict[str, str]]:
+        """Retrieve the app data.
+
+        Returns:
+            Dict: dict containing the app data.
+        """
+        relation = self.model.get_relation(self.relation_name)
+        if not relation:
+            return None
+        return relation.data[relation.app]
 
     @property
     def relation_data(self) -> Optional[Dict[str, str]]:
@@ -114,10 +110,16 @@ class RedisRequires(Object):
         Returns:
             str: the Redis URL.
         """
-        relation_data = self.relation_data
-        if not relation_data:
+        if not (relation_data := self.relation_data):
             return None
+            
         redis_host = relation_data.get("hostname")
+
+        if app_data := self.app_data:
+            try:
+                redis_host = self.app_data.get("leader-host", redis_host)
+            except KeyError:
+                pass
         redis_port = relation_data.get("port")
         return f"redis://{redis_host}:{redis_port}"
 
