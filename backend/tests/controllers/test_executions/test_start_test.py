@@ -256,7 +256,7 @@ class TestFamilyIndependentTests:
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
         assert test_execution.ci_link == request["ci_link"]
-        assert test_execution.test_plan == request["test_plan"]
+        assert test_execution.test_plan.name == request["test_plan"]
         assert test_execution.status == request.get(
             "initial_status", TestExecutionStatus.IN_PROGRESS
         )

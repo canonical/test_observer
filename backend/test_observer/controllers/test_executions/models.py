@@ -199,21 +199,25 @@ class RerunRequest(BaseModel):
 
 
 class PendingRerun(BaseModel):
-    test_execution_id: int
-    ci_link: str | None = Field(validation_alias=AliasPath("test_execution", "ci_link"))
+    model_config = ConfigDict(from_attributes=True)
+
+    test_execution_id: int = Field(
+        validation_alias=AliasPath("test_executions", 0, "id")
+    )
+    ci_link: str | None = Field(
+        validation_alias=AliasPath("test_executions", 0, "ci_link")
+    )
     family: FamilyName = Field(
-        validation_alias=AliasPath(
-            "test_execution", "artefact_build", "artefact", "family"
-        )
+        validation_alias=AliasPath("artefact_build", "artefact", "family")
     )
     test_execution: TestExecutionResponse = Field(
-        validation_alias=AliasPath("test_execution")
+        validation_alias=AliasPath("test_executions", 0)
     )
     artefact: ArtefactResponse = Field(
-        validation_alias=AliasPath("test_execution", "artefact_build", "artefact")
+        validation_alias=AliasPath("artefact_build", "artefact")
     )
     artefact_build: ArtefactBuildMinimalResponse = Field(
-        validation_alias=AliasPath("test_execution", "artefact_build")
+        validation_alias=AliasPath("artefact_build")
     )
 
 

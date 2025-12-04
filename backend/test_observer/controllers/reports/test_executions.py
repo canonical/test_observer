@@ -32,6 +32,7 @@ from test_observer.data_access.models import (
     Environment,
     TestEvent,
     TestExecution,
+    TestPlan,
 )
 from test_observer.data_access.setup import get_db
 
@@ -53,7 +54,7 @@ TEST_EXECUTIONS_REPORT_COLUMNS = [
     TestExecution.ci_link,
     TestExecution.c3_link,
     TestExecution.checkbox_version,
-    TestExecution.test_plan,
+    TestPlan.name,
     TestExecution.created_at,
     Environment.name,
     Environment.architecture,

@@ -18,7 +18,7 @@
 import contextlib
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status, Security
-from sqlalchemy import delete, select, asc
+from sqlalchemy import delete, select, asc, tuple_
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -70,7 +70,15 @@ def _create_rerun_request(
     if not te:
         raise _TestExecutionNotFound
 
-    return get_or_create(db, TestExecutionRerunRequest, {"test_execution_id": te.id})
+    return get_or_create(
+        db,
+        TestExecutionRerunRequest,
+        {
+            "test_plan_id": te.test_plan_id,
+            "artefact_build_id": te.artefact_build_id,
+            "environment_id": te.environment_id,
+        },
+    )
 
 
 @router.get(
@@ -88,21 +96,16 @@ def get_rerun_requests(
 ):
     stmt = (
         select(TestExecutionRerunRequest)
-        .join(TestExecutionRerunRequest.test_execution)
-        .join(TestExecution.artefact_build)
+        .join(TestExecutionRerunRequest.artefact_build)
         .join(ArtefactBuild.artefact)
-        .join(TestExecution.environment)
+        .join(TestExecutionRerunRequest.environment)
         .options(
-            selectinload(TestExecutionRerunRequest.test_execution)
-            .selectinload(TestExecution.artefact_build)
+            selectinload(TestExecutionRerunRequest.artefact_build)
             .selectinload(ArtefactBuild.artefact)
             .selectinload(Artefact.assignee),
-            selectinload(TestExecutionRerunRequest.test_execution).selectinload(
-                TestExecution.environment
-            ),
-            selectinload(TestExecutionRerunRequest.test_execution).selectinload(
-                TestExecution.relevant_links
-            ),
+            selectinload(TestExecutionRerunRequest.environment),
+            selectinload(TestExecutionRerunRequest.test_plan),
+            selectinload(TestExecutionRerunRequest.test_executions),
         )
         .order_by(asc(TestExecutionRerunRequest.created_at))
     )
@@ -130,9 +133,21 @@ def get_rerun_requests(
     dependencies=[Security(permission_checker, scopes=[Permission.change_rerun])],
 )
 def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
+    # Delete rerun requests matching any of the test executions in a single query
+    # Using tuple comparison to match the composite key
+    subquery = select(
+        TestExecution.test_plan_id,
+        TestExecution.artefact_build_id,
+        TestExecution.environment_id,
+    ).where(TestExecution.id.in_(request.test_execution_ids))
+
     db.execute(
         delete(TestExecutionRerunRequest).where(
-            TestExecutionRerunRequest.test_execution_id.in_(request.test_execution_ids)
+            tuple_(
+                TestExecutionRerunRequest.test_plan_id,
+                TestExecutionRerunRequest.artefact_build_id,
+                TestExecutionRerunRequest.environment_id,
+            ).in_(subquery)
         )
     )
     db.commit()

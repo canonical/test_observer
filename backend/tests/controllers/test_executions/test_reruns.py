@@ -107,7 +107,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 "architecture": test_execution.environment.architecture,
             },
             "status": test_execution.status.name,
-            "test_plan": test_execution.test_plan,
+            "test_plan": test_execution.test_plan.name,
             "is_rerun_requested": bool(test_execution.rerun_request),
             "created_at": test_execution.created_at.isoformat(),
             "execution_metadata": {},
@@ -278,6 +278,108 @@ def test_post_delete_get(
 
     assert response.status_code == 200
     assert get().json() == []
+
+
+def test_delete_with_multiple_test_executions_same_composite_key(
+    get: Get, post: Post, delete: Delete, generator: DataGenerator
+):
+    """Test deleting when multiple test executions share the same composite key"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+
+    # Create three test executions with the same composite key
+    te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+    te3 = generator.gen_test_execution(ab, e, ci_link="http://ci3")
+
+    # Create rerun request (only one should be created for all three)
+    post({"test_execution_ids": [te1.id, te2.id, te3.id]})
+
+    # Verify only one rerun request exists
+    reruns = get().json()
+    assert len(reruns) == 1
+
+    # Delete using just the first test execution ID
+    delete({"test_execution_ids": [te1.id]})
+
+    # Should delete the shared rerun request
+    assert get().json() == []
+
+
+def test_delete_with_multiple_different_composite_keys(
+    get: Get, post: Post, delete: Delete, generator: DataGenerator
+):
+    """Test deleting multiple rerun requests with different composite keys"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    e3 = generator.gen_environment("env3")
+
+    te1 = generator.gen_test_execution(ab, e1, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e2, ci_link="http://ci2")
+    te3 = generator.gen_test_execution(ab, e3, ci_link="http://ci3")
+
+    # Create three different rerun requests
+    post({"test_execution_ids": [te1.id, te2.id, te3.id]})
+    assert len(get().json()) == 3
+
+    # Delete two of them
+    delete({"test_execution_ids": [te1.id, te2.id]})
+
+    # Only te3's rerun request should remain
+    remaining = get().json()
+    assert len(remaining) == 1
+    assert remaining[0]["test_execution_id"] == te3.id
+
+
+def test_delete_partial_match(
+    get: Get, post: Post, delete: Delete, generator: DataGenerator
+):
+    """Test deleting when only some test_execution_ids match rerun requests"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+
+    te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+
+    # Create rerun request for te1
+    post({"test_execution_ids": [te1.id]})
+    assert len(get().json()) == 1
+
+    # Try to delete with te2.id (which shares the composite key with te1)
+    delete({"test_execution_ids": [te2.id]})
+
+    # Should delete because te2 has the same composite key as te1
+    assert get().json() == []
+
+
+def test_delete_non_matching_composite_keys(
+    get: Get, post: Post, delete: Delete, generator: DataGenerator
+):
+    """Test deleting with test_execution_ids that don't match any rerun requests"""
+    a = generator.gen_artefact(StageName.beta)
+    ab1 = generator.gen_artefact_build(a, architecture="arm64")
+    ab2 = generator.gen_artefact_build(a, architecture="amd64")
+    e = generator.gen_environment("test-env")
+
+    te1 = generator.gen_test_execution(ab1, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab2, e, ci_link="http://ci2")
+
+    # Create rerun request for te1
+    post({"test_execution_ids": [te1.id]})
+    assert len(get().json()) == 1
+
+    # Try to delete with te2.id (different artefact_build_id)
+    delete({"test_execution_ids": [te2.id]})
+
+    # te1's rerun request should still exist
+    remaining = get().json()
+    assert len(remaining) == 1
+    assert remaining[0]["test_execution_id"] == te1.id
 
 
 def test_rerun_preserves_ci_and_relevant_links(

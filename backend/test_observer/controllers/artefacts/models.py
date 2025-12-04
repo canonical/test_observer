@@ -117,7 +117,7 @@ class TestExecutionResponse(BaseModel):
     environment: EnvironmentResponse
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
-    test_plan: str
+    test_plan: str = Field(validation_alias=AliasPath("test_plan", "name"))
     created_at: datetime
     execution_metadata: ExecutionMetadata
     is_triaged: bool

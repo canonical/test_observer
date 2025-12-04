@@ -32,6 +32,7 @@ from test_observer.data_access.models import (
     Environment,
     TestCase,
     TestExecution,
+    TestPlan,
     TestResult,
 )
 from test_observer.data_access.setup import get_db
@@ -55,7 +56,7 @@ TESTRESULTS_REPORT_COLUMNS: list[InstrumentedAttribute] = [
     TestExecution.status,
     TestExecution.c3_link,
     TestExecution.checkbox_version,
-    TestExecution.test_plan,
+    TestPlan.name,
     Environment.name,
     Environment.architecture,
     TestCase.template_id,
