@@ -60,11 +60,13 @@ class DataGenerator:
         self,
         name: str = "canonical",
         permissions: list[str] | None = None,
+        reviewer_families: list[str] | None = None,
         members: list[User] | None = None,
     ) -> Team:
         team = Team(
             name=name,
             permissions=permissions or [],
+            reviewer_families=reviewer_families or [],
             members=members or [],
         )
         self._add_object(team)
@@ -75,14 +77,12 @@ class DataGenerator:
         name: str = "John Doe",
         launchpad_handle: str | None = "jd",
         email: str = "john@doe.com",
-        is_reviewer: bool = False,
         teams: list[Team] | None = None,
     ) -> User:
         user = User(
             name=name,
             email=email,
             launchpad_handle=launchpad_handle,
-            is_reviewer=is_reviewer,
             teams=teams or [],
         )
         self._add_object(user)

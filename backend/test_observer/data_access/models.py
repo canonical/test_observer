@@ -107,7 +107,6 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True)
     launchpad_handle: Mapped[str | None] = mapped_column(default=None)
     name: Mapped[str]
-    is_reviewer: Mapped[bool] = mapped_column(default=False)
     is_admin: Mapped[bool] = mapped_column(default=False)
 
     assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
@@ -149,6 +148,7 @@ class Team(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    reviewer_families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
     members: Mapped[list[User]] = relationship(
         secondary=team_users_association, back_populates="teams"
