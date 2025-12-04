@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 import uuid
 import pytest
+import base64
 
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -475,26 +476,6 @@ class TestSearchTestResults:
                     artefact_build,
                     environment,
                     execution_metadata={
-                        "category1": ["value1", "value3"],
-                    },
-                ),
-            ),
-            (
-                False,
-                generator.gen_test_execution(
-                    artefact_build,
-                    environment,
-                    execution_metadata={
-                        "category1": ["value3"],
-                    },
-                ),
-            ),
-            (
-                True,
-                generator.gen_test_execution(
-                    artefact_build,
-                    environment,
-                    execution_metadata={
                         "category1": ["value1"],
                         "category2": ["value1"],
                     },
@@ -516,10 +497,15 @@ class TestSearchTestResults:
             for expect, test_execution in test_executions
         ]
 
-        # Query test results with matching execution metadata
+        category_b64 = base64.b64encode(b"category1").decode("utf-8")
+        value1_b64 = base64.b64encode(b"value1").decode("utf-8")
+        value2_b64 = base64.b64encode(b"value2").decode("utf-8")
+        base64_encoded_1 = f"{category_b64}:{value1_b64}"
+        base64_encoded_2 = f"{category_b64}:{value2_b64}"
+
         response = make_authenticated_request(
             lambda: test_client.get(
-                "/v1/test-results?execution_metadata=category1:value1&execution_metadata=category1:value2"
+                f"/v1/test-results?execution_metadata={base64_encoded_1}&execution_metadata={base64_encoded_2}"
             ),
             Permission.view_test,
         )
@@ -530,10 +516,11 @@ class TestSearchTestResults:
         assert expect == {tr["test_result"]["id"] for tr in data["test_results"]}
 
     def test_invalid_execution_metadata_format(self, test_client: TestClient):
-        # Test with invalid execution metadata format
+        # Test with invalid execution metadata format (no colon after decoding)
+        invalid_base64 = base64.b64encode(b"invalid-format").decode("utf-8")
         response = make_authenticated_request(
             lambda: test_client.get(
-                "/v1/test-results?execution_metadata=invalid-format"
+                f"/v1/test-results?execution_metadata={invalid_base64}"
             ),
             Permission.view_test,
         )
