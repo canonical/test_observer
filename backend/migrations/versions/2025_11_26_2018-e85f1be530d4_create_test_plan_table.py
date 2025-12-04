@@ -17,7 +17,7 @@
 """create_test_plan_table
 
 Revision ID: e85f1be530d4
-Revises: 3f6a99085db7
+Revises: 2ddd55f913eb
 Create Date: 2025-11-26 20:18:06.935230+00:00
 
 """
@@ -28,7 +28,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "e85f1be530d4"
-down_revision = "3f6a99085db7"
+down_revision = "2ddd55f913eb"
 branch_labels = None
 depends_on = None
 
