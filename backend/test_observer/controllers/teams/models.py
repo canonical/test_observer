@@ -19,12 +19,18 @@ from pydantic import BaseModel
 from test_observer.common.permissions import Permission
 
 
+class TeamMinimalResponse(BaseModel):
+    id: int
+    name: str
+    permissions: list[str]
+    reviewer_families: list[str] = []
+
+
 class UserMinimalResponse(BaseModel):
     id: int
     launchpad_handle: str | None = None
     email: str
     name: str
-    is_reviewer: bool
     is_admin: bool
 
 
@@ -32,8 +38,16 @@ class TeamResponse(BaseModel):
     id: int
     name: str
     permissions: list[str]
+    reviewer_families: list[str] = []
     members: list[UserMinimalResponse]
 
 
 class TeamPatch(BaseModel):
     permissions: list[Permission] | None = None
+    reviewer_families: list[str] | None = None
+
+
+class TeamCreate(BaseModel):
+    name: str
+    permissions: list[Permission] = []
+    reviewer_families: list[str] = []

@@ -171,7 +171,12 @@ class TestFamilyIndependentTests:
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        user = generator.gen_user(is_reviewer=True)
+        # Create a team that can review all families
+        team = generator.gen_team(
+            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+        )
+        # User is member of this team
+        user = generator.gen_user(teams=[team])
 
         response = execute({**start_request, "needs_assignment": True})
 
@@ -184,6 +189,7 @@ class TestFamilyIndependentTests:
     def test_only_a_reviewer_user_is_assigned(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
+        # User with no teams cannot be assigned as reviewer
         generator.gen_user()
 
         response = execute({**start_request, "needs_assignment": True})
@@ -371,7 +377,11 @@ def test_non_kernel_artefact_due_date(
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    generator.gen_user(is_reviewer=True)
+    snap_reviewers = generator.gen_team(
+        name="snap_reviewers",
+        reviewer_families=["snap"],
+    )
+    generator.gen_user(teams=[snap_reviewers])
 
     execute({**snap_test_request, "needs_assignment": True})
 
@@ -498,3 +508,167 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     response = execute(request)
 
     assert response.status_code == 422
+
+
+def test_charm_assigned_to_charm_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Charms should be assigned to reviewers whose teams can review charms"""
+    # Create teams with different families
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
+        reviewer_families=["charm"],
+    )
+    other_team = generator.gen_team(
+        name="other_reviewers",
+        reviewer_families=["snap", "deb", "image"],
+    )
+
+    # Create users in these teams
+    charm_reviewer = generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
+    )
+    generator.gen_user(
+        email="other@example.com",
+        teams=[other_team],
+    )
+
+    # Execute a charm test
+    response = execute({**charm_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    # Check that assignee is in charm_team
+    assert any(team.id == charm_team.id for team in assignee.teams)
+    assert assignee.id == charm_reviewer.id
+
+
+def test_snap_assigned_to_snap_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Snaps should be assigned to reviewers whose teams can review snaps"""
+    # Create teams with different families
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
+        reviewer_families=["charm"],
+    )
+    snap_team = generator.gen_team(
+        name="snap_reviewers",
+        reviewer_families=["snap", "deb", "image"],
+    )
+
+    # Create users in these teams
+    generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
+    )
+    snap_reviewer = generator.gen_user(
+        email="snap@example.com",
+        teams=[snap_team],
+    )
+
+    # Execute a snap test
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert any(team.id == snap_team.id for team in assignee.teams)
+    assert assignee.id == snap_reviewer.id
+
+
+def test_deb_assigned_to_deb_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Debs should be assigned to reviewers whose teams can review debs"""
+    # Create teams with different families
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
+        reviewer_families=["charm"],
+    )
+    deb_team = generator.gen_team(
+        name="deb_reviewers",
+        reviewer_families=["snap", "deb", "image"],
+    )
+
+    # Create users in these teams
+    generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
+    )
+    deb_reviewer = generator.gen_user(
+        email="deb@example.com",
+        teams=[deb_team],
+    )
+
+    # Execute a deb test
+    response = execute({**deb_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert any(team.id == deb_team.id for team in assignee.teams)
+    assert assignee.id == deb_reviewer.id
+
+
+def test_image_assigned_to_image_team_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Images should be assigned to reviewers whose teams can review images"""
+    # Create teams with different families
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
+        reviewer_families=["charm"],
+    )
+    image_team = generator.gen_team(
+        name="image_reviewers",
+        reviewer_families=["snap", "deb", "image"],
+    )
+
+    # Create users in these teams
+    generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
+    )
+    image_reviewer = generator.gen_user(
+        email="image@example.com",
+        teams=[image_team],
+    )
+
+    # Execute an image test
+    response = execute({**image_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is not None
+    assert any(team.id == image_team.id for team in assignee.teams)
+    assert assignee.id == image_reviewer.id
+
+
+def test_no_assignment_when_no_team_reviewers_available(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When no teams can review the family, no assignment should occur"""
+    # Create a team that can only review charms
+    charm_team = generator.gen_team(
+        name="charm_reviewers",
+        reviewer_families=["charm"],
+    )
+    generator.gen_user(
+        email="charm@example.com",
+        teams=[charm_team],
+    )
+
+    # Execute a snap test (no one can review snaps)
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+    assignee = test_execution.artefact_build.artefact.assignee
+    assert assignee is None
