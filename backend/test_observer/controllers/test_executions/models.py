@@ -46,9 +46,7 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
-from test_observer.controllers.issues.shared_models import (
-    MinimalIssueTestResultAttachmentResponse,
-)
+from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 
 
 class _StartTestExecutionRequest(BaseModel):
@@ -161,41 +159,9 @@ class TestExecutionsPatchRequest(BaseModel):
     execution_metadata: ExecutionMetadata | None = None
 
 
-class PreviousTestResult(BaseModel):
-    status: TestResultStatus
-    version: str
-    artefact_id: int
-
-
-class TestResultResponse(BaseModel):
-    __test__ = False
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    name: str = Field(validation_alias=AliasPath("test_case", "name"))
-    created_at: datetime
-    category: str = Field(validation_alias=AliasPath("test_case", "category"))
-    template_id: str = Field(validation_alias=AliasPath("test_case", "template_id"))
-    status: TestResultStatus
-    comment: str
-    io_log: str
-    previous_results: list[PreviousTestResult] = Field(
-        default=[],
-        description=(
-            f"The last {PREVIOUS_TEST_RESULT_COUNT} test results matched with "
-            "the current test execution. The items are sorted in descending order, "
-            "the first test result is the most recent, while "
-            "the last one is the oldest one."
-        ),
-    )
-    issues: list[MinimalIssueTestResultAttachmentResponse] = Field(
-        validation_alias=AliasPath("issue_attachments"),
-    )
-
-
 class RerunRequest(BaseModel):
-    test_execution_ids: set[int]
+    test_execution_ids: set[int] = Field(default_factory=set)
+    test_results_filters: TestResultSearchFilters | None = None
 
 
 class PendingRerun(BaseModel):
@@ -222,7 +188,8 @@ class PendingRerun(BaseModel):
 
 
 class DeleteReruns(BaseModel):
-    test_execution_ids: set[int]
+    test_execution_ids: set[int] = Field(default_factory=set)
+    test_results_filters: TestResultSearchFilters | None = None
 
 
 class TestEventResponse(BaseModel):
