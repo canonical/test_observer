@@ -24,7 +24,9 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.controllers.applications.application_injection import get_current_application
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
 )
@@ -67,8 +69,7 @@ def modify_reruns(
                 detail="At least one filter must be provided in test_results_filters",
             )
         filtered_ids_query = filter_test_results(
-            select(TestResult.test_execution_id).distinct(),
-            filters
+            select(TestResult.test_execution_id).distinct(), filters
         )
         conditions.append(TestExecution.id.in_(filtered_ids_query))
 
@@ -77,21 +78,29 @@ def modify_reruns(
         return
 
     # Build subquery selecting the composite key from TestExecution
-    subquery = select(
-        TestExecution.test_plan_id,
-        TestExecution.artefact_build_id,
-        TestExecution.environment_id,
-    ).where(or_(*conditions)).distinct()
+    subquery = (
+        select(
+            TestExecution.test_plan_id,
+            TestExecution.artefact_build_id,
+            TestExecution.environment_id,
+        )
+        .where(or_(*conditions))
+        .distinct()
+    )
 
     if isinstance(request, RerunRequest):
-        db.execute(pg_insert(TestExecutionRerunRequest).from_select(
-            [
-                "test_plan_id",
-                "artefact_build_id",
-                "environment_id",
-            ],
-            subquery,
-        ).on_conflict_do_nothing())
+        db.execute(
+            pg_insert(TestExecutionRerunRequest)
+            .from_select(
+                [
+                    "test_plan_id",
+                    "artefact_build_id",
+                    "environment_id",
+                ],
+                subquery,
+            )
+            .on_conflict_do_nothing()
+        )
     else:
         db.execute(
             delete(TestExecutionRerunRequest).where(
@@ -105,6 +114,7 @@ def modify_reruns(
 
     db.commit()
 
+
 def require_bulk_permission(
     request: RerunRequest | DeleteReruns,
     security_scopes: SecurityScopes,
@@ -112,9 +122,8 @@ def require_bulk_permission(
     app: Application | None = Depends(get_current_application),
 ) -> None:
     if (
-        (request.test_execution_ids is not None and len(request.test_execution_ids) > 1)
-        or (request.test_results_filters is not None)
-    ):
+        request.test_execution_ids is not None and len(request.test_execution_ids) > 1
+    ) or (request.test_results_filters is not None):
         return permission_checker(security_scopes, user, app)
 
 
@@ -135,7 +144,7 @@ def create_rerun_requests(
     if silent:
         modify_reruns(db, request)
         return
-    
+
     if request.test_results_filters is not None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,

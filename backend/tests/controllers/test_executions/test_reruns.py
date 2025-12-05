@@ -25,7 +25,11 @@ from httpx import Response
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
-from test_observer.data_access.models_enums import StageName, FamilyName, TestResultStatus
+from test_observer.data_access.models_enums import (
+    StageName,
+    FamilyName,
+    TestResultStatus,
+)
 from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
 
@@ -44,9 +48,12 @@ def post(test_client: TestClient):
         permissions = [Permission.change_rerun]
         if data and isinstance(data, dict):
             test_execution_ids = data.get("test_execution_ids", [])
-            if len(test_execution_ids) > 1 or data.get("test_results_filters") is not None:
+            if (
+                len(test_execution_ids) > 1
+                or data.get("test_results_filters") is not None
+            ):
                 permissions.append(Permission.change_rerun_bulk)
-        
+
         return make_authenticated_request(
             lambda: test_client.post(reruns_url, json=data),
             *permissions,
@@ -90,9 +97,12 @@ def delete(test_client: TestClient):
         permissions = [Permission.change_rerun]
         if data and isinstance(data, dict):
             test_execution_ids = data.get("test_execution_ids", [])
-            if len(test_execution_ids) > 1 or data.get("test_results_filters") is not None:
+            if (
+                len(test_execution_ids) > 1
+                or data.get("test_results_filters") is not None
+            ):
                 permissions.append(Permission.change_rerun_bulk)
-        
+
         return make_authenticated_request(
             lambda: test_client.request("DELETE", reruns_url, json=data),
             *permissions,
@@ -724,16 +734,14 @@ def test_post_silent_with_multiple_test_results_filters(
 
 
 def test_post_silent_with_empty_test_results_filters_returns_422(
-    test_client: TestClient, generator: DataGenerator
+    test_client: TestClient,
 ):
     """Test that empty test_results_filters returns 422"""
     response = make_authenticated_request(
         lambda: test_client.post(
             reruns_url,
             params={"silent": True},
-            json={
-                "test_results_filters": {}
-            },
+            json={"test_results_filters": {}},
         ),
         Permission.change_rerun,
         Permission.change_rerun_bulk,
@@ -792,7 +800,7 @@ def test_post_silent_with_both_filters_and_ids(
                 "test_execution_ids": [te1.id],
                 "test_results_filters": {
                     "test_result_statuses": ["FAILED"],
-                }
+                },
             },
         ),
         Permission.change_rerun,
@@ -864,9 +872,7 @@ def test_delete_with_empty_test_results_filters_returns_422(
         lambda: test_client.request(
             "DELETE",
             reruns_url,
-            json={
-                "test_results_filters": {}
-            },
+            json={"test_results_filters": {}},
         ),
         Permission.change_rerun,
         Permission.change_rerun_bulk,
@@ -1010,9 +1016,7 @@ def test_delete_bulk_permission_not_required_for_single_id(
 # ==============================================================================
 
 
-def test_post_with_empty_test_execution_ids_list(
-    test_client: TestClient, get: Get
-):
+def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: Get):
     """Test that posting with empty test_execution_ids list returns 404"""
     response = make_authenticated_request(
         lambda: test_client.post(
@@ -1029,9 +1033,7 @@ def test_post_with_empty_test_execution_ids_list(
     assert len(get().json()) == 0
 
 
-def test_post_silent_with_empty_ids_does_nothing(
-    test_client: TestClient, get: Get
-):
+def test_post_silent_with_empty_ids_does_nothing(test_client: TestClient, get: Get):
     """Test that silent mode with empty IDs gracefully does nothing"""
     response = make_authenticated_request(
         lambda: test_client.post(
@@ -1055,7 +1057,7 @@ def test_post_with_filters_matching_no_results(
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
-    
+
     tc = generator.gen_test_case("test_case_1")
     generator.gen_test_result(tc, te, status=TestResultStatus.PASSED)
 
@@ -1088,10 +1090,10 @@ def test_post_filters_by_artefact_name(
     ab1 = generator.gen_artefact_build(a1)
     ab2 = generator.gen_artefact_build(a2)
     e = generator.gen_environment("test-env")
-    
+
     te1 = generator.gen_test_execution(ab1, e, ci_link="http://ci1")
     te2 = generator.gen_test_execution(ab2, e, ci_link="http://ci2")
-    
+
     tc = generator.gen_test_case("test_case_1")
     generator.gen_test_result(tc, te1, status=TestResultStatus.FAILED)
     generator.gen_test_result(tc, te2, status=TestResultStatus.FAILED)
@@ -1112,7 +1114,7 @@ def test_post_filters_by_artefact_name(
     )
 
     assert response.status_code == 200
-    
+
     # Only te1 should have rerun created
     reruns = get().json()
     assert len(reruns) == 1
@@ -1127,10 +1129,10 @@ def test_post_filters_by_environment_name(
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("rpi4")
     e2 = generator.gen_environment("laptop")
-    
+
     te1 = generator.gen_test_execution(ab, e1, ci_link="http://ci1")
     te2 = generator.gen_test_execution(ab, e2, ci_link="http://ci2")
-    
+
     tc = generator.gen_test_case("test_case_1")
     generator.gen_test_result(tc, te1, status=TestResultStatus.FAILED)
     generator.gen_test_result(tc, te2, status=TestResultStatus.FAILED)
@@ -1151,7 +1153,7 @@ def test_post_filters_by_environment_name(
     )
 
     assert response.status_code == 200
-    
+
     # Only te1 should have rerun created
     reruns = get().json()
     assert len(reruns) == 1
@@ -1166,7 +1168,7 @@ def test_delete_with_empty_ids_does_nothing(
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
-    
+
     # Create a rerun
     post({"test_execution_ids": [te.id]})
     assert len(get().json()) == 1
@@ -1194,7 +1196,7 @@ def test_post_non_silent_with_single_id_and_filters_fails(
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
-    
+
     tc = generator.gen_test_case("test_case_1")
     generator.gen_test_result(tc, te, status=TestResultStatus.FAILED)
 
@@ -1206,7 +1208,7 @@ def test_post_non_silent_with_single_id_and_filters_fails(
                 "test_execution_ids": [te.id],
                 "test_results_filters": {
                     "test_result_statuses": ["FAILED"],
-                }
+                },
             },
         ),
         Permission.change_rerun,
