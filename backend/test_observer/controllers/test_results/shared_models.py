@@ -52,7 +52,11 @@ class TestResultSearchFilters(BaseModel):
     limit: int | None = None
 
     def has_filters(self) -> bool:
-        """Check if at least one meaningful filter is provided (excluding pagination and date range)."""
+        """
+        Check if at least one meaningful filter is provided.
+
+        Excludes pagination and date range parameters.
+        """
         return any(
             not (
                 (isinstance(value, list) and len(value) == 0)

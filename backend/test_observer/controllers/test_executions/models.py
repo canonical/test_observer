@@ -29,7 +29,6 @@ from pydantic import (
     model_validator,
 )
 
-from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
