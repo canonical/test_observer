@@ -35,6 +35,8 @@ class _BulkModifyRerunsForm extends ConsumerStatefulWidget {
 
 class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
   late final GlobalKey<FormState> formKey;
+  bool onlyLatestExecutions = true;
+  bool excludeArchivedArtefacts = true;
 
   @override
   void initState() {
@@ -47,6 +49,20 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
     super.dispose();
   }
 
+  Widget _buildCheckbox({
+    required String title,
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return CheckboxListTile(
+      title: Text(title),
+      value: value,
+      onChanged: onChanged,
+      controlAffinity: ListTileControlAffinity.leading,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
@@ -57,13 +73,16 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
       );
     }
 
+    final modifyTestResultFilters = widget.filters.copyWith(
+      rerunIsRequested: widget.shouldDelete,
+      executionIsLatest:
+          onlyLatestExecutions ? true : widget.filters.executionIsLatest,
+      artefactIsArchived:
+          excludeArchivedArtefacts ? false : widget.filters.artefactIsArchived,
+    );
+
     final testResultsAsync = ref.watch(
-      testResultsSearchProvider(
-        widget.filters.copyWith(
-          rerunIsRequested: widget.shouldDelete,
-          limit: 0,
-        ),
-      ),
+      testResultsSearchProvider(modifyTestResultFilters.copyWith(limit: 0)),
     );
     if (testResultsAsync.isLoading) {
       return const UnconstrainedBox(child: CircularProgressIndicator());
@@ -96,9 +115,31 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
           children: [
             Text(
               widget.shouldDelete
-                  ? '$testResultsCount test results have rerun requests. Delete?'
-                  : '$testResultsCount test results do not have rerun requests. Create?',
+                  ? 'Delete Rerun Requests'
+                  : 'Create Rerun Requests',
               style: Theme.of(context).textTheme.titleLarge,
+            ),
+            Text(
+              '$testResultsCount matched test results will be affected.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            _buildCheckbox(
+              title: 'Only latest test executions',
+              value: onlyLatestExecutions,
+              onChanged: (value) {
+                setState(() {
+                  onlyLatestExecutions = value ?? true;
+                });
+              },
+            ),
+            _buildCheckbox(
+              title: 'Exclude archived artefacts',
+              value: excludeArchivedArtefacts,
+              onChanged: (value) {
+                setState(() {
+                  excludeArchivedArtefacts = value ?? true;
+                });
+              },
             ),
             Row(
               children: [
@@ -145,15 +186,11 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                     // Submit the bulk operation.
                     if (widget.shouldDelete) {
                       await ref.read(rerunsProvider.notifier).deleteReruns(
-                            filters: widget.filters.copyWith(
-                              rerunIsRequested: widget.shouldDelete,
-                            ),
+                            filters: modifyTestResultFilters,
                           );
                     } else {
                       await ref.read(rerunsProvider.notifier).createReruns(
-                            filters: widget.filters.copyWith(
-                              rerunIsRequested: widget.shouldDelete,
-                            ),
+                            filters: modifyTestResultFilters,
                           );
                     }
 
