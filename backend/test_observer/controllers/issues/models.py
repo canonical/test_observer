@@ -23,11 +23,11 @@ from test_observer.controllers.artefacts.models import (
     ArtefactResponse,
     TestExecutionResponse,
 )
-from test_observer.controllers.test_executions.models import (
+from test_observer.controllers.test_executions.shared_models import (
     TestResultResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.controllers.test_results.models import TestResultSearchFilters
+from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 
 from .shared_models import (
     MinimalIssueResponse,

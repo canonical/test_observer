@@ -21,7 +21,7 @@ from sqlalchemy import delete, desc, func, or_, over, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
-from test_observer.controllers.test_executions.models import PreviousTestResult
+from test_observer.controllers.test_executions.shared_models import PreviousTestResult
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,

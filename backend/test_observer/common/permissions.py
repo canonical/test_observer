@@ -50,6 +50,7 @@ class Permission(StrEnum):
     change_test = auto()
     view_rerun = auto()
     change_rerun = auto()
+    change_rerun_bulk = auto()
 
     # Artefacts
     view_artefact = auto()

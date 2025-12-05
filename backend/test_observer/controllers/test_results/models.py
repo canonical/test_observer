@@ -14,25 +14,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict
 
-from test_observer.common.constants import QueryValue
-from test_observer.controllers.test_executions.models import (
+from test_observer.controllers.test_executions.shared_models import (
     TestResultResponse,
+)
+from test_observer.controllers.artefacts.models import (
     TestExecutionResponse,
 )
 from test_observer.controllers.artefacts.models import (
     ArtefactResponse,
     ArtefactBuildMinimalResponse,
 )
-from test_observer.data_access.models_enums import (
-    FamilyName,
-    TestResultStatus,
-    TestExecutionStatus,
-)
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 
 
 class TestResultSearchResponse(BaseModel):
@@ -58,27 +51,3 @@ class TestResultSearchResponseWithContext(BaseModel):
 
     count: int
     test_results: list[TestResultResponseWithContext]
-
-
-class TestResultSearchFilters(BaseModel):
-    families: list[FamilyName] = Field(default_factory=list)
-    artefacts: list[str] = Field(default_factory=list)
-    artefact_is_archived: bool | None = None
-    environments: list[str] = Field(default_factory=list)
-    test_cases: list[str] = Field(default_factory=list)
-    template_ids: list[str] = Field(default_factory=list)
-    execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
-    issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
-        default_factory=list
-    )
-    test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
-    test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
-    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
-        default_factory=list
-    )
-    rerun_is_requested: bool | None = None
-    execution_is_latest: bool | None = None
-    from_date: datetime | None = None
-    until_date: datetime | None = None
-    offset: int | None = None
-    limit: int | None = None

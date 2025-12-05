@@ -28,7 +28,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.setup import get_db
 
 from .logic import get_previous_test_results
-from .models import TestResultResponse
+from .shared_models import TestResultResponse
 
 router = APIRouter(tags=["test-results"])
 

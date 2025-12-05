@@ -33,10 +33,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models import test_execution_metadata_association_table
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-
-from .models import (
-    TestResultSearchFilters,
-)
+from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 
 
 def filter_execution_metadata(
