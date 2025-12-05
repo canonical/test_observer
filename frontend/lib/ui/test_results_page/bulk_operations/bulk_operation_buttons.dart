@@ -21,6 +21,7 @@ import '../../../models/test_results_filters.dart';
 import '../../spacing.dart';
 import 'bulk_issue_attachment_form.dart';
 import 'create_attachment_rule_form.dart';
+import 'bulk_modify_reruns_form.dart';
 
 class BulkOperationsButtons extends StatelessWidget {
   final TestResultsFilters filters;
@@ -87,6 +88,34 @@ class BulkOperationsButtons extends StatelessWidget {
                 foregroundColor: Colors.white,
               ),
               child: const Text('Detach Issue'),
+            ),
+            ElevatedButton(
+              onPressed: disabled
+                  ? null
+                  : () => showModifyRerunsDialog(
+                        context: context,
+                        filters: filters,
+                        shouldDelete: false,
+                      ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: YaruColors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Create Rerun Requests'),
+            ),
+            ElevatedButton(
+              onPressed: disabled
+                  ? null
+                  : () => showModifyRerunsDialog(
+                        context: context,
+                        filters: filters,
+                        shouldDelete: true,
+                      ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: YaruColors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete Rerun Requests'),
             ),
           ],
         ),

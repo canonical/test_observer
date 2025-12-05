@@ -108,6 +108,43 @@ class ApiRepository {
     return reruns;
   }
 
+  Future<void> createReruns({
+    List<int>? testExecutionIds,
+    TestResultsFilters? filters,
+  }) async {
+    final data = <String, dynamic>{};
+    if (testExecutionIds != null && testExecutionIds.isNotEmpty) {
+      data['test_execution_ids'] = testExecutionIds;
+    }
+    if (filters != null) {
+      data['test_results_filters'] = filters.toJson();
+    }
+
+    await dio.post(
+      '/v1/test-executions/reruns',
+      queryParameters: {'silent': true},
+      data: data,
+    );
+  }
+
+  Future<void> deleteReruns({
+    List<int>? testExecutionIds,
+    TestResultsFilters? filters,
+  }) async {
+    final data = <String, dynamic>{};
+    if (testExecutionIds != null && testExecutionIds.isNotEmpty) {
+      data['test_execution_ids'] = testExecutionIds;
+    }
+    if (filters != null) {
+      data['test_results_filters'] = filters.toJson();
+    }
+
+    await dio.delete(
+      '/v1/test-executions/reruns',
+      data: data,
+    );
+  }
+
   Future<List<TestIssue>> getTestIssues() async {
     final response = await dio.get('/v1/test-cases/reported-issues');
     final List issuesJson = response.data;

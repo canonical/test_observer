@@ -18,26 +18,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/test_results_filters.dart';
-import '../../../providers/issue.dart';
+import '../../../providers/reruns.dart';
 import '../../../providers/test_results_search.dart';
-import '../../issues.dart';
 import '../../spacing.dart';
 
-class _BulkIssueAttachmentForm extends ConsumerStatefulWidget {
-  const _BulkIssueAttachmentForm(this.filters, this.shouldDetach);
+class _BulkModifyRerunsForm extends ConsumerStatefulWidget {
+  const _BulkModifyRerunsForm(this.filters, this.shouldDelete);
 
   final TestResultsFilters filters;
-  final bool shouldDetach;
+  final bool shouldDelete;
 
   @override
-  ConsumerState<_BulkIssueAttachmentForm> createState() =>
-      _BulkIssueAttachmentFormState();
+  ConsumerState<_BulkModifyRerunsForm> createState() =>
+      _BulkModifyRerunsFormState();
 }
 
-class _BulkIssueAttachmentFormState
-    extends ConsumerState<_BulkIssueAttachmentForm> {
+class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
   late final GlobalKey<FormState> formKey;
-  String _issueUrl = '';
 
   @override
   void initState() {
@@ -54,8 +51,20 @@ class _BulkIssueAttachmentFormState
   Widget build(BuildContext context) {
     final buttonFontStyle = Theme.of(context).textTheme.labelLarge;
 
-    final testResultsAsync =
-        ref.watch(testResultsSearchProvider(widget.filters));
+    if (!widget.filters.hasFilters) {
+      return const Text(
+        'Cannot perform bulk rerun modification without any filters specified.',
+      );
+    }
+
+    final testResultsAsync = ref.watch(
+      testResultsSearchProvider(
+        widget.filters.copyWith(
+          rerunIsRequested: widget.shouldDelete,
+          limit: 0,
+        ),
+      ),
+    );
     if (testResultsAsync.isLoading) {
       return const UnconstrainedBox(child: CircularProgressIndicator());
     }
@@ -65,7 +74,15 @@ class _BulkIssueAttachmentFormState
     final testResults = testResultsAsync.value;
     final testResultsCount = testResults?.count ?? 0;
     if (testResultsCount == 0) {
-      return const Text('No test results match the current filters.');
+      if (widget.shouldDelete) {
+        return const Text(
+          'No test results have rerun requests.',
+        );
+      } else {
+        return const Text(
+          'No test results do not already have rerun requests.',
+        );
+      }
     }
 
     return Form(
@@ -78,18 +95,10 @@ class _BulkIssueAttachmentFormState
           spacing: Spacing.level4,
           children: [
             Text(
-              widget.shouldDetach
-                  ? 'Detach the issue from the $testResultsCount selected test results'
-                  : 'Attach the issue to the $testResultsCount selected test results',
+              widget.shouldDelete
+                  ? '$testResultsCount test results have rerun requests. Delete?'
+                  : '$testResultsCount test results do not have rerun requests. Create?',
               style: Theme.of(context).textTheme.titleLarge,
-            ),
-            IssueUrlFormField(
-              allowInternalIssue: true,
-              onChanged: (value) {
-                setState(() {
-                  _issueUrl = value;
-                });
-              },
             ),
             Row(
               children: [
@@ -102,7 +111,7 @@ class _BulkIssueAttachmentFormState
                 ),
                 const Spacer(),
                 TextButton(
-                  key: const Key('bulkIssueAttachmentFormSubmitButton'),
+                  key: const Key('bulkModifyRerunsFormSubmitButton'),
                   onPressed: () async {
                     // Ensure the form is valid before proceeding.
                     if (formKey.currentState?.validate() != true) return;
@@ -114,7 +123,7 @@ class _BulkIssueAttachmentFormState
                         builder: (context) => AlertDialog(
                           title: const Text('Confirm Bulk Operation'),
                           content: Text(
-                            'You are about to ${widget.shouldDetach ? 'detach' : 'attach'} an issue to over 50 test results. Do you want to proceed?',
+                            'You are about to ${widget.shouldDelete ? 'delete' : 'create'} rerun requests for over 50 test results. Do you want to proceed?',
                           ),
                           actions: [
                             TextButton(
@@ -133,23 +142,17 @@ class _BulkIssueAttachmentFormState
                       }
                     }
 
-                    // Create or get the issue.
-                    final issueId = await getOrCreateIssueId(ref, _issueUrl);
-
                     // Submit the bulk operation.
-                    if (widget.shouldDetach) {
-                      await ref
-                          .read(issueProvider(issueId).notifier)
-                          .detachIssueFromTestResults(
-                            issueId: issueId,
-                            filters: widget.filters,
+                    if (widget.shouldDelete) {
+                      await ref.read(rerunsProvider.notifier).deleteReruns(
+                            filters: widget.filters.copyWith(
+                                rerunIsRequested: widget.shouldDelete,),
                           );
                     } else {
-                      await ref
-                          .read(issueProvider(issueId).notifier)
-                          .attachIssueToTestResults(
-                            issueId: issueId,
-                            filters: widget.filters,
+                      await ref.read(rerunsProvider.notifier).createReruns(
+                            filters: widget.filters.copyWith(
+                              rerunIsRequested: widget.shouldDelete,
+                            ),
                           );
                     }
 
@@ -157,7 +160,7 @@ class _BulkIssueAttachmentFormState
                     if (!context.mounted) return;
                     Navigator.of(context).pop();
                   },
-                  child: widget.shouldDetach ? Text('detach') : Text('attach'),
+                  child: widget.shouldDelete ? Text('delete') : Text('create'),
                 ),
               ],
             ),
@@ -168,17 +171,17 @@ class _BulkIssueAttachmentFormState
   }
 }
 
-void showBulkIssueAttachmentDialog({
+void showModifyRerunsDialog({
   required BuildContext context,
   required TestResultsFilters filters,
-  bool shouldDetach = false,
+  bool shouldDelete = false,
 }) =>
     showDialog(
       context: context,
       builder: (_) => Dialog(
         child: Padding(
           padding: const EdgeInsets.all(Spacing.level4),
-          child: _BulkIssueAttachmentForm(filters, shouldDetach),
+          child: _BulkModifyRerunsForm(filters, shouldDelete),
         ),
       ),
     );
