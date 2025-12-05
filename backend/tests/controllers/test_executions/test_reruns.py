@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 from collections.abc import Callable
 from operator import itemgetter
 from typing import Any
@@ -26,19 +25,31 @@ from httpx import Response
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
-from test_observer.data_access.models_enums import StageName, FamilyName
+from test_observer.data_access.models_enums import StageName, FamilyName, TestResultStatus
 from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
 
 reruns_url = "/v1/test-executions/reruns"
 
 
+# ==============================================================================
+# Fixtures and Helpers
+# ==============================================================================
+
+
 @pytest.fixture
 def post(test_client: TestClient):
     def post_helper(data: Any) -> Response:  # noqa: ANN401
+        # Determine if bulk permission is needed
+        permissions = [Permission.change_rerun]
+        if data and isinstance(data, dict):
+            test_execution_ids = data.get("test_execution_ids", [])
+            if len(test_execution_ids) > 1 or data.get("test_results_filters") is not None:
+                permissions.append(Permission.change_rerun_bulk)
+        
         return make_authenticated_request(
             lambda: test_client.post(reruns_url, json=data),
-            Permission.change_rerun,
+            *permissions,
         )
 
     return post_helper
@@ -75,9 +86,16 @@ def get(test_client: TestClient):
 @pytest.fixture
 def delete(test_client: TestClient):
     def delete_helper(data: Any) -> Response:  # noqa: ANN401
+        # Determine if bulk permission is needed
+        permissions = [Permission.change_rerun]
+        if data and isinstance(data, dict):
+            test_execution_ids = data.get("test_execution_ids", [])
+            if len(test_execution_ids) > 1 or data.get("test_results_filters") is not None:
+                permissions.append(Permission.change_rerun_bulk)
+        
         return make_authenticated_request(
             lambda: test_client.request("DELETE", reruns_url, json=data),
-            Permission.change_rerun,
+            *permissions,
         )
 
     return delete_helper
@@ -155,6 +173,11 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
     return jsonable_encoder(return_data)
 
 
+# ==============================================================================
+# Basic POST Operations - Single ID
+# ==============================================================================
+
+
 def test_post_no_data_returns_422(post: Post):
     assert post(None).status_code == 422
 
@@ -177,6 +200,11 @@ def test_post_with_valid_and_invalid_ids(post: Post, test_execution: TestExecuti
     test_execution.ci_link = "ci.link"
     response = post({"test_execution_ids": [test_execution.id, test_execution.id + 1]})
     assert response.status_code == 207
+
+
+# ==============================================================================
+# Basic GET Operations
+# ==============================================================================
 
 
 def test_get_returns_200_with_empty_list(get: Get):
@@ -252,21 +280,9 @@ def test_get_with_limit(
     assert get(limit=1).json() == [test_execution_to_pending_rerun(te1)]
 
 
-def test_get_with_family(
-    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
-):
-    te1 = test_execution
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
-    ab = generator.gen_artefact_build(a)
-    e2 = generator.gen_environment("e2")
-    te2 = generator.gen_test_execution(ab, e2)
-
-    post({"test_execution_ids": [te1.id]})
-    post({"test_execution_ids": [te2.id]})
-
-    assert get(family=FamilyName.snap).json() == [test_execution_to_pending_rerun(te1)]
-    assert get(family=FamilyName.charm).json() == [test_execution_to_pending_rerun(te2)]
-    assert get(family=FamilyName.image).json() == []
+# ==============================================================================
+# Basic DELETE Operations
+# ==============================================================================
 
 
 def test_post_delete_get(
@@ -380,6 +396,28 @@ def test_delete_non_matching_composite_keys(
     remaining = get().json()
     assert len(remaining) == 1
     assert remaining[0]["test_execution_id"] == te1.id
+
+
+# ==============================================================================
+# GET with Filters
+# ==============================================================================
+
+
+def test_get_with_family(
+    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator
+):
+    te1 = test_execution
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    e2 = generator.gen_environment("e2")
+    te2 = generator.gen_test_execution(ab, e2)
+
+    post({"test_execution_ids": [te1.id]})
+    post({"test_execution_ids": [te2.id]})
+
+    assert get(family=FamilyName.snap).json() == [test_execution_to_pending_rerun(te1)]
+    assert get(family=FamilyName.charm).json() == [test_execution_to_pending_rerun(te2)]
+    assert get(family=FamilyName.image).json() == []
 
 
 def test_rerun_preserves_ci_and_relevant_links(
@@ -572,3 +610,608 @@ def test_get_multiple_reruns_same_build_different_environments(
     # All should be returned with environment_architecture filter
     result = get(environment_architecture="arm64").json()
     assert len(result) == 3
+
+
+# ==============================================================================
+# Bulk Rerun Features - Silent Mode POST
+# ==============================================================================
+
+
+def test_post_with_test_results_filters_requires_silent(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that using test_results_filters without silent=true returns 422"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e)
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te, status=TestResultStatus.PASSED)
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            json={
+                "test_results_filters": {
+                    "test_cases": ["test_case_1"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 422
+    assert "must be done silently" in response.json()["detail"]
+
+
+def test_post_silent_with_test_results_filters(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Test creating reruns silently with test_results_filters"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+
+    # Create test results with different test cases
+    tc1 = generator.gen_test_case("test_case_1")
+    tc2 = generator.gen_test_case("test_case_2")
+    generator.gen_test_result(tc1, te1, status=TestResultStatus.PASSED)
+    generator.gen_test_result(tc2, te2, status=TestResultStatus.FAILED)
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_results_filters": {
+                    "test_cases": ["test_case_1"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    # Silent mode returns None
+    assert response.json() is None
+
+    # Verify rerun was created by querying
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution_id"] in [te1.id, te2.id]
+
+
+def test_post_silent_with_multiple_test_results_filters(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Test creating reruns with multiple filter criteria"""
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te1, status=TestResultStatus.FAILED)
+    generator.gen_test_result(tc, te2, status=TestResultStatus.PASSED)
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_results_filters": {
+                    "families": ["snap"],
+                    "test_result_statuses": ["FAILED"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    assert response.json() is None
+
+    # Only te1 should have rerun created (failed status)
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution_id"] == te1.id
+
+
+def test_post_silent_with_empty_test_results_filters_returns_422(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that empty test_results_filters returns 422"""
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_results_filters": {}
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 422
+    assert "At least one filter must be provided" in response.json()["detail"]
+
+
+def test_post_silent_with_test_execution_ids(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Test creating reruns silently with test_execution_ids"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": [te.id]},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    assert response.json() is None
+
+    # Verify rerun was created
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution_id"] == te.id
+
+
+def test_post_silent_with_both_filters_and_ids(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Test creating reruns with both test_execution_ids and test_results_filters"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te2, status=TestResultStatus.FAILED)
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_execution_ids": [te1.id],
+                "test_results_filters": {
+                    "test_result_statuses": ["FAILED"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+
+    # Both te1 (from ID) and te2 (from filter) should have reruns
+    # But since they share composite key, only 1 rerun request exists
+    reruns = get().json()
+    assert len(reruns) == 1
+
+
+# ==============================================================================
+# Bulk Rerun Features - DELETE with Filters
+# ==============================================================================
+
+
+def test_delete_with_test_results_filters(
+    test_client: TestClient, post: Post, get: Get, generator: DataGenerator
+):
+    """Test deleting reruns with test_results_filters"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+
+    te1 = generator.gen_test_execution(ab, e1, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e2, ci_link="http://ci2")
+
+    tc1 = generator.gen_test_case("test_case_1")
+    tc2 = generator.gen_test_case("test_case_2")
+    generator.gen_test_result(tc1, te1, status=TestResultStatus.FAILED)
+    generator.gen_test_result(tc2, te2, status=TestResultStatus.PASSED)
+
+    # Create reruns for both
+    post({"test_execution_ids": [te1.id, te2.id]})
+    assert len(get().json()) == 2
+
+    # Delete only failed test results
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            "DELETE",
+            reruns_url,
+            json={
+                "test_results_filters": {
+                    "test_result_statuses": ["FAILED"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+
+    # Only te2's rerun should remain
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution_id"] == te2.id
+
+
+def test_delete_with_empty_test_results_filters_returns_422(
+    test_client: TestClient,
+):
+    """Test that deleting with empty test_results_filters returns 422"""
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            "DELETE",
+            reruns_url,
+            json={
+                "test_results_filters": {}
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 422
+    assert "At least one filter must be provided" in response.json()["detail"]
+
+
+# ==============================================================================
+# Permission Requirements
+# ==============================================================================
+
+
+def test_bulk_permission_required_for_multiple_test_execution_ids(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that change_rerun_bulk permission is required for multiple IDs"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+
+    # Without bulk permission should fail
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            json={"test_execution_ids": [te1.id, te2.id]},
+        ),
+        Permission.change_rerun,  # Only regular permission
+    )
+
+    assert response.status_code == 403
+
+
+def test_bulk_permission_not_required_for_single_test_execution_id(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that change_rerun_bulk permission is NOT required for single ID"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+
+    # With only regular permission should succeed for single ID
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            json={"test_execution_ids": [te.id]},
+        ),
+        Permission.change_rerun,  # Only regular permission
+    )
+
+    assert response.status_code == 200
+
+
+def test_bulk_permission_required_for_test_results_filters(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that change_rerun_bulk permission is required for test_results_filters"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te, status=TestResultStatus.FAILED)
+
+    # Without bulk permission should fail
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_results_filters": {
+                    "test_result_statuses": ["FAILED"],
+                }
+            },
+        ),
+        Permission.change_rerun,  # Only regular permission
+    )
+
+    assert response.status_code == 403
+
+
+def test_delete_bulk_permission_required_for_multiple_ids(
+    test_client: TestClient, post: Post, generator: DataGenerator
+):
+    """Test that change_rerun_bulk permission is required for deleting multiple IDs"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    te1 = generator.gen_test_execution(ab, e1, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e2, ci_link="http://ci2")
+
+    # Create reruns
+    post({"test_execution_ids": [te1.id, te2.id]})
+
+    # Without bulk permission should fail
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            "DELETE",
+            reruns_url,
+            json={"test_execution_ids": [te1.id, te2.id]},
+        ),
+        Permission.change_rerun,  # Only regular permission
+    )
+
+    assert response.status_code == 403
+
+
+def test_delete_bulk_permission_not_required_for_single_id(
+    test_client: TestClient, post: Post, get: Get, generator: DataGenerator
+):
+    """Test that change_rerun_bulk permission is NOT required for deleting single ID"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+
+    # Create rerun
+    post({"test_execution_ids": [te.id]})
+
+    # With only regular permission should succeed for single ID
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            "DELETE",
+            reruns_url,
+            json={"test_execution_ids": [te.id]},
+        ),
+        Permission.change_rerun,  # Only regular permission
+    )
+
+    assert response.status_code == 200
+    assert len(get().json()) == 0
+
+
+# ==============================================================================
+# Edge Cases and Validation
+# ==============================================================================
+
+
+def test_post_with_empty_test_execution_ids_list(
+    test_client: TestClient, get: Get
+):
+    """Test that posting with empty test_execution_ids list returns 404"""
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            json={"test_execution_ids": []},
+        ),
+        Permission.change_rerun,
+    )
+
+    # Empty list is treated as not finding any test executions
+    assert response.status_code == 404
+    assert "Didn't find test executions" in response.json()["detail"]
+    # No reruns should be created
+    assert len(get().json()) == 0
+
+
+def test_post_silent_with_empty_ids_does_nothing(
+    test_client: TestClient, get: Get
+):
+    """Test that silent mode with empty IDs gracefully does nothing"""
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": []},
+        ),
+        Permission.change_rerun,
+    )
+
+    assert response.status_code == 200
+    assert response.json() is None
+    assert len(get().json()) == 0
+
+
+def test_post_with_filters_matching_no_results(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Test that filters matching no test results does nothing"""
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te, status=TestResultStatus.PASSED)
+
+    # Filter for failed results when all are passed
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_results_filters": {
+                    "test_result_statuses": ["FAILED"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    # Should not create any reruns
+    assert len(get().json()) == 0
+
+
+def test_post_filters_by_artefact_name(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Test filtering reruns by artefact name"""
+    a1 = generator.gen_artefact(StageName.beta, name="firefox")
+    a2 = generator.gen_artefact(StageName.beta, name="chrome")
+    ab1 = generator.gen_artefact_build(a1)
+    ab2 = generator.gen_artefact_build(a2)
+    e = generator.gen_environment("test-env")
+    
+    te1 = generator.gen_test_execution(ab1, e, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab2, e, ci_link="http://ci2")
+    
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te1, status=TestResultStatus.FAILED)
+    generator.gen_test_result(tc, te2, status=TestResultStatus.FAILED)
+
+    # Filter only for firefox artefact
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_results_filters": {
+                    "artefacts": ["firefox"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    
+    # Only te1 should have rerun created
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["artefact"]["name"] == "firefox"
+
+
+def test_post_filters_by_environment_name(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Test filtering reruns by environment name"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("rpi4")
+    e2 = generator.gen_environment("laptop")
+    
+    te1 = generator.gen_test_execution(ab, e1, ci_link="http://ci1")
+    te2 = generator.gen_test_execution(ab, e2, ci_link="http://ci2")
+    
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te1, status=TestResultStatus.FAILED)
+    generator.gen_test_result(tc, te2, status=TestResultStatus.FAILED)
+
+    # Filter only for rpi4 environment
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={
+                "test_results_filters": {
+                    "environments": ["rpi4"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    
+    # Only te1 should have rerun created
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution"]["environment"]["name"] == "rpi4"
+
+
+def test_delete_with_empty_ids_does_nothing(
+    test_client: TestClient, post: Post, get: Get, generator: DataGenerator
+):
+    """Test that deleting with empty IDs does nothing"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    
+    # Create a rerun
+    post({"test_execution_ids": [te.id]})
+    assert len(get().json()) == 1
+
+    # Delete with empty list should do nothing
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            "DELETE",
+            reruns_url,
+            json={"test_execution_ids": []},
+        ),
+        Permission.change_rerun,
+    )
+
+    assert response.status_code == 200
+    # Rerun should still exist
+    assert len(get().json()) == 1
+
+
+def test_post_non_silent_with_single_id_and_filters_fails(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that non-silent mode fails even with single ID if filters are provided"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    
+    tc = generator.gen_test_case("test_case_1")
+    generator.gen_test_result(tc, te, status=TestResultStatus.FAILED)
+
+    # Non-silent mode should fail with test_results_filters even with single ID
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            json={
+                "test_execution_ids": [te.id],
+                "test_results_filters": {
+                    "test_result_statuses": ["FAILED"],
+                }
+            },
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 422
+    assert "must be done silently" in response.json()["detail"]
