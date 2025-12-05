@@ -24,6 +24,7 @@ import '../../providers/issue_test_results.dart';
 import '../spacing.dart';
 import '../test_results_page/test_results_table.dart';
 import '../test_results_page/test_results_filters_view.dart';
+import '../test_results_page/bulk_operations/bulk_operation_buttons.dart';
 
 class TestResultsSection extends ConsumerStatefulWidget {
   const TestResultsSection({super.key, required this.issue});
@@ -67,6 +68,7 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Spacing.level4,
       children: [
         // Test Results section with filter toggle
         Row(
@@ -86,7 +88,6 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
             ),
           ],
         ),
-        const SizedBox(height: Spacing.level3),
 
         if (showFilters) ...[
           TestResultsFiltersView(
@@ -100,8 +101,15 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
               FilterType.dateRange,
             },
           ),
-          const SizedBox(height: Spacing.level4),
         ],
+
+        BulkOperationsButtons(
+          filters: _currentFilters,
+          enabledOperations: const {
+            BulkOperationType.createRerunRequests,
+            BulkOperationType.deleteRerunRequests,
+          },
+        ),
 
         testResultsAsync.when(
           data: (testResultsData) {

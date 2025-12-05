@@ -146,7 +146,8 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                     if (widget.shouldDelete) {
                       await ref.read(rerunsProvider.notifier).deleteReruns(
                             filters: widget.filters.copyWith(
-                                rerunIsRequested: widget.shouldDelete,),
+                              rerunIsRequested: widget.shouldDelete,
+                            ),
                           );
                     } else {
                       await ref.read(rerunsProvider.notifier).createReruns(
