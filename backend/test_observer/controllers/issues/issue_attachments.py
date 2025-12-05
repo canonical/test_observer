@@ -133,13 +133,13 @@ def require_bulk_permission(
     security_scopes: SecurityScopes,
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
-) -> None:
+):
     if (
         (request.test_results is not None and len(request.test_results) > 1)
         or (request.test_results_filters is not None)
         or (request.attachment_rule is not None)
     ):
-        return permission_checker(security_scopes, user, app)
+        permission_checker(security_scopes, user, app)
 
 
 @router.post(
