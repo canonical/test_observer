@@ -16,10 +16,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../../models/test_results_filters.dart';
 import '../../../providers/reruns.dart';
 import '../../../providers/test_results_search.dart';
+import '../../inline_url_text.dart';
 import '../../spacing.dart';
 
 class _BulkModifyRerunsForm extends ConsumerStatefulWidget {
@@ -35,13 +37,15 @@ class _BulkModifyRerunsForm extends ConsumerStatefulWidget {
 
 class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
   late final GlobalKey<FormState> formKey;
-  bool onlyLatestExecutions = true;
-  bool excludeArchivedArtefacts = true;
+  late bool onlyLatestExecutions;
+  late bool excludeArchivedArtefacts;
 
   @override
   void initState() {
     super.initState();
     formKey = GlobalKey<FormState>();
+    onlyLatestExecutions = !widget.shouldDelete;
+    excludeArchivedArtefacts = !widget.shouldDelete;
   }
 
   @override
@@ -84,25 +88,11 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
     final testResultsAsync = ref.watch(
       testResultsSearchProvider(modifyTestResultFilters.copyWith(limit: 0)),
     );
-    if (testResultsAsync.isLoading) {
-      return const UnconstrainedBox(child: CircularProgressIndicator());
-    }
-    if (testResultsAsync.hasError) {
-      return const Text('Failed to load test results.');
-    }
-    final testResults = testResultsAsync.value;
-    final testResultsCount = testResults?.count ?? 0;
-    if (testResultsCount == 0) {
-      if (widget.shouldDelete) {
-        return const Text(
-          'No test results have rerun requests.',
-        );
-      } else {
-        return const Text(
-          'No test results do not already have rerun requests.',
-        );
-      }
-    }
+
+    final isLoading = testResultsAsync.isLoading;
+    final hasError = testResultsAsync.hasError;
+    final testResultsCount =
+        testResultsAsync.hasValue ? (testResultsAsync.value?.count ?? 0) : 0;
 
     return Form(
       key: formKey,
@@ -111,17 +101,13 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: Spacing.level4,
+          spacing: Spacing.level3,
           children: [
             Text(
               widget.shouldDelete
                   ? 'Delete Rerun Requests'
                   : 'Create Rerun Requests',
               style: Theme.of(context).textTheme.titleLarge,
-            ),
-            Text(
-              '$testResultsCount matched test results will be affected.',
-              style: Theme.of(context).textTheme.bodyLarge,
             ),
             _buildCheckbox(
               title: 'Only latest test executions',
@@ -141,6 +127,27 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                 });
               },
             ),
+            if (isLoading)
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: YaruCircularProgressIndicator(),
+              )
+            else if (hasError)
+              const Text(
+                'Failed to load test results.',
+                style: TextStyle(color: Colors.red),
+              )
+            else
+              InlineUrlText(
+                url: '/#${modifyTestResultFilters.toTestResultsUri()}',
+                urlText: 'Matches $testResultsCount test results',
+                fontStyle: Theme.of(context).textTheme.bodyLarge?.apply(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontStyle: FontStyle.italic,
+                      decoration: TextDecoration.none,
+                    ),
+              ),
             Row(
               children: [
                 TextButton(
@@ -153,52 +160,62 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                 const Spacer(),
                 TextButton(
                   key: const Key('bulkModifyRerunsFormSubmitButton'),
-                  onPressed: () async {
-                    // Ensure the form is valid before proceeding.
-                    if (formKey.currentState?.validate() != true) return;
+                  onPressed: (isLoading || hasError || testResultsCount == 0)
+                      ? null
+                      : () async {
+                          // Ensure the form is valid before proceeding.
+                          if (formKey.currentState?.validate() != true) return;
 
-                    // Double check if there are many many test results
-                    if (testResultsCount > 50) {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Confirm Bulk Operation'),
-                          content: Text(
-                            'You are about to ${widget.shouldDelete ? 'delete' : 'create'} rerun requests for over 50 test results. Do you want to proceed?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('proceed'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm != true) {
-                        return;
-                      }
-                    }
+                          // Double check if there are many many test results
+                          if (testResultsCount > 50) {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Confirm Bulk Operation'),
+                                content: Text(
+                                  'You are about to ${widget.shouldDelete ? 'delete' : 'create'} rerun requests for over 50 test results. Do you want to proceed?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: const Text('cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(true),
+                                    child: const Text('proceed'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm != true) {
+                              return;
+                            }
+                          }
 
-                    // Submit the bulk operation.
-                    if (widget.shouldDelete) {
-                      await ref.read(rerunsProvider.notifier).deleteReruns(
-                            filters: modifyTestResultFilters,
-                          );
-                    } else {
-                      await ref.read(rerunsProvider.notifier).createReruns(
-                            filters: modifyTestResultFilters,
-                          );
-                    }
+                          // Submit the bulk operation.
+                          if (widget.shouldDelete) {
+                            await ref
+                                .read(rerunsProvider.notifier)
+                                .deleteReruns(
+                                  filters: modifyTestResultFilters,
+                                );
+                          } else {
+                            await ref
+                                .read(rerunsProvider.notifier)
+                                .createReruns(
+                                  filters: modifyTestResultFilters,
+                                );
+                          }
 
-                    // Close the form.
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop();
-                  },
-                  child: widget.shouldDelete ? Text('delete') : Text('create'),
+                          // Close the form.
+                          if (!context.mounted) return;
+                          Navigator.of(context).pop();
+                        },
+                  child: widget.shouldDelete
+                      ? const Text('delete')
+                      : const Text('create'),
                 ),
               ],
             ),
