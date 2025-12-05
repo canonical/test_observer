@@ -57,7 +57,7 @@ class _BulkIssueAttachmentFormState
     final testResultsAsync =
         ref.watch(testResultsSearchProvider(widget.filters));
     if (testResultsAsync.isLoading) {
-      return CircularProgressIndicator();
+      return const UnconstrainedBox(child: CircularProgressIndicator());
     }
     if (testResultsAsync.hasError) {
       return const Text('Failed to load test results.');
