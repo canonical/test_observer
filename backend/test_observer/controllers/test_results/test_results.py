@@ -43,8 +43,8 @@ from test_observer.data_access.setup import get_db
 from .models import (
     TestResultSearchResponseWithContext,
     TestResultResponseWithContext,
-    TestResultSearchFilters,
 )
+from .shared_models import TestResultSearchFilters
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from .filter_test_results import filter_test_results
 

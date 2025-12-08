@@ -246,6 +246,20 @@
         ],
         "summary": "Create Rerun Requests",
         "operationId": "create_rerun_requests_v1_test_executions_reruns_post",
+        "parameters": [
+          {
+            "name": "silent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test result filters.",
+              "default": false,
+              "title": "Silent"
+            },
+            "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test result filters."
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -262,10 +276,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PendingRerun"
-                  },
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingRerun"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
                   "title": "Response Create Rerun Requests V1 Test Executions Reruns Post"
                 }
               }
@@ -283,7 +304,8 @@
           }
         },
         "x-permissions": [
-          "change_rerun"
+          "change_rerun",
+          "change_rerun_bulk"
         ]
       },
       "get": {
@@ -441,7 +463,8 @@
           }
         },
         "x-permissions": [
-          "change_rerun"
+          "change_rerun",
+          "change_rerun_bulk"
         ]
       }
     },
@@ -4399,12 +4422,19 @@
             "type": "array",
             "uniqueItems": true,
             "title": "Test Execution Ids"
+          },
+          "test_results_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestResultSearchFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
-        "required": [
-          "test_execution_ids"
-        ],
         "title": "DeleteReruns"
       },
       "EndTestExecutionRequest": {
@@ -5124,6 +5154,7 @@
           "change_test",
           "view_rerun",
           "change_rerun",
+          "change_rerun_bulk",
           "view_artefact",
           "change_artefact",
           "view_environment_review",
@@ -5167,12 +5198,19 @@
             "type": "array",
             "uniqueItems": true,
             "title": "Test Execution Ids"
+          },
+          "test_results_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestResultSearchFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
-        "required": [
-          "test_execution_ids"
-        ],
         "title": "RerunRequest"
       },
       "SnapStage": {
