@@ -18,15 +18,11 @@ import logging
 import sys
 from collections import ChainMap
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    DatabaseRequires,
-    RelationChangedEvent,
-    RelationJoinedEvent,
-)
+from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
 from ops import StoredState
-from ops.charm import CharmBase
+from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import ExecError, Layer
@@ -96,7 +92,7 @@ class TestObserverBackendCharm(CharmBase):
 
     def _setup_redis(self):
         self._stored.set_default(redis_relation={})
-        self.redis = RedisRequires(self, self._stored)
+        self.redis = RedisRequires(self)
         self.framework.observe(
             self.on.redis_relation_updated,
             self._on_config_changed,
@@ -260,7 +256,7 @@ class TestObserverBackendCharm(CharmBase):
         env.update(self._postgres_relation_data())
         return env
 
-    def _test_observer_rest_api_client_joined(self, event: RelationJoinedEvent) -> None:
+    def _test_observer_rest_api_client_joined(self, event: RelationCreatedEvent) -> None:
         logger.info(f"Test Observer REST API client joined {event}")
 
     def _test_observer_rest_api_client_changed(self, event: RelationChangedEvent) -> None:
