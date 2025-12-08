@@ -17,11 +17,12 @@
 
 import contextlib
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Security
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Security, Query
 from fastapi.security import SecurityScopes
 from sqlalchemy import delete, select, asc, tuple_, or_
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from typing import Annotated
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.applications.application_injection import (
@@ -138,7 +139,17 @@ def require_bulk_permission(
 def create_rerun_requests(
     request: RerunRequest,
     response: Response,
-    silent: bool = False,
+    silent: Annotated[
+        bool,
+        Query(
+            description=(
+                "If true, omit returning created reruns in the response body. "
+                "Speeds up bulk operations, as the rerun schema contains a lot of "
+                "information and returning many reruns can be slow. "
+                "Required when creating reruns with test result filters."
+            ),
+        ),
+    ] = False,
     db: Session = Depends(get_db),
 ):
     if silent:
