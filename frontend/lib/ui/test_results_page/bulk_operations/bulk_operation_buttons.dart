@@ -21,16 +21,31 @@ import '../../../models/test_results_filters.dart';
 import '../../spacing.dart';
 import 'bulk_issue_attachment_form.dart';
 import 'create_attachment_rule_form.dart';
+import 'bulk_modify_reruns_form.dart';
+
+enum BulkOperationType {
+  createAttachmentRule,
+  attachIssue,
+  detachIssue,
+  createRerunRequests,
+  deleteRerunRequests,
+}
 
 class BulkOperationsButtons extends StatelessWidget {
   final TestResultsFilters filters;
   final bool disabled;
+  final Set<BulkOperationType>? enabledOperations;
 
   const BulkOperationsButtons({
     super.key,
     required this.filters,
     this.disabled = false,
+    this.enabledOperations,
   });
+
+  bool _isOperationEnabled(BulkOperationType operation) {
+    return enabledOperations == null || enabledOperations!.contains(operation);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,47 +62,80 @@ class BulkOperationsButtons extends StatelessWidget {
           spacing: Spacing.level4,
           runSpacing: Spacing.level4,
           children: [
-            ElevatedButton(
-              onPressed: disabled
-                  ? null
-                  : () => showCreateAttachmentRuleDialog(
-                        context: context,
-                        filters: filters,
-                      ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: YaruColors.orange,
-                foregroundColor: Colors.white,
+            if (_isOperationEnabled(BulkOperationType.createAttachmentRule))
+              ElevatedButton(
+                onPressed: disabled
+                    ? null
+                    : () => showCreateAttachmentRuleDialog(
+                          context: context,
+                          filters: filters,
+                        ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: YaruColors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Create Attachment Rule'),
               ),
-              child: const Text('Create Attachment Rule'),
-            ),
-            ElevatedButton(
-              onPressed: disabled
-                  ? null
-                  : () => showBulkIssueAttachmentDialog(
-                        context: context,
-                        filters: filters,
-                        shouldDetach: false,
-                      ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: YaruColors.orange,
-                foregroundColor: Colors.white,
+            if (_isOperationEnabled(BulkOperationType.attachIssue))
+              ElevatedButton(
+                onPressed: disabled
+                    ? null
+                    : () => showBulkIssueAttachmentDialog(
+                          context: context,
+                          filters: filters,
+                          shouldDetach: false,
+                        ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: YaruColors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Attach Issue'),
               ),
-              child: const Text('Attach Issue'),
-            ),
-            ElevatedButton(
-              onPressed: disabled
-                  ? null
-                  : () => showBulkIssueAttachmentDialog(
-                        context: context,
-                        filters: filters,
-                        shouldDetach: true,
-                      ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: YaruColors.orange,
-                foregroundColor: Colors.white,
+            if (_isOperationEnabled(BulkOperationType.detachIssue))
+              ElevatedButton(
+                onPressed: disabled
+                    ? null
+                    : () => showBulkIssueAttachmentDialog(
+                          context: context,
+                          filters: filters,
+                          shouldDetach: true,
+                        ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: YaruColors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Detach Issue'),
               ),
-              child: const Text('Detach Issue'),
-            ),
+            if (_isOperationEnabled(BulkOperationType.createRerunRequests))
+              ElevatedButton(
+                onPressed: disabled
+                    ? null
+                    : () => showModifyRerunsDialog(
+                          context: context,
+                          filters: filters,
+                          shouldDelete: false,
+                        ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: YaruColors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Create Rerun Requests'),
+              ),
+            if (_isOperationEnabled(BulkOperationType.deleteRerunRequests))
+              ElevatedButton(
+                onPressed: disabled
+                    ? null
+                    : () => showModifyRerunsDialog(
+                          context: context,
+                          filters: filters,
+                          shouldDelete: true,
+                        ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: YaruColors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete Rerun Requests'),
+              ),
           ],
         ),
       ],
