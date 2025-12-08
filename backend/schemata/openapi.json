@@ -2773,6 +2773,42 @@
             "description": "Filter by assignee user ids"
           },
           {
+            "name": "rerun_is_requested",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether a rerun has been requested for the test execution",
+              "title": "Rerun Is Requested"
+            },
+            "description": "Filter by whether a rerun has been requested for the test execution"
+          },
+          {
+            "name": "execution_is_latest",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the test execution is the latest in its environment/artifact/test plan combination",
+              "title": "Execution Is Latest"
+            },
+            "description": "Filter by whether the test execution is the latest in its environment/artifact/test plan combination"
+          },
+          {
             "name": "from_date",
             "in": "query",
             "required": false,
@@ -6277,6 +6313,28 @@
               }
             ],
             "title": "Assignee Ids"
+          },
+          "rerun_is_requested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Is Requested"
+          },
+          "execution_is_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Is Latest"
           },
           "from_date": {
             "anyOf": [
