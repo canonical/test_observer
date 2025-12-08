@@ -48,11 +48,6 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
     excludeArchivedArtefacts = !widget.shouldDelete;
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Widget _buildCheckbox({
     required String title,
     required bool value,
