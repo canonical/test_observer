@@ -34,7 +34,18 @@ depends_on = None
 
 def upgrade() -> None:
     # Add test_result_statuses column to issue_test_result_attachment_rule table
-    op.add_column('issue_test_result_attachment_rule', sa.Column('test_result_statuses', postgresql.ARRAY(sa.Enum('PASSED', 'FAILED', 'SKIPPED', name='testresultstatus')), nullable=False))
+    op.add_column('issue_test_result_attachment_rule', sa.Column(
+        'test_result_statuses', 
+        postgresql.ARRAY(
+            sa.Enum(
+                'PASSED', 
+                'FAILED', 
+                'SKIPPED', 
+                name='testresultstatus'
+            )
+        ), 
+        nullable=False)
+    )
 
 
 def downgrade() -> None:

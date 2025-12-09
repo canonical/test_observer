@@ -63,8 +63,10 @@ class BulkAttachSection extends ConsumerWidget {
           children: [
             for (final status in TestResultStatus.values)
               () {
-                final isCurrent = currentTestResultStatus != null && status == currentTestResultStatus;
-                final selected = isCurrent || attachmentRuleFilters.testResultStatuses.contains(status);
+                final isCurrent = currentTestResultStatus != null &&
+                    status == currentTestResultStatus;
+                final selected = isCurrent ||
+                    attachmentRuleFilters.testResultStatuses.contains(status);
                 return FilterChip(
                   label: Text(status.name),
                   selected: selected,
@@ -75,7 +77,8 @@ class BulkAttachSection extends ConsumerWidget {
                             attachmentRuleFilters.testResultStatuses,
                           );
                           if (selected) {
-                            if (!newStatuses.contains(status)) newStatuses.add(status);
+                            if (!newStatuses.contains(status))
+                              newStatuses.add(status);
                           } else {
                             newStatuses.remove(status);
                           }

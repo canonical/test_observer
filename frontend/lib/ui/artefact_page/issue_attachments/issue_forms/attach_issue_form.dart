@@ -82,9 +82,10 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
         )
         .value;
     _currentTestResultStatus = testResult?.status;
-    
+
     // Initialize attachment rule filters with current test result status if not already set
-    if (_attachmentRuleFilters.testResultStatuses.isEmpty && _currentTestResultStatus != null) {
+    if (_attachmentRuleFilters.testResultStatuses.isEmpty &&
+        _currentTestResultStatus != null) {
       _attachmentRuleFilters = _attachmentRuleFilters.copyWith(
         testResultStatuses: [_currentTestResultStatus!],
       );
@@ -124,8 +125,12 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                         onChanged: (checked) {
                           setState(() {
                             _createAttachmentRule = checked;
-                            if (checked && _attachmentRuleFilters.testResultStatuses.isEmpty && _currentTestResultStatus != null) {
-                              _attachmentRuleFilters = _attachmentRuleFilters.copyWith(
+                            if (checked &&
+                                _attachmentRuleFilters
+                                    .testResultStatuses.isEmpty &&
+                                _currentTestResultStatus != null) {
+                              _attachmentRuleFilters =
+                                  _attachmentRuleFilters.copyWith(
                                 testResultStatuses: [_currentTestResultStatus!],
                               );
                             }
@@ -197,9 +202,10 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                     // Create the attachment rule if requested.
                     AttachmentRule? attachmentRule;
                     if (_createAttachmentRule) {
-                      
-                      if (_attachmentRuleFilters.testResultStatuses.length>=2 && context.mounted 
-                        && (_attachToNewerResults || _attachToOlderResults)) {
+                      if (_attachmentRuleFilters.testResultStatuses.length >=
+                              2 &&
+                          context.mounted &&
+                          (_attachToNewerResults || _attachToOlderResults)) {
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (BuildContext dialogContext) {
@@ -212,11 +218,13 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                               ),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(false),
                                   child: const Text('Cancel'),
                                 ),
                                 TextButton(
-                                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(true),
                                   child: const Text('Continue'),
                                 ),
                               ],
