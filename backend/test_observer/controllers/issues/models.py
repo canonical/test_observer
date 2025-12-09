@@ -17,7 +17,12 @@
 
 from pydantic import BaseModel, HttpUrl, ConfigDict, Field, AliasPath
 
-from test_observer.data_access.models_enums import IssueSource, IssueStatus, FamilyName
+from test_observer.data_access.models_enums import (
+    IssueSource,
+    IssueStatus,
+    FamilyName,
+    TestResultStatus,
+)
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
@@ -60,11 +65,13 @@ class IssueTestResultAttachmentRulePostRequest(BaseModel):
     environment_names: list[str] = Field(default_factory=list)
     test_case_names: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
+    test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
 
 
 class IssueTestResultAttachmentRulePatchRequest(BaseModel):
     enabled: bool | None = None
+    test_result_statuses: list[TestResultStatus] | None = None
 
 
 class IssueResponse(BaseModel):

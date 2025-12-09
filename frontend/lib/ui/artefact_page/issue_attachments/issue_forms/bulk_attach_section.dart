@@ -20,6 +20,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../../../models/attachment_rule_filters.dart';
 import '../../../../models/test_results_filters.dart';
+import '../../../../models/test_result.dart';
 import '../../../../providers/test_results_search.dart';
 import '../../../inline_url_text.dart';
 import '../../../spacing.dart';
@@ -33,6 +34,8 @@ class BulkAttachSection extends ConsumerWidget {
     required this.selectedBulkAttachNewer,
     required this.onBulkAttachOlderChanged,
     required this.onBulkAttachNewerChanged,
+    this.onStatusesChanged,
+    this.currentTestResultStatus,
   });
 
   final DateTime splitTime;
@@ -41,12 +44,48 @@ class BulkAttachSection extends ConsumerWidget {
   final bool selectedBulkAttachNewer;
   final ValueChanged<bool> onBulkAttachOlderChanged;
   final ValueChanged<bool> onBulkAttachNewerChanged;
+  final ValueChanged<List<TestResultStatus>>? onStatusesChanged;
+  final TestResultStatus? currentTestResultStatus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          'Test Result Statuses',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: Spacing.level2),
+        Wrap(
+          spacing: Spacing.level3,
+          runSpacing: Spacing.level2,
+          children: [
+            for (final status in TestResultStatus.values)
+              () {
+                final isCurrent = currentTestResultStatus != null && status == currentTestResultStatus;
+                final selected = isCurrent || attachmentRuleFilters.testResultStatuses.contains(status);
+                return FilterChip(
+                  label: Text(status.name),
+                  selected: selected,
+                  onSelected: isCurrent
+                      ? null
+                      : (selected) {
+                          final newStatuses = List<TestResultStatus>.from(
+                            attachmentRuleFilters.testResultStatuses,
+                          );
+                          if (selected) {
+                            if (!newStatuses.contains(status)) newStatuses.add(status);
+                          } else {
+                            newStatuses.remove(status);
+                          }
+                          onStatusesChanged?.call(newStatuses);
+                        },
+                );
+              }(),
+          ],
+        ),
+        const SizedBox(height: Spacing.level4),
         Text(
           'Attach to existing test results',
           style: Theme.of(context).textTheme.titleLarge,

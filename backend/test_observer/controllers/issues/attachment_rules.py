@@ -61,6 +61,7 @@ def post_attachment_rule(
         environment_names=request.environment_names,
         test_case_names=request.test_case_names,
         template_ids=request.template_ids,
+        test_result_statuses=request.test_result_statuses,
         execution_metadata=[
             IssueTestResultAttachmentRuleExecutionMetadata(
                 category=metadata.category,
@@ -102,6 +103,10 @@ def patch_attachment_rule(
     # Modify the attachment rule
     if request.enabled is not None:
         attachment_rule.enabled = request.enabled
+    
+    # Update current test result statuses
+    if request.test_result_statuses is not None:
+        attachment_rule.test_result_statuses = request.test_result_statuses
 
     # Save the attachment rule
     db.commit()
