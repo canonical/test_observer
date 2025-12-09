@@ -103,7 +103,7 @@ def patch_attachment_rule(
     # Modify the attachment rule
     if request.enabled is not None:
         attachment_rule.enabled = request.enabled
-    
+
     # Update current test result statuses
     if request.test_result_statuses is not None:
         attachment_rule.test_result_statuses = request.test_result_statuses

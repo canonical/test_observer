@@ -77,8 +77,9 @@ class BulkAttachSection extends ConsumerWidget {
                             attachmentRuleFilters.testResultStatuses,
                           );
                           if (selected) {
-                            if (!newStatuses.contains(status))
+                            if (!newStatuses.contains(status)) {
                               newStatuses.add(status);
+                            }
                           } else {
                             newStatuses.remove(status);
                           }

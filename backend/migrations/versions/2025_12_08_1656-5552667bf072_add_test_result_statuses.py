@@ -21,33 +21,32 @@ Revises: c3f90b376843
 Create Date: 2025-12-08 16:56:37.037889+00:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5552667bf072'
-down_revision = 'c3f90b376843'
+revision = "5552667bf072"
+down_revision = "c3f90b376843"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
     # Add test_result_statuses column to issue_test_result_attachment_rule table
-    op.add_column('issue_test_result_attachment_rule', sa.Column(
-        'test_result_statuses', 
-        postgresql.ARRAY(
-            sa.Enum(
-                'PASSED', 
-                'FAILED', 
-                'SKIPPED', 
-                name='testresultstatus'
-            )
-        ), 
-        nullable=False)
+    op.add_column(
+        "issue_test_result_attachment_rule",
+        sa.Column(
+            "test_result_statuses",
+            postgresql.ARRAY(
+                sa.Enum("PASSED", "FAILED", "SKIPPED", name="testresultstatus")
+            ),
+            nullable=False,
+        ),
     )
 
 
 def downgrade() -> None:
     # drop test_result_statuses column from issue_test_result_attachment_rule table
-    op.drop_column('issue_test_result_attachment_rule', 'test_result_statuses')
+    op.drop_column("issue_test_result_attachment_rule", "test_result_statuses")
