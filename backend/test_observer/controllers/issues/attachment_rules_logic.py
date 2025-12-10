@@ -26,9 +26,8 @@ from sqlalchemy import (
     ColumnElement,
     Select,
     literal,
-    cast,
 )
-from sqlalchemy.dialects.postgresql import insert, ENUM
+from sqlalchemy.dialects.postgresql import insert
 
 from test_observer.data_access.models import (
     TestResult,
@@ -38,7 +37,6 @@ from test_observer.data_access.models import (
     TestExecution,
     IssueTestResultAttachment,
 )
-from test_observer.data_access.models_enums import TestResultStatus
 
 
 def _array_empty_or_contains(
@@ -154,10 +152,7 @@ def query_matching_test_result_attachment_rules(
     stmt = stmt.where(
         _array_empty_or_contains(
             IssueTestResultAttachmentRule.test_result_statuses,
-            cast(
-                literal(test_result.status.value),
-                ENUM(TestResultStatus, name="testresultstatus"),
-            ),
+            literal(test_result.status),
         )
     )
 

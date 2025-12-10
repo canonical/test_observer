@@ -164,6 +164,23 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
                   onChanged?.call(newFilters);
                 },
               ),
+              _buildFilterSection(
+                context: context,
+                label: 'Test Result Statuses',
+                allValues: filters.testResultStatuses,
+                displayValues: Map.fromEntries(
+                  filters.testResultStatuses
+                      .map((v) => MapEntry(v, v.name)),
+                ),
+                selectedValues: selected.testResultStatuses.toSet(),
+                onChanged: (newStatuses) {
+                  final newFilters = selected.copyWith(
+                    testResultStatuses: newStatuses.toList(),
+                  );
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
             ] else
               Text(
                 'No filters available.',

@@ -104,10 +104,6 @@ def patch_attachment_rule(
     if request.enabled is not None:
         attachment_rule.enabled = request.enabled
 
-    # Update current test result statuses
-    if request.test_result_statuses is not None:
-        attachment_rule.test_result_statuses = request.test_result_statuses
-
     # Save the attachment rule
     db.commit()
     db.refresh(attachment_rule)

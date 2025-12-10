@@ -40,7 +40,7 @@ def upgrade() -> None:
         sa.Column(
             "test_result_statuses",
             postgresql.ARRAY(
-                sa.Enum("PASSED", "FAILED", "SKIPPED", name="testresultstatus")
+                postgresql.ENUM(name="testresultstatus", create_type=True)
             ),
             nullable=False,
         ),
