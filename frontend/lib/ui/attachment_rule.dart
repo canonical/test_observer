@@ -169,8 +169,7 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
                 label: 'Test Result Statuses',
                 allValues: filters.testResultStatuses,
                 displayValues: Map.fromEntries(
-                  filters.testResultStatuses
-                      .map((v) => MapEntry(v, v.name)),
+                  filters.testResultStatuses.map((v) => MapEntry(v, v.name)),
                 ),
                 selectedValues: selected.testResultStatuses.toSet(),
                 onChanged: (newStatuses) {
