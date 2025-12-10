@@ -71,7 +71,6 @@ class IssueTestResultAttachmentRulePostRequest(BaseModel):
 
 class IssueTestResultAttachmentRulePatchRequest(BaseModel):
     enabled: bool | None = None
-    test_result_statuses: list[TestResultStatus] | None = None
 
 
 class IssueResponse(BaseModel):

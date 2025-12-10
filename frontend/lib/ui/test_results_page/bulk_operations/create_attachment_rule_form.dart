@@ -62,10 +62,14 @@ class _CreateAttachmentRuleFormState
     final attachmentRuleFilters = AttachmentRuleFilters.fromTestResultsFilters(
       widget.filters,
     );
-    if (!attachmentRuleFilters.hasFilters &&
-        attachmentRuleFilters.testResultStatuses.isEmpty) {
+    if (!attachmentRuleFilters.hasFilters) {
       return Text(
         'Please provide at least one filter to create an attachment rule.',
+      );
+    }
+    if (!attachmentRuleFilters.hasMoreThanStatusFilter) {
+      return Text(
+        'Please provide at least one filter other than test result status to create an attachment rule.',
       );
     }
 

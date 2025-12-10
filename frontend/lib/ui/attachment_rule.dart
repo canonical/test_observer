@@ -34,7 +34,7 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
   });
 
   String? _validate(AttachmentRuleFilters? filters) {
-    if (editable && (filters == null || !filters.hasFilters)) {
+    if (editable && (filters == null || !filters.hasMoreThanStatusFilter)) {
       return 'Select at least one filter.';
     }
     return null;

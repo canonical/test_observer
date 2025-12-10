@@ -53,44 +53,6 @@ class BulkAttachSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Test Result Statuses',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: Spacing.level2),
-        Wrap(
-          spacing: Spacing.level3,
-          runSpacing: Spacing.level2,
-          children: [
-            for (final status in TestResultStatus.values)
-              () {
-                final isCurrent = currentTestResultStatus != null &&
-                    status == currentTestResultStatus;
-                final selected = isCurrent ||
-                    attachmentRuleFilters.testResultStatuses.contains(status);
-                return FilterChip(
-                  label: Text(status.name),
-                  selected: selected,
-                  onSelected: isCurrent
-                      ? null
-                      : (selected) {
-                          final newStatuses = List<TestResultStatus>.from(
-                            attachmentRuleFilters.testResultStatuses,
-                          );
-                          if (selected) {
-                            if (!newStatuses.contains(status)) {
-                              newStatuses.add(status);
-                            }
-                          } else {
-                            newStatuses.remove(status);
-                          }
-                          onStatusesChanged?.call(newStatuses);
-                        },
-                );
-              }(),
-          ],
-        ),
-        const SizedBox(height: Spacing.level4),
-        Text(
           'Attach to existing test results',
           style: Theme.of(context).textTheme.titleLarge,
         ),

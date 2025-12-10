@@ -92,6 +92,15 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
         environmentNames.isNotEmpty ||
         testCaseNames.isNotEmpty ||
         templateIds.isNotEmpty ||
+        executionMetadata.isNotEmpty ||
+        testResultStatuses.isNotEmpty;
+  }
+
+  bool get hasMoreThanStatusFilter {
+    return families.isNotEmpty ||
+        environmentNames.isNotEmpty ||
+        testCaseNames.isNotEmpty ||
+        templateIds.isNotEmpty ||
         executionMetadata.isNotEmpty;
   }
 }
