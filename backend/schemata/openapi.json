@@ -4909,20 +4909,6 @@
               }
             ],
             "title": "Enabled"
-          },
-          "test_result_statuses": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/TestResultStatus"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Test Result Statuses"
           }
         },
         "type": "object",
