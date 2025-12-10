@@ -22,6 +22,7 @@ dependencies:
   web: ^1.1.1
   yaru: ^7.0.0
   flutter_typeahead: ^5.0.1
+  visibility_detector: ^0.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
