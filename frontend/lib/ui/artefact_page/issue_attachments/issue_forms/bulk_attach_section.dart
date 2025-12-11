@@ -104,7 +104,7 @@ class BulkAttachIssueOption extends ConsumerStatefulWidget {
 }
 
 class _BulkAttachIssueOptionState extends ConsumerState<BulkAttachIssueOption> {
-  bool _fullyVisible = false;
+  bool _visibleEnough = false;
 
   @override
   Widget build(BuildContext context) {
@@ -114,54 +114,52 @@ class _BulkAttachIssueOptionState extends ConsumerState<BulkAttachIssueOption> {
           )
         : null;
 
-    final isDisabled = widget.onChanged == null || !_fullyVisible;
+    final isDisabled = widget.onChanged == null || !_visibleEnough;
 
     return VisibilityDetector(
       key: ValueKey('bulk-attach-${widget.title}'),
       onVisibilityChanged: (info) {
-        final mostlyVisible = info.visibleFraction >= 0.75;
-        if (mostlyVisible != _fullyVisible) {
+        // State needs updating when _visibleEnough is False and visibleFraction >= 0.75 is True
+        // or when _visibleEnough is True and fraction >= 0.75 is False
+        // so that is an XOR
+        final toggleVisibility =
+            (_visibleEnough != (info.visibleFraction >= 0.75));
+        if (toggleVisibility) {
           setState(() {
-            _fullyVisible = mostlyVisible;
+            _visibleEnough = !_visibleEnough;
           });
         }
       },
-      child: Opacity(
-        opacity: isDisabled ? 1.0 : 1.0,
-        child: IgnorePointer(
-          ignoring: isDisabled,
-          child: CheckboxListTile(
-            title: Row(
-              spacing: Spacing.level3,
-              children: [
-                Text(widget.title),
-                if (widget.loadNumberResults)
-                  matchingTestResults!.isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: YaruCircularProgressIndicator(),
-                        )
-                      : InlineUrlText(
-                          url: '/#${widget.filters.toTestResultsUri()}',
-                          urlText:
-                              'Matches ${matchingTestResults.value?.count ?? 0} test results',
-                          fontStyle: DefaultTextStyle.of(context).style.apply(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontStyle: FontStyle.italic,
-                                decoration: TextDecoration.none,
-                              ),
-                        ),
-              ],
-            ),
-            value: widget.value,
-            onChanged: isDisabled
-                ? null
-                : (selected) {
-                    widget.onChanged?.call(selected ?? false);
-                  },
-          ),
+      child: CheckboxListTile(
+        title: Row(
+          spacing: Spacing.level3,
+          children: [
+            Text(widget.title),
+            if (widget.loadNumberResults)
+              matchingTestResults!.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: YaruCircularProgressIndicator(),
+                    )
+                  : InlineUrlText(
+                      url: '/#${widget.filters.toTestResultsUri()}',
+                      urlText:
+                          'Matches ${matchingTestResults.value?.count ?? 0} test results',
+                      fontStyle: DefaultTextStyle.of(context).style.apply(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontStyle: FontStyle.italic,
+                            decoration: TextDecoration.none,
+                          ),
+                    ),
+          ],
         ),
+        value: widget.value,
+        onChanged: isDisabled
+            ? null
+            : (selected) {
+                widget.onChanged?.call(selected ?? false);
+              },
       ),
     );
   }
