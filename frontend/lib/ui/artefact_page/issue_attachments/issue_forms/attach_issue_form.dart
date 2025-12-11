@@ -195,8 +195,7 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                             return AlertDialog(
                               title: const Text('Confirm Attachment Rule'),
                               content: const Text(
-                                'You are creating an attachment rule that matches test results with filters beyond the current test status.\n\n'
-                                'The rule will apply to any test result matching the selected filters, not just the current one.\n\n'
+                                'The attachment rule will apply to all test results with the selected status and filters.\n\n'
                                 'Do you want to continue?',
                               ),
                               actions: [

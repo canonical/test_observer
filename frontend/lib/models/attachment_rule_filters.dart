@@ -76,6 +76,7 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
         filters;
   }
 
+  @freezed
   factory AttachmentRuleFilters.fromAttachmentRule(AttachmentRule rule) {
     return AttachmentRuleFilters(
       families: rule.families,
@@ -94,13 +95,5 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
         templateIds.isNotEmpty ||
         executionMetadata.isNotEmpty ||
         testResultStatuses.isNotEmpty;
-  }
-
-  bool get hasMoreThanStatusFilter {
-    return families.isNotEmpty ||
-        environmentNames.isNotEmpty ||
-        testCaseNames.isNotEmpty ||
-        templateIds.isNotEmpty ||
-        executionMetadata.isNotEmpty;
   }
 }
