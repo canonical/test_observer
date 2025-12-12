@@ -16,6 +16,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../../../models/attachment_rule_filters.dart';
@@ -79,7 +80,7 @@ class BulkAttachSection extends ConsumerWidget {
   }
 }
 
-class BulkAttachIssueOption extends ConsumerWidget {
+class BulkAttachIssueOption extends ConsumerStatefulWidget {
   const BulkAttachIssueOption({
     super.key,
     required this.title,
@@ -98,44 +99,67 @@ class BulkAttachIssueOption extends ConsumerWidget {
   final bool detach;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final matchingTestResults = loadNumberResults
-        ? ref.watch(testResultsSearchProvider(filters.copyWith(limit: 0)))
+  ConsumerState<BulkAttachIssueOption> createState() =>
+      _BulkAttachIssueOptionState();
+}
+
+class _BulkAttachIssueOptionState extends ConsumerState<BulkAttachIssueOption> {
+  bool _visibleEnough = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final matchingTestResults = widget.loadNumberResults
+        ? ref.watch(
+            testResultsSearchProvider(widget.filters.copyWith(limit: 0)),
+          )
         : null;
-    final isDisabled = onChanged == null;
-    return Opacity(
-      opacity: isDisabled ? 0.5 : 1.0,
-      child: IgnorePointer(
-        ignoring: isDisabled,
-        child: CheckboxListTile(
-          title: Row(
-            spacing: Spacing.level3,
-            children: [
-              Text(title),
-              if (loadNumberResults)
-                matchingTestResults!.isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: YaruCircularProgressIndicator(),
-                      )
-                    : InlineUrlText(
-                        url: '/#${filters.toTestResultsUri()}',
-                        urlText:
-                            'Matches ${matchingTestResults.value?.count ?? 0} test results',
-                        fontStyle: DefaultTextStyle.of(context).style.apply(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontStyle: FontStyle.italic,
-                              decoration: TextDecoration.none,
-                            ),
-                      ),
-            ],
-          ),
-          value: value,
-          onChanged: (selected) {
-            onChanged?.call(selected ?? false);
-          },
+
+    final isDisabled = widget.onChanged == null || !_visibleEnough;
+
+    return VisibilityDetector(
+      key: ValueKey('bulk-attach-${widget.title}'),
+      onVisibilityChanged: (info) {
+        // State needs updating when _visibleEnough is False and visibleFraction >= 0.75 is True
+        // or when _visibleEnough is True and fraction >= 0.75 is False
+        // so that is an XOR
+        final toggleVisibility =
+            (_visibleEnough != (info.visibleFraction >= 0.75));
+        if (toggleVisibility) {
+          setState(() {
+            _visibleEnough = !_visibleEnough;
+          });
+        }
+      },
+      child: CheckboxListTile(
+        title: Row(
+          spacing: Spacing.level3,
+          children: [
+            Text(widget.title),
+            if (widget.loadNumberResults)
+              matchingTestResults!.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: YaruCircularProgressIndicator(),
+                    )
+                  : InlineUrlText(
+                      url: '/#${widget.filters.toTestResultsUri()}',
+                      urlText:
+                          'Matches ${matchingTestResults.value?.count ?? 0} test results',
+                      fontStyle: DefaultTextStyle.of(context).style.apply(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontStyle: FontStyle.italic,
+                            decoration: TextDecoration.none,
+                          ),
+                    ),
+          ],
         ),
+        value: widget.value,
+        onChanged: isDisabled
+            ? null
+            : (selected) {
+                widget.onChanged?.call(selected ?? false);
+              },
       ),
     );
   }
