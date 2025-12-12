@@ -148,6 +148,14 @@ def query_matching_test_result_attachment_rules(
         )
     )
 
+    # Filter test result status
+    stmt = stmt.where(
+        _array_empty_or_contains(
+            IssueTestResultAttachmentRule.test_result_statuses,
+            literal(test_result.status),
+        )
+    )
+
     # Filter execution metadata
     stmt = _filter_by_execution_metadata(stmt, test_result)
 

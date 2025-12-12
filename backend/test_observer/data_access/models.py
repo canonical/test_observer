@@ -833,6 +833,9 @@ class IssueTestResultAttachmentRule(Base):
     execution_metadata: Mapped[
         list["IssueTestResultAttachmentRuleExecutionMetadata"]
     ] = relationship(back_populates="attachment_rule", cascade="all, delete")
+    test_result_statuses: Mapped[list[TestResultStatus]] = mapped_column(
+        ARRAY(Enum(TestResultStatus)), default=list
+    )
 
 
 class IssueTestResultAttachmentRuleExecutionMetadata(Base):

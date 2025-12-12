@@ -19,6 +19,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'execution_metadata.dart';
 import 'test_results_filters.dart';
 import 'attachment_rule.dart';
+import 'test_result.dart';
 
 part 'attachment_rule_filters.freezed.dart';
 part 'attachment_rule_filters.g.dart';
@@ -34,6 +35,9 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
     List<String> environmentNames,
     @JsonKey(name: 'test_case_names') @Default([]) List<String> testCaseNames,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
+    @JsonKey(name: 'test_result_statuses')
+    @Default([])
+    List<TestResultStatus> testResultStatuses,
     @JsonKey(name: 'execution_metadata')
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
@@ -50,6 +54,7 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
       environmentNames: filters.environments,
       testCaseNames: filters.testCases,
       templateIds: filters.templateIds,
+      testResultStatuses: filters.testResultStatuses,
       executionMetadata: filters.executionMetadata,
     );
   }
@@ -60,6 +65,7 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
       environments: environmentNames,
       testCases: testCaseNames,
       templateIds: templateIds,
+      testResultStatuses: testResultStatuses,
       executionMetadata: executionMetadata,
     );
   }
@@ -70,12 +76,14 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
         filters;
   }
 
+  @freezed
   factory AttachmentRuleFilters.fromAttachmentRule(AttachmentRule rule) {
     return AttachmentRuleFilters(
       families: rule.families,
       environmentNames: rule.environmentNames,
       testCaseNames: rule.testCaseNames,
       templateIds: rule.templateIds,
+      testResultStatuses: rule.testResultStatuses,
       executionMetadata: rule.executionMetadata,
     );
   }
@@ -85,6 +93,7 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
         environmentNames.isNotEmpty ||
         testCaseNames.isNotEmpty ||
         templateIds.isNotEmpty ||
-        executionMetadata.isNotEmpty;
+        executionMetadata.isNotEmpty ||
+        testResultStatuses.isNotEmpty;
   }
 }

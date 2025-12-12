@@ -67,6 +67,11 @@ class _CreateAttachmentRuleFormState
         'Please provide at least one filter to create an attachment rule.',
       );
     }
+    if (!attachmentRuleFilters.copyWith(testResultStatuses: []).hasFilters) {
+      return Text(
+        'Please provide at least one filter other than test result status to create an attachment rule.',
+      );
+    }
 
     return Form(
       key: formKey,

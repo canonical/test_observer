@@ -65,6 +65,7 @@ class AttachmentRuleSection extends ConsumerWidget {
       testCaseNames: testCaseName.isNotEmpty ? [testCaseName] : [],
       templateIds: templateId.isNotEmpty ? [templateId] : [],
       executionMetadata: executionMetadata,
+      testResultStatuses: TestResultStatus.values,
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

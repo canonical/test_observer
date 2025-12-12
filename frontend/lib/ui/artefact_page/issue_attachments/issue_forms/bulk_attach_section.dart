@@ -20,6 +20,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../../../models/attachment_rule_filters.dart';
 import '../../../../models/test_results_filters.dart';
+import '../../../../models/test_result.dart';
 import '../../../../providers/test_results_search.dart';
 import '../../../inline_url_text.dart';
 import '../../../spacing.dart';
@@ -33,6 +34,8 @@ class BulkAttachSection extends ConsumerWidget {
     required this.selectedBulkAttachNewer,
     required this.onBulkAttachOlderChanged,
     required this.onBulkAttachNewerChanged,
+    this.onStatusesChanged,
+    this.currentTestResultStatus,
   });
 
   final DateTime splitTime;
@@ -41,6 +44,8 @@ class BulkAttachSection extends ConsumerWidget {
   final bool selectedBulkAttachNewer;
   final ValueChanged<bool> onBulkAttachOlderChanged;
   final ValueChanged<bool> onBulkAttachNewerChanged;
+  final ValueChanged<List<TestResultStatus>>? onStatusesChanged;
+  final TestResultStatus? currentTestResultStatus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

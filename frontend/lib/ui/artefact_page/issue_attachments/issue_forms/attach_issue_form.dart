@@ -21,6 +21,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../models/attachment_rule_filters.dart';
 import '../../../../models/test_results_filters.dart';
 import '../../../../models/attachment_rule.dart';
+import '../../../../models/test_result.dart';
 import '../../../../providers/issue.dart';
 import '../../../../providers/test_results.dart';
 import '../../../issues.dart';
@@ -50,14 +51,16 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
   late final GlobalKey<FormState> formKey;
   String _issueUrl = '';
   bool _createAttachmentRule = false;
-  AttachmentRuleFilters _attachmentRuleFilters = AttachmentRuleFilters();
+  late AttachmentRuleFilters _attachmentRuleFilters;
   bool _attachToOlderResults = false;
   bool _attachToNewerResults = false;
+  TestResultStatus? _currentTestResultStatus;
 
   @override
   void initState() {
     super.initState();
     formKey = GlobalKey<FormState>();
+    _attachmentRuleFilters = AttachmentRuleFilters();
   }
 
   @override
@@ -78,6 +81,7 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
           ),
         )
         .value;
+    _currentTestResultStatus = testResult?.status;
     final issueAttachments = testResult?.issueAttachments ?? [];
 
     return Form(
@@ -144,6 +148,15 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                               _attachToNewerResults = checked;
                             });
                           },
+                          onStatusesChanged: (statuses) {
+                            setState(() {
+                              _attachmentRuleFilters =
+                                  _attachmentRuleFilters.copyWith(
+                                testResultStatuses: statuses,
+                              );
+                            });
+                          },
+                          currentTestResultStatus: _currentTestResultStatus,
                         ),
                     ],
                   ),
@@ -172,6 +185,38 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                     // Create the attachment rule if requested.
                     AttachmentRule? attachmentRule;
                     if (_createAttachmentRule) {
+                      if (_attachmentRuleFilters
+                              .testResultStatuses.isNotEmpty &&
+                          context.mounted &&
+                          (_attachToNewerResults || _attachToOlderResults)) {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext dialogContext) {
+                            return AlertDialog(
+                              title: const Text('Confirm Attachment Rule'),
+                              content: const Text(
+                                'The attachment rule will apply to all test results with the selected status and filters.\n\n'
+                                'Do you want to continue?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(true),
+                                  child: const Text('Continue'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (confirmed != true) return;
+                      }
+
                       attachmentRule = await ref
                           .read(issueProvider(issueId).notifier)
                           .createAttachmentRule(

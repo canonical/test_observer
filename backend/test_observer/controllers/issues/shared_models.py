@@ -27,6 +27,7 @@ from pydantic import (
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models_enums import (
     FamilyName,
+    TestResultStatus,
 )
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRuleExecutionMetadata,
@@ -57,6 +58,7 @@ class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
     environment_names: list[str]
     test_case_names: list[str]
     template_ids: list[str]
+    test_result_statuses: list[TestResultStatus]
     execution_metadata: ExecutionMetadata
 
     @field_validator("execution_metadata", mode="before")

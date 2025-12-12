@@ -18,6 +18,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'execution_metadata.dart';
 import 'attachment_rule_filters.dart';
+import 'test_result.dart';
 
 part 'attachment_rule.freezed.dart';
 part 'attachment_rule.g.dart';
@@ -37,6 +38,9 @@ abstract class AttachmentRule with _$AttachmentRule {
     @JsonKey(name: 'execution_metadata')
     @Default(ExecutionMetadata())
     ExecutionMetadata executionMetadata,
+    @JsonKey(name: 'test_result_statuses')
+    @Default([])
+    List<TestResultStatus> testResultStatuses,
   }) = _AttachmentRule;
 
   factory AttachmentRule.fromJson(Map<String, Object?> json) =>
@@ -48,6 +52,7 @@ abstract class AttachmentRule with _$AttachmentRule {
       environmentNames: environmentNames,
       testCaseNames: testCaseNames,
       templateIds: templateIds,
+      testResultStatuses: testResultStatuses,
       executionMetadata: executionMetadata,
     );
   }

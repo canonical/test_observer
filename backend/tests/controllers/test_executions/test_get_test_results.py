@@ -274,6 +274,7 @@ def test_attachment_rule_listed_in_issue_attachment(
                 "environment_names": [test_execution.environment.name],
                 "test_case_names": ["test"],
                 "template_ids": ["test-template-id"],
+                "test_result_statuses": [],
                 "execution_metadata": {"category1": ["value1"]},
             },
         }

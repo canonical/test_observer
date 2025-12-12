@@ -4949,6 +4949,13 @@
             "type": "array",
             "title": "Template Ids"
           },
+          "test_result_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultStatus"
+            },
+            "type": "array",
+            "title": "Test Result Statuses"
+          },
           "execution_metadata": {
             "$ref": "#/components/schemas/ExecutionMetadata"
           }
@@ -5077,6 +5084,13 @@
             "type": "array",
             "title": "Template Ids"
           },
+          "test_result_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultStatus"
+            },
+            "type": "array",
+            "title": "Test Result Statuses"
+          },
           "execution_metadata": {
             "$ref": "#/components/schemas/ExecutionMetadata"
           }
@@ -5089,6 +5103,7 @@
           "environment_names",
           "test_case_names",
           "template_ids",
+          "test_result_statuses",
           "execution_metadata"
         ],
         "title": "MinimalIssueTestResultAttachmentRuleResponse"

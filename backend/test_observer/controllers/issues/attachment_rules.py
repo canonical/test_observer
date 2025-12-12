@@ -61,6 +61,7 @@ def post_attachment_rule(
         environment_names=request.environment_names,
         test_case_names=request.test_case_names,
         template_ids=request.template_ids,
+        test_result_statuses=request.test_result_statuses,
         execution_metadata=[
             IssueTestResultAttachmentRuleExecutionMetadata(
                 category=metadata.category,

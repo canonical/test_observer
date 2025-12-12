@@ -34,7 +34,9 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
   });
 
   String? _validate(AttachmentRuleFilters? filters) {
-    if (editable && (filters == null || !filters.hasFilters)) {
+    if (editable &&
+        (filters == null ||
+            !filters.copyWith(testResultStatuses: []).hasFilters)) {
       return 'Select at least one filter.';
     }
     return null;
@@ -159,6 +161,22 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
                     executionMetadata: ExecutionMetadata.fromRows(
                       newExecutionMetadata.toSet(),
                     ),
+                  );
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
+              _buildFilterSection(
+                context: context,
+                label: 'Test Result Statuses',
+                allValues: filters.testResultStatuses,
+                displayValues: Map.fromEntries(
+                  filters.testResultStatuses.map((v) => MapEntry(v, v.name)),
+                ),
+                selectedValues: selected.testResultStatuses.toSet(),
+                onChanged: (newStatuses) {
+                  final newFilters = selected.copyWith(
+                    testResultStatuses: newStatuses.toList(),
                   );
                   field.didChange(newFilters);
                   onChanged?.call(newFilters);
