@@ -34,7 +34,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add test_result_statuses column to issue_test_result_attachment_rule table as nullable
+    # Add test_result_statuses column to issue_test_result_attachment_rule table
+    # as nullable
     op.add_column(
         "issue_test_result_attachment_rule",
         sa.Column(
