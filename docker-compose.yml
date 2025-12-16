@@ -38,7 +38,7 @@ services:
         condition: service_healthy
 
   test-observer-db:
-    image: postgres:15
+    image: docker.io/postgres:15
     environment:
       POSTGRES_USER: test_observer_user
       POSTGRES_PASSWORD: test_observer_password
@@ -55,7 +55,7 @@ services:
       start_period: 30s
 
   saml-idp:
-    image: kristophjunge/test-saml-idp
+    image: docker.io/kristophjunge/test-saml-idp
     ports:
       - "8080:8080"
       - "8443:8443"
