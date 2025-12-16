@@ -113,9 +113,12 @@ def build_query_filters_and_joins(
         )
     elif len(filters.issues) > 0:
         query_filters.append(
-            TestResult.id.in_(
-                select(IssueTestResultAttachment.test_result_id).where(
-                    IssueTestResultAttachment.issue_id.in_(filters.issues)
+            exists(
+                select(1)
+                .select_from(IssueTestResultAttachment)
+                .where(
+                    IssueTestResultAttachment.test_result_id == TestResult.id,
+                    IssueTestResultAttachment.issue_id.in_(filters.issues),
                 )
             )
         )
