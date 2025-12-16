@@ -90,6 +90,7 @@ def get_testresults_report(
         .join_from(Artefact, ArtefactBuild)
         .join_from(ArtefactBuild, TestExecution)
         .join_from(TestExecution, Environment)
+        .join_from(TestExecution, TestPlan)
         .join_from(TestExecution, TestResult)
         .join_from(TestResult, TestCase)
         .where(Artefact.created_at >= start_date, Artefact.created_at <= end_date)

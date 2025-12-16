@@ -122,6 +122,7 @@ def _get_test_executions_reports_query(
             *TEST_EXECUTIONS_REPORT_COLUMNS,
         )
         .join_from(TestExecution, Environment)
+        .join_from(TestExecution, TestPlan)
         .join_from(TestExecution, ArtefactBuild)
         .join_from(ArtefactBuild, Artefact)
         .join(
