@@ -86,6 +86,11 @@ class TestResultsSearch extends _$TestResultsSearch {
     if (!filters.hasFilters) {
       return TestResultsSearchResult.empty();
     }
-    return await api.searchTestResults(filters);
+    // Update filters with pagination
+    final updatedFilters = filters.copyWith(
+      limit: limit,
+      offset: offset,
+    );
+    return await api.searchTestResults(updatedFilters);
   }
 }
