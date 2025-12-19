@@ -146,7 +146,9 @@ class _TableDataRow extends StatelessWidget {
         children: [
           Expanded(flex: 3, child: _ArtefactCell(artefact: artefact)),
           Expanded(flex: 4, child: _TestCaseCell(testResult: testResult)),
-          Expanded(flex: 3, child: _TestExecutionIDCell(testExecutionID: testExecution.id)),
+          Expanded(
+              flex: 3,
+              child: _TestExecutionIDCell(testExecutionID: testExecution.id)),
           Expanded(flex: 2, child: _StatusCell(status: testResult.status)),
           Expanded(flex: 2, child: _TrackCell(artefact: artefact)),
           Expanded(flex: 3, child: _VersionCell(artefact: artefact)),
