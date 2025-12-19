@@ -144,7 +144,7 @@ class _TableDataRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 2, child: _IndexCell(index: index + 1)),
+          Expanded(flex: 2, child: _RowNumberCell(rowNumber: index + 1)),
           Expanded(flex: 3, child: _ArtefactCell(artefact: artefact)),
           Expanded(flex: 4, child: _TestCaseCell(testResult: testResult)),
           Expanded(flex: 2, child: _StatusCell(status: testResult.status)),
@@ -165,10 +165,10 @@ class _TableDataRow extends StatelessWidget {
   }
 }
 
-class _IndexCell extends StatelessWidget {
-  final int index;
+class _RowNumberCell extends StatelessWidget {
+  final int rowNumber;
 
-  const _IndexCell({required this.index});
+  const _RowNumberCell({required this.rowNumber});
 
   @override
   Widget build(BuildContext context) {
@@ -176,7 +176,7 @@ class _IndexCell extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       alignment: Alignment.centerLeft,
       child: Text(
-        index.toString(),
+        rowNumber.toString(),
         style: const TextStyle(
           fontWeight: FontWeight.w500,
           fontSize: 14,
