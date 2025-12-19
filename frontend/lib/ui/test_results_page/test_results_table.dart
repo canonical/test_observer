@@ -83,9 +83,9 @@ class _TableHeader extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Expanded(flex: 2, child: _HeaderCell(title: 'Row #')),
           Expanded(flex: 3, child: _HeaderCell(title: 'Artefact')),
           Expanded(flex: 4, child: _HeaderCell(title: 'Test Case')),
+          Expanded(flex: 3, child: _HeaderCell(title: 'Test Execution ID')),
           Expanded(flex: 2, child: _HeaderCell(title: 'Status')),
           Expanded(flex: 2, child: _HeaderCell(title: 'Track')),
           Expanded(flex: 3, child: _HeaderCell(title: 'Version')),
@@ -144,9 +144,9 @@ class _TableDataRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 2, child: _RowNumberCell(rowNumber: index + 1)),
           Expanded(flex: 3, child: _ArtefactCell(artefact: artefact)),
           Expanded(flex: 4, child: _TestCaseCell(testResult: testResult)),
+          Expanded(flex: 3, child: _TestExecutionIDCell(testExecutionID: testExecution.id)),
           Expanded(flex: 2, child: _StatusCell(status: testResult.status)),
           Expanded(flex: 2, child: _TrackCell(artefact: artefact)),
           Expanded(flex: 3, child: _VersionCell(artefact: artefact)),
@@ -160,27 +160,6 @@ class _TableDataRow extends StatelessWidget {
           Expanded(flex: 3, child: _TestPlanCell(testExecution: testExecution)),
           Expanded(flex: 3, child: _ActionsCell(result: result)),
         ],
-      ),
-    );
-  }
-}
-
-class _RowNumberCell extends StatelessWidget {
-  final int rowNumber;
-
-  const _RowNumberCell({required this.rowNumber});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        rowNumber.toString(),
-        style: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
       ),
     );
   }
@@ -374,6 +353,27 @@ class _TestPlanCell extends StatelessWidget {
           style: const TextStyle(fontSize: 14),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
+        ),
+      ),
+    );
+  }
+}
+
+class _TestExecutionIDCell extends StatelessWidget {
+  final int testExecutionID;
+
+  const _TestExecutionIDCell({required this.testExecutionID});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        testExecutionID.toString(),
+        style: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
         ),
       ),
     );
