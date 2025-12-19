@@ -83,6 +83,7 @@ class _TableHeader extends StatelessWidget {
       ),
       child: const Row(
         children: [
+          Expanded(flex: 2, child: _HeaderCell(title: 'Number')),
           Expanded(flex: 3, child: _HeaderCell(title: 'Artefact')),
           Expanded(flex: 4, child: _HeaderCell(title: 'Test Case')),
           Expanded(flex: 2, child: _HeaderCell(title: 'Status')),
@@ -143,6 +144,7 @@ class _TableDataRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Expanded(flex: 2, child: _IndexCell(index: index + 1)),
           Expanded(flex: 3, child: _ArtefactCell(artefact: artefact)),
           Expanded(flex: 4, child: _TestCaseCell(testResult: testResult)),
           Expanded(flex: 2, child: _StatusCell(status: testResult.status)),
@@ -158,6 +160,29 @@ class _TableDataRow extends StatelessWidget {
           Expanded(flex: 3, child: _TestPlanCell(testExecution: testExecution)),
           Expanded(flex: 3, child: _ActionsCell(result: result)),
         ],
+      ),
+    );
+  }
+}
+
+class _IndexCell extends StatelessWidget {
+  final int index;
+
+  const _IndexCell({required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        index.toString(),
+        style: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }
