@@ -181,8 +181,6 @@ class _IndexCell extends StatelessWidget {
           fontWeight: FontWeight.w500,
           fontSize: 14,
         ),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
       ),
     );
   }
