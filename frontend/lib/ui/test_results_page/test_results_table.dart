@@ -83,7 +83,7 @@ class _TableHeader extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Expanded(flex: 2, child: _HeaderCell(title: 'Number')),
+          Expanded(flex: 2, child: _HeaderCell(title: 'Row #')),
           Expanded(flex: 3, child: _HeaderCell(title: 'Artefact')),
           Expanded(flex: 4, child: _HeaderCell(title: 'Test Case')),
           Expanded(flex: 2, child: _HeaderCell(title: 'Status')),
