@@ -10,6 +10,7 @@ resource "juju_application" "api_ingress" {
   }
 
   config = {
+    service-hostname       = var.api_hostname
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
@@ -26,6 +27,7 @@ resource "juju_application" "frontend_ingress" {
   }
 
   config = {
+    service-hostname       = var.frontend_hostname
     whitelist-source-range = var.nginx_ingress_integrator_charm_whitelist_source_range
   }
 }
