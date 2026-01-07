@@ -98,8 +98,7 @@ class JiraClient:
         url = f"{self.base_url}/rest/api/{self.api_version}/issue/{issue_key}"
 
         params = {
-            "fields": 
-                "summary,status,resolution,resolutiondate,updated,created,issuetype,project",
+            "fields": "summary,status,resolution,resolutiondate,updated,created,issuetype,project",
         }
 
         try:
