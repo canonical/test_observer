@@ -14,16 +14,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 class IssueNotFoundError(Exception):
     """Raised when an issue doesn't exist in the external system"""
+
     pass
 
 
 class APIError(Exception):
     """Raised when an API request fails"""
+
     pass
 
 
 class RateLimitError(APIError):
     """Raised when hitting rate limits"""
+
     pass

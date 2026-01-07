@@ -15,30 +15,41 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from typing import Optional, Dict, Any
+from typing import Any
 
 import requests
 
-from test_observer.external_apis.exceptions import IssueNotFoundError, APIError, RateLimitError
+from test_observer.external_apis.exceptions import (
+    IssueNotFoundError,
+    APIError,
+    RateLimitError,
+)
 
 
 class GitHubClient:
-    def __init__(self, token: Optional[str] = None, base_url: Optional[str] = None, timeout: int = 10):
+    def __init__(
+        self, token: str | None = None, base_url: str | None = None, timeout: int = 10
+    ):
         """
         Args:
-            token: Personal Access Token (classic PAT or fine-grained token / installation token)
-            base_url: GitHub API base (default: https://api.github.com). For GHE set e.g. https://github.company.com/api/v3
+            token: Personal Access Token (classic PAT or fine-grained token)
+            base_url: GitHub API base (default: https://api.github.com).
             timeout: request timeout
         """
         self.token = token
-        self.base_url = (base_url.rstrip("/") if base_url else "https://api.github.com")
+        self.base_url = base_url.rstrip("/") if base_url else "https://api.github.com"
         self.timeout = timeout
         self._session = requests.Session()
         if self.token:
             self._session.headers.update({"Authorization": f"Bearer {self.token}"})
-        self._session.headers.update({"User-Agent": "test-observer-issue-sync/1.0", "Accept": "application/vnd.github+json"})
+        self._session.headers.update(
+            {
+                "User-Agent": "test-observer-issue-sync/1.0",
+                "Accept": "application/vnd.github+json",
+            }
+        )
 
-    def get_issue(self, project: str, key: str) -> Dict[str, Any]:
+    def get_issue(self, project: str, key: str) -> dict[str, Any]:
         """
         Fetch an issue from GitHub.
 
@@ -64,7 +75,9 @@ class GitHubClient:
 
         # 404 -> not found / not visible to token
         if resp.status_code == 404:
-            raise IssueNotFoundError(f"GitHub issue {owner_repo}#{issue_number} not found")
+            raise IssueNotFoundError(
+                f"GitHub issue {owner_repo}#{issue_number} not found"
+            )
 
         # Rate limiting
         if resp.status_code == 403 and resp.headers.get("X-RateLimit-Remaining") == "0":
@@ -74,9 +87,14 @@ class GitHubClient:
         # Auth issues
         if resp.status_code == 401:
             raise APIError("GitHub authentication failed (401). Check token.")
-        if resp.status_code == 403 and resp.headers.get("X-RateLimit-Remaining") is not None:
+        if (
+            resp.status_code == 403
+            and resp.headers.get("X-RateLimit-Remaining") is not None
+        ):
             # permission denied likely
-            raise APIError("GitHub permission denied (403). Token may lack needed scopes or repo access.")
+            raise APIError(
+                "GitHub permission denied (403). Token may lack repo access."
+            )
 
         if not resp.ok:
             raise APIError(f"GitHub API returned {resp.status_code}: {resp.text}")

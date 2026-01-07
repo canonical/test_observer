@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
-from launchpadlib.launchpad import Launchpad
+from launchpadlib.launchpad import Launchpad  # type: ignore[import-untyped]
 
 from lazr.restfulclient.errors import (  # type: ignore
     NotFound,
@@ -28,16 +29,17 @@ from lazr.restfulclient.errors import (  # type: ignore
     ServerError,
 )
 
-from test_observer.external_apis.exceptions import IssueNotFoundError, APIError, RateLimitError
+from test_observer.external_apis.exceptions import IssueNotFoundError, APIError
 
 
 @dataclass(frozen=True)
 class _BugTaskView:
     """A small, JSON-serializable projection of a Launchpad BugTask."""
+
     target: str
-    status: Optional[str]
-    importance: Optional[str]
-    assignee: Optional[str]
+    status: str | None = None
+    importance: str | None = None
+    assignee: str | None = None
 
 
 class LaunchpadClient:
@@ -55,8 +57,8 @@ class LaunchpadClient:
         service_root: str = "production",
         version: str = "devel",
         timeout: int = 10,
-        credentials_file: Optional[str] = None,
-        cache_dir: Optional[str] = None,
+        credentials_file: str | None = None,
+        cache_dir: str | None = None,
         anonymous: bool = True,
     ):
         """
@@ -71,7 +73,7 @@ class LaunchpadClient:
                        if False -> login_with (OAuth). If credentials_file is set,
                        we prefer OAuth regardless.
         """
-        # launchpadlib supports anonymous login for read-only access :contentReference[oaicite:1]{index=1}
+        # launchpadlib supports anonymous login for read-only access
         self.application_name = application_name
         self.service_root = service_root
         self.version = version
@@ -107,7 +109,7 @@ class LaunchpadClient:
         except Exception as e:
             raise APIError(f"Launchpad login failed: {e}") from e
 
-    def get_issue(self, project: str, key: str) -> Dict[str, Any]:
+    def get_issue(self, project: str, key: str) -> dict[str, Any]:
         """
         Fetch a Launchpad bug (issue) by bug ID.
 
@@ -133,9 +135,13 @@ class LaunchpadClient:
         except Unauthorized as e:
             raise APIError("Launchpad authentication/authorization failed") from e
         except (HTTPError, ServerError) as e:
-            raise APIError(f"Launchpad API error while fetching bug {bug_id}: {e}") from e
+            raise APIError(
+                f"Launchpad API error while fetching bug {bug_id}: {e}"
+            ) from e
         except Exception as e:
-            raise APIError(f"Unexpected Launchpad error while fetching bug {bug_id}: {e}") from e
+            raise APIError(
+                f"Unexpected Launchpad error while fetching bug {bug_id}: {e}"
+            ) from e
 
         # Bug-level fields
         title = (getattr(bug, "title", "") or "").strip()
@@ -168,10 +174,18 @@ class LaunchpadClient:
             "date_last_updated": str(getattr(bug, "date_last_updated", "")) or None,
             "tasks": [
                 _BugTaskView(
-                    target=str(getattr(t, "bug_target_name", "") or getattr(t, "bug_target_display_name", "") or ""),
+                    target=str(
+                        getattr(t, "bug_target_name", "")
+                        or getattr(t, "bug_target_display_name", "")
+                        or ""
+                    ),
                     status=getattr(t, "status", None),
                     importance=getattr(t, "importance", None),
-                    assignee=(getattr(getattr(t, "assignee", None), "name", None) if getattr(t, "assignee", None) else None),
+                    assignee=(
+                        getattr(getattr(t, "assignee", None), "name", None)
+                        if getattr(t, "assignee", None)
+                        else None
+                    ),
                 ).__dict__
                 for t in tasks
             ],
@@ -199,13 +213,12 @@ class LaunchpadClient:
 
     def _safe_iter(self, it: Iterable[Any]) -> Iterable[Any]:
         try:
-            for x in it:
-                yield x
+            yield from it
         except Exception:
             # launchpadlib collections can sometimes lazily fetch; fail closed
             return
 
-    def _choose_task(self, tasks: list[Any], project: str) -> Optional[Any]:
+    def _choose_task(self, tasks: list, project: str) -> object | None:
         if not tasks:
             return None
         if project:
@@ -225,7 +238,7 @@ class LaunchpadClient:
         # fallback: first task
         return tasks[0]
 
-    def _normalize_state(self, status: Optional[str], bug: Any) -> str:
+    def _normalize_state(self, status: str | None, bug: object) -> str:
         # If Launchpad provides is_complete, trust it.
         is_complete = getattr(bug, "is_complete", None)
         if isinstance(is_complete, bool):

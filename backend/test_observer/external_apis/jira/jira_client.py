@@ -16,11 +16,15 @@
 
 from __future__ import annotations
 
-from typing import Optional, Dict, Any, Iterable
+from typing import Any
 import base64
 import requests
 
-from test_observer.external_apis.exceptions import IssueNotFoundError, APIError, RateLimitError
+from test_observer.external_apis.exceptions import (
+    IssueNotFoundError,
+    APIError,
+    RateLimitError,
+)
 
 
 class JiraClient:
@@ -37,10 +41,10 @@ class JiraClient:
         base_url: str,
         *,
         # Cloud-style
-        email: Optional[str] = None,
-        api_token: Optional[str] = None,
+        email: str | None = None,
+        api_token: str | None = None,
         # DC-style
-        bearer_token: Optional[str] = None,
+        bearer_token: str | None = None,
         # API version
         api_version: int = 3,
         timeout: int = 10,
@@ -69,18 +73,19 @@ class JiraClient:
         if bearer_token:
             self._session.headers.update({"Authorization": f"Bearer {bearer_token}"})
         elif email and api_token:
-            token_bytes = f"{email}:{api_token}".encode("utf-8")
+            token_bytes = f"{email}:{api_token}".encode()
             b64 = base64.b64encode(token_bytes).decode("ascii")
             self._session.headers.update({"Authorization": f"Basic {b64}"})
         # else: anonymous/unauth (may work if Jira allows anonymous browsing; often not)
 
-    def get_issue(self, project: str, key: str) -> Dict[str, Any]:
+    def get_issue(self, project: str, key: str) -> dict[str, Any]:
         """
         Fetch an issue from Jira.
 
         Args:
-            project: project key like "TO" or "PROJ" (optional, used for sanity check / normalization)
-            key: issue key like "TO-123". If user passes "123", we'll turn it into "{project}-123" if project is given.
+            project: project key like "TO" or "SQT"
+            key: issue key like "TO-123". If user passes "123",
+            we'll turn it into "{project}-123" if project is given.
 
         Returns:
             dict with keys 'title', 'state', 'raw' (API response)
@@ -117,7 +122,10 @@ class JiraClient:
         if resp.status_code == 401:
             raise APIError("Jira authentication failed (401). Check credentials/token.")
         if resp.status_code == 403:
-            raise APIError("Jira permission denied (403). User/token may lack Browse permission for this project.")
+            raise APIError(
+                "Jira permission denied (403). "
+                "User/token may lack Browse permission for this project."
+            )
 
         if not resp.ok:
             raise APIError(f"Jira API returned {resp.status_code}: {resp.text}")
@@ -128,10 +136,14 @@ class JiraClient:
         summary = (fields.get("summary") or "").strip()
         status_obj = fields.get("status") or {}
         status_name = status_obj.get("name")  # e.g. "To Do", "In Progress", "Done"
-        status_category = (status_obj.get("statusCategory") or {}).get("key")  # e.g. "done"
+        status_category = (status_obj.get("statusCategory") or {}).get(
+            "key"
+        )  # e.g. "done"
         resolution = (fields.get("resolution") or {}).get("name")
 
-        state = self._normalize_state(status_category=status_category, resolution=resolution)
+        state = self._normalize_state(
+            status_category=status_category, resolution=resolution
+        )
 
         return {
             "title": summary,
@@ -150,7 +162,9 @@ class JiraClient:
             return f"{project.strip().upper()}-{k}"
         return k
 
-    def _normalize_state(self, *, status_category: Optional[str], resolution: Optional[str]) -> str:
+    def _normalize_state(
+        self, status_category: str | None = None, resolution: str | None = None
+    ) -> str:
         if status_category == "done":
             return "closed"
         if resolution:
