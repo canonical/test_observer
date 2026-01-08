@@ -132,7 +132,7 @@ class LaunchpadClient:
                     "url": bug.web_link,
                 },
             }
-        except NotFound as e:
+        except (NotFound, KeyError) as e:
             raise IssueNotFoundError(f"Launchpad bug {key} not found") from e
         except Unauthorized as e:
             raise APIError("Launchpad authentication/authorization failed") from e
