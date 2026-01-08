@@ -16,8 +16,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from jira import JIRA
 from jira.exceptions import JIRAError
 
@@ -26,6 +24,8 @@ from test_observer.external_apis.exceptions import (
     APIError,
     RateLimitError,
 )
+
+from test_observer.external_apis.models import IssueData
 
 
 class JiraClient:
@@ -66,7 +66,7 @@ class JiraClient:
             timeout=timeout,
         )
 
-    def get_issue(self, project: str, key: str) -> dict[str, Any]:
+    def get_issue(self, project: str, key: str) -> IssueData:
         """
         Fetch an issue from Jira.
 

@@ -16,8 +16,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from github import Github, Auth, GithubException
 
 from test_observer.external_apis.exceptions import (
@@ -25,6 +23,8 @@ from test_observer.external_apis.exceptions import (
     APIError,
     RateLimitError,
 )
+
+from test_observer.external_apis.models import IssueData
 
 
 class GitHubClient:
@@ -43,7 +43,7 @@ class GitHubClient:
         auth = Auth.Token(token) if token else None
         self._github = Github(auth=auth, timeout=timeout)
 
-    def get_issue(self, project: str, key: str) -> dict[str, Any]:
+    def get_issue(self, project: str, key: str) -> IssueData:
         """
         Fetch an issue from GitHub.
 
@@ -65,12 +65,13 @@ class GitHubClient:
             return {
                 "title": issue.title,
                 "state": issue.state,
-                "state_reason": issue.state,
+                "state_reason": issue.state_reason,
                 "raw": {
                     "id": issue.id,
                     "number": issue.number,
                     "title": issue.title,
                     "state": issue.state,
+                    "state_reason": issue.state_reason,
                     "url": issue.html_url,
                 },
             }

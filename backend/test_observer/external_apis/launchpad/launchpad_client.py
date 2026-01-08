@@ -16,8 +16,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from launchpadlib.launchpad import Launchpad  # type: ignore[import-untyped]
 from lazr.restfulclient.errors import (  # type: ignore[import-untyped]
     NotFound,
@@ -30,6 +28,8 @@ from test_observer.external_apis.exceptions import (
     IssueNotFoundError,
     APIError,
 )
+
+from test_observer.external_apis.models import IssueData
 
 
 class LaunchpadClient:
@@ -91,7 +91,7 @@ class LaunchpadClient:
         except Exception as e:
             raise APIError(f"Launchpad login failed: {e}") from e
 
-    def get_issue(self, project: str, key: str) -> dict[str, Any]:
+    def get_issue(self, project: str, key: str) -> IssueData:
         """
         Fetch a Launchpad bug.
 
