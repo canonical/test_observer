@@ -210,14 +210,14 @@ def filter_test_results(query: Select, filters: TestResultSearchFilters) -> Sele
     # Build the main query with only necessary joins
     query = apply_joins(query, joins_needed)
 
+    # Apply all filters
+    if query_filters:
+        query = query.where(and_(*query_filters))
+
     # Apply pagination
     if filters.offset is not None:
         query = query.offset(filters.offset)
     if filters.limit is not None:
         query = query.limit(filters.limit)
-
-    # Apply all filters
-    if query_filters:
-        query = query.where(and_(*query_filters))
 
     return query
