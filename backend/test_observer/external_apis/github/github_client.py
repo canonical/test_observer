@@ -52,7 +52,7 @@ class GitHubClient:
             key: issue number (string/int)
 
         Returns:
-            dict with keys 'title', 'state', 'state_reason', 'raw'
+            IssueData object
         Raises:
             IssueNotFoundError: Issue not found
             RateLimitError: Rate limit exceeded

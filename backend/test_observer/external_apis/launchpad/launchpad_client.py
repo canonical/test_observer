@@ -100,7 +100,7 @@ class LaunchpadClient:
             key: Bug ID (e.g., "1234567")
 
         Returns:
-            dict with keys 'title', 'state', 'state_reason', 'raw'
+            IssueData object
         Raises:
             IssueNotFoundError: Bug not found
             APIError: Other API errors

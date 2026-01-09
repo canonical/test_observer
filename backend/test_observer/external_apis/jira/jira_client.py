@@ -62,7 +62,7 @@ class JiraClient:
         self._jira = JIRA(
             server=self.base_url,
             basic_auth=auth if isinstance(auth, tuple) else None,
-            token_auth=bearer_token if isinstance(auth, str) else None,
+            token_auth=auth if isinstance(auth, str) else None,
             timeout=timeout,
         )
 
@@ -75,7 +75,7 @@ class JiraClient:
             key: Issue key/number (e.g., "142" or "TO-142")
 
         Returns:
-            dict with keys 'title', 'state', 'state_reason', 'raw'
+            IssueData object
         Raises:
             IssueNotFoundError: Issue not found
             RateLimitError: Rate limit exceeded
@@ -87,7 +87,9 @@ class JiraClient:
 
             # Fetch issue
             issue = self._jira.issue(issue_key)
-
+            resolution = (
+                issue.fields.resolution.name if issue.fields.resolution else None
+            )
             # Normalize status
             state = self._normalize_state(
                 status_category=(
@@ -95,11 +97,8 @@ class JiraClient:
                     if issue.fields.status.statusCategory
                     else None
                 ),
-                resolution=(
-                    issue.fields.resolution.name if issue.fields.resolution else None
-                ),
+                resolution=resolution,
             )
-
             return IssueData(
                 title=issue.fields.summary,
                 state=state,
@@ -108,11 +107,7 @@ class JiraClient:
                     "key": issue.key,
                     "summary": issue.fields.summary,
                     "status": issue.fields.status.name,
-                    "resolution": (
-                        issue.fields.resolution.name
-                        if issue.fields.resolution
-                        else None
-                    ),
+                    "resolution": resolution,
                     "url": issue.permalink(),
                 },
             )

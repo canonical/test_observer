@@ -22,6 +22,6 @@ class IssueData(BaseModel):
     """Standardized issue data from all sources"""
 
     title: str
-    state: str  # "open" or "closed"
+    state: str  # "open", "closed" etc.
     state_reason: str | None  # Original status name
     raw: dict[str, Any]
