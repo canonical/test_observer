@@ -34,30 +34,49 @@ class FilteredIssues extends _$FilteredIssues {
         pageUri.queryParameters[CommonQueryParameters.searchQuery],
       ),
     );
-    final issues = ref.watch(issuesProvider()).value ?? [];
 
+    // Convert filter state to API parameters
+    // Single-value filters are passed to API for server-side filtering
+    // Multi-value filters fall back to client-side filtering
+    final source = filtersState.selectedSources.length == 1
+        ? filtersState.selectedSources.first.name
+        : null;
+    final project = filtersState.selectedProjects.length == 1
+        ? filtersState.selectedProjects.first
+        : null;
+    final status = filtersState.selectedStatuses.length == 1
+        ? filtersState.selectedStatuses.first.name
+        : null;
+
+    // Fetch issues from API with filters
+    final issues = await ref.watch(
+      issuesProvider(
+        source: source,
+        project: project,
+        status: status,
+        q: searchQuery.isNotEmpty ? searchQuery : null,
+      ).future,
+    );
+
+    // Apply client-side filtering for multi-select cases
+    // This handles the edge case where users select multiple sources/projects/statuses
     var filtered = issues;
-    if (filtersState.selectedSources.isNotEmpty) {
+    if (filtersState.selectedSources.length > 1) {
       filtered = filtered
           .where((i) => filtersState.selectedSources.contains(i.source))
           .toList();
     }
-    if (filtersState.selectedProjects.isNotEmpty) {
+    if (filtersState.selectedProjects.length > 1) {
       filtered = filtered
           .where((i) => filtersState.selectedProjects.contains(i.project))
           .toList();
     }
-    if (filtersState.selectedStatuses.isNotEmpty) {
+    if (filtersState.selectedStatuses.length > 1) {
       filtered = filtered
           .where((i) => filtersState.selectedStatuses.contains(i.status))
           .toList();
     }
-    if (searchQuery.isNotEmpty) {
-      final queryLower = searchQuery.toLowerCase();
-      filtered = filtered
-          .where((i) => i.title.toLowerCase().contains(queryLower))
-          .toList();
-    }
+
     return filtered;
   }
 }
