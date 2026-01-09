@@ -1,8 +1,10 @@
 FROM ubuntu:24.04 as builder
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback python3
+RUN apt-get update && \
+    apt-get install -y \
+    curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
+    python3 npm
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
     cd /opt/flutter && git checkout '3.29.3' && \
@@ -12,7 +14,7 @@ RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
 ENV PATH $PATH:/opt/flutter/bin
 
 WORKDIR /app
-COPY . /app
+COPY ./flutter /app
 
 RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
@@ -24,13 +26,20 @@ RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
     find build/web/ -type f -exec sed -i -e 's/flutter_bootstrap.js/flutter_bootstrap.'$RANDOMVALUE'.js/g' {} \; && \
     find build/web/ -type f -exec sed -i -e 's/main.dart.js/main.dart.'$RANDOMVALUE'.js/g' {} \;
 
+WORKDIR /vue-app
+COPY ./vue_poc/package*.json ./
+RUN npm install
+
+COPY ./vue_poc/ ./
+RUN npm run build
+
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y nginx
+RUN apt-get update && apt-get install -y nginx
 RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
+COPY --from=builder /vue-app/dist /usr/share/nginx/html/vue_poc
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
 RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/
 
