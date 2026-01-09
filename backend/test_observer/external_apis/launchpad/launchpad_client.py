@@ -116,11 +116,11 @@ class LaunchpadClient:
             status = getattr(chosen_task, "status", None) if chosen_task else None
             state = self._normalize_state(status=status, bug=bug)
 
-            return {
-                "title": bug.title,
-                "state": state,
-                "state_reason": status,
-                "raw": {
+            return IssueData(
+                title=bug.title,
+                state=state,
+                state_reason=status,
+                raw={
                     "id": bug_id,
                     "title": bug.title,
                     "status": status,
@@ -131,7 +131,7 @@ class LaunchpadClient:
                     ),
                     "url": bug.web_link,
                 },
-            }
+            )
         except (NotFound, KeyError) as e:
             raise IssueNotFoundError(f"Launchpad bug {key} not found") from e
         except Unauthorized as e:

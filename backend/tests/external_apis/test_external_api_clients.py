@@ -49,6 +49,7 @@ class TestGitHubClient:
         mock_issue = Mock()
         mock_issue.title = "Test Issue"
         mock_issue.state = "open"
+        mock_issue.state_reason = "open"
         mock_issue.id = 123
         mock_issue.number = 71
         mock_issue.html_url = "https://github.com/owner/repo/issues/71"
@@ -66,9 +67,9 @@ class TestGitHubClient:
             client = GitHubClient(token="test_token")
             result = client.get_issue("owner/repo", "71")
 
-            assert result["title"] == "Test Issue"
-            assert result["state"] == "open"
-            assert result["raw"]["number"] == 71
+            assert result.title == "Test Issue"
+            assert result.state == "open"
+            assert result.raw["number"] == 71
             mock_github.get_repo.assert_called_once_with("owner/repo")
             mock_repo.get_issue.assert_called_once_with(71)
 
@@ -213,9 +214,9 @@ class TestJiraClient:
             )
             result = client.get_issue("TO", "123")
 
-            assert result["title"] == "Test Issue"
-            assert result["state"] == "open"
-            assert result["state_reason"] == "To Do"
+            assert result.title == "Test Issue"
+            assert result.state == "open"
+            assert result.state_reason == "To Do"
             mock_jira.issue.assert_called_once_with("TO-123")
 
     def test_get_issue_not_found(self) -> None:
@@ -364,9 +365,9 @@ class TestLaunchpadClient:
             client = LaunchpadClient(anonymous=True)
             result = client.get_issue("ubuntu", "1234567")
 
-            assert result["title"] == "Test Bug"
-            assert result["state"] == "open"
-            assert result["state_reason"] == "New"
+            assert result.title == "Test Bug"
+            assert result.state == "open"
+            assert result.state_reason == "New"
 
     def test_get_issue_not_found(self) -> None:
         """Test Launchpad bug not found"""

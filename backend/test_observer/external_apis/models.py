@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import TypedDict, Any
+from pydantic import BaseModel
+from typing import Any
 
 
-class IssueData(TypedDict):
+class IssueData(BaseModel):
     """Standardized issue data from all sources"""
 
     title: str

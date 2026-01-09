@@ -62,11 +62,11 @@ class GitHubClient:
             repo = self._github.get_repo(project)
             issue = repo.get_issue(int(str(key).lstrip("#")))
 
-            return {
-                "title": issue.title,
-                "state": issue.state,
-                "state_reason": issue.state_reason,
-                "raw": {
+            return IssueData(
+                title=issue.title,
+                state=issue.state,
+                state_reason=issue.state_reason,
+                raw={
                     "id": issue.id,
                     "number": issue.number,
                     "title": issue.title,
@@ -74,7 +74,7 @@ class GitHubClient:
                     "state_reason": issue.state_reason,
                     "url": issue.html_url,
                 },
-            }
+            )
         except GithubException as e:
             if e.status == 404:
                 raise IssueNotFoundError(

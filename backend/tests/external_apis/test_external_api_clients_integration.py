@@ -30,10 +30,10 @@ class TestGitHubClientIntegration:
         client = GitHubClient()  # No token for public repos
         result = client.get_issue("canonical/test_observer", "71")
 
-        assert result["title"] is not None
-        assert len(result["title"]) > 0
-        assert result["state"] in ("open", "closed")
-        assert "raw" in result
+        assert result.title is not None
+        assert len(result.title) > 0
+        assert result.state in ("open", "closed")
+        assert result.raw is not None
 
     def test_get_nonexistent_github_issue(self) -> None:
         """Test 404 handling"""
@@ -53,9 +53,9 @@ class TestJiraClientIntegration:
         # DPE is a public project in the sandbox
         result = client.get_issue("DPE", "9033")
 
-        assert result["title"] is not None
-        assert result["state"] in ("open", "closed")
-        assert "raw" in result
+        assert result.title is not None
+        assert result.state in ("open", "closed")
+        assert result.raw is not None
 
     def test_get_nonexistent_jira_issue(self) -> None:
         """Test 404 handling"""
@@ -73,9 +73,9 @@ class TestLaunchpadClientIntegration:
         client = LaunchpadClient(anonymous=True)
         result = client.get_issue("ubuntu", "1")
 
-        assert result["title"] is not None
-        assert result["state"] in ("open", "closed")
-        assert "raw" in result
+        assert result.title is not None
+        assert result.state in ("open", "closed")
+        assert result.raw is not None
 
     def test_get_nonexistent_launchpad_bug(self) -> None:
         """Test 404 handling"""

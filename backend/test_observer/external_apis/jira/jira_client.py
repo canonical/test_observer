@@ -100,11 +100,11 @@ class JiraClient:
                 ),
             )
 
-            return {
-                "title": issue.fields.summary,
-                "state": state,
-                "state_reason": issue.fields.status.name,
-                "raw": {
+            return IssueData(
+                title=issue.fields.summary,
+                state=state,
+                state_reason=issue.fields.status.name,
+                raw={
                     "key": issue.key,
                     "summary": issue.fields.summary,
                     "status": issue.fields.status.name,
@@ -115,7 +115,7 @@ class JiraClient:
                     ),
                     "url": issue.permalink(),
                 },
-            }
+            )
         except JIRAError as e:
             if e.status_code == 404:
                 raise IssueNotFoundError(f"Jira issue {project}/{key} not found") from e
