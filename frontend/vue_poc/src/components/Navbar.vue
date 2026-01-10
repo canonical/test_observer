@@ -50,15 +50,41 @@ export default {
       // In production, this would come from environment config
       return window.location.origin.replace(':30001', ':30000')
     },
+    vueAppUrl() {
+      return window.location.origin + '/vue_poc/'
+    },
     logoutUrl() {
-      return `${this.apiUrl}/v1/auth/saml/logout?return_to=${encodeURIComponent(window.location.origin)}`
+      return `${this.apiUrl}/v1/auth/saml/logout?return_to=${encodeURIComponent(this.vueAppUrl)}`
     }
   },
   methods: {
     login() {
-      const loginUrl = `${this.apiUrl}/v1/auth/saml/login?return_to=${encodeURIComponent(window.location.origin)}`
+      const loginUrl = `${this.apiUrl}/v1/auth/saml/login?return_to=${encodeURIComponent(this.vueAppUrl)}`
       window.location.href = loginUrl
+    },
+    async fetchCurrentUser() {
+      try {
+        const response = await fetch(`${this.apiUrl}/v1/users/me`, {
+          credentials: 'include', // Include cookies in the request
+          headers: {
+            'X-CSRF-Token': '1'
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          this.user = data || null
+        } else {
+          this.user = null
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user:', error)
+        this.user = null
+      }
     }
+  },
+  mounted() {
+    this.fetchCurrentUser()
   }
 }
 </script>
