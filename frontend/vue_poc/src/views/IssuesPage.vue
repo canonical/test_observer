@@ -1,19 +1,19 @@
 <template>
   <div class="issues-page">
     <h1>Issues</h1>
-    
+
     <div class="issues-toolbar">
-      <input 
+      <input
         v-model="searchQuery"
         type="text"
         placeholder="Search issues..."
         class="search-input"
       />
     </div>
-    
+
     <div class="issues-list">
-      <div 
-        v-for="issue in filteredIssues" 
+      <div
+        v-for="issue in filteredIssues"
         :key="issue.id"
         class="issue-item"
         @click="$router.push(`/issues/${issue.id}`)"
@@ -26,7 +26,7 @@
         </div>
         <p class="issue-description">{{ issue.description }}</p>
       </div>
-      
+
       <div v-if="filteredIssues.length === 0" class="no-results">
         No issues found.
       </div>
@@ -65,7 +65,7 @@ export default {
   computed: {
     filteredIssues() {
       if (!this.searchQuery) return this.issues
-      
+
       const query = this.searchQuery.toLowerCase()
       return this.issues.filter(i =>
         i.title.toLowerCase().includes(query) ||

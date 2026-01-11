@@ -2,58 +2,75 @@
   <div class="dashboard">
     <div class="dashboard-header">
       <h1>{{ title }}</h1>
+      <div class="view-toggle">
+        <button
+          @click="viewMode = 'list'"
+          :class="['toggle-button', { active: viewMode === 'list' }]"
+          title="Table view"
+        >
+          ☰
+        </button>
+        <button
+          @click="viewMode = 'grid'"
+          :class="['toggle-button', { active: viewMode === 'grid' }]"
+          title="Grid view"
+        >
+          ▦
+        </button>
+      </div>
     </div>
-    
+
     <div class="dashboard-body">
       <div class="filters-toggle">
         <button @click="showFilters = !showFilters" class="filter-button">
           <span class="filter-icon">⚙</span>
         </button>
       </div>
-      
+
       <div v-if="showFilters" class="filters-panel">
         <h3>Filters</h3>
-        <input 
-          v-model="searchQuery" 
-          type="text" 
+        <input
+          v-model="searchQuery"
+          type="text"
           placeholder="Search by name"
           class="search-input"
         />
       </div>
-      
+
       <div class="content-area">
         <div v-if="loading" class="loading">Loading artefacts...</div>
         <div v-else-if="error" class="error">{{ error }}</div>
-        <div v-else class="artefacts-grid">
-          <div 
-            v-for="artefact in filteredArtefacts" 
-            :key="artefact.id"
-            class="artefact-card"
-            @click="navigateToArtefact(artefact.id)"
-          >
-            <h3>{{ artefact.name }}</h3>
-            <p class="artefact-version">Version: {{ artefact.version }}</p>
-            <div class="artefact-status">
-              <span :class="['status-badge', getStatusClass(artefact.status)]">
-                {{ artefact.status }}
-              </span>
-            </div>
-          </div>
-          
-          <div v-if="filteredArtefacts.length === 0" class="no-results">
-            No artefacts found{{ searchQuery ? ' matching your search' : '' }}.
-          </div>
-        </div>
+        <ArtefactsTableView
+          v-else-if="viewMode === 'list'"
+          :artefacts="filteredArtefacts"
+          :family="family"
+          @artefact-click="navigateToArtefact"
+        />
+        <ArtefactsGridView
+          v-else
+          :artefacts="filteredArtefacts"
+          :family="family"
+          @artefact-click="navigateToArtefact"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { api } from '../services/api'
+import ArtefactsTableView from '../components/ArtefactsTableView.vue'
+import ArtefactsGridView from '../components/ArtefactsGridView.vue'
+
 export default {
   name: 'Dashboard',
+  components: {
+    ArtefactsTableView,
+    ArtefactsGridView
+  },
   data() {
     return {
+      viewMode: localStorage.getItem('viewMode') || 'grid', // 'grid' or 'list'
       showFilters: false,
       searchQuery: '',
       loading: false,
@@ -71,9 +88,9 @@ export default {
     },
     filteredArtefacts() {
       if (!this.searchQuery) return this.artefacts
-      
+
       const query = this.searchQuery.toLowerCase()
-      return this.artefacts.filter(a => 
+      return this.artefacts.filter(a =>
         a.name.toLowerCase().includes(query) ||
         a.version.toLowerCase().includes(query)
       )
@@ -83,43 +100,24 @@ export default {
     navigateToArtefact(artefactId) {
       this.$router.push(`/${this.family}s/${artefactId}`)
     },
-    getStatusClass(status) {
-      const statusMap = {
-        'PASSED': 'status-passed',
-        'FAILED': 'status-failed',
-        'IN_PROGRESS': 'status-progress',
-        'PENDING': 'status-pending'
-      }
-      return statusMap[status] || 'status-unknown'
-    },
     async loadArtefacts() {
       this.loading = true
       this.error = null
-      
+
       try {
-        // Mock data for demonstration - in production this would call the API
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        this.artefacts = this.generateMockArtefacts()
+        this.artefacts = await api.fetchArtefacts(this.family)
       } catch (e) {
         this.error = 'Failed to load artefacts: ' + e.message
+        console.error('Failed to load artefacts:', e)
       } finally {
         this.loading = false
       }
-    },
-    generateMockArtefacts() {
-      const statuses = ['PASSED', 'FAILED', 'IN_PROGRESS', 'PENDING']
-      const count = 12
-      
-      return Array.from({ length: count }, (_, i) => ({
-        id: i + 1,
-        name: `${this.family}-example-${i + 1}`,
-        version: `1.${i}.0`,
-        status: statuses[i % statuses.length]
-      }))
     }
   },
   watch: {
+    viewMode(newMode) {
+      localStorage.setItem('viewMode', newMode)
+    },
     family: {
       immediate: true,
       handler() {
@@ -136,6 +134,9 @@ export default {
 }
 
 .dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 24px;
 }
 
@@ -143,6 +144,38 @@ export default {
   font-size: 28px;
   font-weight: 300;
   color: #111;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle-button {
+  padding: 8px 16px;
+  background: white;
+  border: none;
+  border-right: 1px solid #CDCDCD;
+  cursor: pointer;
+  font-size: 18px;
+  color: #E95420;
+  transition: all 0.2s;
+}
+
+.toggle-button:last-child {
+  border-right: none;
+}
+
+.toggle-button:hover {
+  background: #f7f7f7;
+}
+
+.toggle-button.active {
+  background: #E95420;
+  color: white;
 }
 
 .dashboard-body {
@@ -207,8 +240,7 @@ export default {
 }
 
 .loading,
-.error,
-.no-results {
+.error {
   padding: 32px;
   text-align: center;
   color: #666;
@@ -216,76 +248,5 @@ export default {
 
 .error {
   color: #C7162B;
-}
-
-.artefacts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.artefact-card {
-  background: white;
-  border: 1px solid #CDCDCD;
-  border-radius: 4px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.artefact-card:hover {
-  border-color: #0E8420;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.artefact-card h3 {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: #111;
-}
-
-.artefact-version {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
-}
-
-.artefact-status {
-  display: flex;
-  gap: 8px;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.status-passed {
-  background: #0E8420;
-  color: white;
-}
-
-.status-failed {
-  background: #C7162B;
-  color: white;
-}
-
-.status-progress {
-  background: #0066CC;
-  color: white;
-}
-
-.status-pending {
-  background: #666;
-  color: white;
-}
-
-.status-unknown {
-  background: #CDCDCD;
-  color: #111;
 }
 </style>

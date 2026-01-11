@@ -4,7 +4,7 @@
       <button @click="$router.push('/issues')" class="back-button">← Back to Issues</button>
       <h1>Issue #{{ issueId }}</h1>
     </div>
-    
+
     <div v-if="loading" class="loading">Loading issue...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else class="issue-content">
@@ -17,7 +17,7 @@
         </div>
         <p class="issue-description">{{ issue.description }}</p>
       </div>
-      
+
       <div class="section">
         <h3>Comments</h3>
         <p class="placeholder">Comments would appear here.</p>
@@ -45,17 +45,17 @@ export default {
     async loadIssue() {
       this.loading = true
       this.error = null
-      
+
       try {
         await new Promise(resolve => setTimeout(resolve, 300))
-        
+
         // Mock data
         const issues = [
           { id: 1, title: 'Test failure in snap-example-1', description: 'Intermittent test failure observed in the latest build.', open: true },
           { id: 2, title: 'Missing test coverage', description: 'Need to add tests for new features introduced in version 2.0.', open: true },
           { id: 3, title: 'Performance regression', description: 'Tests taking longer than expected after recent changes.', open: false }
         ]
-        
+
         this.issue = issues.find(i => i.id === this.issueId) || {
           id: this.issueId,
           title: `Issue ${this.issueId}`,

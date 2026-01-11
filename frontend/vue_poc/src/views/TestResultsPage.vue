@@ -2,7 +2,7 @@
   <div class="test-results-page">
     <h1>Search Test Results</h1>
     <div class="search-section">
-      <input 
+      <input
         v-model="searchQuery"
         type="text"
         placeholder="Search for test results..."
@@ -11,11 +11,11 @@
       />
       <button @click="search" class="search-button">Search</button>
     </div>
-    
+
     <div v-if="searched && results.length === 0" class="no-results">
       No results found.
     </div>
-    
+
     <div v-if="results.length > 0" class="results">
       <p class="results-count">Found {{ results.length }} results</p>
       <div class="results-list">

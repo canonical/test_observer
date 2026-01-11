@@ -4,18 +4,18 @@
       <div class="navbar-logo">
         <img src="/canonical.png" alt="Canonical" />
       </div>
-      
+
       <div class="navbar-links">
         <router-link to="/snaps" class="nav-link">Snap Testing</router-link>
         <router-link to="/debs" class="nav-link">Deb Testing</router-link>
         <router-link to="/charms" class="nav-link">Charm Testing</router-link>
         <router-link to="/images" class="nav-link">Image Testing</router-link>
-        
+
         <div class="spacer"></div>
-        
+
         <router-link to="/test-results" class="nav-link">Search</router-link>
         <router-link to="/issues" class="nav-link">Issues</router-link>
-        
+
         <div class="dropdown">
           <button class="nav-button dropdown-toggle">Help</button>
           <div class="dropdown-menu">
@@ -24,7 +24,7 @@
             <a href="https://github.com/canonical/test_observer" target="_blank" class="dropdown-item">Source Code</a>
           </div>
         </div>
-        
+
         <div v-if="user" class="dropdown">
           <button class="nav-button dropdown-toggle">{{ user.name }}</button>
           <div class="dropdown-menu">
@@ -70,7 +70,7 @@ export default {
             'X-CSRF-Token': '1'
           }
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           this.user = data || null

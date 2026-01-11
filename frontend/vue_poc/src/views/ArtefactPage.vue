@@ -4,7 +4,7 @@
       <button @click="$router.back()" class="back-button">← Back</button>
       <h1>Artefact #{{ artefactId }}</h1>
     </div>
-    
+
     <div v-if="loading" class="loading">Loading artefact details...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else class="artefact-content">
@@ -27,7 +27,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="section">
         <h3>Test Executions</h3>
         <p class="placeholder">Test execution details would appear here.</p>
@@ -67,10 +67,10 @@ export default {
     async loadArtefact() {
       this.loading = true
       this.error = null
-      
+
       try {
         await new Promise(resolve => setTimeout(resolve, 300))
-        
+
         // Mock data
         const statuses = ['PASSED', 'FAILED', 'IN_PROGRESS', 'PENDING']
         this.artefact = {
