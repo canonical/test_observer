@@ -240,12 +240,12 @@
                                 <span class="expand-icon">{{ isExecutionSectionExpanded(execution.id, 'metadata') ? '▼' : '▶' }}</span>
                               </div>
                               <div v-if="isExecutionSectionExpanded(execution.id, 'metadata')" class="metadata-content">
-                                <div v-if="execution.execution_metadata && Object.keys(execution.execution_metadata.data).length > 0" class="metadata-table">
+                                <div v-if="execution.execution_metadata && Object.keys(execution.execution_metadata).length > 0" class="metadata-table">
                                   <table>
                                     <tbody>
-                                      <tr v-for="(value, key) in execution.execution_metadata.data" :key="key">
+                                      <tr v-for="(value, key) in execution.execution_metadata" :key="key">
                                         <td class="metadata-key">{{ key }}</td>
-                                        <td class="metadata-value">{{ value }}</td>
+                                        <td class="metadata-value">{{ Array.isArray(value) ? value.join(', ') : value }}</td>
                                       </tr>
                                     </tbody>
                                   </table>
