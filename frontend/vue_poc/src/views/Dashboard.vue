@@ -29,12 +29,36 @@
 
       <div v-if="showFilters" class="filters-panel">
         <h3>Filters</h3>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search by name"
-          class="search-input"
-        />
+
+        <div class="filter-section">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search by name"
+            class="search-input"
+          />
+        </div>
+
+        <div v-for="filter in availableFilters" :key="filter.name" class="filter-section">
+          <div class="filter-header" @click="toggleFilterExpanded(filter.name)">
+            <span class="filter-title">{{ filter.name }}</span>
+            <span class="expand-icon">{{ isFilterExpanded(filter.name) ? '▼' : '▶' }}</span>
+          </div>
+          <div v-if="isFilterExpanded(filter.name)" class="filter-options">
+            <label
+              v-for="option in filter.options"
+              :key="option"
+              class="filter-option"
+            >
+              <input
+                type="checkbox"
+                :checked="isOptionSelected(filter.name, option)"
+                @change="toggleFilterOption(filter.name, option, $event.target.checked)"
+              />
+              <span>{{ option }}</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="content-area">
@@ -75,7 +99,9 @@ export default {
       searchQuery: '',
       loading: false,
       error: null,
-      artefacts: []
+      artefacts: [],
+      selectedFilters: {},
+      expandedFilters: {}
     }
   },
   computed: {
@@ -87,13 +113,45 @@ export default {
       return `${familyName} Update Verification`
     },
     filteredArtefacts() {
-      if (!this.searchQuery) return this.artefacts
+      let filtered = this.artefacts
 
-      const query = this.searchQuery.toLowerCase()
-      return this.artefacts.filter(a =>
-        a.name.toLowerCase().includes(query) ||
-        a.version.toLowerCase().includes(query)
-      )
+      // Apply search query
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(a =>
+          a.name.toLowerCase().includes(query) ||
+          a.version.toLowerCase().includes(query)
+        )
+      }
+
+      // Apply selected filters
+      for (const [filterName, selectedOptions] of Object.entries(this.selectedFilters)) {
+        if (selectedOptions.length > 0) {
+          filtered = filtered.filter(artefact => {
+            const value = this.getArtefactFilterValue(artefact, filterName)
+            return selectedOptions.includes(value)
+          })
+        }
+      }
+
+      return filtered
+    },
+    availableFilters() {
+      if (!this.artefacts.length) return []
+
+      const filterDefinitions = {
+        snap: ['Assignee', 'Status', 'Due date', 'Risk'],
+        deb: ['Assignee', 'Status', 'Due date', 'Series', 'Pocket'],
+        charm: ['Assignee', 'Status', 'Due date', 'Risk'],
+        image: ['OS type', 'Release', 'Owner', 'Assignee', 'Status', 'Due date']
+      }
+
+      const filtersForFamily = filterDefinitions[this.family] || []
+
+      return filtersForFamily.map(filterName => ({
+        name: filterName,
+        options: this.getFilterOptions(filterName)
+      }))
     }
   },
   methods: {
@@ -106,12 +164,88 @@ export default {
 
       try {
         this.artefacts = await api.fetchArtefacts(this.family)
+        // Reset filters when family changes
+        this.selectedFilters = {}
+        this.expandedFilters = {}
       } catch (e) {
         this.error = 'Failed to load artefacts: ' + e.message
         console.error('Failed to load artefacts:', e)
       } finally {
         this.loading = false
       }
+    },
+    getFilterOptions(filterName) {
+      const options = new Set()
+      this.artefacts.forEach(artefact => {
+        const value = this.getArtefactFilterValue(artefact, filterName)
+        if (value) options.add(value)
+      })
+      return Array.from(options).sort()
+    },
+    getArtefactFilterValue(artefact, filterName) {
+      switch (filterName) {
+        case 'Assignee':
+          return artefact.assignee?.name || 'N/A'
+        case 'Status':
+          return artefact.status === 'APPROVED' ? 'Approved'
+               : artefact.status === 'MARKED_AS_FAILED' ? 'Rejected'
+               : 'Undecided'
+        case 'Due date':
+          return this.getDueDateCategory(artefact.due_date)
+        case 'Risk':
+        case 'Pocket':
+          return artefact.stage ? artefact.stage.charAt(0).toUpperCase() + artefact.stage.slice(1) : ''
+        case 'Series':
+          return artefact.series
+        case 'OS type':
+          return artefact.os
+        case 'Release':
+          return artefact.release
+        case 'Owner':
+          return artefact.owner
+        default:
+          return ''
+      }
+    },
+    getDueDateCategory(dueDate) {
+      if (!dueDate) return 'No due date'
+
+      const now = new Date()
+      const due = new Date(dueDate)
+
+      if (due < now) return 'Overdue'
+
+      const daysDiff = Math.ceil((due - now) / (1000 * 60 * 60 * 24))
+      if (daysDiff <= 7) return 'Within a week'
+      return 'More than a week'
+    },
+    toggleFilterOption(filterName, option, isSelected) {
+      if (!this.selectedFilters[filterName]) {
+        this.selectedFilters[filterName] = []
+      }
+
+      if (isSelected) {
+        if (!this.selectedFilters[filterName].includes(option)) {
+          this.selectedFilters[filterName].push(option)
+        }
+      } else {
+        this.selectedFilters[filterName] = this.selectedFilters[filterName].filter(o => o !== option)
+      }
+
+      // Trigger reactivity
+      this.selectedFilters = { ...this.selectedFilters }
+    },
+    isOptionSelected(filterName, option) {
+      return this.selectedFilters[filterName]?.includes(option) || false
+    },
+    toggleFilterExpanded(filterName) {
+      this.expandedFilters[filterName] = !this.expandedFilters[filterName]
+      // Trigger reactivity
+      this.expandedFilters = { ...this.expandedFilters }
+    },
+    isFilterExpanded(filterName) {
+      // Default to expanded if not set
+      return this.expandedFilters[filterName] !== false
     }
   },
   watch: {
@@ -232,6 +366,65 @@ export default {
 .search-input:focus {
   outline: none;
   border-color: #0E8420;
+}
+
+.filter-section {
+  margin-top: 16px;
+  border-top: 1px solid #CDCDCD;
+  padding-top: 12px;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+
+.filter-header:hover {
+  color: #0E8420;
+}
+
+.filter-header h4 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.expand-icon {
+  transition: transform 0.2s;
+  color: #666;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.filter-options {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.filter-option label {
+  font-size: 13px;
+  cursor: pointer;
+  flex: 1;
 }
 
 .content-area {
