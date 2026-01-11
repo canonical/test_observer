@@ -20,57 +20,57 @@
         <div v-if="showFilters" class="info-sidebar">
           <!-- Artefact Info Section -->
           <div class="info-section">
-            <div class="info-item" v-if="artefact.stage">
+            <div class="info-item" v-if="artefact?.stage">
               <span class="label">Stage:</span>
               <span class="value stage-badge">{{ artefact.stage }}</span>
             </div>
             <div class="info-item">
               <span class="label">Version:</span>
-              <span class="value">{{ artefact.version }}</span>
+              <span class="value">{{ artefact?.version }}</span>
             </div>
-            <div class="info-item" v-if="artefact.track">
+            <div class="info-item" v-if="artefact?.track">
               <span class="label">Track:</span>
               <span class="value">{{ artefact.track }}</span>
             </div>
-            <div class="info-item" v-if="artefact.store">
+            <div class="info-item" v-if="artefact?.store">
               <span class="label">Store:</span>
               <span class="value">{{ artefact.store }}</span>
             </div>
-            <div class="info-item" v-if="artefact.branch">
+            <div class="info-item" v-if="artefact?.branch">
               <span class="label">Branch:</span>
               <span class="value">{{ artefact.branch }}</span>
             </div>
-            <div class="info-item" v-if="artefact.series">
+            <div class="info-item" v-if="artefact?.series">
               <span class="label">Series:</span>
               <span class="value">{{ artefact.series }}</span>
             </div>
-            <div class="info-item" v-if="artefact.repo">
+            <div class="info-item" v-if="artefact?.repo">
               <span class="label">Repo:</span>
               <span class="value">{{ artefact.repo }}</span>
             </div>
-            <div class="info-item" v-if="artefact.source">
+            <div class="info-item" v-if="artefact?.source">
               <span class="label">Source:</span>
               <span class="value">{{ artefact.source }}</span>
             </div>
-            <div class="info-item" v-if="artefact.os">
+            <div class="info-item" v-if="artefact?.os">
               <span class="label">OS:</span>
               <span class="value">{{ artefact.os }}</span>
             </div>
-            <div class="info-item" v-if="artefact.release">
+            <div class="info-item" v-if="artefact?.release">
               <span class="label">Release:</span>
               <span class="value">{{ artefact.release }}</span>
             </div>
-            <div class="info-item" v-if="artefact.owner">
+            <div class="info-item" v-if="artefact?.owner">
               <span class="label">Owner:</span>
               <span class="value">{{ artefact.owner }}</span>
             </div>
-            <div class="info-item" v-if="artefact.bug_link">
+            <div class="info-item" v-if="artefact?.bug_link">
               <span class="label">Bug Link:</span>
               <a :href="artefact.bug_link" target="_blank" class="value link">{{ artefact.bug_link }}</a>
             </div>
             <div class="info-item">
               <span class="label">Comment:</span>
-              <span class="value">{{ artefact.comment || 'None' }}</span>
+              <span class="value">{{ artefact?.comment || 'None' }}</span>
             </div>
           </div>
 
@@ -572,8 +572,9 @@ export default {
       if (!this.testResults[executionId] && !this.loadingTestResults[executionId]) {
         this.loadingTestResults[executionId] = true
         try {
-          const results = await api.fetchTestResults(executionId)
-          this.testResults[executionId] = results
+          const response = await api.fetchTestResults(executionId)
+          // The API returns an array directly or an object with test_results property
+          this.testResults[executionId] = Array.isArray(response) ? response : (response.test_results || [])
         } catch (e) {
           console.error('Failed to load test results:', e)
           this.testResults[executionId] = []

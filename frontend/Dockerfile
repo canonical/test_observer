@@ -31,7 +31,7 @@ COPY ./vue_poc/package*.json ./
 RUN npm install
 
 COPY ./vue_poc/ ./
-RUN npm run build
+RUN NODE_ENV=development npm run build
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
