@@ -30,6 +30,51 @@ export const api = {
       return data || null
     }
     return null
+  },
+
+  async fetchArtefact(artefactId) {
+    const response = await fetch(`${API_BASE_URL}/v1/artefacts/${artefactId}`, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch artefact: ${response.statusText}`)
+    }
+
+    return response.json()
+  },
+
+  async fetchArtefactBuilds(artefactId) {
+    const response = await fetch(`${API_BASE_URL}/v1/artefacts/${artefactId}/builds`, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch artefact builds: ${response.statusText}`)
+    }
+
+    return response.json()
+  },
+
+  async fetchEnvironmentReviews(artefactId) {
+    const response = await fetch(`${API_BASE_URL}/v1/artefacts/${artefactId}/environment-reviews`, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch environment reviews: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 }
 
