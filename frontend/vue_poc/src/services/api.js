@@ -148,7 +148,7 @@ export const api = {
     return response.json()
   },
 
-  async fetchTestResults(params = {}) {
+  async searchTestResults(params = {}) {
     const queryParams = new URLSearchParams()
 
     // Handle array parameters

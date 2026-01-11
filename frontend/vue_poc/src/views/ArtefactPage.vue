@@ -279,6 +279,7 @@
                                       <div
                                         v-for="result in getTestResultsByStatus(execution.id, status)"
                                         :key="result.id"
+                                        :data-result-id="result.id"
                                         class="result-item"
                                       >
                                         <div class="result-header" @click="toggleResult(result.id)">
@@ -572,9 +573,8 @@ export default {
       if (!this.testResults[executionId] && !this.loadingTestResults[executionId]) {
         this.loadingTestResults[executionId] = true
         try {
-          const response = await api.fetchTestResults(executionId)
-          // The API returns an array directly or an object with test_results property
-          this.testResults[executionId] = Array.isArray(response) ? response : (response.test_results || [])
+          const results = await api.fetchTestResults(executionId)
+          this.testResults[executionId] = Array.isArray(results) ? results : []
         } catch (e) {
           console.error('Failed to load test results:', e)
           this.testResults[executionId] = []
@@ -619,7 +619,7 @@ export default {
     },
     getTestResultsByStatus(executionId, status) {
       const results = this.testResults[executionId]
-      if (!results) return []
+      if (!results || results.length === 0) return []
       return results.filter(r => r.status === status)
     },
     isExecutionCompleted(status) {
@@ -667,10 +667,84 @@ export default {
     formatDateTime(dateString) {
       const date = new Date(dateString)
       return date.toLocaleString()
+    },
+    async handleQueryParameters() {
+      const { testExecutionId, testResultId } = this.$route.query
+      
+      if (!testExecutionId) return
+      
+      const executionId = parseInt(testExecutionId)
+      
+      // Find the execution in the environments
+      let foundExecution = null
+      let foundEnvironment = null
+      let foundTestPlan = null
+      
+      for (const env of this.environments) {
+        for (const execution of env.testExecutions) {
+          if (execution.id === executionId) {
+            foundExecution = execution
+            foundEnvironment = env
+            foundTestPlan = execution.test_plan || 'Unknown Plan'
+            break
+          }
+        }
+        if (foundExecution) break
+      }
+      
+      if (!foundExecution || !foundEnvironment) {
+        console.warn('Test execution not found:', executionId)
+        return
+      }
+      
+      // Expand the hierarchy: environment -> test plans section -> specific plan -> execution
+      this.expandedEnvironments[foundEnvironment.id] = true
+      this.expandedSections[`${foundEnvironment.id}-testPlans`] = true
+      this.expandedTestPlans[`${foundEnvironment.id}-${foundTestPlan}`] = true
+      this.expandedTestExecutions[executionId] = true
+      
+      // Trigger reactivity
+      this.expandedEnvironments = { ...this.expandedEnvironments }
+      this.expandedSections = { ...this.expandedSections }
+      this.expandedTestPlans = { ...this.expandedTestPlans }
+      this.expandedTestExecutions = { ...this.expandedTestExecutions }
+      
+      // Load the execution details
+      await this.loadTestExecutionDetails(executionId)
+      
+      // If testResultId is provided, expand to that specific result
+      if (testResultId) {
+        const resultId = parseInt(testResultId)
+        
+        // Expand the results section
+        this.expandedExecutionSections[`${executionId}-results`] = true
+        this.expandedExecutionSections = { ...this.expandedExecutionSections }
+        
+        // Find the result and its status group
+        const results = this.testResults[executionId] || []
+        const result = results.find(r => r.id === resultId)
+        
+        if (result) {
+          // Expand the status group containing this result
+          this.expandedResultsGroups[`${executionId}-${result.status}`] = true
+          this.expandedResultsGroups = { ...this.expandedResultsGroups }
+          
+          // Wait for next tick to ensure DOM is updated
+          await this.$nextTick()
+          
+          // Scroll to the result
+          const resultElement = document.querySelector(`[data-result-id="${resultId}"]`)
+          if (resultElement) {
+            resultElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
+        }
+      }
     }
   },
-  mounted() {
-    this.loadData()
+  async mounted() {
+    await this.loadData()
+    // Handle query parameters after data is loaded
+    await this.handleQueryParameters()
   },
   watch: {
     artefactId() {

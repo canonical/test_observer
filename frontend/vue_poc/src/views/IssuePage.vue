@@ -246,7 +246,7 @@ export default {
       this.testResultsError = null
 
       try {
-        const response = await api.fetchTestResults({
+        const response = await api.searchTestResults({
           issues: [this.issueId],
           limit: 100
         })
