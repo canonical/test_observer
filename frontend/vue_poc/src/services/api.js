@@ -75,6 +75,36 @@ export const api = {
     }
 
     return response.json()
+  },
+
+  async fetchTestResults(testExecutionId) {
+    const response = await fetch(`${API_BASE_URL}/v1/test-executions/${testExecutionId}/test-results`, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch test results: ${response.statusText}`)
+    }
+
+    return response.json()
+  },
+
+  async fetchTestEvents(testExecutionId) {
+    const response = await fetch(`${API_BASE_URL}/v1/test-executions/${testExecutionId}/status_update`, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch test events: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 }
 

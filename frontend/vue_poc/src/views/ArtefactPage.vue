@@ -203,23 +203,137 @@
 
                           <!-- Test Execution Details -->
                           <div v-if="isTestExecutionExpanded(execution.id)" class="execution-details">
-                            <div class="detail-item" v-if="execution.ci_link">
-                              <span class="label">CI Link:</span>
-                              <a :href="execution.ci_link" target="_blank" class="link">{{ execution.ci_link }}</a>
+                            <!-- Event Log -->
+                            <div class="detail-section">
+                              <div class="detail-section-header" @click="toggleExecutionSection(execution.id, 'eventLog')">
+                                <span class="section-title">Event Log</span>
+                                <span class="expand-icon">{{ isExecutionSectionExpanded(execution.id, 'eventLog') ? '▼' : '▶' }}</span>
+                              </div>
+                              <div v-if="isExecutionSectionExpanded(execution.id, 'eventLog')" class="event-log">
+                                <div v-if="loadingTestEvents[execution.id]" class="loading-small">Loading events...</div>
+                                <div v-else-if="testEvents[execution.id] && testEvents[execution.id].length > 0" class="events-table">
+                                  <table>
+                                    <thead>
+                                      <tr>
+                                        <th>Event Name</th>
+                                        <th>Timestamp</th>
+                                        <th>Detail</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr v-for="event in testEvents[execution.id]" :key="event.event_name + event.timestamp">
+                                        <td>{{ event.event_name }}</td>
+                                        <td>{{ event.timestamp }}</td>
+                                        <td class="detail-cell" :title="event.detail">{{ event.detail }}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <div v-else class="empty-state-small">No events recorded</div>
+                              </div>
                             </div>
-                            <div class="detail-item" v-if="execution.c3_link">
-                              <span class="label">C3 Link:</span>
-                              <a :href="execution.c3_link" target="_blank" class="link">{{ execution.c3_link }}</a>
+
+                            <!-- Execution Metadata -->
+                            <div class="detail-section">
+                              <div class="detail-section-header" @click="toggleExecutionSection(execution.id, 'metadata')">
+                                <span class="section-title">Execution Metadata</span>
+                                <span class="expand-icon">{{ isExecutionSectionExpanded(execution.id, 'metadata') ? '▼' : '▶' }}</span>
+                              </div>
+                              <div v-if="isExecutionSectionExpanded(execution.id, 'metadata')" class="metadata-content">
+                                <div v-if="execution.execution_metadata && Object.keys(execution.execution_metadata.data).length > 0" class="metadata-table">
+                                  <table>
+                                    <tbody>
+                                      <tr v-for="(value, key) in execution.execution_metadata.data" :key="key">
+                                        <td class="metadata-key">{{ key }}</td>
+                                        <td class="metadata-value">{{ value }}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <div v-else class="empty-state-small">No metadata available</div>
+                              </div>
                             </div>
-                            <div class="detail-item">
-                              <span class="label">Status:</span>
-                              <span :class="['status-badge', getStatusClass(execution.status)]">
-                                {{ formatStatus(execution.status) }}
-                              </span>
+
+                            <!-- Test Results (only if execution is completed) -->
+                            <div v-if="isExecutionCompleted(execution.status)" class="detail-section">
+                              <div class="detail-section-header" @click="toggleExecutionSection(execution.id, 'results')">
+                                <span class="section-title">Test Results</span>
+                                <span class="expand-icon">{{ isExecutionSectionExpanded(execution.id, 'results') ? '▼' : '▶' }}</span>
+                              </div>
+                              <div v-if="isExecutionSectionExpanded(execution.id, 'results')" class="test-results">
+                                <div v-if="loadingTestResults[execution.id]" class="loading-small">Loading test results...</div>
+                                <div v-else-if="testResults[execution.id]">
+                                  <!-- Grouped by status -->
+                                  <div v-for="status in ['PASSED', 'FAILED', 'SKIPPED']" :key="status" class="results-group">
+                                    <div 
+                                      class="results-group-header" 
+                                      @click="toggleResultsGroup(execution.id, status)"
+                                      v-if="getTestResultsByStatus(execution.id, status).length > 0"
+                                    >
+                                      <span :class="['status-icon', getStatusClass(status)]">{{ getStatusIcon(status) }}</span>
+                                      <span class="status-label">{{ formatStatus(status) }}</span>
+                                      <span class="count">{{ getTestResultsByStatus(execution.id, status).length }}</span>
+                                      <span class="expand-icon">{{ isResultsGroupExpanded(execution.id, status) ? '▼' : '▶' }}</span>
+                                    </div>
+                                    <div v-if="isResultsGroupExpanded(execution.id, status)" class="results-list">
+                                      <div 
+                                        v-for="result in getTestResultsByStatus(execution.id, status)" 
+                                        :key="result.id"
+                                        class="result-item"
+                                      >
+                                        <div class="result-header" @click="toggleResult(result.id)">
+                                          <span class="result-name">{{ result.name }}</span>
+                                          <span v-if="result.issues && result.issues.length > 0" class="issues-count">
+                                            ({{ result.issues.length }} {{ result.issues.length === 1 ? 'issue' : 'issues' }})
+                                          </span>
+                                          <span class="expand-icon">{{ isResultExpanded(result.id) ? '▼' : '▶' }}</span>
+                                        </div>
+                                        <div v-if="isResultExpanded(result.id)" class="result-details">
+                                          <div class="result-detail-item" v-if="result.category">
+                                            <span class="label">Category:</span>
+                                            <span>{{ result.category }}</span>
+                                          </div>
+                                          <div class="result-detail-item" v-if="result.comment">
+                                            <span class="label">Comment:</span>
+                                            <span>{{ result.comment }}</span>
+                                          </div>
+                                          <div class="result-detail-item" v-if="result.io_log">
+                                            <span class="label">IO Log:</span>
+                                            <pre class="io-log">{{ result.io_log }}</pre>
+                                          </div>
+                                          <div class="result-detail-item" v-if="result.issues && result.issues.length > 0">
+                                            <span class="label">Related Issues:</span>
+                                            <ul class="issues-list">
+                                              <li v-for="issueAttachment in result.issues" :key="issueAttachment.issue.id">
+                                                <a :href="issueAttachment.issue.url" target="_blank" class="issue-link">
+                                                  {{ issueAttachment.issue.key }}: {{ issueAttachment.issue.title }}
+                                                </a>
+                                              </li>
+                                            </ul>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div v-else class="empty-state-small">No test results available</div>
+                              </div>
                             </div>
-                            <div class="detail-item">
-                              <span class="label">Created:</span>
-                              <span>{{ formatDateTime(execution.created_at) }}</span>
+
+                            <!-- Basic Info -->
+                            <div class="basic-info">
+                              <div class="detail-item" v-if="execution.ci_link">
+                                <span class="label">CI Link:</span>
+                                <a :href="execution.ci_link" target="_blank" class="link">{{ execution.ci_link }}</a>
+                              </div>
+                              <div class="detail-item" v-if="execution.c3_link">
+                                <span class="label">C3 Link:</span>
+                                <a :href="execution.c3_link" target="_blank" class="link">{{ execution.c3_link }}</a>
+                              </div>
+                              <div class="detail-item">
+                                <span class="label">Created:</span>
+                                <span>{{ formatDateTime(execution.created_at) }}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -262,7 +376,14 @@ export default {
       expandedEnvironments: {},
       expandedSections: {},
       expandedTestPlans: {},
-      expandedTestExecutions: {}
+      expandedTestExecutions: {},
+      expandedExecutionSections: {},
+      expandedResultsGroups: {},
+      expandedResults: {},
+      testEvents: {},
+      testResults: {},
+      loadingTestEvents: {},
+      loadingTestResults: {}
     }
   },
   computed: {
@@ -422,9 +543,86 @@ export default {
     toggleTestExecution(executionId) {
       this.expandedTestExecutions[executionId] = !this.expandedTestExecutions[executionId]
       this.expandedTestExecutions = { ...this.expandedTestExecutions }
+      
+      // Load test events and results when expanding (if not already loaded)
+      if (this.expandedTestExecutions[executionId]) {
+        this.loadTestExecutionDetails(executionId)
+      }
     },
     isTestExecutionExpanded(executionId) {
       return this.expandedTestExecutions[executionId] || false
+    },
+    async loadTestExecutionDetails(executionId) {
+      // Load test events
+      if (!this.testEvents[executionId] && !this.loadingTestEvents[executionId]) {
+        this.loadingTestEvents[executionId] = true
+        try {
+          const events = await api.fetchTestEvents(executionId)
+          this.testEvents[executionId] = events
+        } catch (e) {
+          console.error('Failed to load test events:', e)
+          this.testEvents[executionId] = []
+        } finally {
+          this.loadingTestEvents[executionId] = false
+          this.loadingTestEvents = { ...this.loadingTestEvents }
+        }
+      }
+      
+      // Load test results
+      if (!this.testResults[executionId] && !this.loadingTestResults[executionId]) {
+        this.loadingTestResults[executionId] = true
+        try {
+          const results = await api.fetchTestResults(executionId)
+          this.testResults[executionId] = results
+        } catch (e) {
+          console.error('Failed to load test results:', e)
+          this.testResults[executionId] = []
+        } finally {
+          this.loadingTestResults[executionId] = false
+          this.loadingTestResults = { ...this.loadingTestResults }
+        }
+      }
+    },
+    toggleExecutionSection(executionId, sectionName) {
+      const key = `${executionId}-${sectionName}`
+      this.expandedExecutionSections[key] = !this.expandedExecutionSections[key]
+      this.expandedExecutionSections = { ...this.expandedExecutionSections }
+    },
+    isExecutionSectionExpanded(executionId, sectionName) {
+      const key = `${executionId}-${sectionName}`
+      // Default expanded state: eventLog (for in-progress), results (for completed)
+      if (this.expandedExecutionSections[key] === undefined) {
+        return sectionName === 'eventLog' || sectionName === 'results'
+      }
+      return this.expandedExecutionSections[key]
+    },
+    toggleResultsGroup(executionId, status) {
+      const key = `${executionId}-${status}`
+      this.expandedResultsGroups[key] = !this.expandedResultsGroups[key]
+      this.expandedResultsGroups = { ...this.expandedResultsGroups }
+    },
+    isResultsGroupExpanded(executionId, status) {
+      const key = `${executionId}-${status}`
+      // Default: expand failed results
+      if (this.expandedResultsGroups[key] === undefined) {
+        return status === 'FAILED'
+      }
+      return this.expandedResultsGroups[key]
+    },
+    toggleResult(resultId) {
+      this.expandedResults[resultId] = !this.expandedResults[resultId]
+      this.expandedResults = { ...this.expandedResults }
+    },
+    isResultExpanded(resultId) {
+      return this.expandedResults[resultId] || false
+    },
+    getTestResultsByStatus(executionId, status) {
+      const results = this.testResults[executionId]
+      if (!results) return []
+      return results.filter(r => r.status === status)
+    },
+    isExecutionCompleted(status) {
+      return status === 'PASSED' || status === 'FAILED'
     },
     groupTestExecutionsByPlan(testExecutions) {
       const grouped = {}
@@ -849,6 +1047,219 @@ export default {
 .execution-details {
   padding: 12px;
   border-top: 1px solid #CDCDCD;
+}
+
+.detail-section {
+  margin-bottom: 16px;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  background: white;
+}
+
+.detail-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f7f7f7;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+  border-radius: 4px 4px 0 0;
+}
+
+.detail-section-header:hover {
+  background: #e7e7e7;
+}
+
+.section-title {
+  font-size: 14px;
+}
+
+.loading-small {
+  padding: 16px;
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+}
+
+.empty-state-small {
+  padding: 16px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.event-log,
+.metadata-content,
+.test-results {
+  padding: 12px;
+}
+
+.events-table table,
+.metadata-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.events-table th {
+  text-align: left;
+  padding: 8px;
+  background: #f7f7f7;
+  border-bottom: 2px solid #CDCDCD;
+  font-weight: 500;
+}
+
+.events-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.detail-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metadata-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.metadata-key {
+  font-weight: 500;
+  color: #666;
+  width: 40%;
+}
+
+.metadata-value {
+  color: #111;
+}
+
+.results-group {
+  margin-bottom: 12px;
+}
+
+.results-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f7f7f7;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.results-group-header:hover {
+  background: #e7e7e7;
+}
+
+.status-label {
+  font-weight: 500;
+}
+
+.count {
+  color: #666;
+  font-size: 13px;
+}
+
+.results-list {
+  padding: 8px 0;
+}
+
+.result-item {
+  margin-bottom: 8px;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  background: white;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  background: #fafafa;
+}
+
+.result-header:hover {
+  background: #f0f0f0;
+}
+
+.result-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.issues-count {
+  color: #C7162B;
+  font-size: 12px;
+}
+
+.result-details {
+  padding: 12px;
+  border-top: 1px solid #CDCDCD;
+}
+
+.result-detail-item {
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.result-detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.result-detail-item .label {
+  font-weight: 500;
+  color: #666;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.io-log {
+  background: #f7f7f7;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  padding: 12px;
+  font-family: 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.issues-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.issues-list li {
+  margin-bottom: 4px;
+}
+
+.issue-link {
+  color: #0E8420;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.issue-link:hover {
+  text-decoration: underline;
+}
+
+.basic-info {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e7e7e7;
 }
 
 .detail-item {
