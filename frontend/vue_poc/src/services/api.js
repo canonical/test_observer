@@ -109,7 +109,7 @@ export const api = {
 
   async fetchIssues(params = {}) {
     const queryParams = new URLSearchParams()
-    
+
     if (params.source) queryParams.append('source', params.source)
     if (params.project) queryParams.append('project', params.project)
     if (params.status) queryParams.append('status', params.status)
@@ -118,7 +118,7 @@ export const api = {
     if (params.offset) queryParams.append('offset', params.offset)
 
     const url = `${API_BASE_URL}/v1/issues${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    
+
     const response = await fetch(url, {
       credentials: 'include',
       headers: {

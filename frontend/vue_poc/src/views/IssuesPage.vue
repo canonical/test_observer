@@ -20,9 +20,9 @@
         <div v-if="showFilters" class="filters-sidebar">
           <!-- Search -->
           <div class="search-section">
-            <input 
-              v-model="searchQuery" 
-              type="text" 
+            <input
+              v-model="searchQuery"
+              type="text"
               placeholder="Search issues..."
               class="search-input"
               @keyup.enter="applyFilters"
@@ -37,8 +37,8 @@
             </div>
             <div v-if="isFilterExpanded('source')" class="filter-options">
               <label v-for="source in availableSources" :key="source" class="filter-option">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   :checked="selectedFilters.sources.includes(source)"
                   @change="toggleFilterOption('sources', source, $event.target.checked)"
                 />
@@ -55,8 +55,8 @@
             </div>
             <div v-if="isFilterExpanded('status')" class="filter-options">
               <label v-for="status in availableStatuses" :key="status" class="filter-option">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   :checked="selectedFilters.statuses.includes(status)"
                   @change="toggleFilterOption('statuses', status, $event.target.checked)"
                 />
@@ -73,8 +73,8 @@
             </div>
             <div v-if="isFilterExpanded('project')" class="filter-options">
               <label v-for="project in availableProjects" :key="project" class="filter-option">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   :checked="selectedFilters.projects.includes(project)"
                   @change="toggleFilterOption('projects', project, $event.target.checked)"
                 />
@@ -99,8 +99,8 @@
               </div>
 
               <div class="group-issues">
-                <div 
-                  v-for="issue in group.issues" 
+                <div
+                  v-for="issue in group.issues"
                   :key="issue.id"
                   class="issue-item"
                   @click="navigateToIssue(issue.id)"
@@ -151,7 +151,7 @@ export default {
       // Apply search filter
       if (this.searchQuery.trim()) {
         const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(issue => 
+        filtered = filtered.filter(issue =>
           issue.key.toLowerCase().includes(query) ||
           issue.title.toLowerCase().includes(query) ||
           issue.project.toLowerCase().includes(query)
@@ -160,21 +160,21 @@ export default {
 
       // Apply source filter
       if (this.selectedFilters.sources.length > 0) {
-        filtered = filtered.filter(issue => 
+        filtered = filtered.filter(issue =>
           this.selectedFilters.sources.includes(issue.source)
         )
       }
 
       // Apply status filter
       if (this.selectedFilters.statuses.length > 0) {
-        filtered = filtered.filter(issue => 
+        filtered = filtered.filter(issue =>
           this.selectedFilters.statuses.includes(issue.status)
         )
       }
 
       // Apply project filter
       if (this.selectedFilters.projects.length > 0) {
-        filtered = filtered.filter(issue => 
+        filtered = filtered.filter(issue =>
           this.selectedFilters.projects.includes(issue.project)
         )
       }
