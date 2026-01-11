@@ -146,6 +146,51 @@ export const api = {
     }
 
     return response.json()
+  },
+
+  async fetchTestResults(params = {}) {
+    const queryParams = new URLSearchParams()
+
+    // Handle array parameters
+    if (params.families && Array.isArray(params.families)) {
+      params.families.forEach(f => queryParams.append('families', f))
+    }
+    if (params.artefacts && Array.isArray(params.artefacts)) {
+      params.artefacts.forEach(a => queryParams.append('artefacts', a))
+    }
+    if (params.environments && Array.isArray(params.environments)) {
+      params.environments.forEach(e => queryParams.append('environments', e))
+    }
+    if (params.test_cases && Array.isArray(params.test_cases)) {
+      params.test_cases.forEach(tc => queryParams.append('test_cases', tc))
+    }
+    if (params.issues && Array.isArray(params.issues)) {
+      params.issues.forEach(i => queryParams.append('issues', i))
+    }
+    if (params.test_result_statuses && Array.isArray(params.test_result_statuses)) {
+      params.test_result_statuses.forEach(s => queryParams.append('test_result_statuses', s))
+    }
+    
+    // Handle scalar parameters
+    if (params.limit) queryParams.append('limit', params.limit)
+    if (params.offset) queryParams.append('offset', params.offset)
+    if (params.from_date) queryParams.append('from_date', params.from_date)
+    if (params.to_date) queryParams.append('to_date', params.to_date)
+
+    const url = `${API_BASE_URL}/v1/test-results${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch test results: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 }
 
