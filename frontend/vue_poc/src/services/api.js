@@ -170,7 +170,7 @@ export const api = {
     if (params.test_result_statuses && Array.isArray(params.test_result_statuses)) {
       params.test_result_statuses.forEach(s => queryParams.append('test_result_statuses', s))
     }
-    
+
     // Handle scalar parameters
     if (params.limit) queryParams.append('limit', params.limit)
     if (params.offset) queryParams.append('offset', params.offset)

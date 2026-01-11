@@ -670,16 +670,16 @@ export default {
     },
     async handleQueryParameters() {
       const { testExecutionId, testResultId } = this.$route.query
-      
+
       if (!testExecutionId) return
-      
+
       const executionId = parseInt(testExecutionId)
-      
+
       // Find the execution in the environments
       let foundExecution = null
       let foundEnvironment = null
       let foundTestPlan = null
-      
+
       for (const env of this.environments) {
         for (const execution of env.testExecutions) {
           if (execution.id === executionId) {
@@ -691,47 +691,47 @@ export default {
         }
         if (foundExecution) break
       }
-      
+
       if (!foundExecution || !foundEnvironment) {
         console.warn('Test execution not found:', executionId)
         return
       }
-      
+
       // Expand the hierarchy: environment -> test plans section -> specific plan -> execution
       this.expandedEnvironments[foundEnvironment.id] = true
       this.expandedSections[`${foundEnvironment.id}-testPlans`] = true
       this.expandedTestPlans[`${foundEnvironment.id}-${foundTestPlan}`] = true
       this.expandedTestExecutions[executionId] = true
-      
+
       // Trigger reactivity
       this.expandedEnvironments = { ...this.expandedEnvironments }
       this.expandedSections = { ...this.expandedSections }
       this.expandedTestPlans = { ...this.expandedTestPlans }
       this.expandedTestExecutions = { ...this.expandedTestExecutions }
-      
+
       // Load the execution details
       await this.loadTestExecutionDetails(executionId)
-      
+
       // If testResultId is provided, expand to that specific result
       if (testResultId) {
         const resultId = parseInt(testResultId)
-        
+
         // Expand the results section
         this.expandedExecutionSections[`${executionId}-results`] = true
         this.expandedExecutionSections = { ...this.expandedExecutionSections }
-        
+
         // Find the result and its status group
         const results = this.testResults[executionId] || []
         const result = results.find(r => r.id === resultId)
-        
+
         if (result) {
           // Expand the status group containing this result
           this.expandedResultsGroups[`${executionId}-${result.status}`] = true
           this.expandedResultsGroups = { ...this.expandedResultsGroups }
-          
+
           // Wait for next tick to ensure DOM is updated
           await this.$nextTick()
-          
+
           // Scroll to the result
           const resultElement = document.querySelector(`[data-result-id="${resultId}"]`)
           if (resultElement) {

@@ -21,8 +21,8 @@
           No attachment rules defined.
         </div>
         <div v-else class="attachment-rules">
-          <div 
-            v-for="rule in issue.attachment_rules" 
+          <div
+            v-for="rule in issue.attachment_rules"
             :key="rule.id"
             class="attachment-rule"
           >
@@ -129,14 +129,14 @@
                   <td>{{ result.test_execution.environment.name }}</td>
                   <td>{{ result.test_execution.test_plan }}</td>
                   <td class="actions-cell">
-                    <button 
-                      @click="showResultDetails(result)" 
+                    <button
+                      @click="showResultDetails(result)"
                       class="action-link"
                     >
                       details
                     </button>
-                    <button 
-                      @click="viewRun(result)" 
+                    <button
+                      @click="viewRun(result)"
                       class="action-link"
                     >
                       view run
@@ -162,7 +162,7 @@
             <strong>Test Case:</strong> {{ selectedResult.test_result.name }}
           </div>
           <div class="detail-row">
-            <strong>Status:</strong> 
+            <strong>Status:</strong>
             <span :class="['status-badge', `status-${selectedResult.test_result.status}`]">
               {{ selectedResult.test_result.status }}
             </span>

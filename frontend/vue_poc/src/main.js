@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import Dashboard from './views/Dashboard.vue'
 import ArtefactPage from './views/ArtefactPage.vue'
-import TestResultsPage from './views/TestResultsPage.vue'
+import TestResultsSearchPage from './views/TestResultsSearchPage.vue'
 import IssuesPage from './views/IssuesPage.vue'
 import IssuePage from './views/IssuePage.vue'
 
@@ -17,7 +17,7 @@ const routes = [
   { path: '/charms/:artefactId', name: 'charm-artefact', component: ArtefactPage, meta: { family: 'charm' } },
   { path: '/images', name: 'images', component: Dashboard, meta: { family: 'image' } },
   { path: '/images/:artefactId', name: 'image-artefact', component: ArtefactPage, meta: { family: 'image' } },
-  { path: '/test-results', name: 'test-results', component: TestResultsPage },
+  { path: '/test-results', name: 'test-results', component: TestResultsSearchPage },
   { path: '/issues', name: 'issues', component: IssuesPage },
   { path: '/issues/:issueId', name: 'issue', component: IssuePage }
 ]
