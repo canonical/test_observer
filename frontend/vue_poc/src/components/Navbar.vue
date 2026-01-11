@@ -99,7 +99,7 @@ export default {
 
 .navbar-content {
   width: 100%;
-  max-width: 1200px;
+  //max-width: 1200px;
   padding: 0 24px;
   display: flex;
   align-items: center;
