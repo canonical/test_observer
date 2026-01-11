@@ -265,8 +265,8 @@
                                 <div v-else-if="testResults[execution.id]">
                                   <!-- Grouped by status -->
                                   <div v-for="status in ['PASSED', 'FAILED', 'SKIPPED']" :key="status" class="results-group">
-                                    <div 
-                                      class="results-group-header" 
+                                    <div
+                                      class="results-group-header"
                                       @click="toggleResultsGroup(execution.id, status)"
                                       v-if="getTestResultsByStatus(execution.id, status).length > 0"
                                     >
@@ -276,8 +276,8 @@
                                       <span class="expand-icon">{{ isResultsGroupExpanded(execution.id, status) ? '▼' : '▶' }}</span>
                                     </div>
                                     <div v-if="isResultsGroupExpanded(execution.id, status)" class="results-list">
-                                      <div 
-                                        v-for="result in getTestResultsByStatus(execution.id, status)" 
+                                      <div
+                                        v-for="result in getTestResultsByStatus(execution.id, status)"
                                         :key="result.id"
                                         class="result-item"
                                       >
@@ -543,7 +543,7 @@ export default {
     toggleTestExecution(executionId) {
       this.expandedTestExecutions[executionId] = !this.expandedTestExecutions[executionId]
       this.expandedTestExecutions = { ...this.expandedTestExecutions }
-      
+
       // Load test events and results when expanding (if not already loaded)
       if (this.expandedTestExecutions[executionId]) {
         this.loadTestExecutionDetails(executionId)
@@ -567,7 +567,7 @@ export default {
           this.loadingTestEvents = { ...this.loadingTestEvents }
         }
       }
-      
+
       // Load test results
       if (!this.testResults[executionId] && !this.loadingTestResults[executionId]) {
         this.loadingTestResults[executionId] = true

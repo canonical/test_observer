@@ -105,6 +105,47 @@ export const api = {
     }
 
     return response.json()
+  },
+
+  async fetchIssues(params = {}) {
+    const queryParams = new URLSearchParams()
+    
+    if (params.source) queryParams.append('source', params.source)
+    if (params.project) queryParams.append('project', params.project)
+    if (params.status) queryParams.append('status', params.status)
+    if (params.q) queryParams.append('q', params.q)
+    if (params.limit) queryParams.append('limit', params.limit)
+    if (params.offset) queryParams.append('offset', params.offset)
+
+    const url = `${API_BASE_URL}/v1/issues${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+    
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch issues: ${response.statusText}`)
+    }
+
+    return response.json()
+  },
+
+  async fetchIssue(issueId) {
+    const response = await fetch(`${API_BASE_URL}/v1/issues/${issueId}`, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch issue: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 }
 
