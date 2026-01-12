@@ -14,7 +14,7 @@ RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
 ENV PATH $PATH:/opt/flutter/bin
 
 WORKDIR /app
-COPY ./flutter /app
+COPY ./src /app
 
 RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
