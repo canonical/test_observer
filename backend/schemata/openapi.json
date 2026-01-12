@@ -2339,6 +2339,24 @@
             "description": "Filter by project name"
           },
           {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IssueStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by issue status (e.g., open, closed, unknown)",
+              "title": "Status"
+            },
+            "description": "Filter by issue status (e.g., open, closed, unknown)"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
