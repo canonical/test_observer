@@ -14,6 +14,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .launchpad_client import LaunchpadClient
+from pydantic import BaseModel
+from typing import Any
 
-__all__ = ["LaunchpadClient"]
+
+class IssueData(BaseModel):
+    """Standardized issue data from all sources"""
+
+    title: str
+    state: str  # "open", "closed" etc.
+    state_reason: str | None  # Original status name
+    raw: dict[str, Any]
