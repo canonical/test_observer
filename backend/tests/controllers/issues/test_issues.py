@@ -471,9 +471,15 @@ def test_get_all_combined_filters(test_client: TestClient, generator: DataGenera
 
 
 def test_get_all_filter_by_status(test_client: TestClient, generator: DataGenerator):
-    open_issue = generator.gen_issue(status=IssueStatus.OPEN)
-    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED)
-    unknown_issue = generator.gen_issue(status=IssueStatus.UNKNOWN)
+    open_issue = generator.gen_issue(
+        status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-FTST-1"
+    )
+    closed_issue = generator.gen_issue(
+        status=IssueStatus.CLOSED, source=IssueSource.JIRA, key="TS-FTST-2"
+    )
+    unknown_issue = generator.gen_issue(
+        status=IssueStatus.UNKNOWN, source=IssueSource.GITHUB, key="GH-FTST-3"
+    )
 
     # Filter by open status
     response = make_authenticated_request(
@@ -510,10 +516,12 @@ def test_get_all_filter_by_status_and_source(
     test_client: TestClient, generator: DataGenerator
 ):
     target_issue = generator.gen_issue(
-        status=IssueStatus.OPEN, source=IssueSource.GITHUB
+        status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-TAR-231"
     )
-    generator.gen_issue(status=IssueStatus.CLOSED, source=IssueSource.GITHUB)
-    generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.JIRA)
+    generator.gen_issue(
+        status=IssueStatus.CLOSED, source=IssueSource.GITHUB, key="GH-TAR-230"
+    )
+    generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.JIRA, key="TS-NT-2")
 
     response = make_authenticated_request(
         lambda: test_client.get(
