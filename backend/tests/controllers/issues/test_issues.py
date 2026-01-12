@@ -475,7 +475,6 @@ def test_get_all_filter_by_status(test_client: TestClient, generator: DataGenera
     closed_issue = generator.gen_issue(status=IssueStatus.CLOSED)
     unknown_issue = generator.gen_issue(status=IssueStatus.UNKNOWN)
 
-
     # Filter by open status
     response = make_authenticated_request(
         lambda: test_client.get(endpoint, params={"status": IssueStatus.OPEN}),
