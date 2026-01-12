@@ -1,8 +1,10 @@
 FROM ubuntu:24.04 as builder
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback python3
+RUN apt-get update && \
+    apt-get install -y \
+    curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
+    python3
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
     cd /opt/flutter && git checkout '3.29.3' && \
@@ -12,7 +14,7 @@ RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
 ENV PATH $PATH:/opt/flutter/bin
 
 WORKDIR /app
-COPY . /app
+COPY ./src /app
 
 RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
@@ -26,8 +28,7 @@ RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y nginx
+RUN apt-get update && apt-get install -y nginx
 RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
