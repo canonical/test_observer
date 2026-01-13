@@ -60,7 +60,7 @@ jobs:
       - name: Upload charm to charmhub
         uses: canonical/charming-actions/upload-charm@2.7.0
         with:
-          charm-path: "frontend/charm"
+          charm-path: "frontend/src/charm"
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           tag-prefix: "frontend"

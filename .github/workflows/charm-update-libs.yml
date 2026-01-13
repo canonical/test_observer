@@ -18,7 +18,7 @@ jobs:
         include:
           - charm-path: backend/charm
             git-branch: chore/auto-libs-backend
-          - charm-path: frontend/charm
+          - charm-path: frontend/src/charm
             git-branch: chore/auto-libs-frontend
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
