@@ -18,7 +18,16 @@ WORKDIR /app
 # Disabling full copy of the immediate directory.  Before the Flutter build, let's *just* copy the files needed for Flutter.
 # This will minimize rebuilding of much of the Flutter code unless there is a true need for it.
 #COPY . /app
-COPY lib assets benchmarks integration_test test test_driver web analysis_options.yaml frontend.iml LICENSE .metadata pubspec.* run_benchmark_tests.dart run_integration_tests.sh .vscode /app/
+COPY lib /app/lib
+COPY assets /app/assets
+COPY benchmarks /app/benchmarks
+COPY integration_test /app/integration_test
+COPY test /app/test
+COPY test_driver /app/test_driver
+COPY web /app/web
+COPY .vscode /app/.vscode
+COPY analysis_options.yaml frontend.iml LICENSE .metadata pubspec.* run_benchmark_tests.dart run_integration_tests.sh /app/
+
 # NOTE: Skipping charm directory, as well as Docker and Git-related files
 
 RUN flutter pub get
