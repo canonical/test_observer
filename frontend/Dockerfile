@@ -1,8 +1,10 @@
 FROM ubuntu:24.04 as builder
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback python3
+RUN apt-get update && \
+    apt-get install -y \
+    curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
+    python3
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
     cd /opt/flutter && git checkout '3.29.3' && \
@@ -12,11 +14,17 @@ RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
 ENV PATH $PATH:/opt/flutter/bin
 
 WORKDIR /app
-COPY . /app
+
+# Disabling full copy of the immediate directory.  Before the Flutter build, let's *just* copy the files needed for Flutter.
+# This will minimize rebuilding of much of the Flutter code unless there is a true need for it.
+#COPY . /app
+COPY lib assets benchmarks integration_test test test_driver web analysis_options.yaml frontend.iml LICENSE .metadata pubspec.* run_benchmark_tests.dart run_integration_tests.sh .vscode /app/
+# NOTE: Skipping charm directory, as well as Docker and Git-related files
 
 RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
 RUN flutter build web --release
+
 # Cache busting so that users don't have to hard refresh
 RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
     mv build/web/flutter_bootstrap.js build/web/flutter_bootstrap.$RANDOMVALUE.js && \
@@ -26,8 +34,7 @@ RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y nginx
+RUN apt-get update && apt-get install -y nginx
 RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
