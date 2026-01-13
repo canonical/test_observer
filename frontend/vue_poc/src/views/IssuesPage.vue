@@ -12,7 +12,7 @@
         <!-- Filter Toggle Button -->
         <div class="filters-toggle">
           <button @click="showFilters = !showFilters" class="filter-button">
-            ⚙
+            <FilterIcon />
           </button>
         </div>
 
@@ -122,9 +122,13 @@
 
 <script>
 import { api } from '../services/api'
+import FilterIcon from '../components/FilterIcon.vue'
 
 export default {
   name: 'IssuesPage',
+  components: {
+    FilterIcon
+  },
   data() {
     return {
       loading: false,

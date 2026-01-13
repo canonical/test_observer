@@ -35,9 +35,7 @@
     <div class="dashboard-body">
       <div class="filters-toggle">
         <button @click="showFilters = !showFilters" class="filter-button">
-          <svg class="filter-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-          </svg>
+          <FilterIcon />
         </button>
       </div>
 
@@ -97,12 +95,14 @@
 
 <script>
 import { api } from '../services/api'
+import FilterIcon from '../components/FilterIcon.vue'
 import ArtefactsTableView from '../components/ArtefactsTableView.vue'
 import ArtefactsGridView from '../components/ArtefactsGridView.vue'
 
 export default {
   name: 'Dashboard',
   components: {
+    FilterIcon,
     ArtefactsTableView,
     ArtefactsGridView
   },
