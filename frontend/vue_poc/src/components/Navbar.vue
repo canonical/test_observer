@@ -91,7 +91,7 @@ export default {
 
 <style scoped>
 .navbar {
-  background: #772953;
+  background: #333333;
   height: 57px;
   display: flex;
   justify-content: center;
@@ -99,7 +99,7 @@ export default {
 
 .navbar-content {
   width: 100%;
-  //max-width: 1200px;
+  max-width: 1780px;
   padding: 0 24px;
   display: flex;
   align-items: center;

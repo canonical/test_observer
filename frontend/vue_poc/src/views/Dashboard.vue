@@ -6,16 +6,28 @@
         <button
           @click="viewMode = 'list'"
           :class="['toggle-button', { active: viewMode === 'list' }]"
-          title="Table view"
+          title="List view"
         >
-          ☰
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
         </button>
         <button
           @click="viewMode = 'grid'"
           :class="['toggle-button', { active: viewMode === 'grid' }]"
-          title="Grid view"
+          title="Dashboard view"
         >
-          ▦
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
         </button>
       </div>
     </div>
@@ -23,7 +35,9 @@
     <div class="dashboard-body">
       <div class="filters-toggle">
         <button @click="showFilters = !showFilters" class="filter-button">
-          <span class="filter-icon">⚙</span>
+          <svg class="filter-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
         </button>
       </div>
 
@@ -289,14 +303,16 @@ export default {
 }
 
 .toggle-button {
-  padding: 8px 16px;
+  padding: 8px 12px;
   background: white;
   border: none;
   border-right: 1px solid #CDCDCD;
   cursor: pointer;
-  font-size: 18px;
-  color: #E95420;
+  color: #666;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toggle-button:last-child {
@@ -308,8 +324,9 @@ export default {
 }
 
 .toggle-button.active {
-  background: #E95420;
-  color: white;
+  background: transparent;
+  color: #E95420;
+  border-color: #E95420;
 }
 
 .dashboard-body {
