@@ -33,12 +33,11 @@
               <span v-if="artefact.due_date" class="due-date">
                 Due {{ formatDueDate(artefact.due_date) }}
               </span>
-              <span class="assignee" :title="artefact.assignee?.name || 'Unassigned'">
-                {{ getInitials(artefact.assignee?.name) }}
-                <span class="review-count">
-                  {{ artefact.completed_environment_reviews_count }}/{{ artefact.all_environment_reviews_count }}
-                </span>
-              </span>
+              <UserAvatar
+                :user="artefact.assignee"
+                :allEnvironmentReviewsCount="artefact.all_environment_reviews_count"
+                :completedEnvironmentReviewsCount="artefact.completed_environment_reviews_count"
+              />
             </div>
           </div>
         </div>
@@ -49,9 +48,13 @@
 
 <script>
 import { FAMILY_STAGES, STATUS_NAMES } from '../services/api'
+import UserAvatar from './UserAvatar.vue'
 
 export default {
   name: 'ArtefactsGridView',
+  components: {
+    UserAvatar
+  },
   props: {
     artefacts: {
       type: Array,
@@ -96,10 +99,6 @@ export default {
     },
     getStatusName(status) {
       return STATUS_NAMES[status] || status
-    },
-    getInitials(name) {
-      if (!name) return '?'
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     }
   }
 }
@@ -182,6 +181,10 @@ export default {
   /*border-top: 1px solid #E5E5E5;  - From Claude; disabling since I don't see this in the Flutter UI */
 }
 
+.artefact-footer .user-avatar {
+  margin-left: auto;
+}
+
 .status-badge {
   padding: 4px 12px;
   border-radius: 16px;
@@ -210,24 +213,6 @@ export default {
   padding: 4px 12px;
   border-radius: 16px;
   border: 1px solid #CDCDCD;
-}
-
-.assignee {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  background: #E5E5E5;
-  padding: 4px 8px;
-  border-radius: 12px;
-  color: #111;
-}
-
-.review-count {
-  font-size: 10px;
-  color: #666;
 }
 
 .no-results {

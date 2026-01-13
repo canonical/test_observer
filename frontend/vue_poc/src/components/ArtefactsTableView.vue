@@ -33,11 +33,7 @@
             <td v-if="family === 'image'" :style="{ flex: 1 }">{{ getStageName(artefact.stage) }}</td>
             <td :style="{ flex: 1 }">{{ formatDueDate(artefact.due_date) }}</td>
             <td :style="{ flex: 1 }">{{ artefact.all_environment_reviews_count - artefact.completed_environment_reviews_count }}</td>
-            <td :style="{ flex: 1 }">
-              <span :class="['status-badge', getStatusClass(artefact.status)]">
-                {{ getStatusName(artefact.status) }}
-              </span>
-            </td>
+            <td :style="{ flex: 1 }">{{ getStatusName(artefact.status) }}</td>
             <td :style="{ flex: 1 }">{{ artefact.assignee?.name || 'N/A' }}</td>
           </tr>
         </tbody>
