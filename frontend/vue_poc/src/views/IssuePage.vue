@@ -70,13 +70,84 @@
       <div class="section">
         <div class="section-header">
           <h2>Test Results</h2>
-          <button @click="showFilters = !showFilters" class="filter-toggle-button">
-            {{ showFilters ? 'Hide Filters' : 'Show Filters' }}
+          <button @click="showFilters = !showFilters" class="filter-button">
+            <FilterIcon />
           </button>
         </div>
 
         <div v-if="showFilters" class="filters-panel">
-          <p class="filters-note">Additional filters can be added here (families, artefacts, environments, test cases, date range, etc.)</p>
+          <!-- Family Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Family</label>
+            <div class="checkbox-group">
+              <label v-for="family in availableFamilies" :key="family" class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  :value="family" 
+                  v-model="filters.families"
+                  @change="applyFilters"
+                />
+                {{ family }}
+              </label>
+            </div>
+          </div>
+
+          <!-- Artefact Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Artefact</label>
+            <input 
+              type="text" 
+              v-model="filters.artefact" 
+              @input="applyFilters"
+              placeholder="Filter by artefact name"
+              class="filter-input"
+            />
+          </div>
+
+          <!-- Environment Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Environment</label>
+            <input 
+              type="text" 
+              v-model="filters.environment" 
+              @input="applyFilters"
+              placeholder="Filter by environment"
+              class="filter-input"
+            />
+          </div>
+
+          <!-- Test Case Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Test Case</label>
+            <input 
+              type="text" 
+              v-model="filters.testCase" 
+              @input="applyFilters"
+              placeholder="Filter by test case"
+              class="filter-input"
+            />
+          </div>
+
+          <!-- Date Range Filters -->
+          <div class="filter-group">
+            <label class="filter-label">From Date</label>
+            <input 
+              type="date" 
+              v-model="filters.fromDate" 
+              @change="applyFilters"
+              class="filter-input"
+            />
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Until Date</label>
+            <input 
+              type="date" 
+              v-model="filters.untilDate" 
+              @change="applyFilters"
+              class="filter-input"
+            />
+          </div>
         </div>
 
         <div class="rerun-buttons">
@@ -203,9 +274,13 @@
 
 <script>
 import { api } from '../services/api'
+import FilterIcon from '../components/FilterIcon.vue'
 
 export default {
   name: 'IssuePage',
+  components: {
+    FilterIcon
+  },
   data() {
     return {
       loading: false,
@@ -213,6 +288,14 @@ export default {
       issue: null,
       expandedRules: new Set(),
       showFilters: false,
+      filters: {
+        families: [],
+        artefact: '',
+        environment: '',
+        testCase: '',
+        fromDate: '',
+        untilDate: ''
+      },
       loadingTestResults: false,
       testResultsError: null,
       testResults: [],
@@ -223,6 +306,16 @@ export default {
   computed: {
     issueId() {
       return parseInt(this.$route.params.issueId)
+    },
+    availableFamilies() {
+      // Extract unique families from test results
+      const families = new Set()
+      this.testResults.forEach(result => {
+        if (result.artefact?.family) {
+          families.add(result.artefact.family)
+        }
+      })
+      return Array.from(families).sort()
     }
   },
   methods: {
@@ -246,10 +339,36 @@ export default {
       this.testResultsError = null
 
       try {
-        const response = await api.searchTestResults({
+        const params = {
           issues: [this.issueId],
           limit: 100
-        })
+        }
+
+        // Apply filters
+        if (this.filters.families.length > 0) {
+          params.families = this.filters.families
+        }
+        if (this.filters.artefact) {
+          params.artefacts = [this.filters.artefact]
+        }
+        if (this.filters.environment) {
+          params.environments = [this.filters.environment]
+        }
+        if (this.filters.testCase) {
+          params.test_cases = [this.filters.testCase]
+        }
+        if (this.filters.fromDate) {
+          // Convert to ISO 8601 at start of day (00:00:00 UTC)
+          const fromDate = new Date(this.filters.fromDate + 'T00:00:00Z')
+          params.from_date = fromDate.toISOString()
+        }
+        if (this.filters.untilDate) {
+          // Convert to ISO 8601 at end of day (23:59:59.999 UTC)
+          const untilDate = new Date(this.filters.untilDate + 'T23:59:59.999Z')
+          params.to_date = untilDate.toISOString()
+        }
+
+        const response = await api.searchTestResults(params)
         this.testResults = response.test_results || []
         this.testResultsCount = response.count || this.testResults.length
       } catch (e) {
@@ -258,6 +377,10 @@ export default {
       } finally {
         this.loadingTestResults = false
       }
+    },
+    applyFilters() {
+      // Reload test results with current filters
+      this.loadTestResults()
     },
     formatSource(source) {
       const sourceMap = {
@@ -425,19 +548,83 @@ export default {
   align-items: center;
 }
 
-.filter-toggle-button {
-  padding: 8px 16px;
+.filter-button {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
   background: white;
   border: 1px solid #CDCDCD;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
 }
 
-.filter-toggle-button:hover {
+.filter-button:hover {
   background: #f7f7f7;
   border-color: #999;
+}
+
+.filters-panel {
+  background: #f7f7f7;
+  padding: 16px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+
+.filter-input {
+  padding: 8px 12px;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #0E8420;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #111;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.filters-note {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
 }
 
 .filters-panel {
