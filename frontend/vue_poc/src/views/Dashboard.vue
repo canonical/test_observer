@@ -289,7 +289,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  font-size: 28px;
+  font-size: 2.5em; /*Claude did: 28px;*/
   font-weight: 300;
   color: #111;
 }

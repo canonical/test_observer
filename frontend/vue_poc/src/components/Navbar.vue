@@ -107,7 +107,8 @@ export default {
 }
 
 .navbar-logo img {
-  height: 24px;
+  /*height: 24px;  - from Claude; disabled to avoid stretching */
+  margin-top: 6px;  /* From Paul - lines up better versus Flutter UI on FF */
   filter: brightness(0) invert(1);
 }
 
@@ -123,8 +124,8 @@ export default {
   color: white;
   text-decoration: none;
   padding: 16px;
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 20px;
+  font-weight: 500;
   background: none;
   border: none;
   cursor: pointer;
