@@ -365,7 +365,7 @@ export default {
         if (this.filters.untilDate) {
           // Convert to ISO 8601 at end of day (23:59:59.999 UTC)
           const untilDate = new Date(this.filters.untilDate + 'T23:59:59.999Z')
-          params.to_date = untilDate.toISOString()
+          params.until_date = untilDate.toISOString()
         }
 
         const response = await api.searchTestResults(params)

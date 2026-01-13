@@ -175,7 +175,7 @@ export const api = {
     if (params.limit) queryParams.append('limit', params.limit)
     if (params.offset) queryParams.append('offset', params.offset)
     if (params.from_date) queryParams.append('from_date', params.from_date)
-    if (params.to_date) queryParams.append('to_date', params.to_date)
+    if (params.until_date) queryParams.append('until_date', params.until_date)
 
     const url = `${API_BASE_URL}/v1/test-results${queryParams.toString() ? '?' + queryParams.toString() : ''}`
 
