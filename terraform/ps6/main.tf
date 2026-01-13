@@ -44,7 +44,6 @@ resource "juju_application" "api_ingress_lego" {
   }
 
   config = {
-    server                  = var.lego_server
     email                   = var.lego_email
     plugin                  = var.lego_plugin
     plugin-config-secret-id = data.juju_secret.lego_credentials.secret_id
@@ -63,7 +62,6 @@ resource "juju_application" "frontend_ingress_lego" {
   }
 
   config = {
-    server                  = var.lego_server
     email                   = var.lego_email
     plugin                  = var.lego_plugin
     plugin-config-secret-id = data.juju_secret.lego_credentials.secret_id
