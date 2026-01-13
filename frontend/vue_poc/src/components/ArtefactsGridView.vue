@@ -183,11 +183,12 @@ export default {
 }
 
 .status-badge {
-  padding: 2px 6px;
-  border-radius: 2px;
+  padding: 4px 12px;
+  border-radius: 16px;
   font-size: 11px;
   font-weight: 500;
   flex-shrink: 0;
+  border: 1px solid currentColor;
 }
 
 .status-approved {
@@ -206,6 +207,9 @@ export default {
   font-size: 11px;
   color: #C7162B;
   flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid currentColor;
 }
 
 .assignee {

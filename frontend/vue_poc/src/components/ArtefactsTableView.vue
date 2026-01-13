@@ -196,12 +196,13 @@ export default {
 }
 
 .status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  border-radius: 16px;
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
   display: inline-block;
+  border: 1px solid currentColor;
 }
 
 .status-approved {
