@@ -81,8 +81,8 @@ export default {
       if (!dueDate) return ''
 
       const date = new Date(dueDate)
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December']
       // Use UTC to match Flutter behavior which uses the date components directly
       return `${monthNames[date.getUTCMonth()]} ${date.getUTCDate()}`
     },
@@ -179,7 +179,7 @@ export default {
   align-items: center;
   margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px solid #E5E5E5;
+  /*border-top: 1px solid #E5E5E5;  - From Claude; disabling since I don't see this in the Flutter UI */
 }
 
 .status-badge {
@@ -188,7 +188,7 @@ export default {
   font-size: 11px;
   font-weight: 500;
   flex-shrink: 0;
-  border: 1px solid currentColor;
+  border: 1px solid #CDCDCD;
 }
 
 .status-approved {
@@ -209,7 +209,7 @@ export default {
   flex-shrink: 0;
   padding: 4px 12px;
   border-radius: 16px;
-  border: 1px solid currentColor;
+  border: 1px solid #CDCDCD;
 }
 
 .assignee {
