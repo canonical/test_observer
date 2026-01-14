@@ -71,8 +71,7 @@ class _IssuesPageBodyState extends ConsumerState<IssuesPageBody> {
     final uri = AppRoutes.uriFromContext(context);
     ref.read(issuesPaginationProvider(uri).notifier).loadMore();
 
-    // Wait for the provider to update
-    await Future.delayed(const Duration(milliseconds: 100));
+    await ref.read(filteredIssuesProvider(uri).future);
 
     if (mounted) {
       setState(() {

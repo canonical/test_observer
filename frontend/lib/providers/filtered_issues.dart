@@ -25,11 +25,26 @@ import 'issues_pagination.dart';
 
 part 'filtered_issues.g.dart';
 
+class _FilteredIssuesInternalState {
+  final List<Issue> accumulatedIssues;
+  final int lastOffset;
+  final String? lastFiltersKey;
+
+  const _FilteredIssuesInternalState({
+    required this.accumulatedIssues,
+    required this.lastOffset,
+    this.lastFiltersKey,
+  });
+}
+
 @riverpod
 class FilteredIssues extends _$FilteredIssues {
-  List<Issue> _accumulatedIssues = [];
-  int _lastOffset = -1;
-  String? _lastFiltersKey;
+  _FilteredIssuesInternalState _internalState =
+      const _FilteredIssuesInternalState(
+    accumulatedIssues: [],
+    lastOffset: -1,
+    lastFiltersKey: null,
+  );
 
   String _getFiltersKey(IssuesFiltersState filtersState, String searchQuery) {
     // Create a unique key based on filter selections and search
@@ -53,15 +68,18 @@ class FilteredIssues extends _$FilteredIssues {
 
     // Check if filters or search changed
     final currentFiltersKey = _getFiltersKey(filtersState, searchQuery);
-    final filtersChanged =
-        _lastFiltersKey != null && _lastFiltersKey != currentFiltersKey;
-    _lastFiltersKey = currentFiltersKey;
+    final filtersChanged = _internalState.lastFiltersKey != null &&
+        _internalState.lastFiltersKey != currentFiltersKey;
 
     // Reset accumulated issues if offset is back to 0, went backwards, or filters changed
     if (paginationState.offset == 0 ||
-        paginationState.offset < _lastOffset ||
+        paginationState.offset < _internalState.lastOffset ||
         filtersChanged) {
-      _accumulatedIssues = [];
+      _internalState = const _FilteredIssuesInternalState(
+        accumulatedIssues: [],
+        lastOffset: -1,
+        lastFiltersKey: null,
+      );
     }
 
     // Convert filter state to API parameters
@@ -109,17 +127,25 @@ class FilteredIssues extends _$FilteredIssues {
     }
 
     // Accumulate issues instead of replacing them
+    List<Issue> accumulatedIssues;
     if (paginationState.offset > 0) {
       // Add new issues to accumulated list, avoiding duplicates
-      final existingIds = _accumulatedIssues.map((i) => i.id).toSet();
+      final existingIds =
+          _internalState.accumulatedIssues.map((i) => i.id).toSet();
       final newIssues =
           filtered.where((i) => !existingIds.contains(i.id)).toList();
-      _accumulatedIssues = [..._accumulatedIssues, ...newIssues];
+      accumulatedIssues = [..._internalState.accumulatedIssues, ...newIssues];
     } else {
-      _accumulatedIssues = filtered;
+      accumulatedIssues = filtered;
     }
 
-    _lastOffset = paginationState.offset;
-    return _accumulatedIssues;
+    // Update internal state
+    _internalState = _FilteredIssuesInternalState(
+      accumulatedIssues: accumulatedIssues,
+      lastOffset: paginationState.offset,
+      lastFiltersKey: currentFiltersKey,
+    );
+
+    return accumulatedIssues;
   }
 }
