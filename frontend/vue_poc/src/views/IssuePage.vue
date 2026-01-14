@@ -94,35 +94,34 @@
 
           <!-- Artefact Filter -->
           <div class="filter-group">
-            <ArtefactMultiSelect
+            <SearchMultiSelect
               v-model="filters.artefacts"
               title="Artefact"
-              :families="filters.families"
+              placeholder="Type 2+ characters to search artefacts..."
+              :searchFunction="searchArtefacts"
               @update:modelValue="applyFilters"
             />
           </div>
 
           <!-- Environment Filter -->
           <div class="filter-group">
-            <label class="filter-label">Environment</label>
-            <input 
-              type="text" 
-              v-model="filters.environment" 
-              @input="applyFilters"
-              placeholder="Filter by environment"
-              class="filter-input"
+            <SearchMultiSelect
+              v-model="filters.environments"
+              title="Environment"
+              placeholder="Type 2+ characters to search environments..."
+              :searchFunction="searchEnvironments"
+              @update:modelValue="applyFilters"
             />
           </div>
 
           <!-- Test Case Filter -->
           <div class="filter-group">
-            <label class="filter-label">Test Case</label>
-            <input 
-              type="text" 
-              v-model="filters.testCase" 
-              @input="applyFilters"
-              placeholder="Filter by test case"
-              class="filter-input"
+            <SearchMultiSelect
+              v-model="filters.testCases"
+              title="Test Case"
+              placeholder="Type 2+ characters to search test cases..."
+              :searchFunction="searchTestCases"
+              @update:modelValue="applyFilters"
             />
           </div>
 
@@ -273,13 +272,13 @@
 <script>
 import { api } from '../services/api'
 import FilterIcon from '../components/FilterIcon.vue'
-import ArtefactMultiSelect from '../components/ArtefactMultiSelect.vue'
+import SearchMultiSelect from '../components/SearchMultiSelect.vue'
 
 export default {
   name: 'IssuePage',
   components: {
     FilterIcon,
-    ArtefactMultiSelect
+    SearchMultiSelect
   },
   data() {
     return {
@@ -291,8 +290,8 @@ export default {
       filters: {
         families: [],
         artefacts: [],
-        environment: '',
-        testCase: '',
+        environments: [],
+        testCases: [],
         fromDate: '',
         untilDate: ''
       },
@@ -351,11 +350,11 @@ export default {
         if (this.filters.artefacts.length > 0) {
           params.artefacts = this.filters.artefacts
         }
-        if (this.filters.environment) {
-          params.environments = [this.filters.environment]
+        if (this.filters.environments.length > 0) {
+          params.environments = this.filters.environments
         }
-        if (this.filters.testCase) {
-          params.test_cases = [this.filters.testCase]
+        if (this.filters.testCases.length > 0) {
+          params.test_cases = this.filters.testCases
         }
         if (this.filters.fromDate) {
           // Convert to ISO 8601 at start of day (00:00:00 UTC)
@@ -381,6 +380,45 @@ export default {
     applyFilters() {
       // Reload test results with current filters
       this.loadTestResults()
+    },
+    async searchArtefacts(query) {
+      try {
+        const response = await api.searchArtefacts({
+          q: query,
+          limit: 50,
+          offset: 0
+        })
+        return response.artefacts || []
+      } catch (e) {
+        console.error('Failed to search artefacts:', e)
+        return []
+      }
+    },
+    async searchEnvironments(query) {
+      try {
+        const response = await api.searchEnvironments({
+          q: query,
+          limit: 50,
+          offset: 0
+        })
+        return response.environments || []
+      } catch (e) {
+        console.error('Failed to search environments:', e)
+        return []
+      }
+    },
+    async searchTestCases(query) {
+      try {
+        const response = await api.searchTestCases({
+          q: query,
+          limit: 50,
+          offset: 0
+        })
+        return (response.test_cases || []).map(tc => tc.test_case)
+      } catch (e) {
+        console.error('Failed to search test cases:', e)
+        return []
+      }
     },
     formatSource(source) {
       const sourceMap = {
