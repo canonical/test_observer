@@ -21,17 +21,70 @@ import '../../models/issue.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import '../../providers/filtered_issues.dart';
+import '../../providers/issues_pagination.dart';
 import '../issues.dart';
 
-class IssuesPageBody extends ConsumerWidget {
+class IssuesPageBody extends ConsumerStatefulWidget {
   const IssuesPageBody({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final issues = ref
-            .watch(filteredIssuesProvider(AppRoutes.uriFromContext(context)))
-            .value ??
-        [];
+  ConsumerState<IssuesPageBody> createState() => _IssuesPageBodyState();
+}
+
+class _IssuesPageBodyState extends ConsumerState<IssuesPageBody> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isLoadingMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    final delta = maxScroll - currentScroll;
+
+    // Trigger load more when within 200 pixels of bottom
+    if (delta < 200) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    final uri = AppRoutes.uriFromContext(context);
+    ref.read(issuesPaginationProvider(uri).notifier).loadMore();
+
+    // Wait for the provider to update
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (mounted) {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final uri = AppRoutes.uriFromContext(context);
+    final issues = ref.watch(filteredIssuesProvider(uri)).value ?? [];
 
     // Group issues by named tuple (source, project)
     final grouped = <({IssueSource source, String project}), List<Issue>>{};
@@ -46,6 +99,7 @@ class IssuesPageBody extends ConsumerWidget {
     }
 
     return ListView(
+      controller: _scrollController,
       children: [
         for (final entry in grouped.entries) ...[
           Padding(
@@ -89,6 +143,13 @@ class IssuesPageBody extends ConsumerWidget {
               },
             ),
         ],
+        if (_isLoadingMore)
+          const Padding(
+            padding: EdgeInsets.all(Spacing.level4),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
       ],
     );
   }

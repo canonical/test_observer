@@ -21,11 +21,24 @@ import '../models/issue.dart';
 import 'issues_filters.dart';
 import 'issues.dart';
 import 'search_value.dart';
+import 'issues_pagination.dart';
 
 part 'filtered_issues.g.dart';
 
 @riverpod
 class FilteredIssues extends _$FilteredIssues {
+  List<Issue> _accumulatedIssues = [];
+  int _lastOffset = -1;
+  String? _lastFiltersKey;
+
+  String _getFiltersKey(IssuesFiltersState filtersState, String searchQuery) {
+    // Create a unique key based on filter selections and search
+    final sources = filtersState.selectedSources.map((s) => s.name).toList()..sort();
+    final projects = filtersState.selectedProjects.toList()..sort();
+    final statuses = filtersState.selectedStatuses.map((s) => s.name).toList()..sort();
+    return '${sources.join(',')}|${projects.join(',')}|${statuses.join(',')}|$searchQuery';
+  }
+
   @override
   Future<List<Issue>> build(Uri pageUri) async {
     final filtersState = ref.watch(issuesFiltersProvider(pageUri));
@@ -34,6 +47,17 @@ class FilteredIssues extends _$FilteredIssues {
         pageUri.queryParameters[CommonQueryParameters.searchQuery],
       ),
     );
+    final paginationState = ref.watch(issuesPaginationProvider(pageUri));
+
+    // Check if filters or search changed
+    final currentFiltersKey = _getFiltersKey(filtersState, searchQuery);
+    final filtersChanged = _lastFiltersKey != null && _lastFiltersKey != currentFiltersKey;
+    _lastFiltersKey = currentFiltersKey;
+
+    // Reset accumulated issues if offset is back to 0, went backwards, or filters changed
+    if (paginationState.offset == 0 || paginationState.offset < _lastOffset || filtersChanged) {
+      _accumulatedIssues = [];
+    }
 
     // Convert filter state to API parameters
     // Single-value filters are passed to API for server-side filtering
@@ -54,6 +78,8 @@ class FilteredIssues extends _$FilteredIssues {
         source: source,
         project: project,
         status: status,
+        limit: paginationState.limit,
+        offset: paginationState.offset,
         q: searchQuery.isNotEmpty ? searchQuery : null,
       ).future,
     );
@@ -77,6 +103,17 @@ class FilteredIssues extends _$FilteredIssues {
           .toList();
     }
 
-    return filtered;
+    // Accumulate issues instead of replacing them
+    if (paginationState.offset > 0) {
+      // Add new issues to accumulated list, avoiding duplicates
+      final existingIds = _accumulatedIssues.map((i) => i.id).toSet();
+      final newIssues = filtered.where((i) => !existingIds.contains(i.id)).toList();
+      _accumulatedIssues = [..._accumulatedIssues, ...newIssues];
+    } else {
+      _accumulatedIssues = filtered;
+    }
+
+    _lastOffset = paginationState.offset;
+    return _accumulatedIssues;
   }
 }
