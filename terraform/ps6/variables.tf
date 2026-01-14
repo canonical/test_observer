@@ -8,12 +8,6 @@ variable "environment" {
   type        = string
 }
 
-variable "lego_server" {
-  description = "Url to server providing lego certificates"
-  type        = string
-  default     = "https://lego-certs.canonical.com"
-}
-
 variable "lego_email" {
   description = "Email address for lego charm"
   type        = string
