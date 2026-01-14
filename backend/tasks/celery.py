@@ -18,9 +18,10 @@
 import logging
 from os import environ
 
-from celery import Celery
+from celery import Celery, Task
 
 from test_observer.data_access.setup import SessionLocal
+from test_observer.external_apis.synchronizer import IssueSynchronizer
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
@@ -48,6 +49,7 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
     sender.add_periodic_task(300, integrate_with_kernel_swm.s())
     sender.add_periodic_task(600, run_promote_artefacts.s())
     sender.add_periodic_task(600, clean_user_sessions.s())
+    sender.add_periodic_task(3600, sync_all_issues.s())
 
 
 @app.task
@@ -65,6 +67,77 @@ def run_promote_artefacts():
 @app.task
 def clean_user_sessions():
     delete_expired_user_sessions(SessionLocal())
+
+
+@app.task(bind=True, max_retries=3)
+def sync_all_issues(self: Task) -> dict:
+    """Periodic task to synchronize all issues from external sources."""
+    db = SessionLocal()
+    try:
+        synchronizer = IssueSynchronizer()
+        results = synchronizer.sync_all_issues(db)
+
+        logger.info(
+            f"Issue sync task completed: {results.successful}/{results.total} "
+            f"successful, {results.updated} updated, "
+            f"success rate: {results.success_rate:.1f}%"
+        )
+
+        return {
+            "total": results.total,
+            "successful": results.successful,
+            "failed": results.failed,
+            "updated": results.updated,
+            "success_rate": results.success_rate,
+        }
+
+    except Exception as exc:
+        logger.exception(f"Issue sync task failed: {exc}")
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries)) from exc
+
+    finally:
+        db.close()
+
+
+@app.task(bind=True, max_retries=2)
+def sync_issue_by_id(self: Task, issue_id: int) -> dict:
+    """Manually synchronize a specific issue by ID."""
+    db = SessionLocal()
+    try:
+        from test_observer.data_access.models import Issue
+
+        issue = db.query(Issue).filter_by(id=issue_id).first()
+        if not issue:
+            logger.warning(f"Issue {issue_id} not found")
+            return {"success": False, "error": "Issue not found"}
+
+        synchronizer = IssueSynchronizer()
+        result = synchronizer.sync_issue(db, issue)
+
+        logger.info(
+            f"Manual sync for issue {issue_id} completed: "
+            f"success={result.success}, "
+            f"title_updated={result.title_updated}, "
+            f"status_updated={result.status_updated}"
+        )
+
+        return {
+            "success": result.success,
+            "issue_id": result.issue_id,
+            "source": str(result.source),
+            "project": result.project,
+            "key": result.key,
+            "title_updated": result.title_updated,
+            "status_updated": result.status_updated,
+            "error": result.error,
+        }
+
+    except Exception as exc:
+        logger.exception(f"Manual sync for issue {issue_id} failed: {exc}")
+        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries)) from exc
+
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
