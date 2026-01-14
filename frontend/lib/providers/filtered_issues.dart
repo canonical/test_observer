@@ -33,9 +33,11 @@ class FilteredIssues extends _$FilteredIssues {
 
   String _getFiltersKey(IssuesFiltersState filtersState, String searchQuery) {
     // Create a unique key based on filter selections and search
-    final sources = filtersState.selectedSources.map((s) => s.name).toList()..sort();
+    final sources = filtersState.selectedSources.map((s) => s.name).toList()
+      ..sort();
     final projects = filtersState.selectedProjects.toList()..sort();
-    final statuses = filtersState.selectedStatuses.map((s) => s.name).toList()..sort();
+    final statuses = filtersState.selectedStatuses.map((s) => s.name).toList()
+      ..sort();
     return '${sources.join(',')}|${projects.join(',')}|${statuses.join(',')}|$searchQuery';
   }
 
@@ -51,11 +53,14 @@ class FilteredIssues extends _$FilteredIssues {
 
     // Check if filters or search changed
     final currentFiltersKey = _getFiltersKey(filtersState, searchQuery);
-    final filtersChanged = _lastFiltersKey != null && _lastFiltersKey != currentFiltersKey;
+    final filtersChanged =
+        _lastFiltersKey != null && _lastFiltersKey != currentFiltersKey;
     _lastFiltersKey = currentFiltersKey;
 
     // Reset accumulated issues if offset is back to 0, went backwards, or filters changed
-    if (paginationState.offset == 0 || paginationState.offset < _lastOffset || filtersChanged) {
+    if (paginationState.offset == 0 ||
+        paginationState.offset < _lastOffset ||
+        filtersChanged) {
       _accumulatedIssues = [];
     }
 
@@ -107,7 +112,8 @@ class FilteredIssues extends _$FilteredIssues {
     if (paginationState.offset > 0) {
       // Add new issues to accumulated list, avoiding duplicates
       final existingIds = _accumulatedIssues.map((i) => i.id).toSet();
-      final newIssues = filtered.where((i) => !existingIds.contains(i.id)).toList();
+      final newIssues =
+          filtered.where((i) => !existingIds.contains(i.id)).toList();
       _accumulatedIssues = [..._accumulatedIssues, ...newIssues];
     } else {
       _accumulatedIssues = filtered;
