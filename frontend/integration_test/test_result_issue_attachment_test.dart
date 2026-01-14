@@ -85,6 +85,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     int? limit,
     int? offset,
     String? q,
+    String? status,
   }) async {
     return [dummyIssue.toIssue()];
   }

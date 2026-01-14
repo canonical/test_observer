@@ -53,6 +53,14 @@ class IssuesFilters extends _$IssuesFilters {
     final possibleSources = issues.map((i) => i.source).toSet();
     final validSelectedSources = selectedSources.intersection(possibleSources);
 
+    // Statuses
+    final possibleStatuses = IssueStatus.values.toSet();
+    final selectedStatuses = IssueStatus.values
+        .where((v) => (params[statusParam] ?? []).contains(v.name))
+        .toSet();
+    final validSelectedStatuses =
+        selectedStatuses.intersection(possibleStatuses);
+
     // Projects
     final selectedProjects = (params[projectParam] ?? []).toSet();
     var filtered = issues;
@@ -61,17 +69,14 @@ class IssuesFilters extends _$IssuesFilters {
           .where((i) => validSelectedSources.contains(i.source))
           .toList();
     }
+    if (validSelectedStatuses.isNotEmpty) {
+      filtered = filtered
+          .where((i) => validSelectedStatuses.contains(i.status))
+          .toList();
+    }
     final possibleProjects = filtered.map((i) => i.project).toSet();
     final validSelectedProjects =
         selectedProjects.intersection(possibleProjects);
-
-    // Statuses
-    final possibleStatuses = IssueStatus.values.toSet();
-    final selectedStatuses = IssueStatus.values
-        .where((v) => (params[statusParam] ?? []).contains(v.name))
-        .toSet();
-    final validSelectedStatuses =
-        selectedStatuses.intersection(possibleStatuses);
 
     return IssuesFiltersState(
       possibleSources: possibleSources,

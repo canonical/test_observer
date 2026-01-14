@@ -27,7 +27,7 @@ from test_observer.data_access.models import (
     Issue,
 )
 from test_observer.data_access.setup import get_db
-from test_observer.data_access.models_enums import IssueSource
+from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
 
 from .models import (
@@ -60,6 +60,10 @@ def get_issues(
         str | None,
         Query(description="Filter by project name"),
     ] = None,
+    status: Annotated[
+        IssueStatus | None,
+        Query(description="Filter by issue status (e.g., open, closed, unknown)"),
+    ] = None,
     limit: Annotated[
         int,
         Query(
@@ -88,6 +92,8 @@ def get_issues(
         stmt = stmt.where(Issue.source == source)
     if project:
         stmt = stmt.where(Issue.project == project)
+    if status:
+        stmt = stmt.where(Issue.status == status)
 
     # Apply search filter if query string provided
     if q:
