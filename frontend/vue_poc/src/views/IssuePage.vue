@@ -94,13 +94,11 @@
 
           <!-- Artefact Filter -->
           <div class="filter-group">
-            <label class="filter-label">Artefact</label>
-            <input 
-              type="text" 
-              v-model="filters.artefact" 
-              @input="applyFilters"
-              placeholder="Filter by artefact name"
-              class="filter-input"
+            <ArtefactMultiSelect
+              v-model="filters.artefacts"
+              title="Artefact"
+              :families="filters.families"
+              @update:modelValue="applyFilters"
             />
           </div>
 
@@ -275,11 +273,13 @@
 <script>
 import { api } from '../services/api'
 import FilterIcon from '../components/FilterIcon.vue'
+import ArtefactMultiSelect from '../components/ArtefactMultiSelect.vue'
 
 export default {
   name: 'IssuePage',
   components: {
-    FilterIcon
+    FilterIcon,
+    ArtefactMultiSelect
   },
   data() {
     return {
@@ -290,7 +290,7 @@ export default {
       showFilters: false,
       filters: {
         families: [],
-        artefact: '',
+        artefacts: [],
         environment: '',
         testCase: '',
         fromDate: '',
@@ -348,8 +348,8 @@ export default {
         if (this.filters.families.length > 0) {
           params.families = this.filters.families
         }
-        if (this.filters.artefact) {
-          params.artefacts = [this.filters.artefact]
+        if (this.filters.artefacts.length > 0) {
+          params.artefacts = this.filters.artefacts
         }
         if (this.filters.environment) {
           params.environments = [this.filters.environment]

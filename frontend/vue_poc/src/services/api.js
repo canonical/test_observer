@@ -191,6 +191,37 @@ export const api = {
     }
 
     return response.json()
+  },
+
+  async searchArtefacts(params) {
+    const queryParams = new URLSearchParams()
+
+    // Add query parameter
+    if (params.q) queryParams.append('q', params.q)
+    
+    // Add limit and offset
+    if (params.limit) queryParams.append('limit', params.limit)
+    if (params.offset) queryParams.append('offset', params.offset)
+    
+    // Add families filter
+    if (params.families && Array.isArray(params.families) && params.families.length > 0) {
+      params.families.forEach(f => queryParams.append('families', f))
+    }
+
+    const url = `${API_BASE_URL}/v1/artefacts/search${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to search artefacts: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 }
 
