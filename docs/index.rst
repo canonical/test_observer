@@ -47,14 +47,15 @@ Test Observer is developed by Canonical and used across multiple teams for test 
 Deployments
 ~~~~~~~~~~~
 
-Certification currently deploys an instance of TO that they used for reviewing Stable Release Updates (SRUs). Other teams also use this instance for their tests. 
+Ubuntu's public Test Observer instance is available at:
 
-The following instances require Canonical VPN access:
+* https://tests.ubuntu.com/
 
-* `Production instance <https://test-observer.canonical.com/>`_
-* `Production API docs <https://test-observer-api.canonical.com/docs>`_
-* `Staging instance <https://test-observer-staging.canonical.com/>`_
-* `Staging API docs <https://test-observer-api-staging.canonical.com/docs>`_
+
+The following instances are deployed for Canonical to review Stable Release Updates (SRUs), Charm testing, and other internal testing purposes. These instances require Canonical VPN access:
+
+* `Production instance <https://test-observer.canonical.com/>`_ • `Production API <https://test-observer-api.canonical.com/docs>`_
+* `Staging instance <https://test-observer-staging.canonical.com/>`_ • `Staging API <https://test-observer-api-staging.canonical.com/docs>`_
 
 Get involved
 ~~~~~~~~~~~~
