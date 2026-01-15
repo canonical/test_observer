@@ -1,0 +1,1 @@
+.. _Ubuntu Code of conduct: https://ubuntu.com/community/docs/ethos/code-of-conduct
