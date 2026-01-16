@@ -17,14 +17,21 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import delete
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.metrics import test_executions_results
+from test_observer.common.metrics_helpers import get_common_metric_labels
 from test_observer.controllers.test_executions.models import TestResultRequest
 from test_observer.controllers.issues.attachment_rules_logic import (
     apply_test_result_attachment_rules,
 )
-from test_observer.data_access.models import TestCase, TestExecution, TestResult
+from test_observer.data_access.models import (
+    ArtefactBuild,
+    TestCase,
+    TestExecution,
+    TestResult,
+)
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
@@ -40,7 +47,17 @@ def post_results(
     request: list[TestResultRequest],
     db: Session = Depends(get_db),
 ):
-    test_execution = db.get(TestExecution, id)
+    test_execution = db.get(
+        TestExecution,
+        id,
+        options=[
+            selectinload(TestExecution.artefact_build).selectinload(
+                ArtefactBuild.artefact
+            ),
+            selectinload(TestExecution.environment),
+            selectinload(TestExecution.execution_metadata),
+        ],
+    )
 
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
@@ -75,4 +92,21 @@ def post_results(
         db.flush()
         apply_test_result_attachment_rules(db, test_result)
 
+        _update_test_execution_results_metric(test_execution, test_case, result)
+
     db.commit()
+
+
+def _update_test_execution_results_metric(
+    test_execution: TestExecution,
+    test_case: TestCase,
+    result: TestResultRequest,
+) -> None:
+    """Update Prometheus metric for test execution results."""
+    common_labels = get_common_metric_labels(test_execution)
+
+    test_executions_results.labels(
+        **common_labels,
+        test_name=test_case.name,
+        status=result.status.value,
+    ).inc()

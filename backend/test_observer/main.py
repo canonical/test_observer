@@ -27,6 +27,7 @@ from test_observer.common.config import (
     SESSIONS_SECRET,
     SESSIONS_HTTPS_ONLY,
 )
+from test_observer.common.metrics import instrumentator
 from test_observer.controllers.router import router
 
 if SENTRY_DSN:
@@ -69,5 +70,7 @@ app.add_middleware(
     https_only=SESSIONS_HTTPS_ONLY,
 )
 
+# Instrument the app with Prometheus metrics
+instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 app.include_router(router)

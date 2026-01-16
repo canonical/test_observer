@@ -22,6 +22,7 @@ dependencies = [
     "python3-saml>=1.16.0",
     "python-multipart>=0.0.20,<0.1.0",
     "itsdangerous>=2.2.0",
+    "prometheus-fastapi-instrumentator>=7.1.0",
 ]
 
 [dependency-groups]
