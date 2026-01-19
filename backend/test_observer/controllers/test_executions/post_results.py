@@ -20,7 +20,10 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.common.metrics import test_executions_results
+from test_observer.common.metrics import (
+    test_executions_results,
+    test_executions_results_metadata_charm_cli,
+)
 from test_observer.common.metrics_helpers import get_common_metric_labels
 from test_observer.controllers.test_executions.models import TestResultRequest
 from test_observer.controllers.issues.attachment_rules_logic import (
@@ -93,6 +96,7 @@ def post_results(
         apply_test_result_attachment_rules(db, test_result)
 
         _update_test_execution_results_metric(test_execution, test_case, result)
+        _update_cli_metadata_metric(test_execution, test_case, result)
 
     db.commit()
 
@@ -103,6 +107,12 @@ def _update_test_execution_results_metric(
     result: TestResultRequest,
 ) -> None:
     """Update Prometheus metric for test execution results."""
+    artefact_family = test_execution.artefact_build.artefact.family
+
+    # Only process metrics for charm family
+    if artefact_family not in {"charm"}:
+        return
+
     common_labels = get_common_metric_labels(test_execution)
 
     test_executions_results.labels(
@@ -110,3 +120,43 @@ def _update_test_execution_results_metric(
         test_name=test_case.name,
         status=result.status.value,
     ).inc()
+
+
+def _update_cli_metadata_metric(
+    test_execution: TestExecution,
+    test_case: TestCase,
+    result: TestResultRequest,
+) -> None:
+    """Update Prometheus metric for CLI command metadata from test failures."""
+    artefact_family = test_execution.artefact_build.artefact.family
+
+    # Only process metrics for charm family
+    if artefact_family not in {"charm"}:
+        return
+
+    common_labels = get_common_metric_labels(test_execution)
+
+    # Iterate through execution metadata looking for CLI-related metadata
+    for metadata in test_execution.execution_metadata:
+        category = metadata.category
+        value = metadata.value
+
+        # Match pattern: charm_qa:failure:cli:cmd
+        if category == "charm_qa:failure:cli:cmd":
+            test_executions_results_metadata_charm_cli.labels(
+                **common_labels,
+                test_name=test_case.name,
+                status=result.status.value,
+                cmd=value,
+                stderr="",
+            ).inc()
+
+        # Match pattern: charm_qa:failure:cli:stderr
+        elif category == "charm_qa:failure:cli:stderr":
+            test_executions_results_metadata_charm_cli.labels(
+                **common_labels,
+                test_name=test_case.name,
+                status=result.status.value,
+                cmd="",
+                stderr=value,
+            ).inc()

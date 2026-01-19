@@ -17,18 +17,22 @@
 
 from fastapi import APIRouter, Depends, Security, HTTPException
 from fastapi.security import SecurityScopes
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import delete, select, literal
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.metrics import test_executions_results_triaged
+from test_observer.common.metrics_helpers import get_common_metric_labels
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
 )
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models import (
+    ArtefactBuild,
     Issue,
     IssueTestResultAttachment,
+    TestExecution,
     TestResult,
     IssueTestResultAttachmentRule,
 )
@@ -67,13 +71,49 @@ def modify_issue_attachments(
     if request.test_results is not None and len(request.test_results) > 0:
         test_result_ids = set(request.test_results)
         if detach:
+            # Get test results before detaching to update metrics
+            test_results = (
+                db.query(TestResult)
+                .filter(TestResult.id.in_(test_result_ids))
+                .options(
+                    selectinload(TestResult.test_execution)
+                    .selectinload(TestExecution.artefact_build)
+                    .selectinload(ArtefactBuild.artefact),
+                    selectinload(TestResult.test_execution).selectinload(
+                        TestExecution.test_plan
+                    ),
+                    selectinload(TestResult.test_case),
+                )
+                .all()
+            )
+            
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
                     IssueTestResultAttachment.test_result_id.in_(test_result_ids),
                 )
             )
+            
+            # Decrement triaged metric for detached results
+            for test_result in test_results:
+                _update_triaged_metric(issue, test_result, increment=False)
         else:
+            # Get test results to update metrics after attaching
+            test_results = (
+                db.query(TestResult)
+                .filter(TestResult.id.in_(test_result_ids))
+                .options(
+                    selectinload(TestResult.test_execution)
+                    .selectinload(TestExecution.artefact_build)
+                    .selectinload(ArtefactBuild.artefact),
+                    selectinload(TestResult.test_execution).selectinload(
+                        TestExecution.test_plan
+                    ),
+                    selectinload(TestResult.test_case),
+                )
+                .all()
+            )
+            
             db.execute(
                 pg_insert(IssueTestResultAttachment)
                 .values(
@@ -88,6 +128,10 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
+            
+            # Increment triaged metric for attached results
+            for test_result in test_results:
+                _update_triaged_metric(issue, test_result, increment=True)
 
     # Add or remove any test results matching the provided filters
     if request.test_results_filters is not None:
@@ -99,7 +143,29 @@ def modify_issue_attachments(
             )
         base_query = select(TestResult.id)
         filtered_ids_query = filter_test_results(base_query, filters).subquery()
+        
+        # Get the filtered test result IDs
+        filtered_result_ids = [
+            row[0] for row in db.execute(select(filtered_ids_query.c.id)).all()
+        ]
+        
         if detach:
+            # Get test results before detaching to update metrics
+            test_results = (
+                db.query(TestResult)
+                .filter(TestResult.id.in_(filtered_result_ids))
+                .options(
+                    selectinload(TestResult.test_execution)
+                    .selectinload(TestExecution.artefact_build)
+                    .selectinload(ArtefactBuild.artefact),
+                    selectinload(TestResult.test_execution).selectinload(
+                        TestExecution.test_plan
+                    ),
+                    selectinload(TestResult.test_case),
+                )
+                .all()
+            )
+            
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
@@ -108,6 +174,10 @@ def modify_issue_attachments(
                     ),
                 )
             )
+            
+            # Decrement triaged metric for detached results
+            for test_result in test_results:
+                _update_triaged_metric(issue, test_result, increment=False)
         else:
             insert_select = select(
                 literal(issue_id).label("issue_id"),
@@ -121,11 +191,60 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
+            
+            # Get test results after attaching to update metrics
+            test_results = (
+                db.query(TestResult)
+                .filter(TestResult.id.in_(filtered_result_ids))
+                .options(
+                    selectinload(TestResult.test_execution)
+                    .selectinload(TestExecution.artefact_build)
+                    .selectinload(ArtefactBuild.artefact),
+                    selectinload(TestResult.test_execution).selectinload(
+                        TestExecution.test_plan
+                    ),
+                    selectinload(TestResult.test_case),
+                )
+                .all()
+            )
+            
+            # Increment triaged metric for attached results
+            for test_result in test_results:
+                _update_triaged_metric(issue, test_result, increment=True)
 
     # Save the result
     db.commit()
     db.refresh(issue)
     return issue
+
+
+def _update_triaged_metric(
+    issue: Issue, test_result: TestResult, increment: bool = True
+) -> None:
+    """Update Prometheus metric for triaged test results."""
+    test_execution = test_result.test_execution
+    artefact_family = test_execution.artefact_build.artefact.family
+    
+    # Only process metrics for charm family
+    if artefact_family not in {"charm"}:
+        return
+    
+    common_labels = get_common_metric_labels(test_execution)
+    
+    metric = test_executions_results_triaged.labels(
+        **common_labels,
+        test_name=test_result.test_case.name,
+        status=test_result.status.value,
+        issue_source=issue.source.value,
+        issue_project=issue.project,
+        issue_key=issue.key,
+        issue_url=issue.url,
+    )
+    
+    if increment:
+        metric.inc()
+    else:
+        metric.dec()
 
 
 def require_bulk_permission(

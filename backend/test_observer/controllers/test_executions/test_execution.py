@@ -19,7 +19,11 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.common.metrics import test_executions_results_metadata_simple
+from test_observer.common.metrics import (
+    test_executions_results_metadata_simple,
+    test_execution_results_metadata_charm_revision,
+    test_execution_results_metadata_charm_failure,
+)
 from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
@@ -183,7 +187,7 @@ def _update_execution_metadata_metrics(
     test_execution: TestExecution,
     execution_metadata: ExecutionMetadata,
 ) -> None:
-    """Update Prometheus metric for execution metadata."""
+    """Update Prometheus metrics for execution metadata."""
     artefact_family = test_execution.artefact_build.artefact.family
 
     # Only process metrics for charm family
@@ -195,6 +199,7 @@ def _update_execution_metadata_metrics(
 
     for test_result in test_execution.test_results:
         for metadata_row in execution_metadata_rows:
+            # Update simple metadata metric
             test_executions_results_metadata_simple.labels(
                 **common_labels,
                 test_name=test_result.test_case.name,
@@ -202,3 +207,52 @@ def _update_execution_metadata_metrics(
                 metadata_key=metadata_row.category,
                 metadata_value=metadata_row.value,
             ).inc()
+
+            # Update charm revision metric if pattern matches
+            # Pattern: charm_qa:charm:CHARM_NAME:revision
+            category = metadata_row.category
+            is_revision = (
+                category.startswith("charm_qa:charm:")
+                and category.endswith(":revision")
+            )
+            if is_revision:
+                parts = category.split(":")
+                if len(parts) == 4:
+                    charm_name = parts[2]
+                    charm_revision = metadata_row.value
+                    test_execution_results_metadata_charm_revision.labels(
+                        **common_labels,
+                        test_name=test_result.test_case.name,
+                        status=test_result.status.value,
+                        charm_name=charm_name,
+                        charm_revision=charm_revision,
+                    ).inc()
+
+            # Update charm failure metric if pattern matches
+            # Pattern: charm_qa:failure:charm:CHARM_NAME:status
+            # Value format: entity_type:charm_status:status_message
+            is_failure = (
+                category.startswith("charm_qa:failure:charm:")
+                and category.endswith(":status")
+            )
+            if is_failure:
+                parts = category.split(":")
+                if len(parts) == 5:
+                    charm_name = parts[3]
+                    value_str = metadata_row.value
+                    value_parts = value_str.split(":", 2)
+                    if len(value_parts) >= 2:
+                        entity_type = value_parts[0]
+                        charm_status = value_parts[1]
+                        status_message = (
+                            value_parts[2] if len(value_parts) > 2 else ""
+                        )
+                        test_execution_results_metadata_charm_failure.labels(
+                            **common_labels,
+                            test_name=test_result.test_case.name,
+                            status=test_result.status.value,
+                            charm_name=charm_name,
+                            entity_type=entity_type,
+                            charm_status=charm_status,
+                            status_message=status_message,
+                        ).inc()

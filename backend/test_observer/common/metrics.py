@@ -143,6 +143,7 @@ test_executions_results_metadata_charm_cli = Gauge(
         "test_name",
         "status",
         "cmd",
+        "stderr",
     ],
 )
 
