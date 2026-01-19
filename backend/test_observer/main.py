@@ -19,12 +19,14 @@ import logging
 from contextlib import asynccontextmanager
 
 import sentry_sdk
+from prometheus_client import start_http_server
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from test_observer.common.config import (
     FRONTEND_URL,
+    METRICS_PORT,
     SENTRY_DSN,
     SESSIONS_SECRET,
     SESSIONS_HTTPS_ONLY,
@@ -47,9 +49,18 @@ async def lifespan(_app: FastAPI):
     Application lifespan manager.
 
     Handles startup and shutdown events for the FastAPI application.
-    On startup, initializes Prometheus metrics from the database.
+    On startup, starts the metrics server and initializes Prometheus metrics
+    from the database.
     """
-    # Startup: Initialize metrics
+    # Startup: Start metrics HTTP server on separate port
+    try:
+        start_http_server(METRICS_PORT)
+        logger.info(f"Metrics server started on port {METRICS_PORT}")
+    except Exception as e:
+        logger.exception(f"Failed to start metrics server: {e}")
+        # Continue startup even if metrics server fails
+
+    # Initialize metrics from database
     db = SessionLocal()
     try:
         initialize_all_metrics(db)
@@ -101,6 +112,7 @@ app.add_middleware(
 )
 
 # Instrument the app with Prometheus metrics
-instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+# (exposed on separate port via start_http_server)
+instrumentator.instrument(app)
 
 app.include_router(router)
