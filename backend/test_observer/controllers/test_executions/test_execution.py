@@ -211,9 +211,8 @@ def _update_execution_metadata_metrics(
             # Update charm revision metric if pattern matches
             # Pattern: charm_qa:charm:CHARM_NAME:revision
             category = metadata_row.category
-            is_revision = (
-                category.startswith("charm_qa:charm:")
-                and category.endswith(":revision")
+            is_revision = category.startswith("charm_qa:charm:") and category.endswith(
+                ":revision"
             )
             if is_revision:
                 parts = category.split(":")
@@ -231,10 +230,9 @@ def _update_execution_metadata_metrics(
             # Update charm failure metric if pattern matches
             # Pattern: charm_qa:failure:charm:CHARM_NAME:status
             # Value format: entity_type:charm_status:status_message
-            is_failure = (
-                category.startswith("charm_qa:failure:charm:")
-                and category.endswith(":status")
-            )
+            is_failure = category.startswith(
+                "charm_qa:failure:charm:"
+            ) and category.endswith(":status")
             if is_failure:
                 parts = category.split(":")
                 if len(parts) == 5:
@@ -244,9 +242,7 @@ def _update_execution_metadata_metrics(
                     if len(value_parts) >= 2:
                         entity_type = value_parts[0]
                         charm_status = value_parts[1]
-                        status_message = (
-                            value_parts[2] if len(value_parts) > 2 else ""
-                        )
+                        status_message = value_parts[2] if len(value_parts) > 2 else ""
                         test_execution_results_metadata_charm_failure.labels(
                             **common_labels,
                             test_name=test_result.test_case.name,

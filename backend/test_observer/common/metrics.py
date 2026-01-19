@@ -26,7 +26,7 @@ Example usage:
     test_executions_started_total.labels(family="snap", environment="laptop").inc()
 """
 
-from prometheus_client import Counter, Gauge, Histogram
+from prometheus_client import Gauge
 from prometheus_fastapi_instrumentator import Instrumentator, metrics
 
 # Namespace for all metrics

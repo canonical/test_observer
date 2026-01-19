@@ -86,14 +86,14 @@ def modify_issue_attachments(
                 )
                 .all()
             )
-            
+
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
                     IssueTestResultAttachment.test_result_id.in_(test_result_ids),
                 )
             )
-            
+
             # Decrement triaged metric for detached results
             for test_result in test_results:
                 _update_triaged_metric(issue, test_result, increment=False)
@@ -113,7 +113,7 @@ def modify_issue_attachments(
                 )
                 .all()
             )
-            
+
             db.execute(
                 pg_insert(IssueTestResultAttachment)
                 .values(
@@ -128,7 +128,7 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
-            
+
             # Increment triaged metric for attached results
             for test_result in test_results:
                 _update_triaged_metric(issue, test_result, increment=True)
@@ -143,12 +143,12 @@ def modify_issue_attachments(
             )
         base_query = select(TestResult.id)
         filtered_ids_query = filter_test_results(base_query, filters).subquery()
-        
+
         # Get the filtered test result IDs
         filtered_result_ids = [
             row[0] for row in db.execute(select(filtered_ids_query.c.id)).all()
         ]
-        
+
         if detach:
             # Get test results before detaching to update metrics
             test_results = (
@@ -165,7 +165,7 @@ def modify_issue_attachments(
                 )
                 .all()
             )
-            
+
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
@@ -174,7 +174,7 @@ def modify_issue_attachments(
                     ),
                 )
             )
-            
+
             # Decrement triaged metric for detached results
             for test_result in test_results:
                 _update_triaged_metric(issue, test_result, increment=False)
@@ -191,7 +191,7 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
-            
+
             # Get test results after attaching to update metrics
             test_results = (
                 db.query(TestResult)
@@ -207,7 +207,7 @@ def modify_issue_attachments(
                 )
                 .all()
             )
-            
+
             # Increment triaged metric for attached results
             for test_result in test_results:
                 _update_triaged_metric(issue, test_result, increment=True)
@@ -224,13 +224,13 @@ def _update_triaged_metric(
     """Update Prometheus metric for triaged test results."""
     test_execution = test_result.test_execution
     artefact_family = test_execution.artefact_build.artefact.family
-    
+
     # Only process metrics for charm family
     if artefact_family not in {"charm"}:
         return
-    
+
     common_labels = get_common_metric_labels(test_execution)
-    
+
     metric = test_executions_results_triaged.labels(
         **common_labels,
         test_name=test_result.test_case.name,
@@ -240,7 +240,7 @@ def _update_triaged_metric(
         issue_key=issue.key,
         issue_url=issue.url,
     )
-    
+
     if increment:
         metric.inc()
     else:

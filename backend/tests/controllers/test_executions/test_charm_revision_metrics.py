@@ -95,9 +95,7 @@ def test_charm_revision_metric_updated(
     assert response.status_code == 200
 
     # Verify metric was incremented
-    new_value = get_metric_value(
-        "t_obs_results_metadata_charm_revision", metric_labels
-    )
+    new_value = get_metric_value("t_obs_results_metadata_charm_revision", metric_labels)
     assert new_value == initial_value + 1
 
 
@@ -170,9 +168,7 @@ def test_charm_revision_metric_multiple_charms(
     postgres_new = get_metric_value(
         "t_obs_results_metadata_charm_revision", postgres_labels
     )
-    mysql_new = get_metric_value(
-        "t_obs_results_metadata_charm_revision", mysql_labels
-    )
+    mysql_new = get_metric_value("t_obs_results_metadata_charm_revision", mysql_labels)
 
     assert postgres_new == postgres_initial + 1
     assert mysql_new == mysql_initial + 1

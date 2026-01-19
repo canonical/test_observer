@@ -89,16 +89,16 @@ def test_charm_failure_metric_updated(
         f"/v1/test-executions/{test_execution.id}",
         {
             "execution_metadata": {
-                "charm_qa:failure:charm:postgresql-k8s:status": ["unit:error:hook failed: install"],
+                "charm_qa:failure:charm:postgresql-k8s:status": [
+                    "unit:error:hook failed: install"
+                ],
             }
         },
     )
     assert response.status_code == 200
 
     # Verify metric was incremented
-    new_value = get_metric_value(
-        "t_obs_results_metadata_charm_failure", metric_labels
-    )
+    new_value = get_metric_value("t_obs_results_metadata_charm_failure", metric_labels)
     assert new_value == initial_value + 1
 
 
@@ -163,8 +163,12 @@ def test_charm_failure_metric_multiple_failures(
         f"/v1/test-executions/{test_execution.id}",
         {
             "execution_metadata": {
-                "charm_qa:failure:charm:postgresql-k8s:status": ["unit:error:hook failed: install"],
-                "charm_qa:failure:charm:mysql-k8s:status": ["application:blocked:waiting for config"],
+                "charm_qa:failure:charm:postgresql-k8s:status": [
+                    "unit:error:hook failed: install"
+                ],
+                "charm_qa:failure:charm:mysql-k8s:status": [
+                    "application:blocked:waiting for config"
+                ],
             }
         },
     )
@@ -174,9 +178,7 @@ def test_charm_failure_metric_multiple_failures(
     postgres_new = get_metric_value(
         "t_obs_results_metadata_charm_failure", postgres_labels
     )
-    mysql_new = get_metric_value(
-        "t_obs_results_metadata_charm_failure", mysql_labels
-    )
+    mysql_new = get_metric_value("t_obs_results_metadata_charm_failure", mysql_labels)
 
     assert postgres_new == postgres_initial + 1
     assert mysql_new == mysql_initial + 1
@@ -219,9 +221,7 @@ def test_charm_failure_metric_different_entity_types(
         "status_message": "waiting for relation",
     }
 
-    unit_initial = get_metric_value(
-        "t_obs_results_metadata_charm_failure", unit_labels
-    )
+    unit_initial = get_metric_value("t_obs_results_metadata_charm_failure", unit_labels)
 
     # Add execution metadata with unit failure
     response = auth_patch(
@@ -229,16 +229,16 @@ def test_charm_failure_metric_different_entity_types(
         f"/v1/test-executions/{test_execution.id}",
         {
             "execution_metadata": {
-                "charm_qa:failure:charm:postgresql-k8s:status": ["unit:waiting:waiting for relation"],
+                "charm_qa:failure:charm:postgresql-k8s:status": [
+                    "unit:waiting:waiting for relation"
+                ],
             }
         },
     )
     assert response.status_code == 200
 
     # Verify metric was incremented
-    unit_new = get_metric_value(
-        "t_obs_results_metadata_charm_failure", unit_labels
-    )
+    unit_new = get_metric_value("t_obs_results_metadata_charm_failure", unit_labels)
     assert unit_new == unit_initial + 1
 
 
@@ -284,9 +284,7 @@ def test_charm_failure_metric_different_statuses(
             "status_message": message,
         }
 
-        initial = get_metric_value(
-            "t_obs_results_metadata_charm_failure", labels
-        )
+        initial = get_metric_value("t_obs_results_metadata_charm_failure", labels)
 
         # Add execution metadata with specific status
         response = auth_patch(
