@@ -16,6 +16,8 @@
 
 
 import logging
+from contextlib import asynccontextmanager
+
 import sentry_sdk
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
@@ -28,6 +30,8 @@ from test_observer.common.config import (
     SESSIONS_HTTPS_ONLY,
 )
 from test_observer.common.metrics import instrumentator
+from test_observer.common.metrics_initializer import initialize_all_metrics
+from test_observer.data_access.setup import SessionLocal
 from test_observer.controllers.router import router
 
 if SENTRY_DSN:
@@ -36,7 +40,33 @@ if SENTRY_DSN:
 logger = logging.getLogger("test-observer-backend")
 logging.basicConfig(level=logging.INFO)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """
+    Application lifespan manager.
+
+    Handles startup and shutdown events for the FastAPI application.
+    On startup, initializes Prometheus metrics from the database.
+    """
+    # Startup: Initialize metrics
+    db = SessionLocal()
+    try:
+        initialize_all_metrics(db)
+    except Exception as e:
+        logger.exception(f"Error during metrics initialization: {e}")
+        # Continue startup even if metrics init fails
+    finally:
+        db.close()
+
+    yield  # Application runs
+
+    # Shutdown: cleanup if needed
+    pass
+
+
 app = FastAPI(
+    lifespan=lifespan,
     # Redirecting slashes can return a http schemed host when the request is https.
     # A browser may block such a request means that the frontend loads without data.
     # See https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content/How_to_fix_website_with_mixed_content

@@ -37,7 +37,6 @@ def extract_endpoint_info(
         Returns empty strings if parsing fails
     """
     parts = test_plan.split("/")
-    print(parts)
     if len(parts) < 4:
         return "", "", "", ""
 
