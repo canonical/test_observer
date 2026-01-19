@@ -1,4 +1,4 @@
-# Copyright (C) 2025 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -22,6 +22,7 @@ from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import FamilyName
+from test_observer.data_access.models_enums import StageName
 
 
 def auth_post(test_client: TestClient, endpoint: str, json: dict):
@@ -57,7 +58,7 @@ def test_triaged_metric_incremented_on_attach(
         name="test-charm",
         family=FamilyName.charm,
         track="latest",
-        stage="edge",
+        stage=StageName.edge,
     )
     artefact_build = generator.gen_artefact_build(artefact)
     test_plan_name = "integration/provider:endpoint1/interface1/requirer:endpoint2"
@@ -109,7 +110,7 @@ def test_triaged_metric_decremented_on_detach(
         name="test-charm",
         family=FamilyName.charm,
         track="latest",
-        stage="edge",
+        stage=StageName.edge,
     )
     artefact_build = generator.gen_artefact_build(artefact)
     test_plan_name = "integration/provider:endpoint1/interface1/requirer:endpoint2"
@@ -163,7 +164,7 @@ def test_triaged_metric_not_updated_for_non_charm_family(
     environment = generator.gen_environment()
     test_case = generator.gen_test_case()
     artefact = generator.gen_artefact(
-        name="test-snap", family=FamilyName.snap, track="latest", stage="edge"
+        name="test-snap", family=FamilyName.snap, track="latest", stage=StageName.edge
     )
     artefact_build = generator.gen_artefact_build(artefact)
     test_execution = generator.gen_test_execution(artefact_build, environment)
