@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 """
 Prometheus metrics for Test Observer.
 
@@ -21,9 +22,9 @@ This module provides a centralized location for all Prometheus metrics.
 Metrics can be imported and updated from anywhere in the codebase.
 
 Example usage:
-    from test_observer.common.metrics import test_executions_started_total
+    from test_observer.common.metrics import test_executions_results
 
-    test_executions_started_total.labels(family="snap", environment="laptop").inc()
+    test_executions_results.labels(**labels).inc()
 """
 
 from prometheus_client import Gauge
@@ -111,7 +112,7 @@ test_execution_results_metadata_charm_revision = Gauge(
 
 test_execution_results_metadata_charm_failure = Gauge(
     name=f"{NAMESPACE}_results_metadata_charm_failure",
-    documentation="Charm revision metadata from test executions",
+    documentation="Charm failure metadata from test executions",
     labelnames=[
         "target_asset",
         "target_track",

@@ -15,12 +15,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from collections import namedtuple
+
 from test_observer.data_access.models import TestExecution
 
 
-def extract_endpoint_info(
-    test_plan: str, target_asset: str
-) -> tuple[str, str, str, str]:
+EndpointInfo = namedtuple(
+    "EndpointInfo",
+    ["provider_endpoint", "interface", "requirer_endpoint", "neighbor_asset"],
+)
+
+
+def extract_endpoint_info(test_plan: str, target_asset: str) -> EndpointInfo:
     """
     Extract provider_endpoint, interface, requirer_endpoint, and neighbor_asset
     from test_plan.
@@ -33,19 +39,20 @@ def extract_endpoint_info(
         target_asset: The target asset name to identify which is the neighbor
 
     Returns:
-        Tuple of (provider_endpoint, interface, requirer_endpoint, neighbor_asset)
+        EndpointInfo named tuple with provider_endpoint, interface,
+        requirer_endpoint, and neighbor_asset fields.
         Returns empty strings if parsing fails
     """
     parts = test_plan.split("/")
     if len(parts) < 4:
-        return "", "", "", ""
+        return EndpointInfo("", "", "", "")
 
     provider_endpoint = parts[1] if len(parts) > 1 else ""
     interface = parts[2] if len(parts) > 2 else ""
     requirer_endpoint = parts[3] if len(parts) > 3 else ""
 
     if not provider_endpoint or not interface or not requirer_endpoint:
-        return "", "", "", ""
+        return EndpointInfo("", "", "", "")
 
     # Extract assets from both endpoints (format: ASSET:ENDPOINT)
     provider_asset = (
@@ -62,7 +69,7 @@ def extract_endpoint_info(
 
     neighbor_asset = assets[0] if assets else ""
 
-    return provider_endpoint, interface, requirer_endpoint, neighbor_asset
+    return EndpointInfo(provider_endpoint, interface, requirer_endpoint, neighbor_asset)
 
 
 def get_common_metric_labels(test_execution: TestExecution) -> dict[str, str]:
@@ -78,16 +85,14 @@ def get_common_metric_labels(test_execution: TestExecution) -> dict[str, str]:
     target_asset = artefact.name
 
     # Extract endpoint info from test plan
-    provider_endpoint, interface, requirer_endpoint, neighbor_asset = (
-        extract_endpoint_info(test_plan_name, target_asset)
-    )
+    endpoint_info = extract_endpoint_info(test_plan_name, target_asset)
 
     return {
         "target_asset": artefact.name,
         "target_track": artefact.track or "",
         "target_risk": artefact.stage,
-        "provider_endpoint": provider_endpoint,
-        "interface": interface,
-        "requirer_endpoint": requirer_endpoint,
-        "neighbor_asset": neighbor_asset,
+        "provider_endpoint": endpoint_info.provider_endpoint,
+        "interface": endpoint_info.interface,
+        "requirer_endpoint": endpoint_info.requirer_endpoint,
+        "neighbor_asset": endpoint_info.neighbor_asset,
     }
