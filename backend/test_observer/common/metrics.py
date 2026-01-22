@@ -31,7 +31,7 @@ from prometheus_client import Gauge
 from prometheus_fastapi_instrumentator import Instrumentator, metrics
 
 # Namespace for all metrics
-NAMESPACE = "t_obs"
+NAMESPACE = "test_observer"
 
 # Create instrumentator instance with configuration
 # This will be used in main.py to instrument the FastAPI app
@@ -56,112 +56,58 @@ instrumentator.add(
 # Custom metrics for Test Observer domain
 # These can be imported and updated from any module
 
-test_executions_results = Gauge(
-    name=f"{NAMESPACE}_results",
-    documentation="Test result counts from Test Observer API",
+# Core metric - works for ALL families, always
+test_results = Gauge(
+    name=f"{NAMESPACE}_test_results",
+    documentation="Test result counts by family, artefact, and test",
     labelnames=[
-        "target_asset",
-        "target_track",
-        "target_risk",
-        "provider_endpoint",
-        "interface",
-        "requirer_endpoint",
-        "neighbor_asset",
+        "family",
+        "artefact_name",
+        "artefact_stage",
+        "track",  # empty for deb/image
+        "series",  # empty for snap/charm/image
+        "os",  # empty for snap/charm/deb
+        "environment_name",
+        "test_plan",
         "test_name",
         "status",
     ],
 )
 
-test_executions_results_triaged = Gauge(
-    name=f"{NAMESPACE}_results_triaged",
-    documentation="Triaged test result counts from Test Observer API",
+# Triaged results with issue tracking
+test_results_triaged = Gauge(
+    name=f"{NAMESPACE}_test_results_triaged",
+    documentation="Triaged test results with issue information",
     labelnames=[
-        "target_asset",
-        "target_track",
-        "target_risk",
-        "provider_endpoint",
-        "interface",
-        "requirer_endpoint",
-        "neighbor_asset",
+        "family",
+        "artefact_name",
+        "artefact_stage",
+        "track",
+        "series",
+        "os",
+        "environment_name",
+        "test_plan",
         "test_name",
         "status",
         "issue_source",
         "issue_project",
         "issue_key",
-        "issue_url",
     ],
 )
 
-test_execution_results_metadata_charm_revision = Gauge(
-    name=f"{NAMESPACE}_results_metadata_charm_revision",
-    documentation="Charm revision metadata from test executions",
+# Generic execution metadata metric
+test_results_metadata = Gauge(
+    name=f"{NAMESPACE}_test_results_metadata",
+    documentation="Test results with arbitrary execution metadata",
     labelnames=[
-        "target_asset",
-        "target_track",
-        "target_risk",
-        "provider_endpoint",
-        "interface",
-        "requirer_endpoint",
-        "neighbor_asset",
+        "family",
+        "artefact_name",
+        "artefact_stage",
+        "environment_name",
+        "test_plan",
         "test_name",
         "status",
-        "charm_name",
-        "charm_revision",
-    ],
-)
-
-test_execution_results_metadata_charm_failure = Gauge(
-    name=f"{NAMESPACE}_results_metadata_charm_failure",
-    documentation="Charm failure metadata from test executions",
-    labelnames=[
-        "target_asset",
-        "target_track",
-        "target_risk",
-        "provider_endpoint",
-        "interface",
-        "requirer_endpoint",
-        "neighbor_asset",
-        "test_name",
-        "status",
-        "charm_name",
-        "entity_type",
-        "charm_status",
-        "status_message",
-    ],
-)
-
-test_executions_results_metadata_charm_cli = Gauge(
-    name=f"{NAMESPACE}_results_metadata_failure_cli",
-    documentation="CLI command and stderr metadata from test failures",
-    labelnames=[
-        "target_asset",
-        "target_track",
-        "target_risk",
-        "provider_endpoint",
-        "interface",
-        "requirer_endpoint",
-        "neighbor_asset",
-        "test_name",
-        "status",
-        "cmd",
-        "stderr",
-    ],
-)
-
-test_executions_results_metadata_simple = Gauge(
-    name=f"{NAMESPACE}_results_metadata_simple",
-    documentation="Simple key-value metadata from test executions",
-    labelnames=[
-        "target_asset",
-        "target_track",
-        "target_risk",
-        "provider_endpoint",
-        "interface",
-        "requirer_endpoint",
-        "neighbor_asset",
-        "test_name",
-        "status",
-        "metadata_key",
+        "metadata_category",
         "metadata_value",
     ],
 )

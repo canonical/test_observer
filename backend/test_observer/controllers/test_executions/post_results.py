@@ -22,8 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 from test_observer.common.permissions import Permission, permission_checker
 
 from test_observer.common.metric_collectors import (
-    update_test_execution_results_metric,
-    update_cli_metadata_metric,
+    update_test_results_metric,
 )
 from test_observer.controllers.test_executions.models import TestResultRequest
 from test_observer.controllers.issues.attachment_rules_logic import (
@@ -95,7 +94,6 @@ def post_results(
         db.flush()
         apply_test_result_attachment_rules(db, test_result)
 
-        update_test_execution_results_metric(test_execution, test_case, result)
-        update_cli_metadata_metric(test_execution, test_case, result)
+        update_test_results_metric(test_execution, test_case, result)
 
     db.commit()

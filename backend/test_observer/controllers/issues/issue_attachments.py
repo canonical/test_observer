@@ -22,8 +22,7 @@ from sqlalchemy import delete, select, literal
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.common.metrics import test_executions_results_triaged
-from test_observer.common.metrics_helpers import get_common_metric_labels
+from test_observer.common.metric_collectors import update_triaged_results_metric
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
 )
@@ -96,7 +95,7 @@ def modify_issue_attachments(
 
             # Decrement triaged metric for detached results
             for test_result in test_results:
-                _update_triaged_metric(issue, test_result, increment=False)
+                update_triaged_results_metric(test_result, issue, increment=False)
         else:
             # Get test results to update metrics after attaching
             test_results = (
@@ -131,7 +130,7 @@ def modify_issue_attachments(
 
             # Increment triaged metric for attached results
             for test_result in test_results:
-                _update_triaged_metric(issue, test_result, increment=True)
+                update_triaged_results_metric(test_result, issue, increment=True)
 
     # Add or remove any test results matching the provided filters
     if request.test_results_filters is not None:
@@ -177,7 +176,7 @@ def modify_issue_attachments(
 
             # Decrement triaged metric for detached results
             for test_result in test_results:
-                _update_triaged_metric(issue, test_result, increment=False)
+                update_triaged_results_metric(test_result, issue, increment=False)
         else:
             insert_select = select(
                 literal(issue_id).label("issue_id"),
@@ -210,41 +209,12 @@ def modify_issue_attachments(
 
             # Increment triaged metric for attached results
             for test_result in test_results:
-                _update_triaged_metric(issue, test_result, increment=True)
+                update_triaged_results_metric(test_result, issue, increment=True)
 
     # Save the result
     db.commit()
     db.refresh(issue)
     return issue
-
-
-def _update_triaged_metric(
-    issue: Issue, test_result: TestResult, increment: bool = True
-) -> None:
-    """Update Prometheus metric for triaged test results."""
-    test_execution = test_result.test_execution
-    artefact_family = test_execution.artefact_build.artefact.family
-
-    # Only process metrics for charm family
-    if artefact_family not in {"charm"}:
-        return
-
-    common_labels = get_common_metric_labels(test_execution)
-
-    metric = test_executions_results_triaged.labels(
-        **common_labels,
-        test_name=test_result.test_case.name,
-        status=test_result.status.value,
-        issue_source=issue.source.value,
-        issue_project=issue.project,
-        issue_key=issue.key,
-        issue_url=issue.url,
-    )
-
-    if increment:
-        metric.inc()
-    else:
-        metric.dec()
 
 
 def require_bulk_permission(

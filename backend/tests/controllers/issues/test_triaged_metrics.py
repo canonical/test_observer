@@ -71,17 +71,23 @@ def test_triaged_metric_incremented_on_attach(
 
     # Get initial metric value
     metric_labels = {
-        "target_asset": artefact.name,
-        "target_track": artefact.track or "",
-        "target_risk": artefact.stage,
+        "family": artefact.family.value,
+        "artefact_name": artefact.name,
+        "artefact_stage": artefact.stage,
+        "track": artefact.track or "",
+        "series": artefact.series or "",
+        "os": artefact.os or "",
+        "environment_name": environment.name,
+        "test_plan": test_plan_name,
         "test_name": test_case.name,
         "status": test_result.status.value,
         "issue_source": issue.source.value,
         "issue_project": issue.project,
         "issue_key": issue.key,
-        "issue_url": issue.url,
     }
-    initial_value = get_metric_value("t_obs_results_triaged", metric_labels)
+    initial_value = get_metric_value(
+        "test_observer_test_results_triaged", metric_labels
+    )
 
     # Attach the issue
     response = auth_post(
@@ -92,7 +98,7 @@ def test_triaged_metric_incremented_on_attach(
     assert response.status_code == 200
 
     # Verify metric was incremented
-    new_value = get_metric_value("t_obs_results_triaged", metric_labels)
+    new_value = get_metric_value("test_observer_test_results_triaged", metric_labels)
     assert new_value == initial_value + 1
 
 
@@ -131,17 +137,23 @@ def test_triaged_metric_decremented_on_detach(
 
     # Get metric value after attach
     metric_labels = {
-        "target_asset": artefact.name,
-        "target_track": artefact.track or "",
-        "target_risk": artefact.stage,
+        "family": artefact.family.value,
+        "artefact_name": artefact.name,
+        "artefact_stage": artefact.stage,
+        "track": artefact.track or "",
+        "series": artefact.series or "",
+        "os": artefact.os or "",
+        "environment_name": environment.name,
+        "test_plan": test_plan_name,
         "test_name": test_case.name,
         "status": test_result.status.value,
         "issue_source": issue.source.value,
         "issue_project": issue.project,
         "issue_key": issue.key,
-        "issue_url": issue.url,
     }
-    value_after_attach = get_metric_value("t_obs_results_triaged", metric_labels)
+    value_after_attach = get_metric_value(
+        "test_observer_test_results_triaged", metric_labels
+    )
 
     # Detach the issue
     response = auth_post(
@@ -152,7 +164,7 @@ def test_triaged_metric_decremented_on_detach(
     assert response.status_code == 200
 
     # Verify metric was decremented
-    new_value = get_metric_value("t_obs_results_triaged", metric_labels)
+    new_value = get_metric_value("test_observer_test_results_triaged", metric_labels)
     assert new_value == value_after_attach - 1
 
 

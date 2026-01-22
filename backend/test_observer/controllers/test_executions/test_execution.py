@@ -36,7 +36,7 @@ from test_observer.data_access.models import (
     test_execution_metadata_association_table,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.common.metric_collectors import update_execution_metadata_metrics
+from test_observer.common.metric_collectors import update_execution_metadata_metric
 
 router = APIRouter()
 
@@ -97,7 +97,7 @@ def patch_test_execution(
 
     if request.execution_metadata is not None:
         _add_execution_metadata(test_execution, request.execution_metadata, db)
-        update_execution_metadata_metrics(test_execution, request.execution_metadata)
+        update_execution_metadata_metric(test_execution, request.execution_metadata)
 
     _set_test_execution_status(request, test_execution)
 
