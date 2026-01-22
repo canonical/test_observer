@@ -103,6 +103,9 @@ test_results_metadata = Gauge(
         "family",
         "artefact_name",
         "artefact_stage",
+        "track",  # empty for deb/image
+        "series",  # empty for snap/charm/image
+        "os",  # empty for snap/charm/deb
         "environment_name",
         "test_plan",
         "test_name",
