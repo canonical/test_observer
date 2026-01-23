@@ -97,7 +97,7 @@ def modify_issue_attachments(
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=False)
         else:
-            # Get test results to update metrics after attaching
+            # Get test results to update metrics
             test_results = (
                 db.query(TestResult)
                 .filter(TestResult.id.in_(test_result_ids))
