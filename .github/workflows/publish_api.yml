@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0  # Fetch all history for git versioning
 
       - name: Log in to the Container registry
-        uses: docker/login-action@6d4b68b490aef8836e8fb5e50ee7b3bdfa5894f0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
