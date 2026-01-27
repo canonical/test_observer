@@ -34,3 +34,4 @@ IGNORE_PERMISSIONS = {
     for permission in os.getenv("IGNORE_PERMISSIONS", "").lower().split(",")
     if permission.strip()
 }
+METRICS_PORT = int(os.getenv("METRICS_PORT", "9090"))

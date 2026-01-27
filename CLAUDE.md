@@ -112,7 +112,7 @@ skaffold dev --no-prune=false --cache-artifacts=false
 
 **Docker Compose Services:**
 
-- `backend`: FastAPI server on port 30000
+- `backend`: FastAPI server on port 30000 (Prometheus metrics on port 9090)
 - `frontend`: Flutter web app on port 8080  
 - `db`: PostgreSQL database with persistent volume
 - Automatic migrations and seeding via `dev_entrypoint.sh`
@@ -197,3 +197,12 @@ The system centers around **Artefacts** (software packages) that go through test
 - Development: microk8s + Skaffold (preferred) or docker-compose
 - Database: PostgreSQL (local) or microk8s postgres
 - Frontend connects to backend at `http://localhost:30000/` by default
+
+**Environment Variables:**
+
+- `METRICS_PORT`: Port for Prometheus metrics HTTP server (default: 9090)
+- `METRICS_INIT_ENABLED`: Enable metrics initialization from database on startup (default: true)
+- `METRICS_INIT_DAYS`: Number of days of historical data to initialize metrics with (default: 30, 0 for all data)
+- `DB_URL`: PostgreSQL connection string
+- `SEED_DATA`: Auto-seed test data in development (default: true)
+- `SESSIONS_HTTPS_ONLY`: Require HTTPS for session cookies (default: true)

@@ -17,14 +17,23 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import delete
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+
+from test_observer.common.metric_collectors import (
+    update_test_results_metric,
+)
 from test_observer.controllers.test_executions.models import TestResultRequest
 from test_observer.controllers.issues.attachment_rules_logic import (
     apply_test_result_attachment_rules,
 )
-from test_observer.data_access.models import TestCase, TestExecution, TestResult
+from test_observer.data_access.models import (
+    ArtefactBuild,
+    TestCase,
+    TestExecution,
+    TestResult,
+)
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
@@ -40,7 +49,17 @@ def post_results(
     request: list[TestResultRequest],
     db: Session = Depends(get_db),
 ):
-    test_execution = db.get(TestExecution, id)
+    test_execution = db.get(
+        TestExecution,
+        id,
+        options=[
+            selectinload(TestExecution.artefact_build).selectinload(
+                ArtefactBuild.artefact
+            ),
+            selectinload(TestExecution.environment),
+            selectinload(TestExecution.execution_metadata),
+        ],
+    )
 
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
@@ -74,5 +93,7 @@ def post_results(
         db.add(test_result)
         db.flush()
         apply_test_result_attachment_rules(db, test_result)
+
+        update_test_results_metric(test_execution, test_case, result)
 
     db.commit()
