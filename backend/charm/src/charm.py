@@ -19,6 +19,8 @@ import sys
 from collections import ChainMap
 
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
 from ops import StoredState
@@ -53,6 +55,9 @@ class TestObserverBackendCharm(CharmBase):
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
         )
+        self.grafana_dashboard_provider = GrafanaDashboardProvider(self)
+        self.metrics_endpoint = MetricsEndpointProvider(self, jobs=[{"static_configs": [{"targets": ["*:9000"] }]}])
+
         self.framework.observe(self.database.on.database_created, self._on_database_changed)
         self.framework.observe(self.database.on.endpoints_changed, self._on_database_changed)
         self.framework.observe(
