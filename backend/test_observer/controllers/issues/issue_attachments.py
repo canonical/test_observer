@@ -49,6 +49,26 @@ from .models import (
 router = APIRouter()
 
 
+def load_test_results_with_relations(
+    db: Session, test_result_ids: list[int] | set[int]
+) -> list[TestResult]:
+    """Load test results with all necessary relationships for metric updates."""
+    return (
+        db.query(TestResult)
+        .filter(TestResult.id.in_(test_result_ids))
+        .options(
+            selectinload(TestResult.test_execution)
+            .selectinload(TestExecution.artefact_build)
+            .selectinload(ArtefactBuild.artefact),
+            selectinload(TestResult.test_execution).selectinload(
+                TestExecution.test_plan
+            ),
+            selectinload(TestResult.test_case),
+        )
+        .all()
+    )
+
+
 def modify_issue_attachments(
     db: Session,
     issue_id: int,
@@ -69,23 +89,9 @@ def modify_issue_attachments(
     # Add or remove any requested test result attachments
     if request.test_results is not None and len(request.test_results) > 0:
         test_result_ids = set(request.test_results)
-        if detach:
-            # Get test results before detaching to update metrics
-            test_results = (
-                db.query(TestResult)
-                .filter(TestResult.id.in_(test_result_ids))
-                .options(
-                    selectinload(TestResult.test_execution)
-                    .selectinload(TestExecution.artefact_build)
-                    .selectinload(ArtefactBuild.artefact),
-                    selectinload(TestResult.test_execution).selectinload(
-                        TestExecution.test_plan
-                    ),
-                    selectinload(TestResult.test_case),
-                )
-                .all()
-            )
+        test_results = load_test_results_with_relations(db, test_result_ids)
 
+        if detach:
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
@@ -93,26 +99,9 @@ def modify_issue_attachments(
                 )
             )
 
-            # Decrement triaged metric for detached results
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=False)
         else:
-            # Get test results to update metrics
-            test_results = (
-                db.query(TestResult)
-                .filter(TestResult.id.in_(test_result_ids))
-                .options(
-                    selectinload(TestResult.test_execution)
-                    .selectinload(TestExecution.artefact_build)
-                    .selectinload(ArtefactBuild.artefact),
-                    selectinload(TestResult.test_execution).selectinload(
-                        TestExecution.test_plan
-                    ),
-                    selectinload(TestResult.test_case),
-                )
-                .all()
-            )
-
             db.execute(
                 pg_insert(IssueTestResultAttachment)
                 .values(
@@ -128,7 +117,6 @@ def modify_issue_attachments(
                 .on_conflict_do_nothing()
             )
 
-            # Increment triaged metric for attached results
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=True)
 
@@ -143,28 +131,12 @@ def modify_issue_attachments(
         base_query = select(TestResult.id)
         filtered_ids_query = filter_test_results(base_query, filters).subquery()
 
-        # Get the filtered test result IDs
         filtered_result_ids = [
             row[0] for row in db.execute(select(filtered_ids_query.c.id)).all()
         ]
+        test_results = load_test_results_with_relations(db, filtered_result_ids)
 
         if detach:
-            # Get test results before detaching to update metrics
-            test_results = (
-                db.query(TestResult)
-                .filter(TestResult.id.in_(filtered_result_ids))
-                .options(
-                    selectinload(TestResult.test_execution)
-                    .selectinload(TestExecution.artefact_build)
-                    .selectinload(ArtefactBuild.artefact),
-                    selectinload(TestResult.test_execution).selectinload(
-                        TestExecution.test_plan
-                    ),
-                    selectinload(TestResult.test_case),
-                )
-                .all()
-            )
-
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
@@ -174,7 +146,6 @@ def modify_issue_attachments(
                 )
             )
 
-            # Decrement triaged metric for detached results
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=False)
         else:
@@ -191,23 +162,6 @@ def modify_issue_attachments(
                 .on_conflict_do_nothing()
             )
 
-            # Get test results after attaching to update metrics
-            test_results = (
-                db.query(TestResult)
-                .filter(TestResult.id.in_(filtered_result_ids))
-                .options(
-                    selectinload(TestResult.test_execution)
-                    .selectinload(TestExecution.artefact_build)
-                    .selectinload(ArtefactBuild.artefact),
-                    selectinload(TestResult.test_execution).selectinload(
-                        TestExecution.test_plan
-                    ),
-                    selectinload(TestResult.test_case),
-                )
-                .all()
-            )
-
-            # Increment triaged metric for attached results
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=True)
 
