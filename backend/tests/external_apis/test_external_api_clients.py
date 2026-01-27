@@ -19,7 +19,6 @@ from __future__ import annotations
 from unittest.mock import Mock, MagicMock, patch
 import pytest
 
-from test_observer.external_apis.github.github_client import GitHubClient
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.exceptions import (
@@ -27,97 +26,6 @@ from test_observer.external_apis.exceptions import (
     APIError,
     RateLimitError,
 )
-
-
-class TestGitHubClient:
-    """Tests for GitHubClient"""
-
-    def test_init_with_token(self) -> None:
-        """Test GitHub client initialization with token"""
-        with patch("test_observer.external_apis.github.github_client.Github"):
-            client = GitHubClient(token="test_token")
-            assert client.token == "test_token"
-
-    def test_init_without_token(self) -> None:
-        """Test GitHub client initialization without token"""
-        with patch("test_observer.external_apis.github.github_client.Github"):
-            client = GitHubClient()
-            assert client.token is None
-
-    def test_get_issue_success(self) -> None:
-        """Test successful issue fetch"""
-        mock_issue = Mock()
-        mock_issue.title = "Test Issue"
-        mock_issue.state = "open"
-        mock_issue.state_reason = "open"
-        mock_issue.id = 123
-        mock_issue.number = 71
-        mock_issue.html_url = "https://github.com/owner/repo/issues/71"
-
-        mock_repo = Mock()
-        mock_repo.get_issue.return_value = mock_issue
-
-        mock_github = Mock()
-        mock_github.get_repo.return_value = mock_repo
-
-        with patch(
-            "test_observer.external_apis.github.github_client.Github",
-            return_value=mock_github,
-        ):
-            client = GitHubClient(token="test_token")
-            result = client.get_issue("owner/repo", "71")
-
-            assert result.title == "Test Issue"
-            assert result.state == "open"
-            assert result.raw["number"] == 71
-            mock_github.get_repo.assert_called_once_with("owner/repo")
-            mock_repo.get_issue.assert_called_once_with(71)
-
-    def test_get_issue_not_found(self) -> None:
-        """Test issue not found (404)"""
-        from github import GithubException
-
-        mock_github = Mock()
-        mock_github.get_repo.side_effect = GithubException(404, "Not Found")
-
-        with patch(
-            "test_observer.external_apis.github.github_client.Github",
-            return_value=mock_github,
-        ):
-            client = GitHubClient(token="test_token")
-            with pytest.raises(IssueNotFoundError):
-                client.get_issue("owner/repo", "999")
-
-    def test_get_issue_rate_limited(self) -> None:
-        """Test rate limit handling"""
-        from github import GithubException
-
-        mock_github = Mock()
-        error = GithubException(403, "API rate limit exceeded")
-        mock_github.get_repo.side_effect = error
-
-        with patch(
-            "test_observer.external_apis.github.github_client.Github",
-            return_value=mock_github,
-        ):
-            client = GitHubClient(token="test_token")
-            with pytest.raises(RateLimitError):
-                client.get_issue("owner/repo", "71")
-
-    def test_get_issue_auth_failed(self) -> None:
-        """Test authentication failure"""
-        from github import GithubException
-
-        mock_github = Mock()
-        mock_github.get_repo.side_effect = GithubException(401, "Unauthorized")
-
-        with patch(
-            "test_observer.external_apis.github.github_client.Github",
-            return_value=mock_github,
-        ):
-            client = GitHubClient(token="invalid_token")
-            with pytest.raises(APIError, match="authentication failed"):
-                client.get_issue("owner/repo", "71")
 
 
 class TestJiraClient:

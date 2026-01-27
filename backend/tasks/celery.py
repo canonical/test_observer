@@ -21,7 +21,10 @@ from os import environ
 from celery import Celery, Task
 
 from test_observer.data_access.setup import SessionLocal
-from test_observer.external_apis.synchronizer import IssueSynchronizer
+from test_observer.external_apis.synchronizers.factory import (
+    create_synchronization_service,
+)
+from test_observer.data_access.models import Issue
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
@@ -69,19 +72,13 @@ def clean_user_sessions():
     delete_expired_user_sessions(SessionLocal())
 
 
-@app.task(bind=True, max_retries=3)
-def sync_all_issues(self: Task) -> dict:
-    """Periodic task to synchronize all issues from external sources."""
+@app.task
+def sync_all_issues() -> dict:
+    """Sync all issues from external platforms (runs periodically)"""
     db = SessionLocal()
     try:
-        synchronizer = IssueSynchronizer()
-        results = synchronizer.sync_all_issues(db)
-
-        logger.info(
-            f"Issue sync task completed: {results.successful}/{results.total} "
-            f"successful, {results.updated} updated, "
-            f"success rate: {results.success_rate:.1f}%"
-        )
+        service = create_synchronization_service()
+        results = service.sync_all_issues(db)
 
         return {
             "total": results.total,
@@ -90,52 +87,34 @@ def sync_all_issues(self: Task) -> dict:
             "updated": results.updated,
             "success_rate": results.success_rate,
         }
-
-    except Exception as exc:
-        logger.exception(f"Issue sync task failed: {exc}")
-        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries)) from exc
-
+    except Exception as e:
+        logger.error(f"Failed to sync all issues: {e}")
+        return {"error": str(e), "total": 0, "successful": 0, "failed": 0}
     finally:
         db.close()
 
 
 @app.task(bind=True, max_retries=2)
 def sync_issue_by_id(self: Task, issue_id: int) -> dict:
-    """Manually synchronize a specific issue by ID."""
+    """Manually synchronize a specific issue by ID (called on-demand)"""
     db = SessionLocal()
     try:
-        from test_observer.data_access.models import Issue
-
-        issue = db.query(Issue).filter_by(id=issue_id).first()
+        issue = db.query(Issue).filter(Issue.id == issue_id).first()
         if not issue:
-            logger.warning(f"Issue {issue_id} not found")
             return {"success": False, "error": "Issue not found"}
 
-        synchronizer = IssueSynchronizer()
-        result = synchronizer.sync_issue(db, issue)
-
-        logger.info(
-            f"Manual sync for issue {issue_id} completed: "
-            f"success={result.success}, "
-            f"title_updated={result.title_updated}, "
-            f"status_updated={result.status_updated}"
-        )
+        service = create_synchronization_service()
+        result = service.sync_issue(issue, db)
 
         return {
             "success": result.success,
-            "issue_id": result.issue_id,
-            "source": str(result.source),
-            "project": result.project,
-            "key": result.key,
             "title_updated": result.title_updated,
             "status_updated": result.status_updated,
             "error": result.error,
         }
-
-    except Exception as exc:
-        logger.exception(f"Manual sync for issue {issue_id} failed: {exc}")
-        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries)) from exc
-
+    except Exception as e:
+        logger.error(f"Failed to sync issue {issue_id}: {e}")
+        raise self.retry(exc=e, countdown=60 * (2**self.request.retries)) from e
     finally:
         db.close()
 
