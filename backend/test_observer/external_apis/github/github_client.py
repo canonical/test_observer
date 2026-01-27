@@ -14,76 +14,91 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
+from github import Github, GithubIntegration
+from github.Issue import Issue as GithubIssue
+import logging
 
-from github import Github, Auth, GithubException
-
-from test_observer.external_apis.exceptions import (
-    IssueNotFoundError,
-    APIError,
-    RateLimitError,
-)
-
-from test_observer.external_apis.models import IssueData
+logger = logging.getLogger(__name__)
 
 
 class GitHubClient:
-    """GitHub issue client using PyGithub"""
+    """GitHub client using GitHub App authentication"""
 
-    def __init__(self, token: str | None = None, timeout: int = 10):
+    def __init__(self, app_id: str, private_key: str):
         """
-        Args:
-            token: Personal Access Token (classic PAT or fine-grained token)
-            timeout: request timeout (seconds)
-        """
-        self.token = token
-        self.timeout = timeout
-
-        # Initialize Github client with proper auth
-        auth = Auth.Token(token) if token else None
-        self._github = Github(auth=auth, timeout=timeout)
-
-    def get_issue(self, project: str, key: str) -> IssueData:
-        """
-        Fetch an issue from GitHub.
+        Initialize GitHub client with App credentials
 
         Args:
-            project: "owner/repo" format
-            key: issue number (string/int)
+            app_id: GitHub App ID
+            private_key: GitHub App Private Key (PEM format)
+
+        Raises:
+            ValueError: If credentials are missing or invalid
+        """
+        if not app_id or not private_key:
+            raise ValueError("GitHub App ID and Private Key are required")
+
+        self.app_id = app_id
+        self.private_key = private_key
+        self._github = self._authenticate_as_app()
+
+    def _authenticate_as_app(self) -> Github:
+        """Authenticate using GitHub App credentials"""
+        try:
+            # Create GitHub Integration
+            integration = GithubIntegration(self.app_id, self.private_key)
+
+            # Get all installations for this app
+            installations = list(integration.get_installations())
+
+            if not installations:
+                raise ValueError("No installations found for this GitHub App")
+
+            # Use the first installation
+            installation = installations[0]
+
+            logger.info(f"Authenticated as GitHub App installation {installation.id}")
+
+            # Get installation access token
+            token = integration.get_access_token(installation.id).token
+
+            return Github(token)
+
+        except Exception as e:
+            logger.error(f"Failed to authenticate with GitHub App: {e}")
+            raise
+
+    def get_issue(self, project: str, key: str) -> GithubIssue:
+        """
+        Get issue from GitHub
+
+        Args:
+            project: Repository in format "owner/repo" (e.g., "canonical/test-observer")
+            key: Issue number (e.g., "123")
 
         Returns:
-            IssueData object
+            GitHub Issue object
+
         Raises:
-            IssueNotFoundError: Issue not found
-            RateLimitError: Rate limit exceeded
-            APIError: Other API errors
+            ValueError: If project format is invalid
+            GithubException: If issue cannot be fetched
         """
         try:
-            repo = self._github.get_repo(project)
-            issue = repo.get_issue(int(str(key).lstrip("#")))
+            # Validate project format (should be "owner/repo")
+            if "/" not in project:
+                raise ValueError(
+                    f"Invalid project format: {project}. Expected 'owner/repo'"
+                )
 
-            return IssueData(
-                title=issue.title,
-                state=issue.state,
-                state_reason=issue.state_reason,
-                raw={
-                    "id": issue.id,
-                    "number": issue.number,
-                    "title": issue.title,
-                    "state": issue.state,
-                    "state_reason": issue.state_reason,
-                    "url": issue.html_url,
-                },
-            )
-        except GithubException as e:
-            if e.status == 404:
-                raise IssueNotFoundError(
-                    f"GitHub issue {project}#{key} not found"
-                ) from e
-            if e.status == 403 and "API rate limit" in str(e):
-                raise RateLimitError(f"GitHub rate limit exceeded: {e}") from e
-            if e.status == 401:
-                raise APIError("GitHub authentication failed. Check token.") from e
-            raise APIError(f"GitHub API error: {e}") from e
+            # Parse issue number
+            issue_number = int(key.lstrip("#"))
+
+            # Fetch issue
+            repository = self._github.get_repo(project)
+            return repository.get_issue(issue_number)
+
+        except ValueError:
+            raise
         except Exception as e:
-            raise APIError(f"Failed to fetch GitHub issue: {e}") from e
+            logger.error(f"Failed to fetch GitHub issue {project}#{key}: {e}")
+            raise

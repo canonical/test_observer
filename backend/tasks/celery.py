@@ -18,9 +18,13 @@
 import logging
 from os import environ
 
-from celery import Celery
+from celery import Celery, Task
 
 from test_observer.data_access.setup import SessionLocal
+from test_observer.external_apis.synchronizers.factory import (
+    create_synchronization_service,
+)
+from test_observer.data_access.models import Issue
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
@@ -48,6 +52,7 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
     sender.add_periodic_task(300, integrate_with_kernel_swm.s())
     sender.add_periodic_task(600, run_promote_artefacts.s())
     sender.add_periodic_task(600, clean_user_sessions.s())
+    sender.add_periodic_task(3600, sync_all_issues.s())
 
 
 @app.task
@@ -65,6 +70,53 @@ def run_promote_artefacts():
 @app.task
 def clean_user_sessions():
     delete_expired_user_sessions(SessionLocal())
+
+
+@app.task
+def sync_all_issues() -> dict:
+    """Sync all issues from external platforms (runs periodically)"""
+    db = SessionLocal()
+    try:
+        service = create_synchronization_service()
+        results = service.sync_all_issues(db)
+
+        return {
+            "total": results.total,
+            "successful": results.successful,
+            "failed": results.failed,
+            "updated": results.updated,
+            "success_rate": results.success_rate,
+        }
+    except Exception as e:
+        logger.error(f"Failed to sync all issues: {e}")
+        return {"error": str(e), "total": 0, "successful": 0, "failed": 0}
+    finally:
+        db.close()
+
+
+@app.task(bind=True, max_retries=2)
+def sync_issue_by_id(self: Task, issue_id: int) -> dict:
+    """Manually synchronize a specific issue by ID (called on-demand)"""
+    db = SessionLocal()
+    try:
+        issue = db.query(Issue).filter(Issue.id == issue_id).first()
+        if not issue:
+            return {"success": False, "error": "Issue not found"}
+
+        service = create_synchronization_service()
+        result = service.sync_issue(issue, db)
+
+        return {
+            "success": result.success,
+            "title_updated": result.title_updated,
+            "status_updated": result.status_updated,
+            "error": result.error,
+        }
+    except Exception as e:
+        logger.error(f"Failed to sync issue {issue_id}: {e}")
+        raise self.retry(exc=e, countdown=60 * (2**self.request.retries)) from e
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
