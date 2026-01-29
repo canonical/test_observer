@@ -24,6 +24,7 @@ from test_observer.data_access.setup import SessionLocal
 from test_observer.external_apis.synchronizers.factory import (
     create_synchronization_service,
 )
+from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
 from test_observer.data_access.models import Issue
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
@@ -41,6 +42,8 @@ app = Celery("tasks", broker=broker_url)
 
 logger = logging.getLogger(__name__)
 
+BATCH_SIZE = 50  # Number of issues to process per batch
+
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):  # noqa
@@ -52,7 +55,11 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
     sender.add_periodic_task(300, integrate_with_kernel_swm.s())
     sender.add_periodic_task(600, run_promote_artefacts.s())
     sender.add_periodic_task(600, clean_user_sessions.s())
-    sender.add_periodic_task(3600, sync_all_issues.s())
+
+    # Staggered sync tasks
+    sender.add_periodic_task(3600, sync_high_priority_issues.s())  # Every hour
+    sender.add_periodic_task(21600, sync_medium_priority_issues.s())  # Every 6 hours
+    sender.add_periodic_task(604800, sync_low_priority_issues.s())  # Every 7 days
 
 
 @app.task
@@ -70,6 +77,77 @@ def run_promote_artefacts():
 @app.task
 def clean_user_sessions():
     delete_expired_user_sessions(SessionLocal())
+
+
+@app.task
+def sync_high_priority_issues() -> dict:
+    """Sync open issues (high priority)"""
+    return _sync_issues_by_priority("high")
+
+
+@app.task
+def sync_medium_priority_issues() -> dict:
+    """Sync recently closed issues (medium priority)"""
+    return _sync_issues_by_priority("medium")
+
+
+@app.task
+def sync_low_priority_issues() -> dict:
+    """Sync old closed issues (low priority)"""
+    return _sync_issues_by_priority("low")
+
+
+def _sync_issues_by_priority(priority: str) -> dict:
+    """Sync issues of a given priority in batches"""
+    db = SessionLocal()
+    try:
+        service = create_synchronization_service()
+
+        total_synced = 0
+        total_updated = 0
+        total_failed = 0
+        batch_count = 0
+
+        while True:
+            issues = SyncStrategy.get_issues_due_for_sync(
+                db, batch_size=BATCH_SIZE, priority=priority
+            )
+
+            if not issues:
+                break
+
+            batch_count += 1
+            logger.info(
+                f"Processing {priority} priority batch "
+                f"{batch_count} ({len(issues)} issues)"
+            )
+
+            # Sync the batch
+            results = service.sync_issues_batch(issues, db)
+
+            total_synced += results.total
+            total_updated += results.updated
+            total_failed += results.failed
+
+            if len(issues) < BATCH_SIZE:
+                break
+
+        stats = SyncStrategy.get_sync_stats(db)
+
+        return {
+            "priority": priority,
+            "batches_processed": batch_count,
+            "total_synced": total_synced,
+            "total_updated": total_updated,
+            "total_failed": total_failed,
+            "sync_stats": stats,
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to sync {priority} priority issues: {e}")
+        return {"priority": priority, "error": str(e), "total_synced": 0}
+    finally:
+        db.close()
 
 
 @app.task
