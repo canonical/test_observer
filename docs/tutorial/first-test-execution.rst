@@ -12,6 +12,19 @@ Test Observer does not run tests itself, instead, it is a tracking and reporting
 
 The integrated workflow consists of three main steps:
 
+.. mermaid::
+
+    sequenceDiagram
+       participant Runner as Your test runner
+       participant TO as Test Observer
+    
+       Runner->>TO: Start a test execution
+       TO-->>Runner: Return <test_execution_id>
+       Runner-->>Runner: Execute tests and collect results
+       Runner->>TO: Submit test results
+       Runner->>TO: Complete the test execution
+       TO-->>TO: Calculate overall status
+
 1. **Start a test execution**: your test runner calls Test Observer API to specify what artefact or software package is being tested.
 
    An **artefact** is a Debian package, snap, charm, or system image with a specific name and version. A **test execution** groups all test results from one test session together for a specific artefact version in a particular environment.
