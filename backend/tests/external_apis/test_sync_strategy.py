@@ -328,3 +328,48 @@ def test_closed_issue_respects_sync_interval(db_session: Session) -> None:
 
     assert len(issues) == 1
     assert issues[0].id == old_sync_issue.id
+
+
+def test_unknown_issues_in_high_priority(db_session: Session) -> None:
+    """Test that UNKNOWN status issues are synced with high priority"""
+    # Create unknown issue (newly created, never synced)
+    unknown_issue = Issue(
+        source=IssueSource.GITHUB,
+        project="canonical/test-repo",
+        key="123",
+        title="New Issue",
+        status=IssueStatus.UNKNOWN,
+        last_synced_at=None,
+    )
+    # Create open issue for comparison
+    open_issue = Issue(
+        source=IssueSource.GITHUB,
+        project="canonical/test-repo",
+        key="456",
+        title="Open Issue",
+        status=IssueStatus.OPEN,
+        last_synced_at=None,
+    )
+    # Create closed issue (should not be in high priority)
+    closed_issue = Issue(
+        source=IssueSource.GITHUB,
+        project="canonical/test-repo",
+        key="789",
+        title="Closed Issue",
+        status=IssueStatus.CLOSED,
+        last_synced_at=None,
+    )
+
+    db_session.add_all([unknown_issue, open_issue, closed_issue])
+    db_session.commit()
+
+    # High priority should include both UNKNOWN and OPEN
+    issues = SyncStrategy.get_issues_due_for_sync(
+        db_session, batch_size=50, priority="high"
+    )
+
+    assert len(issues) == 2  # UNKNOWN + OPEN only
+    issue_ids = {issue.id for issue in issues}
+    assert unknown_issue.id in issue_ids
+    assert open_issue.id in issue_ids
+    assert closed_issue.id not in issue_ids

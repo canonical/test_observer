@@ -34,6 +34,7 @@ from test_observer.promotion.promoter import promote_artefacts
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
+from test_observer.external_apis.synchronizers.config import SyncConfig
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"
 broker_url = environ.get("CELERY_BROKER_URL", DEVELOPMENT_BROKER_URL)
@@ -41,8 +42,6 @@ broker_url = environ.get("CELERY_BROKER_URL", DEVELOPMENT_BROKER_URL)
 app = Celery("tasks", broker=broker_url)
 
 logger = logging.getLogger(__name__)
-
-BATCH_SIZE = 50  # Number of issues to process per batch
 
 
 @app.on_after_configure.connect
@@ -57,9 +56,15 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
     sender.add_periodic_task(600, clean_user_sessions.s())
 
     # Staggered sync tasks
-    sender.add_periodic_task(3600, sync_high_priority_issues.s())  # Every hour
-    sender.add_periodic_task(21600, sync_medium_priority_issues.s())  # Every 6 hours
-    sender.add_periodic_task(604800, sync_low_priority_issues.s())  # Every 7 days
+    sender.add_periodic_task(
+        SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s()
+    )
+    sender.add_periodic_task(
+        SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s()
+    )
+    sender.add_periodic_task(
+        SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s()
+    )
 
 
 @app.task
@@ -81,7 +86,7 @@ def clean_user_sessions():
 
 @app.task
 def sync_high_priority_issues() -> dict:
-    """Sync open issues (high priority)"""
+    """Sync open and unknown issues (high priority)"""
     return _sync_issues_by_priority("high")
 
 
@@ -110,7 +115,7 @@ def _sync_issues_by_priority(priority: str) -> dict:
 
         while True:
             issues = SyncStrategy.get_issues_due_for_sync(
-                db, batch_size=BATCH_SIZE, priority=priority
+                db, batch_size=SyncConfig.BATCH_SIZE, priority=priority
             )
 
             if not issues:
@@ -129,7 +134,7 @@ def _sync_issues_by_priority(priority: str) -> dict:
             total_updated += results.updated
             total_failed += results.failed
 
-            if len(issues) < BATCH_SIZE:
+            if len(issues) < SyncConfig.BATCH_SIZE:
                 break
 
         stats = SyncStrategy.get_sync_stats(db)

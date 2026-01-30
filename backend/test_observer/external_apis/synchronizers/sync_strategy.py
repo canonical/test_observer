@@ -14,12 +14,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from collections.abc import Sequence
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue, IssueStatus
+from test_observer.external_apis.synchronizers.config import SyncConfig
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,14 +28,6 @@ logger = logging.getLogger(__name__)
 
 class SyncStrategy:
     """Determines which issues need syncing based on priority and last sync time"""
-
-    # Sync intervals in seconds
-    OPEN_ISSUE_INTERVAL = 3600  # 1 hour
-    RECENT_CLOSED_INTERVAL = 21600  # 6 hours
-    OLD_CLOSED_INTERVAL = 604800  # 7 days
-
-    # Age threshold for "old" closed issues (30 days)
-    OLD_CLOSED_THRESHOLD_DAYS = 30
 
     @classmethod
     def get_issues_due_for_sync(
@@ -51,20 +44,22 @@ class SyncStrategy:
         Returns:
             List of issues that need syncing
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         if priority == "high":
-            # Open issues not synced in the last hour
-            threshold = now - timedelta(seconds=cls.OPEN_ISSUE_INTERVAL)
+            # Open and unknown issues - unknown indicates newly created issues
+            threshold = now - timedelta(seconds=SyncConfig.OPEN_ISSUE_INTERVAL)
             query = db.query(Issue).filter(
-                Issue.status == IssueStatus.OPEN,
+                Issue.status.in_([IssueStatus.OPEN, IssueStatus.UNKNOWN]),
                 or_(Issue.last_synced_at.is_(None), Issue.last_synced_at < threshold),
             )
 
         elif priority == "medium":
             # Recently closed issues (< 30 days) not synced in last 6 hours
-            closed_threshold = now - timedelta(days=cls.OLD_CLOSED_THRESHOLD_DAYS)
-            sync_threshold = now - timedelta(seconds=cls.RECENT_CLOSED_INTERVAL)
+            closed_threshold = now - timedelta(
+                days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS
+            )
+            sync_threshold = now - timedelta(seconds=SyncConfig.RECENT_CLOSED_INTERVAL)
             query = db.query(Issue).filter(
                 Issue.status == IssueStatus.CLOSED,
                 Issue.updated_at >= closed_threshold,
@@ -76,8 +71,10 @@ class SyncStrategy:
 
         elif priority == "low":
             # Old closed issues (> 30 days) not synced in last 7 days
-            closed_threshold = now - timedelta(days=cls.OLD_CLOSED_THRESHOLD_DAYS)
-            sync_threshold = now - timedelta(seconds=cls.OLD_CLOSED_INTERVAL)
+            closed_threshold = now - timedelta(
+                days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS
+            )
+            sync_threshold = now - timedelta(seconds=SyncConfig.OLD_CLOSED_INTERVAL)
             query = db.query(Issue).filter(
                 Issue.status == IssueStatus.CLOSED,
                 Issue.updated_at < closed_threshold,
@@ -103,13 +100,19 @@ class SyncStrategy:
     @classmethod
     def get_sync_stats(cls, db: Session) -> dict:
         """Get statistics about sync status"""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
-        # Count open issues
-        open_count = db.query(Issue).filter(Issue.status == IssueStatus.OPEN).count()
+        # Count open and unknown issues
+        open_count = (
+            db.query(Issue)
+            .filter(Issue.status.in_([IssueStatus.OPEN, IssueStatus.UNKNOWN]))
+            .count()
+        )
 
         # Count recently closed issues
-        recent_closed_threshold = now - timedelta(days=cls.OLD_CLOSED_THRESHOLD_DAYS)
+        recent_closed_threshold = now - timedelta(
+            days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS
+        )
         recent_closed_count = (
             db.query(Issue)
             .filter(
