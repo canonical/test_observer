@@ -117,6 +117,13 @@ skaffold dev --no-prune=false --cache-artifacts=false
 - `db`: PostgreSQL database with persistent volume
 - Automatic migrations and seeding via `dev_entrypoint.sh`
 
+**Charm Observability:**
+
+The Test Observer charm provides observability features for production deployments:
+- Prometheus metrics endpoint on port 9000 (exposed via `metrics-endpoint` relation)
+- Pre-configured Grafana dashboard (14900_rev2.json) via `grafana-dashboard` relation
+- Integration with charm libraries: `prometheus_k8s.prometheus_scrape` (v0) and `grafana_k8s.grafana_dashboard` (v0)
+
 ## Architecture Overview
 
 **Test Observer** is a dashboard for viewing and managing test results on software artefacts (debs, snaps, charms, images) across different environments. The system does not run tests itself, but provides APIs for reporting and reviewing test results.

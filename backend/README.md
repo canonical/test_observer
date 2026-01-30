@@ -98,6 +98,15 @@ The version "0.0.0" stated in the `pyproject.toml` is a "fallback version" which
 1. ... directly from source, i.e. not built and launched as wheel.
 2. ... using a wheel built with `uv build` when dynamic versioning is not configured.
 
+## Charm Observability
+
+The Test Observer charm includes built-in observability features for production deployments:
+
+- **Prometheus Metrics**: Metrics are exposed on port 9000 and integrated via the `metrics-endpoint` relation (uses `prometheus_scrape` library v0)
+- **Grafana Dashboard**: Pre-configured dashboards at charm/src/grafana_dashboards will be automatically provided via the `grafana-dashboard` relation (uses `grafana_dashboard` library v0)
+
+These relations are defined in `backend/charm/charmcraft.yaml` and can be integrated with Prometheus and Grafana charms in a Juju deployment.
+
 ## Building Docker images
 
 There are two Docker images in the repo:

@@ -50,6 +50,23 @@ For component-specific development, see the [backend](/backend/README.md) and [f
 
 To run the whole system via Terraform, juju and charms simulating production and staging environments, use [terraform](/terraform/README.md)
 
+## Observability
+
+The Test Observer charm provides built-in observability through Prometheus metrics and Grafana dashboards:
+
+- **Prometheus Metrics**: The charm exposes metrics on port 9000 via the `metrics-endpoint` relation using the `prometheus_scrape` interface
+- **Grafana Dashboard**: Pre-configured Grafana dashboards at backend/charm/src/grafana_dashboards/ will be automatically provided via the `grafana-dashboard` relation
+
+To integrate with monitoring tools:
+
+```bash
+# Relate to Prometheus for metrics collection
+juju relate test-observer-api:metrics-endpoint prometheus
+
+# Relate to Grafana for dashboard provisioning
+juju relate test-observer-api:grafana-dashboard grafana
+```
+
 
 ## Charm integration tests
 

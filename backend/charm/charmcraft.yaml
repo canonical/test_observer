@@ -87,6 +87,10 @@ charm-libs:
     version: "0"
   - lib: redis_k8s.redis
     version: "0"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
 
 requires:
   database:
@@ -99,6 +103,12 @@ requires:
 provides:
   test-observer-rest-api:
     interface: http
+    scope: global
+  metrics-endpoint:
+    interface: prometheus_scrape
+    scope: global
+  grafana-dashboard:
+    interface: grafana_dashboard
     scope: global
 
 actions:
