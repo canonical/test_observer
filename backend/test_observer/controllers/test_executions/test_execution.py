@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+
 from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
@@ -30,10 +31,12 @@ from sqlalchemy import tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from test_observer.data_access.models import (
+    ArtefactBuild,
     TestExecutionMetadata,
     test_execution_metadata_association_table,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.common.metric_collectors import update_execution_metadata_metric
 
 router = APIRouter()
 
@@ -72,7 +75,15 @@ def patch_test_execution(
     test_execution = db.get(
         TestExecution,
         id,
-        options=[selectinload(TestExecution.relevant_links)],
+        options=[
+            selectinload(TestExecution.relevant_links),
+            selectinload(TestExecution.artefact_build).selectinload(
+                ArtefactBuild.artefact
+            ),
+            selectinload(TestExecution.execution_metadata),
+            selectinload(TestExecution.test_results),
+            selectinload(TestExecution.test_plan),
+        ],
     )
 
     if test_execution is None:
@@ -86,6 +97,7 @@ def patch_test_execution(
 
     if request.execution_metadata is not None:
         _add_execution_metadata(test_execution, request.execution_metadata, db)
+        update_execution_metadata_metric(test_execution, request.execution_metadata)
 
     _set_test_execution_status(request, test_execution)
 

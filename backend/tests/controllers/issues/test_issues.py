@@ -468,3 +468,68 @@ def test_get_all_combined_filters(test_client: TestClient, generator: DataGenera
     issues = response.json()["issues"]
     assert len(issues) == 1
     assert issues[0]["id"] == target_issue.id
+
+
+def test_get_all_filter_by_status(test_client: TestClient, generator: DataGenerator):
+    open_issue = generator.gen_issue(
+        status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-FTST-1"
+    )
+    closed_issue = generator.gen_issue(
+        status=IssueStatus.CLOSED, source=IssueSource.JIRA, key="TS-FTST-2"
+    )
+    unknown_issue = generator.gen_issue(
+        status=IssueStatus.UNKNOWN, source=IssueSource.GITHUB, key="GH-FTST-3"
+    )
+
+    # Filter by open status
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"status": IssueStatus.OPEN}),
+        Permission.view_issue,
+    )
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == open_issue.id
+
+    # Filter by closed status
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"status": IssueStatus.CLOSED}),
+        Permission.view_issue,
+    )
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == closed_issue.id
+
+    # Filter by unknown status
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"status": IssueStatus.UNKNOWN}),
+        Permission.view_issue,
+    )
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == unknown_issue.id
+
+
+def test_get_all_filter_by_status_and_source(
+    test_client: TestClient, generator: DataGenerator
+):
+    target_issue = generator.gen_issue(
+        status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-TAR-231"
+    )
+    generator.gen_issue(
+        status=IssueStatus.CLOSED, source=IssueSource.GITHUB, key="GH-TAR-230"
+    )
+    generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.JIRA, key="TS-NT-2")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            endpoint, params={"status": "open", "source": "github"}
+        ),
+        Permission.view_issue,
+    )
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == target_issue.id

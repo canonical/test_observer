@@ -17,18 +17,21 @@
 
 from fastapi import APIRouter, Depends, Security, HTTPException
 from fastapi.security import SecurityScopes
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import delete, select, literal
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.metric_collectors import update_triaged_results_metric
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
 )
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models import (
+    ArtefactBuild,
     Issue,
     IssueTestResultAttachment,
+    TestExecution,
     TestResult,
     IssueTestResultAttachmentRule,
 )
@@ -44,6 +47,26 @@ from .models import (
 
 
 router = APIRouter()
+
+
+def load_test_results_with_relations(
+    db: Session, test_result_ids: list[int] | set[int]
+) -> list[TestResult]:
+    """Load test results with all necessary relationships for metric updates."""
+    return (
+        db.query(TestResult)
+        .filter(TestResult.id.in_(test_result_ids))
+        .options(
+            selectinload(TestResult.test_execution)
+            .selectinload(TestExecution.artefact_build)
+            .selectinload(ArtefactBuild.artefact),
+            selectinload(TestResult.test_execution).selectinload(
+                TestExecution.test_plan
+            ),
+            selectinload(TestResult.test_case),
+        )
+        .all()
+    )
 
 
 def modify_issue_attachments(
@@ -66,6 +89,8 @@ def modify_issue_attachments(
     # Add or remove any requested test result attachments
     if request.test_results is not None and len(request.test_results) > 0:
         test_result_ids = set(request.test_results)
+        test_results = load_test_results_with_relations(db, test_result_ids)
+
         if detach:
             db.execute(
                 delete(IssueTestResultAttachment).where(
@@ -73,6 +98,9 @@ def modify_issue_attachments(
                     IssueTestResultAttachment.test_result_id.in_(test_result_ids),
                 )
             )
+
+            for test_result in test_results:
+                update_triaged_results_metric(test_result, issue, increment=False)
         else:
             db.execute(
                 pg_insert(IssueTestResultAttachment)
@@ -89,6 +117,9 @@ def modify_issue_attachments(
                 .on_conflict_do_nothing()
             )
 
+            for test_result in test_results:
+                update_triaged_results_metric(test_result, issue, increment=True)
+
     # Add or remove any test results matching the provided filters
     if request.test_results_filters is not None:
         filters = request.test_results_filters
@@ -99,6 +130,12 @@ def modify_issue_attachments(
             )
         base_query = select(TestResult.id)
         filtered_ids_query = filter_test_results(base_query, filters).subquery()
+
+        filtered_result_ids = [
+            row[0] for row in db.execute(select(filtered_ids_query.c.id)).all()
+        ]
+        test_results = load_test_results_with_relations(db, filtered_result_ids)
+
         if detach:
             db.execute(
                 delete(IssueTestResultAttachment).where(
@@ -108,6 +145,9 @@ def modify_issue_attachments(
                     ),
                 )
             )
+
+            for test_result in test_results:
+                update_triaged_results_metric(test_result, issue, increment=False)
         else:
             insert_select = select(
                 literal(issue_id).label("issue_id"),
@@ -121,6 +161,9 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
+
+            for test_result in test_results:
+                update_triaged_results_metric(test_result, issue, increment=True)
 
     # Save the result
     db.commit()

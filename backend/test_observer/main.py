@@ -16,17 +16,24 @@
 
 
 import logging
+from contextlib import asynccontextmanager
+
 import sentry_sdk
+from prometheus_client import start_http_server
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from test_observer.common.config import (
     FRONTEND_URL,
+    METRICS_PORT,
     SENTRY_DSN,
     SESSIONS_SECRET,
     SESSIONS_HTTPS_ONLY,
 )
+from test_observer.common.metrics import instrumentator
+from test_observer.common.metrics_initializer import initialize_all_metrics
+from test_observer.data_access.setup import SessionLocal
 from test_observer.controllers.router import router
 
 if SENTRY_DSN:
@@ -35,7 +42,42 @@ if SENTRY_DSN:
 logger = logging.getLogger("test-observer-backend")
 logging.basicConfig(level=logging.INFO)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """
+    Application lifespan manager.
+
+    Handles startup and shutdown events for the FastAPI application.
+    On startup, starts the metrics server and initializes Prometheus metrics
+    from the database.
+    """
+    # Startup: Start metrics HTTP server on separate port
+    try:
+        start_http_server(METRICS_PORT)
+        logger.info(f"Metrics server started on port {METRICS_PORT}")
+    except Exception as e:
+        logger.exception(f"Failed to start metrics server: {e}")
+        # Continue startup even if metrics server fails
+
+    # Initialize metrics from database
+    db = SessionLocal()
+    try:
+        initialize_all_metrics(db)
+    except Exception as e:
+        logger.exception(f"Error during metrics initialization: {e}")
+        # Continue startup even if metrics init fails
+    finally:
+        db.close()
+
+    yield  # Application runs
+
+    # Shutdown: cleanup if needed
+    pass
+
+
 app = FastAPI(
+    lifespan=lifespan,
     # Redirecting slashes can return a http schemed host when the request is https.
     # A browser may block such a request means that the frontend loads without data.
     # See https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content/How_to_fix_website_with_mixed_content
@@ -69,5 +111,8 @@ app.add_middleware(
     https_only=SESSIONS_HTTPS_ONLY,
 )
 
+# Instrument the app with Prometheus metrics
+# (exposed on separate port via start_http_server)
+instrumentator.instrument(app)
 
 app.include_router(router)
