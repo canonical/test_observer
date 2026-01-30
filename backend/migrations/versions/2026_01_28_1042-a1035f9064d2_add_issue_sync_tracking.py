@@ -43,11 +43,7 @@ def upgrade() -> None:
         "idx_issue_status_last_synced", "issue", ["status", "last_synced_at"]
     )
 
-    # Add index on updated_at for closed issue age calculations
-    op.create_index("idx_issue_status_updated_at", "issue", ["status", "updated_at"])
-
 
 def downgrade() -> None:
-    op.drop_index("idx_issue_status_updated_at", table_name="issue")
     op.drop_index("idx_issue_status_last_synced", table_name="issue")
     op.drop_column("issue", "last_synced_at")

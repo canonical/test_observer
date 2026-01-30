@@ -732,7 +732,10 @@ class Issue(Base):
             "status",
         )
 
-    __table_args__ = (UniqueConstraint("project", "source", "key"),)
+    __table_args__ = (
+        UniqueConstraint("project", "source", "key"),
+        Index("idx_issue_status_last_synced", "status", "last_synced_at"),
+    )
 
     @hybrid_property
     def url(self) -> str:
