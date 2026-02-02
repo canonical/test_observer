@@ -62,7 +62,7 @@ def test_trigger_reruns_for_test_execution_ids_single(
         db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
     )
     assert len(rerun_requests) == 1
-    
+
     # Verify the rerun request has the correct composite key
     rerun = rerun_requests[0]
     assert rerun.test_plan_id == test_execution.test_plan_id
@@ -95,7 +95,7 @@ def test_trigger_reruns_for_test_execution_ids_multiple(
     )
     # Should have exactly 2 rerun requests due to different artefact builds
     assert len(rerun_requests) == 2
-    
+
     # Verify composite keys are correct and distinct
     rerun_keys = {
         (req.test_plan_id, req.artefact_build_id, req.environment_id)
@@ -142,15 +142,15 @@ def test_trigger_reruns_same_composite_key_deduplicates(
     artefact = generator.gen_artefact()
     artefact_build = generator.gen_artefact_build(artefact)
     test_plan = generator.gen_test_plan()
-    
+
     # Create two test executions with same composite key:
     # (same test_plan, same artefact_build, same environment)
     test_execution_1 = generator.gen_test_execution(artefact_build, environment)
     test_execution_1.test_plan_id = test_plan.id
-    
+
     test_execution_2 = generator.gen_test_execution(artefact_build, environment)
     test_execution_2.test_plan_id = test_plan.id
-    
+
     db_session.commit()
 
     trigger_reruns_for_test_execution_ids(
@@ -172,7 +172,7 @@ def test_trigger_reruns_for_attachment_rule_no_attachments(
 ):
     """Test triggering reruns when attachment rule has no attachments."""
     issue = generator.gen_issue()
-    
+
     # Create attachment rule directly
     attachment_rule = IssueTestResultAttachmentRule(
         issue_id=issue.id,
@@ -194,9 +194,9 @@ def test_trigger_reruns_for_attachment_rule_with_attachments(
     db_session: Session, generator: DataGenerator
 ):
     """Test triggering reruns for attached test results."""
-    
+
     issue = generator.gen_issue()
-    
+
     # Create attachment rule directly
     attachment_rule = IssueTestResultAttachmentRule(
         issue_id=issue.id,
@@ -214,7 +214,7 @@ def test_trigger_reruns_for_attachment_rule_with_attachments(
     artefact_2 = generator.gen_artefact(name="core-2")
     artefact_build_1 = generator.gen_artefact_build(artefact_1)
     artefact_build_2 = generator.gen_artefact_build(artefact_2)
-    
+
     # Create test executions with different artefact builds
     test_execution_1 = generator.gen_test_execution(artefact_build_1, environment)
     test_execution_2 = generator.gen_test_execution(artefact_build_2, environment)
@@ -244,7 +244,7 @@ def test_trigger_reruns_for_attachment_rule_with_attachments(
     )
     # Should have exactly 2 rerun requests (one per artefact build)
     assert len(rerun_requests) == 2
-    
+
     # Verify the composite keys match the test executions
     rerun_keys = {
         (req.test_plan_id, req.artefact_build_id, req.environment_id)
@@ -452,9 +452,9 @@ def test_auto_rerun_end_to_end_workflow(
     rerun_count_after = len(
         db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
     )
-    assert (
-        rerun_count_after > rerun_count_before
-    ), "Retroactive reruns should be created"
+    assert rerun_count_after > rerun_count_before, (
+        "Retroactive reruns should be created"
+    )
 
 
 def test_auto_rerun_triggered_on_new_attachment(
@@ -549,10 +549,10 @@ def test_auto_rerun_not_triggered_when_disabled(
 
     # Verify attachment succeeded
     assert attach_response.status_code == 200
-    
+
     # Verify no rerun was triggered
     db_session.expire_all()
-    rerun_requests = db_session.execute(
-        select(TestExecutionRerunRequest)
-    ).scalars().all()
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
     assert len(rerun_requests) == 0

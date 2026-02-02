@@ -105,11 +105,11 @@ def patch_attachment_rule(
     # Modify the attachment rule
     if request.enabled is not None:
         attachment_rule.enabled = request.enabled
-    
+
     if request.auto_rerun_on_attach is not None:
         old_auto_rerun = attachment_rule.auto_rerun_on_attach
         attachment_rule.auto_rerun_on_attach = request.auto_rerun_on_attach
-        
+
         # If auto_rerun_on_attach is being enabled, trigger reruns for attachments
         if request.auto_rerun_on_attach and not old_auto_rerun:
             db.commit()

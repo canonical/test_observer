@@ -17,7 +17,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:testcase_dashboard/models/attachment_rule.dart';
 import 'package:testcase_dashboard/models/execution_metadata.dart';
-import 'dart:convert';
 
 void main() {
   group('AttachmentRule', () {
@@ -33,7 +32,7 @@ void main() {
           'template_ids': ['template-1'],
           'test_result_statuses': ['FAILED'],
           'execution_metadata': {
-            'category': ['value']
+            'category': ['value'],
           },
         };
 

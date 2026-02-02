@@ -33,6 +33,10 @@ import 'package:testcase_dashboard/repositories/api_repository.dart';
 import 'package:testcase_dashboard/ui/artefact_page/issue_attachments/issue_attachments_expandable.dart';
 
 class ApiRepositoryMock extends Mock implements ApiRepository {
+  bool attachmentRuleEnabled = true;
+  bool attachmentRuleAutoRerun = false;
+  bool attachmentRuleCreated = false;
+
   TestResult dummyTestResult = TestResult(
     id: 1,
     name: 'Sample Test Result',
@@ -176,8 +180,10 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     required int issueId,
     required int attachmentRuleId,
     bool? enabled,
+    bool? autoRerunOnAttach,
   }) async {
     if (enabled != null) attachmentRuleEnabled = enabled;
+    if (autoRerunOnAttach != null) attachmentRuleAutoRerun = autoRerunOnAttach;
   }
 }
 

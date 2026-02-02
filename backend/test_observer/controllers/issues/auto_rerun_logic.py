@@ -49,11 +49,15 @@ def trigger_reruns_for_attachment_rule(
     This is called when auto_rerun_on_attach is enabled on a rule.
     """
     # Get all test result attachments for this rule
-    attachments = db.execute(
-        select(IssueTestResultAttachment).where(
-            IssueTestResultAttachment.attachment_rule_id == attachment_rule.id
+    attachments = (
+        db.execute(
+            select(IssueTestResultAttachment).where(
+                IssueTestResultAttachment.attachment_rule_id == attachment_rule.id
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     test_execution_ids = {
         attachment.test_result.test_execution_id

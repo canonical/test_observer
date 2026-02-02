@@ -49,4 +49,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     # drop auto_rerun_on_attach column from issue_test_result_attachment_rule table
     op.drop_column("issue_test_result_attachment_rule", "auto_rerun_on_attach")
-
