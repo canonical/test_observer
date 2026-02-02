@@ -32,7 +32,9 @@ void main() {
           'test_case_names': ['test-1'],
           'template_ids': ['template-1'],
           'test_result_statuses': ['FAILED'],
-          'execution_metadata': {'category': ['value']},
+          'execution_metadata': {
+            'category': ['value']
+          },
         };
 
         final rule = AttachmentRule.fromJson(json);

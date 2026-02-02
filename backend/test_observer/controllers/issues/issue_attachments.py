@@ -197,7 +197,9 @@ def modify_issue_attachments(
             )
             if not detach:
                 # Collect the filtered IDs for auto-rerun logic
-                filtered_ids = db.execute(select(filtered_ids_query.c.id)).scalars().all()
+                filtered_ids = (
+                    db.execute(select(filtered_ids_query.c.id)).scalars().all()
+                )
                 attached_test_result_ids.update(filtered_ids)
 
             for test_result in test_results:

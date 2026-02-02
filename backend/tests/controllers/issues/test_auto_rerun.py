@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -42,14 +41,16 @@ def test_trigger_reruns_for_test_execution_ids_empty(db_session: Session):
     """Test that triggering reruns with empty set does nothing."""
     trigger_reruns_for_test_execution_ids(db_session, set())
 
-    rerun_requests = db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
     assert len(rerun_requests) == 0
 
 
 def test_trigger_reruns_for_test_execution_ids_single(
     db_session: Session, generator: DataGenerator
 ):
-    """Test triggering rerun for a single test execution creates correct composite key."""
+    """Test triggering rerun for single test execution."""
     environment = generator.gen_environment()
     artefact = generator.gen_artefact()
     artefact_build = generator.gen_artefact_build(artefact)
@@ -57,7 +58,9 @@ def test_trigger_reruns_for_test_execution_ids_single(
 
     trigger_reruns_for_test_execution_ids(db_session, {test_execution.id})
 
-    rerun_requests = db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
     assert len(rerun_requests) == 1
     
     # Verify the rerun request has the correct composite key
@@ -87,7 +90,9 @@ def test_trigger_reruns_for_test_execution_ids_multiple(
         db_session, {test_execution_1.id, test_execution_2.id}
     )
 
-    rerun_requests = db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
     # Should have exactly 2 rerun requests due to different artefact builds
     assert len(rerun_requests) == 2
     
@@ -96,8 +101,18 @@ def test_trigger_reruns_for_test_execution_ids_multiple(
         (req.test_plan_id, req.artefact_build_id, req.environment_id)
         for req in rerun_requests
     }
-    assert (test_execution_1.test_plan_id, test_execution_1.artefact_build_id, test_execution_1.environment_id) in rerun_keys
-    assert (test_execution_2.test_plan_id, test_execution_2.artefact_build_id, test_execution_2.environment_id) in rerun_keys
+    key1 = (
+        test_execution_1.test_plan_id,
+        test_execution_1.artefact_build_id,
+        test_execution_1.environment_id,
+    )
+    key2 = (
+        test_execution_2.test_plan_id,
+        test_execution_2.artefact_build_id,
+        test_execution_2.environment_id,
+    )
+    assert key1 in rerun_keys
+    assert key2 in rerun_keys
 
 
 def test_trigger_reruns_for_test_execution_ids_idempotent(
@@ -112,7 +127,9 @@ def test_trigger_reruns_for_test_execution_ids_idempotent(
     trigger_reruns_for_test_execution_ids(db_session, {test_execution.id})
     trigger_reruns_for_test_execution_ids(db_session, {test_execution.id})
 
-    rerun_requests = db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
     # Should still have exactly 1 due to PostgreSQL ON CONFLICT DO NOTHING
     assert len(rerun_requests) == 1
 
@@ -120,7 +137,7 @@ def test_trigger_reruns_for_test_execution_ids_idempotent(
 def test_trigger_reruns_same_composite_key_deduplicates(
     db_session: Session, generator: DataGenerator
 ):
-    """Test that multiple test executions with same composite key create single rerun."""
+    """Test deduplication with same composite key."""
     environment = generator.gen_environment()
     artefact = generator.gen_artefact()
     artefact_build = generator.gen_artefact_build(artefact)
@@ -140,8 +157,10 @@ def test_trigger_reruns_same_composite_key_deduplicates(
         db_session, {test_execution_1.id, test_execution_2.id}
     )
 
-    rerun_requests = db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
-    # Should have exactly 1 rerun request (composite key grouping deduplicates)
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
+    # Should have exactly 1 rerun request (composite key deduplicates)
     assert len(rerun_requests) == 1
     assert rerun_requests[0].test_plan_id == test_plan.id
     assert rerun_requests[0].artefact_build_id == artefact_build.id
@@ -155,7 +174,6 @@ def test_trigger_reruns_for_attachment_rule_no_attachments(
     issue = generator.gen_issue()
     
     # Create attachment rule directly
-    from test_observer.data_access.models import IssueTestResultAttachmentRule
     attachment_rule = IssueTestResultAttachmentRule(
         issue_id=issue.id,
         enabled=True,
@@ -166,15 +184,16 @@ def test_trigger_reruns_for_attachment_rule_no_attachments(
 
     trigger_reruns_for_attachment_rule(db_session, attachment_rule)
 
-    rerun_requests = db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
     assert len(rerun_requests) == 0
 
 
 def test_trigger_reruns_for_attachment_rule_with_attachments(
     db_session: Session, generator: DataGenerator
 ):
-    """Test triggering reruns for test results attached to a rule creates rerun requests."""
-    from test_observer.data_access.models import IssueTestResultAttachmentRule
+    """Test triggering reruns for attached test results."""
     
     issue = generator.gen_issue()
     
@@ -220,7 +239,9 @@ def test_trigger_reruns_for_attachment_rule_with_attachments(
 
     trigger_reruns_for_attachment_rule(db_session, attachment_rule)
 
-    rerun_requests = db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    rerun_requests = (
+        db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
+    )
     # Should have exactly 2 rerun requests (one per artefact build)
     assert len(rerun_requests) == 2
     
@@ -229,8 +250,18 @@ def test_trigger_reruns_for_attachment_rule_with_attachments(
         (req.test_plan_id, req.artefact_build_id, req.environment_id)
         for req in rerun_requests
     }
-    assert (test_execution_1.test_plan_id, test_execution_1.artefact_build_id, test_execution_1.environment_id) in rerun_keys
-    assert (test_execution_2.test_plan_id, test_execution_2.artefact_build_id, test_execution_2.environment_id) in rerun_keys
+    key1 = (
+        test_execution_1.test_plan_id,
+        test_execution_1.artefact_build_id,
+        test_execution_1.environment_id,
+    )
+    key2 = (
+        test_execution_2.test_plan_id,
+        test_execution_2.artefact_build_id,
+        test_execution_2.environment_id,
+    )
+    assert key1 in rerun_keys
+    assert key2 in rerun_keys
 
 
 # ============================================================================
@@ -358,7 +389,7 @@ def test_patch_attachment_rule_disable_auto_rerun(
 def test_auto_rerun_end_to_end_workflow(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    """Test complete workflow: create rule, attach without auto-rerun, enable auto-rerun, verify reruns."""
+    """Test auto-rerun end-to-end workflow."""
     issue = generator.gen_issue()
 
     # Step 1: Create attachment rule without auto-rerun
@@ -421,13 +452,15 @@ def test_auto_rerun_end_to_end_workflow(
     rerun_count_after = len(
         db_session.execute(select(TestExecutionRerunRequest)).scalars().all()
     )
-    assert rerun_count_after > rerun_count_before, "Retroactive reruns should be created when enabling auto-rerun"
+    assert (
+        rerun_count_after > rerun_count_before
+    ), "Retroactive reruns should be created"
 
 
 def test_auto_rerun_triggered_on_new_attachment(
     test_client: TestClient, generator: DataGenerator
 ):
-    """Test that attachment endpoint accepts request when auto_rerun is enabled."""
+    """Test attachment with auto-rerun enabled."""
     issue = generator.gen_issue()
 
     # Create attachment rule with auto-rerun enabled
@@ -475,7 +508,7 @@ def test_auto_rerun_triggered_on_new_attachment(
 def test_auto_rerun_not_triggered_when_disabled(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    """Test that attaching results doesn't trigger reruns if rule has auto_rerun disabled."""
+    """Test attachment without auto-rerun disabled."""
     issue = generator.gen_issue()
 
     # Create attachment rule with auto-rerun disabled

@@ -552,7 +552,8 @@ class ApiRepository {
       '/v1/issues/$issueId/attachment-rules/$attachmentRuleId',
       data: {
         if (enabled != null) 'enabled': enabled,
-        if (autoRerunOnAttach != null) 'auto_rerun_on_attach': autoRerunOnAttach,
+        if (autoRerunOnAttach != null)
+          'auto_rerun_on_attach': autoRerunOnAttach,
       },
     );
   }
