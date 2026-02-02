@@ -130,6 +130,32 @@ class Issue extends _$Issue {
     );
   }
 
+  Future<void> toggleAutoRerunOnAttach({
+    required int issueId,
+    required int attachmentRuleId,
+    required bool autoRerunOnAttach,
+  }) async {
+    final api = ref.read(apiProvider);
+    await api.patchAttachmentRule(
+      issueId: issueId,
+      attachmentRuleId: attachmentRuleId,
+      autoRerunOnAttach: autoRerunOnAttach,
+    );
+    final issue = await future;
+    final updatedAttachmentRules = issue.attachmentRules
+        .map(
+          (rule) => rule.id == attachmentRuleId
+              ? rule.copyWith(autoRerunOnAttach: autoRerunOnAttach)
+              : rule,
+        )
+        .toList();
+    state = AsyncData(
+      issue.copyWith(
+        attachmentRules: updatedAttachmentRules,
+      ),
+    );
+  }
+
   Future<void> attachIssueToTestResults({
     required int issueId,
     required TestResultsFilters filters,

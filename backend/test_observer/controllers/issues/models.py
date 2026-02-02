@@ -60,6 +60,7 @@ class IssueTestResultAttachmentResponse(BaseModel):
 
 class IssueTestResultAttachmentRulePostRequest(BaseModel):
     enabled: bool = Field(default=True)
+    auto_rerun_on_attach: bool = Field(default=False)
 
     families: list[FamilyName] = Field(default_factory=list)
     environment_names: list[str] = Field(default_factory=list)
@@ -71,6 +72,7 @@ class IssueTestResultAttachmentRulePostRequest(BaseModel):
 
 class IssueTestResultAttachmentRulePatchRequest(BaseModel):
     enabled: bool | None = None
+    auto_rerun_on_attach: bool | None = None
 
 
 class IssueResponse(BaseModel):

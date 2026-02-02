@@ -145,9 +145,64 @@ class AttachmentRuleExpandable extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: AttachmentRuleFiltersWidget(
-              filters: attachmentRule.toFilters(),
-              editable: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AttachmentRuleFiltersWidget(
+                  filters: attachmentRule.toFilters(),
+                  editable: false,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text('Auto-rerun on attach:'),
+                    const SizedBox(width: 12),
+                    Switch(
+                      value: attachmentRule.autoRerunOnAttach,
+                      onChanged: (value) async {
+                        // Show warning if enabling auto-rerun
+                        if (value && !attachmentRule.autoRerunOnAttach) {
+                          if (!context.mounted) return;
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Enable Auto-Rerun?'),
+                              content: const Text(
+                                'Enabling auto-rerun will retroactively trigger reruns for all test executions currently attached to this rule. '
+                                'This could trigger a large number of reruns. Are you sure?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: const Text('Enable'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirmed != true) return;
+                        }
+
+                        if (context.mounted) {
+                          await ref
+                              .read(issueProvider(issueId).notifier)
+                              .toggleAutoRerunOnAttach(
+                                issueId: issueId,
+                                attachmentRuleId: attachmentRule.id,
+                                autoRerunOnAttach: value,
+                              );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

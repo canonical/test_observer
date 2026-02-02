@@ -53,6 +53,7 @@ class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
 
     id: int
     enabled: bool
+    auto_rerun_on_attach: bool
 
     families: list[FamilyName]
     environment_names: list[str]

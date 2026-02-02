@@ -65,6 +65,7 @@ def _assert_attachment_rule_response(
     assert set(json.keys()) == {
         "id",
         "enabled",
+        "auto_rerun_on_attach",
         "families",
         "environment_names",
         "test_case_names",
@@ -74,6 +75,7 @@ def _assert_attachment_rule_response(
     }
     assert json["id"] == model.id
     assert json["enabled"] == model.enabled
+    assert json["auto_rerun_on_attach"] == model.auto_rerun_on_attach
     assert sorted(json["families"]) == sorted(model.families)
     assert sorted(json["environment_names"]) == sorted(model.environment_names)
     assert sorted(json["test_case_names"]) == sorted(model.test_case_names)

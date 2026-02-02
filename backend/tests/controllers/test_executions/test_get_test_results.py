@@ -270,6 +270,7 @@ def test_attachment_rule_listed_in_issue_attachment(
             "attachment_rule": {
                 "id": attachment_rule_id,
                 "enabled": True,
+                "auto_rerun_on_attach": False,
                 "families": [test_execution.artefact_build.artefact.family],
                 "environment_names": [test_execution.environment.name],
                 "test_case_names": ["test"],

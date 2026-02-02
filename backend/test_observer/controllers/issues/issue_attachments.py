@@ -40,6 +40,7 @@ from test_observer.controllers.applications.application_injection import (
 )
 from test_observer.data_access.models import Application, User
 from test_observer.users.user_injection import get_current_user
+from .auto_rerun_logic import trigger_reruns_for_test_execution_ids
 from .models import (
     IssueResponse,
     IssueAttachmentRequest,
@@ -68,6 +69,34 @@ def load_test_results_with_relations(
         .all()
     )
 
+def _trigger_reruns_for_new_attachments(
+    db: Session,
+    test_result_ids: set[int],
+    attachment_rule_id: int | None,
+) -> None:
+    """
+    Trigger reruns for test results that were attached with a rule that has
+    auto_rerun_on_attach enabled.
+    """
+    if attachment_rule_id is None or not test_result_ids:
+        return
+    
+    attachment_rule = db.get(IssueTestResultAttachmentRule, attachment_rule_id)
+    if attachment_rule is None or not attachment_rule.auto_rerun_on_attach:
+        return
+    
+    test_execution_ids = set(
+        db.execute(
+            select(TestResult.test_execution_id).where(
+                TestResult.id.in_(test_result_ids)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    trigger_reruns_for_test_execution_ids(db, test_execution_ids)
+
 
 def modify_issue_attachments(
     db: Session,
@@ -85,6 +114,9 @@ def modify_issue_attachments(
         attachment_rule = db.get(IssueTestResultAttachmentRule, request.attachment_rule)
         if attachment_rule is None:
             raise HTTPException(status_code=404, detail="Attachment rule not found")
+
+    # Track test result IDs for auto-rerun logic
+    attached_test_result_ids = set()
 
     # Add or remove any requested test result attachments
     if request.test_results is not None and len(request.test_results) > 0:
@@ -116,6 +148,8 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
+            if not detach:
+                attached_test_result_ids.update(test_result_ids)
 
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=True)
@@ -161,12 +195,23 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
+            if not detach:
+                # Collect the filtered IDs for auto-rerun logic
+                filtered_ids = db.execute(select(filtered_ids_query.c.id)).scalars().all()
+                attached_test_result_ids.update(filtered_ids)
 
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=True)
 
     # Save the result
     db.commit()
+    
+    # Trigger reruns if the attachment rule has auto_rerun_on_attach enabled
+    if not detach and attached_test_result_ids:
+        _trigger_reruns_for_new_attachments(
+            db, attached_test_result_ids, request.attachment_rule
+        )
+    
     db.refresh(issue)
     return issue
 

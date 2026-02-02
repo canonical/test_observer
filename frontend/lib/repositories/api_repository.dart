@@ -546,11 +546,13 @@ class ApiRepository {
     required int issueId,
     required int attachmentRuleId,
     bool? enabled,
+    bool? autoRerunOnAttach,
   }) async {
     await dio.patch(
       '/v1/issues/$issueId/attachment-rules/$attachmentRuleId',
       data: {
         if (enabled != null) 'enabled': enabled,
+        if (autoRerunOnAttach != null) 'auto_rerun_on_attach': autoRerunOnAttach,
       },
     );
   }
