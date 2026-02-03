@@ -4927,6 +4927,17 @@
               }
             ],
             "title": "Enabled"
+          },
+          "auto_rerun_on_attach": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun On Attach"
           }
         },
         "type": "object",
@@ -4938,6 +4949,11 @@
             "type": "boolean",
             "title": "Enabled",
             "default": true
+          },
+          "auto_rerun_on_attach": {
+            "type": "boolean",
+            "title": "Auto Rerun On Attach",
+            "default": false
           },
           "families": {
             "items": {
@@ -5074,6 +5090,10 @@
             "type": "boolean",
             "title": "Enabled"
           },
+          "auto_rerun_on_attach": {
+            "type": "boolean",
+            "title": "Auto Rerun On Attach"
+          },
           "families": {
             "items": {
               "$ref": "#/components/schemas/FamilyName"
@@ -5117,6 +5137,7 @@
         "required": [
           "id",
           "enabled",
+          "auto_rerun_on_attach",
           "families",
           "environment_names",
           "test_case_names",
