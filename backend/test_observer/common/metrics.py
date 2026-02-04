@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Canonical Ltd.
+# Copyright (C) 2023 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""
+""" 
 Prometheus metrics for Test Observer.
 
 This module provides a centralized location for all Prometheus metrics.
