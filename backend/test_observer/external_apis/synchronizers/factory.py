@@ -83,19 +83,12 @@ def create_synchronization_service() -> IssueSynchronizationService:
             "Jira credentials not fully configured, skipping Jira synchronizer"
         )
 
-    launchpad_app_name = environ.get("LAUNCHPAD_APP_NAME")
-
-    if launchpad_app_name:
-        try:
-            launchpad_client = LaunchpadClient()
-            synchronizers.append(LaunchpadIssueSynchronizer(launchpad_client))
-            logger.info("Launchpad synchronizer initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize Launchpad synchronizer: {e}")
-    else:
-        logger.warning(
-            "Launchpad app name not configured, skipping Launchpad synchronizer"
-        )
+    try:
+        launchpad_client = LaunchpadClient()
+        synchronizers.append(LaunchpadIssueSynchronizer(launchpad_client))
+        logger.info("Launchpad synchronizer initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize Launchpad synchronizer: {e}")
 
     if not synchronizers:
         raise ValueError(
