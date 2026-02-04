@@ -15,9 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from os import environ
-from test_observer.external_apis.github import GitHubClient
-from test_observer.external_apis.jira import JiraClient
-from test_observer.external_apis.launchpad import LaunchpadClient
+import logging
+
+from test_observer.external_apis.github.github_client import GitHubClient
+from test_observer.external_apis.jira.jira_client import JiraClient
+from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
 from test_observer.external_apis.synchronizers.github import GitHubIssueSynchronizer
 from test_observer.external_apis.synchronizers.jira import JiraIssueSynchronizer
@@ -27,57 +29,47 @@ from test_observer.external_apis.synchronizers.launchpad import (
 from test_observer.external_apis.synchronizers.service import (
     IssueSynchronizationService,
 )
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 def create_synchronization_service() -> IssueSynchronizationService:
     """
-    Factory to create synchronization service with all configured synchronizers
+    Factory function to create IssueSynchronizationService with configured clients
 
-    Required environment variables:
-        - GIT_APP_ID: GitHub App ID
-        - GIT_APP_PRIVATE_KEY: GitHub App Private Key (PEM format)
-
-    Optional environment variables:
-        - JIRA_URL: Jira instance URL (default: https://warthogs.atlassian.net)
-        - JIRA_API_TOKEN: Jira API token
-        - LAUNCHPAD_CREDENTIALS_PATH: Path to Launchpad credentials file
+    All synchronizers are optional - at least one must be configured for the
+    service to be created successfully.
 
     Returns:
-        IssueSynchronizationService with all configured synchronizers
+        IssueSynchronizationService instance with available synchronizers
 
     Raises:
-        ValueError: If required GitHub credentials are missing
+        ValueError: If no synchronizers could be configured
     """
     synchronizers: list[BaseIssueSynchronizer] = []
 
     github_app_id = environ.get("GIT_APP_ID")
     github_private_key = environ.get("GIT_APP_PRIVATE_KEY")
 
-    if not github_app_id or not github_private_key:
-        logger.error("GitHub App credentials not configured")
-        raise ValueError(
-            "Missing GitHub App credentials. "
-            "Set GIT_APP_ID and GIT_APP_PRIVATE_KEY environment variables."
+    if github_app_id and github_private_key:
+        try:
+            github_client = GitHubClient(
+                app_id=github_app_id, private_key=github_private_key
+            )
+            synchronizers.append(GitHubIssueSynchronizer(github_client))
+            logger.info("GitHub synchronizer initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize GitHub synchronizer: {e}")
+    else:
+        logger.warning(
+            "GitHub App credentials not configured, skipping GitHub synchronizer"
         )
 
-    try:
-        github_client = GitHubClient(
-            app_id=github_app_id, private_key=github_private_key
-        )
-        synchronizers.append(GitHubIssueSynchronizer(github_client))
-        logger.info("GitHub synchronizer initialized")
-    except Exception as e:
-        logger.error(f"Failed to initialize GitHub synchronizer: {e}")
-        raise
-
-    jira_base_url = environ.get("JIRA_URL", "https://warthogs.atlassian.net")
-    jira_api_token = environ.get("JIRA_API_TOKEN")
+    jira_base_url = environ.get("JIRA_URL")
     jira_email = environ.get("JIRA_EMAIL")
+    jira_api_token = environ.get("JIRA_API_TOKEN")
 
-    if jira_api_token and jira_email:
+    if jira_base_url and jira_email and jira_api_token:
         try:
             jira_client = JiraClient(
                 base_url=jira_base_url, email=jira_email, api_token=jira_api_token
@@ -85,18 +77,30 @@ def create_synchronization_service() -> IssueSynchronizationService:
             synchronizers.append(JiraIssueSynchronizer(jira_client))
             logger.info("Jira synchronizer initialized")
         except Exception as e:
-            logger.warning(f"Failed to initialize Jira synchronizer: {e}")
+            logger.error(f"Failed to initialize Jira synchronizer: {e}")
     else:
-        logger.warning("JIRA_API_TOKEN not set, Jira sync disabled")
+        logger.warning(
+            "Jira credentials not fully configured, skipping Jira synchronizer"
+        )
 
-    try:
-        launchpad_client = LaunchpadClient()
-        synchronizers.append(LaunchpadIssueSynchronizer(launchpad_client))
-        logger.info("Launchpad synchronizer initialized")
-    except Exception as e:
-        logger.warning(f"Failed to initialize Launchpad synchronizer: {e}")
+    launchpad_app_name = environ.get("LAUNCHPAD_APP_NAME")
+
+    if launchpad_app_name:
+        try:
+            launchpad_client = LaunchpadClient()
+            synchronizers.append(LaunchpadIssueSynchronizer(launchpad_client))
+            logger.info("Launchpad synchronizer initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize Launchpad synchronizer: {e}")
+    else:
+        logger.warning(
+            "Launchpad app name not configured, skipping Launchpad synchronizer"
+        )
 
     if not synchronizers:
-        raise ValueError("No synchronizers could be initialized")
+        raise ValueError(
+            "No synchronizers configured. At least one of GitHub, Jira, or Launchpad "
+            "credentials must be provided."
+        )
 
     return IssueSynchronizationService(synchronizers)

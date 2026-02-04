@@ -14,24 +14,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from test_observer.external_apis.jira import JiraClient
-from test_observer.external_apis.synchronizers.base import (
-    BaseIssueSynchronizer,
-    SyncResult,
-)
+from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
+from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.data_access.models import Issue, IssueStatus
-from sqlalchemy.orm import Session
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class JiraIssueSynchronizer(BaseIssueSynchronizer):
     """Synchronizer for Jira issues"""
 
     def __init__(self, client: JiraClient):
-        self.client = client
+        """Initialize with Jira client
+
+        Args:
+            client: JiraClient instance for API access
+        """
+        super().__init__(client)
 
     def can_sync(self, issue: Issue) -> bool:
         """Check if this issue is from Jira"""
@@ -39,48 +36,10 @@ class JiraIssueSynchronizer(BaseIssueSynchronizer):
             "atlassian.net" in issue.url or "jira" in issue.url.lower()
         )
 
-    def sync_issue(self, issue: Issue, db: Session) -> SyncResult:
-        """Synchronize a Jira issue"""
-        try:
-            # Fetch issue from Jira using project and key (not URL)
-            issue_data = self.client.get_issue(issue.project, issue.key)
-
-            # Track what changed
-            title_updated = False
-            status_updated = False
-
-            # Update title if different
-            if issue_data.title != issue.title:
-                issue.title = issue_data.title
-                title_updated = True
-                logger.info(f"Updated title for issue {issue.id}: {issue_data.title}")
-
-            # Map Jira status to IssueStatus
-            new_status = self._map_jira_status(issue_data.state)
-            if new_status != issue.status:
-                issue.status = new_status
-                status_updated = True
-                logger.info(f"Updated status for issue {issue.id}: {new_status}")
-
-            # Commit changes if any
-            if title_updated or status_updated:
-                db.commit()
-                db.refresh(issue)
-
-            return SyncResult(
-                success=True, title_updated=title_updated, status_updated=status_updated
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to sync Jira issue {issue.id} from {issue.url}: {e}")
-            return SyncResult(success=False, error=str(e))
-
     @staticmethod
-    def _map_jira_status(status: str) -> IssueStatus:
+    def _map_issue_status(state: str) -> IssueStatus:
         """Map Jira status to IssueStatus enum"""
-        status_lower = status.lower()
-
-        if status_lower in ["done", "closed", "resolved"]:
+        if state.lower() in ["done", "closed", "resolved"]:
             return IssueStatus.CLOSED
         else:
             # In progress, in review, to do, etc. are all considered OPEN

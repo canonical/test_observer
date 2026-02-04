@@ -14,91 +14,80 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from github import Github, GithubIntegration
-from github.Issue import Issue as GithubIssue
+from github import Github, GithubIntegration, Auth
+from test_observer.external_apis.models import IssueData
 import logging
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
 
 class GitHubClient:
-    """GitHub client using GitHub App authentication"""
+    """Client for interacting with GitHub API using GitHub App authentication"""
 
-    def __init__(self, app_id: str, private_key: str):
-        """
-        Initialize GitHub client with App credentials
+    def __init__(self, app_id: str, private_key: str, timeout: int = 30):
+        """Initialize GitHub client with App authentication
 
         Args:
             app_id: GitHub App ID
-            private_key: GitHub App Private Key (PEM format)
-
-        Raises:
-            ValueError: If credentials are missing or invalid
+            private_key: GitHub App private key (PEM format)
+            timeout: Request timeout in seconds
         """
-        if not app_id or not private_key:
-            raise ValueError("GitHub App ID and Private Key are required")
+        integration = GithubIntegration(app_id, private_key)
 
-        self.app_id = app_id
-        self.private_key = private_key
-        self._github = self._authenticate_as_app()
+        # GitHub App installations represent the app being installed on specific
+        # GitHub accounts or organizations. Each installation has its own access token.
 
-    def _authenticate_as_app(self) -> Github:
-        """Authenticate using GitHub App credentials"""
-        try:
-            # Create GitHub Integration
-            integration = GithubIntegration(self.app_id, self.private_key)
+        installations = list(integration.get_installations())
 
-            # Get all installations for this app
-            installations = list(integration.get_installations())
+        if not installations:
+            raise ValueError("No GitHub App installations found")
 
-            if not installations:
-                raise ValueError("No installations found for this GitHub App")
+        # GitHub App is only installed once on the organization account, so any
+        # installation will work. If multiple installations exist,
+        # they all have the same permissions.
 
-            # Use the first installation
-            installation = installations[0]
+        installation = installations[0]
 
-            logger.info(f"Authenticated as GitHub App installation {installation.id}")
+        auth = integration.get_access_token(installation.id)
 
-            # Get installation access token
-            token = integration.get_access_token(installation.id).token
+        self._github = Github(auth=Auth.Token(auth.token), timeout=timeout)
 
-            return Github(token)
-
-        except Exception as e:
-            logger.error(f"Failed to authenticate with GitHub App: {e}")
-            raise
-
-    def get_issue(self, project: str, key: str) -> GithubIssue:
-        """
-        Get issue from GitHub
+    def get_issue(self, project: str, key: str) -> IssueData:
+        """Get issue from GitHub
 
         Args:
-            project: Repository in format "owner/repo" (e.g., "canonical/test-observer")
-            key: Issue number (e.g., "123")
+            project: Repository in format "owner/repo"
+            key: Issue number as string
 
         Returns:
-            GitHub Issue object
+            IssueData with title, state, and raw GitHub issue object
 
         Raises:
             ValueError: If project format is invalid
-            GithubException: If issue cannot be fetched
+            Exception: If issue fetch fails
         """
+
+        if "/" not in project:
+            raise ValueError(
+                f"Invalid project format: {project}. Expected 'owner/repo'"
+            )
+
         try:
-            # Validate project format (should be "owner/repo")
-            if "/" not in project:
-                raise ValueError(
-                    f"Invalid project format: {project}. Expected 'owner/repo'"
-                )
-
             # Parse issue number
-            issue_number = int(key.lstrip("#"))
+            issue_number = int(key)
 
-            # Fetch issue
-            repository = self._github.get_repo(project)
-            return repository.get_issue(issue_number)
+            # Get repository and issue
+            repo = self._github.get_repo(project)
+            gh_issue = repo.get_issue(issue_number)
 
-        except ValueError:
-            raise
+            return IssueData(
+                title=gh_issue.title,
+                state=gh_issue.state,
+                state_reason=gh_issue.state_reason,
+                raw=cast(dict[str, Any], gh_issue.raw_data),
+            )
+
         except Exception as e:
             logger.error(f"Failed to fetch GitHub issue {project}#{key}: {e}")
             raise
