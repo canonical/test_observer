@@ -33,7 +33,10 @@ from test_observer.data_access.models import (
     TestPlan,
     User,
 )
-from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.repository import (
+    get_or_create,
+    create_test_execution_relevant_link,
+)
 from test_observer.data_access.setup import get_db
 
 from .models import (
@@ -67,7 +70,7 @@ class StartTestExecutionController:
         self.create_artefact_build_environment()
         self.create_test_plan()
         self.create_test_execution()
-
+        self.create_relevant_links()
         self.delete_rerun_request()
 
         self.assign_reviewer()
@@ -118,6 +121,16 @@ class StartTestExecutionController:
                 "test_plan_id": self.test_plan.id,
             },
         )
+
+    def create_relevant_links(self):
+        if self.request.relevant_links:
+            for link in self.request.relevant_links:
+                create_test_execution_relevant_link(
+                    self.db,
+                    self.test_execution.id,
+                    link.label,
+                    link.url,
+                )
 
     def create_artefact_build_environment(self):
         get_or_create(

@@ -28,6 +28,7 @@ import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'environment_expandable.dart';
+import 'manual_testing_button.dart';
 import 'rerun_filtered_plans_button.dart';
 
 class ArtefactPageBody extends ConsumerWidget {
@@ -63,6 +64,8 @@ class ArtefactPageBody extends ConsumerWidget {
               artefactEnvironments: environments,
             ),
             const Spacer(),
+            AddManualTestingButton(artefactId: artefact.id),
+            const SizedBox(width: Spacing.level3),
             const RerunFilteredPlansButton(),
           ],
         ),

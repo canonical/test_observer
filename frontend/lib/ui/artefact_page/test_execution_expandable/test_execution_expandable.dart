@@ -26,6 +26,8 @@ import '../../spacing.dart';
 import '../test_result_filter_expandable.dart';
 import '../test_event_log_expandable.dart';
 import '../execution_metadata_expandable.dart';
+import '../test_result_dialog.dart';
+import '../../../providers/current_user.dart';
 
 class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({
@@ -53,17 +55,21 @@ class TestExecutionExpandable extends ConsumerWidget {
       title: _TestExecutionTileTitle(
         testExecution: testExecution,
         runNumber: runNumber,
+        artefactId: artefactId,
       ),
       children: <Widget>[
-        TestEventLogExpandable(
-          testExecutionId: testExecution.id,
-          initiallyExpanded: !testExecution.status.isCompleted,
-        ),
-        ExecutionMetadataExpandable(
-          executionMetadata: testExecution.executionMetadata,
-          initiallyExpanded: false,
-        ),
-        if (testExecution.status.isCompleted)
+        if (testExecution.testPlan != 'Manual Testing')
+          TestEventLogExpandable(
+            testExecutionId: testExecution.id,
+            initiallyExpanded: !testExecution.status.isCompleted,
+          ),
+        if (testExecution.testPlan != 'Manual Testing')
+          ExecutionMetadataExpandable(
+            executionMetadata: testExecution.executionMetadata,
+            initiallyExpanded: false,
+          ),
+        if (testExecution.status.isCompleted ||
+            testExecution.testPlan == 'Manual Testing')
           Expandable(
             title: const Text('Test Results'),
             initiallyExpanded: true,
@@ -83,20 +89,23 @@ class TestExecutionExpandable extends ConsumerWidget {
   }
 }
 
-class _TestExecutionTileTitle extends StatelessWidget {
+class _TestExecutionTileTitle extends ConsumerWidget {
   const _TestExecutionTileTitle({
     required this.testExecution,
     required this.runNumber,
+    required this.artefactId,
   });
 
   final TestExecution testExecution;
   final int runNumber;
+  final int artefactId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
     final relevantLinks = testExecution.relevantLinks;
+    final user = ref.watch(currentUserProvider).value;
 
     return Row(
       children: [
@@ -126,6 +135,25 @@ class _TestExecutionTileTitle extends StatelessWidget {
               urlText: link.label,
             ),
           ),
+        if (user != null && testExecution.testPlan == 'Manual Testing') ...[
+          const SizedBox(width: Spacing.level3),
+          TextButton.icon(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => AddTestResultDialog(
+                testExecutionId: testExecution.id,
+                artefactId: artefactId,
+              ),
+            ),
+            label: const Text('Add Test Result'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
