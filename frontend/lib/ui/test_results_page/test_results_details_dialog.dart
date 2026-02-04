@@ -21,6 +21,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/detailed_test_results.dart';
 import '../execution_metadata.dart';
 import '../date_time.dart';
+import 'test_results_helpers.dart';
 
 class TestResultDetailsDialog extends StatelessWidget {
   final TestResultWithContext result;
@@ -40,7 +41,7 @@ class TestResultDetailsDialog extends StatelessWidget {
           children: [
             _DialogHeader(onClose: () => context.pop()),
             _DialogContent(result: result),
-            _DialogFooter(onClose: () => context.pop()),
+            _DialogFooter(onClose: () => context.pop(), result: result),
           ],
         ),
       ),
@@ -194,8 +195,9 @@ class _DialogContent extends StatelessWidget {
 
 class _DialogFooter extends StatelessWidget {
   final VoidCallback onClose;
+  final TestResultWithContext result;
 
-  const _DialogFooter({required this.onClose});
+  const _DialogFooter({required this.onClose, required this.result});
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +217,27 @@ class _DialogFooter extends StatelessWidget {
             onPressed: onClose,
             child: const Text('Close'),
           ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: () => TestResultHelpers.navigateToTestExecution(result),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.launch, size: 16, color: YaruColors.orange),
+                  const SizedBox(width: 4),
+                  Text(
+                    'View Run',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: YaruColors.orange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
         ],
       ),
     );
