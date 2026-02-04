@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-""" 
+"""
 Prometheus metrics for Test Observer.
 
 This module provides a centralized location for all Prometheus metrics.
