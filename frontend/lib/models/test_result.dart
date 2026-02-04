@@ -88,6 +88,17 @@ enum TestResultStatus {
     }
   }
 
+  String get apiValue {
+    switch (this) {
+      case passed:
+        return 'PASSED';
+      case failed:
+        return 'FAILED';
+      case skipped:
+        return 'SKIPPED';
+    }
+  }
+
   Icon getIcon({double scale = 1}) {
     final size = 15.0 * scale;
     switch (this) {
