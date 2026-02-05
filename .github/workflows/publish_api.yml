@@ -72,4 +72,4 @@ jobs:
 
       - name: Check logs for failure
         if: failure()
-        run: cat /root/.local/state/charmcraft/log/charmcraft-*.log
+        run: sudo cat /root/.local/state/charmcraft/log/charmcraft-*.log
