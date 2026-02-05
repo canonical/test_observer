@@ -37,16 +37,16 @@ assumes:
 config:
   options:
     hostname:
-      description: Public hostname for the frontend (through ingress)
-      default: test-observer
+      description: Hostname for the service
       type: string
-
+    hostname_backend:
+      description: Hostname for the connected backend
+      type: string
     port:
       description: Port for the frontend (through ingress)
       default: 80
       type: int
-
-    test-observer-api-scheme:
+    scheme:
       description: Scheme for accessing Test Observer API (used to construct URLs for API requests)
       default: "https://"
       type: string
@@ -62,12 +62,14 @@ containers:
     resource: frontend-image
 
 charm-libs:
-  - lib: nginx_ingress_integrator.nginx_route
-    version: "0"
+  - lib: traefik_k8s.ingress
+    version: "2"
 
 requires:
   test-observer-rest-api:
     interface: http
     limit: 1
-  nginx-route:
-    interface: nginx-route
+  ingress:
+    interface: ingress
+    limit: 1
+    optional: false

@@ -20,7 +20,6 @@ import logging
 from typing import Optional, Tuple
 
 import ops
-from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
@@ -29,6 +28,7 @@ from ops.model import (
 )
 from ops.pebble import Layer
 
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer, IngressPerAppReadyEvent, IngressPerAppRevokedEvent
 from nginx_config import html_503, nginx_503_config, nginx_config
 
 logger = logging.getLogger(__name__)
@@ -57,15 +57,13 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._on_rest_api_relation_broken,
         )
 
-        self._setup_ingress()
-
-    def _setup_ingress(self):
-        require_nginx_route(
+        self.ingress = IngressPerAppRequirer(
             charm=self,
-            service_hostname=self.config["hostname"],
-            service_name=self.app.name,
-            service_port=int(self.config["port"]),
+            port=int(self.config["port"]),
+            strip_prefix=True,
         )
+        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
+        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
 
     def _on_config_changed(self, event):
         is_valid, reason = self._config_is_valid(self.config)
@@ -92,7 +90,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         return True, None
 
-    def _on_rest_api_relation_update(self, event):
+    def _on_rest_api_relation_update(self, event: ops.RelationChangedEvent):
         api_hostname = event.relation.data[event.app].get("hostname")
         api_port = event.relation.data[event.app].get("port")
         logger.debug(f"API hostname: {api_hostname}, port: {api_port} (app: {event.app})")
@@ -136,13 +134,13 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self.unit.status = WaitingStatus("Waiting for test observer api relation data")
             return None
 
-        hostname = relation_data["hostname"]
+        hostname = api_relation.data[api_relation.app]
         port = relation_data["port"]
 
         scheme = self.config["test-observer-api-scheme"]
 
-        logger.info(f"Hostname: {hostname} (from relation: {hostname})")
-        logger.info(f"Port: {port} (from relation: {port})")
+        logger.info(f"Hostname: {hostname}")
+        logger.info(f"Port: {port}")
 
         if int(port) == 80 or int(port) == 443:
             base_uri = f"{scheme}{hostname}"
@@ -185,6 +183,12 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 },
             }
         )
+
+    def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
+        self.unit.status = ActiveStatus(f"Ingress is available at {event.url}")
+
+    def _on_ingress_revoked(self, _: IngressPerAppRevokedEvent) -> None:
+        self.unit.status = BlockedStatus(f"Ingress removed")
 
 
 if __name__ == "__main__":  # pragma: nocover

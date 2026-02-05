@@ -40,3 +40,9 @@ exclude = ["lib"]
 
 [tool.codespell]
 skip = "build,lib,venv,icon.svg,.tox,.git,.mypy_cache,.ruff_cache,.coverage"
+
+# For Charm testing
+[dependency-groups]
+test = [
+    "ops[testing] ~= 3.5
+]

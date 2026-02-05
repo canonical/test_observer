@@ -1,0 +1,3 @@
+{
+    "python.analysis.extraPaths": ["./backend/charm/lib", "./frontend/charm/lib"]
+}

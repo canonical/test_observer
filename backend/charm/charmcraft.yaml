@@ -50,12 +50,10 @@ config:
       description: The port to listen on for incoming HTTP requests.
       type: int
     hostname:
-      default: test-observer-api
-      description: Public hostname for the service.
+      description: Hostname for the service.
       type: string
-    frontend_hostname:
-      default: test-observer
-      description: Public hostname for the frontend connected to this API
+    hostname_frontend:
+      description: Hostname for the connected frontend
       type: string
     sentry_dsn:
       default: ""
@@ -83,8 +81,8 @@ containers:
 charm-libs:
   - lib: data_platform_libs.data_interfaces
     version: "0"
-  - lib: nginx_ingress_integrator.nginx_route
-    version: "0"
+  - lib: traefik_k8s.ingress
+    version: "2"
   - lib: redis_k8s.redis
     version: "0"
 
@@ -92,14 +90,20 @@ requires:
   database:
     interface: postgresql_client
     limit: 1
-  nginx-route:
-    interface: nginx-route
+    optional: false
+  ingress:
+    interface: ingress
+    limit: 1
+    optional: false
   redis:
     interface: redis
+    limit: 1
+    optional: false
 provides:
   test-observer-rest-api:
     interface: http
     scope: global
+    limit: 1
 
 actions:
   delete-artefact:
