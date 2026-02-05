@@ -32,7 +32,6 @@ from .models import (
 )
 
 from .shared_models import MinimalIssueTestResultAttachmentRuleResponse
-from .auto_rerun_logic import trigger_reruns_for_attachment_rule
 
 router = APIRouter()
 
@@ -58,7 +57,6 @@ def post_attachment_rule(
     attachment_rule = IssueTestResultAttachmentRule(
         issue_id=issue.id,
         enabled=request.enabled,
-        auto_rerun_on_attach=request.auto_rerun_on_attach,
         families=request.families,
         environment_names=request.environment_names,
         test_case_names=request.test_case_names,
@@ -105,16 +103,6 @@ def patch_attachment_rule(
     # Modify the attachment rule
     if request.enabled is not None:
         attachment_rule.enabled = request.enabled
-
-    if request.auto_rerun_on_attach is not None:
-        old_auto_rerun = attachment_rule.auto_rerun_on_attach
-        attachment_rule.auto_rerun_on_attach = request.auto_rerun_on_attach
-
-        # If auto_rerun_on_attach is being enabled, trigger reruns for attachments
-        if request.auto_rerun_on_attach and not old_auto_rerun:
-            db.commit()
-            db.refresh(attachment_rule)
-            trigger_reruns_for_attachment_rule(db, attachment_rule)
 
     # Save the attachment rule
     db.commit()

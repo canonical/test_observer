@@ -49,9 +49,10 @@ class IssuePage extends ConsumerWidget {
               AttachmentRulesSection(
                 issueId: issue.id,
                 attachmentRules: issue.attachmentRules,
+                issue: issue,
               ),
               SizedBox(height: Spacing.level4),
-              TestResultsSection(issue: issue.toIssue()),
+              TestResultsSection(issue: issue),
             ],
           ),
         ),

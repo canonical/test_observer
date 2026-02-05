@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""add auto_rerun_on_attach to IssueTestResultAttachmentRule
+"""add auto_rerun to issue
 
-Revision ID: 1234567890ab
+Revision ID: a1b2c3d4e5f6
 Revises: 5552667bf072
-Create Date: 2026-01-26 12:00:00.000000+00:00
+Create Date: 2026-02-05 16:00:00.000000+00:00
 
 """
 
@@ -27,18 +27,18 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "1234567890ab"
+revision = "a1b2c3d4e5f6"
 down_revision = "5552667bf072"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    # Add auto_rerun_on_attach column to issue_test_result_attachment_rule table
+    # Add auto-rerun field to issue table
     op.add_column(
-        "issue_test_result_attachment_rule",
+        "issue",
         sa.Column(
-            "auto_rerun_on_attach",
+            "auto_rerun_enabled",
             sa.Boolean(),
             nullable=False,
             server_default=sa.false(),
@@ -47,5 +47,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # drop auto_rerun_on_attach column from issue_test_result_attachment_rule table
-    op.drop_column("issue_test_result_attachment_rule", "auto_rerun_on_attach")
+    # Drop auto-rerun field from issue table
+    op.drop_column("issue", "auto_rerun_enabled")

@@ -29,9 +29,6 @@ abstract class AttachmentRule with _$AttachmentRule {
   const factory AttachmentRule({
     required int id,
     required bool enabled,
-    @JsonKey(name: 'auto_rerun_on_attach')
-    @Default(false)
-    bool autoRerunOnAttach,
     @JsonKey(name: 'families') @Default([]) List<String> families,
     @JsonKey(name: 'environment_names')
     @Default([])

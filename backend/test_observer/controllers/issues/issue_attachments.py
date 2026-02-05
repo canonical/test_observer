@@ -73,17 +73,13 @@ def load_test_results_with_relations(
 def _trigger_reruns_for_new_attachments(
     db: Session,
     test_result_ids: set[int],
-    attachment_rule_id: int | None,
+    issue: Issue,
 ) -> None:
     """
-    Trigger reruns for test results that were attached with a rule that has
-    auto_rerun_on_attach enabled.
+    Trigger reruns for test results that were attached to an issue with
+    auto_rerun_enabled.
     """
-    if attachment_rule_id is None or not test_result_ids:
-        return
-
-    attachment_rule = db.get(IssueTestResultAttachmentRule, attachment_rule_id)
-    if attachment_rule is None or not attachment_rule.auto_rerun_on_attach:
+    if not test_result_ids or not issue.auto_rerun_enabled:
         return
 
     test_execution_ids = set(
@@ -209,10 +205,10 @@ def modify_issue_attachments(
     # Save the result
     db.commit()
 
-    # Trigger reruns if the attachment rule has auto_rerun_on_attach enabled
+    # Trigger reruns if the issue has auto_rerun_enabled
     if not detach and attached_test_result_ids:
         _trigger_reruns_for_new_attachments(
-            db, attached_test_result_ids, request.attachment_rule
+            db, attached_test_result_ids, issue
         )
 
     db.refresh(issue)

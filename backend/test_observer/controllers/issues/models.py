@@ -60,7 +60,6 @@ class IssueTestResultAttachmentResponse(BaseModel):
 
 class IssueTestResultAttachmentRulePostRequest(BaseModel):
     enabled: bool = Field(default=True)
-    auto_rerun_on_attach: bool = Field(default=False)
 
     families: list[FamilyName] = Field(default_factory=list)
     environment_names: list[str] = Field(default_factory=list)
@@ -72,7 +71,6 @@ class IssueTestResultAttachmentRulePostRequest(BaseModel):
 
 class IssueTestResultAttachmentRulePatchRequest(BaseModel):
     enabled: bool | None = None
-    auto_rerun_on_attach: bool | None = None
 
 
 class IssueResponse(BaseModel):
@@ -85,6 +83,7 @@ class IssueResponse(BaseModel):
     title: str
     status: IssueStatus
     url: HttpUrl
+    auto_rerun_enabled: bool
 
     attachment_rules: list[MinimalIssueTestResultAttachmentRuleResponse] = Field(
         validation_alias=AliasPath("test_result_attachment_rules")
@@ -98,6 +97,11 @@ class IssuesGetResponse(BaseModel):
 class IssuePatchRequest(BaseModel):
     title: str | None = None
     status: IssueStatus | None = None
+    auto_rerun_enabled: bool | None = None
+    rerun_existing: bool | None = None
+    # Filter options for initial rerun only (not persisted)
+    rerun_only_latest: bool | None = None
+    rerun_exclude_archived: bool | None = None
 
 
 class IssuePutRequest(IssuePatchRequest):

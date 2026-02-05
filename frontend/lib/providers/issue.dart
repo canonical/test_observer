@@ -130,30 +130,22 @@ class Issue extends _$Issue {
     );
   }
 
-  Future<void> toggleAutoRerunOnAttach({
+  Future<void> updateAutoRerun({
     required int issueId,
-    required int attachmentRuleId,
-    required bool autoRerunOnAttach,
+    required bool autoRerunEnabled,
+    bool? autoRerunOnlyLatest,
+    bool? autoRerunExcludeArchived,
+    bool? rerunExisting,
   }) async {
     final api = ref.read(apiProvider);
-    await api.patchAttachmentRule(
+    final updatedIssue = await api.patchIssue(
       issueId: issueId,
-      attachmentRuleId: attachmentRuleId,
-      autoRerunOnAttach: autoRerunOnAttach,
+      autoRerunEnabled: autoRerunEnabled,
+      autoRerunOnlyLatest: autoRerunOnlyLatest,
+      autoRerunExcludeArchived: autoRerunExcludeArchived,
+      rerunExisting: rerunExisting,
     );
-    final issue = await future;
-    final updatedAttachmentRules = issue.attachmentRules
-        .map(
-          (rule) => rule.id == attachmentRuleId
-              ? rule.copyWith(autoRerunOnAttach: autoRerunOnAttach)
-              : rule,
-        )
-        .toList();
-    state = AsyncData(
-      issue.copyWith(
-        attachmentRules: updatedAttachmentRules,
-      ),
-    );
+    state = AsyncData(updatedIssue);
   }
 
   Future<void> attachIssueToTestResults({

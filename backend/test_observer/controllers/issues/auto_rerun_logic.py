@@ -23,6 +23,7 @@ from test_observer.data_access.models import (
 )
 from test_observer.controllers.test_executions.reruns import modify_reruns
 from test_observer.controllers.test_executions.models import RerunRequest
+from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 
 
 def trigger_reruns_for_test_execution_ids(
@@ -66,3 +67,19 @@ def trigger_reruns_for_attachment_rule(
     }
 
     trigger_reruns_for_test_execution_ids(db, test_execution_ids)
+
+
+def trigger_reruns_for_filters(
+    db: Session,
+    filters: TestResultSearchFilters,
+) -> None:
+    """
+    Trigger reruns for test results matching the given filters.
+    Used for one-time bulk rerun when enabling auto-rerun with filters.
+    """
+    modify_reruns(
+        db,
+        RerunRequest(
+            test_results_filters=filters,
+        ),
+    )

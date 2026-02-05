@@ -714,6 +714,9 @@ class Issue(Base):
     status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
     last_synced_at = Column(DateTime, nullable=True)
 
+    # Auto-rerun setting for this issue
+    auto_rerun_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
     test_result_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
         back_populates="issue", cascade="all, delete"
     )
@@ -824,7 +827,6 @@ class IssueTestResultAttachmentRule(Base):
     issue: Mapped["Issue"] = relationship(back_populates="test_result_attachment_rules")
 
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    auto_rerun_on_attach: Mapped[bool] = mapped_column(Boolean, default=False)
 
     test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(
         back_populates="attachment_rule"

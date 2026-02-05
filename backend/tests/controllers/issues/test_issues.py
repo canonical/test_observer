@@ -82,6 +82,7 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
         "source",
         "title",
         "status",
+        "auto_rerun_enabled",
     }
     assert response.json()["id"] == issue.id
     assert response.json()["source"] == issue.source

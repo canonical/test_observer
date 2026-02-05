@@ -19,16 +19,23 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Security
 from fastapi import HTTPException
+from fastapi.security import SecurityScopes
 from sqlalchemy import select, String
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.data_access.models import (
     Issue,
+    Application,
+    User,
 )
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
+from test_observer.users.user_injection import get_current_user
 
 from .models import (
     IssuePatchRequest,
@@ -40,6 +47,7 @@ from .models import (
 from .issue_url_parser import issue_source_project_key_from_url
 
 from . import issue_attachments, attachment_rules
+from .auto_rerun_logic import trigger_reruns_for_filters
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -144,20 +152,79 @@ def get_issue(
     return issue
 
 
+def require_auto_rerun_permission(
+    issue_id: int,
+    request: IssuePatchRequest,
+    security_scopes: SecurityScopes,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+):
+    """Check if enabling auto_rerun with rerun_existing requires bulk permission"""
+    # Only check permission if enabling auto_rerun AND rerun_existing is True
+    if (
+        request.auto_rerun_enabled is not None
+        and request.auto_rerun_enabled
+        and request.rerun_existing
+    ):
+        # Fetch the issue to check its current state
+        issue = db.get(Issue, issue_id)
+        if issue is None:
+            # Will be caught by the actual endpoint
+            return
+        
+        # Only check permission if enabling auto_rerun (not if already enabled)
+        if not issue.auto_rerun_enabled:
+            permission_checker(security_scopes, user, app)
+
+
 def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     if request.title is not None:
         issue.title = request.title
     if request.status is not None:
         issue.status = request.status
+
+    # Track if we need to trigger reruns for existing test results
+    trigger_reruns = False
+    rerun_filters = None
+    
+    if request.auto_rerun_enabled is not None:
+        old_auto_rerun_enabled = issue.auto_rerun_enabled
+        issue.auto_rerun_enabled = request.auto_rerun_enabled
+        # Only trigger reruns if explicitly requested via rerun_existing parameter
+        if (request.auto_rerun_enabled and 
+            not old_auto_rerun_enabled and 
+            request.rerun_existing):
+            trigger_reruns = True
+            # Use filter options from request for this one-time rerun only
+            rerun_filters = {
+                'only_latest': request.rerun_only_latest if request.rerun_only_latest is not None else True,
+                'exclude_archived': request.rerun_exclude_archived if request.rerun_exclude_archived is not None else True,
+            }
+    
     db.commit()
     db.refresh(issue)
+    
+    # Trigger reruns after commit if needed
+    if trigger_reruns:
+        from test_observer.controllers.test_results.models import TestResultSearchFilters
+        filters = TestResultSearchFilters(
+            issues=[issue.id],
+            execution_is_latest=rerun_filters['only_latest'],
+            artefact_is_archived=False if rerun_filters['exclude_archived'] else None,
+        )
+        trigger_reruns_for_filters(db, filters)
+    
     return issue
 
 
 @router.patch(
     "/{issue_id}",
     response_model=IssueResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue]),
+        Security(require_auto_rerun_permission, scopes=[Permission.change_rerun_bulk]),
+    ],
 )
 def patch_issue(
     issue_id: int,
