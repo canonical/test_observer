@@ -213,11 +213,6 @@ class _DialogFooter extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          TextButton(
-            onPressed: onClose,
-            child: const Text('Close'),
-          ),
-          const SizedBox(width: 4),
           InkWell(
             onTap: () => TestResultHelpers.navigateToTestExecution(result),
             child: Container(
@@ -227,17 +222,16 @@ class _DialogFooter extends StatelessWidget {
                 children: [
                   Icon(Icons.launch, size: 16, color: YaruColors.orange),
                   const SizedBox(width: 4),
-                  Text(
-                    'View Run',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: YaruColors.orange,
-                    ),
-                  ),
+                  Text('View Run'),
                 ],
               ),
             ),
-          )
+          ),
+          const SizedBox(width: 4),
+          TextButton(
+            onPressed: onClose,
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
