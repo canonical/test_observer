@@ -222,7 +222,10 @@ class _DialogFooter extends StatelessWidget {
                 children: [
                   Icon(Icons.launch, size: 16, color: YaruColors.orange),
                   const SizedBox(width: 4),
-                  Text('View Run'),
+                  Text(
+                    'View Run',
+                    style: TextStyle(color: YaruColors.orange),
+                  ),
                 ],
               ),
             ),
