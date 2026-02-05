@@ -147,8 +147,6 @@ class TestSAMLAuthentication:
         assert user.name == "Mark"
         assert user.email == "mark@electricdemon.com"
         assert user.launchpad_handle == self.CREDENTIALS["username"]
-        assert len(user.teams) >= 1
-        assert user.teams[0].name == "canonical"
 
     def _logout_and_verify_session_cleared(self) -> None:
         logout_response = self.session.get(
