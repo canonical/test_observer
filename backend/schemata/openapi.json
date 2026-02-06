@@ -4877,13 +4877,6 @@
               }
             ]
           },
-          "url": {
-            "type": "string",
-            "maxLength": 2083,
-            "minLength": 1,
-            "format": "uri",
-            "title": "Url"
-          },
           "auto_rerun_enabled": {
             "anyOf": [
               {
@@ -4927,6 +4920,13 @@
               }
             ],
             "title": "Rerun Exclude Archived"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
           }
         },
         "type": "object",
@@ -5275,10 +5275,10 @@
           "view_permission",
           "view_issue",
           "change_issue",
-          "enable_issue_auto_rerun_on_attach",
           "change_issue_attachment",
           "change_issue_attachment_bulk",
           "change_attachment_rule",
+          "enable_issue_auto_rerun_on_attach",
           "view_test",
           "change_test",
           "view_rerun",
