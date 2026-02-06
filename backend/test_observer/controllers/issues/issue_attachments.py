@@ -72,27 +72,29 @@ def load_test_results_with_relations(
 
 def _trigger_reruns_for_new_attachments(
     db: Session,
-    test_result_ids: set[int],
+    test_result_ids_query,  # SQLAlchemy subquery of TestResult.id
     issue: Issue,
 ) -> None:
     """
     Trigger reruns for test results that were attached to an issue with
     auto_rerun_enabled.
     """
-    if not test_result_ids or not issue.auto_rerun_enabled:
+    if not issue.auto_rerun_enabled:
         return
 
+    # Get test_execution_ids directly from the query
     test_execution_ids = set(
         db.execute(
-            select(TestResult.test_execution_id).where(
-                TestResult.id.in_(test_result_ids)
-            )
+            select(TestResult.test_execution_id)
+            .where(TestResult.id.in_(select(test_result_ids_query.c.id)))
+            .distinct()
         )
         .scalars()
         .all()
     )
 
-    trigger_reruns_for_test_execution_ids(db, test_execution_ids)
+    if test_execution_ids:
+        trigger_reruns_for_test_execution_ids(db, test_execution_ids)
 
 
 def modify_issue_attachments(
@@ -112,8 +114,8 @@ def modify_issue_attachments(
         if attachment_rule is None:
             raise HTTPException(status_code=404, detail="Attachment rule not found")
 
-    # Track test result IDs for auto-rerun logic
-    attached_test_result_ids = set()
+    # Track queries for test result IDs for auto-rerun logic (avoid materializing in memory)
+    test_result_id_queries = []
 
     # Add or remove any requested test result attachments
     if request.test_results is not None and len(request.test_results) > 0:
@@ -145,8 +147,11 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
-            if not detach:
-                attached_test_result_ids.update(test_result_ids)
+            # Store as queries instead of materializing IDs
+            test_result_id_queries.extend(
+                select(literal(id_).label("id")).subquery()
+                for id_ in test_result_ids
+            )
 
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=True)
@@ -192,12 +197,8 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
-            if not detach:
-                # Collect the filtered IDs for auto-rerun logic
-                filtered_ids = (
-                    db.execute(select(filtered_ids_query.c.id)).scalars().all()
-                )
-                attached_test_result_ids.update(filtered_ids)
+            # Store the filtered query for auto-rerun logic (avoid materializing IDs)
+            test_result_id_queries.append(filtered_ids_query)
 
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=True)
@@ -205,11 +206,18 @@ def modify_issue_attachments(
     # Save the result
     db.commit()
 
-    # Trigger reruns if the issue has auto_rerun_enabled
-    if not detach and attached_test_result_ids:
-        _trigger_reruns_for_new_attachments(
-            db, attached_test_result_ids, issue
-        )
+    # Trigger reruns using database-level queries if IDs were attached
+    if not detach and test_result_id_queries:
+        # Union all ID queries if multiple sources, otherwise use the single query
+        if len(test_result_id_queries) == 1:
+            combined_ids_query = test_result_id_queries[0]
+        else:
+            from sqlalchemy import union_all
+            combined_ids_query = union_all(
+                *[select(q.c.id) for q in test_result_id_queries]
+            ).subquery()
+
+        _trigger_reruns_for_new_attachments(db, combined_ids_query, issue)
 
     db.refresh(issue)
     return issue

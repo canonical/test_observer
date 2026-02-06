@@ -178,6 +178,24 @@ def require_auto_rerun_permission(
             permission_checker(security_scopes, user, app)
 
 
+def require_auto_rerun_enable_permission(
+    issue_id: int,
+    request: IssuePatchRequest,
+    security_scopes: SecurityScopes,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+):
+    """Check if enabling auto_rerun requires change_rerun permission"""
+    if request.auto_rerun_enabled is not None and request.auto_rerun_enabled:
+        issue = db.get(Issue, issue_id)
+        if issue is None:
+            return
+
+        if not issue.auto_rerun_enabled:
+            permission_checker(security_scopes, user, app)
+
+
 def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     if request.title is not None:
         issue.title = request.title
@@ -207,7 +225,7 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     
     # Trigger reruns after commit if needed
     if trigger_reruns:
-        from test_observer.controllers.test_results.models import TestResultSearchFilters
+        from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
         filters = TestResultSearchFilters(
             issues=[issue.id],
             execution_is_latest=rerun_filters['only_latest'],
@@ -223,6 +241,10 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     response_model=IssueResponse,
     dependencies=[
         Security(permission_checker, scopes=[Permission.change_issue]),
+        Security(
+            require_auto_rerun_enable_permission,
+            scopes=[Permission.enable_issue_auto_rerun_on_attach],
+        ),
         Security(require_auto_rerun_permission, scopes=[Permission.change_rerun_bulk]),
     ],
 )

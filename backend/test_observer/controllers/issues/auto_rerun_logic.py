@@ -49,22 +49,19 @@ def trigger_reruns_for_attachment_rule(
     Trigger reruns for all test executions attached to an attachment rule.
     This is called when auto_rerun_on_attach is enabled on a rule.
     """
-    # Get all test result attachments for this rule
-    attachments = (
+    from test_observer.data_access.models import TestResult
+
+    # Get distinct test_execution_ids
+    test_execution_ids = set(
         db.execute(
-            select(IssueTestResultAttachment).where(
-                IssueTestResultAttachment.attachment_rule_id == attachment_rule.id
-            )
+            select(TestResult.test_execution_id)
+            .join(IssueTestResultAttachment, TestResult.id == IssueTestResultAttachment.test_result_id)
+            .where(IssueTestResultAttachment.attachment_rule_id == attachment_rule.id)
+            .distinct()
         )
         .scalars()
         .all()
     )
-
-    test_execution_ids = {
-        attachment.test_result.test_execution_id
-        for attachment in attachments
-        if attachment.test_result is not None
-    }
 
     trigger_reruns_for_test_execution_ids(db, test_execution_ids)
 
