@@ -236,7 +236,7 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     db.refresh(issue)
 
     # Trigger reruns after commit if needed
-    if trigger_reruns:
+    if trigger_reruns and rerun_filters is not None:
         from test_observer.controllers.test_results.shared_models import (
             TestResultSearchFilters,
         )

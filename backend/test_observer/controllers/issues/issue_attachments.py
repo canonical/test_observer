@@ -116,7 +116,7 @@ def modify_issue_attachments(
             raise HTTPException(status_code=404, detail="Attachment rule not found")
 
     # Track queries for test result IDs for auto-rerun logic
-    test_result_id_queries = []
+    test_result_id_queries: list[Subquery] = []
 
     # Add or remove any requested test result attachments
     if request.test_results is not None and len(request.test_results) > 0:
