@@ -2565,7 +2565,9 @@
           }
         },
         "x-permissions": [
-          "change_issue"
+          "change_issue",
+          "enable_issue_auto_rerun_on_attach",
+          "change_rerun_bulk"
         ]
       }
     },
@@ -4803,6 +4805,50 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
+          },
+          "rerun_existing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Existing"
+          },
+          "rerun_only_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Only Latest"
+          },
+          "rerun_exclude_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Exclude Archived"
           }
         },
         "type": "object",
@@ -4837,6 +4883,50 @@
             "minLength": 1,
             "format": "uri",
             "title": "Url"
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
+          },
+          "rerun_existing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Existing"
+          },
+          "rerun_only_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Only Latest"
+          },
+          "rerun_exclude_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Exclude Archived"
           }
         },
         "type": "object",
@@ -4876,6 +4966,10 @@
             "format": "uri",
             "title": "Url"
           },
+          "auto_rerun_enabled": {
+            "type": "boolean",
+            "title": "Auto Rerun Enabled"
+          },
           "attachment_rules": {
             "items": {
               "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
@@ -4893,6 +4987,7 @@
           "title",
           "status",
           "url",
+          "auto_rerun_enabled",
           "attachment_rules"
         ],
         "title": "IssueResponse"
@@ -4927,17 +5022,6 @@
               }
             ],
             "title": "Enabled"
-          },
-          "auto_rerun_on_attach": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Auto Rerun On Attach"
           }
         },
         "type": "object",
@@ -4949,11 +5033,6 @@
             "type": "boolean",
             "title": "Enabled",
             "default": true
-          },
-          "auto_rerun_on_attach": {
-            "type": "boolean",
-            "title": "Auto Rerun On Attach",
-            "default": false
           },
           "families": {
             "items": {
@@ -5090,10 +5169,6 @@
             "type": "boolean",
             "title": "Enabled"
           },
-          "auto_rerun_on_attach": {
-            "type": "boolean",
-            "title": "Auto Rerun On Attach"
-          },
           "families": {
             "items": {
               "$ref": "#/components/schemas/FamilyName"
@@ -5137,7 +5212,6 @@
         "required": [
           "id",
           "enabled",
-          "auto_rerun_on_attach",
           "families",
           "environment_names",
           "test_case_names",
@@ -5201,6 +5275,7 @@
           "view_permission",
           "view_issue",
           "change_issue",
+          "enable_issue_auto_rerun_on_attach",
           "change_issue_attachment",
           "change_issue_attachment_bulk",
           "change_attachment_rule",
