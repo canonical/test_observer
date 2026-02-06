@@ -62,7 +62,11 @@ def bulk_update_environment_reviews(
     review_ids = [request.id for request in requests if request.id is not None]
     reviews = db.scalars(
         select(ArtefactBuildEnvironmentReview)
-        .where(ArtefactBuildEnvironmentReview.id.in_(review_ids))
+        .join(ArtefactBuildEnvironmentReview.artefact_build)
+        .where(
+            ArtefactBuildEnvironmentReview.id.in_(review_ids),
+            ArtefactBuild.artefact_id == artefact_id,
+        )
         .options(selectinload(ArtefactBuildEnvironmentReview.artefact_build))
     ).all()
 
@@ -73,13 +77,6 @@ def bulk_update_environment_reviews(
         review = reviews_dict.get(request.id)
         if not review:
             continue
-
-        if review.artefact_build.artefact_id != artefact_id:
-            msg = (
-                f"Environment review {request.id} doesn't belong to artefact "
-                f"{artefact_id}"
-            )
-            raise HTTPException(422, msg)
 
         for field in request.model_fields_set:
             value = getattr(request, field)
