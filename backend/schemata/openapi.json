@@ -2565,7 +2565,9 @@
           }
         },
         "x-permissions": [
-          "change_issue"
+          "change_issue",
+          "enable_issue_auto_rerun_on_attach",
+          "change_rerun_bulk"
         ]
       }
     },
@@ -4803,6 +4805,50 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
+          },
+          "rerun_existing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Existing"
+          },
+          "rerun_only_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Only Latest"
+          },
+          "rerun_exclude_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Exclude Archived"
           }
         },
         "type": "object",
@@ -4830,6 +4876,50 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
+          },
+          "rerun_existing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Existing"
+          },
+          "rerun_only_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Only Latest"
+          },
+          "rerun_exclude_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Exclude Archived"
           },
           "url": {
             "type": "string",
@@ -4876,6 +4966,10 @@
             "format": "uri",
             "title": "Url"
           },
+          "auto_rerun_enabled": {
+            "type": "boolean",
+            "title": "Auto Rerun Enabled"
+          },
           "attachment_rules": {
             "items": {
               "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
@@ -4893,6 +4987,7 @@
           "title",
           "status",
           "url",
+          "auto_rerun_enabled",
           "attachment_rules"
         ],
         "title": "IssueResponse"
@@ -5183,6 +5278,7 @@
           "change_issue_attachment",
           "change_issue_attachment_bulk",
           "change_attachment_rule",
+          "enable_issue_auto_rerun_on_attach",
           "view_test",
           "change_test",
           "view_rerun",

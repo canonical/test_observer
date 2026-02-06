@@ -21,6 +21,7 @@ import 'package:dartx/dartx.dart';
 import 'blinking_content.dart';
 
 import '../../models/attachment_rule.dart';
+import '../../models/issue.dart';
 import '../../providers/issue.dart';
 import '../../routing.dart';
 import '../attachment_rule.dart';
@@ -31,11 +32,13 @@ class AttachmentRulesSection extends StatelessWidget {
     super.key,
     required this.issueId,
     required this.attachmentRules,
+    required this.issue,
     this.expandRuleId,
   });
 
   final int issueId;
   final List<AttachmentRule> attachmentRules;
+  final IssueWithContext issue;
   final int? expandRuleId;
 
   @override
@@ -145,9 +148,14 @@ class AttachmentRuleExpandable extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: AttachmentRuleFiltersWidget(
-              filters: attachmentRule.toFilters(),
-              editable: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AttachmentRuleFiltersWidget(
+                  filters: attachmentRule.toFilters(),
+                  editable: false,
+                ),
+              ],
             ),
           ),
         ],

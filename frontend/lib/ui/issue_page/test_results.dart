@@ -25,11 +25,12 @@ import '../spacing.dart';
 import '../test_results_page/test_results_table.dart';
 import '../test_results_page/test_results_filters_view.dart';
 import '../test_results_page/bulk_operations/bulk_operation_buttons.dart';
+import 'auto_rerun_section.dart';
 
 class TestResultsSection extends ConsumerStatefulWidget {
   const TestResultsSection({super.key, required this.issue});
 
-  final Issue issue;
+  final IssueWithContext issue;
 
   @override
   ConsumerState<TestResultsSection> createState() => _TestResultsSectionState();
@@ -103,12 +104,23 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
           ),
         ],
 
-        BulkOperationsButtons(
-          filters: _currentFilters,
-          enabledOperations: const {
-            BulkOperationType.createRerunRequests,
-            BulkOperationType.deleteRerunRequests,
-          },
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Spacing.level3,
+          children: [
+            Text(
+              'Bulk Operations',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            AutoRerunSection(issue: widget.issue),
+            BulkOperationsButtons(
+              filters: _currentFilters,
+              enabledOperations: const {
+                BulkOperationType.createRerunRequests,
+                BulkOperationType.deleteRerunRequests,
+              },
+            ),
+          ],
         ),
 
         testResultsAsync.when(

@@ -20,6 +20,7 @@ from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import delete, select, literal
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.sql import Subquery
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.metric_collectors import update_triaged_results_metric
@@ -40,6 +41,7 @@ from test_observer.controllers.applications.application_injection import (
 )
 from test_observer.data_access.models import Application, User
 from test_observer.users.user_injection import get_current_user
+from .auto_rerun_logic import trigger_reruns_for_test_execution_ids
 from .models import (
     IssueResponse,
     IssueAttachmentRequest,
@@ -69,6 +71,33 @@ def load_test_results_with_relations(
     )
 
 
+def _trigger_reruns_for_new_attachments(
+    db: Session,
+    test_result_ids_query: Subquery,  # SQLAlchemy subquery of TestResult.id
+    issue: Issue,
+) -> None:
+    """
+    Trigger reruns for test results that were attached to an issue with
+    auto_rerun_enabled.
+    """
+    if not issue.auto_rerun_enabled:
+        return
+
+    # Get test_execution_ids directly from the query
+    test_execution_ids = set(
+        db.execute(
+            select(TestResult.test_execution_id)
+            .where(TestResult.id.in_(select(test_result_ids_query.c.id)))
+            .distinct()
+        )
+        .scalars()
+        .all()
+    )
+
+    if test_execution_ids:
+        trigger_reruns_for_test_execution_ids(db, test_execution_ids)
+
+
 def modify_issue_attachments(
     db: Session,
     issue_id: int,
@@ -85,6 +114,9 @@ def modify_issue_attachments(
         attachment_rule = db.get(IssueTestResultAttachmentRule, request.attachment_rule)
         if attachment_rule is None:
             raise HTTPException(status_code=404, detail="Attachment rule not found")
+
+    # Track queries for test result IDs for auto-rerun logic
+    test_result_id_queries: list[Subquery] = []
 
     # Add or remove any requested test result attachments
     if request.test_results is not None and len(request.test_results) > 0:
@@ -115,6 +147,10 @@ def modify_issue_attachments(
                     ]
                 )
                 .on_conflict_do_nothing()
+            )
+            # Store as queries instead of materializing IDs
+            test_result_id_queries.extend(
+                select(literal(id_).label("id")).subquery() for id_ in test_result_ids
             )
 
             for test_result in test_results:
@@ -161,12 +197,29 @@ def modify_issue_attachments(
                 )
                 .on_conflict_do_nothing()
             )
+            # Store the filtered query for auto-rerun logic (avoid materializing IDs)
+            test_result_id_queries.append(filtered_ids_query)
 
             for test_result in test_results:
                 update_triaged_results_metric(test_result, issue, increment=True)
 
     # Save the result
     db.commit()
+
+    # Trigger reruns using database-level queries if IDs were attached
+    if not detach and test_result_id_queries:
+        # Union all ID queries if multiple sources, otherwise use the single query
+        if len(test_result_id_queries) == 1:
+            combined_ids_query = test_result_id_queries[0]
+        else:
+            from sqlalchemy import union_all
+
+            combined_ids_query = union_all(
+                *[select(q.c.id) for q in test_result_id_queries]
+            ).subquery()
+
+        _trigger_reruns_for_new_attachments(db, combined_ids_query, issue)
+
     db.refresh(issue)
     return issue
 

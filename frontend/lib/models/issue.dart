@@ -48,6 +48,7 @@ abstract class IssueWithContext with _$IssueWithContext {
     required String title,
     required IssueStatus status,
     required String url,
+    @JsonKey(name: 'auto_rerun_enabled') @Default(false) bool autoRerunEnabled,
     @JsonKey(name: 'attachment_rules')
     required List<AttachmentRule> attachmentRules,
   }) = _IssueWithContext;

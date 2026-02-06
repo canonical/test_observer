@@ -44,6 +44,7 @@ class Permission(StrEnum):
     change_issue_attachment = auto()
     change_issue_attachment_bulk = auto()
     change_attachment_rule = auto()
+    enable_issue_auto_rerun_on_attach = auto()
 
     # Tests
     view_test = auto()

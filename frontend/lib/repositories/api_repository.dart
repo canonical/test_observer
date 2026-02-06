@@ -518,6 +518,28 @@ class ApiRepository {
     return IssueWithContext.fromJson(response.data);
   }
 
+  Future<IssueWithContext> patchIssue({
+    required int issueId,
+    bool? autoRerunEnabled,
+    bool? autoRerunOnlyLatest,
+    bool? autoRerunExcludeArchived,
+    bool? rerunExisting,
+  }) async {
+    final response = await dio.patch(
+      '/v1/issues/$issueId',
+      data: {
+        if (autoRerunEnabled != null) 'auto_rerun_enabled': autoRerunEnabled,
+        if (rerunExisting != null) 'rerun_existing': rerunExisting,
+        // Filter options only used for initial rerun trigger
+        if (autoRerunOnlyLatest != null)
+          'rerun_only_latest': autoRerunOnlyLatest,
+        if (autoRerunExcludeArchived != null)
+          'rerun_exclude_archived': autoRerunExcludeArchived,
+      },
+    );
+    return IssueWithContext.fromJson(response.data);
+  }
+
   Future<AttachmentRule> createAttachmentRule({
     required int issueId,
     required bool enabled,

@@ -130,6 +130,24 @@ class Issue extends _$Issue {
     );
   }
 
+  Future<void> updateAutoRerun({
+    required int issueId,
+    required bool autoRerunEnabled,
+    bool? autoRerunOnlyLatest,
+    bool? autoRerunExcludeArchived,
+    bool? rerunExisting,
+  }) async {
+    final api = ref.read(apiProvider);
+    final updatedIssue = await api.patchIssue(
+      issueId: issueId,
+      autoRerunEnabled: autoRerunEnabled,
+      autoRerunOnlyLatest: autoRerunOnlyLatest,
+      autoRerunExcludeArchived: autoRerunExcludeArchived,
+      rerunExisting: rerunExisting,
+    );
+    state = AsyncData(updatedIssue);
+  }
+
   Future<void> attachIssueToTestResults({
     required int issueId,
     required TestResultsFilters filters,

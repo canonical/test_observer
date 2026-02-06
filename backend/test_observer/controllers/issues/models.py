@@ -83,6 +83,7 @@ class IssueResponse(BaseModel):
     title: str
     status: IssueStatus
     url: HttpUrl
+    auto_rerun_enabled: bool
 
     attachment_rules: list[MinimalIssueTestResultAttachmentRuleResponse] = Field(
         validation_alias=AliasPath("test_result_attachment_rules")
@@ -96,6 +97,11 @@ class IssuesGetResponse(BaseModel):
 class IssuePatchRequest(BaseModel):
     title: str | None = None
     status: IssueStatus | None = None
+    auto_rerun_enabled: bool | None = None
+    rerun_existing: bool | None = None
+    # Filter options for initial rerun only (not persisted)
+    rerun_only_latest: bool | None = None
+    rerun_exclude_archived: bool | None = None
 
 
 class IssuePutRequest(IssuePatchRequest):
