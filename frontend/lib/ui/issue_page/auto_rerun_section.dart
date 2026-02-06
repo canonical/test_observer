@@ -32,12 +32,12 @@ class AutoRerunSection extends ConsumerWidget {
 
   final IssueWithContext issue;
 
-    Future<Map<String, bool>?> _showAutoRerunOptionsDialog(
-      BuildContext context,
-    ) async {
-    bool rerunExisting = true;  // Default to true
-    bool onlyLatest = true;  // Default to true for initial rerun
-    bool excludeArchived = true;  // Default to true for initial rerun
+  Future<Map<String, bool>?> _showAutoRerunOptionsDialog(
+    BuildContext context,
+  ) async {
+    bool rerunExisting = true; // Default to true
+    bool onlyLatest = true; // Default to true for initial rerun
+    bool excludeArchived = true; // Default to true for initial rerun
 
     return showDialog<Map<String, bool>>(
       context: context,
@@ -64,101 +64,103 @@ class AutoRerunSection extends ConsumerWidget {
                 : 0;
 
             return AlertDialog(
-            title: const Text('Enable Automatic Reruns'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'When enabled, test results attached to this issue will automatically have rerun requests created.',
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Select rerun options:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                CheckboxListTile(
-                  title: const Text('Rerun existing test results'),
-                  subtitle: const Text('Trigger reruns for currently attached test results'),
-                  value: rerunExisting,
-                  onChanged: (value) {
-                    setState(() {
-                      rerunExisting = value ?? true;
-                    });
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (rerunExisting) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(left: 32.0),
-                    child: Column(
-                      children: [
-                        CheckboxListTile(
-                          title: const Text('Only latest test executions'),
-                          value: onlyLatest,
-                          onChanged: (value) {
-                            setState(() {
-                              onlyLatest = value ?? true;
-                            });
-                          },
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        CheckboxListTile(
-                          title: const Text('Exclude archived artefacts'),
-                          value: excludeArchived,
-                          onChanged: (value) {
-                            setState(() {
-                              excludeArchived = value ?? true;
-                            });
-                          },
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ],
-                    ),
+              title: const Text('Enable Automatic Reruns'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'When enabled, test results attached to this issue will automatically have rerun requests created.',
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Select rerun options:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  if (isLoading)
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: YaruCircularProgressIndicator(),
-                    )
-                  else if (hasError)
-                    const Text(
-                      'Failed to load test results.',
-                      style: TextStyle(color: Colors.red),
-                    )
-                  else
-                    InlineUrlText(
-                      url: '/#${filters.toTestResultsUri()}',
-                      urlText: 'Matches $testResultsCount test results',
-                      fontStyle: Theme.of(context).textTheme.bodyLarge?.apply(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontStyle: FontStyle.italic,
-                          decoration: TextDecoration.none,
-                          ),
+                  CheckboxListTile(
+                    title: const Text('Rerun existing test results'),
+                    subtitle: const Text(
+                        'Trigger reruns for currently attached test results',
+                    ),
+                    value: rerunExisting,
+                    onChanged: (value) {
+                      setState(() {
+                        rerunExisting = value ?? true;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
                   ),
+                  if (rerunExisting) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(left: 32.0),
+                      child: Column(
+                        children: [
+                          CheckboxListTile(
+                            title: const Text('Only latest test executions'),
+                            value: onlyLatest,
+                            onChanged: (value) {
+                              setState(() {
+                                onlyLatest = value ?? true;
+                              });
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          CheckboxListTile(
+                            title: const Text('Exclude archived artefacts'),
+                            value: excludeArchived,
+                            onChanged: (value) {
+                              setState(() {
+                                excludeArchived = value ?? true;
+                              });
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (isLoading)
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: YaruCircularProgressIndicator(),
+                      )
+                    else if (hasError)
+                      const Text(
+                        'Failed to load test results.',
+                        style: TextStyle(color: Colors.red),
+                      )
+                    else
+                      InlineUrlText(
+                        url: '/#${filters.toTestResultsUri()}',
+                        urlText: 'Matches $testResultsCount test results',
+                        fontStyle: Theme.of(context).textTheme.bodyLarge?.apply(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontStyle: FontStyle.italic,
+                              decoration: TextDecoration.none,
+                            ),
+                      ),
+                  ],
                 ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop({
+                    'rerunExisting': rerunExisting,
+                    'onlyLatest': rerunExisting ? onlyLatest : null,
+                    'excludeArchived': rerunExisting ? excludeArchived : null,
+                  }),
+                  child: const Text('Enable'),
+                ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop({
-                  'rerunExisting': rerunExisting,
-                  'onlyLatest': rerunExisting ? onlyLatest : null,
-                  'excludeArchived': rerunExisting ? excludeArchived : null,
-                }),
-                child: const Text('Enable'),
-              ),
-            ],
             );
           },
         ),
@@ -182,7 +184,9 @@ class AutoRerunSection extends ConsumerWidget {
               if (options == null) return;
 
               if (context.mounted) {
-                await ref.read(issueProvider(issue.id).notifier).updateAutoRerun(
+                await ref
+                    .read(issueProvider(issue.id).notifier)
+                    .updateAutoRerun(
                       issueId: issue.id,
                       autoRerunEnabled: true,
                       // Only pass filter options if rerunning existing
