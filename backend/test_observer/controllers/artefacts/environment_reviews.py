@@ -74,6 +74,8 @@ def bulk_update_environment_reviews(
 
     updated_reviews = []
     for request in requests:
+        if request.id is None:
+            continue
         review = reviews_dict.get(request.id)
         if not review:
             continue

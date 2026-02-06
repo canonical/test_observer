@@ -248,7 +248,7 @@ def test_bulk_review_with_same_comment_and_decision(
 def test_bulk_review_rejects_if_review_belongs_to_different_artefact(
     test_client: TestClient, generator: DataGenerator
 ):
-    """Test that bulk review fails if a review belongs to a different artefact."""
+    """Test that bulk review silently skips reviews from a different artefact."""
     a1 = generator.gen_artefact(StageName.beta, name="artefact1")
     a2 = generator.gen_artefact(StageName.beta, name="artefact2")
     ab1 = generator.gen_artefact_build(a1)
