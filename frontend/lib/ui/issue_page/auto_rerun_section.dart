@@ -81,7 +81,7 @@ class AutoRerunSection extends ConsumerWidget {
                   CheckboxListTile(
                     title: const Text('Rerun existing test results'),
                     subtitle: const Text(
-                        'Trigger reruns for currently attached test results',
+                      'Trigger reruns for currently attached test results',
                     ),
                     value: rerunExisting,
                     onChanged: (value) {
