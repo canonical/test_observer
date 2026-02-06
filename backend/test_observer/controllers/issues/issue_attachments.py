@@ -20,6 +20,7 @@ from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import delete, select, literal
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.sql import Subquery
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.metric_collectors import update_triaged_results_metric
@@ -72,7 +73,7 @@ def load_test_results_with_relations(
 
 def _trigger_reruns_for_new_attachments(
     db: Session,
-    test_result_ids_query,  # SQLAlchemy subquery of TestResult.id
+    test_result_ids_query: Subquery,  # SQLAlchemy subquery of TestResult.id
     issue: Issue,
 ) -> None:
     """
@@ -114,7 +115,7 @@ def modify_issue_attachments(
         if attachment_rule is None:
             raise HTTPException(status_code=404, detail="Attachment rule not found")
 
-    # Track queries for test result IDs for auto-rerun logic (avoid materializing in memory)
+    # Track queries for test result IDs for auto-rerun logic
     test_result_id_queries = []
 
     # Add or remove any requested test result attachments
@@ -149,8 +150,7 @@ def modify_issue_attachments(
             )
             # Store as queries instead of materializing IDs
             test_result_id_queries.extend(
-                select(literal(id_).label("id")).subquery()
-                for id_ in test_result_ids
+                select(literal(id_).label("id")).subquery() for id_ in test_result_ids
             )
 
             for test_result in test_results:
@@ -213,6 +213,7 @@ def modify_issue_attachments(
             combined_ids_query = test_result_id_queries[0]
         else:
             from sqlalchemy import union_all
+
             combined_ids_query = union_all(
                 *[select(q.c.id) for q in test_result_id_queries]
             ).subquery()

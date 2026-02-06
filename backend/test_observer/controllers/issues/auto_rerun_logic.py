@@ -55,7 +55,10 @@ def trigger_reruns_for_attachment_rule(
     test_execution_ids = set(
         db.execute(
             select(TestResult.test_execution_id)
-            .join(IssueTestResultAttachment, TestResult.id == IssueTestResultAttachment.test_result_id)
+            .join(
+                IssueTestResultAttachment,
+                TestResult.id == IssueTestResultAttachment.test_result_id,
+            )
             .where(IssueTestResultAttachment.attachment_rule_id == attachment_rule.id)
             .distinct()
         )

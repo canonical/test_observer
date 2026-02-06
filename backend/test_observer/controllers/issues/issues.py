@@ -172,7 +172,7 @@ def require_auto_rerun_permission(
         if issue is None:
             # Will be caught by the actual endpoint
             return
-        
+
         # Only check permission if enabling auto_rerun (not if already enabled)
         if not issue.auto_rerun_enabled:
             permission_checker(security_scopes, user, app)
@@ -205,34 +205,49 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     # Track if we need to trigger reruns for existing test results
     trigger_reruns = False
     rerun_filters = None
-    
+
     if request.auto_rerun_enabled is not None:
         old_auto_rerun_enabled = issue.auto_rerun_enabled
         issue.auto_rerun_enabled = request.auto_rerun_enabled
         # Only trigger reruns if explicitly requested via rerun_existing parameter
-        if (request.auto_rerun_enabled and 
-            not old_auto_rerun_enabled and 
-            request.rerun_existing):
+        if (
+            request.auto_rerun_enabled
+            and not old_auto_rerun_enabled
+            and request.rerun_existing
+        ):
             trigger_reruns = True
             # Use filter options from request for this one-time rerun only
+            only_latest = (
+                request.rerun_only_latest
+                if request.rerun_only_latest is not None
+                else True
+            )
+            exclude_archived = (
+                request.rerun_exclude_archived
+                if request.rerun_exclude_archived is not None
+                else True
+            )
             rerun_filters = {
-                'only_latest': request.rerun_only_latest if request.rerun_only_latest is not None else True,
-                'exclude_archived': request.rerun_exclude_archived if request.rerun_exclude_archived is not None else True,
+                "only_latest": only_latest,
+                "exclude_archived": exclude_archived,
             }
-    
+
     db.commit()
     db.refresh(issue)
-    
+
     # Trigger reruns after commit if needed
     if trigger_reruns:
-        from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
+        from test_observer.controllers.test_results.shared_models import (
+            TestResultSearchFilters,
+        )
+
         filters = TestResultSearchFilters(
             issues=[issue.id],
-            execution_is_latest=rerun_filters['only_latest'],
-            artefact_is_archived=False if rerun_filters['exclude_archived'] else None,
+            execution_is_latest=rerun_filters["only_latest"],
+            artefact_is_archived=(False if rerun_filters["exclude_archived"] else None),
         )
         trigger_reruns_for_filters(db, filters)
-    
+
     return issue
 
 
