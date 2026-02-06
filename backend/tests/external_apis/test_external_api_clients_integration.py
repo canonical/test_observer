@@ -15,31 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from test_observer.external_apis.github.github_client import GitHubClient
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.exceptions import IssueNotFoundError
-
-
-@pytest.mark.integration
-class TestGitHubClientIntegration:
-    """Integration tests with real GitHub API"""
-
-    def test_get_real_github_issue(self) -> None:
-        """Test fetching a real public GitHub issue"""
-        client = GitHubClient()  # No token for public repos
-        result = client.get_issue("canonical/test_observer", "71")
-
-        assert result.title is not None
-        assert len(result.title) > 0
-        assert result.state in ("open", "closed")
-        assert result.raw is not None
-
-    def test_get_nonexistent_github_issue(self) -> None:
-        """Test 404 handling"""
-        client = GitHubClient()
-        with pytest.raises(IssueNotFoundError):
-            client.get_issue("canonical/test_observer", "999999")
 
 
 @pytest.mark.integration

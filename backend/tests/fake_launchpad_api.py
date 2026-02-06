@@ -26,7 +26,24 @@ class FakeLaunchpadAPI(LaunchpadAPI):
 
     def get_user_by_email(self, email: str) -> LaunchpadUser | None:
         if email == "john.doe@canonical.com":
-            return LaunchpadUser(handle="john-doe", email=email, name="John Doe")
+            return LaunchpadUser(
+                handle="john-doe",
+                email=email,
+                name="John Doe",
+                teams=["canonical", "hw-cert"],
+            )
         if email == "certbot@canonical.com":
-            return LaunchpadUser(handle="certbot", email=email, name="Certbot")
+            return LaunchpadUser(
+                handle="certbot",
+                email=email,
+                name="Certbot",
+                teams=["canonical-hw-cert"],
+            )
+        if email == "mark@electricdemon.com":
+            return LaunchpadUser(
+                handle="mark",
+                email=email,
+                name="Mark",
+                teams=["canonical"],
+            )
         return None

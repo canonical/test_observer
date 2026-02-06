@@ -69,3 +69,7 @@ jobs:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           tag-prefix: "api"
+
+      - name: Check logs for failure
+        if: failure()
+        run: sudo cat /root/.local/state/charmcraft/log/charmcraft-*.log

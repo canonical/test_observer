@@ -30,5 +30,10 @@ class LaunchpadAPI:
     def get_user_by_email(self, email: EmailStr) -> LaunchpadUser | None:
         user = self.launchpad.people.getByEmail(email=email)
         if user:
-            return LaunchpadUser(handle=user.name, email=email, name=user.display_name)
+            return LaunchpadUser(
+                handle=user.name,
+                email=email,
+                name=user.display_name,
+                teams=[team.name for team in user.super_teams],
+            )
         return None
