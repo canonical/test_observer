@@ -77,6 +77,38 @@ class ApiRepository {
     return artefactBuilds;
   }
 
+  Future<void> startManualTestExecution({
+    required String family,
+    required String name,
+    required String version,
+    required String arch,
+    required String environment,
+    required String testPlan,
+    required String initialStatus,
+    required Map<String, dynamic> familySpecificFields,
+    List<Map<String, String>>? relevantLinks,
+  }) async {
+    final data = {
+      'family': family,
+      'name': name,
+      'version': version,
+      'arch': arch,
+      'environment': environment,
+      'test_plan': testPlan,
+      'initial_status': initialStatus,
+      ...familySpecificFields,
+    };
+
+    if (relevantLinks != null && relevantLinks.isNotEmpty) {
+      data['relevant_links'] = relevantLinks;
+    }
+
+    await dio.put(
+      '/v1/test-executions/start-test',
+      data: data,
+    );
+  }
+
   Future<List<TestResult>> getTestExecutionResults(int testExecutionId) async {
     final response =
         await dio.get('/v1/test-executions/$testExecutionId/test-results');
@@ -340,6 +372,37 @@ class ApiRepository {
       queryParameters: filters.toQueryParams(),
     );
     return TestResultsSearchResult.fromJson(response.data);
+  }
+
+  Future<void> submitTestResult({
+    required int testExecutionId,
+    required String testName,
+    required TestResultStatus status,
+    String? category,
+    String? comment,
+    String? ioLog,
+  }) async {
+    final data = {
+      'name': testName,
+      'status': status.apiValue,
+    };
+
+    if (category != null && category.isNotEmpty) {
+      data['category'] = category;
+    }
+
+    if (comment != null && comment.isNotEmpty) {
+      data['comment'] = comment;
+    }
+
+    if (ioLog != null && ioLog.isNotEmpty) {
+      data['io_log'] = ioLog;
+    }
+
+    await dio.post(
+      '/v1/test-executions/$testExecutionId/test-results',
+      data: [data],
+    );
   }
 
   Future<Issue> attachIssue({
