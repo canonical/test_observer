@@ -48,6 +48,51 @@ def get_environment_reviews(
 
 
 @router.patch(
+    "/{artefact_id}/environment-reviews/bulk",
+    response_model=list[ArtefactBuildEnvironmentReviewResponse],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_environment_review])
+    ],
+)
+def bulk_update_environment_reviews(
+    artefact_id: int,
+    requests: list[EnvironmentReviewPatch],
+    db: Session = Depends(get_db),
+):
+    review_ids = [request.id for request in requests if request.id is not None]
+    reviews = db.scalars(
+        select(ArtefactBuildEnvironmentReview)
+        .where(ArtefactBuildEnvironmentReview.id.in_(review_ids))
+        .options(selectinload(ArtefactBuildEnvironmentReview.artefact_build))
+    ).all()
+
+    reviews_dict = {review.id: review for review in reviews}
+
+    updated_reviews = []
+    for request in requests:
+        review = reviews_dict.get(request.id)
+        if not review:
+            continue
+
+        if review.artefact_build.artefact_id != artefact_id:
+            msg = (
+                f"Environment review {request.id} doesn't belong to artefact "
+                f"{artefact_id}"
+            )
+            raise HTTPException(422, msg)
+
+        for field in request.model_fields_set:
+            value = getattr(request, field)
+            if value is not None:
+                setattr(review, field, value)
+
+        updated_reviews.append(review)
+
+    db.commit()
+    return updated_reviews
+
+
+@router.patch(
     "/{artefact_id}/environment-reviews/{review_id}",
     response_model=ArtefactBuildEnvironmentReviewResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.change_environment_review])],
