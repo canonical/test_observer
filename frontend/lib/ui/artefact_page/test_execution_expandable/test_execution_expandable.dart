@@ -28,6 +28,7 @@ import '../test_event_log_expandable.dart';
 import '../execution_metadata_expandable.dart';
 import '../test_result_dialog.dart';
 import '../../../providers/current_user.dart';
+import '../manual_testing_dialog.dart';
 
 class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({
@@ -58,18 +59,18 @@ class TestExecutionExpandable extends ConsumerWidget {
         artefactId: artefactId,
       ),
       children: <Widget>[
-        if (testExecution.testPlan != 'Manual Testing')
+        if (testExecution.testPlan != kManualTestPlanName)
           TestEventLogExpandable(
             testExecutionId: testExecution.id,
             initiallyExpanded: !testExecution.status.isCompleted,
           ),
-        if (testExecution.testPlan != 'Manual Testing')
+        if (testExecution.testPlan != kManualTestPlanName)
           ExecutionMetadataExpandable(
             executionMetadata: testExecution.executionMetadata,
             initiallyExpanded: false,
           ),
         if (testExecution.status.isCompleted ||
-            testExecution.testPlan == 'Manual Testing')
+            testExecution.testPlan == kManualTestPlanName)
           Expandable(
             title: const Text('Test Results'),
             initiallyExpanded: true,
@@ -135,7 +136,7 @@ class _TestExecutionTileTitle extends ConsumerWidget {
               urlText: link.label,
             ),
           ),
-        if (user != null && testExecution.testPlan == 'Manual Testing') ...[
+        if (user != null && testExecution.testPlan == kManualTestPlanName) ...[
           const SizedBox(width: Spacing.level3),
           TextButton.icon(
             onPressed: () => showDialog(

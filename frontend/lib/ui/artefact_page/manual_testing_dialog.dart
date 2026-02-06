@@ -22,11 +22,12 @@ import 'package:go_router/go_router.dart';
 import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
 import '../../models/family_name.dart';
-import '../../models/test_execution.dart';
 import '../../providers/api.dart';
 import '../../providers/artefact.dart' hide Artefact;
 import '../../providers/artefact_builds.dart';
 import '../spacing.dart';
+
+const String kManualTestPlanName = 'Manual Testing';
 
 class StartManualTestingDialog extends ConsumerStatefulWidget {
   const StartManualTestingDialog({
@@ -46,10 +47,7 @@ class _StartManualTestingDialogState
   final _formKey = GlobalKey<FormState>();
   final _environmentController = TextEditingController();
   final _relevantLinks = <_RelevantLink>[];
-  TestExecutionStatus _selectedStatus = TestExecutionStatus.notStarted;
   bool _isSubmitting = false;
-
-  static const String _manualTestPlan = 'Manual Testing';
 
   @override
   void dispose() {
@@ -91,17 +89,7 @@ class _StartManualTestingDialogState
           )
           .toList();
 
-      String statusString;
-      switch (_selectedStatus) {
-        case TestExecutionStatus.notStarted:
-          statusString = 'NOT_STARTED';
-          break;
-        case TestExecutionStatus.inProgress:
-          statusString = 'IN_PROGRESS';
-          break;
-        default:
-          statusString = 'NOT_STARTED';
-      }
+      const statusString = 'NOT_STARTED';
 
       await api.startManualTestExecution(
         family: artefact.family,
@@ -109,7 +97,7 @@ class _StartManualTestingDialogState
         version: artefact.version,
         arch: builds.first.architecture,
         environment: _environmentController.text,
-        testPlan: _manualTestPlan,
+        testPlan: kManualTestPlanName,
         initialStatus: statusString,
         familySpecificFields: familySpecificFields,
         relevantLinks: relevantLinks.isEmpty ? null : relevantLinks,
@@ -291,7 +279,7 @@ class _StartManualTestingDialogState
                   const SizedBox(height: Spacing.level4),
                   // Test plan name (read-only)
                   TextFormField(
-                    initialValue: _manualTestPlan,
+                    initialValue: kManualTestPlanName,
                     decoration: const InputDecoration(
                       labelText: 'Test Plan',
                       border: OutlineInputBorder(),
@@ -299,29 +287,6 @@ class _StartManualTestingDialogState
                       fillColor: Color(0xFFEEEEEE),
                     ),
                     enabled: false,
-                  ),
-                  const SizedBox(height: Spacing.level4),
-                  // Initial status dropdown
-                  DropdownButtonFormField<TestExecutionStatus>(
-                    value: _selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Initial Status *',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      TestExecutionStatus.notStarted,
-                      TestExecutionStatus.inProgress,
-                    ].map((status) {
-                      return DropdownMenuItem(
-                        value: status,
-                        child: Text(_formatStatusName(status)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => _selectedStatus = value);
-                      }
-                    },
                   ),
                   const SizedBox(height: Spacing.level5),
                   // Relevant links section
@@ -412,17 +377,6 @@ class _StartManualTestingDialogState
         ],
       ),
     );
-  }
-
-  String _formatStatusName(TestExecutionStatus status) {
-    switch (status) {
-      case TestExecutionStatus.notStarted:
-        return 'Not Started';
-      case TestExecutionStatus.inProgress:
-        return 'In Progress';
-      default:
-        return status.name;
-    }
   }
 }
 
