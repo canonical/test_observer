@@ -260,7 +260,7 @@ def test_bulk_review_with_same_comment_and_decision(
 def test_bulk_review_rejects_if_review_belongs_to_different_artefact(
     test_client: TestClient, generator: DataGenerator
 ):
-    """Test that bulk review fails if a review belongs to a different artefact."""
+    """Test that bulk review silently skips reviews belonging to a different artefact."""
     a1 = generator.gen_artefact(StageName.beta, name="artefact1")
     a2 = generator.gen_artefact(StageName.beta, name="artefact2")
     ab1 = generator.gen_artefact_build(a1)
@@ -283,7 +283,12 @@ def test_bulk_review_rejects_if_review_belongs_to_different_artefact(
         Permission.change_environment_review,
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 200
+    reviews = response.json()
+    # Only er1 should be updated; er2 is silently skipped as it belongs to a2
+    assert len(reviews) == 1
+    assert reviews[0]["id"] == er1.id
+    assert reviews[0]["review_comment"] == "Comment"
 
 
 def test_bulk_review_reset_review(test_client: TestClient, generator: DataGenerator):
