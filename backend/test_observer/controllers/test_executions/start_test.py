@@ -19,7 +19,7 @@ from datetime import date, timedelta
 import random
 
 from fastapi import APIRouter, Body, Depends, Security
-from sqlalchemy import select
+from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -32,6 +32,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestPlan,
     User,
+    ArtefactMatchingRule,
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
@@ -79,16 +80,30 @@ class StartTestExecutionController:
             # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
 
-            users = (
-                self.db.execute(
-                    select(User)
-                    .join(User.teams)
-                    .where(Team.reviewer_families.any(family_str))
-                    .distinct()
-                )
-                .scalars()
-                .all()
-            )
+            possible_rules = self.db.execute(
+                select(ArtefactMatchingRule)
+                .where(
+                    and_(
+                        ArtefactMatchingRule.family == family_str,
+                        or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage.is_(None)),
+                        or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track.is_(None)),
+                        or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch.is_(None)),
+                    ),
+            )).scalars().all()
+
+            # sort rules by number of non-null fields to prioritize specificity
+            rules_with_score = [[r, sum(1 for field in [r.stage, r.track, r.branch] if field is not None)] for r in possible_rules]
+            sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
+            highest_score = sorted_rules[0][1] if sorted_rules else 0
+            rules = [r[0] for r in sorted_rules if r[1] == highest_score]
+
+            users = (self.db.execute(
+                select(User)
+                .join(User.teams)
+                .join(Team.artefact_matching_rules)
+                .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
+                .distinct()
+            ).scalars().all())
 
             if users:
                 self.artefact.assignee = random.choice(users)

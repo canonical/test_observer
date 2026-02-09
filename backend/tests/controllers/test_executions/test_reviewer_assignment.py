@@ -112,6 +112,21 @@ class TestReviewerAssignmentWithMatchingRules:
                 ["CharmUser"],
                 id="match-charm-artefact",
             ),
+            pytest.param(
+                {
+                    "teams": [{"name": "charm-team", "users": ["CharmUser"]},  {"name": "beta-team", "users": ["BetaUser"]}],
+                    "rules": [{"family": FamilyName.charm, "team": "charm-team"}, {"family": FamilyName.charm, "stage": CharmStage.beta, "team": "beta-team"}],
+                },
+                {
+                    "family": "charm", 
+                    "name": "postgresql", 
+                    "execution_stage": CharmStage.beta,
+                    "track": "3.0",
+                    "revision": 1,
+                },
+                ["BetaUser"],
+                id="match-twice-with-different-specificity",
+            ),
         ],
     )
     def test_reviewer_assignment_scenarios(
