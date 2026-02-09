@@ -195,6 +195,8 @@ class ArtefactMatchingRule(Base):
         back_populates="artefact_matching_rules",
     )
 
+    __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if "teams" in kwargs and not kwargs["teams"]:
