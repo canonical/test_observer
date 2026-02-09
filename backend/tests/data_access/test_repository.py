@@ -25,8 +25,13 @@ from test_observer.data_access.repository import (
 )
 from tests.data_generator import DataGenerator
 
+from test_observer.data_access.models import TestCase
+
 from pydantic import HttpUrl
 from pytest import MonkeyPatch
+from typing import TypeVar
+
+_T = TypeVar("_T")
 
 
 def test_create_test_execution_relevant_link(
@@ -59,11 +64,11 @@ def test_create_test_execution_relevant_link(
     assert any(rl.id == link.id for rl in test_execution.relevant_links)
 
 
-def test_get_or_create_returns_existing(db_session: Session, generator: DataGenerator):
+def test_get_or_create_returns_existing(db_session: Session):
     """Test that get_or_create returns an existing instance if it exists."""
 
     # Arrange
-    test_case = generator.gen_test_case(name="unique")
+    test_case = TestCase(name="existing", category="category")
     db_session.add(test_case)
     db_session.commit()
 
@@ -71,23 +76,31 @@ def test_get_or_create_returns_existing(db_session: Session, generator: DataGene
     result = get_or_create(
         db_session,
         model=type(test_case),
-        filter_kwargs={"name": test_case.name},
+        filter_kwargs={
+            "name": test_case.name,
+            "category": test_case.category,
+        },
     )
 
     assert test_case.id == result.id
 
 
-def test_get_or_create_creates_new(db_session: Session, generator: DataGenerator):
+def test_get_or_create_creates_new(db_session: Session):
     """Test that get_or_create creates a new instance if it doesn't exist."""
 
     # Arrange
-    test_case = generator.gen_test_case(name="unique")
+    test_case = TestCase(name="new", category="category")
 
     # Act
+
+    # Because of the way get_or_create attempts to create an instance,
+    # we must make sure every required field of the model is included
+    # in one of filter_kwargs or creation_kwargs
+    # for the case when the model doesn't exist
     result = get_or_create(
         db_session,
         model=type(test_case),
-        filter_kwargs={"name": test_case.name},
+        filter_kwargs={"name": test_case.name, "category": test_case.category},
     )
 
     assert result.id is not None
@@ -96,7 +109,6 @@ def test_get_or_create_creates_new(db_session: Session, generator: DataGenerator
 
 def test_get_or_create_race_condition(
     db_session: Session,
-    generator: DataGenerator,
     monkeypatch: MonkeyPatch,
 ):
     """
@@ -110,33 +122,38 @@ def test_get_or_create_race_condition(
     # get_or_create calls query.first() to check if the instance exists,
     # so we mock the first() method to return None,
     # as if the instance did not exist
-    def mock_first() -> None:
+    def mock_first(_: Query[_T]) -> None:
         return None
 
     monkeypatch.setattr(Query, "first", mock_first)
 
-    # Then we add the instance to the database to simulate another process creating it
-    test_case = generator.gen_test_case(name="race-condition")
+    # We add the instance to the database to simulate another process creating it
+    test_case = TestCase(name="new", category="category")
     db_session.add(test_case)
     db_session.commit()
 
-    # We want to check that we raise the IntegrityError by calling `db.flush()`
-    calls = {"flush": 0}
-    flush = db_session.flush
+    # We want to check that we raise the IntegrityError by checking calls to `one()`,
+    # which only happens in the exception handling
+    calls = {"one": 0}
+    one = Query.one
 
-    def mock_flush() -> None:
-        calls["flush"] += 1
-        flush()
+    def mock_one(self: Query[_T]) -> _T:
+        calls["one"] += 1
+        return one(self)
 
-    monkeypatch.setattr(db_session, "flush", mock_flush)
+    monkeypatch.setattr(Query, "one", mock_one)
 
     # Act
+
+    # Because of the way get_or_create attempts to create an instance,
+    # we must make sure every required field of the model is included
+    # in one of filter_kwargs or creation_kwargs
+    # for the case when the model doesn't exist
     result = get_or_create(
         db_session,
         model=type(test_case),
-        filter_kwargs={"name": test_case.name},
+        filter_kwargs={"name": test_case.name, "category": test_case.category},
     )
 
     assert result.id == test_case.id
-    assert db_session.query(type(test_case)).count() == 1
-    assert calls["flush"] == 1
+    assert calls["one"] == 1
