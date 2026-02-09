@@ -148,9 +148,11 @@ def get_or_create(
     # This filled the PostgreSQL logs with errors on nearly every call,
     # which made the logs very noisy.
     # Example log message:
-        # <timestamp> STATEMENT:  INSERT INTO <table> (<fields>) VALUES (<values>) RETURNING <outputs> # noqa: E501
-        # <timestamp> ERROR:  duplicate key value violates unique constraint "<key>"
-        # <timestamp> DETAIL:  Key (<key>)=(<value>) already exists.
+
+    # <timestamp> STATEMENT:  INSERT INTO <table> (<fields>) VALUES (<values>) RETURNING <outputs> # noqa: E501
+    # <timestamp> ERROR:  duplicate key value violates unique constraint "<key>"
+    # <timestamp> DETAIL:  Key (<key>)=(<value>) already exists.
+
     # We now check for the instance first to avoid this
     instance = db.query(model).filter_by(**filter_kwargs).first()
     if instance:
