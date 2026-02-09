@@ -22,7 +22,7 @@ from typing import Any
 from pydantic import HttpUrl
 
 from sqlalchemy import and_, func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
 from .models import Artefact, ArtefactBuild, DataModel, TestExecutionRelevantLink
@@ -153,32 +153,15 @@ def get_or_create(
     # <timestamp> ERROR:  duplicate key value violates unique constraint "<key>"
     # <timestamp> DETAIL:  Key (<key>)=(<value>) already exists.
 
-    # We now check for the instance first to avoid this
-    instance = db.query(model).filter_by(**filter_kwargs).first()
-    if instance:
-        return instance
-
+    # We now use `.on_conflict_do_nothing()` to avoid the error
+    # in the common case where the instance already exists
     creation_kwargs = creation_kwargs or {}
-    instance = model(**filter_kwargs, **creation_kwargs)
+    values = {**filter_kwargs, **creation_kwargs}
+    statement = insert(model).values(**values).on_conflict_do_nothing()
+    db.execute(statement)
+    db.commit()
 
-    # The instance did not exist when we queried,
-    # but it might have been created by another process before we try to add it.
-    # Thus, we still need to catch the IntegrityError
-    # and query for the instance in that case, but this should be much rarer
-    try:
-        # Attempt to add and commit the new instance
-        # Use a nested transaction to avoid rolling back the entire session
-        with db.begin_nested():
-            db.add(instance)
-            # Ensure the INSERT is executed immediately
-            # to catch IntegrityError here if it occurs
-            db.flush()
-        db.commit()
-    except IntegrityError:
-        # Query and return the existing instance
-        instance = db.query(model).filter_by(**filter_kwargs).one()
-
-    return instance
+    return db.query(model).filter_by(**filter_kwargs).one()
 
 
 def create_test_execution_relevant_link(
