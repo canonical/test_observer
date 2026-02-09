@@ -24,6 +24,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
+    ArtefactMatchingRule,
     Environment,
     Issue,
     Team,
@@ -71,6 +72,27 @@ class DataGenerator:
         )
         self._add_object(team)
         return team
+
+    def gen_artefact_matching_rule(
+        self,
+        teams: list[Team],
+        family: FamilyName,
+        stage: str | None = None,
+        track: str | None = None,
+        branch: str | None = None,
+    ) -> ArtefactMatchingRule:
+        if len(teams) == 0:
+            raise ValueError("ArtefactMatchingRule must have at least one team")
+        
+        rule = ArtefactMatchingRule(
+            family=family,
+            stage=stage,
+            track=track,
+            branch=branch,
+            teams=teams,
+        )
+        self._add_object(rule)
+        return rule
 
     def gen_user(
         self,
