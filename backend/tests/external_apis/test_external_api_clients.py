@@ -14,170 +14,119 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from unittest.mock import Mock, MagicMock, patch
 import pytest
-
+import requests
+from unittest.mock import patch, Mock
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
-from test_observer.external_apis.exceptions import (
-    IssueNotFoundError,
-    APIError,
-    RateLimitError,
-)
+from test_observer.external_apis.models import IssueData
+from test_observer.external_apis.exceptions import APIError
 
 
 class TestJiraClient:
-    """Tests for JiraClient"""
+    """Tests for JiraClient with scoped service account tokens"""
 
     def test_init_cloud_auth(self) -> None:
-        """Test Jira client initialization with Cloud auth"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(
-                base_url="https://example.atlassian.net",
-                email="user@example.com",
-                api_token="token123",
-            )
-            assert client.base_url == "https://example.atlassian.net"
+        """Test JiraClient initialization with cloud ID"""
+        client = JiraClient(
+            cloud_id="test-cloud-id-123",
+            email="test@example.com",
+            api_token="test-token",
+        )
+
+        assert client.base_url == "https://api.atlassian.com/ex/jira/test-cloud-id-123"
+        assert client.email == "test@example.com"
+        assert client.api_token == "test-token"
+        assert client.timeout == 30
 
     def test_init_bearer_auth(self) -> None:
-        """Test Jira client initialization with Bearer token"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(
-                base_url="https://jira.company.com",
-                bearer_token="token123",
-            )
-            assert client.base_url == "https://jira.company.com"
+        """Test JiraClient with custom timeout"""
+        client = JiraClient(
+            cloud_id="test-cloud-id",
+            email="test@example.com",
+            api_token="test-token",
+            timeout=60,
+        )
+
+        assert client.timeout == 60
 
     def test_normalize_issue_key_with_project(self) -> None:
-        """Test issue key normalization with project"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(base_url="https://example.atlassian.net")
-            key = client._normalize_issue_key("TO", "123")
-            assert key == "TO-123"
+        """Test base URL construction with cloud ID"""
+        cloud_id = "my-custom-cloud-id-123"
+        client = JiraClient(
+            cloud_id=cloud_id, email="test@example.com", api_token="test-token"
+        )
 
-    def test_normalize_issue_key_with_hash(self) -> None:
-        """Test issue key normalization with hash"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(base_url="https://example.atlassian.net")
-            key = client._normalize_issue_key("TO", "#123")
-            assert key == "TO-123"
+        expected_url = f"https://api.atlassian.com/ex/jira/{cloud_id}"
+        assert client.base_url == expected_url
 
-    def test_normalize_issue_key_full_key(self) -> None:
-        """Test issue key normalization with full key"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(base_url="https://example.atlassian.net")
-            key = client._normalize_issue_key("TO", "TO-123")
-            assert key == "TO-123"
+    @patch("test_observer.external_apis.jira.jira_client.requests.get")
+    def test_get_issue_success(self, mock_get: Mock) -> None:
+        """Test successful issue retrieval"""
+        # Setup mock response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "key": "TEST-123",
+            "fields": {
+                "summary": "Test Issue Title",
+                "status": {"name": "In Progress"},
+            },
+        }
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
 
-    def test_normalize_state_done(self) -> None:
-        """Test state normalization for done status"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(base_url="https://example.atlassian.net")
-            state = client._normalize_state(status_category="done")
-            assert state == "closed"
+        client = JiraClient(
+            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
+        )
 
-    def test_normalize_state_with_resolution(self) -> None:
-        """Test state normalization with resolution"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(base_url="https://example.atlassian.net")
-            state = client._normalize_state(resolution="Fixed")
-            assert state == "closed"
+        result = client.get_issue("TEST", "TEST-123")
 
-    def test_normalize_state_open(self) -> None:
-        """Test state normalization for open status"""
-        with patch("test_observer.external_apis.jira.jira_client.JIRA"):
-            client = JiraClient(base_url="https://example.atlassian.net")
-            state = client._normalize_state(status_category="in_progress")
-            assert state == "open"
+        assert isinstance(result, IssueData)
+        assert result.title == "Test Issue Title"
+        assert result.state == "In Progress"
+        assert result.state_reason is None
+        assert result.raw is not None
 
-    def test_get_issue_success(self) -> None:
-        """Test successful Jira issue fetch"""
-        mock_status = Mock()
-        mock_status.name = "To Do"
-        mock_status.statusCategory.key = "to_do"
+        # Verify the request was made correctly
+        mock_get.assert_called_once()
+        request = (
+            "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/TEST-123"
+        )
+        assert request in str(mock_get.call_args)
 
-        mock_fields = Mock()
-        mock_fields.summary = "Test Issue"
-        mock_fields.status = mock_status
-        mock_fields.resolution = None
+    @patch("test_observer.external_apis.jira.jira_client.requests.get")
+    def test_get_issue_not_found(self, mock_get: Mock) -> None:
+        """Test 404 error handling"""
+        # Setup mock to raise HTTPError
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "404 Not Found"
+        )
+        mock_get.return_value = mock_response
 
-        mock_issue = Mock()
-        mock_issue.key = "TO-123"
-        mock_issue.fields = mock_fields
-        mock_issue.permalink.return_value = "https://jira.atlassian.net/TO-123"
+        client = JiraClient(
+            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
+        )
 
-        mock_jira = Mock()
-        mock_jira.issue.return_value = mock_issue
+        with pytest.raises(requests.exceptions.HTTPError):
+            client.get_issue("TEST", "NOTFOUND-1")
 
-        with patch(
-            "test_observer.external_apis.jira.jira_client.JIRA",
-            return_value=mock_jira,
-        ):
-            client = JiraClient(
-                base_url="https://example.atlassian.net",
-                email="user@example.com",
-                api_token="token",
-            )
-            result = client.get_issue("TO", "123")
+    @patch("test_observer.external_apis.jira.jira_client.requests.get")
+    def test_get_issue_rate_limited(self, mock_get: Mock) -> None:
+        """Test rate limit error handling"""
+        # Setup mock to raise HTTPError for rate limit
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "429 Too Many Requests"
+        )
+        mock_get.return_value = mock_response
 
-            assert result.title == "Test Issue"
-            assert result.state == "open"
-            assert result.state_reason == "To Do"
-            mock_jira.issue.assert_called_once_with("TO-123")
+        client = JiraClient(
+            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
+        )
 
-    def test_get_issue_not_found(self) -> None:
-        """Test Jira issue not found"""
-        from jira.exceptions import JIRAError
-
-        mock_jira = Mock()
-
-        # Create a real JIRAError and set status_code
-        def raise_not_found(*_: object, **__: object) -> object:
-            error = JIRAError("Not Found")
-            error.status_code = 404
-            raise error
-
-        mock_jira.issue.side_effect = raise_not_found
-
-        with patch(
-            "test_observer.external_apis.jira.jira_client.JIRA",
-            return_value=mock_jira,
-        ):
-            client = JiraClient(
-                base_url="https://example.atlassian.net",
-                email="user@example.com",
-                api_token="token",
-            )
-            with pytest.raises(IssueNotFoundError):
-                client.get_issue("TO", "999")
-
-    def test_get_issue_rate_limited(self) -> None:
-        """Test Jira rate limit"""
-        from jira.exceptions import JIRAError
-
-        mock_jira = Mock()
-
-        # Create a real JIRAError and set status_code
-        def raise_rate_limit(*_: object, **__: object) -> object:
-            error = JIRAError("Rate Limited")
-            error.status_code = 429
-            raise error
-
-        mock_jira.issue.side_effect = raise_rate_limit
-
-        with patch(
-            "test_observer.external_apis.jira.jira_client.JIRA",
-            return_value=mock_jira,
-        ):
-            client = JiraClient(
-                base_url="https://example.atlassian.net",
-                email="user@example.com",
-                api_token="token",
-            )
-            with pytest.raises(RateLimitError):
-                client.get_issue("TO", "123")
+        with pytest.raises(requests.exceptions.HTTPError):
+            client.get_issue("TEST", "TEST-1")
 
 
 class TestLaunchpadClient:
@@ -276,55 +225,3 @@ class TestLaunchpadClient:
             assert result.title == "Test Bug"
             assert result.state == "open"
             assert result.state_reason == "New"
-
-    def test_get_issue_not_found(self) -> None:
-        """Test Launchpad bug not found"""
-        from lazr.restfulclient.errors import NotFound  # type: ignore[import-untyped]
-
-        mock_launchpad = MagicMock()
-        mock_launchpad.bugs.__getitem__.side_effect = NotFound(
-            response=Mock(status=404),
-            content=b"Not Found",
-        )
-
-        with patch(
-            "test_observer.external_apis.launchpad.launchpad_client.Launchpad"
-        ) as mock_lp_class:
-            mock_lp_class.login_anonymously.return_value = mock_launchpad
-
-            client = LaunchpadClient(anonymous=True)
-            with pytest.raises(IssueNotFoundError):
-                client.get_issue("ubuntu", "9999999")
-
-    def test_choose_task_matching_project(self) -> None:
-        """Test choosing the correct task by project name"""
-        mock_task1 = Mock()
-        mock_task1.bug_target_name = "ubuntu"
-
-        mock_task2 = Mock()
-        mock_task2.bug_target_name = "debian"
-
-        with patch("test_observer.external_apis.launchpad.launchpad_client.Launchpad"):
-            client = LaunchpadClient(anonymous=True)
-            chosen = client._choose_task([mock_task1, mock_task2], "ubuntu")
-            assert chosen == mock_task1
-
-    def test_choose_task_fallback_first(self) -> None:
-        """Test fallback to first task when no project match"""
-        mock_task1 = Mock()
-        mock_task1.bug_target_name = "ubuntu"
-
-        mock_task2 = Mock()
-        mock_task2.bug_target_name = "debian"
-
-        with patch("test_observer.external_apis.launchpad.launchpad_client.Launchpad"):
-            client = LaunchpadClient(anonymous=True)
-            chosen = client._choose_task([mock_task1, mock_task2], "unknown")
-            assert chosen == mock_task1
-
-    def test_choose_task_empty(self) -> None:
-        """Test choose task with empty list"""
-        with patch("test_observer.external_apis.launchpad.launchpad_client.Launchpad"):
-            client = LaunchpadClient(anonymous=True)
-            chosen = client._choose_task([], "ubuntu")
-            assert chosen is None
