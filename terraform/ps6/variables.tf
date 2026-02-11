@@ -113,3 +113,9 @@ variable "ignore_permissions" {
   description = "List of API permissions to ignore for all requests"
   type        = list(string)
 }
+
+variable "custom_header_image" {
+  description = "Path to custom header image file (logo.png)"
+  type        = string
+  default     = ""
+}

@@ -127,6 +127,9 @@ juju refresh frontend ./test-observer-frontend_ubuntu-22.04-amd64.charm
 
 # to update the OCI image that runs the backend
 juju attach-resource frontend frontend-image=ghcr.io/canonical/test_observer/frontend:[tag or sha]
+
+# to attach a custom header image
+juju attach-resource frontend custom-header-image=/path/to/logo.png
 ```
 
 Note that the frontend app is made aware of the backend URL to connect to using the global `window.testObserverAPIBaseURI`, which is set at runtime with some nginx config level trickery based on...
@@ -135,6 +138,12 @@ Note that the frontend app is made aware of the backend URL to connect to using 
 - the frontend charm's `test-observer-api-scheme` config value.
 
 These in turn can be set using the terraform plan (`terraform/test-observer.tf` and associated variables).
+
+To use a custom header image during terraform deployment, set the `custom_header_image` variable to the path of your logo.png file:
+
+```bash
+TF_VAR_custom_header_image=/path/to/logo.png terraform apply
+```
 
 ## Running tests
 
