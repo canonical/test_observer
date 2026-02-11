@@ -7,19 +7,13 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/publish_frontend.yml'
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to build and publish'
-        required: true
-        default: 'main'
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
   build-and-push-frontend-image:
-    runs-on: [self-hosted, linux, jammy, x64]
+    # runs-on: [self-hosted, linux, jammy, x64]
     permissions:
       contents: read
       packages: write
