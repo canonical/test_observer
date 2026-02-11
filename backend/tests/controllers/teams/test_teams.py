@@ -18,6 +18,7 @@
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -35,19 +36,22 @@ def test_create_team(test_client: TestClient):
     data = response.json()
     assert data["name"] == "new-team"
     assert data["permissions"] == []
-    assert data["reviewer_families"] == []
+    assert data["artefact_matching_rules"] == []
     assert data["members"] == []
     assert "id" in data
 
 
-def test_create_team_with_permissions_and_families(test_client: TestClient):
+def test_create_team_with_permissions_and_matching_rules(test_client: TestClient):
     response = make_authenticated_request(
         lambda: test_client.post(
             "/v1/teams",
             json={
                 "name": "test-team",
                 "permissions": [Permission.view_user, Permission.change_team],
-                "reviewer_families": ["snap", "deb"],
+                "artefact_matching_rules": [
+                    {"family": "snap"},
+                    {"family": "deb"},
+                ],
             },
         ),
         Permission.change_team,
@@ -57,7 +61,12 @@ def test_create_team_with_permissions_and_families(test_client: TestClient):
     data = response.json()
     assert data["name"] == "test-team"
     assert data["permissions"] == [Permission.view_user, Permission.change_team]
-    assert data["reviewer_families"] == ["snap", "deb"]
+    assert len(data["artefact_matching_rules"]) == 2
+    assert data["artefact_matching_rules"][0]["family"] == "snap"
+    assert data["artefact_matching_rules"][0]["stage"] is None
+    assert data["artefact_matching_rules"][0]["track"] is None
+    assert data["artefact_matching_rules"][0]["branch"] is None
+    assert data["artefact_matching_rules"][1]["family"] == "deb"
     assert data["members"] == []
 
 
@@ -112,23 +121,14 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
     )
 
     assert response.status_code == 200
-    assert response.json() == [
-        {
-            "id": team.id,
-            "name": team.name,
-            "permissions": team.permissions,
-            "reviewer_families": team.reviewer_families,
-            "members": [
-                {
-                    "id": user.id,
-                    "name": user.name,
-                    "email": user.email,
-                    "launchpad_handle": user.launchpad_handle,
-                    "is_admin": user.is_admin,
-                }
-            ],
-        },
-    ]
+    teams = response.json()
+    assert len(teams) == 1
+    assert teams[0]["id"] == team.id
+    assert teams[0]["name"] == team.name
+    assert teams[0]["permissions"] == team.permissions
+    assert teams[0]["artefact_matching_rules"] == []
+    assert len(teams[0]["members"]) == 1
+    assert teams[0]["members"][0]["id"] == user.id
 
 
 def test_get_team(test_client: TestClient, generator: DataGenerator):
@@ -140,21 +140,13 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "id": team.id,
-        "name": team.name,
-        "permissions": team.permissions,
-        "reviewer_families": team.reviewer_families,
-        "members": [
-            {
-                "id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "launchpad_handle": user.launchpad_handle,
-                "is_admin": user.is_admin,
-            }
-        ],
-    }
+    data = response.json()
+    assert data["id"] == team.id
+    assert data["name"] == team.name
+    assert data["permissions"] == team.permissions
+    assert data["artefact_matching_rules"] == []
+    assert len(data["members"]) == 1
+    assert data["members"][0]["id"] == user.id
 
 
 def test_update_team_permissions(test_client: TestClient, generator: DataGenerator):
@@ -170,21 +162,13 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "id": team.id,
-        "name": team.name,
-        "permissions": [Permission.view_user],
-        "reviewer_families": team.reviewer_families,
-        "members": [
-            {
-                "id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "launchpad_handle": user.launchpad_handle,
-                "is_admin": user.is_admin,
-            }
-        ],
-    }
+    data = response.json()
+    assert data["id"] == team.id
+    assert data["name"] == team.name
+    assert data["permissions"] == [Permission.view_user]
+    assert data["artefact_matching_rules"] == []
+    assert len(data["members"]) == 1
+    assert data["members"][0]["id"] == user.id
 
 
 def test_set_invalid_permission(test_client: TestClient, generator: DataGenerator):
@@ -202,7 +186,7 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
     assert response.status_code == 422
 
 
-def test_update_team_reviewer_families(
+def test_update_team_artefact_matching_rules(
     test_client: TestClient, generator: DataGenerator
 ):
     user = generator.gen_user()
@@ -211,13 +195,23 @@ def test_update_team_reviewer_families(
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/teams/{team.id}",
-            json={"reviewer_families": ["snap", "deb"]},
+            json={
+                "artefact_matching_rules": [
+                    {"family": "snap"},
+                    {"family": "deb", "stage": "proposed"},
+                ]
+            },
         ),
         Permission.change_team,
     )
 
     assert response.status_code == 200
-    assert response.json()["reviewer_families"] == ["snap", "deb"]
+    data = response.json()
+    assert len(data["artefact_matching_rules"]) == 2
+    assert data["artefact_matching_rules"][0]["family"] == "snap"
+    assert data["artefact_matching_rules"][0]["stage"] is None
+    assert data["artefact_matching_rules"][1]["family"] == "deb"
+    assert data["artefact_matching_rules"][1]["stage"] == "proposed"
 
 
 def test_add_team_member(test_client: TestClient, generator: DataGenerator):

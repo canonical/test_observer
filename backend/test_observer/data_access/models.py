@@ -163,7 +163,6 @@ class Team(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    reviewer_families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
     members: Mapped[list[User]] = relationship(
         secondary=team_users_association, back_populates="teams"
@@ -196,11 +195,6 @@ class ArtefactMatchingRule(Base):
     )
 
     __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if "teams" in kwargs and not kwargs["teams"]:
-            raise ValueError("ArtefactMatchingRule must have at least one team")
 
     def __repr__(self) -> str:
         return data_model_repr(self, "family", "stage", "track", "branch")

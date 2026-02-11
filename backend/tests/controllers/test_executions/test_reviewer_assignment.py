@@ -158,7 +158,7 @@ class TestReviewerAssignmentWithMatchingRules:
             config = rule_conf.copy()
             team_name = config.pop("team")
             team_obj = team_map[team_name]
-            generator.gen_artefact_matching_rule(teams=[team_obj], **config)
+            generator.gen_artefact_matching_rule(**config, teams=[team_obj])
 
         # WHEN starting a test execution
         request_data = {

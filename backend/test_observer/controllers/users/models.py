@@ -23,7 +23,6 @@ class TeamMinimalResponse(BaseModel):
     id: int
     name: str
     permissions: list[str]
-    reviewer_families: list[str] = []
 
 
 class UserResponse(BaseModel):
