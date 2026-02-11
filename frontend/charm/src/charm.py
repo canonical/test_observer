@@ -104,7 +104,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
             image_path = self.model.resources.fetch("custom-header-image")
             with open(image_path, "rb") as f:
                 self.container.push(
-                    "/usr/share/nginx/html/assets/assets/logo.svg",
+                    "/usr/share/nginx/html/assets/assets/logo.png",
                     f,
                     make_dirs=True,
                 )

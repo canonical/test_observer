@@ -55,7 +55,7 @@ resources:
   custom-header-image:
     type: file
     description: Custom header image to replace the default one
-    filename: custom_header.svg
+    filename: logo.png
   frontend-image:
     type: oci-image
     description: OCI image for test-observer-frontend
