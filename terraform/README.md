@@ -145,6 +145,16 @@ To use a custom header image during terraform deployment, set the `custom_header
 TF_VAR_custom_header_image=/path/to/logo.png terraform apply
 ```
 
+To deploy charms from a specific Charmhub channel (e.g., to test a branch deployment):
+
+```bash
+TF_VAR_api_channel="latest/edge/testing-branch" \
+TF_VAR_frontend_channel="latest/edge/testing-branch" \
+terraform apply
+```
+
+This is useful for testing feature branches or staging deployments before promoting to the main `latest/edge` channel.
+
 ## Running tests
 
 To run the unit and integration tests for the frontend charms, do the following:

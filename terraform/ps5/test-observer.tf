@@ -96,6 +96,18 @@ variable "custom_header_image" {
   default     = ""
 }
 
+variable "api_channel" {
+  description = "Charmhub channel for the API charm (e.g., 'latest/edge', 'latest/edge/testing-branch')"
+  type        = string
+  default     = "latest/edge"
+}
+
+variable "frontend_channel" {
+  description = "Charmhub channel for the frontend charm (e.g., 'latest/edge', 'latest/edge/testing-branch')"
+  type        = string
+  default     = "latest/edge"
+}
+
 
 
 locals {
@@ -156,7 +168,7 @@ resource "juju_application" "test-observer-api" {
 
   charm {
     name    = "test-observer-api"
-    channel = "latest/edge"
+    channel = var.api_channel
     base    = "ubuntu@22.04"
   }
 
@@ -181,7 +193,7 @@ resource "juju_application" "test-observer-frontend" {
 
   charm {
     name    = "test-observer-frontend"
-    channel = "latest/edge"
+    channel = var.frontend_channel
     base    = "ubuntu@22.04"
   }
 

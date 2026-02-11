@@ -119,3 +119,15 @@ variable "custom_header_image" {
   type        = string
   default     = ""
 }
+
+variable "api_channel" {
+  description = "Charmhub channel for the API charm (e.g., 'latest/edge', 'latest/edge/testing-branch')"
+  type        = string
+  default     = "latest/edge"
+}
+
+variable "frontend_channel" {
+  description = "Charmhub channel for the frontend charm (e.g., 'latest/edge', 'latest/edge/testing-branch')"
+  type        = string
+  default     = "latest/edge"
+}
