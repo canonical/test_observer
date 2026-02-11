@@ -48,8 +48,23 @@ class Navbar extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset('assets/canonical.png'),
-            const SizedBox(width: Spacing.level4),
+            Image.asset(
+              'assets/logo.png',
+              filterQuality: FilterQuality.high,
+              errorBuilder: (context, error, stackTrace) =>
+                  const SizedBox.shrink(),
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                if (wasSynchronouslyLoaded || frame != null) {
+                  return Row(
+                    children: [
+                      child,
+                      const SizedBox(width: Spacing.level4),
+                    ],
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             Expanded(
               child: Row(
                 children: [
@@ -220,8 +235,13 @@ class _NavbarEntry extends StatelessWidget {
     return InkWell(
       onTap: () => context.go(route),
       child: Container(
-        color: GoRouterState.of(context).fullPath!.startsWith(route)
-            ? YaruColors.orange
+        decoration: GoRouterState.of(context).fullPath!.startsWith(route)
+            ? BoxDecoration(
+                color: YaruColors.titleBarDark.scale(lightness: 0.1),
+                border: const Border(
+                  bottom: BorderSide(color: Colors.white, width: 2),
+                ),
+              )
             : null,
         padding: const EdgeInsets.all(Spacing.level4),
         child: Text(
