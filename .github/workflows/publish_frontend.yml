@@ -99,8 +99,8 @@ jobs:
           export CHARMCRAFT_AUTH="${{ secrets.CHARMHUB_TOKEN }}"
           cd frontend/charm
           
-          # Pack the charm
-          charmcraft pack --verbose
+          # Pack the charm (use destructive-mode for CI environment without LXD)
+          charmcraft pack --destructive-mode --verbose
           
           # Find the packed charm file
           CHARM_FILE=$(ls -t *.charm | head -1)
