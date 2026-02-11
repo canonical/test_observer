@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { navigate } from 'svelte-routing';
+  import { BASE_PATH } from '../config';
   import { api } from '../services/api';
   import FilterIcon from '../components/FilterIcon.svelte';
   import ArtefactsTableView from '../components/ArtefactsTableView.svelte';
@@ -76,7 +77,7 @@
 
   function navigateToArtefact(event) {
     const artefactId = event.detail;
-    navigate(`/svelte_poc/${family}s/${artefactId}`);
+    navigate(`${BASE_PATH}${family}s/${artefactId}`);
   }
 
   async function loadArtefacts() {

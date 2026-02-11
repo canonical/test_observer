@@ -1,5 +1,5 @@
 // API service for Test Observer
-const API_BASE_URL = window.location.origin.replace(':30001', ':30000')
+import { API_BASE_URL } from '../config'
 
 export const api = {
   async fetchArtefacts(family) {

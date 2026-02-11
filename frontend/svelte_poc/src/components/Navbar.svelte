@@ -1,21 +1,21 @@
 <script>
   import { onMount } from 'svelte';
   import { Link } from 'svelte-routing';
+  import { BASE_PATH, API_BASE_URL } from '../config';
 
   let user = null;
 
-  const apiUrl = window.location.origin.replace(':30001', ':30000');
-  const svelteAppUrl = window.location.origin + '/svelte_poc/';
-  const logoutUrl = `${apiUrl}/v1/auth/saml/logout?return_to=${encodeURIComponent(svelteAppUrl)}`;
+  const svelteAppUrl = window.location.origin + BASE_PATH;
+  const logoutUrl = `${API_BASE_URL}/v1/auth/saml/logout?return_to=${encodeURIComponent(svelteAppUrl)}`;
 
   function login() {
-    const loginUrl = `${apiUrl}/v1/auth/saml/login?return_to=${encodeURIComponent(svelteAppUrl)}`;
+    const loginUrl = `${API_BASE_URL}/v1/auth/saml/login?return_to=${encodeURIComponent(svelteAppUrl)}`;
     window.location.href = loginUrl;
   }
 
   async function fetchCurrentUser() {
     try {
-      const response = await fetch(`${apiUrl}/v1/users/me`, {
+      const response = await fetch(`${API_BASE_URL}/v1/users/me`, {
         credentials: 'include',
         headers: {
           'X-CSRF-Token': '1'
@@ -42,19 +42,19 @@
 <nav class="navbar">
   <div class="navbar-content">
     <div class="navbar-logo">
-      <img src="/canonical.png" alt="Canonical" />
+      <img src="{BASE_PATH}canonical.png" alt="Canonical" />
     </div>
 
     <div class="navbar-links">
-      <Link to="/svelte_poc/snaps" class="nav-link">Snap Testing</Link>
-      <Link to="/svelte_poc/debs" class="nav-link">Deb Testing</Link>
-      <Link to="/svelte_poc/charms" class="nav-link">Charm Testing</Link>
-      <Link to="/svelte_poc/images" class="nav-link">Image Testing</Link>
+      <Link to="{BASE_PATH}snaps" class="nav-link">Snap Testing</Link>
+      <Link to="{BASE_PATH}debs" class="nav-link">Deb Testing</Link>
+      <Link to="{BASE_PATH}charms" class="nav-link">Charm Testing</Link>
+      <Link to="{BASE_PATH}images" class="nav-link">Image Testing</Link>
 
       <div class="spacer"></div>
 
-      <Link to="/svelte_poc/test-results" class="nav-link">Search</Link>
-      <Link to="/svelte_poc/issues" class="nav-link">Issues</Link>
+      <Link to="{BASE_PATH}test-results" class="nav-link">Search</Link>
+      <Link to="{BASE_PATH}issues" class="nav-link">Issues</Link>
 
       <div class="dropdown">
         <button class="nav-button dropdown-toggle">Help</button>

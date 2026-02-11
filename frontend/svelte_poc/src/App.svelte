@@ -1,5 +1,6 @@
 <script>
   import { Router, Route } from 'svelte-routing';
+  import { BASE_PATH } from './config';
   import Navbar from './components/Navbar.svelte';
   import Dashboard from './views/Dashboard.svelte';
   import ArtefactPage from './views/ArtefactPage.svelte';
@@ -11,7 +12,7 @@
 </script>
 
 <div id="app">
-  <Router {url} basepath="/svelte_poc">
+  <Router {url} basepath={BASE_PATH.slice(0, -1)}>
     <Navbar />
     <main>
       <div class="content-container">
