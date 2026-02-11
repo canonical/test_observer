@@ -94,26 +94,46 @@ jobs:
         run: |
           sudo snap install charmcraft --classic
 
-      - name: Upload initial custom-header-image resource (temporary bootstrap step)
-        continue-on-error: true
+      - name: Pack and upload charm manually (bootstrap for new resource)
         run: |
           export CHARMCRAFT_AUTH="${{ secrets.CHARMHUB_TOKEN }}"
-          # Only upload if the resource doesn't exist yet
-          if charmcraft resource-revisions test-observer-frontend custom-header-image 2>&1 | grep -q "No revisions found"; then
-            echo "Uploading initial custom-header-image resource..."
-            charmcraft upload-resource test-observer-frontend custom-header-image --filepath=frontend/assets/logo.png
-          else
-            echo "Resource already has revisions, skipping upload."
-          fi
+          cd frontend/charm
+          
+          # Pack the charm
+          charmcraft pack --verbose
+          
+          # Find the packed charm file
+          CHARM_FILE=$(ls -t *.charm | head -1)
+          echo "Packed charm: $CHARM_FILE"
+          
+          # Upload charm (without releasing yet) to register the resource definition
+          UPLOAD_OUTPUT=$(charmcraft upload "$CHARM_FILE" --format=json)
+          echo "$UPLOAD_OUTPUT"
+          REVISION=$(echo "$UPLOAD_OUTPUT" | jq -r '.revision')
+          echo "Uploaded charm revision: $REVISION"
+          
+          # Now upload the resource (this should work since the charm definition exists)
+          echo "Uploading custom-header-image resource..."
+          charmcraft upload-resource test-observer-frontend custom-header-image --filepath=../assets/logo.png
+          
+          # Get the latest resource revision
+          RESOURCE_REV=$(charmcraft resource-revisions test-observer-frontend custom-header-image --format=json | jq -r '.[0].revision')
+          echo "Uploaded resource revision: $RESOURCE_REV"
+          
+          # Release the charm with the resource
+          charmcraft release test-observer-frontend --revision="$REVISION" --channel="${{ steps.channel.outputs.name }}" --resource="custom-header-image:$RESOURCE_REV"
+          
+          echo "Successfully published charm revision $REVISION with resource to ${{ steps.channel.outputs.name }}"
 
-      - name: Upload charm to charmhub
-        uses: canonical/charming-actions/upload-charm@2.7.0
-        with:
-          charm-path: "frontend/charm"
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-          tag-prefix: "frontend"
-          channel: "${{ steps.channel.outputs.name }}"
+
+      # - name: Upload charm to charmhub
+      #   uses: canonical/charming-actions/upload-charm@2.7.0
+      #   with:
+      #     charm-path: "frontend/charm"
+      #     credentials: "${{ secrets.CHARMHUB_TOKEN }}"
+      #     github-token: "${{ secrets.GITHUB_TOKEN }}"
+      #     tag-prefix: "frontend"
+      #     channel: "${{ steps.channel.outputs.name }}"
 
       - name: Check logs for failure
         if: failure()
