@@ -1,0 +1,104 @@
+.issue-page {
+  padding: 24px 0;
+}
+
+.issue-header {
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.issue-header h1 {
+  font-size: 2.5em;
+  font-weight: 300;
+  color: #111;
+  flex: 1;
+}
+
+.issue-link {
+  color: #0E8420;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 16px;
+  border: 1px solid #0E8420;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.issue-link:hover {
+  background: #0E8420;
+  color: white;
+}
+
+.issue-details {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.detail-section {
+  background: white;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  padding: 24px;
+}
+
+.detail-section h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: #111;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.detail-grid p {
+  margin: 0;
+  font-size: 14px;
+  color: #111;
+}
+
+.detail-grid strong {
+  font-weight: 500;
+}
+
+.issue-description {
+  font-size: 14px;
+  color: #111;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.placeholder-message {
+  background: #f7f7f7;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  padding: 24px;
+  text-align: center;
+}
+
+.placeholder-message p {
+  margin: 8px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.page-container {
+  padding: 24px 0;
+}
+
+.loading,
+.error {
+  padding: 32px;
+  text-align: center;
+  color: #666;
+}
+
+.error {
+  color: #C7162B;
+}

@@ -1,0 +1,85 @@
+.artefact-page {
+  padding: 24px 0;
+}
+
+.artefact-header {
+  margin-bottom: 32px;
+}
+
+.artefact-header h1 {
+  font-size: 2.5em;
+  font-weight: 300;
+  color: #111;
+  margin-bottom: 8px;
+}
+
+.artefact-header h2 {
+  font-size: 1.2em;
+  font-weight: 400;
+  color: #666;
+}
+
+.artefact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.detail-section {
+  background: white;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  padding: 24px;
+}
+
+.detail-section h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: #111;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.detail-grid p {
+  margin: 0;
+  font-size: 14px;
+  color: #111;
+}
+
+.detail-grid strong {
+  font-weight: 500;
+}
+
+.placeholder-message {
+  background: #f7f7f7;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  padding: 24px;
+  text-align: center;
+}
+
+.placeholder-message p {
+  margin: 8px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.page-container {
+  padding: 24px 0;
+}
+
+.loading,
+.error {
+  padding: 32px;
+  text-align: center;
+  color: #666;
+}
+
+.error {
+  color: #C7162B;
+}

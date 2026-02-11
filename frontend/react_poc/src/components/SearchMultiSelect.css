@@ -1,0 +1,135 @@
+.search-multiselect {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.multiselect-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.multiselect-header:hover {
+  background: #f7f7f7;
+  border-color: #999;
+}
+
+.header-title {
+  font-size: 14px;
+  color: #111;
+}
+
+.expand-icon {
+  color: #666;
+  font-size: 12px;
+}
+
+.multiselect-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+}
+
+.search-input {
+  padding: 8px 12px;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #0E8420;
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #0E8420;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-state {
+  color: #C7162B;
+}
+
+.suggestions-dropdown {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  background: white;
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: #f7f7f7;
+}
+
+.selected-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selected-item {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #111;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.item-name {
+  user-select: none;
+}

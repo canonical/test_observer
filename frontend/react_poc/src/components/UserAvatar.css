@@ -1,0 +1,24 @@
+.user-avatar {
+  position: relative;
+  width: 43px;
+  height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.avatar-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.initials {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: #000;
+  user-select: none;
+}

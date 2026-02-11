@@ -48,6 +48,13 @@ RUN npm install
 COPY ./vue_poc/ ./
 RUN npm run build
 
+WORKDIR /react-app
+COPY ./react_poc/package*.json ./
+RUN npm install
+
+COPY ./react_poc/ ./
+RUN npm run build
+
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y nginx
@@ -55,6 +62,7 @@ RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
 COPY --from=builder /vue-app/dist /usr/share/nginx/html/vue_poc
+COPY --from=builder /react-app/dist /usr/share/nginx/html/react_poc
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
 RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/
 

@@ -1,0 +1,115 @@
+.grid-view {
+  width: 100%;
+}
+
+.stages-container {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.stage-column {
+  flex: 0 0 320px;
+  min-width: 320px;
+}
+
+.stage-title {
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 16px;
+  color: #111;
+}
+
+.artefacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.artefact-card {
+  background: white;
+  border: 1px solid #CDCDCD;
+  border-radius: 2px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.artefact-card:hover {
+  border-color: #0E8420;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.artefact-name {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #111;
+}
+
+.artefact-info {
+  flex: 1;
+  font-size: 14px;
+  color: #111;
+  line-height: 1.4;
+}
+
+.artefact-info p {
+  margin: 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artefact-footer {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 8px;
+  /*border-top: 1px solid #E5E5E5;  - From Claude; disabling since I don't see this in the Flutter UI */
+}
+
+.artefact-footer .user-avatar {
+  margin-left: auto;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+  border: 1px solid #CDCDCD;
+}
+
+.status-approved {
+  color: #0E8420;
+}
+
+.status-rejected {
+  color: #C7162B;
+}
+
+.status-undecided {
+  color: #666;
+}
+
+.due-date {
+  font-size: 11px;
+  color: #C7162B;
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid #CDCDCD;
+}
+
+.no-results {
+  padding: 32px;
+  text-align: center;
+  color: #666;
+}

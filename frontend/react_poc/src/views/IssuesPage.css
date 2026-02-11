@@ -1,0 +1,59 @@
+.issues-page {
+  padding: 24px 0;
+}
+
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  font-size: 2.5em;
+  font-weight: 300;
+  color: #111;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.issue-card {
+  background: white;
+  border: 1px solid #CDCDCD;
+  border-radius: 4px;
+  padding: 16px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.issue-card:hover {
+  border-color: #0E8420;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.issue-card h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #111;
+}
+
+.issue-meta {
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  gap: 16px;
+}
+
+.loading,
+.error,
+.no-results {
+  padding: 32px;
+  text-align: center;
+  color: #666;
+}
+
+.error {
+  color: #C7162B;
+}
