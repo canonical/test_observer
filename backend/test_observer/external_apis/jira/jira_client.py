@@ -60,7 +60,15 @@ class JiraClient:
         Raises:
             Exception: If issue fetch fails
         """
-        url = f"{self.base_url}/rest/api/3/issue/{key}"
+
+        if "-" in key:
+            issue_key = key
+        elif project:
+            issue_key = f"{project}-{key}"
+        else:
+            issue_key = key
+
+        url = f"{self.base_url}/rest/api/3/issue/{issue_key}"
 
         try:
             response = requests.get(
@@ -84,8 +92,8 @@ class JiraClient:
             )
 
         except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP error fetching Jira issue {key}: {e}")
+            logger.error(f"HTTP error fetching Jira issue {issue_key}: {e}")
             raise
         except Exception as e:
-            logger.error(f"Failed to fetch Jira issue {key}: {e}")
+            logger.error(f"Failed to fetch Jira issue {issue_key}: {e}")
             raise
