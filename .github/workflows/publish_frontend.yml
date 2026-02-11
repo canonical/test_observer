@@ -95,6 +95,22 @@ jobs:
           echo "Updated charmcraft.yaml to use image tag: ${{ steps.channel.outputs.tag }}"
           grep "upstream-source" frontend/charm/charmcraft.yaml
 
+      - name: Install charmcraft
+        run: |
+          sudo snap install charmcraft --classic
+
+      - name: Upload initial custom-header-image resource (temporary bootstrap step)
+        continue-on-error: true
+        run: |
+          export CHARMCRAFT_AUTH="${{ secrets.CHARMHUB_TOKEN }}"
+          # Only upload if the resource doesn't exist yet
+          if ! charmcraft resource-revisions test-observer-frontend custom-header-image 2>&1 | grep -q "revision"; then
+            echo "Uploading initial custom-header-image resource..."
+            charmcraft upload-resource test-observer-frontend custom-header-image --filepath=frontend/assets/logo.png
+          else
+            echo "Resource already has revisions, skipping upload."
+          fi
+
       - name: Upload charm to charmhub
         uses: canonical/charming-actions/upload-charm@2.7.0
         with:
