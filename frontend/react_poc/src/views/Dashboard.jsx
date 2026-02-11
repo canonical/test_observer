@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { api } from '../services/api'
 import FilterIcon from '../components/FilterIcon'
@@ -18,6 +18,55 @@ export default function Dashboard() {
   const [artefacts, setArtefacts] = useState([])
   const [selectedFilters, setSelectedFilters] = useState({})
   const [expandedFilters, setExpandedFilters] = useState({})
+
+  // Helper functions for filtering (defined before use to avoid TDZ issues)
+  const getDueDateCategory = (dueDate) => {
+    if (!dueDate) return 'No due date'
+
+    const now = new Date()
+    const due = new Date(dueDate)
+
+    if (due < now) return 'Overdue'
+
+    const daysDiff = Math.ceil((due - now) / (1000 * 60 * 60 * 24))
+    if (daysDiff <= 7) return 'Within a week'
+    return 'More than a week'
+  }
+
+  const getArtefactFilterValue = (artefact, filterName) => {
+    switch (filterName) {
+      case 'Assignee':
+        return artefact.assignee?.name || 'N/A'
+      case 'Status':
+        return artefact.status === 'APPROVED' ? 'Approved'
+             : artefact.status === 'MARKED_AS_FAILED' ? 'Rejected'
+             : 'Undecided'
+      case 'Due date':
+        return getDueDateCategory(artefact.due_date)
+      case 'Risk':
+      case 'Pocket':
+        return artefact.stage ? artefact.stage.charAt(0).toUpperCase() + artefact.stage.slice(1) : ''
+      case 'Series':
+        return artefact.series
+      case 'OS type':
+        return artefact.os
+      case 'Release':
+        return artefact.release
+      case 'Owner':
+        return artefact.owner
+      default:
+        return ''
+    }
+  }
+
+  const getFilterOptions = (filterName) => {
+    const options = new Set()
+    artefacts.forEach(artefact => {
+      const value = getArtefactFilterValue(artefact, filterName)
+      if (value) options.add(value)
+    })
+    return Array.from(options).sort()
+  }
 
   // Extract family from route meta
   const family = useMemo(() => {
@@ -81,7 +130,7 @@ export default function Dashboard() {
     navigate(`/${family}s/${artefactId}`)
   }
 
-  const loadArtefacts = async () => {
+  const loadArtefacts = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -97,55 +146,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const getFilterOptions = (filterName) => {
-    const options = new Set()
-    artefacts.forEach(artefact => {
-      const value = getArtefactFilterValue(artefact, filterName)
-      if (value) options.add(value)
-    })
-    return Array.from(options).sort()
-  }
-
-  const getArtefactFilterValue = (artefact, filterName) => {
-    switch (filterName) {
-      case 'Assignee':
-        return artefact.assignee?.name || 'N/A'
-      case 'Status':
-        return artefact.status === 'APPROVED' ? 'Approved'
-             : artefact.status === 'MARKED_AS_FAILED' ? 'Rejected'
-             : 'Undecided'
-      case 'Due date':
-        return getDueDateCategory(artefact.due_date)
-      case 'Risk':
-      case 'Pocket':
-        return artefact.stage ? artefact.stage.charAt(0).toUpperCase() + artefact.stage.slice(1) : ''
-      case 'Series':
-        return artefact.series
-      case 'OS type':
-        return artefact.os
-      case 'Release':
-        return artefact.release
-      case 'Owner':
-        return artefact.owner
-      default:
-        return ''
-    }
-  }
-
-  const getDueDateCategory = (dueDate) => {
-    if (!dueDate) return 'No due date'
-
-    const now = new Date()
-    const due = new Date(dueDate)
-
-    if (due < now) return 'Overdue'
-
-    const daysDiff = Math.ceil((due - now) / (1000 * 60 * 60 * 24))
-    if (daysDiff <= 7) return 'Within a week'
-    return 'More than a week'
-  }
+  }, [family])
 
   const toggleFilterOption = (filterName, option, isSelected) => {
     setSelectedFilters(prev => {
@@ -182,7 +183,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadArtefacts()
-  }, [family])
+  }, [loadArtefacts])
 
   return (
     <div className="dashboard">

@@ -12,7 +12,7 @@ export default function IssuesPage() {
       try {
         setLoading(true)
         const data = await api.fetchIssues({ limit: 50 })
-        setIssues(data)
+        setIssues(data.issues || [])
       } catch (e) {
         setError('Failed to load issues: ' + e.message)
         console.error('Failed to load issues:', e)

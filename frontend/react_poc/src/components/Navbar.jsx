@@ -43,7 +43,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-content">
         <div className="navbar-logo">
-          <img src="/canonical.png" alt="Canonical" />
+          <img src="/react_poc/canonical.png" alt="Canonical" />
         </div>
 
         <div className="navbar-links">
