@@ -7,12 +7,6 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/publish_api.yml'
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to build and publish'
-        required: true
-        default: 'main'
 
 env:
   REGISTRY: ghcr.io
