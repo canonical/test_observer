@@ -65,22 +65,26 @@ def create_synchronization_service() -> IssueSynchronizationService:
             "GitHub App credentials not configured, skipping GitHub synchronizer"
         )
 
-    jira_base_url = environ.get("JIRA_URL")
+    jira_cloud_id = environ.get("JIRA_CLOUD_ID")
     jira_email = environ.get("JIRA_EMAIL")
     jira_api_token = environ.get("JIRA_API_TOKEN")
 
-    if jira_base_url and jira_email and jira_api_token:
+    if jira_cloud_id and jira_email and jira_api_token:
         try:
             jira_client = JiraClient(
-                base_url=jira_base_url, email=jira_email, api_token=jira_api_token
+                cloud_id=jira_cloud_id,
+                email=jira_email,
+                api_token=jira_api_token,
             )
             synchronizers.append(JiraIssueSynchronizer(jira_client))
-            logger.info("Jira synchronizer initialized")
+            logger.info("Jira synchronizer initialized with scoped service account")
         except Exception as e:
             logger.error(f"Failed to initialize Jira synchronizer: {e}")
     else:
         logger.warning(
-            "Jira credentials not fully configured, skipping Jira synchronizer"
+            "Jira credentials not fully configured "
+            "(need JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN), "
+            "skipping Jira synchronizer"
         )
 
     try:
