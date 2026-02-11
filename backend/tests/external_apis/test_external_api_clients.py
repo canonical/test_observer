@@ -39,7 +39,7 @@ class TestJiraClient:
         assert client.api_token == "test-token"
         assert client.timeout == 30
 
-    def test_init_bearer_auth(self) -> None:
+    def test_init_with_custom_timeout(self) -> None:
         """Test JiraClient with custom timeout"""
         client = JiraClient(
             cloud_id="test-cloud-id",
@@ -50,7 +50,7 @@ class TestJiraClient:
 
         assert client.timeout == 60
 
-    def test_normalize_issue_key_with_project(self) -> None:
+    def test_base_url_construction(self) -> None:
         """Test base URL construction with cloud ID"""
         cloud_id = "my-custom-cloud-id-123"
         client = JiraClient(

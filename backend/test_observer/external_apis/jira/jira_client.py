@@ -74,7 +74,7 @@ class JiraClient:
             data = response.json()
 
             fields = data.get("fields", {})
-            status = (fields.get("status") or {}).get("name", "Unknown")
+            status = fields.get("status", {}).get("name", "Unknown")
 
             return IssueData(
                 title=fields.get("summary", ""),
