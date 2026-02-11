@@ -14,131 +14,81 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from jira import JIRA
-from jira.exceptions import JIRAError
-
-from test_observer.external_apis.exceptions import (
-    IssueNotFoundError,
-    APIError,
-    RateLimitError,
-)
-
+import requests
+from requests.auth import HTTPBasicAuth
 from test_observer.external_apis.models import IssueData
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class JiraClient:
-    """Jira issue client using python-jira library"""
+    """Client for interacting with Jira API using scoped service account tokens"""
 
     def __init__(
         self,
-        base_url: str,
-        *,
-        email: str | None = None,
-        api_token: str | None = None,
-        bearer_token: str | None = None,
-        timeout: int = 10,
+        cloud_id: str,
+        email: str,
+        api_token: str,
+        timeout: int = 30,
     ):
-        """
+        """Initialize Jira client with scoped service account authentication
+
         Args:
-            base_url: Jira instance URL (e.g., https://your-domain.atlassian.net)
-            email: Email for Cloud authentication
-            api_token: API token for Cloud authentication
-            bearer_token: Bearer token for DC/Server authentication
-            timeout: request timeout (seconds)
+            cloud_id: Jira cloud ID (e.g., "52d4faaa-fad4-4272-94e2-c183ca4c52b3")
+            email: Email address for the service account
+            api_token: Scoped API token (starts with ATATT...)
+            timeout: Request timeout in seconds
         """
-        self.base_url = base_url.rstrip("/")
+        self.base_url = f"https://api.atlassian.com/ex/jira/{cloud_id}"
+        self.email = email
+        self.api_token = api_token
         self.timeout = timeout
 
-        # Build auth tuple/token
-        auth: tuple[str, str] | str | None = None
-        if bearer_token:
-            auth = bearer_token
-        elif email and api_token:
-            auth = (email, api_token)
+        logger.info(f"Initialized Jira client for cloud ID {cloud_id}")
 
-        # Initialize Jira client
-        self._jira = JIRA(
-            server=self.base_url,
-            basic_auth=auth if isinstance(auth, tuple) else None,
-            token_auth=auth if isinstance(auth, str) else None,
-            timeout=timeout,
-        )
-
-    def get_issue(self, project: str, key: str) -> IssueData:
-        """
-        Fetch an issue from Jira.
+    def get_issue(self, project: str, key: str) -> IssueData:  # noqa: ARG002
+        """Get issue from Jira
 
         Args:
-            project: Project key (e.g., "TO")
-            key: Issue key/number (e.g., "142" or "TO-142")
+            project: Jira project key (e.g., "TO")
+            key: Issue key (e.g., "TO-169")
 
         Returns:
-            IssueData object
+            IssueData with title, status, and raw issue data
+
         Raises:
-            IssueNotFoundError: Issue not found
-            RateLimitError: Rate limit exceeded
-            APIError: Other API errors
+            Exception: If issue fetch fails
         """
+
+        issue_key = f"{project}-{key}" if project and "-" not in key else key
+
+        url = f"{self.base_url}/rest/api/3/issue/{issue_key}"
+
         try:
-            # Normalize issue key
-            issue_key = self._normalize_issue_key(project, key)
+            response = requests.get(
+                url,
+                auth=HTTPBasicAuth(self.email, self.api_token),
+                headers={"Accept": "application/json"},
+                timeout=self.timeout,
+            )
 
-            # Fetch issue
-            issue = self._jira.issue(issue_key)
-            resolution = (
-                issue.fields.resolution.name if issue.fields.resolution else None
-            )
-            # Normalize status
-            state = self._normalize_state(
-                status_category=(
-                    issue.fields.status.statusCategory.key
-                    if issue.fields.status.statusCategory
-                    else None
-                ),
-                resolution=resolution,
-            )
+            response.raise_for_status()
+            data = response.json()
+
+            fields = data.get("fields", {})
+            status = fields.get("status", {}).get("name", "Unknown")
+
             return IssueData(
-                title=issue.fields.summary,
-                state=state,
-                state_reason=issue.fields.status.name,
-                raw={
-                    "key": issue.key,
-                    "summary": issue.fields.summary,
-                    "status": issue.fields.status.name,
-                    "resolution": resolution,
-                    "url": issue.permalink(),
-                },
+                title=fields.get("summary", ""),
+                state=status,
+                state_reason=None,
+                raw=data,
             )
-        except JIRAError as e:
-            if e.status_code == 404:
-                raise IssueNotFoundError(f"Jira issue {project}/{key} not found") from e
-            if e.status_code == 429:
-                raise RateLimitError(f"Jira rate limit exceeded: {e}") from e
-            if e.status_code == 401:
-                raise APIError("Jira authentication failed. Check credentials.") from e
-            if e.status_code == 403:
-                raise APIError("Jira permission denied. Check user permissions.") from e
-            raise APIError(f"Jira API error: {e}") from e
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error fetching Jira issue {issue_key}: {e}")
+            raise
         except Exception as e:
-            raise APIError(f"Failed to fetch Jira issue: {e}") from e
-
-    def _normalize_issue_key(self, project: str, key: str) -> str:
-        """Normalize issue key to format PROJECT-123"""
-        k = str(key).strip().upper()
-        if k.startswith("#"):
-            k = k[1:]
-        if "-" not in k and project:
-            return f"{project.strip().upper()}-{k}"
-        return k
-
-    def _normalize_state(
-        self, status_category: str | None = None, resolution: str | None = None
-    ) -> str:
-        """Map Jira status to simple open/closed format"""
-        if status_category == "done":
-            return "closed"
-        if resolution:
-            return "closed"
-        return "open"
+            logger.error(f"Failed to fetch Jira issue {issue_key}: {e}")
+            raise

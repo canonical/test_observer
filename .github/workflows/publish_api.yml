@@ -69,3 +69,14 @@ jobs:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           tag-prefix: "api"
+
+      - name: Check logs for failure
+        if: failure()
+        shell: bash
+        run: |
+          LOG_FILE=$(sudo find /root $HOME /tmp /var/tmp -name "charmcraft-*.log" 2>/dev/null | head -1)
+          if [ -n "$LOG_FILE" ]; then
+            sudo cat "$LOG_FILE"
+          else
+            echo "No charmcraft log file found in /root, $HOME, /tmp, or /var/tmp"
+          fi

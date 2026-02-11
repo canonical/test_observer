@@ -14,76 +14,80 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from github import Github, Auth, GithubException
-
-from test_observer.external_apis.exceptions import (
-    IssueNotFoundError,
-    APIError,
-    RateLimitError,
-)
-
+from github import Github, GithubIntegration, Auth
 from test_observer.external_apis.models import IssueData
+import logging
+from typing import Any, cast
+
+logger = logging.getLogger(__name__)
 
 
 class GitHubClient:
-    """GitHub issue client using PyGithub"""
+    """Client for interacting with GitHub API using GitHub App authentication"""
 
-    def __init__(self, token: str | None = None, timeout: int = 10):
-        """
+    def __init__(self, app_id: str, private_key: str, timeout: int = 30):
+        """Initialize GitHub client with App authentication
+
         Args:
-            token: Personal Access Token (classic PAT or fine-grained token)
-            timeout: request timeout (seconds)
+            app_id: GitHub App ID
+            private_key: GitHub App private key (PEM format)
+            timeout: Request timeout in seconds
         """
-        self.token = token
-        self.timeout = timeout
+        integration = GithubIntegration(app_id, private_key)
 
-        # Initialize Github client with proper auth
-        auth = Auth.Token(token) if token else None
-        self._github = Github(auth=auth, timeout=timeout)
+        # GitHub App installations represent the app being installed on specific
+        # GitHub accounts or organizations. Each installation has its own access token.
+
+        installations = list(integration.get_installations())
+
+        if not installations:
+            raise ValueError("No GitHub App installations found")
+
+        # GitHub App is only installed once on the organization account, so any
+        # installation will work. If multiple installations exist,
+        # they all have the same permissions.
+
+        installation = installations[0]
+
+        auth = integration.get_access_token(installation.id)
+
+        self._github = Github(auth=Auth.Token(auth.token), timeout=timeout)
 
     def get_issue(self, project: str, key: str) -> IssueData:
-        """
-        Fetch an issue from GitHub.
+        """Get issue from GitHub
 
         Args:
-            project: "owner/repo" format
-            key: issue number (string/int)
+            project: Repository in format "owner/repo"
+            key: Issue number as string
 
         Returns:
-            IssueData object
+            IssueData with title, state, and raw GitHub issue object
+
         Raises:
-            IssueNotFoundError: Issue not found
-            RateLimitError: Rate limit exceeded
-            APIError: Other API errors
+            ValueError: If project format is invalid
+            Exception: If issue fetch fails
         """
+
+        if "/" not in project:
+            raise ValueError(
+                f"Invalid project format: {project}. Expected 'owner/repo'"
+            )
+
         try:
+            # Parse issue number
+            issue_number = int(key)
+
+            # Get repository and issue
             repo = self._github.get_repo(project)
-            issue = repo.get_issue(int(str(key).lstrip("#")))
+            gh_issue = repo.get_issue(issue_number)
 
             return IssueData(
-                title=issue.title,
-                state=issue.state,
-                state_reason=issue.state_reason,
-                raw={
-                    "id": issue.id,
-                    "number": issue.number,
-                    "title": issue.title,
-                    "state": issue.state,
-                    "state_reason": issue.state_reason,
-                    "url": issue.html_url,
-                },
+                title=gh_issue.title,
+                state=gh_issue.state,
+                state_reason=gh_issue.state_reason,
+                raw=cast(dict[str, Any], gh_issue.raw_data),
             )
-        except GithubException as e:
-            if e.status == 404:
-                raise IssueNotFoundError(
-                    f"GitHub issue {project}#{key} not found"
-                ) from e
-            if e.status == 403 and "API rate limit" in str(e):
-                raise RateLimitError(f"GitHub rate limit exceeded: {e}") from e
-            if e.status == 401:
-                raise APIError("GitHub authentication failed. Check token.") from e
-            raise APIError(f"GitHub API error: {e}") from e
+
         except Exception as e:
-            raise APIError(f"Failed to fetch GitHub issue: {e}") from e
+            logger.error(f"Failed to fetch GitHub issue {project}#{key}: {e}")
+            raise

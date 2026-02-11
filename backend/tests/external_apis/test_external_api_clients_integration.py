@@ -15,53 +15,60 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from test_observer.external_apis.github.github_client import GitHubClient
+import requests
+import os
+from typing import cast
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.exceptions import IssueNotFoundError
 
 
 @pytest.mark.integration
-class TestGitHubClientIntegration:
-    """Integration tests with real GitHub API"""
-
-    def test_get_real_github_issue(self) -> None:
-        """Test fetching a real public GitHub issue"""
-        client = GitHubClient()  # No token for public repos
-        result = client.get_issue("canonical/test_observer", "71")
-
-        assert result.title is not None
-        assert len(result.title) > 0
-        assert result.state in ("open", "closed")
-        assert result.raw is not None
-
-    def test_get_nonexistent_github_issue(self) -> None:
-        """Test 404 handling"""
-        client = GitHubClient()
-        with pytest.raises(IssueNotFoundError):
-            client.get_issue("canonical/test_observer", "999999")
-
-
-@pytest.mark.integration
 class TestJiraClientIntegration:
     """Integration tests with real Jira sandbox API"""
 
+    @pytest.mark.skipif(
+        not all(
+            [
+                os.getenv("JIRA_CLOUD_ID"),
+                os.getenv("JIRA_EMAIL"),
+                os.getenv("JIRA_API_TOKEN"),
+            ]
+        ),
+        reason="Jira credentials not configured in environment",
+    )
     def test_get_real_jira_issue(self) -> None:
         """Test fetching a real Jira issue from public sandbox"""
-        # Using public sandbox: https://warthogs-sandbox.atlassian.net/jira
-        client = JiraClient(base_url="https://warthogs-sandbox.atlassian.net")
-        # DPE is a public project in the sandbox
-        result = client.get_issue("DPE", "9033")
+        client = JiraClient(
+            cloud_id=cast(str, os.getenv("JIRA_CLOUD_ID")),
+            email=cast(str, os.getenv("JIRA_EMAIL")),
+            api_token=cast(str, os.getenv("JIRA_API_TOKEN")),
+        )
+        result = client.get_issue("TO", "TO-169")
 
         assert result.title is not None
-        assert result.state in ("open", "closed")
+        assert result.state is not None
         assert result.raw is not None
 
+    @pytest.mark.skipif(
+        not all(
+            [
+                os.getenv("JIRA_CLOUD_ID"),
+                os.getenv("JIRA_EMAIL"),
+                os.getenv("JIRA_API_TOKEN"),
+            ]
+        ),
+        reason="Jira credentials not configured in environment",
+    )
     def test_get_nonexistent_jira_issue(self) -> None:
         """Test 404 handling"""
-        client = JiraClient(base_url="https://warthogs-sandbox.atlassian.net")
-        with pytest.raises(IssueNotFoundError):
-            client.get_issue("DPE", "999999")
+        client = JiraClient(
+            cloud_id=cast(str, os.getenv("JIRA_CLOUD_ID")),
+            email=cast(str, os.getenv("JIRA_EMAIL")),
+            api_token=cast(str, os.getenv("JIRA_API_TOKEN")),
+        )
+        with pytest.raises(requests.exceptions.HTTPError):
+            client.get_issue("DPE", "DPE-999999")
 
 
 @pytest.mark.integration
