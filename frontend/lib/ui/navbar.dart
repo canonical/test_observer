@@ -26,6 +26,11 @@ import '../routing.dart';
 import 'spacing.dart';
 
 const _navbarHeight = 57.0;
+final _navbarSelectedColor = YaruColors.titleBarDark.scale(lightness: 0.07);
+
+TextStyle? _navbarTextStyle(BuildContext context) {
+  return Theme.of(context).textTheme.titleMedium?.apply(color: Colors.white);
+}
 
 class Navbar extends ConsumerWidget {
   const Navbar({super.key});
@@ -188,10 +193,7 @@ class _NavbarDropdownEntry extends StatelessWidget {
             padding: const EdgeInsets.all(Spacing.level4),
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.apply(color: Colors.white),
+              style: _navbarTextStyle(context),
             ),
           ),
         ),
@@ -214,42 +216,52 @@ class _NavbarDropdownItem extends StatelessWidget {
         onPressed: onPressed,
         child: Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
+          style: _navbarTextStyle(context),
         ),
       ),
     );
   }
 }
 
-class _NavbarEntry extends StatelessWidget {
+class _NavbarEntry extends StatefulWidget {
   const _NavbarEntry({required this.route, required this.title});
 
   final String route;
   final String title;
 
   @override
+  State<_NavbarEntry> createState() => _NavbarEntryState();
+}
+
+class _NavbarEntryState extends State<_NavbarEntry> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => context.go(route),
-      child: Container(
-        decoration: GoRouterState.of(context).fullPath!.startsWith(route)
-            ? BoxDecoration(
-                color: YaruColors.titleBarDark.scale(lightness: 0.1),
-                border: const Border(
-                  bottom: BorderSide(color: Colors.white, width: 2),
-                ),
-              )
-            : null,
-        padding: const EdgeInsets.all(Spacing.level4),
-        child: Text(
-          title,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
+    final isSelected =
+        GoRouterState.of(context).fullPath!.startsWith(widget.route);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: InkWell(
+        onTap: () => context.go(widget.route),
+        child: Container(
+          decoration: (isSelected || _isHovered)
+              ? BoxDecoration(
+                  color: _navbarSelectedColor,
+                  border: isSelected
+                      ? const Border(
+                          bottom: BorderSide(color: Colors.white, width: 2),
+                        )
+                      : null,
+                )
+              : null,
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: Text(
+            widget.title,
+            style: _navbarTextStyle(context),
+          ),
         ),
       ),
     );
@@ -270,10 +282,7 @@ class _NavbarButton extends StatelessWidget {
         padding: const EdgeInsets.all(Spacing.level4),
         child: Text(
           title,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
+          style: _navbarTextStyle(context),
         ),
       ),
     );
