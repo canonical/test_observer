@@ -62,7 +62,9 @@ class TestPlanExpandable extends StatelessWidget {
           .mapIndexed(
             (i, te) => TestExecutionExpandable(
               artefactId: artefactId,
-              initiallyExpanded: i == 0,
+              initiallyExpanded: targetTestExecutionId != null
+                  ? te.id == int.tryParse(targetTestExecutionId)
+                  : i == 0,
               testExecution: te,
               runNumber: testExecutionsDescending.length - i,
             ),

@@ -15,10 +15,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 import 'package:intersperse/intersperse.dart';
 import 'package:dartx/dartx.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/test_result.dart';
 import '../../providers/artefact.dart';
@@ -64,6 +66,7 @@ class TestResultExpandable extends ConsumerWidget {
           Text(title),
           const Spacer(),
           _PreviousTestResultsWidget(
+            testExecutionId: testExecutionId,
             currentResult: testResult,
             previousResults: testResult.previousResults,
           ),
@@ -121,10 +124,12 @@ class _TestResultOutputExpandable extends StatelessWidget {
 
 class _PreviousTestResultsWidget extends ConsumerWidget {
   const _PreviousTestResultsWidget({
+    required this.testExecutionId,
     required this.currentResult,
     required this.previousResults,
   });
 
+  final int testExecutionId;
   final TestResult currentResult;
   final List<PreviousTestResult> previousResults;
 
@@ -144,6 +149,8 @@ class _PreviousTestResultsWidget extends ConsumerWidget {
       currentVersion: [
         PreviousTestResult(
           artefactId: artefactId,
+          testExecutionId: testExecutionId,
+          testResultId: currentResult.id,
           status: currentResult.status,
           version: currentVersion,
         ),
@@ -187,32 +194,56 @@ class _TestResultsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: (groupIndex > 0)
-          ? () => navigateToArtefactPage(
-                context,
-                results.first.artefactId,
-              )
+    final hasNavigation = groupIndex > 0;
+    final result = hasNavigation ? results.first : null;
+
+    return Listener(
+      onPointerDown: hasNavigation
+          ? (PointerDownEvent event) {
+              // Middle mouse button (button 4) opens in new tab
+              if (event.buttons == kMiddleMouseButton) {
+                final fragment = getArtefactPagePath(
+                  context,
+                  result!.artefactId,
+                  testExecutionId: result.testExecutionId,
+                  testResultId: result.testResultId,
+                );
+                launchUrl(
+                  Uri.base.replace(fragment: fragment),
+                  mode: LaunchMode.externalApplication,
+                );
+              }
+            }
           : null,
-      child: Tooltip(
-        message: 'Version: $version',
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: -5,
-          children: results
-              .mapIndexed(
-                (index, result) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+      child: InkWell(
+        onTap: hasNavigation
+            ? () => navigateToArtefactPage(
+                  context,
+                  result!.artefactId,
+                  testExecutionId: result.testExecutionId,
+                  testResultId: result.testResultId,
+                )
+            : null,
+        child: Tooltip(
+          message: 'Version: $version',
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: -5,
+            children: results
+                .mapIndexed(
+                  (index, result) => Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: result.status.getIcon(
+                      scale: (groupIndex == index && index == 0) ? 1.5 : 1,
+                    ),
                   ),
-                  child: result.status.getIcon(
-                    scale: (groupIndex == index && index == 0) ? 1.5 : 1,
-                  ),
-                ),
-              )
-              .reversed
-              .toList(),
+                )
+                .reversed
+                .toList(),
+          ),
         ),
       ),
     );

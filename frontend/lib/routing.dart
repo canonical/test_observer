@@ -180,9 +180,12 @@ class AppRoutes {
   static bool isIssuesPage(Uri uri) => uri.path == '/issues';
 }
 
-void navigateToArtefactPage(BuildContext context, int artefactId) {
-  final uri = AppRoutes.uriFromContext(context);
-  final family = AppRoutes.familyFromUri(uri);
+String getArtefactPagePathForFamily(
+  FamilyName family,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
   String path = '/$artefactId';
 
   switch (family) {
@@ -200,6 +203,48 @@ void navigateToArtefactPage(BuildContext context, int artefactId) {
       break;
   }
 
+  if (testExecutionId != null || testResultId != null) {
+    final queryParams = <String>[];
+    if (testExecutionId != null) {
+      queryParams.add('testExecutionId=$testExecutionId');
+    }
+    if (testResultId != null) {
+      queryParams.add('testResultId=$testResultId');
+    }
+    path += '?${queryParams.join('&')}';
+  }
+
+  return path;
+}
+
+String getArtefactPagePath(
+  BuildContext context,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  final uri = AppRoutes.uriFromContext(context);
+  final family = AppRoutes.familyFromUri(uri);
+  return getArtefactPagePathForFamily(
+    family,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
+}
+
+void navigateToArtefactPage(
+  BuildContext context,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  final path = getArtefactPagePath(
+    context,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
   context.go(path);
 }
 

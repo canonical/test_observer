@@ -17,11 +17,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/detailed_test_results.dart';
+import '../../models/family_name.dart';
+import '../../routing.dart';
 import '../execution_metadata.dart';
 import '../date_time.dart';
-import 'test_results_helpers.dart';
 
 class TestResultDetailsDialog extends StatelessWidget {
   final TestResultWithContext result;
@@ -214,7 +216,18 @@ class _DialogFooter extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           InkWell(
-            onTap: () => TestResultHelpers.navigateToTestExecution(result),
+            onTap: () {
+              final fragment = getArtefactPagePathForFamily(
+                FamilyName.values.byName(result.artefact.family),
+                result.artefact.id,
+                testExecutionId: result.testExecution.id,
+                testResultId: result.testResult.id,
+              );
+              launchUrl(
+                Uri.base.replace(fragment: fragment),
+                mode: LaunchMode.externalApplication,
+              );
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: Row(
