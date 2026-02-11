@@ -61,12 +61,7 @@ class JiraClient:
             Exception: If issue fetch fails
         """
 
-        if "-" in key:
-            issue_key = key
-        elif project:
-            issue_key = f"{project}-{key}"
-        else:
-            issue_key = key
+        issue_key = f"{project}-{key}" if project and "-" not in key else key
 
         url = f"{self.base_url}/rest/api/3/issue/{issue_key}"
 
