@@ -99,7 +99,7 @@ jobs:
         run: |
           export CHARMCRAFT_AUTH="${{ secrets.CHARMHUB_TOKEN }}"
           # Only upload if the resource doesn't exist yet
-          if ! charmcraft resource-revisions test-observer-frontend custom-header-image 2>&1 | grep -q "revision"; then
+          if charmcraft resource-revisions test-observer-frontend custom-header-image 2>&1 | grep -q "No revisions found"; then
             echo "Uploading initial custom-header-image resource..."
             charmcraft upload-resource test-observer-frontend custom-header-image --filepath=frontend/assets/logo.png
           else
