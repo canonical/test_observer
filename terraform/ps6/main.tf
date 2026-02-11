@@ -133,7 +133,9 @@ resource "juju_application" "test-observer-frontend" {
     hostname                 = var.frontend_hostname
     test-observer-api-scheme = var.api_scheme
   }
-
+  resources = var.custom_header_image != "" ? {
+    custom-header-image = var.custom_header_image
+  } : {}
   units = 3
 }
 

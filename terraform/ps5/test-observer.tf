@@ -90,6 +90,12 @@ variable "ignore_permissions" {
   type        = list(string)
 }
 
+variable "custom_header_image" {
+  description = "Path to custom header image file (logo.png)"
+  type        = string
+  default     = ""
+}
+
 
 
 locals {
@@ -183,7 +189,9 @@ resource "juju_application" "test-observer-frontend" {
     hostname                 = var.frontend_hostname
     test-observer-api-scheme = var.environment == "development" ? "http://" : "https://"
   }
-
+  resources = var.custom_header_image != "" ? {
+    custom-header-image = var.custom_header_image
+  } : {}
   units = 3
 }
 
