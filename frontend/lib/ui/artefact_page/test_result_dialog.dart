@@ -49,7 +49,7 @@ class _AddTestResultDialogState extends ConsumerState<AddTestResultDialog> {
 
   String _testNamePrefix() {
     final user = ref.read(currentUserProvider).valueOrNull;
-    final username = user?.name.trim() ?? '';
+    final username = user?.launchpadHandle?.trim() ?? '';
     return username.isEmpty ? '' : '$username - ';
   }
 
