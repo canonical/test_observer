@@ -48,8 +48,8 @@ class DashboardHeader extends ConsumerWidget {
             const SizedBox(width: Spacing.level4),
             Text(
               totalArtefacts.length == filteredCount
-                  ? '$filteredCount artefacts'
-                  : '$filteredCount of ${totalArtefacts.length} artefacts',
+                  ? '$filteredCount artifacts'
+                  : '$filteredCount of ${totalArtefacts.length} artifacts',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
