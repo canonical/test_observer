@@ -26,7 +26,7 @@ from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleResponse,
     TeamMinimal,
 )
-from test_observer.data_access.models import ArtefactMatchingRule
+from test_observer.data_access.models import ArtefactMatchingRule, Team
 from test_observer.data_access.setup import get_db
 
 
@@ -64,7 +64,25 @@ def create_artefact_matching_rule(
     request: ArtefactMatchingRuleRequest,
     db: Session = Depends(get_db),
 ):
-    """Create a new artefact matching rule"""
+    """Create a new artefact matching rule with at least one team"""
+    # Validate that team_ids is not empty
+    if not request.team_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one team is required to create a matching rule",
+        )
+
+    # Validate that all teams exist
+    teams = []
+    for team_id in request.team_ids:
+        team = db.get(Team, team_id)
+        if not team:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Team {team_id} doesn't exist",
+            )
+        teams.append(team)
+
     # Check if rule already exists
     existing_rule = db.execute(
         select(ArtefactMatchingRule).where(
@@ -86,6 +104,7 @@ def create_artefact_matching_rule(
         stage=request.stage,
         track=request.track,
         branch=request.branch,
+        teams=teams,
     )
     db.add(rule)
     try:
@@ -154,6 +173,25 @@ def update_artefact_matching_rule(
             detail="Family field is required and cannot be set to None",
         )
 
+    # Validate team_ids if provided
+    if request.team_ids is not None:
+        if not request.team_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="At least one team is required. Use DELETE to remove the rule.",
+            )
+
+        # Validate that all teams exist
+        teams = []
+        for team_id in request.team_ids:
+            team = db.get(Team, team_id)
+            if not team:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Team {team_id} doesn't exist",
+                )
+            teams.append(team)
+
     # Check if updated rule would conflict with existing rule
     existing_rule = db.execute(
         select(ArtefactMatchingRule).where(
@@ -176,6 +214,10 @@ def update_artefact_matching_rule(
     rule.stage = request.stage
     rule.track = request.track
     rule.branch = request.branch
+
+    # Update teams if provided
+    if request.team_ids is not None:
+        rule.teams = teams
 
     try:
         db.commit()

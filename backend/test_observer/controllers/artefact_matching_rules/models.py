@@ -38,6 +38,7 @@ class ArtefactMatchingRuleRequest(BaseModel):
     stage: str | None = None
     track: str | None = None
     branch: str | None = None
+    team_ids: list[int]  # At least one team required
 
 
 class ArtefactMatchingRulePatch(BaseModel):
@@ -45,3 +46,4 @@ class ArtefactMatchingRulePatch(BaseModel):
     stage: str | None = None
     track: str | None = None
     branch: str | None = None
+    team_ids: list[int] | None = None  # Optional in patch, but must not be empty if provided
