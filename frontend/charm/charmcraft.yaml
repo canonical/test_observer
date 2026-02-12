@@ -52,6 +52,10 @@ config:
       type: string
 
 resources:
+  custom-header-image:
+    type: file
+    description: "Custom header image to replace the default one (recommended height: 112 pixels)"
+    filename: logo.png
   frontend-image:
     type: oci-image
     description: OCI image for test-observer-frontend
