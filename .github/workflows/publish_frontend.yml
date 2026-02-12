@@ -13,8 +13,7 @@ env:
 
 jobs:
   build-and-push-frontend-image:
-    # runs-on: [self-hosted, linux, jammy, x64]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, jammy, x64]
     permissions:
       contents: read
       packages: write
