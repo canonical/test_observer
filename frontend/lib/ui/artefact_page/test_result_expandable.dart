@@ -15,18 +15,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/widgets.dart';
 import 'package:intersperse/intersperse.dart';
 import 'package:dartx/dartx.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/test_result.dart';
 import '../../providers/artefact.dart';
 import '../../providers/test_result_issues.dart';
 import '../../routing.dart';
 import '../expandable.dart';
+import '../navigable_link.dart';
 import '../spacing.dart';
 import 'test_issues/test_issues_expandable.dart';
 import 'issue_attachments/issue_attachments_expandable.dart';
@@ -196,56 +195,46 @@ class _TestResultsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasNavigation = groupIndex > 0;
     final result = hasNavigation ? results.first : null;
+    final path = hasNavigation
+        ? getArtefactPagePath(
+            context,
+            result!.artefactId,
+            testExecutionId: result.testExecutionId,
+            testResultId: result.testResultId,
+          )
+        : null;
 
-    return Listener(
-      onPointerDown: hasNavigation
-          ? (PointerDownEvent event) {
-              // Middle mouse button (button 4) opens in new tab
-              if (event.buttons & kMiddleMouseButton != 0) {
-                final fragment = getArtefactPagePath(
-                  context,
-                  result!.artefactId,
-                  testExecutionId: result.testExecutionId,
-                  testResultId: result.testResultId,
-                );
-                launchUrl(
-                  Uri.base.replace(fragment: fragment),
-                  mode: LaunchMode.externalApplication,
-                );
-              }
-            }
-          : null,
-      child: InkWell(
-        onTap: hasNavigation
-            ? () => navigateToArtefactPage(
-                  context,
-                  result!.artefactId,
-                  testExecutionId: result.testExecutionId,
-                  testResultId: result.testResultId,
-                )
-            : null,
-        child: Tooltip(
-          message: 'Version: $version',
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: -5,
-            children: results
-                .mapIndexed(
-                  (index, result) => Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: result.status.getIcon(
-                      scale: (groupIndex == index && index == 0) ? 1.5 : 1,
-                    ),
-                  ),
-                )
-                .reversed
-                .toList(),
-          ),
-        ),
-      ),
+    final content = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: -5,
+      children: results
+          .mapIndexed(
+            (index, result) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: result.status.getIcon(
+                scale: (groupIndex == index && index == 0) ? 1.5 : 1,
+              ),
+            ),
+          )
+          .reversed
+          .toList(),
+    );
+
+    if (hasNavigation) {
+      return NavigableLink(
+        path: path!,
+        tooltip: 'Version: $version',
+        semanticsLabel: 'View test results for version $version',
+        child: content,
+      );
+    }
+
+    return Tooltip(
+      message: 'Version: $version',
+      child: content,
     );
   }
 }
