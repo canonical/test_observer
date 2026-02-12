@@ -201,7 +201,7 @@ class _TestResultsGroup extends StatelessWidget {
       onPointerDown: hasNavigation
           ? (PointerDownEvent event) {
               // Middle mouse button (button 4) opens in new tab
-              if (event.buttons == kMiddleMouseButton) {
+              if (event.buttons & kMiddleMouseButton != 0) {
                 final fragment = getArtefactPagePath(
                   context,
                   result!.artefactId,

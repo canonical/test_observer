@@ -454,8 +454,12 @@ class _ActionsCell extends StatelessWidget {
   }
 
   void _navigateToTestExecution(TestResultWithContext result) {
+    final family = FamilyName.values.firstWhere(
+      (f) => f.name == result.artefact.family,
+      orElse: () => FamilyName.values.first,
+    );
     final fragment = getArtefactPagePathForFamily(
-      FamilyName.values.byName(result.artefact.family),
+      family,
       result.artefact.id,
       testExecutionId: result.testExecution.id,
       testResultId: result.testResult.id,
