@@ -25,6 +25,7 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
     MaintenanceStatus,
+    ModelError,
     WaitingStatus,
 )
 from ops.pebble import Layer
@@ -98,6 +99,21 @@ class TestObserverFrontendCharm(ops.CharmBase):
         logger.debug(f"API hostname: {api_hostname}, port: {api_port} (app: {event.app})")
         self._update_layer_and_restart(event)
 
+    def _update_header_image(self):
+        try:
+            image_path = self.model.resources.fetch("custom-header-image")
+            with open(image_path, "rb") as f:
+                self.container.push(
+                    "/usr/share/nginx/html/assets/assets/logo.png",
+                    f,
+                    make_dirs=True,
+                )
+            logger.info("Updated header image from resource")
+        except (ModelError, NameError):
+            logger.info("No custom-header-image resource provided")
+        except Exception as e:
+            logger.warning(f"Failed to update header image: {e}")
+
     def _on_rest_api_relation_broken(self, event):
         logger.debug("REST API relation broken")
         self._handle_no_api_relation()
@@ -106,6 +122,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         if self.container.can_connect():
+            self._update_header_image()
             api_url = self._api_url
             if api_url:
                 self.container.push(

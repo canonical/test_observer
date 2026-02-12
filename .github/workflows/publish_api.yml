@@ -1,6 +1,8 @@
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+      - 'testing/**'
     tags: ["v*.*.*"]
     paths:
       - 'backend/**'
@@ -44,6 +46,13 @@ jobs:
         uses: docker/metadata-action@418e4b98bf2841bd337d0b24fe63cb36dc8afa55
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend Docker image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
@@ -62,6 +71,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Determine channel
+        id: channel
+        run: |
+          # Sanitize branch name for Charmhub (replace / with -)
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SANITIZED="$(echo "$BRANCH" | tr '/' '-' | tr '[:upper:]' '[:lower:]')"
+          
+          if [ "$BRANCH" = "main" ]; then
+            echo "name=latest/edge" >> $GITHUB_OUTPUT
+            echo "tag=main" >> $GITHUB_OUTPUT
+          else
+            echo "name=latest/edge/$SANITIZED" >> $GITHUB_OUTPUT
+            echo "tag=$SANITIZED" >> $GITHUB_OUTPUT
+          fi
+          echo "Publishing to: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
+
+      - name: Update OCI image reference in charmcraft.yaml
+        run: |
+          sed -i "s|ghcr.io/canonical/test_observer/api:main|ghcr.io/canonical/test_observer/api:${{ steps.channel.outputs.tag }}|g" backend/charm/charmcraft.yaml
+          echo "Updated charmcraft.yaml to use image tag: ${{ steps.channel.outputs.tag }}"
+          grep "upstream-source" backend/charm/charmcraft.yaml
+
       - name: Upload charm to charmhub
         uses: canonical/charming-actions/upload-charm@2.7.0
         with:
@@ -69,6 +100,7 @@ jobs:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           tag-prefix: "api"
+          channel: "${{ steps.channel.outputs.name }}"
 
       - name: Check logs for failure
         if: failure()
