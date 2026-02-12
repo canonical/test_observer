@@ -4061,6 +4061,104 @@
         ],
         "title": "ArtefactBuildResponse"
       },
+      "ArtefactMatchingRuleRequest": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "title": "ArtefactMatchingRuleRequest"
+      },
+      "ArtefactMatchingRuleResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "family",
+          "stage",
+          "track",
+          "branch"
+        ],
+        "title": "ArtefactMatchingRuleResponse"
+      },
       "ArtefactPatch": {
         "properties": {
           "status": {
@@ -5692,12 +5790,12 @@
             "title": "Permissions",
             "default": []
           },
-          "reviewer_families": {
+          "artefact_matching_rules": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ArtefactMatchingRuleRequest"
             },
             "type": "array",
-            "title": "Reviewer Families",
+            "title": "Artefact Matching Rules",
             "default": []
           }
         },
@@ -5723,14 +5821,6 @@
             },
             "type": "array",
             "title": "Permissions"
-          },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
           }
         },
         "type": "object",
@@ -5757,11 +5847,11 @@
             ],
             "title": "Permissions"
           },
-          "reviewer_families": {
+          "artefact_matching_rules": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleRequest"
                 },
                 "type": "array"
               },
@@ -5769,7 +5859,7 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewer Families"
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -5792,20 +5882,19 @@
             "type": "array",
             "title": "Permissions"
           },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
-          },
           "members": {
             "items": {
               "$ref": "#/components/schemas/UserMinimalResponse"
             },
             "type": "array",
             "title": "Members"
+          },
+          "artefact_matching_rules": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+            },
+            "type": "array",
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -5813,7 +5902,8 @@
           "id",
           "name",
           "permissions",
-          "members"
+          "members",
+          "artefact_matching_rules"
         ],
         "title": "TeamResponse"
       },
