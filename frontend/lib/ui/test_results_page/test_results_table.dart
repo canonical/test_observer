@@ -17,14 +17,16 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/detailed_test_results.dart';
 import '../../models/test_result.dart';
 import '../../models/test_execution.dart';
 import '../../models/artefact.dart';
 import '../../models/environment.dart';
+import '../../models/family_name.dart';
+import '../../routing.dart';
 import 'test_results_details_dialog.dart';
-import 'test_results_helpers.dart';
 
 class TestResultsTable extends StatelessWidget {
   final List<TestResultWithContext> testResults;
@@ -452,6 +454,19 @@ class _ActionsCell extends StatelessWidget {
   }
 
   void _navigateToTestExecution(TestResultWithContext result) {
-    TestResultHelpers.navigateToTestExecution(result);
+    final family = FamilyName.values.firstWhere(
+      (f) => f.name == result.artefact.family,
+      orElse: () => FamilyName.values.first,
+    );
+    final fragment = getArtefactPagePathForFamily(
+      family,
+      result.artefact.id,
+      testExecutionId: result.testExecution.id,
+      testResultId: result.testResult.id,
+    );
+    launchUrl(
+      Uri.base.replace(fragment: fragment),
+      mode: LaunchMode.externalApplication,
+    );
   }
 }

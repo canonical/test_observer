@@ -73,6 +73,7 @@ def get_previous_test_results(
             TestResult.id.label("result_id"),
             TestResult.status.label("result_status"),
             TestResult.test_case_id.label("case_id"),
+            TestExecution.id.label("test_execution_id"),
             Artefact.id.label("artefact_id"),
             Artefact.version.label("artefact_version"),
             over(
@@ -107,6 +108,8 @@ def get_previous_test_results(
             subq.c.result_status,
             subq.c.artefact_id,
             subq.c.artefact_version,
+            subq.c.test_execution_id,
+            subq.c.result_id,
         )
         .where(subq.c.row_number <= PREVIOUS_TEST_RESULT_COUNT)
         .order_by(
@@ -117,12 +120,21 @@ def get_previous_test_results(
     )
 
     previous_results = defaultdict(list)
-    for case_id, result_status, artefact_id, artefact_version in session.execute(stmt):
+    for (
+        case_id,
+        result_status,
+        artefact_id,
+        artefact_version,
+        test_execution_id,
+        result_id,
+    ) in session.execute(stmt):
         previous_results[case_id].append(
             PreviousTestResult(
                 status=result_status,
                 version=artefact_version,
                 artefact_id=artefact_id,
+                test_execution_id=test_execution_id,
+                test_result_id=result_id,
             )
         )
 

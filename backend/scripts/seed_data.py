@@ -99,6 +99,33 @@ TEST_RESULT_ATTACHMENT_RULE_REQUESTS = [
 ]
 
 START_TEST_EXECUTION_REQUESTS = [
+    # Previous version of core22 for testing previous run links
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="core22",
+        version="20230501",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage=SnapStage.beta,
+        environment="rpi2",
+        ci_link="http://example_prev1",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
+    ),
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="core22",
+        version="20230515",
+        revision=1,
+        track="22",
+        store="ubuntu",
+        arch="armhf",
+        execution_stage=SnapStage.beta,
+        environment="rpi2",
+        ci_link="http://example_prev2",
+        test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
+    ),
     StartSnapTestExecutionRequest(
         family=FamilyName.snap,
         name="core22",
@@ -392,6 +419,61 @@ START_TEST_EXECUTION_REQUESTS = [
 ]
 
 END_TEST_EXECUTION_REQUESTS = [
+    # End requests for previous versions of core22
+    EndTestExecutionRequest(
+        ci_link="http://example_prev1",
+        test_results=[
+            C3TestResult(
+                name="docker/compose-and-basic_armhf",
+                status=C3TestResultStatus.PASS,
+                category="Docker containers",
+                comment="Previous version test passed",
+                io_log="Test completed successfully",
+            ),
+            C3TestResult(
+                name="after-suspend-audio/alsa-loopback-automated",
+                status=C3TestResultStatus.SKIP,
+                category="Audio tests",
+                comment="Skipped in previous version",
+                io_log="",
+            ),
+            C3TestResult(
+                name="bluetooth4/beacon_eddystone_url_hci0",
+                template_id="bluetooth4/beacon_eddystone_url_interface",
+                status=C3TestResultStatus.PASS,
+                category="Bluetooth tests",
+                comment="",
+                io_log="Bluetooth test passed in previous version",
+            ),
+        ],
+    ),
+    EndTestExecutionRequest(
+        ci_link="http://example_prev2",
+        test_results=[
+            C3TestResult(
+                name="docker/compose-and-basic_armhf",
+                status=C3TestResultStatus.FAIL,
+                category="Docker containers",
+                comment="Failed in version 20230515",
+                io_log="Docker test failed",
+            ),
+            C3TestResult(
+                name="after-suspend-audio/alsa-loopback-automated",
+                status=C3TestResultStatus.SKIP,
+                category="Audio tests",
+                comment="Skipped",
+                io_log="",
+            ),
+            C3TestResult(
+                name="bluetooth4/beacon_eddystone_url_hci0",
+                template_id="bluetooth4/beacon_eddystone_url_interface",
+                status=C3TestResultStatus.PASS,
+                category="Bluetooth tests",
+                comment="",
+                io_log="Bluetooth test passed",
+            ),
+        ],
+    ),
     EndTestExecutionRequest(
         ci_link="http://example1",
         test_results=[

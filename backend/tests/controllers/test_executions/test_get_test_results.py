@@ -86,6 +86,8 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
             "status": test_result_first.status,
             "version": artefact_first.version,
             "artefact_id": artefact_first.id,
+            "test_execution_id": test_execution_first.id,
+            "test_result_id": test_result_first.id,
         }
     ]
     assert json[0]["issues"] == [
@@ -140,6 +142,8 @@ def test_previous_results_shows_reruns(
                     "status": tr1.status,
                     "version": a.version,
                     "artefact_id": a.id,
+                    "test_execution_id": te1.id,
+                    "test_result_id": tr1.id,
                 }
             ],
             "issues": [],
@@ -186,6 +190,8 @@ def test_previous_results_orders_by_artefact(
                     "status": tr1.status,
                     "version": a1.version,
                     "artefact_id": a1.id,
+                    "test_execution_id": te1.id,
+                    "test_result_id": tr1.id,
                 }
             ],
             "issues": [],

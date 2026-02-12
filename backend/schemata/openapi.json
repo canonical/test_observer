@@ -5212,13 +5212,23 @@
           "artefact_id": {
             "type": "integer",
             "title": "Artefact Id"
+          },
+          "test_execution_id": {
+            "type": "integer",
+            "title": "Test Execution Id"
+          },
+          "test_result_id": {
+            "type": "integer",
+            "title": "Test Result Id"
           }
         },
         "type": "object",
         "required": [
           "status",
           "version",
-          "artefact_id"
+          "artefact_id",
+          "test_execution_id",
+          "test_result_id"
         ],
         "title": "PreviousTestResult"
       },
