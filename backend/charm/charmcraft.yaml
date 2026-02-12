@@ -80,15 +80,15 @@ config:
     jira_cloud_id:
       default: ""
       description: Jira cloud ID for issue synchronization
-      type: string
+      type: secret
     jira_email:
       default: ""
       description: Email address for Jira service account
-      type: string
+      type: secret
     jira_api_token:
       default: ""
       description: API token for Jira service account
-      type: string
+      type: secret
 
 resources:
   api-image:
