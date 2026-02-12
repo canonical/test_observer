@@ -34,6 +34,20 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for git versioning
 
+      - name: Determine tag
+        id: tag
+        run: |
+          # Sanitize branch name (replace / with -)
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SANITIZED="$(echo "$BRANCH" | tr '/' '-' | tr '[:upper:]' '[:lower:]')"
+          
+          if [ "$BRANCH" = "main" ]; then
+            echo "name=main" >> $GITHUB_OUTPUT
+          else
+            echo "name=$SANITIZED" >> $GITHUB_OUTPUT
+          fi
+          echo "Docker tag: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
+
       - name: Log in to the Container registry
         uses: docker/login-action@6d4b68b490aef8836e8fb5e50ee7b3bdfa5894f0
         with:
@@ -47,8 +61,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
+            type=raw,value=${{ steps.tag.outputs.name }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
