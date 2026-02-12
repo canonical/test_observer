@@ -260,7 +260,12 @@ class TestObserverBackendCharm(CharmBase):
             env["SAML_IDP_METADATA_URL"] = self.config["saml_idp_metadata_url"]
             env["SAML_SP_X509_CERT"] = self.config.get("saml_sp_cert", "")
             env["SAML_SP_KEY"] = self.config.get("saml_sp_key", "")
-        env.update(self._postgres_relation_data())
+        # Only set Jira environment variables if cloud ID is provided
+        if self.config.get("jira_cloud_id"):
+            env["JIRA_CLOUD_ID"] = self.config["jira_cloud_id"]
+            env["JIRA_EMAIL"] = self.config["jira_email"]
+            env["JIRA_API_TOKEN"] = self.config["jira_api_token"]
+            env.update(self._postgres_relation_data())
         return env
 
     def _test_observer_rest_api_client_joined(self, event: RelationCreatedEvent) -> None:

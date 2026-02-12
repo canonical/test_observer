@@ -77,6 +77,18 @@ config:
     ignore_permissions:
       description: Comma separated list of API permissions to ignore for all requests
       type: string
+    jira_cloud_id:
+      default: ""
+      description: Jira cloud ID for issue synchronization
+      type: string
+    jira_email:
+      default: ""
+      description: Email address for Jira service account
+      type: string
+    jira_api_token:
+      default: ""
+      description: API token for Jira service account
+      type: string
 
 resources:
   api-image:
