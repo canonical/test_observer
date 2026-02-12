@@ -55,8 +55,17 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
     # Clear existing rules for this team
     team.artefact_matching_rules.clear()
     
-    # Add new rules
+    # Deduplicate rules in the request
+    seen_rules = set()
+    unique_rules_data = []
     for rule_data in rules_data:
+        rule_key = (rule_data.family, rule_data.stage, rule_data.track, rule_data.branch)
+        if rule_key not in seen_rules:
+            seen_rules.add(rule_key)
+            unique_rules_data.append(rule_data)
+    
+    # Add new rules
+    for rule_data in unique_rules_data:
         # Check if an identical rule already exists
         existing_rule = db.execute(
             select(ArtefactMatchingRule).where(
