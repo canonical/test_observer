@@ -30,8 +30,8 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.metrics import (
     test_results,
-    test_results_triaged,
     test_results_metadata,
+    test_results_triaged,
 )
 from test_observer.data_access.models import (
     Artefact,
@@ -260,6 +260,9 @@ def _initialize_metadata_metrics(db: Session) -> int:
             Artefact.family,
             Artefact.name.label("artefact_name"),
             Artefact.stage.label("artefact_stage"),
+            Artefact.track.label("artefact_track"),
+            Artefact.series.label("artefact_series"),
+            Artefact.os.label("artefact_os"),
             Environment.name.label("environment_name"),
             TestPlan.name.label("test_plan"),
             TestCase.name.label("test_name"),
@@ -294,6 +297,9 @@ def _initialize_metadata_metrics(db: Session) -> int:
         Artefact.family,
         Artefact.name,
         Artefact.stage,
+        Artefact.track,
+        Artefact.series,
+        Artefact.os,
         Environment.name,
         TestPlan.name,
         TestCase.name,
@@ -308,6 +314,9 @@ def _initialize_metadata_metrics(db: Session) -> int:
             family=row.family.value,
             artefact_name=row.artefact_name,
             artefact_stage=row.artefact_stage,
+            track=row.artefact_track or "",
+            series=row.artefact_series or "",
+            os=row.artefact_os or "",
             environment_name=row.environment_name,
             test_plan=row.test_plan,
             test_name=row.test_name,
