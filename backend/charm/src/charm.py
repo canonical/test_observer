@@ -265,7 +265,7 @@ class TestObserverBackendCharm(CharmBase):
             env["JIRA_CLOUD_ID"] = self.config["jira_cloud_id"]
             env["JIRA_EMAIL"] = self.config["jira_email"]
             env["JIRA_API_TOKEN"] = self.config["jira_api_token"]
-            env.update(self._postgres_relation_data())
+        env.update(self._postgres_relation_data())
         return env
 
     def _test_observer_rest_api_client_joined(self, event: RelationCreatedEvent) -> None:
