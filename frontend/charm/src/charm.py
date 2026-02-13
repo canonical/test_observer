@@ -16,6 +16,7 @@
 
 """Test Observer frontend charm."""
 
+import json
 import logging
 from typing import Optional, Tuple
 
@@ -99,6 +100,38 @@ class TestObserverFrontendCharm(ops.CharmBase):
         logger.debug(f"API hostname: {api_hostname}, port: {api_port} (app: {event.app})")
         self._update_layer_and_restart(event)
 
+    _VALID_TABS = {"snaps", "debs", "charms", "images"}
+
+    def _update_header_default_tabs(self):
+        try:
+            tabs_path = self.model.resources.fetch("custom-header-default-tabs")
+            with open(tabs_path, "r") as f:
+                content = f.read()
+
+            tabs = json.loads(content)
+            if not isinstance(tabs, list) or len(tabs) == 0:
+                logger.warning("custom-header-default-tabs must be a non-empty JSON array")
+                return
+            if not all(isinstance(t, str) and t in self._VALID_TABS for t in tabs):
+                logger.warning(
+                    f"custom-header-default-tabs contains invalid values. "
+                    f"Valid values: {self._VALID_TABS}"
+                )
+                return
+
+            self.container.push(
+                "/usr/share/nginx/html/assets/assets/tabs_config.json",
+                content,
+                make_dirs=True,
+            )
+            logger.info("Updated header default tabs from resource")
+        except (ModelError, NameError):
+            logger.info("No custom-header-default-tabs resource provided")
+        except json.JSONDecodeError:
+            logger.warning("custom-header-default-tabs contains invalid JSON")
+        except Exception as e:
+            logger.warning(f"Failed to update header default tabs: {e}")
+
     def _update_header_image(self):
         try:
             image_path = self.model.resources.fetch("custom-header-image")
@@ -122,6 +155,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         if self.container.can_connect():
+            self._update_header_default_tabs()
             self._update_header_image()
             api_url = self._api_url
             if api_url:

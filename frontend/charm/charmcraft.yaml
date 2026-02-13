@@ -52,6 +52,10 @@ config:
       type: string
 
 resources:
+  custom-header-default-tabs:
+    type: file
+    description: "JSON array of tab families to display (e.g. [\"images\", \"snaps\"]). Valid values: snaps, debs, charms, images."
+    filename: tabs_config.json
   custom-header-image:
     type: file
     description: "Custom header image to replace the default one (recommended height: 112 pixels)"
