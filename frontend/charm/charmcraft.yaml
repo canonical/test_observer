@@ -38,7 +38,6 @@ config:
   options:
     hostname:
       description: Public hostname for the frontend (through ingress)
-      default: test-observer
       type: string
 
     port:
@@ -64,6 +63,8 @@ containers:
 charm-libs:
   - lib: nginx_ingress_integrator.nginx_route
     version: "0"
+  - lib: traefik_k8s.ingress
+    version: "2"
 
 requires:
   test-observer-rest-api:
@@ -71,3 +72,5 @@ requires:
     limit: 1
   nginx-route:
     interface: nginx-route
+  ingress:
+    interface: ingress

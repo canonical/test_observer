@@ -21,6 +21,7 @@ from typing import Optional, Tuple
 
 import ops
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer, IngressPerAppReadyEvent, IngressPerAppRevokedEvent
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
@@ -33,6 +34,8 @@ from nginx_config import html_503, nginx_503_config, nginx_config
 
 logger = logging.getLogger(__name__)
 
+NGINX_ROUTE_DEFAULT_HOSTNAME_FRONTEND = "test-observer"
+
 
 class TestObserverFrontendCharm(ops.CharmBase):
     """The frontend charm operates serving the frontend through nginx."""
@@ -41,6 +44,9 @@ class TestObserverFrontendCharm(ops.CharmBase):
         super().__init__(*args)
         self.pebble_service_name = "test-observer-frontend"
         self.container = self.unit.get_container("frontend")
+
+        # The ops framework triggers a CollectStatusEvent at the end of each hook
+        self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
 
         self.framework.observe(self.on.frontend_pebble_ready, self._update_layer_and_restart)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
@@ -57,15 +63,36 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._on_rest_api_relation_broken,
         )
 
-        self._setup_ingress()
-
-    def _setup_ingress(self):
         require_nginx_route(
             charm=self,
-            service_hostname=self.config["hostname"],
+            service_hostname=(
+                str(self.config.get("hostname", NGINX_ROUTE_DEFAULT_HOSTNAME_FRONTEND))
+            ),
             service_name=self.app.name,
             service_port=int(self.config["port"]),
         )
+
+        # Traefik will default to prefixing routes with <model-name>-<app-name>,
+        # so we need to use strip_prefix=True to remove that and keep the API working with expected routes
+        # Additionally, Traefik automatically uses the underlying K8s service name when no hostname is provided,
+        # and providing a custom hostname requires more effort to support
+        self.ingress = IngressPerAppRequirer(charm=self, port=int(self.config["port"]), strip_prefix=True)
+        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
+        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
+
+    def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
+        """
+        Set the unit status based on the current state.
+        The ops framework triggers a CollectStatusEvent at the end of each hook
+        """
+
+        if not (self.model.get_relation("nginx-route") or self.model.get_relation("ingress")):
+            event.add_status(BlockedStatus("Waiting for nginx-route or ingress relation"))
+
+        if self.model.get_relation("nginx-route") and self.model.get_relation("ingress"):
+            event.add_status(BlockedStatus("Cannot have both nginx-route and ingress relations at the same time"))
+
+        event.add_status(ActiveStatus())
 
     def _on_config_changed(self, event):
         is_valid, reason = self._config_is_valid(self.config)
@@ -86,9 +113,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 False,
                 "test-observer-api-scheme must be http:// or https://",
             )
-
-        if config["hostname"] == "":
-            return False, "hostname must be set"
 
         return True, None
 
@@ -185,6 +209,16 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 },
             }
         )
+
+    def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
+        if self.model.get_relation("nginx-route"):
+            self.unit.status = BlockedStatus("Cannot have both nginx-route and ingress relations at the same time")
+            return
+
+        self.unit.status = ActiveStatus(f"Ingress is ready with address: {event.url}")
+
+    def _on_ingress_revoked(self, _: IngressPerAppRevokedEvent) -> None:
+        logger.info("Ingress has been revoked")
 
 
 if __name__ == "__main__":  # pragma: nocover
