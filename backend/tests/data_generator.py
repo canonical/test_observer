@@ -86,8 +86,9 @@ class DataGenerator:
         stage: str | None = None,
         track: str | None = None,
         branch: str | None = None,
-        teams: list[Team] = [],
+        teams: list[Team] | None = None,
     ) -> ArtefactMatchingRule:
+        teams = teams or []
         rule = ArtefactMatchingRule(
             family=family,
             stage=stage,
