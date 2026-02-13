@@ -449,10 +449,6 @@ class TestObserverBackendCharm(CharmBase):
         if self.model.get_relation("nginx-route"):
             self.unit.status = BlockedStatus("Cannot have both nginx-route and ingress relations at the same time")
             return
-        
-        if self.model.get_relation("ingress"):
-            self.unit.status = BlockedStatus("Cannot have both traefik ingress and nginx ingress relations at the same time")
-            return
 
         self.unit.status = ActiveStatus(f"Ingress is ready with address: {event.url}")
 
