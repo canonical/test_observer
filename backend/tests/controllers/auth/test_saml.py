@@ -199,7 +199,7 @@ class TestSAMLAuthentication:
             db_session,
             Team,
             {"name": "test-team"},
-            {"permissions": [], "reviewer_families": []},
+            {"permissions": [], "artefact_matching_rules": []},
         )
         db_session.commit()
 
