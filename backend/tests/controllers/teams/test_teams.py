@@ -16,8 +16,6 @@
 
 
 from fastapi.testclient import TestClient
-import pytest
-from sqlalchemy.exc import IntegrityError
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import ArtefactMatchingRule
