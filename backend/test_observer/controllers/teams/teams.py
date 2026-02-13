@@ -24,7 +24,9 @@ from test_observer.controllers.teams.models import (
     TeamCreate,
     TeamPatch,
     TeamResponse,
-    ArtefactMatchingRuleResponse,
+)
+from test_observer.controllers.common.artefact_matching_rule_models import (
+    ArtefactMatchingRuleInResponse,
 )
 from test_observer.data_access.models import Team, User, ArtefactMatchingRule
 from test_observer.data_access.setup import get_db
@@ -108,7 +110,7 @@ def _team_to_response(team: Team) -> TeamResponse:
             for user in team.members
         ],
         artefact_matching_rules=[
-            ArtefactMatchingRuleResponse(
+            ArtefactMatchingRuleInResponse(
                 id=rule.id,
                 family=rule.family,
                 stage=rule.stage,

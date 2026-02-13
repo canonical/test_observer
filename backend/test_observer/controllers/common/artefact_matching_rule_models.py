@@ -14,38 +14,31 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""
+Shared Pydantic models for ArtefactMatchingRule across different API controllers.
+
+This module provides base models that can be used by both the teams API and 
+artefact-matching-rules API to avoid duplication while maintaining proper 
+OpenAPI schema generation.
+"""
+
 from pydantic import BaseModel
 
 from test_observer.data_access.models_enums import FamilyName
-from test_observer.controllers.common.artefact_matching_rule_models import (
-    ArtefactMatchingRuleBase,
-)
 
 
-class TeamMinimal(BaseModel):
-    id: int
-    name: str
+class ArtefactMatchingRuleBase(BaseModel):
+    """Base model for artefact matching rule with common fields"""
+    family: FamilyName
+    stage: str | None = None
+    track: str | None = None
+    branch: str | None = None
 
 
-class ArtefactMatchingRuleResponse(BaseModel):
-    """Artefact matching rule with associated teams"""
+class ArtefactMatchingRuleInResponse(BaseModel):
+    """Artefact matching rule fields when included in responses (no relationships)"""
     id: int
     family: FamilyName
     stage: str | None
     track: str | None
     branch: str | None
-    teams: list[TeamMinimal]
-
-
-class ArtefactMatchingRuleRequest(ArtefactMatchingRuleBase):
-    """Request to create an artefact matching rule (extends base with team_ids)"""
-    team_ids: list[int]  # At least one team required
-
-
-class ArtefactMatchingRulePatch(BaseModel):
-    """Patch request for artefact matching rule"""
-    family: FamilyName | None = None
-    stage: str | None = None
-    track: str | None = None
-    branch: str | None = None
-    team_ids: list[int] | None = None  # Optional in patch, but must not be empty if provided
