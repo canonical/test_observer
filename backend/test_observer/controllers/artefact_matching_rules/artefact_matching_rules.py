@@ -27,6 +27,7 @@ from test_observer.controllers.artefact_matching_rules.models import (
     TeamMinimal,
 )
 from test_observer.data_access.models import ArtefactMatchingRule, Team
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 
@@ -127,7 +128,7 @@ def create_artefact_matching_rule(
 )
 def get_artefact_matching_rules(
     db: Session = Depends(get_db),
-    family: str | None = None,
+    family: FamilyName | None = None,
 ):
     """Get all artefact matching rules, optionally filtered by family"""
     query = select(ArtefactMatchingRule)
