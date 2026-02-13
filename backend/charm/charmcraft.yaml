@@ -60,11 +60,9 @@ config:
       description: The port to listen on for incoming HTTP requests.
       type: int
     hostname:
-      default: test-observer-api
       description: Public hostname for the service.
       type: string
     frontend_hostname:
-      default: test-observer
       description: Public hostname for the frontend connected to this API
       type: string
     sentry_dsn:
@@ -101,6 +99,8 @@ charm-libs:
     version: "0"
   - lib: prometheus_k8s.prometheus_scrape
     version: "0"
+  - lib: traefik_k8s.ingress
+    version: "2"
 
 requires:
   database:
@@ -110,6 +110,9 @@ requires:
     interface: nginx-route
   redis:
     interface: redis
+  ingress:
+    interface: ingress
+
 provides:
   test-observer-rest-api:
     interface: http

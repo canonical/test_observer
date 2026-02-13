@@ -23,7 +23,8 @@ from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
-from ops import StoredState
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer, IngressPerAppReadyEvent, IngressPerAppRevokedEvent
+from ops import CollectStatusEvent, StoredState
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
@@ -33,6 +34,8 @@ from requests import get
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
 
+NGINX_ROUTE_DEFAULT_HOSTNAME_API = "test-observer-api"
+NGINX_ROUTE_DEFAULT_HOSTNAME_FRONTEND = "test-observer"
 
 class TestObserverBackendCharm(CharmBase):
     """Charm the service."""
@@ -51,6 +54,9 @@ class TestObserverBackendCharm(CharmBase):
         self.framework.observe(self.on.api_pebble_ready, self._update_api_layer)
         self.framework.observe(self.on.celery_pebble_ready, self._update_celery_layer)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+
+        # The ops framework triggers a CollectStatusEvent at the end of each hook
+        self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
 
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
@@ -78,9 +84,24 @@ class TestObserverBackendCharm(CharmBase):
 
         self.framework.observe(self.on.upgrade_charm, self._on_upgrade_charm)
 
-        self._setup_nginx()
+        require_nginx_route(
+            charm=self,
+            service_hostname=(
+                str(self.config.get("hostname", NGINX_ROUTE_DEFAULT_HOSTNAME_API))
+            ),
+            service_name=self.app.name,
+            service_port=int(self.config["port"]),
+        )
 
         self._setup_redis()
+
+        # Traefik will default to prefixing routes with <model-name>-<app-name>,
+        # so we need to use strip_prefix=True to remove that and keep the API working with expected routes
+        # Additionally, Traefik automatically uses the underlying K8s service name when no hostname is provided,
+        # and providing a custom hostname requires more effort to support
+        self.ingress = IngressPerAppRequirer(charm=self, port=int(self.config["port"]), strip_prefix=True)
+        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
+        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
 
         self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
         self.framework.observe(self.on.add_user_action, self._on_add_user_action)
@@ -89,13 +110,19 @@ class TestObserverBackendCharm(CharmBase):
             self.on.promote_user_to_admin_action, self._on_promote_user_to_admin_action
         )
 
-    def _setup_nginx(self):
-        require_nginx_route(
-            charm=self,
-            service_hostname=self.config["hostname"],
-            service_name=self.app.name,
-            service_port=int(self.config["port"]),
-        )
+    def _on_collect_unit_status(self, event: CollectStatusEvent) -> None:
+        """
+        Set the unit status based on the current state.
+        The ops framework triggers a CollectStatusEvent at the end of each hook
+        """
+
+        if not (self.model.get_relation("nginx-route") or self.model.get_relation("ingress")):
+            event.add_status(BlockedStatus("Waiting for nginx-route or ingress relation"))
+
+        if self.model.get_relation("nginx-route") and self.model.get_relation("ingress"):
+            event.add_status(BlockedStatus("Cannot have both nginx-route and ingress relations at the same time"))        
+
+        event.add_status(ActiveStatus())
 
     def _setup_redis(self):
         self._stored.set_default(redis_relation={})
@@ -182,9 +209,14 @@ class TestObserverBackendCharm(CharmBase):
 
         if self.unit.is_leader():
             for relation in self.model.relations["test-observer-rest-api"]:
-                host = self.config["hostname"]
-                port = str(self.config["port"])
-                relation.data[self.app].update({"hostname": host, "port": port})
+                # If nginx-route relation exists, we need to include the hostname
+                if self.model.get_relation("nginx-route"):
+                    hostname = str(self.config.get("hostname", NGINX_ROUTE_DEFAULT_HOSTNAME_API))
+                    port = str(self.config["port"])
+                    relation.data[self.app].update({"hostname": hostname, "port": port})
+                else:
+                    port = str(self.config["port"])
+                    relation.data[self.app].update({"port": port})                
 
         self._update_api_layer(event)
         self._update_celery_layer(event)
@@ -247,12 +279,16 @@ class TestObserverBackendCharm(CharmBase):
     @property
     def _app_environment(self):
         """This creates a dictionary of environment variables needed by the application."""
+
+        frontend_url = self.config.get('frontend_hostname', NGINX_ROUTE_DEFAULT_HOSTNAME_FRONTEND)
+        saml_sp_base_url = self.config.get('hostname', NGINX_ROUTE_DEFAULT_HOSTNAME_API)
+
         env = {
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
-            "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
-            "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
-            "SESSIONS_SECRET": self.config["sessions_secret"],
+            "SAML_SP_BASE_URL": f"https://{saml_sp_base_url}",
+            "FRONTEND_URL": f"https://{frontend_url}",
+            "SESSIONS_SECRET": self.config.get("sessions_secret", "secret"),
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
         }
         # Only set SAML environment variables if IDP metadata URL is provided
@@ -268,13 +304,11 @@ class TestObserverBackendCharm(CharmBase):
 
     def _test_observer_rest_api_client_changed(self, event: RelationChangedEvent) -> None:
         if self.unit.is_leader():
-            logger.debug(f"Setting hostname in data bag for {self.app}: {self.config['hostname']}")
-            event.relation.data[self.app].update(
-                {
-                    "hostname": self.config["hostname"],
-                    "port": str(self.config["port"]),
-                }
-            )
+            if self.model.get_relation("nginx-route"):
+                hostname = str(self.config.get("hostname", NGINX_ROUTE_DEFAULT_HOSTNAME_API))
+                event.relation.data[self.app].update({"hostname": hostname}, port=str(self.config["port"]))
+            else:
+                event.relation.data[self.app].update({"port": str(self.config["port"])})
 
     @property
     def version(self) -> str | None:
@@ -411,6 +445,15 @@ class TestObserverBackendCharm(CharmBase):
         except ExecError as e:
             event.fail(e.stderr)
 
+    def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
+        if self.model.get_relation("nginx-route"):
+            self.unit.status = BlockedStatus("Cannot have both nginx-route and ingress relations at the same time")
+            return
+
+        self.unit.status = ActiveStatus(f"Ingress is ready with address: {event.url}")
+
+    def _on_ingress_revoked(self, _: IngressPerAppRevokedEvent) -> None:
+        logger.info("Ingress has been revoked")
 
 if __name__ == "__main__":  # pragma: nocover
     main(TestObserverBackendCharm)
