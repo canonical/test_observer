@@ -92,7 +92,6 @@ resource "juju_application" "pg" {
   config = {
     # NOTE: idle_in_transaction_session_timeout is not exposed by postgresql-k8s 14/stable
     # It must be set manually via: ALTER SYSTEM SET idle_in_transaction_session_timeout = '10min';
-    # See: https://github.com/canonical/test_observer/issues/[issue-number]
 
     # Log queries taking longer than 1 second (in milliseconds)
     # Helps identify performance bottlenecks
