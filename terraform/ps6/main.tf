@@ -89,6 +89,19 @@ resource "juju_application" "pg" {
     revision = 495
   }
 
+  config = {
+    # NOTE: idle_in_transaction_session_timeout is not exposed by postgresql-k8s 14/stable
+    # It must be set manually via: ALTER SYSTEM SET idle_in_transaction_session_timeout = '10min';
+
+    # Log queries taking longer than 1 second (in milliseconds)
+    # Helps identify performance bottlenecks
+    logging_log_min_duration_statement = 1000
+
+    # Log when queries wait for locks
+    # Helps identify blocking queries
+    logging_log_lock_waits = true
+  }
+
   storage_directives = {
     pgdata = var.pg_storage_size
   }
