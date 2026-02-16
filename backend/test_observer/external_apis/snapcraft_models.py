@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -45,7 +45,5 @@ def rename_keys(data: list | dict):
     if isinstance(data, list):
         return [rename_keys(i) for i in data]
     if isinstance(data, dict):
-        return {
-            key.replace("-", "_"): rename_keys(value) for key, value in data.items()
-        }
+        return {key.replace("-", "_"): rename_keys(value) for key, value in data.items()}
     return data

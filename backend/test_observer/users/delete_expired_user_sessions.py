@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -16,6 +16,7 @@
 
 
 from datetime import datetime
+
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 

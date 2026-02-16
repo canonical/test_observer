@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -34,13 +34,9 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute("ALTER TYPE artefact_status_enum RENAME TO artefact_status_enum_old")
+    op.execute("CREATE TYPE artefact_status_enum AS ENUM('APPROVED', 'MARKED_AS_FAILED', 'UNDECIDED')")
     op.execute(
-        "CREATE TYPE artefact_status_enum AS "
-        "ENUM('APPROVED', 'MARKED_AS_FAILED', 'UNDECIDED')"
-    )
-    op.execute(
-        "ALTER TABLE artefact ALTER COLUMN status TYPE "
-        "artefact_status_enum USING status::text::artefact_status_enum"
+        "ALTER TABLE artefact ALTER COLUMN status TYPE artefact_status_enum USING status::text::artefact_status_enum"
     )
     op.execute("DROP TYPE artefact_status_enum_old")
     op.execute("UPDATE artefact SET status = 'UNDECIDED' WHERE status IS NULL")
@@ -49,13 +45,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute("ALTER TYPE artefact_status_enum RENAME TO artefact_status_enum_old")
-    op.execute(
-        "CREATE TYPE artefact_status_enum AS ENUM('APPROVED', 'MARKED_AS_FAILED')"
-    )
+    op.execute("CREATE TYPE artefact_status_enum AS ENUM('APPROVED', 'MARKED_AS_FAILED')")
     op.execute("ALTER TABLE artefact ALTER COLUMN status DROP NOT NULL")
     op.execute("UPDATE artefact SET status = NULL WHERE status = 'UNDECIDED'")
     op.execute(
-        "ALTER TABLE artefact ALTER COLUMN status TYPE "
-        "artefact_status_enum USING status::text::artefact_status_enum"
+        "ALTER TABLE artefact ALTER COLUMN status TYPE artefact_status_enum USING status::text::artefact_status_enum"
     )
     op.execute("DROP TYPE artefact_status_enum_old")

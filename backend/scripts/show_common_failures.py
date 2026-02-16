@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -33,9 +33,7 @@ requests.request = functools.partial(requests.request, timeout=30)  # type: igno
 
 
 def main(artefact_id: int):
-    artefact_builds = requests.get(
-        f"{TO_API_URL}/v1/artefacts/{artefact_id}/builds"
-    ).json()
+    artefact_builds = requests.get(f"{TO_API_URL}/v1/artefacts/{artefact_id}/builds").json()
 
     relevant_test_executions = [
         te
@@ -46,15 +44,9 @@ def main(artefact_id: int):
 
     failing_test_cases: list[str] = []
     for i, te in enumerate(relevant_test_executions):
-        test_results = requests.get(
-            f"{TO_API_URL}/v1/test-executions/{te['id']}/test-results"
-        ).json()
+        test_results = requests.get(f"{TO_API_URL}/v1/test-executions/{te['id']}/test-results").json()
 
-        failing_test_cases.extend(
-            tr["template_id"] or tr["name"]
-            for tr in test_results
-            if tr["status"] == "FAILED"
-        )
+        failing_test_cases.extend(tr["template_id"] or tr["name"] for tr in test_results if tr["status"] == "FAILED")
 
         sys.stdout.write("\r")
         sys.stdout.write(f"{i + 1}/{len(relevant_test_executions)}")

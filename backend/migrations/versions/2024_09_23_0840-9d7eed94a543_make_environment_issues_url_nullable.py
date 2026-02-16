@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -34,12 +34,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column(
-        "environment_issue", "url", existing_type=sa.VARCHAR(), nullable=True
-    )
+    op.alter_column("environment_issue", "url", existing_type=sa.VARCHAR(), nullable=True)
 
 
 def downgrade() -> None:
-    op.alter_column(
-        "environment_issue", "url", existing_type=sa.VARCHAR(), nullable=False
-    )
+    op.alter_column("environment_issue", "url", existing_type=sa.VARCHAR(), nullable=False)

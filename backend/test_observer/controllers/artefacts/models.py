@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -15,28 +15,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from collections.abc import Sequence
 from datetime import date, datetime
 from typing import Any
-from collections.abc import Sequence
 
 from pydantic import (
     AliasPath,
     BaseModel,
     ConfigDict,
     Field,
+    HttpUrl,
     computed_field,
     field_validator,
-    HttpUrl,
-)
-
-from test_observer.data_access.models_enums import (
-    ArtefactBuildEnvironmentReviewDecision,
-    ArtefactStatus,
-    TestExecutionStatus,
-    StageName,
 )
 
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
+    ArtefactStatus,
+    StageName,
+    TestExecutionStatus,
+)
 
 
 class AssigneeResponse(BaseModel):
@@ -111,9 +110,7 @@ class TestExecutionResponse(BaseModel):
     id: int
     ci_link: str | None
     c3_link: str | None
-    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(
-        default_factory=list
-    )
+    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(default_factory=list)
     environment: EnvironmentResponse
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)

@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -16,27 +16,24 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, Security
+from sqlalchemy import tuple_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.metric_collectors import update_execution_metadata_metric
 from test_observer.common.permissions import Permission, permission_checker
-
 from test_observer.controllers.artefacts.models import TestExecutionResponse
-from test_observer.data_access.models import TestExecution
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.data_access.models import (
+    ArtefactBuild,
+    TestExecution,
+    TestExecutionMetadata,
+    test_execution_metadata_association_table,
+)
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionsPatchRequest
-
-from sqlalchemy import tuple_
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
-from test_observer.data_access.models import (
-    ArtefactBuild,
-    TestExecutionMetadata,
-    test_execution_metadata_association_table,
-)
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.common.metric_collectors import update_execution_metadata_metric
 
 router = APIRouter()
 
@@ -77,9 +74,7 @@ def patch_test_execution(
         id,
         options=[
             selectinload(TestExecution.relevant_links),
-            selectinload(TestExecution.artefact_build).selectinload(
-                ArtefactBuild.artefact
-            ),
+            selectinload(TestExecution.artefact_build).selectinload(ArtefactBuild.artefact),
             selectinload(TestExecution.execution_metadata),
             selectinload(TestExecution.test_results),
             selectinload(TestExecution.test_plan),
@@ -106,17 +101,13 @@ def patch_test_execution(
     return test_execution
 
 
-def _set_test_execution_status(
-    request: TestExecutionsPatchRequest, test_execution: TestExecution
-) -> None:
+def _set_test_execution_status(request: TestExecutionsPatchRequest, test_execution: TestExecution) -> None:
     match (request.status, test_execution.test_results):
         case (TestExecutionStatus(), _):
             test_execution.status = request.status
         case ("COMPLETED", []):
             test_execution.status = TestExecutionStatus.ENDED_PREMATURELY
-        case ("COMPLETED", results) if any(
-            r.status == TestResultStatus.FAILED for r in results
-        ):
+        case ("COMPLETED", results) if any(r.status == TestResultStatus.FAILED for r in results):
             test_execution.status = TestExecutionStatus.FAILED
         case ("COMPLETED", _):
             test_execution.status = TestExecutionStatus.PASSED

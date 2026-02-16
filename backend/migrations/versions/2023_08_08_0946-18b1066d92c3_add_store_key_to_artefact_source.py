@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -25,7 +25,6 @@ Create Date: 2023-08-08 09:46:34.620860+00:00
 
 from alembic import op
 from sqlalchemy.sql import text
-
 
 # revision identifiers, used by Alembic.
 revision = "18b1066d92c3"

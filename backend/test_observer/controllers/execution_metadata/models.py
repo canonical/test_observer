@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -15,11 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from pydantic import BaseModel, RootModel, Field
-
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Annotated
+
+from pydantic import BaseModel, Field, RootModel
 
 from test_observer.data_access.models import TestExecutionMetadata
 

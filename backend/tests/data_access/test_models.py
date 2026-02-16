@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -16,8 +16,8 @@
 
 import pytest
 
-from test_observer.data_access.models_enums import IssueSource
 from test_observer.data_access.models import Issue
+from test_observer.data_access.models_enums import IssueSource
 
 
 @pytest.mark.parametrize(

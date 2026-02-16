@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -17,8 +17,7 @@
 
 from fastapi import APIRouter
 
-from . import test_results
-from . import test_executions
+from . import test_executions, test_results
 
 router = APIRouter(tags=["reports"])
 router.include_router(test_results.router)

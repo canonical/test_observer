@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -122,9 +122,7 @@ def test_custom_named_snaps_not_archived(
     )
     generator.gen_artefact_build(a)
 
-    requests_mock.get(
-        f"https://api.snapcraft.io/v2/snaps/info/{a.name}", status_code=404
-    )
+    requests_mock.get(f"https://api.snapcraft.io/v2/snaps/info/{a.name}", status_code=404)
 
     promote_artefacts(db_session)
 
@@ -262,9 +260,7 @@ def test_run_to_move_artefact_deb(
     assert artefact3.stage == StageName.updates
 
 
-def test_archives_deb_if_version_not_found(
-    generator: DataGenerator, db_session: Session, requests_mock: Mocker
-):
+def test_archives_deb_if_version_not_found(generator: DataGenerator, db_session: Session, requests_mock: Mocker):
     a = generator.gen_artefact(
         family=FamilyName.deb,
         stage=StageName.updates,
@@ -282,9 +278,7 @@ def test_archives_deb_if_version_not_found(
     assert a.archived
 
 
-def test_keeps_deb_unarchived_if_custom_name(
-    generator: DataGenerator, db_session: Session, requests_mock: Mocker
-):
+def test_keeps_deb_unarchived_if_custom_name(generator: DataGenerator, db_session: Session, requests_mock: Mocker):
     a = generator.gen_artefact(
         family=FamilyName.deb,
         stage=StageName.updates,
@@ -309,12 +303,10 @@ def _prepare_archive_mock(requests_mock: Mocker) -> None:
         updates_content = f.read()
 
     requests_mock.get(
-        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/"
-        "binary-amd64/Packages.gz",
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-proposed/main/binary-amd64/Packages.gz",
         content=proposed_content,
     )
     requests_mock.get(
-        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/"
-        "binary-amd64/Packages.gz",
+        "http://us.archive.ubuntu.com/ubuntu/dists/kinetic-updates/main/binary-amd64/Packages.gz",
         content=updates_content,
     )

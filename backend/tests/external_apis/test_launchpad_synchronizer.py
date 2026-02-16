@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -15,13 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from unittest.mock import Mock
+
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
+from test_observer.external_apis.models import IssueData
 from test_observer.external_apis.synchronizers.launchpad import (
     LaunchpadIssueSynchronizer,
 )
-from test_observer.external_apis.models import IssueData
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
-from sqlalchemy.orm import Session
 
 
 def test_can_sync_launchpad_url():

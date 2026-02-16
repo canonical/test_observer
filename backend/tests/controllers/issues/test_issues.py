@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -17,11 +17,11 @@
 
 from fastapi.testclient import TestClient
 
+from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
-from test_observer.common.permissions import Permission
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
 
 endpoint = "/v1/issues"
 valid_put_data = {
@@ -165,9 +165,7 @@ def test_put_update_existing(test_client: TestClient):
         Permission.change_issue,
     )
     make_authenticated_request(
-        lambda: test_client.put(
-            endpoint, json={**valid_put_data, "title": "new title"}
-        ),
+        lambda: test_client.put(endpoint, json={**valid_put_data, "title": "new title"}),
         Permission.change_issue,
     )
     response = make_authenticated_request(
@@ -237,17 +235,13 @@ def test_get_all_filter_by_project(test_client: TestClient, generator: DataGener
     assert issues[0]["project"] == "ProjectA"
 
 
-def test_get_all_filter_by_source_and_project(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_all_filter_by_source_and_project(test_client: TestClient, generator: DataGenerator):
     target_issue = generator.gen_issue(source=IssueSource.GITHUB, project="ProjectA")
     generator.gen_issue(source=IssueSource.GITHUB, project="ProjectB")
     generator.gen_issue(source=IssueSource.JIRA, project="ProjectA")
 
     response = make_authenticated_request(
-        lambda: test_client.get(
-            endpoint, params={"source": "github", "project": "ProjectA"}
-        ),
+        lambda: test_client.get(endpoint, params={"source": "github", "project": "ProjectA"}),
         Permission.view_issue,
     )
 
@@ -282,9 +276,7 @@ def test_get_all_with_offset(test_client: TestClient, generator: DataGenerator):
     assert len(response.json()["issues"]) == 3
 
 
-def test_get_all_with_limit_and_offset(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_all_with_limit_and_offset(test_client: TestClient, generator: DataGenerator):
     for i in range(10):
         generator.gen_issue(key=f"ISSUE-{i}")
 
@@ -327,9 +319,7 @@ def test_get_all_search_by_title(test_client: TestClient, generator: DataGenerat
     assert issues[0]["id"] == target_issue.id
 
 
-def test_get_all_search_case_insensitive(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_all_search_case_insensitive(test_client: TestClient, generator: DataGenerator):
     target_issue = generator.gen_issue(title="Bug in System Startup")
 
     response = make_authenticated_request(
@@ -343,18 +333,10 @@ def test_get_all_search_case_insensitive(
     assert issues[0]["id"] == target_issue.id
 
 
-def test_get_all_search_multiple_segments(
-    test_client: TestClient, generator: DataGenerator
-):
-    target_issue = generator.gen_issue(
-        key="KERN-1", source=IssueSource.JIRA, project="KERNEL", title="Memory leak"
-    )
-    generator.gen_issue(
-        key="KERN-2", source=IssueSource.JIRA, project="KERNEL", title="Other bug"
-    )
-    generator.gen_issue(
-        key="TEST-1", source=IssueSource.GITHUB, project="TEST", title="Memory leak"
-    )
+def test_get_all_search_multiple_segments(test_client: TestClient, generator: DataGenerator):
+    target_issue = generator.gen_issue(key="KERN-1", source=IssueSource.JIRA, project="KERNEL", title="Memory leak")
+    generator.gen_issue(key="KERN-2", source=IssueSource.JIRA, project="KERNEL", title="Other bug")
+    generator.gen_issue(key="TEST-1", source=IssueSource.GITHUB, project="TEST", title="Memory leak")
 
     response = make_authenticated_request(
         lambda: test_client.get(endpoint, params={"q": "jira kernel memory"}),
@@ -434,9 +416,7 @@ def test_get_all_ordering(test_client: TestClient, generator: DataGenerator):
     id_to_index = {i["id"]: idx for idx, i in enumerate(our_issues)}
     assert id_to_index[issue2.id] < id_to_index[issue1.id]  # jira < github (enum order)
     assert id_to_index[issue1.id] < id_to_index[issue4.id]  # github < launchpad
-    assert (
-        id_to_index[issue4.id] < id_to_index[issue3.id]
-    )  # LP-1 < LP-3 (same source/project)
+    assert id_to_index[issue4.id] < id_to_index[issue3.id]  # LP-1 < LP-3 (same source/project)
 
 
 def test_get_all_combined_filters(test_client: TestClient, generator: DataGenerator):
@@ -446,15 +426,9 @@ def test_get_all_combined_filters(test_client: TestClient, generator: DataGenera
         project="KERNEL",
         title="Memory leak in startup",
     )
-    generator.gen_issue(
-        key="KERN-OTHER-1", source=IssueSource.JIRA, project="KERNEL", title="Other bug"
-    )
-    generator.gen_issue(
-        key="UI-MEM-1", source=IssueSource.JIRA, project="UI", title="Memory leak"
-    )
-    generator.gen_issue(
-        key="GH-MEM-1", source=IssueSource.GITHUB, project="KERNEL", title="Memory leak"
-    )
+    generator.gen_issue(key="KERN-OTHER-1", source=IssueSource.JIRA, project="KERNEL", title="Other bug")
+    generator.gen_issue(key="UI-MEM-1", source=IssueSource.JIRA, project="UI", title="Memory leak")
+    generator.gen_issue(key="GH-MEM-1", source=IssueSource.GITHUB, project="KERNEL", title="Memory leak")
 
     response = make_authenticated_request(
         lambda: test_client.get(
@@ -471,15 +445,9 @@ def test_get_all_combined_filters(test_client: TestClient, generator: DataGenera
 
 
 def test_get_all_filter_by_status(test_client: TestClient, generator: DataGenerator):
-    open_issue = generator.gen_issue(
-        status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-FTST-1"
-    )
-    closed_issue = generator.gen_issue(
-        status=IssueStatus.CLOSED, source=IssueSource.JIRA, key="TS-FTST-2"
-    )
-    unknown_issue = generator.gen_issue(
-        status=IssueStatus.UNKNOWN, source=IssueSource.GITHUB, key="GH-FTST-3"
-    )
+    open_issue = generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-FTST-1")
+    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, source=IssueSource.JIRA, key="TS-FTST-2")
+    unknown_issue = generator.gen_issue(status=IssueStatus.UNKNOWN, source=IssueSource.GITHUB, key="GH-FTST-3")
 
     # Filter by open status
     response = make_authenticated_request(
@@ -512,21 +480,13 @@ def test_get_all_filter_by_status(test_client: TestClient, generator: DataGenera
     assert issues[0]["id"] == unknown_issue.id
 
 
-def test_get_all_filter_by_status_and_source(
-    test_client: TestClient, generator: DataGenerator
-):
-    target_issue = generator.gen_issue(
-        status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-TAR-231"
-    )
-    generator.gen_issue(
-        status=IssueStatus.CLOSED, source=IssueSource.GITHUB, key="GH-TAR-230"
-    )
+def test_get_all_filter_by_status_and_source(test_client: TestClient, generator: DataGenerator):
+    target_issue = generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-TAR-231")
+    generator.gen_issue(status=IssueStatus.CLOSED, source=IssueSource.GITHUB, key="GH-TAR-230")
     generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.JIRA, key="TS-NT-2")
 
     response = make_authenticated_request(
-        lambda: test_client.get(
-            endpoint, params={"status": "open", "source": "github"}
-        ),
+        lambda: test_client.get(endpoint, params={"status": "open", "source": "github"}),
         Permission.view_issue,
     )
     assert response.status_code == 200

@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pytest
-import requests
 import os
 from typing import cast
+
+import pytest
+import requests
+
+from test_observer.external_apis.exceptions import IssueNotFoundError
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
-from test_observer.external_apis.exceptions import IssueNotFoundError
 
 
 @pytest.mark.integration

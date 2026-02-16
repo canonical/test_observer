@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from github import Github, GithubIntegration, Auth
-from test_observer.external_apis.models import IssueData
 import logging
 from typing import Any, cast
+
+from github import Auth, Github, GithubIntegration
+from test_observer.external_apis.models import IssueData
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +70,7 @@ class GitHubClient:
         """
 
         if "/" not in project:
-            raise ValueError(
-                f"Invalid project format: {project}. Expected 'owner/repo'"
-            )
+            raise ValueError(f"Invalid project format: {project}. Expected 'owner/repo'")
 
         try:
             # Parse issue number

@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -24,7 +24,6 @@ Create Date: 2023-07-11 11:48:49.777726+00:00
 """
 
 from alembic import op
-
 
 # revision identifiers, used by Alembic.
 revision = "158244992900"

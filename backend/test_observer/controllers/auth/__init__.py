@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -17,7 +17,6 @@
 from fastapi import APIRouter
 
 from . import saml
-
 
 router: APIRouter = APIRouter(tags=["authentication"])
 router.include_router(saml.router)

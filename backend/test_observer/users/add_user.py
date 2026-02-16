@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -16,8 +16,8 @@
 
 import logging
 
-from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import User
 from test_observer.data_access.setup import SessionLocal
@@ -49,9 +49,7 @@ def add_user(
 
 def _create_user(launchpad_user: LaunchpadUser, session: Session) -> User:
     # Check if user already exists
-    existing_user = session.scalar(
-        select(User).where(User.email == launchpad_user.email)
-    )
+    existing_user = session.scalar(select(User).where(User.email == launchpad_user.email))
     if existing_user:
         logger = logging.getLogger("test-observer-backend")
         logger.info(

@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -27,7 +27,6 @@ from test_observer.controllers.teams.models import (
 )
 from test_observer.data_access.models import Team, User
 from test_observer.data_access.setup import get_db
-
 
 router: APIRouter = APIRouter(tags=["teams"])
 
@@ -67,9 +66,7 @@ def create_team(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409, detail=f"Team with name '{request.name}' already exists"
-        ) from None
+        raise HTTPException(status_code=409, detail=f"Team with name '{request.name}' already exists") from None
     db.refresh(team)
     return team
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -15,24 +15,24 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from pydantic import BaseModel, HttpUrl, ConfigDict, Field, AliasPath
+from pydantic import AliasPath, BaseModel, ConfigDict, Field, HttpUrl
 
-from test_observer.data_access.models_enums import (
-    IssueSource,
-    IssueStatus,
-    FamilyName,
-    TestResultStatus,
-)
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
     TestExecutionResponse,
 )
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_executions.shared_models import (
     TestResultResponse,
 )
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    IssueSource,
+    IssueStatus,
+    TestResultStatus,
+)
 
 from .shared_models import (
     MinimalIssueResponse,
@@ -42,9 +42,7 @@ from .shared_models import (
 
 class IssueTestResultAttachmentResponse(BaseModel):
     test_result: TestResultResponse = Field(validation_alias=AliasPath("test_result"))
-    test_execution: TestExecutionResponse = Field(
-        validation_alias=AliasPath("test_result", "test_execution")
-    )
+    test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_result", "test_execution"))
     artefact: ArtefactResponse = Field(
         validation_alias=AliasPath(
             "test_result",

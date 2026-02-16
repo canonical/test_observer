@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -14,10 +14,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from unittest.mock import Mock
+
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
@@ -25,7 +27,6 @@ from test_observer.external_apis.synchronizers.base import (
 from test_observer.external_apis.synchronizers.service import (
     IssueSynchronizationService,
 )
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
 
 
 def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
@@ -61,9 +62,7 @@ def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
     assert issue.last_synced_at is not None
 
     synced_at = (
-        issue.last_synced_at.replace(tzinfo=UTC)
-        if issue.last_synced_at.tzinfo is None
-        else issue.last_synced_at
+        issue.last_synced_at.replace(tzinfo=UTC) if issue.last_synced_at.tzinfo is None else issue.last_synced_at
     )
     assert before_sync <= synced_at <= after_sync
 

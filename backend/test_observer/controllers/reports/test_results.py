@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -19,7 +19,7 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, BackgroundTasks, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, Security
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session

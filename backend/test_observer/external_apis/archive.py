@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -97,15 +97,12 @@ class ArchiveManager:
         # Creating a temporary directory
         temp_dir = tempfile.gettempdir()
 
-        filepath = self.url.split("/")[-1] + "".join(
-            random.choice(string.ascii_lowercase) for i in range(10)
-        )
+        filepath = self.url.split("/")[-1] + "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.gz_filepath = os.path.join(temp_dir, filepath)
         # Remove .gz extension
         self.decompressed_filepath = os.path.join(
             temp_dir,
-            filepath[:-3]
-            + "".join(random.choice(string.ascii_lowercase) for i in range(10)),
+            filepath[:-3] + "".join(random.choice(string.ascii_lowercase) for i in range(10)),
         )
         logger.debug("Compressed filepath: %s", self.gz_filepath)
         logger.debug("Decompressed filepath: %s", self.decompressed_filepath)

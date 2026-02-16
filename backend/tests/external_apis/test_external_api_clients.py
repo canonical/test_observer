@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from unittest.mock import Mock, patch
+
 import pytest
 import requests
-from unittest.mock import patch, Mock
+
+from test_observer.external_apis.exceptions import APIError
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.models import IssueData
-from test_observer.external_apis.exceptions import APIError
 
 
 class TestJiraClient:
@@ -53,9 +55,7 @@ class TestJiraClient:
     def test_base_url_construction(self) -> None:
         """Test base URL construction with cloud ID"""
         cloud_id = "my-custom-cloud-id-123"
-        client = JiraClient(
-            cloud_id=cloud_id, email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id=cloud_id, email="test@example.com", api_token="test-token")
 
         expected_url = f"https://api.atlassian.com/ex/jira/{cloud_id}"
         assert client.base_url == expected_url
@@ -75,9 +75,7 @@ class TestJiraClient:
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        client = JiraClient(
-            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
 
         result = client.get_issue("TEST", "TEST-123")
 
@@ -89,9 +87,7 @@ class TestJiraClient:
 
         # Verify the request was made correctly
         mock_get.assert_called_once()
-        request = (
-            "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/TEST-123"
-        )
+        request = "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/TEST-123"
         assert request in str(mock_get.call_args)
 
     @patch("test_observer.external_apis.jira.jira_client.requests.get")
@@ -99,14 +95,10 @@ class TestJiraClient:
         """Test 404 error handling"""
         # Setup mock to raise HTTPError
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-            "404 Not Found"
-        )
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
         mock_get.return_value = mock_response
 
-        client = JiraClient(
-            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
 
         with pytest.raises(requests.exceptions.HTTPError):
             client.get_issue("TEST", "NOTFOUND-1")
@@ -116,14 +108,10 @@ class TestJiraClient:
         """Test rate limit error handling"""
         # Setup mock to raise HTTPError for rate limit
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-            "429 Too Many Requests"
-        )
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("429 Too Many Requests")
         mock_get.return_value = mock_response
 
-        client = JiraClient(
-            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
 
         with pytest.raises(requests.exceptions.HTTPError):
             client.get_issue("TEST", "TEST-1")
@@ -214,9 +202,7 @@ class TestLaunchpadClient:
         mock_launchpad = Mock()
         mock_launchpad.bugs = {1234567: mock_bug}
 
-        with patch(
-            "test_observer.external_apis.launchpad.launchpad_client.Launchpad"
-        ) as mock_lp_class:
+        with patch("test_observer.external_apis.launchpad.launchpad_client.Launchpad") as mock_lp_class:
             mock_lp_class.login_anonymously.return_value = mock_launchpad
 
             client = LaunchpadClient(anonymous=True)

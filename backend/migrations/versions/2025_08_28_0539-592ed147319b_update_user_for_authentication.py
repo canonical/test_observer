@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -23,9 +23,8 @@ Create Date: 2025-08-28 05:39:18.259371+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "592ed147319b"
@@ -36,10 +35,7 @@ depends_on = None
 
 def upgrade() -> None:
     op.alter_column("app_user", "launchpad_email", new_column_name="email")
-    op.execute(
-        "ALTER TABLE app_user RENAME CONSTRAINT "
-        "app_user_launchpad_email_key TO app_user_email_key"
-    )
+    op.execute("ALTER TABLE app_user RENAME CONSTRAINT app_user_launchpad_email_key TO app_user_email_key")
     op.alter_column("app_user", "launchpad_handle", nullable=True)
     op.add_column(
         "app_user",
@@ -56,8 +52,5 @@ def downgrade() -> None:
     op.drop_column("app_user", "is_reviewer")
     # Downgrading is an issue if we have a user with no launchpad_handle
     op.alter_column("app_user", "launchpad_handle", nullable=False)
-    op.execute(
-        "ALTER TABLE app_user RENAME CONSTRAINT "
-        "app_user_email_key TO app_user_launchpad_email_key"
-    )
+    op.execute("ALTER TABLE app_user RENAME CONSTRAINT app_user_email_key TO app_user_launchpad_email_key")
     op.alter_column("app_user", "email", new_column_name="launchpad_email")

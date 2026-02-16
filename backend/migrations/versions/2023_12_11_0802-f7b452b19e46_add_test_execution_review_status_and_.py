@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -49,10 +49,7 @@ def upgrade() -> None:
         "review_decision testexecutionreviewdecision[] NOT NULL "
         "DEFAULT '{}'::testexecutionreviewdecision[]"
     )
-    op.execute(
-        "ALTER TABLE test_execution ADD COLUMN "
-        "review_comment VARCHAR NOT NULL DEFAULT ''"
-    )
+    op.execute("ALTER TABLE test_execution ADD COLUMN review_comment VARCHAR NOT NULL DEFAULT ''")
 
 
 def downgrade() -> None:

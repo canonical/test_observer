@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -35,9 +35,7 @@ depends_on = None
 def upgrade() -> None:
     op.execute('ALTER TABLE "user" RENAME TO app_user')
     op.drop_constraint("user_launchpad_email_key", "app_user", type_="unique")
-    op.create_unique_constraint(
-        op.f("app_user_launchpad_email_key"), "app_user", ["launchpad_email"]
-    )
+    op.create_unique_constraint(op.f("app_user_launchpad_email_key"), "app_user", ["launchpad_email"])
 
 
 def downgrade() -> None:

@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -23,9 +23,7 @@ from .models import LaunchpadUser
 
 class LaunchpadAPI:
     def __init__(self):
-        self.launchpad = Launchpad.login_anonymously(
-            "test-observer", "production", version="devel"
-        )
+        self.launchpad = Launchpad.login_anonymously("test-observer", "production", version="devel")
 
     def get_user_by_email(self, email: EmailStr) -> LaunchpadUser | None:
         user = self.launchpad.people.getByEmail(email=email)

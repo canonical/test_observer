@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -22,8 +22,8 @@ Create Date: 2025-08-06 18:03:03.281403+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
@@ -55,9 +55,7 @@ def upgrade() -> None:
             name=op.f("issue_test_result_attachment_rule_issue_id_fkey"),
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint(
-            "id", name=op.f("issue_test_result_attachment_rule_pkey")
-        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("issue_test_result_attachment_rule_pkey")),
     )
     op.create_index(
         op.f("issue_test_result_attachment_rule_enabled_ix"),
@@ -82,9 +80,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["attachment_rule_id"],
             ["issue_test_result_attachment_rule.id"],
-            name=op.f(
-                "issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_fkey"
-            ),
+            name=op.f("issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_fkey"),
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint(

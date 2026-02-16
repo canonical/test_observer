@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from abc import ABC, abstractmethod
+
 from sqlalchemy.orm import Session
+
 from test_observer.data_access.models import Issue, IssueStatus
 from test_observer.external_apis.github import GitHubClient
 from test_observer.external_apis.jira import JiraClient
 from test_observer.external_apis.launchpad import LaunchpadClient
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +79,7 @@ class BaseIssueSynchronizer(ABC):
                 db.commit()
                 db.refresh(issue)
 
-            return SyncResult(
-                success=True, title_updated=title_updated, status_updated=status_updated
-            )
+            return SyncResult(success=True, title_updated=title_updated, status_updated=status_updated)
 
         except Exception as e:
             logger.error(f"Failed to sync issue {issue.id} from {issue.url}: {e}")

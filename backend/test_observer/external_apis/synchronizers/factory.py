@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from os import environ
 import logging
+from os import environ
 
 from test_observer.external_apis.github.github_client import GitHubClient
 from test_observer.external_apis.jira.jira_client import JiraClient
@@ -53,17 +53,13 @@ def create_synchronization_service() -> IssueSynchronizationService:
 
     if github_app_id and github_private_key:
         try:
-            github_client = GitHubClient(
-                app_id=github_app_id, private_key=github_private_key
-            )
+            github_client = GitHubClient(app_id=github_app_id, private_key=github_private_key)
             synchronizers.append(GitHubIssueSynchronizer(github_client))
             logger.info("GitHub synchronizer initialized")
         except Exception as e:
             logger.error(f"Failed to initialize GitHub synchronizer: {e}")
     else:
-        logger.warning(
-            "GitHub App credentials not configured, skipping GitHub synchronizer"
-        )
+        logger.warning("GitHub App credentials not configured, skipping GitHub synchronizer")
 
     jira_cloud_id = environ.get("JIRA_CLOUD_ID")
     jira_email = environ.get("JIRA_EMAIL")
@@ -96,8 +92,7 @@ def create_synchronization_service() -> IssueSynchronizationService:
 
     if not synchronizers:
         raise ValueError(
-            "No synchronizers configured. At least one of GitHub, Jira, or Launchpad "
-            "credentials must be provided."
+            "No synchronizers configured. At least one of GitHub, Jira, or Launchpad credentials must be provided."
         )
 
     return IssueSynchronizationService(synchronizers)

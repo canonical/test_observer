@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -23,9 +23,7 @@ from test_observer.data_access.models import Artefact
 from .swm_reader import ArtefactTrackerInfo
 
 
-def update_artefacts_with_tracker_info(
-    db: Session, artefacts_tracker_info: dict[int, ArtefactTrackerInfo]
-):
+def update_artefacts_with_tracker_info(db: Session, artefacts_tracker_info: dict[int, ArtefactTrackerInfo]):
     stmt = select(Artefact).where(Artefact.id.in_(artefacts_tracker_info.keys()))
     artefacts = db.scalars(stmt)
 

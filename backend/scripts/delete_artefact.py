@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -46,8 +46,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(
         prog="delete_artefact",
         description="Given an artefact id, deletes this artefact",
-        epilog="Note that this will also delete builds, test executions"
-        " and test results belonging to the artefact",
+        epilog="Note that this will also delete builds, test executions and test results belonging to the artefact",
     )
 
     parser.add_argument("artefact_id", type=int)

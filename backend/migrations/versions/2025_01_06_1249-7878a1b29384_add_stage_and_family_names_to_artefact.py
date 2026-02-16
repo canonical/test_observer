@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -35,9 +35,7 @@ depends_on = None
 
 
 family_type = sa.Enum("snap", "deb", "charm", name="familyname")
-stage_type = sa.Enum(
-    "proposed", "updates", "edge", "beta", "candidate", "stable", name="stagename"
-)
+stage_type = sa.Enum("proposed", "updates", "edge", "beta", "candidate", "stable", name="stagename")
 
 
 fill_stages_stmt = f"""
@@ -130,12 +128,8 @@ def _create_stage_table() -> sa.Table:
         sa.Column("position", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("family_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
-        sa.Column(
-            "created_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False
-        ),
-        sa.Column(
-            "updated_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False
-        ),
+        sa.Column("created_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
+        sa.Column("updated_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
         sa.ForeignKeyConstraint(
             ["family_id"],
             ["family.id"],
@@ -160,12 +154,8 @@ def _create_family_table() -> sa.Table:
             autoincrement=True,
             nullable=False,
         ),
-        sa.Column(
-            "created_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False
-        ),
-        sa.Column(
-            "updated_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False
-        ),
+        sa.Column("created_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
+        sa.Column("updated_at", postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint("id", name="family_pkey"),
         postgresql_ignore_search_path=False,
     )

@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -18,12 +18,9 @@ from fastapi import APIRouter, Security
 
 from test_observer.common.permissions import Permission, permission_checker
 
-
 router: APIRouter = APIRouter(tags=["permissions"])
 
 
-@router.get(
-    "", dependencies=[Security(permission_checker, scopes=[Permission.view_permission])]
-)
+@router.get("", dependencies=[Security(permission_checker, scopes=[Permission.view_permission])])
 def get_permissions():
     return [p.value for p in Permission]
