@@ -83,12 +83,7 @@ class StartTestExecutionController:
             family_str = self.artefact.family.value
 
             users = (
-                self.db.execute(
-                    select(User)
-                    .join(User.teams)
-                    .where(Team.reviewer_families.any(family_str))
-                    .distinct()
-                )
+                self.db.execute(select(User).join(User.teams).where(Team.reviewer_families.any(family_str)).distinct())
                 .scalars()
                 .all()
             )

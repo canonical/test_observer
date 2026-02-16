@@ -39,9 +39,7 @@ router = APIRouter()
 @router.post(
     "/{issue_id}/attachment-rules",
     response_model=MinimalIssueTestResultAttachmentRuleResponse,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_attachment_rule])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_attachment_rule])],
 )
 def post_attachment_rule(
     issue_id: int,
@@ -81,9 +79,7 @@ def post_attachment_rule(
 @router.patch(
     "/{issue_id}/attachment-rules/{attachment_rule_id}",
     response_model=MinimalIssueTestResultAttachmentRuleResponse,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_attachment_rule])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_attachment_rule])],
 )
 def patch_attachment_rule(
     issue_id: int,
@@ -96,9 +92,7 @@ def patch_attachment_rule(
     if attachment_rule is None:
         raise HTTPException(status_code=404, detail="Attachment rule not found")
     if attachment_rule.issue_id != issue_id:
-        raise HTTPException(
-            status_code=400, detail="Attachment rule not attached to given issue"
-        )
+        raise HTTPException(status_code=400, detail="Attachment rule not attached to given issue")
 
     # Modify the attachment rule
     if request.enabled is not None:
@@ -113,9 +107,7 @@ def patch_attachment_rule(
 @router.delete(
     "/{issue_id}/attachment-rules/{attachment_rule_id}",
     status_code=204,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_attachment_rule])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_attachment_rule])],
 )
 def delete_attachment_rule(
     issue_id: int,
@@ -127,9 +119,7 @@ def delete_attachment_rule(
     if attachment_rule is None:
         return
     if attachment_rule.issue_id != issue_id:
-        raise HTTPException(
-            status_code=400, detail="Attachment rule not attached to given issue"
-        )
+        raise HTTPException(status_code=400, detail="Attachment rule not attached to given issue")
 
     # Delete the attachment rule
     db.delete(attachment_rule)

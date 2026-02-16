@@ -77,9 +77,7 @@ def patch_test_execution(
         id,
         options=[
             selectinload(TestExecution.relevant_links),
-            selectinload(TestExecution.artefact_build).selectinload(
-                ArtefactBuild.artefact
-            ),
+            selectinload(TestExecution.artefact_build).selectinload(ArtefactBuild.artefact),
             selectinload(TestExecution.execution_metadata),
             selectinload(TestExecution.test_results),
             selectinload(TestExecution.test_plan),
@@ -106,17 +104,13 @@ def patch_test_execution(
     return test_execution
 
 
-def _set_test_execution_status(
-    request: TestExecutionsPatchRequest, test_execution: TestExecution
-) -> None:
+def _set_test_execution_status(request: TestExecutionsPatchRequest, test_execution: TestExecution) -> None:
     match (request.status, test_execution.test_results):
         case (TestExecutionStatus(), _):
             test_execution.status = request.status
         case ("COMPLETED", []):
             test_execution.status = TestExecutionStatus.ENDED_PREMATURELY
-        case ("COMPLETED", results) if any(
-            r.status == TestResultStatus.FAILED for r in results
-        ):
+        case ("COMPLETED", results) if any(r.status == TestResultStatus.FAILED for r in results):
             test_execution.status = TestExecutionStatus.FAILED
         case ("COMPLETED", _):
             test_execution.status = TestExecutionStatus.PASSED

@@ -81,9 +81,7 @@ def get_issues(
     ] = 0,
     q: Annotated[
         str | None,
-        Query(
-            description="Search term for issue source, project, keys, title, and status"
-        ),
+        Query(description="Search term for issue source, project, keys, title, and status"),
     ] = None,
     db: Session = Depends(get_db),
 ):
@@ -120,9 +118,7 @@ def get_issues(
     stmt = stmt.limit(limit).offset(offset)
 
     issues = db.execute(stmt).scalars().all()
-    return IssuesGetResponse(
-        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues]
-    )
+    return IssuesGetResponse(issues=[MinimalIssueResponse.model_validate(issue) for issue in issues])
 
 
 @router.get(

@@ -35,9 +35,7 @@ depends_on = None
 
 def upgrade() -> None:
     # Add test_plan_id column (nullable initially)
-    op.add_column(
-        "test_execution", sa.Column("test_plan_id", sa.Integer(), nullable=True)
-    )
+    op.add_column("test_execution", sa.Column("test_plan_id", sa.Integer(), nullable=True))
 
     # Populate test_plan_id by looking up test_plan name
     op.execute("""
@@ -59,9 +57,7 @@ def upgrade() -> None:
         ["id"],
         ondelete="CASCADE",
     )
-    op.create_index(
-        op.f("test_execution_test_plan_id_ix"), "test_execution", ["test_plan_id"]
-    )
+    op.create_index(op.f("test_execution_test_plan_id_ix"), "test_execution", ["test_plan_id"])
 
     # Drop old test_plan string column
     op.drop_column("test_execution", "test_plan")
@@ -69,9 +65,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Re-add test_plan string column
-    op.add_column(
-        "test_execution", sa.Column("test_plan", sa.String(length=200), nullable=True)
-    )
+    op.add_column("test_execution", sa.Column("test_plan", sa.String(length=200), nullable=True))
 
     # Populate from test_plan table
     op.execute("""
@@ -86,7 +80,5 @@ def downgrade() -> None:
 
     # Drop foreign key, index, and test_plan_id column
     op.drop_index(op.f("test_execution_test_plan_id_ix"), table_name="test_execution")
-    op.drop_constraint(
-        "fk_test_execution_test_plan_id", "test_execution", type_="foreignkey"
-    )
+    op.drop_constraint("fk_test_execution_test_plan_id", "test_execution", type_="foreignkey")
     op.drop_column("test_execution", "test_plan_id")

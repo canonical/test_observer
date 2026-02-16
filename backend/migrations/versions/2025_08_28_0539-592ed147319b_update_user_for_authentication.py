@@ -36,10 +36,7 @@ depends_on = None
 
 def upgrade() -> None:
     op.alter_column("app_user", "launchpad_email", new_column_name="email")
-    op.execute(
-        "ALTER TABLE app_user RENAME CONSTRAINT "
-        "app_user_launchpad_email_key TO app_user_email_key"
-    )
+    op.execute("ALTER TABLE app_user RENAME CONSTRAINT app_user_launchpad_email_key TO app_user_email_key")
     op.alter_column("app_user", "launchpad_handle", nullable=True)
     op.add_column(
         "app_user",
@@ -56,8 +53,5 @@ def downgrade() -> None:
     op.drop_column("app_user", "is_reviewer")
     # Downgrading is an issue if we have a user with no launchpad_handle
     op.alter_column("app_user", "launchpad_handle", nullable=False)
-    op.execute(
-        "ALTER TABLE app_user RENAME CONSTRAINT "
-        "app_user_email_key TO app_user_launchpad_email_key"
-    )
+    op.execute("ALTER TABLE app_user RENAME CONSTRAINT app_user_email_key TO app_user_launchpad_email_key")
     op.alter_column("app_user", "email", new_column_name="launchpad_email")

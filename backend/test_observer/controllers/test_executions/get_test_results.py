@@ -51,9 +51,7 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
             .order_by(TestResult.id)
             .options(
                 selectinload(TestResult.test_case),
-                selectinload(TestResult.issue_attachments).selectinload(
-                    IssueTestResultAttachment.issue
-                ),
+                selectinload(TestResult.issue_attachments).selectinload(IssueTestResultAttachment.issue),
             )
         )
         .scalars()
@@ -65,9 +63,7 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
     test_results: list[TestResultResponse] = []
     for test_result in test_results_from_db:
         parsed_test_result = TestResultResponse.model_validate(test_result)
-        parsed_test_result.previous_results = previous_test_results.get(
-            test_result.test_case_id, []
-        )
+        parsed_test_result.previous_results = previous_test_results.get(test_result.test_case_id, [])
         test_results.append(parsed_test_result)
 
     return test_results

@@ -35,13 +35,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "environment", sa.Column("architecture", sa.String(length=100), nullable=False)
-    )
+    op.add_column("environment", sa.Column("architecture", sa.String(length=100), nullable=False))
     op.drop_index("ix_environment_name", table_name="environment")
-    op.create_unique_constraint(
-        "unique_environment", "environment", ["name", "architecture"]
-    )
+    op.create_unique_constraint("unique_environment", "environment", ["name", "architecture"])
 
 
 def downgrade() -> None:

@@ -111,9 +111,7 @@ class TestExecutionResponse(BaseModel):
     id: int
     ci_link: str | None
     c3_link: str | None
-    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(
-        default_factory=list
-    )
+    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(default_factory=list)
     environment: EnvironmentResponse
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)

@@ -50,9 +50,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("user_session_pkey")),
     )
-    op.create_index(
-        op.f("user_session_user_id_ix"), "user_session", ["user_id"], unique=False
-    )
+    op.create_index(op.f("user_session_user_id_ix"), "user_session", ["user_id"], unique=False)
 
 
 def downgrade() -> None:

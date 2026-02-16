@@ -93,9 +93,7 @@ class TestSAMLAuthentication:
         self._logout_and_verify_session_cleared()
 
     def _initiate_saml_login(self) -> str:
-        response = self.session.get(
-            f"{self.api_url}/v1/auth/saml/login", allow_redirects=False
-        )
+        response = self.session.get(f"{self.api_url}/v1/auth/saml/login", allow_redirects=False)
         # Test our SP: should redirect to IdP for authentication
         assert response.status_code == 307
         assert "location" in response.headers
@@ -109,15 +107,11 @@ class TestSAMLAuthentication:
 
         return parser.inputs["AuthState"], idp_response.url
 
-    def _submit_credentials(
-        self, auth_state: str, login_form_url: str
-    ) -> requests.Response:
+    def _submit_credentials(self, auth_state: str, login_form_url: str) -> requests.Response:
         login_data = {**self.CREDENTIALS, "AuthState": auth_state}
         return self.session.post(login_form_url, data=login_data, allow_redirects=False)
 
-    def _process_saml_response(
-        self, auth_response: requests.Response
-    ) -> requests.Response:
+    def _process_saml_response(self, auth_response: requests.Response) -> requests.Response:
         parser = SimpleFormParser()
         parser.feed(auth_response.text)
 

@@ -107,9 +107,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/teams"), Permission.view_team
-    )
+    response = make_authenticated_request(lambda: test_client.get("/v1/teams"), Permission.view_team)
 
     assert response.status_code == 200
     assert response.json() == [
@@ -135,9 +133,7 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(permissions=["create_artefact"], members=[user])
 
-    response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team
-    )
+    response = make_authenticated_request(lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team)
 
     assert response.status_code == 200
     assert response.json() == {
@@ -202,9 +198,7 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
     assert response.status_code == 422
 
 
-def test_update_team_reviewer_families(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_reviewer_families(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
@@ -280,9 +274,7 @@ def test_remove_team_member(test_client: TestClient, generator: DataGenerator):
     assert response.json()["members"] == []
 
 
-def test_remove_team_member_not_member(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_remove_team_member_not_member(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user()
 
@@ -295,9 +287,7 @@ def test_remove_team_member_not_member(
     assert response.json()["members"] == []
 
 
-def test_remove_team_member_not_found(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_remove_team_member_not_found(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user()
 

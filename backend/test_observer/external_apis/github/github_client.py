@@ -69,9 +69,7 @@ class GitHubClient:
         """
 
         if "/" not in project:
-            raise ValueError(
-                f"Invalid project format: {project}. Expected 'owner/repo'"
-            )
+            raise ValueError(f"Invalid project format: {project}. Expected 'owner/repo'")
 
         try:
             # Parse issue number

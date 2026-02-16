@@ -100,9 +100,7 @@ def test_updates_test_execution(execute: Execute, test_execution: TestExecution)
     assert test_execution.status == TestExecutionStatus.PASSED
 
 
-def test_set_completed_status_with_failures(
-    execute: Execute, test_execution: TestExecution, generator: DataGenerator
-):
+def test_set_completed_status_with_failures(execute: Execute, test_execution: TestExecution, generator: DataGenerator):
     c1 = generator.gen_test_case(name="case1")
     c2 = generator.gen_test_case(name="case2")
     generator.gen_test_result(c1, test_execution, status=TestResultStatus.PASSED)
@@ -115,9 +113,7 @@ def test_set_completed_status_with_failures(
     assert test_execution.status == TestExecutionStatus.FAILED
 
 
-def test_set_completed_status_all_green(
-    execute: Execute, test_execution: TestExecution, generator: DataGenerator
-):
+def test_set_completed_status_all_green(execute: Execute, test_execution: TestExecution, generator: DataGenerator):
     c = generator.gen_test_case()
     generator.gen_test_result(c, test_execution, TestResultStatus.PASSED)
 
@@ -128,9 +124,7 @@ def test_set_completed_status_all_green(
     assert test_execution.status == TestExecutionStatus.PASSED
 
 
-def test_set_completed_status_no_results(
-    execute: Execute, test_execution: TestExecution
-):
+def test_set_completed_status_no_results(execute: Execute, test_execution: TestExecution):
     response = execute(test_execution.id, {"status": "COMPLETED"})
 
     assert response.status_code == 200
@@ -138,9 +132,7 @@ def test_set_completed_status_no_results(
     assert test_execution.status == TestExecutionStatus.ENDED_PREMATURELY
 
 
-def test_add_execution_metadata_add_empty(
-    execute: Execute, test_execution: TestExecution
-):
+def test_add_execution_metadata_add_empty(execute: Execute, test_execution: TestExecution):
     response = execute(test_execution.id, {"execution_metadata": {}})
 
     assert response.json()["execution_metadata"] == {}
@@ -149,9 +141,7 @@ def test_add_execution_metadata_add_empty(
 def test_add_execution_metadata_add_some(
     execute: Execute, test_execution: TestExecution, sample_execution_metadata: dict
 ):
-    response = execute(
-        test_execution.id, {"execution_metadata": sample_execution_metadata}
-    )
+    response = execute(test_execution.id, {"execution_metadata": sample_execution_metadata})
 
     assert response.json()["execution_metadata"] == sample_execution_metadata
 
@@ -159,12 +149,8 @@ def test_add_execution_metadata_add_some(
 def test_add_execution_metadata_add_same_twice(
     execute: Execute, test_execution: TestExecution, sample_execution_metadata: dict
 ):
-    response = execute(
-        test_execution.id, {"execution_metadata": sample_execution_metadata}
-    )
-    response = execute(
-        test_execution.id, {"execution_metadata": sample_execution_metadata}
-    )
+    response = execute(test_execution.id, {"execution_metadata": sample_execution_metadata})
+    response = execute(test_execution.id, {"execution_metadata": sample_execution_metadata})
 
     assert response.json()["execution_metadata"] == sample_execution_metadata
 
@@ -172,12 +158,8 @@ def test_add_execution_metadata_add_same_twice(
 def test_add_execution_metadata_add_different(
     execute: Execute, test_execution: TestExecution, sample_execution_metadata: dict
 ):
-    response = execute(
-        test_execution.id, {"execution_metadata": sample_execution_metadata}
-    )
-    response = execute(
-        test_execution.id, {"execution_metadata": {"category3": ["value"]}}
-    )
+    response = execute(test_execution.id, {"execution_metadata": sample_execution_metadata})
+    response = execute(test_execution.id, {"execution_metadata": {"category3": ["value"]}})
 
     assert response.json()["execution_metadata"] == {
         **sample_execution_metadata,

@@ -221,25 +221,19 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
         "Options: 'pending' (awaiting approval), 'current' (approved and published). "
         "Use 'pending' for images undergoing testing before promotion."
     )
-    os: str = Field(
-        description="Operating system of the image. "
-        "Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'"
-    )
+    os: str = Field(description="Operating system of the image. Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'")
     release: str = Field(
-        description="OS release codename or version. "
-        "Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
+        description="OS release codename or version. Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
     )
     sha256: str = Field(
         description="SHA256 checksum hash uniquely identifying this image build. "
         "Used to verify image integrity and uniqueness."
     )
     owner: str = Field(
-        description="Team or organization responsible for the image. "
-        "Examples: 'canonical', 'ubuntu-images', team names"
+        description="Team or organization responsible for the image. Examples: 'canonical', 'ubuntu-images', team names"
     )
     image_url: HttpUrl = Field(
-        description="Direct URL where the image file can be downloaded or accessed. "
-        "Should be a valid HTTP/HTTPS URL."
+        description="Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL."
     )
 
 
@@ -291,24 +285,12 @@ class RerunRequest(BaseModel):
 class PendingRerun(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    test_execution_id: int = Field(
-        validation_alias=AliasPath("test_executions", 0, "id")
-    )
-    ci_link: str | None = Field(
-        validation_alias=AliasPath("test_executions", 0, "ci_link")
-    )
-    family: FamilyName = Field(
-        validation_alias=AliasPath("artefact_build", "artefact", "family")
-    )
-    test_execution: TestExecutionResponse = Field(
-        validation_alias=AliasPath("test_executions", 0)
-    )
-    artefact: ArtefactResponse = Field(
-        validation_alias=AliasPath("artefact_build", "artefact")
-    )
-    artefact_build: ArtefactBuildMinimalResponse = Field(
-        validation_alias=AliasPath("artefact_build")
-    )
+    test_execution_id: int = Field(validation_alias=AliasPath("test_executions", 0, "id"))
+    ci_link: str | None = Field(validation_alias=AliasPath("test_executions", 0, "ci_link"))
+    family: FamilyName = Field(validation_alias=AliasPath("artefact_build", "artefact", "family"))
+    test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_executions", 0))
+    artefact: ArtefactResponse = Field(validation_alias=AliasPath("artefact_build", "artefact"))
+    artefact_build: ArtefactBuildMinimalResponse = Field(validation_alias=AliasPath("artefact_build"))
 
 
 class DeleteReruns(BaseModel):

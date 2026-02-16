@@ -69,9 +69,7 @@ def modify_reruns(
                 status_code=422,
                 detail="At least one filter must be provided in test_results_filters",
             )
-        filtered_ids_query = filter_test_results(
-            select(TestResult.test_execution_id).distinct(), filters
-        )
+        filtered_ids_query = filter_test_results(select(TestResult.test_execution_id).distinct(), filters)
         conditions.append(TestExecution.id.in_(filtered_ids_query))
 
     # Do nothing if no conditions were added
@@ -122,9 +120,9 @@ def require_bulk_permission(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ):
-    if (
-        request.test_execution_ids is not None and len(request.test_execution_ids) > 1
-    ) or (request.test_results_filters is not None):
+    if (request.test_execution_ids is not None and len(request.test_execution_ids) > 1) or (
+        request.test_results_filters is not None
+    ):
         permission_checker(security_scopes, user, app)
 
 
@@ -179,9 +177,7 @@ def create_rerun_requests(
     return rerun_requests
 
 
-def _create_rerun_request(
-    test_execution_id: int, db: Session
-) -> TestExecutionRerunRequest:
+def _create_rerun_request(test_execution_id: int, db: Session) -> TestExecutionRerunRequest:
     te = db.get(TestExecution, test_execution_id)
     if not te:
         raise _TestExecutionNotFound

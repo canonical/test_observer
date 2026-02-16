@@ -32,9 +32,7 @@ class JiraIssueSynchronizer(BaseIssueSynchronizer):
 
     def can_sync(self, issue: Issue) -> bool:
         """Check if this issue is from Jira"""
-        return issue.url is not None and (
-            "atlassian.net" in issue.url or "jira" in issue.url.lower()
-        )
+        return issue.url is not None and ("atlassian.net" in issue.url or "jira" in issue.url.lower())
 
     @staticmethod
     def _map_issue_status(state: str) -> IssueStatus:

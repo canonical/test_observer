@@ -77,9 +77,7 @@ class BaseIssueSynchronizer(ABC):
                 db.commit()
                 db.refresh(issue)
 
-            return SyncResult(
-                success=True, title_updated=title_updated, status_updated=status_updated
-            )
+            return SyncResult(success=True, title_updated=title_updated, status_updated=status_updated)
 
         except Exception as e:
             logger.error(f"Failed to sync issue {issue.id} from {issue.url}: {e}")

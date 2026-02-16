@@ -67,9 +67,7 @@ def create_team(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409, detail=f"Team with name '{request.name}' already exists"
-        ) from None
+        raise HTTPException(status_code=409, detail=f"Team with name '{request.name}' already exists") from None
     db.refresh(team)
     return team
 

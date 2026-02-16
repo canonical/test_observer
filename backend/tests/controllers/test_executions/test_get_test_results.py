@@ -66,9 +66,7 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     )
 
     response = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/test-executions/{test_execution_second.id}/test-results"
-        ),
+        lambda: test_client.get(f"/v1/test-executions/{test_execution_second.id}/test-results"),
         Permission.view_test,
     )
 
@@ -106,9 +104,7 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     ]
 
 
-def test_previous_results_shows_reruns(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_previous_results_shows_reruns(test_client: TestClient, generator: DataGenerator):
     e = generator.gen_environment()
     tc = generator.gen_test_case()
 
@@ -151,9 +147,7 @@ def test_previous_results_shows_reruns(
     ]
 
 
-def test_previous_results_orders_by_artefact(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_previous_results_orders_by_artefact(test_client: TestClient, generator: DataGenerator):
     e = generator.gen_environment()
     tc = generator.gen_test_case()
 
@@ -199,9 +193,7 @@ def test_previous_results_orders_by_artefact(
     ]
 
 
-def test_shows_up_to_maximum_previous_results(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_shows_up_to_maximum_previous_results(test_client: TestClient, generator: DataGenerator):
     e = generator.gen_environment()
     tc = generator.gen_test_case()
 
@@ -226,9 +218,7 @@ def test_attachment_rule_listed_in_issue_attachment(
 ):
     issue = generator.gen_issue()
 
-    test_execution.execution_metadata.append(
-        TestExecutionMetadata(category="category1", value="value1")
-    )
+    test_execution.execution_metadata.append(TestExecutionMetadata(category="category1", value="value1"))
 
     attachment_rule_response = make_authenticated_request(
         lambda: test_client.post(
@@ -249,17 +239,13 @@ def test_attachment_rule_listed_in_issue_attachment(
     make_authenticated_request(
         lambda: test_client.post(
             f"/v1/test-executions/{test_execution.id}/test-results",
-            json=[
-                {"name": "test", "status": "FAILED", "template_id": "test-template-id"}
-            ],
+            json=[{"name": "test", "status": "FAILED", "template_id": "test-template-id"}],
         ),
         Permission.change_test,
     )
 
     response = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/test-executions/{test_execution.id}/test-results"
-        ),
+        lambda: test_client.get(f"/v1/test-executions/{test_execution.id}/test-results"),
         Permission.view_test,
     )
     assert response.json()[0]["issues"] == [

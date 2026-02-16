@@ -48,17 +48,13 @@ def upgrade() -> None:
         "team_users_association",
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("team_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["team_id"], ["team.id"], name=op.f("team_users_association_team_id_fkey")
-        ),
+        sa.ForeignKeyConstraint(["team_id"], ["team.id"], name=op.f("team_users_association_team_id_fkey")),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["app_user.id"],
             name=op.f("team_users_association_user_id_fkey"),
         ),
-        sa.PrimaryKeyConstraint(
-            "user_id", "team_id", name=op.f("team_users_association_pkey")
-        ),
+        sa.PrimaryKeyConstraint("user_id", "team_id", name=op.f("team_users_association_pkey")),
     )
 
 

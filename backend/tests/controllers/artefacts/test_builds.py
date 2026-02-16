@@ -121,9 +121,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
     ]
 
 
-def test_get_artefact_builds_only_latest(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_artefact_builds_only_latest(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     generator.gen_artefact_build(artefact=artefact, revision=1)
     artefact_build2 = generator.gen_artefact_build(artefact=artefact, revision=2)
@@ -144,9 +142,7 @@ def test_get_artefact_builds_only_latest(
     ]
 
 
-def test_get_artefact_builds_with_rerun_requested(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_artefact_builds_with_rerun_requested(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()

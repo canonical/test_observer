@@ -55,9 +55,7 @@ def upgrade() -> None:
             name=op.f("issue_test_result_attachment_rule_issue_id_fkey"),
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint(
-            "id", name=op.f("issue_test_result_attachment_rule_pkey")
-        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("issue_test_result_attachment_rule_pkey")),
     )
     op.create_index(
         op.f("issue_test_result_attachment_rule_enabled_ix"),
@@ -82,9 +80,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["attachment_rule_id"],
             ["issue_test_result_attachment_rule.id"],
-            name=op.f(
-                "issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_fkey"
-            ),
+            name=op.f("issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_fkey"),
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint(

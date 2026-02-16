@@ -124,11 +124,7 @@ class LaunchpadClient:
                     "id": bug_id,
                     "title": bug.title,
                     "status": status,
-                    "importance": (
-                        getattr(chosen_task, "importance", None)
-                        if chosen_task
-                        else None
-                    ),
+                    "importance": (getattr(chosen_task, "importance", None) if chosen_task else None),
                     "url": bug.web_link,
                 },
             )

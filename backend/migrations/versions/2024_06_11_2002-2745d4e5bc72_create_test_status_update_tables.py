@@ -54,9 +54,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("test_event_pkey")),
     )
     # ### end Alembic commands ###
-    op.execute(
-        "ALTER TABLE test_execution ADD COLUMN resource_url VARCHAR NOT NULL DEFAULT ''"
-    )
+    op.execute("ALTER TABLE test_execution ADD COLUMN resource_url VARCHAR NOT NULL DEFAULT ''")
 
     with op.get_context().autocommit_block():
         op.execute("ALTER TYPE testexecutionstatus ADD VALUE 'ENDED_PREMATURELY'")
@@ -68,8 +66,7 @@ def downgrade() -> None:
     # ### end Alembic commands ###
     op.execute("ALTER TYPE testexecutionstatus RENAME TO testexecutionstatus_old")
     op.execute(
-        "CREATE TYPE testexecutionstatus AS "
-        "ENUM('NOT_STARTED', 'IN_PROGRESS', 'PASSED', 'FAILED', 'NOT_TESTED')"
+        "CREATE TYPE testexecutionstatus AS ENUM('NOT_STARTED', 'IN_PROGRESS', 'PASSED', 'FAILED', 'NOT_TESTED')"
     )
     op.execute(
         "ALTER TABLE test_execution ALTER COLUMN status TYPE testexecutionstatus USING "

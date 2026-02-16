@@ -61,9 +61,7 @@ def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
     assert issue.last_synced_at is not None
 
     synced_at = (
-        issue.last_synced_at.replace(tzinfo=UTC)
-        if issue.last_synced_at.tzinfo is None
-        else issue.last_synced_at
+        issue.last_synced_at.replace(tzinfo=UTC) if issue.last_synced_at.tzinfo is None else issue.last_synced_at
     )
     assert before_sync <= synced_at <= after_sync
 

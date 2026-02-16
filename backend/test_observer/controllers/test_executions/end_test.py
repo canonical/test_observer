@@ -57,9 +57,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
 
     has_failures = test_execution.has_failures
 
-    test_execution.status = (
-        TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
-    )
+    test_execution.status = TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
 
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
@@ -69,9 +67,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     db.commit()
 
 
-def _find_related_test_execution(
-    request: EndTestExecutionRequest, db: Session
-) -> TestExecution | None:
+def _find_related_test_execution(request: EndTestExecutionRequest, db: Session) -> TestExecution | None:
     stmt = (
         select(TestExecution)
         .where(TestExecution.ci_link == request.ci_link)

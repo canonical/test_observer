@@ -40,16 +40,12 @@ def upgrade() -> None:
         "issue_test_result_attachment_rule",
         sa.Column(
             "test_result_statuses",
-            postgresql.ARRAY(
-                postgresql.ENUM(name="testresultstatus", create_type=False)
-            ),
+            postgresql.ARRAY(postgresql.ENUM(name="testresultstatus", create_type=False)),
             nullable=True,
         ),
     )
     # Set empty list for all existing rows
-    op.execute(
-        "UPDATE issue_test_result_attachment_rule SET test_result_statuses = '{}'"
-    )
+    op.execute("UPDATE issue_test_result_attachment_rule SET test_result_statuses = '{}'")
     # Make the column NOT NULL
     op.alter_column(
         "issue_test_result_attachment_rule",

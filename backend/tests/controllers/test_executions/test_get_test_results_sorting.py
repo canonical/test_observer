@@ -23,9 +23,7 @@ from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
 
 
-def test_get_test_results_sorts_by_execution_order(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_test_results_sorts_by_execution_order(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()

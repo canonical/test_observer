@@ -61,9 +61,7 @@ def test_fetch_test_results_report_missing_output_file():
 
 
 def test_fetch_test_results_report_invalid_start_date():
-    _, stderr = _run_script(
-        ["--start_date", "2023.01.15", "--output_file", "output.csv"]
-    )
+    _, stderr = _run_script(["--start_date", "2023.01.15", "--output_file", "output.csv"])
     assert "Date 2023.01.15 is not in the correct format: %Y-%m-%d" in str(stderr)
 
 

@@ -188,9 +188,7 @@ def downgrade() -> None:
     )
 
     # Drop unique constraint and foreign keys
-    op.drop_constraint(
-        "uq_rerun_request_group", "test_execution_rerun_request", type_="unique"
-    )
+    op.drop_constraint("uq_rerun_request_group", "test_execution_rerun_request", type_="unique")
     op.drop_constraint(
         "fk_rerun_request_environment",
         "test_execution_rerun_request",
@@ -201,9 +199,7 @@ def downgrade() -> None:
         "test_execution_rerun_request",
         type_="foreignkey",
     )
-    op.drop_constraint(
-        "fk_rerun_request_test_plan", "test_execution_rerun_request", type_="foreignkey"
-    )
+    op.drop_constraint("fk_rerun_request_test_plan", "test_execution_rerun_request", type_="foreignkey")
 
     # Re-add old foreign key on test_execution_id
     op.create_foreign_key(

@@ -44,9 +44,7 @@ def upgrade() -> None:
         ["id"],
     )
     op.create_unique_constraint(
-        op.f(
-            "issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_category_value_key"
-        ),
+        op.f("issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_category_value_key"),
         "issue_test_result_attachment_rule_execution_metadata",
         ["attachment_rule_id", "category", "value"],
     )
@@ -54,9 +52,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_constraint(
-        op.f(
-            "issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_category_value_key"
-        ),
+        op.f("issue_test_result_attachment_rule_execution_metadata_attachment_rule_id_category_value_key"),
         "issue_test_result_attachment_rule_execution_metadata",
         type_="unique",
     )

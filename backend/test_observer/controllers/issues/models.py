@@ -42,9 +42,7 @@ from .shared_models import (
 
 class IssueTestResultAttachmentResponse(BaseModel):
     test_result: TestResultResponse = Field(validation_alias=AliasPath("test_result"))
-    test_execution: TestExecutionResponse = Field(
-        validation_alias=AliasPath("test_result", "test_execution")
-    )
+    test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_result", "test_execution"))
     artefact: ArtefactResponse = Field(
         validation_alias=AliasPath(
             "test_result",

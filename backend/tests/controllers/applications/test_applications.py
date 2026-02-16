@@ -54,9 +54,7 @@ def test_create_application(test_client: TestClient, db_session: Session):
 def test_get_applications(test_client: TestClient, generator: DataGenerator):
     application = generator.gen_application()
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/applications"), Permission.view_application
-    )
+    response = make_authenticated_request(lambda: test_client.get("/v1/applications"), Permission.view_application)
 
     assert response.status_code == 200
     assert response.json() == [
@@ -103,9 +101,7 @@ def test_get_current_application(test_client: TestClient, generator: DataGenerat
     }
 
 
-def test_update_application_permissions(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_application_permissions(test_client: TestClient, generator: DataGenerator):
     application = generator.gen_application()
 
     response = make_authenticated_request(

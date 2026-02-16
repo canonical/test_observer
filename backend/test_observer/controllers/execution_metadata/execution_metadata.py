@@ -39,7 +39,5 @@ router.include_router(execution_metadata.router)
 )
 def get_execution_metadata(db: Session = Depends(get_db)):
     return ExecutionMetadataGetResponse(
-        execution_metadata=ExecutionMetadata.from_rows(
-            db.execute(select(TestExecutionMetadata)).scalars().all()
-        ),
+        execution_metadata=ExecutionMetadata.from_rows(db.execute(select(TestExecutionMetadata)).scalars().all()),
     )

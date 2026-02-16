@@ -56,15 +56,9 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
     sender.add_periodic_task(600, clean_user_sessions.s())
 
     # Staggered sync tasks
-    sender.add_periodic_task(
-        SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s()
-    )
-    sender.add_periodic_task(
-        SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s()
-    )
-    sender.add_periodic_task(
-        SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s()
-    )
+    sender.add_periodic_task(SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s())
+    sender.add_periodic_task(SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s())
+    sender.add_periodic_task(SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s())
 
 
 @app.task
@@ -114,18 +108,13 @@ def _sync_issues_by_priority(priority: str) -> dict:
         batch_count = 0
 
         while True:
-            issues = SyncStrategy.get_issues_due_for_sync(
-                db, batch_size=SyncConfig.BATCH_SIZE, priority=priority
-            )
+            issues = SyncStrategy.get_issues_due_for_sync(db, batch_size=SyncConfig.BATCH_SIZE, priority=priority)
 
             if not issues:
                 break
 
             batch_count += 1
-            logger.info(
-                f"Processing {priority} priority batch "
-                f"{batch_count} ({len(issues)} issues)"
-            )
+            logger.info(f"Processing {priority} priority batch {batch_count} ({len(issues)} issues)")
 
             # Sync the batch
             results = service.sync_issues_batch(issues, db)

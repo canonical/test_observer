@@ -42,13 +42,8 @@ async def custom_openapi(request: Request):
         # Add security scopes to OpenAPI schema
         for method in route.methods:
             method_lower = method.lower()
-            if (
-                route.path in openapi_schema["paths"]
-                and method_lower in openapi_schema["paths"][route.path]
-            ):
-                openapi_schema["paths"][route.path][method_lower]["x-permissions"] = (
-                    security_scopes
-                )
+            if route.path in openapi_schema["paths"] and method_lower in openapi_schema["paths"][route.path]:
+                openapi_schema["paths"][route.path][method_lower]["x-permissions"] = security_scopes
 
     return JSONResponse(openapi_schema)
 

@@ -34,26 +34,20 @@ from typing import TypeVar
 _T = TypeVar("_T")
 
 
-def test_create_test_execution_relevant_link(
-    db_session: Session, generator: DataGenerator
-):
+def test_create_test_execution_relevant_link(db_session: Session, generator: DataGenerator):
     """Test creating a relevant link for a test execution."""
     # Arrange
     artefact = generator.gen_artefact()
     artefact_build = generator.gen_artefact_build(artefact=artefact)
     environment = generator.gen_environment()
 
-    test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build, environment=environment
-    )
+    test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
 
     label = "Test Link"
     url = HttpUrl("https://example.com/test-link")
 
     # Act
-    link = create_test_execution_relevant_link(
-        db_session, test_execution.id, label, url
-    )
+    link = create_test_execution_relevant_link(db_session, test_execution.id, label, url)
 
     # Assert
     assert link.label == label

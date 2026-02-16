@@ -58,9 +58,7 @@ class IssueSynchronizationService:
         """
         for synchronizer in self.synchronizers:
             if synchronizer.can_sync(issue):
-                logger.debug(
-                    f"Using {synchronizer.__class__.__name__} for issue {issue.id}"
-                )
+                logger.debug(f"Using {synchronizer.__class__.__name__} for issue {issue.id}")
                 result = synchronizer.sync_issue(issue, db)
 
                 # Update last_synced_at timestamp on success
@@ -70,12 +68,8 @@ class IssueSynchronizationService:
 
                 return result
 
-        logger.warning(
-            f"No synchronizer available for issue {issue.id} with URL: {issue.url}"
-        )
-        return SyncResult(
-            success=False, error=f"No synchronizer available for URL: {issue.url}"
-        )
+        logger.warning(f"No synchronizer available for issue {issue.id} with URL: {issue.url}")
+        return SyncResult(success=False, error=f"No synchronizer available for URL: {issue.url}")
 
     def sync_issues_batch(self, issues: Sequence[Issue], db: Session) -> SyncResults:
         """

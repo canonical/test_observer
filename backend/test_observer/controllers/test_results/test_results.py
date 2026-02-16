@@ -56,9 +56,7 @@ T = TypeVar("T")
 def parse_execution_metadata(
     execution_metadata: list[str] | None = Query(
         None,
-        description=(
-            "Filter by execution metadata (base64 encoded category:value pairs)."
-        ),
+        description=("Filter by execution metadata (base64 encoded category:value pairs)."),
     ),
 ) -> ExecutionMetadata | None:
     if execution_metadata is None:
@@ -70,10 +68,7 @@ def parse_execution_metadata(
         if colon_index == -1:
             raise HTTPException(
                 status_code=422,
-                detail=(
-                    f"Invalid execution metadata format: '{item}'. "
-                    "Expected base64 encoded 'category:value'."
-                ),
+                detail=(f"Invalid execution metadata format: '{item}'. Expected base64 encoded 'category:value'."),
             )
 
         try:
@@ -88,10 +83,7 @@ def parse_execution_metadata(
         if not category or not value:
             raise HTTPException(
                 status_code=422,
-                detail=(
-                    f"Invalid execution metadata format: '{item}'. "
-                    "Both category and value must be non-empty."
-                ),
+                detail=(f"Invalid execution metadata format: '{item}'. Both category and value must be non-empty."),
             )
 
         result.append(
@@ -148,17 +140,10 @@ def search_test_results(
         list[str] | None,
         Query(description="Filter by test case names"),
     ] = None,
-    template_ids: Annotated[
-        list[str] | None, Query(description="Filter by template IDs")
-    ] = None,
-    execution_metadata: Annotated[
-        ExecutionMetadata | None, Depends(parse_execution_metadata)
-    ] = None,
+    template_ids: Annotated[list[str] | None, Query(description="Filter by template IDs")] = None,
+    execution_metadata: Annotated[ExecutionMetadata | None, Depends(parse_execution_metadata)] = None,
     issues: Annotated[
-        list[int]
-        | list[Literal[QueryValue.ANY]]
-        | list[Literal[QueryValue.NONE]]
-        | None,
+        list[int] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
         Query(description="Filter by issue IDs"),
     ] = None,
     test_result_statuses: Annotated[
@@ -170,41 +155,25 @@ def search_test_results(
         Query(description="Filter by test execution statuses"),
     ] = None,
     assignee_ids: Annotated[
-        list[int]
-        | list[Literal[QueryValue.ANY]]
-        | list[Literal[QueryValue.NONE]]
-        | None,
+        list[int] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
         Query(description="Filter by assignee user ids"),
     ] = None,
     rerun_is_requested: Annotated[
         bool | None,
-        Query(
-            description=(
-                "Filter by whether a rerun has been requested for the test execution"
-            )
-        ),
+        Query(description=("Filter by whether a rerun has been requested for the test execution")),
     ] = None,
     execution_is_latest: Annotated[
         bool | None,
         Query(
             description=(
-                "Filter by whether the test execution is the latest "
-                "in its environment/artifact/test plan combination"
+                "Filter by whether the test execution is the latest in its environment/artifact/test plan combination"
             )
         ),
     ] = None,
-    from_date: Annotated[
-        datetime | None, Query(description="Filter results from this timestamp")
-    ] = None,
-    until_date: Annotated[
-        datetime | None, Query(description="Filter results until this timestamp")
-    ] = None,
-    limit: Annotated[
-        int, Query(ge=0, le=1000, description="Maximum number of results to return")
-    ] = 50,
-    offset: Annotated[
-        int, Query(ge=0, description="Number of results to skip for pagination")
-    ] = 0,
+    from_date: Annotated[datetime | None, Query(description="Filter results from this timestamp")] = None,
+    until_date: Annotated[datetime | None, Query(description="Filter results until this timestamp")] = None,
+    limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
+    offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
 ) -> TestResultSearchResponseWithContext:
     """
@@ -237,9 +206,7 @@ def search_test_results(
     # Run paginated query
     pagination_query = select(TestResult)
     paginated_query = filter_test_results(pagination_query, filters)
-    paginated_query = paginated_query.order_by(
-        desc(TestResult.created_at), desc(TestResult.id)
-    )
+    paginated_query = paginated_query.order_by(desc(TestResult.created_at), desc(TestResult.id))
     pagination_query = pagination_query.options(
         selectinload(TestResult.test_case),
         selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
@@ -247,9 +214,7 @@ def search_test_results(
         .selectinload(TestExecution.artefact_build)
         .selectinload(ArtefactBuild.artefact),
         selectinload(TestResult.issue_attachments),
-        selectinload(TestResult.test_execution).selectinload(
-            TestExecution.execution_metadata
-        ),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
     )
     test_results = db.execute(paginated_query).scalars().all()
 

@@ -65,15 +65,11 @@ class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
     @classmethod
     def convert_execution_metadata(
         cls,
-        metadata: Sequence[IssueTestResultAttachmentRuleExecutionMetadata]
-        | ExecutionMetadata,
+        metadata: Sequence[IssueTestResultAttachmentRuleExecutionMetadata] | ExecutionMetadata,
     ) -> ExecutionMetadata:
         if not isinstance(metadata, ExecutionMetadata):
             return ExecutionMetadata.from_rows(
-                [
-                    TestExecutionMetadata(category=item.category, value=item.value)
-                    for item in metadata
-                ]
+                [TestExecutionMetadata(category=item.category, value=item.value) for item in metadata]
             )
 
         return metadata

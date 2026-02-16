@@ -37,9 +37,7 @@ router = APIRouter(tags=["test-executions"])
     response_model=TestExecutionRelevantLinkResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
 )
-def post_link(
-    id: int, request: TestExecutionRelevantLinkCreate, db: Session = Depends(get_db)
-):
+def post_link(id: int, request: TestExecutionRelevantLinkCreate, db: Session = Depends(get_db)):
     test_execution = db.get(TestExecution, id)
     if test_execution is None:
         raise HTTPException(status_code=404, detail="TestExecution not found")
