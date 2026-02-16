@@ -31,6 +31,8 @@ abstract class PreviousTestResult with _$PreviousTestResult {
     required TestResultStatus status,
     required String version,
     @JsonKey(name: 'artefact_id') required int artefactId,
+    @JsonKey(name: 'test_execution_id') required int testExecutionId,
+    @JsonKey(name: 'test_result_id') required int testResultId,
   }) = _PreviousTestResult;
 
   factory PreviousTestResult.fromJson(Map<String, Object?> json) =>
