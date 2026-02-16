@@ -15,8 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from datetime import date, timedelta
 import random
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
 from sqlalchemy import select
@@ -34,8 +34,8 @@ from test_observer.data_access.models import (
     User,
 )
 from test_observer.data_access.repository import (
-    get_or_create,
     create_test_execution_relevant_link,
+    get_or_create,
 )
 from test_observer.data_access.setup import get_db
 

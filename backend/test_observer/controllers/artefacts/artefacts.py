@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import select, distinct
-from sqlalchemy.orm import Session, selectinload
 from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from sqlalchemy import distinct, select
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
@@ -29,12 +30,12 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
-    FamilyName,
-    StageName,
-    SnapStage,
-    DebStage,
     CharmStage,
+    DebStage,
+    FamilyName,
     ImageStage,
+    SnapStage,
+    StageName,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
@@ -45,10 +46,10 @@ from .logic import (
     is_there_a_rejected_environment,
 )
 from .models import (
-    ArtefactResponse,
     ArtefactPatch,
-    ArtefactVersionResponse,
+    ArtefactResponse,
     ArtefactSearchResponse,
+    ArtefactVersionResponse,
 )
 
 router = APIRouter(tags=["artefacts"])

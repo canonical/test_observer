@@ -20,8 +20,8 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_post_relevant_link_success(test_client: TestClient, generator: DataGenerator, db_session: Session):

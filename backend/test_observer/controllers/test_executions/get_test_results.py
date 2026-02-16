@@ -21,9 +21,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
+    IssueTestResultAttachment,
     TestExecution,
     TestResult,
-    IssueTestResultAttachment,
 )
 from test_observer.data_access.setup import get_db
 

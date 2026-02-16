@@ -18,17 +18,16 @@ from __future__ import annotations
 
 from launchpadlib.launchpad import Launchpad  # type: ignore[import-untyped]
 from lazr.restfulclient.errors import (  # type: ignore[import-untyped]
-    NotFound,
-    Unauthorized,
     HTTPError,
+    NotFound,
     ServerError,
+    Unauthorized,
 )
 
 from test_observer.external_apis.exceptions import (
-    IssueNotFoundError,
     APIError,
+    IssueNotFoundError,
 )
-
 from test_observer.external_apis.models import IssueData
 
 

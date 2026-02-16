@@ -18,11 +18,11 @@
 from fastapi.testclient import TestClient
 from prometheus_client import REGISTRY
 
-from tests.data_generator import DataGenerator
-from tests.conftest import make_authenticated_request
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import FamilyName
 from test_observer.data_access.models_enums import StageName
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def auth_post(test_client: TestClient, endpoint: str, json: dict):

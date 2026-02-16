@@ -15,11 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import uuid
+
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def generate_unique_name(prefix: str) -> str:

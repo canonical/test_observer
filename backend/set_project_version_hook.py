@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from hatchling.metadata.plugin.interface import MetadataHookInterface
-
-import subprocess
 import shutil
+import subprocess
+
+from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 from test_observer.common.config import VERSION
 

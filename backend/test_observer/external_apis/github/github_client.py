@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from github import Github, GithubIntegration, Auth
-from test_observer.external_apis.models import IssueData
 import logging
 from typing import Any, cast
+
+from github import Auth, Github, GithubIntegration
+from test_observer.external_apis.models import IssueData
 
 logger = logging.getLogger(__name__)
 

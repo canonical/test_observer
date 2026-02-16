@@ -16,8 +16,8 @@
 
 import pytest
 
-from test_observer.data_access.models_enums import IssueSource
 from test_observer.data_access.models import Issue
+from test_observer.data_access.models_enums import IssueSource
 
 
 @pytest.mark.parametrize(

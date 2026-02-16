@@ -32,20 +32,20 @@ from pydantic import (
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
-    TestExecutionResponse,
     TestExecutionRelevantLinkCreate,
+    TestExecutionResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models_enums import (
-    FamilyName,
-    SnapStage,
-    DebStage,
     CharmStage,
+    DebStage,
+    FamilyName,
     ImageStage,
+    SnapStage,
     TestExecutionStatus,
     TestResultStatus,
 )
-from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 
 
 class _StartTestExecutionRequest(BaseModel):

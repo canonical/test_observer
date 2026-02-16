@@ -15,19 +15,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
-from collections import defaultdict
 import csv
 import io
 import logging
 import os
-import httpx
+from collections import defaultdict
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 
-from fastapi.testclient import TestClient
-
-
+import httpx
 import requests
+from fastapi.testclient import TestClient
 
 DATE_FORMAT = "%Y-%m-%d"
 TO_API_URL = os.environ.get("TO_API_URL", "https://test-observer-api.canonical.com")

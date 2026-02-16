@@ -15,12 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import uuid
+
 from fastapi.testclient import TestClient
 
-from tests.data_generator import DataGenerator
-from tests.conftest import make_authenticated_request
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import FamilyName
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_test_cases_filter_by_family(test_client: TestClient, generator: DataGenerator):

@@ -14,21 +14,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timedelta
-from fastapi.testclient import TestClient
-import uuid
-import pytest
 import base64
+import uuid
+from datetime import datetime, timedelta
 
+import pytest
+from fastapi.testclient import TestClient
+
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
-from test_observer.common.permissions import Permission
-
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def generate_unique_name(prefix: str = "test") -> str:

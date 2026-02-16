@@ -14,14 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timedelta, UTC
+import logging
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue, IssueStatus
 from test_observer.external_apis.synchronizers.config import SyncConfig
-import logging
 
 logger = logging.getLogger(__name__)
 

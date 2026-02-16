@@ -15,9 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
-
+from fastapi.responses import HTMLResponse, JSONResponse
 
 router: APIRouter = APIRouter()
 

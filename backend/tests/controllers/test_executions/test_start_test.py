@@ -24,22 +24,22 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import (
     Artefact,
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
-    StageName,
-    SnapStage,
-    DebStage,
     CharmStage,
+    DebStage,
     ImageStage,
+    SnapStage,
+    StageName,
     TestExecutionStatus,
 )
-from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 type Execute = Callable[[dict[str, Any]], Response]
 

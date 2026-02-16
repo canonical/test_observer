@@ -15,27 +15,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from sqlalchemy.orm import Session
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy import (
-    select,
-    or_,
-    func,
-    exists,
-    and_,
     ColumnElement,
     Select,
+    and_,
+    exists,
+    func,
     literal,
+    or_,
+    select,
 )
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from test_observer.data_access.models import (
-    TestResult,
+    IssueTestResultAttachment,
     IssueTestResultAttachmentRule,
     IssueTestResultAttachmentRuleExecutionMetadata,
-    TestExecutionMetadata,
     TestExecution,
-    IssueTestResultAttachment,
+    TestExecutionMetadata,
+    TestResult,
 )
 
 

@@ -23,8 +23,8 @@ from test_observer.common.constants import QueryValue
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 
 

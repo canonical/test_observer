@@ -17,19 +17,18 @@
 
 """Test services functions"""
 
+from typing import TypeVar
+
+from pydantic import HttpUrl
+from pytest import MonkeyPatch
 from sqlalchemy.orm import Query, Session
 
+from test_observer.data_access.models import TestCase
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
 )
 from tests.data_generator import DataGenerator
-
-from test_observer.data_access.models import TestCase
-
-from pydantic import HttpUrl
-from pytest import MonkeyPatch
-from typing import TypeVar
 
 _T = TypeVar("_T")
 

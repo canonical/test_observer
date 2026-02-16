@@ -19,18 +19,17 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.data_access.setup import get_db
 from test_observer.data_access.models import (
-    IssueTestResultAttachmentRule,
     Issue,
+    IssueTestResultAttachmentRule,
     IssueTestResultAttachmentRuleExecutionMetadata,
 )
+from test_observer.data_access.setup import get_db
 
 from .models import (
-    IssueTestResultAttachmentRulePostRequest,
     IssueTestResultAttachmentRulePatchRequest,
+    IssueTestResultAttachmentRulePostRequest,
 )
-
 from .shared_models import MinimalIssueTestResultAttachmentRuleResponse
 
 router = APIRouter()

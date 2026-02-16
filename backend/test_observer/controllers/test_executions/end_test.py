@@ -20,6 +20,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.issues.attachment_rules_logic import (
+    apply_test_result_attachment_rules,
+)
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestCase,
@@ -32,9 +35,6 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
-from test_observer.controllers.issues.attachment_rules_logic import (
-    apply_test_result_attachment_rules,
-)
 
 from .logic import delete_previous_results
 from .models import C3TestResult, C3TestResultStatus, EndTestExecutionRequest

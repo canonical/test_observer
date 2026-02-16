@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import json
 from base64 import b64decode
 from datetime import datetime, timedelta
 from html.parser import HTMLParser
-import json
 
 import itsdangerous
 import pytest
@@ -25,7 +25,7 @@ import requests
 from sqlalchemy.orm import Session
 
 from test_observer.common.config import SESSIONS_SECRET
-from test_observer.data_access.models import UserSession, User, Team
+from test_observer.data_access.models import Team, User, UserSession
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import SessionLocal
 

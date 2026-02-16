@@ -25,13 +25,13 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_utils import (  # type: ignore
     create_database,
     drop_database,
 )
-from httpx import Response
 
 from test_observer.common.permissions import Permission
 from test_observer.controllers.applications.application_injection import (

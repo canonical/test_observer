@@ -15,12 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import json
 from base64 import b64encode
 from datetime import datetime, timedelta
+
+import itsdangerous
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-import itsdangerous
-import json
 
 from test_observer.common.config import SESSIONS_SECRET
 from test_observer.common.permissions import Permission

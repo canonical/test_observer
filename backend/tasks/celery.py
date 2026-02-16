@@ -20,12 +20,13 @@ from os import environ
 
 from celery import Celery, Task
 
+from test_observer.data_access.models import Issue
 from test_observer.data_access.setup import SessionLocal
+from test_observer.external_apis.synchronizers.config import SyncConfig
 from test_observer.external_apis.synchronizers.factory import (
     create_synchronization_service,
 )
 from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
-from test_observer.data_access.models import Issue
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
@@ -34,7 +35,6 @@ from test_observer.promotion.promoter import promote_artefacts
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
-from test_observer.external_apis.synchronizers.config import SyncConfig
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"
 broker_url = environ.get("CELERY_BROKER_URL", DEVELOPMENT_BROKER_URL)

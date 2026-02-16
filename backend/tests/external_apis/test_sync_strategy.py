@@ -14,12 +14,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from sqlalchemy.orm import Session
 
-from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
 from test_observer.data_access.models import Issue, IssueSource, IssueStatus
+from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
 
 
 def test_get_open_issues_never_synced(db_session: Session) -> None:

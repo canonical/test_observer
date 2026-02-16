@@ -18,11 +18,11 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from test_observer.data_access.models import TestExecution, TestResult
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models import TestExecution, TestResult
 from tests.asserts import assert_fails_validation
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 maximum_result = {
     "name": "camera detect",

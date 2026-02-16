@@ -17,10 +17,10 @@
 
 from fastapi.testclient import TestClient
 
-from test_observer.data_access.models_enums import StageName
 from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
+from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):

@@ -17,11 +17,11 @@
 
 from fastapi.testclient import TestClient
 
+from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
-from test_observer.common.permissions import Permission
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
 
 endpoint = "/v1/issues"
 valid_put_data = {

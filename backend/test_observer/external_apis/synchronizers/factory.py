@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from os import environ
 import logging
+from os import environ
 
 from test_observer.external_apis.github.github_client import GitHubClient
 from test_observer.external_apis.jira.jira_client import JiraClient

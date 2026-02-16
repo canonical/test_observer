@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from datetime import datetime, timedelta
 from functools import cache
-import logging
 from typing import Any
 from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
@@ -37,7 +38,6 @@ from test_observer.data_access.setup import get_db
 from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
 from test_observer.main import FRONTEND_URL
 from test_observer.users.user_injection import get_user_session
-
 
 router: APIRouter = APIRouter(prefix="/saml")
 

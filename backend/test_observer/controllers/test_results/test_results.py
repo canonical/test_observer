@@ -14,39 +14,40 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import base64
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, HTTPException, Security
+from typing import Annotated, Literal, TypeVar
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import (
-    func,
     desc,
+    func,
     select,
 )
 from sqlalchemy.orm import Session, selectinload
-from typing import Annotated, Literal, TypeVar
-import base64
 
-from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.constants import QueryValue
-
+from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
-    TestResult,
     TestExecutionMetadata,
+    TestResult,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 from test_observer.data_access.setup import get_db
+
+from .filter_test_results import filter_test_results
 from .models import (
-    TestResultSearchResponseWithContext,
     TestResultResponseWithContext,
+    TestResultSearchResponseWithContext,
 )
 from .shared_models import TestResultSearchFilters
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from .filter_test_results import filter_test_results
 
 router = APIRouter(tags=["test-results"])
 

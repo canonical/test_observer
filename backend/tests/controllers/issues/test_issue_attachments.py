@@ -17,10 +17,10 @@
 
 from fastapi.testclient import TestClient
 
-from tests.data_generator import DataGenerator
-from tests.conftest import make_authenticated_request
-from test_observer.data_access.models import FamilyName, IssueTestResultAttachmentRule
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models import FamilyName, IssueTestResultAttachmentRule
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 attach_endpoint = "/v1/issues/{id}/attach"
 detach_endpoint = "/v1/issues/{id}/detach"

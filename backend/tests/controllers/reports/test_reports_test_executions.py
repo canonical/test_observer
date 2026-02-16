@@ -30,8 +30,8 @@ from test_observer.data_access.models import (
     TestExecution,
 )
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 EXPECTED_COLUMN_NAMES = [
     "Artefact.family",

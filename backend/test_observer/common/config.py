@@ -16,7 +16,6 @@
 
 import os
 
-
 VERSION = os.getenv("VERSION", "0.0.0")
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 SAML_SP_BASE_URL = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")

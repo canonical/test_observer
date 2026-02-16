@@ -15,16 +15,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from datetime import datetime, UTC
+import logging
 from collections.abc import Sequence
+from datetime import UTC, datetime
+
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
 )
 from test_observer.external_apis.synchronizers.models import SyncResults
-from test_observer.data_access.models import Issue
-from sqlalchemy.orm import Session
-import logging
 
 logger = logging.getLogger(__name__)
 

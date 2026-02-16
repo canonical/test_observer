@@ -22,14 +22,13 @@ Create Date: 2025-11-07 08:56:00.000000+00:00
 
 """
 
-from alembic import op
+from datetime import UTC, datetime
+
 import sqlalchemy as sa
+from alembic import op
+from sqlalchemy import insert, select, update
 from sqlalchemy.dialects import postgresql
-from sqlalchemy import select, insert, update
-from sqlalchemy.sql import table, column
-
-from datetime import datetime, UTC
-
+from sqlalchemy.sql import column, table
 
 # revision identifiers, used by Alembic.
 revision = "2ddd55f913eb"

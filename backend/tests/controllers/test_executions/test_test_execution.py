@@ -27,8 +27,8 @@ from test_observer.data_access.models import (
     TestExecution,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 type Execute = Callable[[int, dict[str, Any]], Response]
 type Get = Callable[[int], Response]

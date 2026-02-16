@@ -14,20 +14,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import subprocess
 from collections.abc import Generator
 from datetime import datetime, timedelta
 from pathlib import Path
+
 import pytest
-import subprocess
+from fastapi.testclient import TestClient
 
 from scripts.fetch_test_results_report import fetch_test_results_report
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import override_permissions
-
-
-from fastapi.testclient import TestClient
+from tests.data_generator import DataGenerator
 
 
 def _run_script(input_params: list[str]) -> tuple[bytes, bytes]:

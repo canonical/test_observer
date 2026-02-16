@@ -42,11 +42,11 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    IssueSource,
+    IssueStatus,
     StageName,
     TestExecutionStatus,
     TestResultStatus,
-    IssueSource,
-    IssueStatus,
 )
 
 DEFAULT_ARCHITECTURE = "amd64"

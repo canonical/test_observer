@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
+
 from test_observer.external_apis.synchronizers.base import SyncResult
 
 

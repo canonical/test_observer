@@ -24,8 +24,8 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     StageName,
 )
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_get_404_when_artefact_is_not_found(test_client: TestClient):

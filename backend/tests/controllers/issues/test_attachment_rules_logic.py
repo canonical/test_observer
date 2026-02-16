@@ -16,19 +16,18 @@
 
 
 import pytest
-
-from tests.data_generator import DataGenerator
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import (
-    IssueTestResultAttachmentRuleExecutionMetadata,
-    IssueTestResultAttachmentRule,
-)
-from test_observer.data_access.models_enums import FamilyName
 
 from test_observer.controllers.issues.attachment_rules_logic import (
-    query_matching_test_result_attachment_rules,
     apply_test_result_attachment_rules,
+    query_matching_test_result_attachment_rules,
 )
+from test_observer.data_access.models import (
+    IssueTestResultAttachmentRule,
+    IssueTestResultAttachmentRuleExecutionMetadata,
+)
+from test_observer.data_access.models_enums import FamilyName
+from tests.data_generator import DataGenerator
 
 params_query_matching_test_result_attachment_rules: list[dict] = [
     {

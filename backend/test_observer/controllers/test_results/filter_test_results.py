@@ -14,26 +14,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sqlalchemy import and_, select, exists, true, Select
+from sqlalchemy import Select, and_, exists, select, true
 from sqlalchemy.orm import aliased
 
-
 from test_observer.common.constants import QueryValue
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    ColumnElement,
     Environment,
     IssueTestResultAttachment,
     TestCase,
     TestExecution,
-    TestResult,
     TestExecutionMetadata,
     TestExecutionRerunRequest,
-    ColumnElement,
+    TestResult,
+    test_execution_metadata_association_table,
 )
-from test_observer.data_access.models import test_execution_metadata_association_table
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 
 
 def filter_execution_metadata(

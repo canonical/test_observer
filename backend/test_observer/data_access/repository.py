@@ -19,8 +19,8 @@
 
 from collections.abc import Iterable
 from typing import Any
-from pydantic import HttpUrl
 
+from pydantic import HttpUrl
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload

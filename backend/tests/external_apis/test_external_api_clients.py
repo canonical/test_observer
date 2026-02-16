@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from unittest.mock import Mock, patch
+
 import pytest
 import requests
-from unittest.mock import patch, Mock
+
+from test_observer.external_apis.exceptions import APIError
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.models import IssueData
-from test_observer.external_apis.exceptions import APIError
 
 
 class TestJiraClient:

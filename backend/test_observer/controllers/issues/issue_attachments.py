@@ -15,36 +15,37 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import SecurityScopes
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import delete, select, literal
+from sqlalchemy import delete, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.metric_collectors import update_triaged_results_metric
-from test_observer.controllers.test_results.filter_test_results import (
-    filter_test_results,
-)
-from test_observer.data_access.setup import get_db
-from test_observer.data_access.models import (
-    ArtefactBuild,
-    Issue,
-    IssueTestResultAttachment,
-    TestExecution,
-    TestResult,
-    IssueTestResultAttachmentRule,
-)
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.data_access.models import Application, User
-from test_observer.users.user_injection import get_current_user
-from .models import (
-    IssueResponse,
-    IssueAttachmentRequest,
+from test_observer.controllers.test_results.filter_test_results import (
+    filter_test_results,
 )
+from test_observer.data_access.models import (
+    Application,
+    ArtefactBuild,
+    Issue,
+    IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
+    TestExecution,
+    TestResult,
+    User,
+)
+from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
+from .models import (
+    IssueAttachmentRequest,
+    IssueResponse,
+)
 
 router = APIRouter()
 

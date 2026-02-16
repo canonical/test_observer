@@ -19,15 +19,15 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.data_access.setup import get_db
-from test_observer.data_access.models import TestExecution
-from test_observer.data_access.repository import (
-    create_test_execution_relevant_link,
-)
 from test_observer.controllers.artefacts.models import (
     TestExecutionRelevantLinkCreate,
     TestExecutionRelevantLinkResponse,
 )
+from test_observer.data_access.models import TestExecution
+from test_observer.data_access.repository import (
+    create_test_execution_relevant_link,
+)
+from test_observer.data_access.setup import get_db
 
 router = APIRouter(tags=["test-executions"])
 

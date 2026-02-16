@@ -16,6 +16,7 @@
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import Application
 from tests.conftest import make_authenticated_request

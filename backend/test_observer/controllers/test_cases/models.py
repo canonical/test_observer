@@ -14,11 +14,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel, HttpUrl, field_validator, model_validator
-from datetime import datetime
-from test_observer.common.constants import VALID_ISSUE_HOSTS
-from sqlalchemy.engine import RowMapping
 from collections.abc import Sequence
+from datetime import datetime
+
+from pydantic import BaseModel, HttpUrl, field_validator, model_validator
+from sqlalchemy.engine import RowMapping
+
+from test_observer.common.constants import VALID_ISSUE_HOSTS
 
 
 class TestReportedIssueRequest(BaseModel):

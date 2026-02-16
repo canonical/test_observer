@@ -14,26 +14,28 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel, HttpUrl
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
-
-from pydantic import ConfigDict, Field, AliasPath
-
+from collections.abc import Sequence
 
 from pydantic import (
+    AliasPath,
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
     field_validator,
 )
 
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.data_access.models_enums import (
-    FamilyName,
-    TestResultStatus,
-)
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRuleExecutionMetadata,
     TestExecutionMetadata,
 )
-from collections.abc import Sequence
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    IssueSource,
+    IssueStatus,
+    TestResultStatus,
+)
 
 
 class MinimalIssueResponse(BaseModel):

@@ -28,8 +28,8 @@ from test_observer.controllers.reports.test_results import (
 )
 from test_observer.data_access.models import TestResult
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_get_testresults_report_in_range(test_client: TestClient, generator: DataGenerator):

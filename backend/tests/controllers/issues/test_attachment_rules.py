@@ -15,22 +15,22 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from fastapi.testclient import TestClient
 import pytest
-
-from tests.conftest import make_authenticated_request
-from tests.data_generator import DataGenerator
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
 from test_observer.common.permissions import Permission
-from test_observer.data_access.models import (
-    IssueTestResultAttachmentRuleExecutionMetadata,
-    IssueTestResultAttachmentRule,
-)
-from test_observer.data_access.models_enums import TestResultStatus
 from test_observer.controllers.issues.attachment_rules_logic import (
     apply_test_result_attachment_rules,
 )
-from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models import (
+    IssueTestResultAttachmentRule,
+    IssueTestResultAttachmentRuleExecutionMetadata,
+    TestExecution,
+)
+from test_observer.data_access.models_enums import TestResultStatus
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 issue_endpoint = "/v1/issues/{issue_id}"
 post_endpoint = issue_endpoint + "/attachment-rules"

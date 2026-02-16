@@ -15,46 +15,46 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import secrets
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-import secrets
 from typing import TypeVar
 
 from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
     Enum,
     ForeignKey,
     Index,
     MetaData,
     String,
+    Table,
     UniqueConstraint,
     and_,
-    column,
-    Boolean,
     case,
+    column,
     desc,
-    Table,
-    Column,
-    DateTime,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    foreign,
     mapped_column,
     relationship,
-    foreign,
 )
-from sqlalchemy.sql import func, ColumnElement
+from sqlalchemy.sql import ColumnElement, func
 
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
-    TestExecutionStatus,
-    TestResultStatus,
     IssueSource,
     IssueStatus,
+    TestExecutionStatus,
+    TestResultStatus,
 )
 
 

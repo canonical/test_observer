@@ -16,13 +16,13 @@
 
 
 import contextlib
-
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Security, Query
-from fastapi.security import SecurityScopes
-from sqlalchemy import delete, select, asc, tuple_, or_
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security, status
+from fastapi.security import SecurityScopes
+from sqlalchemy import asc, delete, or_, select, tuple_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.applications.application_injection import (
@@ -33,13 +33,13 @@ from test_observer.controllers.test_results.filter_test_results import (
 )
 from test_observer.data_access.models import (
     Application,
+    Artefact,
     ArtefactBuild,
     Environment,
+    FamilyName,
     TestExecution,
     TestExecutionRerunRequest,
     TestResult,
-    Artefact,
-    FamilyName,
     User,
 )
 from test_observer.data_access.repository import get_or_create

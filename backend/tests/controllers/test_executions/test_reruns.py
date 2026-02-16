@@ -26,12 +26,12 @@ from httpx import Response
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
-    StageName,
     FamilyName,
+    StageName,
     TestResultStatus,
 )
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
 

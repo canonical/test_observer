@@ -18,7 +18,6 @@ from fastapi import APIRouter, Security
 
 from test_observer.common.permissions import Permission, permission_checker
 
-
 router: APIRouter = APIRouter(tags=["permissions"])
 
 

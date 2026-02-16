@@ -19,10 +19,11 @@ from datetime import date, timedelta
 from operator import itemgetter
 from typing import Any
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import Artefact, TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -30,9 +31,8 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
 )
-from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: TestClient):

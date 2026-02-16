@@ -28,7 +28,6 @@ from test_observer.controllers.teams.models import (
 from test_observer.data_access.models import Team, User
 from test_observer.data_access.setup import get_db
 
-
 router: APIRouter = APIRouter(tags=["teams"])
 
 
