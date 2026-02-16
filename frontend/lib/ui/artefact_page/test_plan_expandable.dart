@@ -44,10 +44,10 @@ class TestPlanExpandable extends StatelessWidget {
 
     final pageUri = AppRoutes.uriFromContext(context);
     final targetTestExecutionId = pageUri.queryParameters['testExecutionId'];
+    final targetId = int.tryParse(targetTestExecutionId ?? '');
     final shouldExpand = initiallyExpanded ||
-        (targetTestExecutionId != null &&
-            testExecutionsDescending
-                .any((te) => te.id == int.tryParse(targetTestExecutionId)));
+        (targetId != null &&
+            testExecutionsDescending.any((te) => te.id == targetId));
 
     return Expandable(
       initiallyExpanded: shouldExpand,
@@ -62,7 +62,7 @@ class TestPlanExpandable extends StatelessWidget {
           .mapIndexed(
             (i, te) => TestExecutionExpandable(
               artefactId: artefactId,
-              initiallyExpanded: i == 0,
+              initiallyExpanded: targetId != null ? te.id == targetId : i == 0,
               testExecution: te,
               runNumber: testExecutionsDescending.length - i,
             ),

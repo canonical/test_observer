@@ -15,10 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/test_result.dart';
-import '../../models/detailed_test_results.dart';
 
 class TestResultHelpers {
   static TestResultStatus parseTestResultStatus(String? status) {
@@ -36,41 +34,5 @@ class TestResultHelpers {
 
   static Widget getStatusIcon(TestResultStatus status) {
     return status.getIcon();
-  }
-
-  static void navigateToTestExecution(TestResultWithContext result) {
-    final testExecution = result.testExecution;
-    final artefact = result.artefact;
-    final testResult = result.testResult;
-    final family = artefact.family;
-    final artefactId = artefact.id;
-    final testExecutionId = testExecution.id;
-    final testResultId = testResult.id;
-    final currentUri = Uri.base;
-
-    final queryParams = {
-      'testExecutionId': testExecutionId.toString(),
-      'testResultId': testResultId.toString(),
-    };
-
-    final encodedParams = queryParams.entries
-        .map(
-          (e) =>
-              '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}',
-        )
-        .join('&');
-
-    final fragment = '/${family}s/$artefactId?$encodedParams';
-
-    final targetUri = currentUri.replace(fragment: fragment);
-
-    _launchUrl(targetUri);
-  }
-
-  static void _launchUrl(Uri uri) async {
-    await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
   }
 }
