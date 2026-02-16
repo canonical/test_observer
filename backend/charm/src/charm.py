@@ -265,6 +265,9 @@ class TestObserverBackendCharm(CharmBase):
             env["JIRA_CLOUD_ID"] = self.config["jira_cloud_id"]
             env["JIRA_EMAIL"] = self.config["jira_email"]
             env["JIRA_API_TOKEN"] = self.config["jira_api_token"]
+        if self.config.get("git_app_id"):
+            env["GIT_APP_ID"] = self.config["git_app_id"]
+            env["GIT_APP_PRIVATE_KEY"] = self.config["git_app_private_key"]
         env.update(self._postgres_relation_data())
         return env
 
