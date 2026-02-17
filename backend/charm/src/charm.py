@@ -268,6 +268,10 @@ class TestObserverBackendCharm(CharmBase):
         if self.config.get("git_app_id"):
             env["GIT_APP_ID"] = self.config["git_app_id"]
             env["GIT_APP_PRIVATE_KEY"] = self.config["git_app_private_key"]
+        if self.config.get("http_proxy"):
+            env["HTTP_PROXY"] = self.config["http_proxy"]
+            env["HTTPS_PROXY"] = self.config.get("https_proxy", self.config["http_proxy"])
+            env["NO_PROXY"] = self.config.get("no_proxy", "127.0.0.1,localhost")
         env.update(self._postgres_relation_data())
         return env
 

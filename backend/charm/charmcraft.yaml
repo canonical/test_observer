@@ -97,6 +97,18 @@ config:
       default: ""
       description: GitHub App private key (PEM format) for issue synchronization
       type: string
+    http_proxy:
+      default: ""
+      description: HTTP proxy URL
+      type: string
+    https_proxy:
+      default: ""
+      description: HTTPS proxy URL  
+      type: string
+    no_proxy:
+      default: "127.0.0.1,localhost"
+      description: Comma-separated list of domains that should not use the proxy
+      type: string
 
 resources:
   api-image:
