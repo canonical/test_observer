@@ -39,19 +39,21 @@ SessionLocal = sessionmaker(
 
 DBAPIParameters = dict[Any, Any] | tuple[Any] | list[Any] | None
 
+
 # https://docs.sqlalchemy.org/en/20/core/events.html#sqlalchemy.events.ConnectionEvents.before_cursor_execute
 # retval=True is needed to actually modify the statement
 @listens_for(engine, "before_cursor_execute", retval=True)
 def tag_sql_with_origin(
-    conn: Connection,
-    cursor: DBAPICursor,
+    _conn: Connection,
+    _cursor: DBAPICursor,
     statement: str,
     parameters: DBAPIParameters,
-    context: ExecutionContext,
-    executemany: bool
+    _context: ExecutionContext,
+    _executemany: bool,
 ) -> tuple[str, DBAPIParameters]:
     """
-    This event listener tags each SQL statement with a comment containing the stack trace of where the query originated.
+    This event listener tags each SQL statement with a comment
+    containing the stack trace of where the query originated.
     """
 
     stack = traceback.extract_stack()
@@ -71,6 +73,7 @@ def tag_sql_with_origin(
         statement = f"/* Origin: {origin} */ " + statement
 
     return statement, parameters
+
 
 # Dependency
 def get_db():
