@@ -69,19 +69,24 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 
 @app.task
 def integrate_with_kernel_swm():
-    db = SessionLocal()
-    swm_info = get_artefacts_swm_info()
-    update_artefacts_with_tracker_info(db, swm_info)
+    with SessionLocal() as db:
+        swm_info = get_artefacts_swm_info()
+        # update_artefacts_with_tracker_info calls db.commit()
+        update_artefacts_with_tracker_info(db, swm_info)
 
 
 @app.task
 def run_promote_artefacts():
-    promote_artefacts(SessionLocal())
+    with SessionLocal() as db:
+        # The underlying functions called in promoote_artefacts call db.commit()
+        promote_artefacts(db)
 
 
 @app.task
 def clean_user_sessions():
-    delete_expired_user_sessions(SessionLocal())
+    with SessionLocal() as db:
+        # delete_expired_user_sessions calls db.commit()
+        delete_expired_user_sessions(db)
 
 
 # @app.task
