@@ -16,26 +16,25 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, Security
+from sqlalchemy import tuple_
 from sqlalchemy.orm import Session, selectinload, joinedload
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from test_observer.common.metric_collectors import update_execution_metadata_metric
 from test_observer.common.permissions import Permission, permission_checker
-
 from test_observer.controllers.artefacts.models import TestExecutionResponse
-from test_observer.data_access.models import TestExecution, TestResult
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.data_access.models import (
+    TestExecution,
+    TestExecutionMetadata,
+    TestResult,
+    test_execution_metadata_association_table,
+)
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionsPatchRequest
 
-from sqlalchemy import tuple_
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-
-from test_observer.data_access.models import (
-    TestExecutionMetadata,
-    test_execution_metadata_association_table,
-)
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.common.metric_collectors import update_execution_metadata_metric
 
 router = APIRouter()
 
