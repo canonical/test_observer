@@ -157,3 +157,36 @@ def test_get_or_create_race_condition(
 
     assert result.id == test_case.id
     assert calls["one"] == 1
+
+
+def test_get_or_create_does_not_commit(
+    db_session: Session,
+):
+    """Test that get_or_create does not commit the transaction."""
+
+    # Arrange
+    test_case_name = "new_uncommitted"
+    test_case_category = "category"
+
+    # Act - create instance using get_or_create
+    result = get_or_create(
+        db_session,
+        model=TestCase,
+        filter_kwargs={"name": test_case_name, "category": test_case_category},
+    )
+
+    # Assert - the instance should exist in the session
+    assert result.id is not None
+    assert result.name == test_case_name
+
+    # But it should not be committed to the database
+    # Rollback and verify the instance is gone
+    db_session.rollback()
+
+    # Query again - should not find the instance since it wasn't committed
+    not_found = (
+        db_session.query(TestCase)
+        .filter_by(name=test_case_name, category=test_case_category)
+        .first()
+    )
+    assert not_found is None
