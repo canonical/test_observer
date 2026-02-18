@@ -34,15 +34,5 @@ SessionLocal = sessionmaker(
 
 # Dependency
 def get_db():
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         yield db
-        # Commit the transaction after successful request handling
-        # This ensures read queries don't leave idle transactions
-        db.commit()
-    except Exception:
-        # Rollback on any error to clean up the transaction
-        db.rollback()
-        raise
-    finally:
-        db.close()
