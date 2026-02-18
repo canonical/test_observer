@@ -75,6 +75,8 @@ class StartTestExecutionController:
 
         self.assign_reviewer()
 
+        self.db.commit()
+
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):

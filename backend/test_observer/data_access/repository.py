@@ -173,7 +173,6 @@ def get_or_create(
             # Ensure the INSERT is executed immediately
             # to catch IntegrityError here if it occurs
             db.flush()
-        db.commit()
     except IntegrityError:
         # Query and return the existing instance
         instance = db.query(model).filter_by(**filter_kwargs).one()
