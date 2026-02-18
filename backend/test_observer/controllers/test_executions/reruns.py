@@ -176,6 +176,8 @@ def create_rerun_requests(
     if len(rerun_requests) != len(request.test_execution_ids):
         response.status_code = status.HTTP_207_MULTI_STATUS
 
+    db.commit()
+
     return rerun_requests
 
 
