@@ -16,12 +16,12 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, Security
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, selectinload, joinedload
 
 from test_observer.common.permissions import Permission, permission_checker
 
 from test_observer.controllers.artefacts.models import TestExecutionResponse
-from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models import TestExecution, TestResult
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
 
@@ -31,7 +31,6 @@ from sqlalchemy import tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from test_observer.data_access.models import (
-    ArtefactBuild,
     TestExecutionMetadata,
     test_execution_metadata_association_table,
 )
@@ -39,6 +38,18 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 from test_observer.common.metric_collectors import update_execution_metadata_metric
 
 router = APIRouter()
+
+TEST_EXECUTION_OPTIONS = [
+    # 1. Single-query Joins (Many-to-One)
+    joinedload(TestExecution.environment),
+    joinedload(TestExecution.rerun_request),
+    joinedload(TestExecution.test_plan),
+    # Separate-query Collections (One-to-Many / Many-to-Many)
+    selectinload(TestExecution.execution_metadata),
+    selectinload(TestExecution.relevant_links),
+    # Used by `is_triaged` and `has_failures` methods
+    selectinload(TestExecution.test_results).selectinload(TestResult.issue_attachments),
+]
 
 
 @router.get(
@@ -53,7 +64,7 @@ def get_test_execution(
     test_execution = db.get(
         TestExecution,
         id,
-        options=[selectinload(TestExecution.relevant_links)],
+        options=TEST_EXECUTION_OPTIONS,
     )
 
     if test_execution is None:
@@ -75,15 +86,7 @@ def patch_test_execution(
     test_execution = db.get(
         TestExecution,
         id,
-        options=[
-            selectinload(TestExecution.relevant_links),
-            selectinload(TestExecution.artefact_build).selectinload(
-                ArtefactBuild.artefact
-            ),
-            selectinload(TestExecution.execution_metadata),
-            selectinload(TestExecution.test_results),
-            selectinload(TestExecution.test_plan),
-        ],
+        options=TEST_EXECUTION_OPTIONS,
     )
 
     if test_execution is None:
@@ -102,7 +105,18 @@ def patch_test_execution(
     _set_test_execution_status(request, test_execution)
 
     db.commit()
-    db.refresh(test_execution)
+
+    # Because the TestExecutionResponseModel relies on relationships to other tables,
+    # it is better to use another db.get(..., options=[...]) to minimize database trips
+    # Because our sessionmaker uses expire_on_commit=False,
+    # we need to manually expire the test_execution
+    # to avoid returning stale data with db.get(..., options=[...])
+    db.expire(test_execution)
+    test_execution = db.get(
+        TestExecution,
+        id,
+        options=TEST_EXECUTION_OPTIONS,
+    )
     return test_execution
 
 
