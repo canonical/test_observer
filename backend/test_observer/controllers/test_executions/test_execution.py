@@ -39,7 +39,7 @@ from .models import TestExecutionsPatchRequest
 router = APIRouter()
 
 TEST_EXECUTION_OPTIONS = [
-    # 1. Single-query Joins (Many-to-One)
+    # Single-query Joins (Many-to-One)
     joinedload(TestExecution.environment),
     joinedload(TestExecution.rerun_request),
     joinedload(TestExecution.test_plan),
