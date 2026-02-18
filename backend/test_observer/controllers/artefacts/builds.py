@@ -20,11 +20,12 @@ from sqlalchemy.orm import selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
+from test_observer.controllers.test_executions.test_execution import (
+    TEST_EXECUTION_OPTIONS,
+)
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
-    TestExecution,
-    TestResult,
 )
 
 from .models import (
@@ -44,14 +45,7 @@ def get_artefact_builds(
         ArtefactRetriever(
             selectinload(Artefact.builds)
             .selectinload(ArtefactBuild.test_executions)
-            .options(
-                selectinload(TestExecution.environment),
-                selectinload(TestExecution.rerun_request),
-                selectinload(TestExecution.relevant_links),
-                selectinload(TestExecution.test_results).selectinload(
-                    TestResult.issue_attachments
-                ),
-            )
+            .options(*TEST_EXECUTION_OPTIONS)
         )
     ),
 ):
