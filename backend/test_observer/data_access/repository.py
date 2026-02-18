@@ -135,7 +135,10 @@ def get_or_create(
     creation_kwargs: dict | None = None,
 ) -> DataModel:
     """
-    Creates an object if it doesn't exist, otherwise returns the existing one
+    Creates an object if it doesn't exist, otherwise returns the existing one.
+
+    To ensure atomicity, this function does NOT commit the transaction.
+    The caller is responsible for committing the session when appropriate.
 
     :db: DB session
     :model: model to create e.g. Stage, Family, Artefact
