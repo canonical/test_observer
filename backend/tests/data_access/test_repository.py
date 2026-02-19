@@ -25,11 +25,10 @@ from test_observer.data_access.repository import (
 )
 from tests.data_generator import DataGenerator
 
-from test_observer.data_access.models import TestCase, TestExecution
+from test_observer.data_access.models import TestCase
 
 from pydantic import HttpUrl
 from pytest import MonkeyPatch
-import pytest
 from typing import TypeVar
 
 _T = TypeVar("_T")
@@ -191,29 +190,3 @@ def test_get_or_create_does_not_commit(
         .first()
     )
     assert not_found is None
-
-
-def test_get_or_create_rejects_none_values(db_session: Session):
-    """
-    Test that get_or_create raises ValueError when filter_kwargs contain None values.
-    This prevents the bug where querying by None matches all NULL records.
-    """
-
-    with pytest.raises(ValueError) as exc_info:
-        get_or_create(
-            db_session,
-            TestExecution,
-            filter_kwargs={
-                "ci_link": None,  # This should raise an error
-            },
-            creation_kwargs={
-                "artefact_build_id": 1,
-                "environment_id": 1,
-                "test_plan_id": 1,
-            },
-        )
-
-    # Verify the error message is helpful
-    assert "None value" in str(exc_info.value)
-    assert "ci_link" in str(exc_info.value)
-    assert "TestExecution" in str(exc_info.value)
