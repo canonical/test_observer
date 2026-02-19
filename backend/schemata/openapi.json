@@ -4876,6 +4876,14 @@
             "format": "uri",
             "title": "Url"
           },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels",
+            "default": []
+          },
           "attachment_rules": {
             "items": {
               "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
@@ -5027,6 +5035,14 @@
             "minLength": 1,
             "format": "uri",
             "title": "Url"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels",
+            "default": []
           }
         },
         "type": "object",

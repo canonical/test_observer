@@ -35,6 +35,7 @@ from sqlalchemy import (
     Table,
     Column,
     DateTime,
+    JSON,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -713,6 +714,7 @@ class Issue(Base):
     title: Mapped[str] = mapped_column(default="")
     status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
     last_synced_at = Column(DateTime, nullable=True)
+    labels = Column(JSON, nullable=True)
 
     test_result_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
         back_populates="issue", cascade="all, delete"
@@ -730,6 +732,7 @@ class Issue(Base):
             "key",
             "title",
             "status",
+            "labels",
         )
 
     __table_args__ = (
