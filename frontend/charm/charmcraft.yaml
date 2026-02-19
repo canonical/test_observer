@@ -51,6 +51,11 @@ config:
       default: "https://"
       type: string
 
+    frontend-config:
+      description: "YAML string for frontend configuration. If empty, defaults are used."
+      default: ""
+      type: string
+
 resources:
   custom-header-image:
     type: file

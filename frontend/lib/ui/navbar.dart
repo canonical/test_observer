@@ -23,6 +23,7 @@ import 'package:yaru/yaru.dart';
 import '../providers/api.dart';
 import '../providers/current_user.dart';
 import '../routing.dart';
+import '../frontend_config.dart';
 import 'spacing.dart';
 
 const _navbarHeight = 57.0;
@@ -73,21 +74,11 @@ class Navbar extends ConsumerWidget {
             Expanded(
               child: Row(
                 children: [
-                  const _NavbarEntry(
-                    title: 'Snap Testing',
-                    route: AppRoutes.snaps,
-                  ),
-                  const _NavbarEntry(
-                    title: 'Deb Testing',
-                    route: AppRoutes.debs,
-                  ),
-                  const _NavbarEntry(
-                    title: 'Charm Testing',
-                    route: AppRoutes.charms,
-                  ),
-                  const _NavbarEntry(
-                    title: 'Image Testing',
-                    route: AppRoutes.images,
+                  ...configuredTabs.map(
+                    (route) => _NavbarEntry(
+                      title: familyDisplayName(route),
+                      route: route,
+                    ),
                   ),
                   const Spacer(),
                   const _NavbarEntry(

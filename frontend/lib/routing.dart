@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'models/family_name.dart';
+import 'frontend_config.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/issues_page/issues_page.dart';
@@ -28,10 +29,7 @@ import 'ui/issue_page/issue_page.dart';
 
 final appRouter = GoRouter(
   routes: [
-    GoRoute(
-      path: '/',
-      redirect: (context, state) => AppRoutes.snaps,
-    ),
+    GoRoute(path: '/', redirect: (context, state) => configuredTabs.first),
     ShellRoute(
       builder: (_, __, dashboard) => Skeleton(
         body: dashboard,
