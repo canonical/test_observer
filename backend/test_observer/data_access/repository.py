@@ -144,7 +144,18 @@ def get_or_create(
     :model: model to create e.g. Stage, Family, Artefact
     :filter_kwargs: arguments to pass to the model when querying and creating
     :creation_kwargs: extra arguments to pass to the model when creating only
+    :raises ValueError: if any filter_kwargs contain None values (unsafe for unique lookups)
     """
+
+    # Check for None values in filter_kwargs - these cause issues with unique constraints
+    # since PostgreSQL allows multiple NULLs, making the query match all NULL records
+    none_keys = [key for key, value in filter_kwargs.items() if value is None]
+    if none_keys:
+        raise ValueError(
+            f"get_or_create received None value(s) for filter key(s): {none_keys}. "
+            f"Cannot uniquely identify {model.__name__} with NULL values. "
+            f"Create the instance directly instead of using get_or_create."
+        )
 
     # A previous version of this function would always try to create a new instance
     # and only query for the existing one if there was an IntegrityError.
