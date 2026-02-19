@@ -95,6 +95,7 @@ def main():
     checkbox_version = (
         x["TestExecution.checkbox_version"] for x in lines_of_interest
     )
+    test_date = (x["TestResult.created_at"] for x in lines_of_interest)
 
     sub_links = (x["TestExecution.c3_link"] for x in lines_of_interest)
     sub_links = [f"{x}test-results/fail" for x in sub_links]
@@ -119,7 +120,7 @@ def main():
     print("Downloading all submissions")
     with Pool(min(len(unique_ids), 20)) as p:
         for i, (sub_id, sub_summary) in enumerate(
-            p.imap(get_summary, unique_ids)
+            p.imap_unordered(get_summary, unique_ids)
         ):
             print(f"Done {i+1}/{len(unique_ids)}")
             sub_summaries[sub_id] = sub_summary["results"][0]["testresult_set"]
@@ -147,6 +148,7 @@ def main():
         "Environment Name",
         "Checkbox Version",
         "Artefact id",
+        "Test date",
     ]
     results = zip(
         to_links,
@@ -156,6 +158,7 @@ def main():
         environment_name,
         checkbox_version,
         artefact_id,
+        test_date,
     )
     results = (
         (
@@ -168,6 +171,7 @@ def main():
             environment_name,
             checkbox_version,
             artefact_id,
+            test_date,
         )
         for (
             to_link,
@@ -177,6 +181,7 @@ def main():
             environment_name,
             checkbox_version,
             artefact_id,
+            test_date,
         ) in results
         for job_object in job_objects
     )
