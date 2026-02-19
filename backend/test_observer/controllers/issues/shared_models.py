@@ -46,7 +46,7 @@ class MinimalIssueResponse(BaseModel):
     title: str
     status: IssueStatus
     url: HttpUrl
-    labels: list[str] = []
+    labels: list[str] | None = None
 
 
 class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):

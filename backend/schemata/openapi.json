@@ -4877,12 +4877,18 @@
             "title": "Url"
           },
           "labels": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Labels",
-            "default": []
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
           },
           "attachment_rules": {
             "items": {
@@ -5037,12 +5043,18 @@
             "title": "Url"
           },
           "labels": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Labels",
-            "default": []
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
           }
         },
         "type": "object",
