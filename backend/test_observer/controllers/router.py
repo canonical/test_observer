@@ -39,6 +39,7 @@ from .teams import teams
 from .test_executions import relevant_links
 from .issues import issues
 from .execution_metadata import execution_metadata
+from .artefact_matching_rules import artefact_matching_rules
 
 router: APIRouter = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
@@ -56,6 +57,9 @@ router.include_router(users.router, prefix="/v1/users")
 router.include_router(teams.router, prefix="/v1/teams")
 router.include_router(permissions.router, prefix="/v1/permissions")
 router.include_router(applications.router, prefix="/v1/applications")
+router.include_router(
+    artefact_matching_rules.router, prefix="/v1/artefact-matching-rules"
+)
 router.include_router(docs.router)
 
 

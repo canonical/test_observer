@@ -16,41 +16,36 @@
 
 from pydantic import BaseModel
 
-from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.controllers.common.artefact_matching_rule_models import (
     ArtefactMatchingRuleBase,
-    ArtefactMatchingRuleInResponse,
 )
 
 
-class TeamMinimalResponse(BaseModel):
+class TeamMinimal(BaseModel):
     id: int
     name: str
-    permissions: list[str]
 
 
-class UserMinimalResponse(BaseModel):
+class ArtefactMatchingRuleResponse(BaseModel):
+    """Artefact matching rule with associated teams"""
     id: int
-    launchpad_handle: str | None = None
-    email: str
-    name: str
-    is_admin: bool
+    family: FamilyName
+    stage: str | None
+    track: str | None
+    branch: str | None
+    teams: list[TeamMinimal]
 
 
-class TeamResponse(BaseModel):
-    id: int
-    name: str
-    permissions: list[str]
-    members: list[UserMinimalResponse]
-    artefact_matching_rules: list[ArtefactMatchingRuleInResponse]
+class ArtefactMatchingRuleRequest(ArtefactMatchingRuleBase):
+    """Request to create an artefact matching rule (extends base with team_ids)"""
+    team_ids: list[int]  # At least one team required
 
 
-class TeamPatch(BaseModel):
-    permissions: list[Permission] | None = None
-    artefact_matching_rules: list[ArtefactMatchingRuleBase] | None = None
-
-
-class TeamCreate(BaseModel):
-    name: str
-    permissions: list[Permission] = []
-    artefact_matching_rules: list[ArtefactMatchingRuleBase] = []
+class ArtefactMatchingRulePatch(BaseModel):
+    """Patch request for artefact matching rule"""
+    family: FamilyName | None = None
+    stage: str | None = None
+    track: str | None = None
+    branch: str | None = None
+    team_ids: list[int] | None = None  # Optional in patch, but must not be empty if provided
