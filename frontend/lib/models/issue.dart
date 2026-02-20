@@ -32,6 +32,7 @@ abstract class Issue with _$Issue {
     required String title,
     required IssueStatus status,
     required String url,
+    @JsonKey(name: 'auto_rerun_enabled', defaultValue: false) required bool autoRerunEnabled,
   }) = _Issue;
 
   factory Issue.fromJson(Map<String, Object?> json) => _$IssueFromJson(json);
@@ -48,6 +49,7 @@ abstract class IssueWithContext with _$IssueWithContext {
     required String title,
     required IssueStatus status,
     required String url,
+    @JsonKey(name: 'auto_rerun_enabled', defaultValue: false) required bool autoRerunEnabled,
     @JsonKey(name: 'attachment_rules')
     required List<AttachmentRule> attachmentRules,
   }) = _IssueWithContext;
@@ -64,6 +66,7 @@ abstract class IssueWithContext with _$IssueWithContext {
       title: title,
       status: status,
       url: url,
+      autoRerunEnabled: autoRerunEnabled,
     );
   }
 }
