@@ -553,4 +553,17 @@ class ApiRepository {
       },
     );
   }
+
+  Future<IssueWithContext> patchIssueAutoRerun({
+    required int issueId,
+    required bool autoRerunEnabled,
+  }) async {
+    final response = await dio.patch(
+      '/v1/issues/$issueId/auto-rerun',
+      data: {
+        'auto_rerun_enabled': autoRerunEnabled,
+      },
+    );
+    return IssueWithContext.fromJson(response.data);
+  }
 }

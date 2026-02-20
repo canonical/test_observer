@@ -29,11 +29,15 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from test_observer.data_access.models import (
     IssueTestResultAttachment,
+    TestExecutionRerunRequest,
+    TestResult,
     IssueTestResultAttachmentRule,
     IssueTestResultAttachmentRuleExecutionMetadata,
     TestExecution,
     TestExecutionMetadata,
     TestResult,
+    IssueTestResultAttachment,
+    Issue,
 )
 
 
@@ -174,3 +178,32 @@ def apply_test_result_attachment_rules(db: Session, test_result: TestResult):
     )
 
     db.execute(insert_stmt)
+
+    # Check if the issue has auto_rerun_enabled set and create rerun requests
+    auto_rerun_rules_stmt = (
+        insert(TestExecutionRerunRequest)
+        .from_select(
+            ["test_plan_id", "artefact_build_id", "environment_id"],
+            select(
+                TestExecution.test_plan_id,
+                TestExecution.artefact_build_id,
+                TestExecution.environment_id,
+            )
+            .select_from(TestExecution)
+            .join(
+                TestResult, 
+                TestResult.test_execution_id == TestExecution.id,
+            )
+            .join(
+                IssueTestResultAttachment,
+                IssueTestResultAttachment.test_result_id == TestResult.id,
+            )
+            .join(Issue, Issue.id == IssueTestResultAttachment.issue_id)
+            .where(Issue.auto_rerun_enabled)
+            .where(TestExecution.id == test_result.test_execution_id)
+            .distinct(),
+        )
+        .on_conflict_do_nothing()
+    )
+
+    db.execute(auto_rerun_rules_stmt)

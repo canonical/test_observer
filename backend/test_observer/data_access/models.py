@@ -640,7 +640,10 @@ class Issue(Base):
     title: Mapped[str] = mapped_column(default="")
     status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
     last_synced_at = Column(DateTime, nullable=True)
-    labels: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True, default=None)
+    labels: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String), nullable=True, default=None
+    )
+    auto_rerun_enabled: Mapped[bool] = mapped_column(default=False)
 
     test_result_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
         back_populates="issue", cascade="all, delete"

@@ -17,15 +17,23 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import String, func, select
+from fastapi import HTTPException
+from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.data_access.models import (
     Issue,
+    Application,
+    User,
 )
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
 from . import attachment_rules, issue_attachments
 from .issue_url_parser import issue_source_project_key_from_url
@@ -36,6 +44,9 @@ from .models import (
     IssuesGetResponse,
     MinimalIssueResponse,
 )
+from .issue_url_parser import issue_source_project_key_from_url
+
+from . import issue_attachments, attachment_rules
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -145,22 +156,105 @@ def get_issue(
     return issue
 
 
+def require_auto_rerun_permission(
+    issue_id: int,
+    request: IssuePatchRequest,
+    security_scopes: SecurityScopes,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+):
+    """Check if enabling auto_rerun with rerun_existing requires bulk permission"""
+    # Only check permission if enabling auto_rerun AND rerun_existing is True
+    if (
+        request.auto_rerun_enabled is not None
+        and request.auto_rerun_enabled
+        and request.rerun_existing
+    ):
+        # Fetch the issue to check its current state
+        issue = db.get(Issue, issue_id)
+        if issue is None:
+            # Will be caught by the actual endpoint
+            return
+
+        # Only check permission if enabling auto_rerun (not if already enabled)
+        if not issue.auto_rerun_enabled:
+            permission_checker(security_scopes, user, app)
+
+
+def require_auto_rerun_enable_permission(
+    issue_id: int,
+    request: IssuePatchRequest,
+    security_scopes: SecurityScopes,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+):
+    """Check if enabling auto_rerun requires change_rerun permission"""
+    if request.auto_rerun_enabled is not None and request.auto_rerun_enabled:
+        issue = db.get(Issue, issue_id)
+        if issue is None:
+            return
+
+        if not issue.auto_rerun_enabled:
+            permission_checker(security_scopes, user, app)
+
+
 def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     if request.title is not None:
         issue.title = request.title
     if request.status is not None:
         issue.status = request.status
+    if request.auto_rerun_enabled is not None:
+        issue.auto_rerun_enabled = request.auto_rerun_enabled
     db.commit()
     db.refresh(issue)
+
+    # Trigger reruns after commit if needed
+    if trigger_reruns and rerun_filters is not None:
+        from test_observer.controllers.test_results.shared_models import (
+            TestResultSearchFilters,
+        )
+
+        filters = TestResultSearchFilters(
+            issues=[issue.id],
+            execution_is_latest=rerun_filters["only_latest"],
+            artefact_is_archived=(False if rerun_filters["exclude_archived"] else None),
+        )
+        trigger_reruns_for_filters(db, filters)
+
     return issue
 
 
 @router.patch(
     "/{issue_id}",
     response_model=IssueResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue]),
+        Security(
+            require_auto_rerun_enable_permission,
+            scopes=[Permission.enable_issue_auto_rerun_on_attach],
+        ),
+        Security(require_auto_rerun_permission, scopes=[Permission.change_rerun_bulk]),
+    ],
 )
 def patch_issue(
+    issue_id: int,
+    request: IssuePatchRequest,
+    db: Session = Depends(get_db),
+):
+    issue = db.get(Issue, issue_id)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return update_issue(db, issue, request)
+
+
+@router.patch(
+    "/{issue_id}/auto-rerun",
+    response_model=IssueResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_auto_rerun])],
+)
+def patch_issue_auto_rerun(
     issue_id: int,
     request: IssuePatchRequest,
     db: Session = Depends(get_db),

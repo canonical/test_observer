@@ -20,6 +20,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/issue.dart';
 import '../../models/test_results_filters.dart';
 import '../../providers/issue_test_results.dart';
+import '../../providers/issue.dart' as issue_provider;
 import '../spacing.dart';
 import '../test_results_page/test_results_table.dart';
 import '../test_results_page/test_results_filters_view.dart';
@@ -122,6 +123,47 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
             BulkOperationType.createRerunRequests,
             BulkOperationType.deleteRerunRequests,
           },
+        ),
+
+        // Auto-rerun toggle
+        Row(
+          children: [
+            Text(
+              'Auto-rerun on new matches',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(width: Spacing.level2),
+            Tooltip(
+              message:
+                  'When enabled, test results matching this issue\'s attachment rules will automatically be queued for rerun',
+              child: Icon(
+                Icons.help_outline,
+                size: 20,
+                color: Theme.of(context).hintColor,
+              ),
+            ),
+            const SizedBox(width: Spacing.level3),
+            Switch(
+              value: widget.issue.autoRerunEnabled,
+              onChanged: (value) async {
+                try {
+                  await ref.read(issue_provider.issueProvider(widget.issue.id).notifier).setAutoRerun(
+                        issueId: widget.issue.id,
+                        enabled: value,
+                      );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to update auto-rerun: $e'),
+                        backgroundColor: YaruColors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
         ),
 
         testResultsAsync.when(
