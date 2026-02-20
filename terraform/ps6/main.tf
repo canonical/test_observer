@@ -144,6 +144,7 @@ resource "juju_application" "test-observer-frontend" {
 
   config = {
     hostname                 = var.frontend_hostname
+    frontend-config          = var.frontend_config
     test-observer-api-scheme = var.api_scheme
   }
 

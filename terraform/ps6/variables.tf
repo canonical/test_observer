@@ -83,6 +83,12 @@ variable "frontend_hostname" {
   type        = string
 }
 
+variable "frontend_config" {
+  description = "config for frontend"
+  type        = string
+  default     = ""
+}
+
 variable "api_scheme" {
   description = "Scheme for api, either http:// or https://"
   type        = string
