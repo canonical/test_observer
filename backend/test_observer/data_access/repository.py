@@ -140,6 +140,12 @@ def get_or_create(
     To ensure atomicity, this function does NOT commit the transaction.
     The caller is responsible for committing the session when appropriate.
 
+    WARNING: Be cautious when filtering by nullable fields that have unique constraints,
+    as PostgreSQL allows multiple NULL values in unique constraints. This can cause
+    queries like filter_by(field=None) to match multiple records and return an
+    arbitrary one. If you need to create records with NULL unique fields, create
+    them directly instead of using get_or_create.
+
     :db: DB session
     :model: model to create e.g. Stage, Family, Artefact
     :filter_kwargs: arguments to pass to the model when querying and creating

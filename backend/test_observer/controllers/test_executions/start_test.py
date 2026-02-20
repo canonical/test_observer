@@ -110,19 +110,32 @@ class StartTestExecutionController:
         )
 
     def create_test_execution(self):
-        self.test_execution = get_or_create(
-            self.db,
-            TestExecution,
-            filter_kwargs={
-                "ci_link": self.request.ci_link,
-            },
-            creation_kwargs={
-                "status": self.request.initial_status,
-                "environment_id": self.environment.id,
-                "artefact_build_id": self.artefact_build.id,
-                "test_plan_id": self.test_plan.id,
-            },
-        )
+        # If ci_link is None, we cannot uniquely identify the test execution,
+        # so always create a new one instead of using get_or_create
+        if self.request.ci_link is None:
+            self.test_execution = TestExecution(
+                status=self.request.initial_status,
+                environment_id=self.environment.id,
+                artefact_build_id=self.artefact_build.id,
+                test_plan_id=self.test_plan.id,
+                ci_link=None,
+            )
+            self.db.add(self.test_execution)
+            self.db.flush()
+        else:
+            self.test_execution = get_or_create(
+                self.db,
+                TestExecution,
+                filter_kwargs={
+                    "ci_link": self.request.ci_link,
+                },
+                creation_kwargs={
+                    "status": self.request.initial_status,
+                    "environment_id": self.environment.id,
+                    "artefact_build_id": self.artefact_build.id,
+                    "test_plan_id": self.test_plan.id,
+                },
+            )
 
     def create_relevant_links(self):
         if self.request.relevant_links:
