@@ -227,4 +227,3 @@ class TestLaunchpadClient:
             assert result.state == "open"
             assert result.state_reason == "New"
             assert result.labels == ["bug", "high-priority"]
-

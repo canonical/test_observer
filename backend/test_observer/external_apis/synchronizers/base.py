@@ -79,7 +79,7 @@ class BaseIssueSynchronizer(ABC):
             new_labels = sorted(client_issue.labels)
             current_labels = sorted(issue.labels or [])
             if new_labels != current_labels:
-                issue.labels = new_labels  # type: ignore[assignment]
+                issue.labels = new_labels
                 labels_updated = True
                 logger.info(f"Updated labels for issue {issue.id}: {new_labels}")
 
