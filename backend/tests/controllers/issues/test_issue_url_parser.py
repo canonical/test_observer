@@ -73,8 +73,8 @@ from test_observer.data_access.models_enums import IssueSource
             (IssueSource.LAUNCHPAD, "abc", "123"),
         ),
         (
-            "https://bugs.launchpad.net/abc/+source/abc/+bug/123",
-            (IssueSource.LAUNCHPAD, "abc", "123"),
+            "https://bugs.launchpad.net/ubuntu/+source/linux-meta/+bug/2137746",
+            (IssueSource.LAUNCHPAD, "ubuntu", "2137746"),
         ),
         # Lowercase launchpad project
         (
