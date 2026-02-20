@@ -40,7 +40,7 @@ def issue_source_project_key_from_url(url: HttpUrl) -> tuple[IssueSource, str, s
             return IssueSource.JIRA, match.group(1).upper(), match.group(2)
 
     elif host == "bugs.launchpad.net":
-        match = re.match(r"^/([^/]+)/\+bug/(\d+)$", path)
+        match = re.match(r"^/([^/]+)(?:/\+source/[^/]+)?/\+bug/(\d+)$", path)
         if match:
             return IssueSource.LAUNCHPAD, match.group(1).lower(), match.group(2)
 
