@@ -33,11 +33,13 @@ class SyncResult:
         success: bool,
         title_updated: bool = False,
         status_updated: bool = False,
+        labels_updated: bool = False,
         error: str | None = None,
     ):
         self.success = success
         self.title_updated = title_updated
         self.status_updated = status_updated
+        self.labels_updated = labels_updated
         self.error = error
 
 
@@ -61,6 +63,7 @@ class BaseIssueSynchronizer(ABC):
 
             title_updated = False
             status_updated = False
+            labels_updated = False
 
             if client_issue.title != issue.title:
                 issue.title = client_issue.title
@@ -73,12 +76,22 @@ class BaseIssueSynchronizer(ABC):
                 status_updated = True
                 logger.info(f"Updated status for issue {issue.id}: {new_status}")
 
-            if title_updated or status_updated:
+            new_labels = sorted(client_issue.labels)
+            current_labels = sorted(issue.labels or [])
+            if new_labels != current_labels:
+                issue.labels = new_labels
+                labels_updated = True
+                logger.info(f"Updated labels for issue {issue.id}: {new_labels}")
+
+            if title_updated or status_updated or labels_updated:
                 db.commit()
                 db.refresh(issue)
 
             return SyncResult(
-                success=True, title_updated=title_updated, status_updated=status_updated
+                success=True,
+                title_updated=title_updated,
+                status_updated=status_updated,
+                labels_updated=labels_updated,
             )
 
         except Exception as e:

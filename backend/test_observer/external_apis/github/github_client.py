@@ -61,7 +61,7 @@ class GitHubClient:
             key: Issue number as string
 
         Returns:
-            IssueData with title, state, and raw GitHub issue object
+            IssueData with title, state, labels, and raw GitHub issue object
 
         Raises:
             ValueError: If project format is invalid
@@ -81,10 +81,14 @@ class GitHubClient:
             repo = self._github.get_repo(project)
             gh_issue = repo.get_issue(issue_number)
 
+            # Extract labels from the GitHub issue
+            labels = [label.name for label in gh_issue.labels]
+
             return IssueData(
                 title=gh_issue.title,
                 state=gh_issue.state,
                 state_reason=gh_issue.state_reason,
+                labels=labels,
                 raw=cast(dict[str, Any], gh_issue.raw_data),
             )
 

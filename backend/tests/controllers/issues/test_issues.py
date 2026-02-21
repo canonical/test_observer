@@ -59,6 +59,7 @@ def test_get_all(test_client: TestClient, generator: DataGenerator):
                 "title": issue.title,
                 "status": issue.status,
                 "url": issue.url,
+                "labels": issue.labels,
             }
         ],
     }
@@ -82,6 +83,7 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
         "source",
         "title",
         "status",
+        "labels",
     }
     assert response.json()["id"] == issue.id
     assert response.json()["source"] == issue.source

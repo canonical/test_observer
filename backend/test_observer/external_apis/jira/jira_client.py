@@ -79,10 +79,13 @@ class JiraClient:
             fields = data.get("fields", {})
             status = fields.get("status", {}).get("name", "Unknown")
 
+            labels = fields.get("labels", [])
+
             return IssueData(
                 title=fields.get("summary", ""),
                 state=status,
                 state_reason=None,
+                labels=labels,
                 raw=data,
             )
 

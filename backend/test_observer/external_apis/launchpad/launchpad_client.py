@@ -116,10 +116,13 @@ class LaunchpadClient:
             status = getattr(chosen_task, "status", None) if chosen_task else None
             state = self._normalize_state(status=status, bug=bug)
 
+            labels = list(bug.tags) if hasattr(bug, "tags") else []
+
             return IssueData(
                 title=bug.title,
                 state=state,
                 state_reason=status,
+                labels=labels,
                 raw={
                     "id": bug_id,
                     "title": bug.title,
@@ -130,6 +133,7 @@ class LaunchpadClient:
                         else None
                     ),
                     "url": bug.web_link,
+                    "labels": labels,
                 },
             )
         except (NotFound, KeyError) as e:

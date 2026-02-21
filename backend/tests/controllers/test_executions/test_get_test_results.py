@@ -100,6 +100,7 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
                 "title": issue.title,
                 "status": issue.status,
                 "url": issue.url,
+                "labels": issue.labels,
             },
             "attachment_rule": None,
         }
@@ -272,6 +273,7 @@ def test_attachment_rule_listed_in_issue_attachment(
                 "title": issue.title,
                 "status": issue.status,
                 "url": issue.url,
+                "labels": issue.labels,
             },
             "attachment_rule": {
                 "id": attachment_rule_id,

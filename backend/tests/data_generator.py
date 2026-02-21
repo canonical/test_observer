@@ -372,6 +372,7 @@ class DataGenerator:
         key: str = "42",
         title: str = "there is a bug",
         status: IssueStatus = IssueStatus.OPEN,
+        labels: list[str] | None = None,
     ) -> Issue:
         issue = Issue(
             source=source,
@@ -379,6 +380,7 @@ class DataGenerator:
             key=key,
             title=title,
             status=status,
+            labels=labels,
         )
         self._add_object(issue)
         return issue
