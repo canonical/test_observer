@@ -20,6 +20,8 @@ import 'package:yaru/yaru.dart';
 
 import '../../providers/artefact.dart';
 import '../../providers/artefact_page_side_visibility.dart';
+import '../../providers/page_filters.dart';
+import '../../routing.dart';
 import '../blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'artefact_page_body.dart';
@@ -41,8 +43,13 @@ class ArtefactPage extends ConsumerWidget {
       ),
       child: BlockingProviderPreloader(
         provider: artefactProvider(artefactId),
-        builder: (_, artefact) {
+        builder: (context, artefact) {
           final showSide = ref.watch(artefactPageSideVisibilityProvider);
+          final pageUri = AppRoutes.uriFromContext(context);
+          final filters = ref.watch(pageFiltersProvider(pageUri));
+          final hasActiveFilters =
+              filters.any((f) => f.options.any((o) => o.isSelected));
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -52,11 +59,16 @@ class ArtefactPage extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    YaruOptionButton(
-                      child: const Icon(Icons.filter_alt),
-                      onPressed: () => ref
-                          .read(artefactPageSideVisibilityProvider.notifier)
-                          .set(!showSide),
+                    Badge(
+                      isLabelVisible: hasActiveFilters,
+                      smallSize: 8,
+                      backgroundColor: YaruColors.orange,
+                      child: YaruOptionButton(
+                        child: const Icon(Icons.filter_alt),
+                        onPressed: () => ref
+                            .read(artefactPageSideVisibilityProvider.notifier)
+                            .set(!showSide),
+                      ),
                     ),
                     const SizedBox(width: Spacing.level2),
                     Visibility(

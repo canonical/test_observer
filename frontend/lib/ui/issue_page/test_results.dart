@@ -57,6 +57,15 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
     });
   }
 
+  // Check if any filters beyond the mandatory issue ID filter are active
+  bool get _hasExtraFilters =>
+      _currentFilters.families.isNotEmpty ||
+      _currentFilters.artefacts.isNotEmpty ||
+      _currentFilters.environments.isNotEmpty ||
+      _currentFilters.testCases.isNotEmpty ||
+      _currentFilters.fromDate != null ||
+      _currentFilters.untilDate != null;
+
   @override
   Widget build(BuildContext context) {
     final testResultsAsync = ref.watch(
@@ -78,13 +87,18 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const Spacer(),
-            YaruOptionButton(
-              child: const Icon(Icons.filter_alt),
-              onPressed: () {
-                setState(() {
-                  showFilters = !showFilters;
-                });
-              },
+            Badge(
+              isLabelVisible: _hasExtraFilters,
+              smallSize: 8,
+              backgroundColor: YaruColors.orange,
+              child: YaruOptionButton(
+                child: const Icon(Icons.filter_alt),
+                onPressed: () {
+                  setState(() {
+                    showFilters = !showFilters;
+                  });
+                },
+              ),
             ),
           ],
         ),

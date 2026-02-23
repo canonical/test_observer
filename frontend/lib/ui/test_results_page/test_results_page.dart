@@ -16,8 +16,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../models/test_results_filters.dart';
 import '../../routing.dart';
@@ -82,13 +82,18 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 const Spacer(),
-                YaruOptionButton(
-                  child: const Icon(Icons.filter_alt),
-                  onPressed: () {
-                    setState(() {
-                      showFilters = !showFilters;
-                    });
-                  },
+                Badge(
+                  isLabelVisible: appliedFilters.hasFilters,
+                  smallSize: 8,
+                  backgroundColor: YaruColors.orange,
+                  child: YaruOptionButton(
+                    child: const Icon(Icons.filter_alt),
+                    onPressed: () {
+                      setState(() {
+                        showFilters = !showFilters;
+                      });
+                    },
+                  ),
                 ),
               ],
             ),
