@@ -17,7 +17,10 @@
 from pydantic import BaseModel
 
 from test_observer.common.permissions import Permission
-
+from test_observer.controllers.common.artefact_matching_rule_models import (
+    ArtefactMatchingRuleBase,
+    ArtefactMatchingRuleInResponse,
+)
 
 class TeamMinimalResponse(BaseModel):
     id: int
@@ -40,14 +43,17 @@ class TeamResponse(BaseModel):
     permissions: list[str]
     reviewer_families: list[str] = []
     members: list[UserMinimalResponse]
+    artefact_matching_rules: list[ArtefactMatchingRuleInResponse]
 
 
 class TeamPatch(BaseModel):
     permissions: list[Permission] | None = None
     reviewer_families: list[str] | None = None
+    artefact_matching_rules: list[ArtefactMatchingRuleBase] | None = None
 
 
 class TeamCreate(BaseModel):
     name: str
     permissions: list[Permission] = []
     reviewer_families: list[str] = []
+    artefact_matching_rules: list[ArtefactMatchingRuleBase] = []

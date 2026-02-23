@@ -18,7 +18,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 import secrets
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from sqlalchemy import (
     Enum,
@@ -35,6 +35,7 @@ from sqlalchemy import (
     Table,
     Column,
     DateTime,
+    event,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -44,6 +45,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
     foreign,
+    validates,
 )
 from sqlalchemy.sql import func, ColumnElement
 
@@ -93,6 +95,18 @@ team_users_association = Table(
     "team_users_association",
     Base.metadata,
     Column("user_id", ForeignKey("app_user.id"), primary_key=True),
+    Column("team_id", ForeignKey("team.id"), primary_key=True),
+)
+
+
+artefact_matching_rule_team_association = Table(
+    "artefact_matching_rule_team_association",
+    Base.metadata,
+    Column(
+        "artefact_matching_rule_id",
+        ForeignKey("artefact_matching_rule.id"),
+        primary_key=True,
+    ),
     Column("team_id", ForeignKey("team.id"), primary_key=True),
 )
 
@@ -154,9 +168,38 @@ class Team(Base):
     members: Mapped[list[User]] = relationship(
         secondary=team_users_association, back_populates="teams"
     )
+    artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="teams",
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")
+
+
+
+class ArtefactMatchingRule(Base):
+    """
+    A model to define rules for matching artefacts to reviewer teams.
+    Teams can have multiple matching rules to specify which artefacts they can review.
+    """
+
+    __tablename__ = "artefact_matching_rule"
+
+    family: Mapped[FamilyName]
+    stage: Mapped[str | None] = mapped_column(String(100), default=None)
+    track: Mapped[str | None] = mapped_column(String(200), default=None)
+    branch: Mapped[str | None] = mapped_column(String(200), default=None)
+
+    teams: Mapped[list[Team]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="artefact_matching_rules",
+    )
+
+    __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "family", "stage", "track", "branch")
 
 
 class UserSession(Base):

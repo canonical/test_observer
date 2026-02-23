@@ -118,6 +118,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
             "name": team.name,
             "permissions": team.permissions,
             "reviewer_families": team.reviewer_families,
+            "artefact_matching_rules": team.artefact_matching_rules,
             "members": [
                 {
                     "id": user.id,
@@ -145,6 +146,7 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
         "name": team.name,
         "permissions": team.permissions,
         "reviewer_families": team.reviewer_families,
+        "artefact_matching_rules": team.artefact_matching_rules,
         "members": [
             {
                 "id": user.id,
@@ -175,6 +177,7 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
         "name": team.name,
         "permissions": [Permission.view_user],
         "reviewer_families": team.reviewer_families,
+        "artefact_matching_rules": team.artefact_matching_rules,
         "members": [
             {
                 "id": user.id,

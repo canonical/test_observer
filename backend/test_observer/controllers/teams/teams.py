@@ -26,6 +26,10 @@ from test_observer.controllers.teams.models import (
     TeamResponse,
 )
 from test_observer.data_access.models import Team, User
+from test_observer.controllers.common.artefact_matching_rule_models import (
+    ArtefactMatchingRuleInResponse,
+)
+from test_observer.data_access.models import Team, User, ArtefactMatchingRule
 from test_observer.data_access.setup import get_db
 
 
@@ -46,6 +50,81 @@ def _get_user_or_raise_404(db: Session, user_id: int) -> User:
     return user
 
 
+def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
+    """
+    Sync artefact matching rules by creating/removing ArtefactMatchingRules.
+    Replaces all existing rules for the team with the provided ones.
+    """
+    # Clear existing rules for this team
+    team.artefact_matching_rules.clear()
+    
+    # Deduplicate rules in the request
+    seen_rules = set()
+    unique_rules_data = []
+    for rule_data in rules_data:
+        rule_key = (rule_data.family, rule_data.stage, rule_data.track, rule_data.branch)
+        if rule_key not in seen_rules:
+            seen_rules.add(rule_key)
+            unique_rules_data.append(rule_data)
+    
+    # Add new rules
+    for rule_data in unique_rules_data:
+        # Check if an identical rule already exists
+        existing_rule = db.execute(
+            select(ArtefactMatchingRule).where(
+                ArtefactMatchingRule.family == rule_data.family,
+                ArtefactMatchingRule.stage == rule_data.stage,
+                ArtefactMatchingRule.track == rule_data.track,
+                ArtefactMatchingRule.branch == rule_data.branch,
+            )
+        ).scalar_one_or_none()
+        
+        if existing_rule:
+            # Use existing rule
+            team.artefact_matching_rules.append(existing_rule)
+        else:
+            # Create new rule
+            new_rule = ArtefactMatchingRule(
+                family=rule_data.family,
+                stage=rule_data.stage,
+                track=rule_data.track,
+                branch=rule_data.branch,
+                teams=[team]
+            )
+            db.add(new_rule)
+
+
+def _team_to_response(team: Team) -> TeamResponse:
+    """Convert Team model to TeamResponse"""
+    return TeamResponse(
+        id=team.id,
+        name=team.name,
+        permissions=team.permissions,
+        members=[
+            {
+                "id": user.id,
+                "launchpad_handle": user.launchpad_handle,
+                "email": user.email,
+                "name": user.name,
+                "is_admin": user.is_admin,
+            }
+            for user in team.members
+        ],
+        reviewer_families=team.reviewer_families,
+        artefact_matching_rules=[
+            ArtefactMatchingRuleInResponse(
+                id=rule.id,
+                family=rule.family,
+                stage=rule.stage,
+                track=rule.track,
+                branch=rule.branch,
+            )
+            for rule in team.artefact_matching_rules
+        ],
+    )
+
+
+
 @router.post(
     "",
     response_model=TeamResponse,
@@ -64,6 +143,9 @@ def create_team(
     )
     db.add(team)
     try:
+        db.flush()  # Flush to get the team ID
+        if request.artefact_matching_rules:
+            _sync_artefact_matching_rules(db, team, request.artefact_matching_rules)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -71,7 +153,7 @@ def create_team(
             status_code=409, detail=f"Team with name '{request.name}' already exists"
         ) from None
     db.refresh(team)
-    return team
+    return _team_to_response(team)
 
 
 @router.get(
@@ -82,7 +164,8 @@ def create_team(
 def get_teams(
     db: Session = Depends(get_db),
 ):
-    return db.scalars(select(Team))
+    teams = db.scalars(select(Team)).all()
+    return [_team_to_response(team) for team in teams]
 
 
 @router.get(
@@ -94,7 +177,8 @@ def get_team(
     team_id: int,
     db: Session = Depends(get_db),
 ):
-    return _get_team_or_raise_404(db, team_id)
+    team = _get_team_or_raise_404(db, team_id)
+    return _team_to_response(team)
 
 
 @router.patch(
@@ -115,9 +199,13 @@ def update_team(
     if request.reviewer_families is not None:
         team.reviewer_families = request.reviewer_families
 
-    db.commit()
+    if request.artefact_matching_rules is not None:
+        _sync_artefact_matching_rules(db, team, request.artefact_matching_rules)
 
-    return team
+    db.commit()
+    db.refresh(team)
+
+    return _team_to_response(team)
 
 
 @router.post(
@@ -138,8 +226,9 @@ def add_team_member(
     if user not in team.members:
         team.members.append(user)
         db.commit()
+        db.refresh(team)
 
-    return team
+    return _team_to_response(team)
 
 
 @router.delete(
@@ -160,5 +249,6 @@ def remove_team_member(
     if user in team.members:
         team.members.remove(user)
         db.commit()
+        db.refresh(team)
 
-    return team
+    return _team_to_response(team)
