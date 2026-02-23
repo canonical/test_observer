@@ -61,16 +61,24 @@ class DataGenerator:
         self,
         name: str = "canonical",
         permissions: list[str] | None = None,
-        reviewer_families: list[str] | None = None,
         members: list[User] | None = None,
+        artefact_matching_rules: list[ArtefactMatchingRule] | None = None,
     ) -> Team:
         team = Team(
             name=name,
             permissions=permissions or [],
-            reviewer_families=reviewer_families or [],
+            artefact_matching_rules=artefact_matching_rules or [],
             members=members or [],
         )
         self._add_object(team)
+
+        # Add artefact matching rules if provided
+        if artefact_matching_rules:
+            for rule in artefact_matching_rules:
+                if team not in rule.teams:
+                    rule.teams.append(team)
+            team.artefact_matching_rules = artefact_matching_rules
+
         return team
 
     def gen_artefact_matching_rule(

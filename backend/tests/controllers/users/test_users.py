@@ -24,6 +24,7 @@ import json
 
 from test_observer.common.config import SESSIONS_SECRET
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -411,7 +412,7 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
                 "id": team.id,
                 "name": team.name,
                 "permissions": team.permissions,
-                "reviewer_families": team.reviewer_families,
+                "artefact_matching_rules": team.artefact_matching_rules,
             }
         ],
     }
@@ -420,7 +421,10 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
 def test_set_user_as_reviewer(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    team = generator.gen_team(reviewer_families=["snap", "deb"])
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    
+    team = generator.gen_team(artefact_matching_rules=[snap_rule, deb_rule])
     user = generator.gen_user(teams=[team])
 
     # Now user can review through their team
@@ -430,8 +434,9 @@ def test_set_user_as_reviewer(
     )
 
     assert response.status_code == 200
-    # Verify user's team has the reviewer_families
-    assert response.json()["teams"][0]["reviewer_families"] == ["snap", "deb"]
+    # Verify user is part of the team
+    assert len(response.json()["teams"]) == 1
+    assert response.json()["teams"][0]["id"] == team.id
     db_session.refresh(user)
     assert user.teams == [team]
 

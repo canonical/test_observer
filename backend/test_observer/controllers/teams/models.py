@@ -26,7 +26,6 @@ class TeamMinimalResponse(BaseModel):
     id: int
     name: str
     permissions: list[str]
-    reviewer_families: list[str] = []
 
 
 class UserMinimalResponse(BaseModel):
@@ -41,19 +40,16 @@ class TeamResponse(BaseModel):
     id: int
     name: str
     permissions: list[str]
-    reviewer_families: list[str] = []
     members: list[UserMinimalResponse]
     artefact_matching_rules: list[ArtefactMatchingRuleInResponse]
 
 
 class TeamPatch(BaseModel):
     permissions: list[Permission] | None = None
-    reviewer_families: list[str] | None = None
     artefact_matching_rules: list[ArtefactMatchingRuleBase] | None = None
 
 
 class TeamCreate(BaseModel):
     name: str
     permissions: list[Permission] = []
-    reviewer_families: list[str] = []
     artefact_matching_rules: list[ArtefactMatchingRuleBase] = []
