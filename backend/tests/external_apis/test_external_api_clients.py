@@ -210,6 +210,7 @@ class TestLaunchpadClient:
         mock_bug.is_complete = False
         mock_bug.bug_tasks = [mock_task]
         mock_bug.web_link = "https://bugs.launchpad.net/ubuntu/+bug/1234567"
+        mock_bug.tags = ["bug", "high-priority"]
 
         mock_launchpad = Mock()
         mock_launchpad.bugs = {1234567: mock_bug}
@@ -225,3 +226,4 @@ class TestLaunchpadClient:
             assert result.title == "Test Bug"
             assert result.state == "open"
             assert result.state_reason == "New"
+            assert result.labels == ["bug", "high-priority"]
