@@ -1,20 +1,12 @@
 <template>
-  <div>
-    <nav class="navbar">
-      <div class="container navbar-content">
-        <img src="/vue_poc/logo.png" alt="Logo" class="navbar-logo" />
-        <NuxtLink to="/" class="navbar-link">Snap Testing</NuxtLink>
-        <NuxtLink to="/debs" class="navbar-link">Deb Testing</NuxtLink>
-        <NuxtLink to="/charms" class="navbar-link">Charm Testing</NuxtLink>
-        <NuxtLink to="/images" class="navbar-link">Image Testing</NuxtLink>
-        <div class="navbar-spacer"></div>
-        <NuxtLink to="/search" class="navbar-link">Search</NuxtLink>
-        <NuxtLink to="/issues" class="navbar-link">Issues</NuxtLink>
-        <div class="navbar-link">Help</div>
-      </div>
-    </nav>
-    <main class="container">
+  <div class="min-h-screen flex flex-col bg-gray-50 text-gray-900 font-sans">
+    <AppHeader />
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <slot />
     </main>
   </div>
 </template>
+
+<script setup lang="ts">
+// Layout logic here if needed
+</script>

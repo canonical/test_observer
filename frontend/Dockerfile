@@ -13,9 +13,7 @@ RUN if [ -n "$APT_PROXY" ]; then \
 RUN apt-get update && \
     apt-get install -y \
     curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
-    python3 \
-    nodejs \
-    npm
+    python3
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
     cd /opt/flutter && git checkout '3.29.3' && \
@@ -44,20 +42,30 @@ RUN flutter pub get
 RUN flutter pub run build_runner build --delete-conflicting-outputs
 RUN flutter build web --release
 
-# Build Nuxt frontend
-WORKDIR /app/vue_poc
-COPY vue_poc/package.json ./
-RUN npm install
-COPY vue_poc .
-RUN npm run generate
-WORKDIR /app
-
 # Cache busting so that users don't have to hard refresh
 RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
     mv build/web/flutter_bootstrap.js build/web/flutter_bootstrap.$RANDOMVALUE.js && \
     mv build/web/main.dart.js build/web/main.dart.$RANDOMVALUE.js && \
     find build/web/ -type f -exec sed -i -e 's/flutter_bootstrap.js/flutter_bootstrap.'$RANDOMVALUE'.js/g' {} \; && \
     find build/web/ -type f -exec sed -i -e 's/main.dart.js/main.dart.'$RANDOMVALUE'.js/g' {} \;
+
+# ---------------------------------------------------------------------------
+# Stage 2: Build the Nuxt (Vue) front-end with Node 20
+# ---------------------------------------------------------------------------
+FROM node:20-alpine as nuxt-builder
+
+# Prevent npm's tar from failing on fchown inside rootless containers.
+ENV TAR_OPTIONS="--no-same-owner"
+
+# Forward an optional HTTP proxy to npm (mirrors APT_PROXY usage in other stages).
+ARG APT_PROXY
+RUN if [ -n "$APT_PROXY" ]; then npm config set proxy "$APT_PROXY"; fi
+
+WORKDIR /app/vue_poc
+COPY vue_poc/package.json ./
+RUN npm install
+COPY vue_poc .
+RUN npm run generate
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
@@ -72,7 +80,7 @@ RUN apt-get update && apt-get install -y nginx
 RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
-COPY --from=builder /app/vue_poc/.output/public /usr/share/nginx/html/vue_poc
+COPY --from=nuxt-builder /app/vue_poc/.output/public /usr/share/nginx/html/vue_poc
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
 RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/
 

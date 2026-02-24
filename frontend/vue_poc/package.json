@@ -1,7 +1,6 @@
 {
-  "name": "test-observer-frontend-poc",
+  "name": "test-observer-vue",
   "private": true,
-  "type": "module",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -9,9 +8,18 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@nuxtjs/tailwindcss": "^6.10.0",
+    "@types/node": "^20.0.0",
+    "nuxt": "^3.10.0",
+    "sass": "^1.70.0",
+    "tailwindcss": "^3.4.0",
+    "vue": "^3.4.0",
+    "vue-tsc": "^1.8.0"
+  },
   "dependencies": {
-    "nuxt": "^3.13.0",
-    "vue": "^3.5.0",
-    "pinia": "^2.2.2"
+    "@pinia/nuxt": "^0.5.0",
+    "pinia": "^2.1.0"
   }
 }
