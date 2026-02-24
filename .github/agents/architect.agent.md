@@ -17,6 +17,10 @@ When given a component specification from The Archaeologist:
 3.  **Plan Logic**: Map lifecycle hooks (`onMounted`) and event handlers to Vue 3.5 Composables.
 4.  **Structure Components**: Decide whether to split logic into sub-components or use `v-for`/`v-if`.
     *   Example: "Instead of a monolithic Widget, we'll use a `BaseCard.vue` and `ItemList.vue`."
+5.  **Consider "effectively equivalent" alternatives**: Many of the .dart files were written due to
+    the requirements and constraints of Flutter.  It may be possible to leverage built-in browser functionality or
+    HTML features to perform some of what the Flutter UI is having to manage for itself, and when possible, we should
+    leverage the browser rather than blindly reimplementing everything from the Flutter UI.
 
 ## Output Format
 Provide an **Implementation Plan** in Markdown:
