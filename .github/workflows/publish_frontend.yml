@@ -1,6 +1,8 @@
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+      - 'testing/**'
     tags: ["v*.*.*"]
     paths:
       - 'frontend/**'
@@ -30,6 +32,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Determine tag
+        id: tag
+        run: |
+          # Sanitize branch name (replace / with -)
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SANITIZED="$(echo "$BRANCH" | tr '/' '-' | tr '[:upper:]' '[:lower:]')"
+          
+          if [ "$BRANCH" = "main" ]; then
+            echo "name=main" >> $GITHUB_OUTPUT
+          else
+            echo "name=$SANITIZED" >> $GITHUB_OUTPUT
+          fi
+          echo "Docker tag: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
+
       - name: Log in to the Container registry
         uses: docker/login-action@6d4b68b490aef8836e8fb5e50ee7b3bdfa5894f0
         with:
@@ -42,6 +58,12 @@ jobs:
         uses: docker/metadata-action@418e4b98bf2841bd337d0b24fe63cb36dc8afa55
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.tag.outputs.name }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend Docker image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
@@ -58,6 +80,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Determine channel
+        id: channel
+        run: |
+          # Sanitize branch name for Charmhub (replace / with -)
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SANITIZED="$(echo "$BRANCH" | tr '/' '-' | tr '[:upper:]' '[:lower:]')"
+          
+          if [ "$BRANCH" = "main" ]; then
+            echo "name=latest/edge" >> $GITHUB_OUTPUT
+            echo "tag=main" >> $GITHUB_OUTPUT
+          else
+            echo "name=latest/edge/$SANITIZED" >> $GITHUB_OUTPUT
+            echo "tag=$SANITIZED" >> $GITHUB_OUTPUT
+          fi
+          echo "Publishing to: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
+
+      - name: Update OCI image reference in charmcraft.yaml
+        run: |
+          sed -i "s|ghcr.io/canonical/test_observer/frontend:main|ghcr.io/canonical/test_observer/frontend:${{ steps.channel.outputs.tag }}|g" frontend/charm/charmcraft.yaml
+          echo "Updated charmcraft.yaml to use image tag: ${{ steps.channel.outputs.tag }}"
+          grep "upstream-source" frontend/charm/charmcraft.yaml
+
       - name: Upload charm to charmhub
         uses: canonical/charming-actions/upload-charm@2.7.0
         with:
@@ -65,6 +109,7 @@ jobs:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           tag-prefix: "frontend"
+          channel: "${{ steps.channel.outputs.name }}"
 
       - name: Check logs for failure
         if: failure()

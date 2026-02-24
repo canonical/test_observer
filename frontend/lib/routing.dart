@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'models/family_name.dart';
+import 'frontend_config.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/issues_page/issues_page.dart';
@@ -28,10 +29,7 @@ import 'ui/issue_page/issue_page.dart';
 
 final appRouter = GoRouter(
   routes: [
-    GoRoute(
-      path: '/',
-      redirect: (context, state) => AppRoutes.snaps,
-    ),
+    GoRoute(path: '/', redirect: (context, state) => configuredTabs.first),
     ShellRoute(
       builder: (_, __, dashboard) => Skeleton(
         body: dashboard,
@@ -180,9 +178,12 @@ class AppRoutes {
   static bool isIssuesPage(Uri uri) => uri.path == '/issues';
 }
 
-void navigateToArtefactPage(BuildContext context, int artefactId) {
-  final uri = AppRoutes.uriFromContext(context);
-  final family = AppRoutes.familyFromUri(uri);
+String getArtefactPagePathForFamily(
+  FamilyName family,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
   String path = '/$artefactId';
 
   switch (family) {
@@ -200,6 +201,49 @@ void navigateToArtefactPage(BuildContext context, int artefactId) {
       break;
   }
 
+  if (testExecutionId != null || testResultId != null) {
+    final queryParams = <String, String>{};
+    if (testExecutionId != null) {
+      queryParams['testExecutionId'] = testExecutionId.toString();
+    }
+    if (testResultId != null) {
+      queryParams['testResultId'] = testResultId.toString();
+    }
+    final uri = Uri(path: path, queryParameters: queryParams);
+    path = uri.toString();
+  }
+
+  return path;
+}
+
+String getArtefactPagePath(
+  BuildContext context,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  final uri = AppRoutes.uriFromContext(context);
+  final family = AppRoutes.familyFromUri(uri);
+  return getArtefactPagePathForFamily(
+    family,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
+}
+
+void navigateToArtefactPage(
+  BuildContext context,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  final path = getArtefactPagePath(
+    context,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
   context.go(path);
 }
 
@@ -208,9 +252,13 @@ void navigateToIssuePage(
   int issueId, {
   int? attachmentRuleId,
 }) {
-  var path = '/issues/$issueId';
-  if (attachmentRuleId != null) {
-    path += '?${CommonQueryParameters.attachmentRule}=$attachmentRuleId';
-  }
+  final path = attachmentRuleId != null
+      ? Uri(
+          path: '/issues/$issueId',
+          queryParameters: {
+            CommonQueryParameters.attachmentRule: attachmentRuleId.toString(),
+          },
+        ).toString()
+      : '/issues/$issueId';
   context.go(path);
 }

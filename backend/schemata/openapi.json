@@ -4876,6 +4876,20 @@
             "format": "uri",
             "title": "Url"
           },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
+          },
           "attachment_rules": {
             "items": {
               "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
@@ -5027,6 +5041,20 @@
             "minLength": 1,
             "format": "uri",
             "title": "Url"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
           }
         },
         "type": "object",
@@ -5212,13 +5240,23 @@
           "artefact_id": {
             "type": "integer",
             "title": "Artefact Id"
+          },
+          "test_execution_id": {
+            "type": "integer",
+            "title": "Test Execution Id"
+          },
+          "test_result_id": {
+            "type": "integer",
+            "title": "Test Result Id"
           }
         },
         "type": "object",
         "required": [
           "status",
           "version",
-          "artefact_id"
+          "artefact_id",
+          "test_execution_id",
+          "test_result_id"
         ],
         "title": "PreviousTestResult"
       },
@@ -5274,19 +5312,23 @@
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
           },
           "version": {
             "type": "string",
-            "title": "Version"
+            "title": "Version",
+            "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
           },
           "arch": {
             "type": "string",
-            "title": "Arch"
+            "title": "Arch",
+            "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
           },
           "environment": {
             "type": "string",
-            "title": "Environment"
+            "title": "Environment",
+            "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
           "ci_link": {
             "anyOf": [
@@ -5300,15 +5342,18 @@
                 "type": "null"
               }
             ],
-            "title": "Ci Link"
+            "title": "Ci Link",
+            "description": "Optional URL linking to the CI job executing these tests. Useful for tracking test runs back to their automation source. Can be omitted."
           },
           "test_plan": {
             "type": "string",
             "maxLength": 200,
-            "title": "Test Plan"
+            "title": "Test Plan",
+            "description": "Identifier for the test suite or plan executed. Groups related test results together - e.g., 'certification-24.04', 'smoke-tests', 'full-regression'. The test plan will be auto-created if it doesn't exist."
           },
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
+            "description": "Initial status of the test execution. Default 'IN_PROGRESS' is appropriate for ongoing tests. Use 'COMPLETED' if test results will be uploaded separately.",
             "default": "IN_PROGRESS"
           },
           "relevant_links": {
@@ -5316,12 +5361,13 @@
               "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
             },
             "type": "array",
-            "title": "Relevant Links"
+            "title": "Relevant Links",
+            "description": "Optional list of additional URLs related to this test execution (e.g., bug reports, documentation, related PRs). Can be omitted or left empty."
           },
           "needs_assignment": {
             "type": "boolean",
             "title": "Needs Assignment",
-            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer. Set to true if test results need human review before the artefact can be promoted. Default false means no review assignment needed.",
             "default": false
           },
           "family": {
@@ -5331,19 +5377,23 @@
           },
           "revision": {
             "type": "integer",
-            "title": "Revision"
+            "title": "Revision",
+            "description": "Charm revision number from Charmhub. Each architecture build has its own revision. Find this via 'charm info <charm-name>' or in Charmhub."
           },
           "track": {
             "type": "string",
-            "title": "Track"
+            "title": "Track",
+            "description": "Charm release track being tested. Tracks represent different major versions or development streams. Common values: 'latest' (default), version-based tracks like '1.0', '22'. Use 'latest' if unsure."
           },
           "branch": {
             "type": "string",
             "title": "Branch",
+            "description": "Optional charm branch name within the track/risk level. Branches are temporary testing channels. Usually empty string (default) unless testing a specific branch.",
             "default": ""
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/CharmStage"
+            "$ref": "#/components/schemas/CharmStage",
+            "description": "Distribution channel/risk level of the charm being tested. Options: 'edge' (cutting-edge updates), 'beta' (pre-release), 'candidate' (release candidate), 'stable' (production). Choose based on where the charm currently resides in the release pipeline."
           }
         },
         "type": "object",
@@ -5364,19 +5414,23 @@
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
           },
           "version": {
             "type": "string",
-            "title": "Version"
+            "title": "Version",
+            "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
           },
           "arch": {
             "type": "string",
-            "title": "Arch"
+            "title": "Arch",
+            "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
           },
           "environment": {
             "type": "string",
-            "title": "Environment"
+            "title": "Environment",
+            "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
           "ci_link": {
             "anyOf": [
@@ -5390,15 +5444,18 @@
                 "type": "null"
               }
             ],
-            "title": "Ci Link"
+            "title": "Ci Link",
+            "description": "Optional URL linking to the CI job executing these tests. Useful for tracking test runs back to their automation source. Can be omitted."
           },
           "test_plan": {
             "type": "string",
             "maxLength": 200,
-            "title": "Test Plan"
+            "title": "Test Plan",
+            "description": "Identifier for the test suite or plan executed. Groups related test results together - e.g., 'certification-24.04', 'smoke-tests', 'full-regression'. The test plan will be auto-created if it doesn't exist."
           },
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
+            "description": "Initial status of the test execution. Default 'IN_PROGRESS' is appropriate for ongoing tests. Use 'COMPLETED' if test results will be uploaded separately.",
             "default": "IN_PROGRESS"
           },
           "relevant_links": {
@@ -5406,12 +5463,13 @@
               "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
             },
             "type": "array",
-            "title": "Relevant Links"
+            "title": "Relevant Links",
+            "description": "Optional list of additional URLs related to this test execution (e.g., bug reports, documentation, related PRs). Can be omitted or left empty."
           },
           "needs_assignment": {
             "type": "boolean",
             "title": "Needs Assignment",
-            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer. Set to true if test results need human review before the artefact can be promoted. Default false means no review assignment needed.",
             "default": false
           },
           "family": {
@@ -5421,17 +5479,19 @@
           },
           "series": {
             "type": "string",
-            "title": "Series"
+            "title": "Series",
+            "description": "Ubuntu release series being tested. Examples: 'focal' (20.04), 'jammy' (22.04), 'noble' (24.04), 'oracular' (24.10)"
           },
           "repo": {
             "type": "string",
-            "title": "Repo"
+            "title": "Repo",
+            "description": "Repository containing the deb package. Examples: 'main', 'universe', 'restricted', 'multiverse' for archive repositories, or custom PPA names like 'ppa:team/ppa-name'"
           },
           "source": {
             "type": "string",
             "maxLength": 200,
             "title": "Source",
-            "description": "PPA source or empty",
+            "description": "Source package name for PPA builds, or empty string for archive pockets. Provide this OR execution_stage, not both. Use source when testing from a PPA, use execution_stage when testing from official archive pockets.",
             "default": ""
           },
           "execution_stage": {
@@ -5446,7 +5506,7 @@
             ],
             "maxLength": 100,
             "title": "Execution Stage",
-            "description": "Pocket of ppa or empty if it's from a PPA",
+            "description": "Archive pocket where the deb resides, or empty string for PPAs. Options: 'proposed' (pre-release testing area), 'updates' (stable updates). Provide this OR source, not both. Use execution_stage for official archive testing, leave empty if testing from a PPA (and provide source instead).",
             "default": ""
           }
         },
@@ -5467,19 +5527,23 @@
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
           },
           "version": {
             "type": "string",
-            "title": "Version"
+            "title": "Version",
+            "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
           },
           "arch": {
             "type": "string",
-            "title": "Arch"
+            "title": "Arch",
+            "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
           },
           "environment": {
             "type": "string",
-            "title": "Environment"
+            "title": "Environment",
+            "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
           "ci_link": {
             "anyOf": [
@@ -5493,15 +5557,18 @@
                 "type": "null"
               }
             ],
-            "title": "Ci Link"
+            "title": "Ci Link",
+            "description": "Optional URL linking to the CI job executing these tests. Useful for tracking test runs back to their automation source. Can be omitted."
           },
           "test_plan": {
             "type": "string",
             "maxLength": 200,
-            "title": "Test Plan"
+            "title": "Test Plan",
+            "description": "Identifier for the test suite or plan executed. Groups related test results together - e.g., 'certification-24.04', 'smoke-tests', 'full-regression'. The test plan will be auto-created if it doesn't exist."
           },
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
+            "description": "Initial status of the test execution. Default 'IN_PROGRESS' is appropriate for ongoing tests. Use 'COMPLETED' if test results will be uploaded separately.",
             "default": "IN_PROGRESS"
           },
           "relevant_links": {
@@ -5509,12 +5576,13 @@
               "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
             },
             "type": "array",
-            "title": "Relevant Links"
+            "title": "Relevant Links",
+            "description": "Optional list of additional URLs related to this test execution (e.g., bug reports, documentation, related PRs). Can be omitted or left empty."
           },
           "needs_assignment": {
             "type": "boolean",
             "title": "Needs Assignment",
-            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer. Set to true if test results need human review before the artefact can be promoted. Default false means no review assignment needed.",
             "default": false
           },
           "family": {
@@ -5524,30 +5592,36 @@
             "default": "image"
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/ImageStage"
+            "$ref": "#/components/schemas/ImageStage",
+            "description": "Promotion stage of the image being tested. Options: 'pending' (awaiting approval), 'current' (approved and published). Use 'pending' for images undergoing testing before promotion."
           },
           "os": {
             "type": "string",
-            "title": "Os"
+            "title": "Os",
+            "description": "Operating system of the image. Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'"
           },
           "release": {
             "type": "string",
-            "title": "Release"
+            "title": "Release",
+            "description": "OS release codename or version. Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
           },
           "sha256": {
             "type": "string",
-            "title": "Sha256"
+            "title": "Sha256",
+            "description": "SHA256 checksum hash uniquely identifying this image build. Used to verify image integrity and uniqueness."
           },
           "owner": {
             "type": "string",
-            "title": "Owner"
+            "title": "Owner",
+            "description": "Team or organization responsible for the image. Examples: 'canonical', 'ubuntu-images', team names"
           },
           "image_url": {
             "type": "string",
             "maxLength": 2083,
             "minLength": 1,
             "format": "uri",
-            "title": "Image Url"
+            "title": "Image Url",
+            "description": "Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL."
           }
         },
         "type": "object",
@@ -5570,19 +5644,23 @@
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
           },
           "version": {
             "type": "string",
-            "title": "Version"
+            "title": "Version",
+            "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
           },
           "arch": {
             "type": "string",
-            "title": "Arch"
+            "title": "Arch",
+            "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
           },
           "environment": {
             "type": "string",
-            "title": "Environment"
+            "title": "Environment",
+            "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
           "ci_link": {
             "anyOf": [
@@ -5596,15 +5674,18 @@
                 "type": "null"
               }
             ],
-            "title": "Ci Link"
+            "title": "Ci Link",
+            "description": "Optional URL linking to the CI job executing these tests. Useful for tracking test runs back to their automation source. Can be omitted."
           },
           "test_plan": {
             "type": "string",
             "maxLength": 200,
-            "title": "Test Plan"
+            "title": "Test Plan",
+            "description": "Identifier for the test suite or plan executed. Groups related test results together - e.g., 'certification-24.04', 'smoke-tests', 'full-regression'. The test plan will be auto-created if it doesn't exist."
           },
           "initial_status": {
             "$ref": "#/components/schemas/TestExecutionStatus",
+            "description": "Initial status of the test execution. Default 'IN_PROGRESS' is appropriate for ongoing tests. Use 'COMPLETED' if test results will be uploaded separately.",
             "default": "IN_PROGRESS"
           },
           "relevant_links": {
@@ -5612,12 +5693,13 @@
               "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
             },
             "type": "array",
-            "title": "Relevant Links"
+            "title": "Relevant Links",
+            "description": "Optional list of additional URLs related to this test execution (e.g., bug reports, documentation, related PRs). Can be omitted or left empty."
           },
           "needs_assignment": {
             "type": "boolean",
             "title": "Needs Assignment",
-            "description": "Whether the artefact created from this test execution requires assignment of a reviewer",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer. Set to true if test results need human review before the artefact can be promoted. Default false means no review assignment needed.",
             "default": false
           },
           "family": {
@@ -5627,24 +5709,29 @@
           },
           "revision": {
             "type": "integer",
-            "title": "Revision"
+            "title": "Revision",
+            "description": "Snap package revision number from the store. Each architecture build has its own revision number. Find this in the snap store or via 'snap info <snap-name>' command."
           },
           "track": {
             "type": "string",
-            "title": "Track"
+            "title": "Track",
+            "description": "Snap release track being tested. Tracks represent different major versions or streams of development. Common values: 'latest' (default), version numbers like '22', '1.0', or custom tracks like 'experimental'. Use 'latest' if unsure."
           },
           "store": {
             "type": "string",
-            "title": "Store"
+            "title": "Store",
+            "description": "Snap store where the snap is published. Typically 'ubuntu' for public Ubuntu Store snaps, or a brand store ID for enterprise stores. Use 'ubuntu' for standard snaps."
           },
           "branch": {
             "type": "string",
             "maxLength": 200,
             "title": "Branch",
+            "description": "Optional snap branch name within the track/risk level. Branches are temporary testing channels. Usually empty string (default) unless testing a specific branch.",
             "default": ""
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/SnapStage"
+            "$ref": "#/components/schemas/SnapStage",
+            "description": "Distribution channel/risk level of the snap being tested. Options: 'edge' (cutting-edge, frequent updates), 'beta' (pre-release testing), 'candidate' (release candidate), 'stable' (production ready). Choose based on where the snap currently resides in the release pipeline."
           }
         },
         "type": "object",

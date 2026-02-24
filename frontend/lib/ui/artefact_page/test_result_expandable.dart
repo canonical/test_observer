@@ -25,6 +25,7 @@ import '../../providers/artefact.dart';
 import '../../providers/test_result_issues.dart';
 import '../../routing.dart';
 import '../expandable.dart';
+import '../navigable_link.dart';
 import '../spacing.dart';
 import 'test_issues/test_issues_expandable.dart';
 import 'issue_attachments/issue_attachments_expandable.dart';
@@ -64,6 +65,7 @@ class TestResultExpandable extends ConsumerWidget {
           Text(title),
           const Spacer(),
           _PreviousTestResultsWidget(
+            testExecutionId: testExecutionId,
             currentResult: testResult,
             previousResults: testResult.previousResults,
           ),
@@ -121,10 +123,12 @@ class _TestResultOutputExpandable extends StatelessWidget {
 
 class _PreviousTestResultsWidget extends ConsumerWidget {
   const _PreviousTestResultsWidget({
+    required this.testExecutionId,
     required this.currentResult,
     required this.previousResults,
   });
 
+  final int testExecutionId;
   final TestResult currentResult;
   final List<PreviousTestResult> previousResults;
 
@@ -144,6 +148,8 @@ class _PreviousTestResultsWidget extends ConsumerWidget {
       currentVersion: [
         PreviousTestResult(
           artefactId: artefactId,
+          testExecutionId: testExecutionId,
+          testResultId: currentResult.id,
           status: currentResult.status,
           version: currentVersion,
         ),
@@ -187,34 +193,48 @@ class _TestResultsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: (groupIndex > 0)
-          ? () => navigateToArtefactPage(
-                context,
-                results.first.artefactId,
-              )
-          : null,
-      child: Tooltip(
-        message: 'Version: $version',
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: -5,
-          children: results
-              .mapIndexed(
-                (index, result) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: result.status.getIcon(
-                    scale: (groupIndex == index && index == 0) ? 1.5 : 1,
-                  ),
-                ),
-              )
-              .reversed
-              .toList(),
-        ),
-      ),
+    final hasNavigation = groupIndex > 0;
+    final result = hasNavigation ? results.first : null;
+    final path = hasNavigation
+        ? getArtefactPagePath(
+            context,
+            result!.artefactId,
+            testExecutionId: result.testExecutionId,
+            testResultId: result.testResultId,
+          )
+        : null;
+
+    final content = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: -5,
+      children: results
+          .mapIndexed(
+            (index, result) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: result.status.getIcon(
+                scale: (groupIndex == index && index == 0) ? 1.5 : 1,
+              ),
+            ),
+          )
+          .reversed
+          .toList(),
+    );
+
+    if (hasNavigation) {
+      return NavigableLink(
+        path: path!,
+        tooltip: 'Version: $version',
+        semanticsLabel: 'View test results for version $version',
+        child: content,
+      );
+    }
+
+    return Tooltip(
+      message: 'Version: $version',
+      child: content,
     );
   }
 }

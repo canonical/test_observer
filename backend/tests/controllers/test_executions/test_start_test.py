@@ -651,6 +651,62 @@ def test_image_assigned_to_image_team_reviewer(
     assert assignee.id == image_reviewer.id
 
 
+def test_no_ci_link_creates_new_test_execution_each_time(
+    execute: Execute, db_session: Session
+):
+    """
+    Test that when ci_link is None/missing, each call creates a NEW test execution
+    rather than returning an existing one (which would appear random).
+    This prevents the bug where NULL ci_links match all NULL records.
+    """
+    # First call without ci_link
+    request_without_ci_link = snap_test_request.copy()
+    request_without_ci_link.pop("ci_link", None)  # Remove ci_link if present
+
+    response1 = execute(request_without_ci_link)
+    assert response1.status_code == 200
+    te1_id = response1.json()["id"]
+
+    # Second call with same parameters but no ci_link
+    response2 = execute(request_without_ci_link)
+    assert response2.status_code == 200
+    te2_id = response2.json()["id"]
+
+    # Should create TWO different test executions
+    assert te1_id != te2_id
+
+    # Both should exist in database
+    te1 = db_session.get(TestExecution, te1_id)
+    te2 = db_session.get(TestExecution, te2_id)
+    assert te1 is not None
+    assert te2 is not None
+    assert te1.ci_link is None
+    assert te2.ci_link is None
+
+    # They should share the same build and environment
+    assert te1.artefact_build_id == te2.artefact_build_id
+    assert te1.environment_id == te2.environment_id
+
+
+def test_with_ci_link_reuses_test_execution(execute: Execute):
+    """
+    Test that when ci_link IS provided, the same test execution is reused
+    (the original behavior for non-NULL ci_link).
+    """
+    # First call with ci_link
+    response1 = execute(snap_test_request)
+    assert response1.status_code == 200
+    te1_id = response1.json()["id"]
+
+    # Second call with same ci_link
+    response2 = execute(snap_test_request)
+    assert response2.status_code == 200
+    te2_id = response2.json()["id"]
+
+    # Should reuse the SAME test execution
+    assert te1_id == te2_id
+
+
 def test_no_assignment_when_no_team_reviewers_available(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):

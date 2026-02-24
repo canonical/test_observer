@@ -19,6 +19,8 @@ import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../providers/issues.dart';
+import '../../providers/issues_filters.dart';
+import '../../routing.dart';
 import '../blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'issues_page_body.dart';
@@ -33,8 +35,17 @@ class IssuesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return BlockingProviderPreloader(
       provider: issuesProvider(),
-      builder: (_, issues) {
+      builder: (context, issues) {
         final showSide = ref.watch(issuesPageSideVisibilityProvider);
+        final pageUri = AppRoutes.uriFromContext(context);
+        final filtersState = ref.watch(issuesFiltersProvider(pageUri));
+        final searchQuery =
+            pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
+        final hasActiveFilters = filtersState.selectedSources.isNotEmpty ||
+            filtersState.selectedStatuses.isNotEmpty ||
+            filtersState.selectedProjects.isNotEmpty ||
+            searchQuery.isNotEmpty;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -44,11 +55,19 @@ class IssuesPage extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  YaruOptionButton(
-                    child: const Icon(Icons.filter_alt),
-                    onPressed: () => ref
-                        .read(issuesPageSideVisibilityProvider.notifier)
-                        .set(!showSide),
+                  Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Badge(
+                      isLabelVisible: hasActiveFilters,
+                      smallSize: 8,
+                      backgroundColor: YaruColors.orange,
+                      child: YaruOptionButton(
+                        child: const Icon(Icons.filter_alt),
+                        onPressed: () => ref
+                            .read(issuesPageSideVisibilityProvider.notifier)
+                            .set(!showSide),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: Spacing.level2),
                   Visibility(

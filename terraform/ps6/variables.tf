@@ -83,6 +83,12 @@ variable "frontend_hostname" {
   type        = string
 }
 
+variable "frontend_config" {
+  description = "config for frontend"
+  type        = string
+  default     = ""
+}
+
 variable "api_scheme" {
   description = "Scheme for api, either http:// or https://"
   type        = string
@@ -112,4 +118,16 @@ variable "sessions_secret" {
 variable "ignore_permissions" {
   description = "List of API permissions to ignore for all requests"
   type        = list(string)
+}
+
+variable "api_channel" {
+  description = "Charmhub channel for the API charm (e.g., 'latest/edge', 'latest/edge/testing-branch')"
+  type        = string
+  default     = "latest/edge"
+}
+
+variable "frontend_channel" {
+  description = "Charmhub channel for the frontend charm (e.g., 'latest/edge', 'latest/edge/testing-branch')"
+  type        = string
+  default     = "latest/edge"
 }

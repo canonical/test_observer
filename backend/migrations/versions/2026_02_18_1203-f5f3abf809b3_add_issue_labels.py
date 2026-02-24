@@ -14,15 +14,31 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel
-from typing import Any
+"""Add issue labels
+
+Revision ID: f5f3abf809b3
+Revises: a1035f9064d2
+Create Date: 2026-02-18 12:03:04.819786+00:00
+
+"""
+
+from alembic import op
+import sqlalchemy as sa
+
+# revision identifiers, used by Alembic.
+revision = "f5f3abf809b3"
+down_revision = "a1035f9064d2"
+branch_labels = None
+depends_on = None
 
 
-class IssueData(BaseModel):
-    """Standardized issue data from all sources"""
+def upgrade() -> None:
+    # Add tags column as JSON array
+    op.add_column(
+        "issue",
+        sa.Column("labels", sa.ARRAY(sa.String()), nullable=True),
+    )
 
-    title: str
-    state: str  # "open", "closed" etc.
-    state_reason: str | None  # Original status name
-    labels: list[str] = []  # Tags or labels from issue
-    raw: dict[str, Any]
+
+def downgrade() -> None:
+    op.drop_column("issue", "labels")

@@ -16,8 +16,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../models/test_results_filters.dart';
 import '../../routing.dart';
@@ -37,6 +37,13 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
   bool showFilters = true;
   late TestResultsFilters appliedFilters;
   bool filtersModified = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _onApplyFilters(TestResultsFilters filters) {
     context.go(filters.toTestResultsUri().toString());
@@ -56,47 +63,56 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
     final uri = AppRoutes.uriFromContext(context);
     appliedFilters = TestResultsFilters.fromQueryParams(uri.queryParametersAll);
 
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: Spacing.pageHorizontalPadding,
-        right: Spacing.pageHorizontalPadding,
-        top: Spacing.level5,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: Spacing.level4,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Search Test Results',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              const Spacer(),
-              YaruOptionButton(
-                child: const Icon(Icons.filter_alt),
-                onPressed: () {
-                  setState(() {
-                    showFilters = !showFilters;
-                  });
-                },
-              ),
-            ],
-          ),
-          if (showFilters)
-            TestResultsFiltersView(
-              initialFilters: appliedFilters,
-              onApplyFilters: _onApplyFilters,
-              onChanged: _onFiltersChanged,
+    return SingleChildScrollView(
+      controller: _scrollController,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: Spacing.pageHorizontalPadding,
+          right: Spacing.pageHorizontalPadding,
+          top: Spacing.level5,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Spacing.level4,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Search Test Results',
+                  style: Theme.of(context).textTheme.headlineLarge,
+                ),
+                const Spacer(),
+                Badge(
+                  isLabelVisible: appliedFilters.hasFilters,
+                  smallSize: 8,
+                  backgroundColor: YaruColors.orange,
+                  child: YaruOptionButton(
+                    child: const Icon(Icons.filter_alt),
+                    onPressed: () {
+                      setState(() {
+                        showFilters = !showFilters;
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
-          BulkOperationsButtons(
-            filters: appliedFilters,
-            disabled: filtersModified,
-          ),
-          Expanded(
-            child: TestResultsBody(filters: appliedFilters),
-          ),
-        ],
+            if (showFilters)
+              TestResultsFiltersView(
+                initialFilters: appliedFilters,
+                onApplyFilters: _onApplyFilters,
+                onChanged: _onFiltersChanged,
+              ),
+            BulkOperationsButtons(
+              filters: appliedFilters,
+              disabled: filtersModified,
+            ),
+            TestResultsBody(
+              filters: appliedFilters,
+              scrollController: _scrollController,
+            ),
+          ],
+        ),
       ),
     );
   }

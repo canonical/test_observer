@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -135,25 +135,57 @@ def get_or_create(
     creation_kwargs: dict | None = None,
 ) -> DataModel:
     """
-    Creates an object if it doesn't exist, otherwise returns the existing one
+    Creates an object if it doesn't exist, otherwise returns the existing one.
+
+    To ensure atomicity, this function does NOT commit the transaction.
+    The caller is responsible for committing the session when appropriate.
+
+    WARNING: Be cautious when filtering by nullable fields that have unique constraints,
+    as PostgreSQL allows multiple NULL values in unique constraints. This can cause
+    queries like filter_by(field=None) to match multiple records and return an
+    arbitrary one. If you need to create records with NULL unique fields, create
+    them directly instead of using get_or_create.
 
     :db: DB session
     :model: model to create e.g. Stage, Family, Artefact
     :filter_kwargs: arguments to pass to the model when querying and creating
     :creation_kwargs: extra arguments to pass to the model when creating only
     """
+
+    # A previous version of this function would always try to create a new instance
+    # and only query for the existing one if there was an IntegrityError.
+    # This filled the PostgreSQL logs with errors on nearly every call,
+    # which made the logs very noisy.
+    # Example log message:
+
+    # <timestamp> STATEMENT:  INSERT INTO <table> (<fields>) VALUES (<values>) RETURNING <outputs> # noqa: E501
+    # <timestamp> ERROR:  duplicate key value violates unique constraint "<key>"
+    # <timestamp> DETAIL:  Key (<key>)=(<value>) already exists.
+
+    # We now check for the instance first to avoid this
+    instance = db.query(model).filter_by(**filter_kwargs).first()
+    if instance:
+        return instance
+
     creation_kwargs = creation_kwargs or {}
     instance = model(**filter_kwargs, **creation_kwargs)
 
+    # The instance did not exist when we queried,
+    # but it might have been created by another process before we try to add it.
+    # Thus, we still need to catch the IntegrityError
+    # and query for the instance in that case, but this should be much rarer
     try:
         # Attempt to add and commit the new instance
         # Use a nested transaction to avoid rolling back the entire session
         with db.begin_nested():
             db.add(instance)
+            # Ensure the INSERT is executed immediately
+            # to catch IntegrityError here if it occurs
+            db.flush()
     except IntegrityError:
         # Query and return the existing instance
         instance = db.query(model).filter_by(**filter_kwargs).one()
-    db.commit()
+
     return instance
 
 
