@@ -84,20 +84,22 @@ def take_screenshot(url: str, output: str, width: int, height: int, wait_ms: int
         proxy_url = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") \
                     or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
 
-        browser = p.chromium.launch(
-            headless=True,
-            args=[
+        proxy_config = {"server": proxy_url, "bypass": "localhost,127.0.0.1"} if proxy_url else None
+        launch_kwargs: dict = {
+            "headless": True,
+            "args": [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
+                "--proxy-bypass-list=localhost,127.0.0.1,::1",
             ],
-        )
-        # Route external traffic through the system proxy but keep localhost direct.
-        proxy_config = {"server": proxy_url, "bypass": "localhost,127.0.0.1"} if proxy_url else None
+        }
+        if proxy_config:
+            launch_kwargs["proxy"] = proxy_config
+        browser = p.chromium.launch(**launch_kwargs)
         page = browser.new_page(
             viewport={"width": width, "height": height},
-            proxy=proxy_config,
         )
 
         try:
