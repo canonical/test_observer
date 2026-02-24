@@ -1,0 +1,73 @@
+:root {
+  --yaru-orange: #E95420;
+  --yaru-canonical: #772953;
+  --yaru-cool-grey: #333333;
+  --yaru-title-bar-dark: #3E3E3E;
+  --yaru-background-color: #F5F5F5;
+  --yaru-text-color: #333333;
+  --max-page-width: 1200px;
+}
+
+body {
+  font-family: 'Ubuntu', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--yaru-background-color);
+  color: var(--yaru-text-color);
+}
+
+.container {
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.navbar {
+  background-color: var(--yaru-cool-grey);
+  color: white;
+  height: 57px;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.navbar-logo {
+  height: 32px;
+  margin-right: 1rem;
+}
+
+.navbar-link {
+  color: white;
+  text-decoration: none;
+  padding: 1rem;
+  font-weight: 500;
+}
+
+.navbar-link:hover, .navbar-link.router-link-active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-spacer {
+  flex-grow: 1;
+}
+
+.dashboard-header {
+  padding: 2rem 0;
+}
+
+.card {
+  background: white;
+  border-radius: 4px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 1rem;
+}
+
+h1, h2, h3 {
+  font-weight: 300;
+}

@@ -1,0 +1,17 @@
+{
+  "name": "test-observer-frontend-poc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "nuxt": "^3.13.0",
+    "vue": "^3.5.0",
+    "pinia": "^2.2.2"
+  }
+}
