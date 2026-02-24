@@ -102,7 +102,7 @@ artefact_matching_rule_team_association = Table(
     Base.metadata,
     Column(
         "artefact_matching_rule_id",
-        ForeignKey("artefact_matching_rule.id"),
+        ForeignKey("artefact_matching_rule.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column("team_id", ForeignKey("team.id"), primary_key=True),

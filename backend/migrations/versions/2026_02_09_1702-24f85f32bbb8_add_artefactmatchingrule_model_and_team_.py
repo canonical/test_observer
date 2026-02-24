@@ -54,9 +54,9 @@ def upgrade() -> None:
     op.create_table('artefact_matching_rule_team_association',
     sa.Column('artefact_matching_rule_id', sa.Integer(), nullable=False),
     sa.Column('team_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['artefact_matching_rule_id'], ['artefact_matching_rule.id'], name=op.f('artefact_matching_rule_team_association_artefact_matching_rule_id_fkey')),
-    sa.ForeignKeyConstraint(['team_id'], ['team.id'], name=op.f('artefact_matching_rule_team_association_team_id_fkey')),
-    sa.PrimaryKeyConstraint('artefact_matching_rule_id', 'team_id', name=op.f('artefact_matching_rule_team_association_pkey'))
+    sa.ForeignKeyConstraint(['artefact_matching_rule_id'], ['artefact_matching_rule.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['team_id'], ['team.id']),
+    sa.PrimaryKeyConstraint('artefact_matching_rule_id', 'team_id')
     )
     # ### end Alembic commands ###
 

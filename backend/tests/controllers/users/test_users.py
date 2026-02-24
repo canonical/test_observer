@@ -412,7 +412,6 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
                 "id": team.id,
                 "name": team.name,
                 "permissions": team.permissions,
-                "artefact_matching_rules": team.artefact_matching_rules,
             }
         ],
     }
