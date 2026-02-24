@@ -181,7 +181,6 @@ def patch_artefact(
     if request.comment is not None:
         artefact.comment = request.comment
 
-    # Handle new reviewer fields
     reviewer_ids_set = (
         hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
     )
@@ -189,36 +188,6 @@ def patch_artefact(
         hasattr(request, "reviewer_emails")
         and "reviewer_emails" in request.model_fields_set
     )
-
-    # Handle deprecated assignee fields (for backwards compatibility)
-    assignee_id_set = (
-        hasattr(request, "assignee_id") and "assignee_id" in request.model_fields_set
-    )
-    assignee_email_set = (
-        hasattr(request, "assignee_email")
-        and "assignee_email" in request.model_fields_set
-    )
-
-    # Check for conflicting parameters
-    if (reviewer_ids_set or reviewer_emails_set) and (
-        assignee_id_set or assignee_email_set
-    ):
-        raise HTTPException(
-            status_code=422,
-            detail="Cannot specify both reviewer fields and deprecated assignee fields",
-        )
-
-    if reviewer_ids_set and reviewer_emails_set:
-        raise HTTPException(
-            status_code=422,
-            detail="Cannot specify both reviewer_ids and reviewer_emails",
-        )
-
-    if assignee_id_set and assignee_email_set:
-        raise HTTPException(
-            status_code=422,
-            detail="Cannot specify both assignee_id and assignee_email",
-        )
 
     # Handle reviewer_ids
     if reviewer_ids_set:
@@ -251,32 +220,6 @@ def patch_artefact(
                     )
                 reviewers.append(user)
             artefact.reviewers = reviewers
-
-    # Handle deprecated assignee_id (convert to single reviewer)
-    if assignee_id_set:
-        if request.assignee_id is None:
-            artefact.reviewers = []
-        else:
-            user = db.get(User, request.assignee_id)
-            if user is None:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"User with id {request.assignee_id} not found",
-                )
-            artefact.reviewers = [user]
-
-    # Handle deprecated assignee_email (convert to single reviewer)
-    if assignee_email_set:
-        if request.assignee_email is None:
-            artefact.reviewers = []
-        else:
-            user = db.scalar(select(User).where(User.email == request.assignee_email))
-            if user is None:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"User with email '{request.assignee_email}' not found",
-                )
-            artefact.reviewers = [user]
 
     db.commit()
     return artefact

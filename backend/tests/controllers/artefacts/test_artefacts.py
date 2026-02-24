@@ -220,7 +220,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         status=ArtefactStatus.APPROVED,
         bug_link="localhost/bug",
         due_date=date(2024, 12, 24),
-        assignee_id=u.id,
+        reviewers=[u],
     )
 
     response = make_authenticated_request(
@@ -543,13 +543,13 @@ def test_update_artefact_assignee(test_client: TestClient, generator: DataGenera
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_id": u.id},
+            json={"reviewer_ids": [u.id]},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
 
 def test_update_artefact_assignee_nonexistent_user(
@@ -561,7 +561,7 @@ def test_update_artefact_assignee_nonexistent_user(
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_id": nonexistent_user_id},
+            json={"reviewer_ids": [nonexistent_user_id]},
         ),
         Permission.change_artefact,
     )
@@ -574,22 +574,22 @@ def test_update_artefact_assignee_clear(
     test_client: TestClient, generator: DataGenerator
 ):
     u = generator.gen_user()
-    a = generator.gen_artefact(assignee_id=u.id)
+    a = generator.gen_artefact(reviewers=[u])
 
     # Verify assignee is set initially
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
     # Clear the assignee
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_id": None},
+            json={"reviewer_ids": None},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id is None
+    assert a.reviewers == []
 
 
 def test_update_artefact_assignee_by_email(
@@ -601,13 +601,13 @@ def test_update_artefact_assignee_by_email(
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": u.email},
+            json={"reviewer_emails": [u.email]},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
 
 def test_update_artefact_assignee_by_email_nonexistent(
@@ -619,7 +619,7 @@ def test_update_artefact_assignee_by_email_nonexistent(
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": nonexistent_email},
+            json={"reviewer_emails": [nonexistent_email]},
         ),
         Permission.change_artefact,
     )
@@ -633,22 +633,22 @@ def test_update_artefact_assignee_clear_by_email(
     test_client: TestClient, generator: DataGenerator
 ):
     u = generator.gen_user()
-    a = generator.gen_artefact(assignee_id=u.id)
+    a = generator.gen_artefact(reviewers=[u])
 
     # Verify assignee is set initially
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
     # Clear the assignee using email
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": None},
+            json={"reviewer_emails": None},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id is None
+    assert a.reviewers == []
 
 
 def test_update_artefact_assignee_both_id_and_email_error(
@@ -661,15 +661,15 @@ def test_update_artefact_assignee_both_id_and_email_error(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
             json={
-                "assignee_id": u.id,
-                "assignee_email": u.email,
+                "reviewer_ids": [u.id],
+                "reviewer_emails": [u.email],
             },
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 422
-    expected_msg = "Cannot specify both assignee_id and assignee_email"
+    expected_msg = "Cannot specify both reviewer_ids and reviewer_emails"
     assert expected_msg in response.json()["detail"]
 
 
@@ -735,7 +735,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
-        "assignee": None,
+        "reviewers": [],
         "due_date": (
             artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
         ),
@@ -744,12 +744,12 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
     }
-    if artefact.assignee:
-        expected["assignee"] = {
-            "id": artefact.assignee.id,
-            "email": artefact.assignee.email,
-            "launchpad_email": artefact.assignee.email,
-            "launchpad_handle": artefact.assignee.launchpad_handle,
-            "name": artefact.assignee.name,
-        }
+    if artefact.reviewers:
+        expected["reviewers"] = [{
+            "id": r.id,
+            "email": r.email,
+            "launchpad_email": r.email,
+            "launchpad_handle": r.launchpad_handle,
+            "name": r.name,
+        } for r in artefact.reviewers]
     assert response == expected
