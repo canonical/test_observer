@@ -14,6 +14,13 @@ EXPOSE 9090
 
 WORKDIR /home/app
 
+# Optional apt proxy for air-gapped/proxied environments.
+# Pass --build-arg APT_PROXY=http://host:port at build time, or set via compose.
+ARG APT_PROXY
+RUN if [ -n "$APT_PROXY" ]; then \
+        echo "Acquire::http::Proxy \"$APT_PROXY\";" > /etc/apt/apt.conf.d/01proxy; \
+    fi
+
 RUN apt-get update && \
     apt-get install -y python3.12 curl && \
     apt-get clean && \
@@ -29,7 +36,7 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --all-groups
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD curl --fail http://localhost:30000/v1/version || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD NO_PROXY=localhost,127.0.0.1 curl --fail http://localhost:30000/v1/version || exit 1
 
 WORKDIR /home/app
 

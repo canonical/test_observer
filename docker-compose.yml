@@ -4,6 +4,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        APT_PROXY: ${APT_PROXY:-}
     # Without host network mode the SAML IdP url will be internal to the docker network
     # so a redirect request sent to host will not work as the host can't access internal
     # docker network
@@ -20,6 +22,8 @@ services:
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
       SESSIONS_HTTPS_ONLY: "false"
+      NO_PROXY: "localhost,127.0.0.1"
+      no_proxy: "localhost,127.0.0.1"
     volumes:
       # Mount source code from host for development
       - ./backend:/home/app
@@ -31,6 +35,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        APT_PROXY: ${APT_PROXY:-}
     ports:
       - "30001:80" # Adjust the port mapping as needed
     depends_on:
@@ -67,7 +73,7 @@ services:
       SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:30000/v1/auth/saml/acs
       SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:30000/v1/auth/saml/sls
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php || exit 1" ]
+      test: [ "CMD-SHELL", "NO_PROXY=localhost,127.0.0.1 curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5

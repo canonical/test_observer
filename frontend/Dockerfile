@@ -1,6 +1,15 @@
 FROM ubuntu:24.04 as builder
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Prevent tar from attempting chown to UIDs outside the LXD user namespace.
+ENV TAR_OPTIONS="--no-same-owner"
+
+# Optional apt proxy for air-gapped/proxied environments.
+ARG APT_PROXY
+RUN if [ -n "$APT_PROXY" ]; then \
+        echo "Acquire::http::Proxy \"$APT_PROXY\";" > /etc/apt/apt.conf.d/01proxy; \
+    fi
+
 RUN apt-get update && \
     apt-get install -y \
     curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
@@ -8,8 +17,7 @@ RUN apt-get update && \
 
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
     cd /opt/flutter && git checkout '3.29.3' && \
-    /opt/flutter/bin/flutter doctor && \
-    /opt/flutter/bin/flutter config --enable-web
+    /opt/flutter/bin/flutter config --enable-web --no-enable-android
 
 ENV PATH $PATH:/opt/flutter/bin
 
@@ -43,6 +51,13 @@ RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
+
+# Re-declare APT_PROXY so it is available in this stage too.
+ARG APT_PROXY
+RUN if [ -n "$APT_PROXY" ]; then \
+        echo "Acquire::http::Proxy \"$APT_PROXY\";" > /etc/apt/apt.conf.d/01proxy; \
+    fi
+
 RUN apt-get update && apt-get install -y nginx
 RUN rm /etc/nginx/sites-enabled/default
 

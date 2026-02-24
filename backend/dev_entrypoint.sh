@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Ensure localhost traffic never goes through any configured HTTP proxy.
+export NO_PROXY=localhost,127.0.0.1
+export no_proxy=localhost,127.0.0.1
+
 echo "Starting Test Observer Backend..."
 
 # Run database migrations
