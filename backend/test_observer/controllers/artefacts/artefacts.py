@@ -16,7 +16,7 @@
 
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import select, distinct
+from sqlalchemy import func, select, distinct
 from sqlalchemy.orm import Session, selectinload
 from typing import Annotated
 
@@ -130,11 +130,20 @@ def search_artefacts(
         search_term = f"%{q.strip()}%"
         query = query.where(Artefact.name.ilike(search_term))
 
+    # Count total before pagination
+    count_query = select(func.count()).select_from(query.subquery())
+    total_count = db.execute(count_query).scalar() or 0
+
     # Apply pagination
     query = query.offset(offset).limit(limit)
 
     artefacts = db.execute(query).scalars().all()
-    return ArtefactSearchResponse(artefacts=list(artefacts))
+    return ArtefactSearchResponse(
+        artefacts=list(artefacts),
+        count=total_count,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get(

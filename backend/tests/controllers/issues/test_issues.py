@@ -17,6 +17,7 @@
 
 from fastapi.testclient import TestClient
 
+from test_observer.controllers.issues.shared_models import MinimalIssueResponse
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -37,32 +38,27 @@ def test_empty_get_all(test_client: TestClient):
         Permission.view_issue,
     )
     assert response.status_code == 200
-    assert response.json() == {"issues": []}
+    data = response.json()
+    assert data["issues"] == []
+    assert data["count"] == 0
+    assert data["limit"] == 50
+    assert data["offset"] == 0
 
 
 def test_get_all(test_client: TestClient, generator: DataGenerator):
     issue = generator.gen_issue()
-
     response = make_authenticated_request(
         lambda: test_client.get(endpoint),
         Permission.view_issue,
     )
-
     assert response.status_code == 200
-    assert response.json() == {
-        "issues": [
-            {
-                "id": issue.id,
-                "source": issue.source,
-                "project": issue.project,
-                "key": issue.key,
-                "title": issue.title,
-                "status": issue.status,
-                "url": issue.url,
-                "labels": issue.labels,
-            }
-        ],
-    }
+    data = response.json()
+    assert data["issues"] == [
+        MinimalIssueResponse.model_validate(issue).model_dump(mode="json")
+    ]
+    assert data["count"] == 1
+    assert data["limit"] == 50
+    assert data["offset"] == 0
 
 
 def test_get_issue(test_client: TestClient, generator: DataGenerator):

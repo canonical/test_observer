@@ -40,6 +40,8 @@ class UserResponse(BaseModel):
 class UsersResponse(BaseModel):
     users: list[UserResponse]
     count: int
+    limit: int
+    offset: int
 
 
 class UserPatch(BaseModel):
