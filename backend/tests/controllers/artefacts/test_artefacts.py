@@ -673,6 +673,47 @@ def test_update_artefact_reviewer_both_id_and_email_error(
     assert expected_msg in response.json()["detail"]
 
 
+def test_update_artefact_multiple_reviewers_by_id(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact()
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={
+                "reviewer_ids": [u.id for u in users],
+            },
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == users
+
+
+def test_update_artefact_multiple_reviewers_by_email(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact()
+
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={
+                "reviewer_emails": [u.email for u in users],
+            },
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == users
+
+
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
     artefact1 = generator.gen_artefact(StageName.beta, version="1")
     artefact2 = generator.gen_artefact(StageName.beta, version="2")
