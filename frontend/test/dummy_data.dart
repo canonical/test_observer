@@ -29,6 +29,20 @@ const dummyUser = User(
   launchpadHandle: 'omar-selo',
 );
 
+const dummyUser2 = User(
+  id: 2,
+  name: 'John Doe',
+  email: 'john.doe@canonical.com',
+  launchpadHandle: 'john-doe',
+);
+
+const dummyUser3 = User(
+  id: 3,
+  name: 'Jane Smith',
+  email: 'jane.smith@canonical.com',
+  launchpadHandle: 'jane-smith',
+);
+
 const dummyArtefact = Artefact(
   id: 1,
   name: 'core',
@@ -40,7 +54,7 @@ const dummyArtefact = Artefact(
   repo: '',
   status: ArtefactStatus.undecided,
   stage: StageName.beta,
-  reviewers: [dummyUser],
+  reviewers: [dummyUser, dummyUser2, dummyUser3],
   bugLink: '',
   allEnvironmentReviewsCount: 1,
   completedEnvironmentReviewsCount: 0,

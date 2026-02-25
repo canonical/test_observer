@@ -22,7 +22,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../routing.dart';
 import '../spacing.dart';
-import '../user_avatar.dart';
+import '../reviewers_avatars.dart';
 import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
@@ -34,7 +34,6 @@ class ArtefactCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final assignee = artefact.assignee;
     final dueDate = artefact.dueDateString;
 
     return GestureDetector(
@@ -84,8 +83,8 @@ class ArtefactCard extends ConsumerWidget {
                       fontColor: YaruColors.red,
                     ),
                   const Spacer(),
-                  UserAvatar(
-                    user: assignee,
+                  ReviewersAvatars(
+                    reviewers: artefact.reviewers,
                     allEnvironmentReviewsCount:
                         artefact.allEnvironmentReviewsCount,
                     completedEnvironmentReviewsCount:
