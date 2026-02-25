@@ -24,7 +24,8 @@ void main() {
 
     test('parses valid multiple tabs', () {
       expect(
-        parseFrontendConfig('tabs:\n  - snaps\n  - debs\n  - charms\n  - images'),
+        parseFrontendConfig(
+            'tabs:\n  - snaps\n  - debs\n  - charms\n  - images',),
         ['/snaps', '/debs', '/charms', '/images'],
       );
     });
