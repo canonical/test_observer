@@ -5154,20 +5154,6 @@
             "minLength": 1,
             "format": "uri",
             "title": "Url"
-          },
-          "labels": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Labels"
           }
         },
         "type": "object",
