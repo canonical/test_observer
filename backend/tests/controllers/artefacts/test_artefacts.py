@@ -536,7 +536,7 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
     assert a.comment == comment
 
 
-def test_update_artefact_assignee(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -552,7 +552,7 @@ def test_update_artefact_assignee(test_client: TestClient, generator: DataGenera
     assert a.reviewers == [u]
 
 
-def test_update_artefact_assignee_nonexistent_user(
+def test_update_artefact_reviewer_nonexistent_user(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact()
@@ -570,16 +570,16 @@ def test_update_artefact_assignee_nonexistent_user(
     assert "User with id 99999 not found" in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear(
+def test_update_artefact_reviewer_clear(
     test_client: TestClient, generator: DataGenerator
 ):
     u = generator.gen_user()
     a = generator.gen_artefact(reviewers=[u])
 
-    # Verify assignee is set initially
+    # Verify reviewer is set initially
     assert a.reviewers == [u]
 
-    # Clear the assignee
+    # Clear the reviewer
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
@@ -592,7 +592,7 @@ def test_update_artefact_assignee_clear(
     assert a.reviewers == []
 
 
-def test_update_artefact_assignee_by_email(
+def test_update_artefact_reviewer_by_email(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact()
@@ -610,7 +610,7 @@ def test_update_artefact_assignee_by_email(
     assert a.reviewers == [u]
 
 
-def test_update_artefact_assignee_by_email_nonexistent(
+def test_update_artefact_reviewer_by_email_nonexistent(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact()
@@ -629,16 +629,16 @@ def test_update_artefact_assignee_by_email_nonexistent(
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear_by_email(
+def test_update_artefact_reviewer_clear_by_email(
     test_client: TestClient, generator: DataGenerator
 ):
     u = generator.gen_user()
     a = generator.gen_artefact(reviewers=[u])
 
-    # Verify assignee is set initially
+    # Verify reviewer is set initially
     assert a.reviewers == [u]
 
-    # Clear the assignee using email
+    # Clear the reviewer using email
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
@@ -651,7 +651,7 @@ def test_update_artefact_assignee_clear_by_email(
     assert a.reviewers == []
 
 
-def test_update_artefact_assignee_both_id_and_email_error(
+def test_update_artefact_reviewer_both_id_and_email_error(
     test_client: TestClient, generator: DataGenerator
 ):
     a = generator.gen_artefact()

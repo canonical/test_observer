@@ -96,7 +96,7 @@ class StartTestExecutionController:
             )
 
             if users:
-                self.artefact.assignee = random.choice(users)
+                self.artefact.reviewers = [random.choice(users)]
                 self.artefact.due_date = self.determine_due_date()
                 self.db.commit()
 

@@ -220,7 +220,7 @@ def get_rerun_requests(
         .options(
             selectinload(TestExecutionRerunRequest.artefact_build)
             .selectinload(ArtefactBuild.artefact)
-            .selectinload(Artefact.assignee),
+            .selectinload(Artefact.reviewers),
             selectinload(TestExecutionRerunRequest.environment),
             selectinload(TestExecutionRerunRequest.test_plan),
             selectinload(TestExecutionRerunRequest.test_executions),

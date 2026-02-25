@@ -189,6 +189,12 @@ def patch_artefact(
         and "reviewer_emails" in request.model_fields_set
     )
 
+    if reviewer_ids_set and reviewer_emails_set:
+        raise HTTPException(
+            status_code=422,
+            detail="Cannot specify both reviewer_ids and reviewer_emails",
+        )
+
     # Handle reviewer_ids
     if reviewer_ids_set:
         if request.reviewer_ids is None:
