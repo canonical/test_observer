@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
 settings:
     # Jira project key to create the issue in
   jira_project_key: "TO"
