@@ -44,6 +44,6 @@ def _change_assignee(artefact_id: int, user_id: int, session: Session) -> Artefa
     if user is None:
         raise ValueError(f"No user with id {user_id} found")
 
-    artefact.assignee = user
+    artefact.reviewers = [user]
     session.commit()
     return artefact
