@@ -4983,6 +4983,20 @@
             "format": "uri",
             "title": "Url"
           },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
+          },
           "auto_rerun_enabled": {
             "type": "boolean",
             "title": "Auto Rerun Enabled"
@@ -5154,6 +5168,20 @@
             "minLength": 1,
             "format": "uri",
             "title": "Url"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels"
           }
         },
         "type": "object",
