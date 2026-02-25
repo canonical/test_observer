@@ -2569,6 +2569,61 @@
         ]
       }
     },
+    "/v1/issues/{issue_id}/auto-rerun": {
+      "patch": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Patch Issue Auto Rerun",
+        "operationId": "patch_issue_auto_rerun_v1_issues__issue_id__auto_rerun_patch",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssuePatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_auto_rerun"
+        ]
+      }
+    },
     "/v1/test-results": {
       "get": {
         "tags": [
@@ -4833,6 +4888,17 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
           }
         },
         "type": "object",
@@ -4860,6 +4926,17 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
           },
           "url": {
             "type": "string",
@@ -4906,19 +4983,9 @@
             "format": "uri",
             "title": "Url"
           },
-          "labels": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Labels"
+          "auto_rerun_enabled": {
+            "type": "boolean",
+            "title": "Auto Rerun Enabled"
           },
           "attachment_rules": {
             "items": {
@@ -4937,6 +5004,7 @@
           "title",
           "status",
           "url",
+          "auto_rerun_enabled",
           "attachment_rules"
         ],
         "title": "IssueResponse"
@@ -5256,6 +5324,7 @@
           "change_issue_attachment",
           "change_issue_attachment_bulk",
           "change_attachment_rule",
+          "change_auto_rerun",
           "view_test",
           "change_test",
           "view_rerun",
