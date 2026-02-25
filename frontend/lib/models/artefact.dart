@@ -51,13 +51,15 @@ abstract class Artefact with _$Artefact {
     required int allEnvironmentReviewsCount,
     @JsonKey(name: 'completed_environment_reviews_count')
     required int completedEnvironmentReviewsCount,
-    @Default(emptyUser) User assignee,
+    @Default([]) List<User> reviewers,
     @JsonKey(name: 'bug_link') required String bugLink,
     @JsonKey(name: 'due_date') DateTime? dueDate,
   }) = _Artefact;
 
   factory Artefact.fromJson(Map<String, Object?> json) =>
       _$ArtefactFromJson(json);
+
+  User get assignee => reviewers.isNotEmpty ? reviewers.first : emptyUser;
 
   String? get dueDateString {
     final month = dueDate?.month;

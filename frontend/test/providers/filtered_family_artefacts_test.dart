@@ -18,7 +18,6 @@ import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/family_name.dart';
-import 'package:testcase_dashboard/models/user.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/family_artefacts.dart';
 import 'package:testcase_dashboard/providers/filtered_family_artefacts.dart';
@@ -131,7 +130,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
       dummyArtefact,
       dummyArtefact.copyWith(
         id: 2,
-        assignee: emptyUser,
+        reviewers: [],
         name: 'snapd',
         status: ArtefactStatus.approved,
       ),
