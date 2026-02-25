@@ -1534,6 +1534,33 @@ class TestSearchTestResults:
             for tr in data["test_results"]
         )
 
+    def test_pagination_metadata(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """count reflects total results, limit and offset echo back the used values"""
+        unique_marker = uuid.uuid4().hex[:8]
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("meta"))
+        artefact = generator.gen_artefact(name=f"meta_artefact_{unique_marker}")
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        for _ in range(5):
+            generator.gen_test_result(test_case, test_execution)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-results?artefacts={artefact.name}&limit=2&offset=1"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 5
+        assert data["limit"] == 2
+        assert data["offset"] == 1
+        assert len(data["test_results"]) == 2
+
 
 class TestWindowFunctionSpecific:
     """Test class specifically for window function behavior and edge cases"""

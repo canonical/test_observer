@@ -250,3 +250,26 @@ def test_search_artefacts_default_limit(
     artefacts = response.json()["artefacts"]
     assert len(artefacts) <= 50
     assert len(artefacts) == 50
+
+
+def test_search_artefacts_pagination_metadata(
+    test_client: TestClient, generator: DataGenerator
+):
+    """count reflects total results, limit and offset echo back the used values"""
+    unique_marker = uuid.uuid4().hex[:8]
+    for i in range(5):
+        generator.gen_artefact(name=f"meta_artefact_{unique_marker}_{i:02d}")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            f"/v1/artefacts/search?q=meta_artefact_{unique_marker}&limit=2&offset=1"
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["artefacts"]) == 2
