@@ -19,7 +19,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
 import '../spacing.dart';
-import '../user_avatar.dart';
+import '../reviewers_avatars.dart';
 import 'artefact_signoff_button.dart';
 
 class ArtefactPageHeader extends StatelessWidget {
@@ -29,7 +29,6 @@ class ArtefactPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final assignee = artefact.assignee;
     final dueDate = artefact.dueDateString;
 
     return Row(
@@ -38,8 +37,8 @@ class ArtefactPageHeader extends StatelessWidget {
         const SizedBox(width: Spacing.level4),
         ArtefactSignoffButton(artefact: artefact),
         const SizedBox(width: Spacing.level4),
-        UserAvatar(
-          user: assignee,
+        ReviewersAvatars(
+          reviewers: artefact.reviewers,
           allEnvironmentReviewsCount: artefact.allEnvironmentReviewsCount,
           completedEnvironmentReviewsCount:
               artefact.completedEnvironmentReviewsCount,
