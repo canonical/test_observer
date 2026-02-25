@@ -135,7 +135,7 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
             const SizedBox(width: Spacing.level2),
             Tooltip(
               message:
-                  'When enabled, test results matching this issue\'s attachment rules will automatically be queued for rerun',
+                  'When enabled, new test results matching this issue\'s attachment rules will automatically be queued for rerun',
               child: Icon(
                 Icons.help_outline,
                 size: 20,
