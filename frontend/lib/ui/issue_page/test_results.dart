@@ -148,9 +148,9 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
               onChanged: (value) async {
                 try {
                   await ref
-                      .read(issue_provider
-                          .issueProvider(widget.issue.id)
-                          .notifier,)
+                      .read(
+                        issue_provider.issueProvider(widget.issue.id).notifier,
+                      )
                       .setAutoRerun(
                         issueId: widget.issue.id,
                         enabled: value,
