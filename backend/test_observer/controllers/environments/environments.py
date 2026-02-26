@@ -15,7 +15,7 @@
 
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Security
-from sqlalchemy import distinct, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
 from . import reported_issues
@@ -84,8 +84,17 @@ def get_environments(
         search_term = f"%{q.strip()}%"
         query = query.where(Environment.name.ilike(search_term))
 
+    # Count total before pagination
+    count_query = select(func.count()).select_from(query.subquery())
+    total_count = db.execute(count_query).scalar() or 0
+
     # Apply pagination
     query = query.offset(offset).limit(limit)
 
     environments = db.execute(query).scalars().all()
-    return EnvironmentsResponse(environments=list(environments))
+    return EnvironmentsResponse(
+        environments=list(environments),
+        count=total_count,
+        limit=limit,
+        offset=offset,
+    )

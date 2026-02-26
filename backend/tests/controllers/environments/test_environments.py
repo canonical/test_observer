@@ -325,3 +325,26 @@ def test_search_strips_whitespace(test_client: TestClient, generator: DataGenera
     assert resp.status_code == 200
     got_environments = resp.json()["environments"]
     assert env_name in got_environments
+
+
+def test_get_environments_pagination_metadata(
+    test_client: TestClient, generator: DataGenerator
+):
+    """count reflects total results, limit and offset echo back the used values"""
+    unique_marker = uuid.uuid4().hex[:8]
+    names = _seed_environments(generator, count=5, prefix=f"meta_env_{unique_marker}")
+
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments",
+            params={"q": f"meta_env_{unique_marker}", "limit": 2, "offset": 1},
+        ),
+        Permission.view_test,
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["count"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["environments"]) == 2

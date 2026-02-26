@@ -90,6 +90,9 @@ class IssueResponse(BaseModel):
 
 class IssuesGetResponse(BaseModel):
     issues: list[MinimalIssueResponse]
+    count: int
+    limit: int
+    offset: int
 
 
 class IssuePatchRequest(BaseModel):

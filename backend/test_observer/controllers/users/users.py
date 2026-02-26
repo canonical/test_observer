@@ -102,7 +102,7 @@ def get_users(
     # Execute query
     users = db.scalars(query).all()
 
-    return UsersResponse(users=users, count=total_count)  # type: ignore[arg-type]
+    return UsersResponse(users=users, count=total_count, limit=limit, offset=offset)  # type: ignore[arg-type]
 
 
 @router.get(

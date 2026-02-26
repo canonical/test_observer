@@ -163,6 +163,9 @@ class ArtefactBuildMinimalResponse(BaseModel):
 
 class ArtefactSearchResponse(BaseModel):
     artefacts: list[str]
+    count: int
+    limit: int
+    offset: int
 
 
 class ArtefactBuildEnvironmentReviewResponse(BaseModel):

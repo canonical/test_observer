@@ -49,4 +49,6 @@ class TestResultSearchResponseWithContext(BaseModel):
     """Response model for test results search endpoint with full context"""
 
     count: int
+    limit: int
+    offset: int
     test_results: list[TestResultResponseWithContext]

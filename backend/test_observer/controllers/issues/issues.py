@@ -17,7 +17,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Security
 from fastapi import HTTPException
-from sqlalchemy import select, String
+from sqlalchemy import func, select, String
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -114,12 +114,19 @@ def get_issues(
     # Order by source, project, then key for consistent pagination
     stmt = stmt.order_by(Issue.source, Issue.project, Issue.key)
 
+    # Count total before pagination
+    count_query = select(func.count()).select_from(stmt.subquery())
+    total_count = db.execute(count_query).scalar() or 0
+
     # Apply limit and offset
     stmt = stmt.limit(limit).offset(offset)
 
     issues = db.execute(stmt).scalars().all()
     return IssuesGetResponse(
-        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues]
+        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues],
+        count=total_count,
+        limit=limit,
+        offset=offset,
     )
 
 
