@@ -71,14 +71,6 @@ class DataGenerator:
             members=members or [],
         )
         self._add_object(team)
-
-        # Add artefact matching rules if provided
-        if artefact_matching_rules:
-            for rule in artefact_matching_rules:
-                if team not in rule.teams:
-                    rule.teams.append(team)
-            team.artefact_matching_rules = artefact_matching_rules
-
         return team
 
     def gen_artefact_matching_rule(
