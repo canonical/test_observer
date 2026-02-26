@@ -1,22 +1,20 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
-from datetime import date, timedelta
 import random
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
 from sqlalchemy import select
@@ -34,8 +32,8 @@ from test_observer.data_access.models import (
     User,
 )
 from test_observer.data_access.repository import (
-    get_or_create,
     create_test_execution_relevant_link,
+    get_or_create,
 )
 from test_observer.data_access.setup import get_db
 
@@ -85,12 +83,7 @@ class StartTestExecutionController:
             family_str = self.artefact.family.value
 
             users = (
-                self.db.execute(
-                    select(User)
-                    .join(User.teams)
-                    .where(Team.reviewer_families.any(family_str))
-                    .distinct()
-                )
+                self.db.execute(select(User).join(User.teams).where(Team.reviewer_families.any(family_str)).distinct())
                 .scalars()
                 .all()
             )
@@ -110,19 +103,32 @@ class StartTestExecutionController:
         )
 
     def create_test_execution(self):
-        self.test_execution = get_or_create(
-            self.db,
-            TestExecution,
-            filter_kwargs={
-                "ci_link": self.request.ci_link,
-            },
-            creation_kwargs={
-                "status": self.request.initial_status,
-                "environment_id": self.environment.id,
-                "artefact_build_id": self.artefact_build.id,
-                "test_plan_id": self.test_plan.id,
-            },
-        )
+        # If ci_link is None, we cannot uniquely identify the test execution,
+        # so always create a new one instead of using get_or_create
+        if self.request.ci_link is None:
+            self.test_execution = TestExecution(
+                status=self.request.initial_status,
+                environment_id=self.environment.id,
+                artefact_build_id=self.artefact_build.id,
+                test_plan_id=self.test_plan.id,
+                ci_link=None,
+            )
+            self.db.add(self.test_execution)
+            self.db.flush()
+        else:
+            self.test_execution = get_or_create(
+                self.db,
+                TestExecution,
+                filter_kwargs={
+                    "ci_link": self.request.ci_link,
+                },
+                creation_kwargs={
+                    "status": self.request.initial_status,
+                    "environment_id": self.environment.id,
+                    "artefact_build_id": self.artefact_build.id,
+                    "test_plan_id": self.test_plan.id,
+                },
+            )
 
     def create_relevant_links(self):
         if self.request.relevant_links:

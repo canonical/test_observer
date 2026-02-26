@@ -1,23 +1,23 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-from github import Github, GithubIntegration, Auth
-from test_observer.external_apis.models import IssueData
 import logging
 from typing import Any, cast
+
+from github import Auth, Github, GithubIntegration
+from test_observer.external_apis.models import IssueData
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class GitHubClient:
             key: Issue number as string
 
         Returns:
-            IssueData with title, state, and raw GitHub issue object
+            IssueData with title, state, labels, and raw GitHub issue object
 
         Raises:
             ValueError: If project format is invalid
@@ -69,9 +69,7 @@ class GitHubClient:
         """
 
         if "/" not in project:
-            raise ValueError(
-                f"Invalid project format: {project}. Expected 'owner/repo'"
-            )
+            raise ValueError(f"Invalid project format: {project}. Expected 'owner/repo'")
 
         try:
             # Parse issue number
@@ -81,10 +79,14 @@ class GitHubClient:
             repo = self._github.get_repo(project)
             gh_issue = repo.get_issue(issue_number)
 
+            # Extract labels from the GitHub issue
+            labels = [label.name for label in gh_issue.labels]
+
             return IssueData(
                 title=gh_issue.title,
                 state=gh_issue.state,
                 state_reason=gh_issue.state_reason,
+                labels=labels,
                 raw=cast(dict[str, Any], gh_issue.raw_data),
             )
 

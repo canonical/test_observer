@@ -1,26 +1,27 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 from abc import ABC, abstractmethod
+
 from sqlalchemy.orm import Session
+
 from test_observer.data_access.models import Issue, IssueStatus
 from test_observer.external_apis.github import GitHubClient
 from test_observer.external_apis.jira import JiraClient
 from test_observer.external_apis.launchpad import LaunchpadClient
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +34,13 @@ class SyncResult:
         success: bool,
         title_updated: bool = False,
         status_updated: bool = False,
+        labels_updated: bool = False,
         error: str | None = None,
     ):
         self.success = success
         self.title_updated = title_updated
         self.status_updated = status_updated
+        self.labels_updated = labels_updated
         self.error = error
 
 
@@ -61,6 +64,7 @@ class BaseIssueSynchronizer(ABC):
 
             title_updated = False
             status_updated = False
+            labels_updated = False
 
             if client_issue.title != issue.title:
                 issue.title = client_issue.title
@@ -73,12 +77,22 @@ class BaseIssueSynchronizer(ABC):
                 status_updated = True
                 logger.info(f"Updated status for issue {issue.id}: {new_status}")
 
-            if title_updated or status_updated:
+            new_labels = sorted(client_issue.labels)
+            current_labels = sorted(issue.labels or [])
+            if new_labels != current_labels:
+                issue.labels = new_labels
+                labels_updated = True
+                logger.info(f"Updated labels for issue {issue.id}: {new_labels}")
+
+            if title_updated or status_updated or labels_updated:
                 db.commit()
                 db.refresh(issue)
 
             return SyncResult(
-                success=True, title_updated=title_updated, status_updated=status_updated
+                success=True,
+                title_updated=title_updated,
+                status_updated=status_updated,
+                labels_updated=labels_updated,
             )
 
         except Exception as e:

@@ -1,36 +1,33 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.data_access.setup import get_db
 from test_observer.data_access.models import (
-    IssueTestResultAttachmentRule,
     Issue,
+    IssueTestResultAttachmentRule,
     IssueTestResultAttachmentRuleExecutionMetadata,
 )
+from test_observer.data_access.setup import get_db
 
 from .models import (
-    IssueTestResultAttachmentRulePostRequest,
     IssueTestResultAttachmentRulePatchRequest,
+    IssueTestResultAttachmentRulePostRequest,
 )
-
 from .shared_models import MinimalIssueTestResultAttachmentRuleResponse
 
 router = APIRouter()
@@ -39,9 +36,7 @@ router = APIRouter()
 @router.post(
     "/{issue_id}/attachment-rules",
     response_model=MinimalIssueTestResultAttachmentRuleResponse,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_attachment_rule])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_attachment_rule])],
 )
 def post_attachment_rule(
     issue_id: int,
@@ -81,9 +76,7 @@ def post_attachment_rule(
 @router.patch(
     "/{issue_id}/attachment-rules/{attachment_rule_id}",
     response_model=MinimalIssueTestResultAttachmentRuleResponse,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_attachment_rule])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_attachment_rule])],
 )
 def patch_attachment_rule(
     issue_id: int,
@@ -96,9 +89,7 @@ def patch_attachment_rule(
     if attachment_rule is None:
         raise HTTPException(status_code=404, detail="Attachment rule not found")
     if attachment_rule.issue_id != issue_id:
-        raise HTTPException(
-            status_code=400, detail="Attachment rule not attached to given issue"
-        )
+        raise HTTPException(status_code=400, detail="Attachment rule not attached to given issue")
 
     # Modify the attachment rule
     if request.enabled is not None:
@@ -113,9 +104,7 @@ def patch_attachment_rule(
 @router.delete(
     "/{issue_id}/attachment-rules/{attachment_rule_id}",
     status_code=204,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_attachment_rule])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_attachment_rule])],
 )
 def delete_attachment_rule(
     issue_id: int,
@@ -127,9 +116,7 @@ def delete_attachment_rule(
     if attachment_rule is None:
         return
     if attachment_rule.issue_id != issue_id:
-        raise HTTPException(
-            status_code=400, detail="Attachment rule not attached to given issue"
-        )
+        raise HTTPException(status_code=400, detail="Attachment rule not attached to given issue")
 
     # Delete the attachment rule
     db.delete(attachment_rule)

@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2025 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,30 +24,36 @@ import '../spacing.dart';
 import 'test_results_table.dart';
 
 class TestResultsBody extends ConsumerStatefulWidget {
-  const TestResultsBody({super.key, required this.filters});
+  const TestResultsBody({
+    super.key,
+    required this.filters,
+    required this.scrollController,
+  });
 
   final TestResultsFilters filters;
+  final ScrollController scrollController;
 
   @override
   ConsumerState<TestResultsBody> createState() => _TestResultsBodyState();
 }
 
 class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
-  final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   TestResultsFilters? _lastProcessedFilters;
 
   @override
   void initState() {
     super.initState();
-
-    _scrollController.addListener(_onScroll);
+    widget.scrollController.addListener(_onScroll);
   }
 
   @override
   void didUpdateWidget(TestResultsBody oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Handle URI changes
+    if (oldWidget.scrollController != widget.scrollController) {
+      oldWidget.scrollController.removeListener(_onScroll);
+      widget.scrollController.addListener(_onScroll);
+    }
     if (oldWidget.filters != widget.filters) {
       _handleFiltersChange();
     }
@@ -56,13 +61,12 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    widget.scrollController.removeListener(_onScroll);
     super.dispose();
   }
 
   void _onScroll() {
-    if (_scrollController.position.extentAfter < 800) {
+    if (widget.scrollController.position.extentAfter < 800) {
       _maybeLoadMore();
     }
   }
@@ -185,33 +189,6 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     final count = data.count;
     final testResults = data.testResults;
 
-    if (testResults.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.only(
-            bottom: Spacing.level6 * 4,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.search_off, size: 64, color: Colors.grey),
-              const SizedBox(height: Spacing.level4),
-              Text(
-                'No results found',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: Spacing.level2),
-              const Text(
-                'Try adjusting your filters or search criteria.',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -232,28 +209,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
           ],
         ),
         const SizedBox(height: Spacing.level3),
-        Expanded(
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (ScrollNotification scrollInfo) {
-              final screenHeight = MediaQuery.of(context).size.height;
-              // Load more naturally when the scroll is at the bottom
-              if (scrollInfo.metrics.extentAfter < screenHeight * 0.5) {
-                _maybeLoadMore();
-              }
-              return false;
-            },
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                SliverToBoxAdapter(
-                  child: TestResultsTable(
-                    testResults: testResults,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        TestResultsTable(testResults: testResults),
       ],
     );
   }

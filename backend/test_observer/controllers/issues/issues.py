@@ -1,35 +1,34 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Security
-from fastapi import HTTPException
-from sqlalchemy import select, String
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from sqlalchemy import String, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     Issue,
 )
-from test_observer.data_access.setup import get_db
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.setup import get_db
 
+from . import attachment_rules, issue_attachments
+from .issue_url_parser import issue_source_project_key_from_url
 from .models import (
     IssuePatchRequest,
     IssuePutRequest,
@@ -37,9 +36,6 @@ from .models import (
     IssuesGetResponse,
     MinimalIssueResponse,
 )
-from .issue_url_parser import issue_source_project_key_from_url
-
-from . import issue_attachments, attachment_rules
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -81,9 +77,7 @@ def get_issues(
     ] = 0,
     q: Annotated[
         str | None,
-        Query(
-            description="Search term for issue source, project, keys, title, and status"
-        ),
+        Query(description="Search term for issue source, project, keys, title, and status"),
     ] = None,
     db: Session = Depends(get_db),
 ):
@@ -116,12 +110,19 @@ def get_issues(
     # Order by source, project, then key for consistent pagination
     stmt = stmt.order_by(Issue.source, Issue.project, Issue.key)
 
+    # Count total before pagination
+    count_query = select(func.count()).select_from(stmt.subquery())
+    total_count = db.execute(count_query).scalar() or 0
+
     # Apply limit and offset
     stmt = stmt.limit(limit).offset(offset)
 
     issues = db.execute(stmt).scalars().all()
     return IssuesGetResponse(
-        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues]
+        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues],
+        count=total_count,
+        limit=limit,
+        offset=offset,
     )
 
 

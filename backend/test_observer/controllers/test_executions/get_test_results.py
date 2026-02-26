@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
@@ -21,9 +19,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
+    IssueTestResultAttachment,
     TestExecution,
     TestResult,
-    IssueTestResultAttachment,
 )
 from test_observer.data_access.setup import get_db
 
@@ -51,9 +49,7 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
             .order_by(TestResult.id)
             .options(
                 selectinload(TestResult.test_case),
-                selectinload(TestResult.issue_attachments).selectinload(
-                    IssueTestResultAttachment.issue
-                ),
+                selectinload(TestResult.issue_attachments).selectinload(IssueTestResultAttachment.issue),
             )
         )
         .scalars()
@@ -65,9 +61,7 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
     test_results: list[TestResultResponse] = []
     for test_result in test_results_from_db:
         parsed_test_result = TestResultResponse.model_validate(test_result)
-        parsed_test_result.previous_results = previous_test_results.get(
-            test_result.test_case_id, []
-        )
+        parsed_test_result.previous_results = previous_test_results.get(test_result.test_case_id, [])
         test_results.append(parsed_test_result)
 
     return test_results

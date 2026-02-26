@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import csv
 from datetime import datetime, timedelta
@@ -30,8 +28,8 @@ from test_observer.data_access.models import (
     TestExecution,
 )
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 EXPECTED_COLUMN_NAMES = [
     "Artefact.family",
@@ -65,9 +63,7 @@ def test_get_testexecutions_report_in_range_with_test_events(
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build, environment, created_at=datetime.now()
-    )
+    test_execution = generator.gen_test_execution(artefact_build, environment, created_at=datetime.now())
     generator.gen_artefact_build_environment_review(artefact_build, environment)
     generator.gen_test_event(test_execution, "job_start")
     generator.gen_test_event(test_execution, "provision_fail")
@@ -93,9 +89,7 @@ def test_get_testexecutions_report_in_range_without_test_events(
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build, environment, created_at=datetime.now()
-    )
+    test_execution = generator.gen_test_execution(artefact_build, environment, created_at=datetime.now())
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
     response = make_authenticated_request(
@@ -113,17 +107,11 @@ def test_get_testexecutions_report_in_range_without_test_events(
     assert table[1] == _expected_report_row(test_execution, db_session=db_session)
 
 
-def test_get_testexecutions_report_out_range(
-    test_client: TestClient, generator: DataGenerator
-):
-    artefact = generator.gen_artefact(
-        StageName.beta, created_at=datetime.now() - timedelta(days=2)
-    )
+def test_get_testexecutions_report_out_range(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.beta, created_at=datetime.now() - timedelta(days=2))
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    generator.gen_test_execution(
-        artefact_build, environment, created_at=datetime.now() - timedelta(days=2)
-    )
+    generator.gen_test_execution(artefact_build, environment, created_at=datetime.now() - timedelta(days=2))
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
     response = make_authenticated_request(
@@ -157,10 +145,8 @@ def _expected_report_row(
     artefact = test_execution.artefact_build.artefact
     environment_review = db_session.execute(
         select(ArtefactBuildEnvironmentReview).where(
-            ArtefactBuildEnvironmentReview.artefact_build_id
-            == test_execution.artefact_build_id,
-            ArtefactBuildEnvironmentReview.environment_id
-            == test_execution.environment_id,
+            ArtefactBuildEnvironmentReview.artefact_build_id == test_execution.artefact_build_id,
+            ArtefactBuildEnvironmentReview.environment_id == test_execution.environment_id,
         )
     ).scalar_one()
 
@@ -190,9 +176,7 @@ def _expected_report_row(
             [
                 {
                     "event_name": test_event.event_name,
-                    "timestamp": test_event.timestamp.strftime("%Y-%m-%d %H:%M:%S:%f")[
-                        :-3
-                    ],
+                    "timestamp": test_event.timestamp.strftime("%Y-%m-%d %H:%M:%S:%f")[:-3],
                     "detail": test_event.detail,
                 }
                 for test_event in test_execution.test_events

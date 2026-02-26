@@ -1,23 +1,24 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from unittest.mock import Mock
+
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
@@ -25,7 +26,6 @@ from test_observer.external_apis.synchronizers.base import (
 from test_observer.external_apis.synchronizers.service import (
     IssueSynchronizationService,
 )
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
 
 
 def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
@@ -61,9 +61,7 @@ def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
     assert issue.last_synced_at is not None
 
     synced_at = (
-        issue.last_synced_at.replace(tzinfo=UTC)
-        if issue.last_synced_at.tzinfo is None
-        else issue.last_synced_at
+        issue.last_synced_at.replace(tzinfo=UTC) if issue.last_synced_at.tzinfo is None else issue.last_synced_at
     )
     assert before_sync <= synced_at <= after_sync
 

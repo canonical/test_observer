@@ -1,25 +1,23 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import csv
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, BackgroundTasks, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, Security
 from fastapi.responses import FileResponse
 from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
@@ -89,9 +87,7 @@ TEST_EXECUTIONS_REPORT_HEADERS = [
 ]
 
 
-def _get_test_executions_reports_query(
-    start_date: datetime, end_date: datetime
-) -> Select:
+def _get_test_executions_reports_query(start_date: datetime, end_date: datetime) -> Select:
     """
     Builds the query that retrieves the test executions based on the parameters set
     """
@@ -109,9 +105,7 @@ def _get_test_executions_reports_query(
                 ),
             ).label("testevents"),
         )
-        .where(
-            TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
-        )
+        .where(TestExecution.created_at >= start_date, TestExecution.created_at <= end_date)
         .join_from(TestEvent, TestExecution)
         .group_by(TestEvent.test_execution_id)
         .alias("test_executions_events")
@@ -135,9 +129,7 @@ def _get_test_executions_reports_query(
             TestExecution.id == test_events_subq.c.test_execution_id,
             isouter=True,
         )
-        .where(
-            TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
-        )
+        .where(TestExecution.created_at >= start_date, TestExecution.created_at <= end_date)
     )
 
 

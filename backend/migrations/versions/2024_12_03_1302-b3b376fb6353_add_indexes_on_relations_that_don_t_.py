@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Add indexes on relations that don't have them
 
@@ -91,9 +89,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(op.f("test_execution_environment_id_ix"), table_name="test_execution")
-    op.drop_index(
-        op.f("test_execution_artefact_build_id_ix"), table_name="test_execution"
-    )
+    op.drop_index(op.f("test_execution_artefact_build_id_ix"), table_name="test_execution")
     op.drop_index(op.f("test_event_test_execution_id_ix"), table_name="test_event")
     op.drop_index(op.f("stage_family_id_ix"), table_name="stage")
     op.drop_index(

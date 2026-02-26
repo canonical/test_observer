@@ -1,23 +1,22 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
+
+import shutil
+import subprocess
 
 from hatchling.metadata.plugin.interface import MetadataHookInterface
-
-import subprocess
-import shutil
 
 from test_observer.common.config import VERSION
 
@@ -46,9 +45,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
     """
     if shutil.which("git"):
         tags = (
-            subprocess.check_output(
-                ["git", "tag", "--list", "v*"], stderr=subprocess.DEVNULL
-            )
+            subprocess.check_output(["git", "tag", "--list", "v*"], stderr=subprocess.DEVNULL)
             .decode()
             .strip()
             .split("\n")
@@ -57,10 +54,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
         if tags and tags[0]:
             latest_tag = sorted(
                 tags,
-                key=lambda t: [
-                    int(n) if n.isdigit() else n
-                    for n in t.lstrip("v").replace("-", ".").split(".")
-                ],
+                key=lambda t: [int(n) if n.isdigit() else n for n in t.lstrip("v").replace("-", ".").split(".")],
             )[-1]
 
             # Get commit count since the tag
