@@ -75,7 +75,11 @@ def upgrade() -> None:
                     ),
                     {"family": family}
                 )
-                rule_id = result.fetchone()[0]
+                first_row = result.fetchone()
+                if first_row:
+                    rule_id = first_row[0]
+                else:
+                    raise Exception(f"Failed to create artefact matching rule for family '{family}'")
             
             # Check if association already exists
             existing_association = connection.execute(

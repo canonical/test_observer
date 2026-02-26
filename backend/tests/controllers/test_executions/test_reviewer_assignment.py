@@ -175,6 +175,7 @@ class TestReviewerAssignmentWithMatchingRules:
 
         # THEN the test execution's artefact is assigned to the expected user
         test_execution = db_session.get(TestExecution, result["id"])
+        assert test_execution is not None
         assignee = test_execution.artefact_build.artefact.assignee
         
         if not expected_user_names:
