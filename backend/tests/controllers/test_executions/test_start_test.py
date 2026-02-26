@@ -22,22 +22,22 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import (
     Artefact,
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
-    StageName,
-    SnapStage,
-    DebStage,
     CharmStage,
+    DebStage,
     ImageStage,
+    SnapStage,
+    StageName,
     TestExecutionStatus,
 )
-from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 type Execute = Callable[[dict[str, Any]], Response]
 
@@ -119,18 +119,14 @@ class TestFamilyIndependentTests:
         response = execute(start_request)
         self._assert_objects_created(start_request, response)
 
-    def test_requires_family_field(
-        self, execute: Execute, start_request: dict[str, Any]
-    ):
+    def test_requires_family_field(self, execute: Execute, start_request: dict[str, Any]):
         request = start_request.copy()
         request.pop("family")
         response = execute(request)
 
         assert response.status_code == 422
 
-    def test_reuses_test_execution(
-        self, execute: Execute, start_request: dict[str, Any]
-    ):
+    def test_reuses_test_execution(self, execute: Execute, start_request: dict[str, Any]):
         response = execute(start_request)
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
@@ -139,9 +135,7 @@ class TestFamilyIndependentTests:
         response = execute(start_request)
         assert response.json()["id"] == test_execution.id
 
-    def test_reuses_environment_and_build(
-        self, execute: Execute, start_request: dict[str, Any]
-    ):
+    def test_reuses_environment_and_build(self, execute: Execute, start_request: dict[str, Any]):
         response = execute(start_request)
         test_execution_1 = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution_1
@@ -170,9 +164,7 @@ class TestFamilyIndependentTests:
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
         # Create a team that can review all families
-        team = generator.gen_team(
-            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
-        )
+        team = generator.gen_team(name="reviewers", reviewer_families=["snap", "deb", "charm", "image"])
         # User is member of this team
         user = generator.gen_user(teams=[team])
 
@@ -197,9 +189,7 @@ class TestFamilyIndependentTests:
         assignee = test_execution.artefact_build.artefact.assignee
         assert assignee is None
 
-    def test_deletes_rerun_requests(
-        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
-    ):
+    def test_deletes_rerun_requests(self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]):
         response = execute(start_request)
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
@@ -233,9 +223,7 @@ class TestFamilyIndependentTests:
         self._db_session.refresh(test_execution)
         assert test_execution.rerun_request
 
-    def test_sets_initial_test_execution_status(
-        self, execute: Execute, start_request: dict[str, Any]
-    ):
+    def test_sets_initial_test_execution_status(self, execute: Execute, start_request: dict[str, Any]):
         response = execute({**start_request, "initial_status": "NOT_STARTED"})
 
         assert response.status_code == 200
@@ -247,17 +235,13 @@ class TestFamilyIndependentTests:
     def _set_db_session(self, db_session: Session) -> None:
         self._db_session = db_session
 
-    def _assert_objects_created(
-        self, request: dict[str, Any], response: Response
-    ) -> None:
+    def _assert_objects_created(self, request: dict[str, Any], response: Response) -> None:
         assert response.status_code == 200
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
         assert test_execution.ci_link == request["ci_link"]
         assert test_execution.test_plan.name == request["test_plan"]
-        assert test_execution.status == request.get(
-            "initial_status", TestExecutionStatus.IN_PROGRESS
-        )
+        assert test_execution.status == request.get("initial_status", TestExecutionStatus.IN_PROGRESS)
 
         environment = test_execution.environment
         assert environment.architecture == request["arch"]
@@ -369,9 +353,7 @@ def test_image_required_fields(execute: Execute, field: str):
     assert_fails_validation(response, field, "missing")
 
 
-def test_non_kernel_artefact_due_date(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
+def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute, generator: DataGenerator):
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
@@ -508,9 +490,7 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     assert response.status_code == 422
 
 
-def test_charm_assigned_to_charm_team_reviewer(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
+def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Charms should be assigned to reviewers whose teams can review charms"""
     # Create teams with different families
     charm_team = generator.gen_team(
@@ -544,9 +524,7 @@ def test_charm_assigned_to_charm_team_reviewer(
     assert assignee.id == charm_reviewer.id
 
 
-def test_snap_assigned_to_snap_team_reviewer(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
+def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Snaps should be assigned to reviewers whose teams can review snaps"""
     # Create teams with different families
     charm_team = generator.gen_team(
@@ -579,9 +557,7 @@ def test_snap_assigned_to_snap_team_reviewer(
     assert assignee.id == snap_reviewer.id
 
 
-def test_deb_assigned_to_deb_team_reviewer(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
+def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Debs should be assigned to reviewers whose teams can review debs"""
     # Create teams with different families
     charm_team = generator.gen_team(
@@ -614,9 +590,7 @@ def test_deb_assigned_to_deb_team_reviewer(
     assert assignee.id == deb_reviewer.id
 
 
-def test_image_assigned_to_image_team_reviewer(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
+def test_image_assigned_to_image_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Images should be assigned to reviewers whose teams can review images"""
     # Create teams with different families
     charm_team = generator.gen_team(
@@ -649,9 +623,7 @@ def test_image_assigned_to_image_team_reviewer(
     assert assignee.id == image_reviewer.id
 
 
-def test_no_ci_link_creates_new_test_execution_each_time(
-    execute: Execute, db_session: Session
-):
+def test_no_ci_link_creates_new_test_execution_each_time(execute: Execute, db_session: Session):
     """
     Test that when ci_link is None/missing, each call creates a NEW test execution
     rather than returning an existing one (which would appear random).

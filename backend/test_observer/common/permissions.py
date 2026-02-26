@@ -17,12 +17,13 @@ from enum import StrEnum, auto
 
 from fastapi import Depends, HTTPException
 from fastapi.security import SecurityScopes
+
+from test_observer.common.config import IGNORE_PERMISSIONS
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, User
 from test_observer.users.user_injection import get_current_user
-from test_observer.common.config import IGNORE_PERMISSIONS
 
 
 class Permission(StrEnum):

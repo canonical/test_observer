@@ -13,16 +13,18 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime, UTC
+import logging
 from collections.abc import Sequence
+from datetime import UTC, datetime
+
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
 )
 from test_observer.external_apis.synchronizers.models import SyncResults
-from test_observer.data_access.models import Issue
-from sqlalchemy.orm import Session
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +58,7 @@ class IssueSynchronizationService:
         """
         for synchronizer in self.synchronizers:
             if synchronizer.can_sync(issue):
-                logger.debug(
-                    f"Using {synchronizer.__class__.__name__} for issue {issue.id}"
-                )
+                logger.debug(f"Using {synchronizer.__class__.__name__} for issue {issue.id}")
                 result = synchronizer.sync_issue(issue, db)
 
                 # Update last_synced_at timestamp on success
@@ -68,12 +68,8 @@ class IssueSynchronizationService:
 
                 return result
 
-        logger.warning(
-            f"No synchronizer available for issue {issue.id} with URL: {issue.url}"
-        )
-        return SyncResult(
-            success=False, error=f"No synchronizer available for URL: {issue.url}"
-        )
+        logger.warning(f"No synchronizer available for issue {issue.id} with URL: {issue.url}")
+        return SyncResult(success=False, error=f"No synchronizer available for URL: {issue.url}")
 
     def sync_issues_batch(self, issues: Sequence[Issue], db: Session) -> SyncResults:
         """

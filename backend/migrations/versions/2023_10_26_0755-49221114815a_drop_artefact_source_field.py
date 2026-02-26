@@ -55,15 +55,9 @@ def downgrade() -> None:
     conn = op.get_bind()
     for artefact in conn.execute(sa.select(artefact_table)):
         source = {
-            k: getattr(artefact, k)
-            for k in ["track", "store", "series", "repo"]
-            if getattr(artefact, k) is not None
+            k: getattr(artefact, k) for k in ["track", "store", "series", "repo"] if getattr(artefact, k) is not None
         }
 
-        conn.execute(
-            sa.update(artefact_table)
-            .where(artefact_table.c.id == artefact.id)
-            .values(source=source)
-        )
+        conn.execute(sa.update(artefact_table).where(artefact_table.c.id == artefact.id).values(source=source))
 
     op.alter_column("artefact", "source", nullable=False)

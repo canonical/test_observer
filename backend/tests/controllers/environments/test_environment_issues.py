@@ -17,7 +17,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
-
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 

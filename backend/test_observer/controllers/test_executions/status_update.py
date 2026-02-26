@@ -35,9 +35,7 @@ router = APIRouter()
     "/{id}/status_update",
     dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
 )
-def put_status_update(
-    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
-):
+def put_status_update(id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
         id,
@@ -91,9 +89,7 @@ def get_status_update(id: int, db: Session = Depends(get_db)):
     "/{id}/status_update",
     dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
 )
-def post_status_update(
-    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
-):
+def post_status_update(id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
         id,

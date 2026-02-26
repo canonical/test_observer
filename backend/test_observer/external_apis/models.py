@@ -13,8 +13,9 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from pydantic import BaseModel
 from typing import Any
+
+from pydantic import BaseModel
 
 
 class IssueData(BaseModel):

@@ -57,12 +57,8 @@ def downgrade() -> None:
     op.create_index("ix_stage_name", "stage", ["name"], unique=False)
     op.drop_index(op.f("family_name_ix"), table_name="family")
     op.create_index("ix_family_name", "family", ["name"], unique=False)
-    op.drop_constraint(
-        op.f("environment_name_architecture_key"), "environment", type_="unique"
-    )
-    op.create_unique_constraint(
-        "unique_environment", "environment", ["name", "architecture"]
-    )
+    op.drop_constraint(op.f("environment_name_architecture_key"), "environment", type_="unique")
+    op.create_unique_constraint("unique_environment", "environment", ["name", "architecture"])
     op.drop_index(op.f("artefact_build_architecture_ix"), table_name="artefact_build")
     op.create_index(
         "ix_artefact_build_architecture",

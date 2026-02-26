@@ -14,9 +14,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
-
+from fastapi.responses import HTMLResponse, JSONResponse
 
 router: APIRouter = APIRouter()
 
@@ -41,13 +40,8 @@ async def custom_openapi(request: Request):
         # Add security scopes to OpenAPI schema
         for method in route.methods:
             method_lower = method.lower()
-            if (
-                route.path in openapi_schema["paths"]
-                and method_lower in openapi_schema["paths"][route.path]
-            ):
-                openapi_schema["paths"][route.path][method_lower]["x-permissions"] = (
-                    security_scopes
-                )
+            if route.path in openapi_schema["paths"] and method_lower in openapi_schema["paths"][route.path]:
+                openapi_schema["paths"][route.path][method_lower]["x-permissions"] = security_scopes
 
     return JSONResponse(openapi_schema)
 

@@ -21,9 +21,7 @@ from test_observer.data_access.models_enums import (
 
 def are_all_environments_approved(builds: list[ArtefactBuild]) -> bool:
     return all(
-        review.review_decision
-        and ArtefactBuildEnvironmentReviewDecision.REJECTED
-        not in review.review_decision
+        review.review_decision and ArtefactBuildEnvironmentReviewDecision.REJECTED not in review.review_decision
         for build in builds
         for review in build.environment_reviews
     )

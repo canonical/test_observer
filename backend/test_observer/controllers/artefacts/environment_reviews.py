@@ -37,32 +37,20 @@ router = APIRouter(tags=["environment-reviews"])
 @router.get(
     "/{artefact_id}/environment-reviews",
     response_model=list[ArtefactBuildEnvironmentReviewResponse],
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.view_environment_review])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_environment_review])],
 )
 def get_environment_reviews(
     artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(
-                ArtefactBuild.environment_reviews
-            )
-        )
+        ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     ),
 ):
-    return [
-        review
-        for build in artefact.latest_builds
-        for review in build.environment_reviews
-    ]
+    return [review for build in artefact.latest_builds for review in build.environment_reviews]
 
 
 @router.patch(
     "/{artefact_id}/environment-reviews/{review_id}",
     response_model=ArtefactBuildEnvironmentReviewResponse,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_environment_review])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_environment_review])],
 )
 def update_environment_review(
     artefact_id: int,

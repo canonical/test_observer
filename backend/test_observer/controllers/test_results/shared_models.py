@@ -22,8 +22,8 @@ from test_observer.common.constants import QueryValue
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 
 
@@ -35,14 +35,10 @@ class TestResultSearchFilters(BaseModel):
     test_cases: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
-    issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
-        default_factory=list
-    )
+    issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
     test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
-    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
-        default_factory=list
-    )
+    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     rerun_is_requested: bool | None = None
     execution_is_latest: bool | None = None
     from_date: datetime | None = None

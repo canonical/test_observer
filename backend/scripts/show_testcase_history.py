@@ -22,12 +22,8 @@ import re
 from aiohttp import ClientSession
 
 
-async def main(
-    submission_json_jenkins_url: str, cases: list[str], number_of_jenkins_jobs: int
-):
-    urls = get_previous_jenkins_submission_json_urls(
-        submission_json_jenkins_url, number_of_jenkins_jobs
-    )
+async def main(submission_json_jenkins_url: str, cases: list[str], number_of_jenkins_jobs: int):
+    urls = get_previous_jenkins_submission_json_urls(submission_json_jenkins_url, number_of_jenkins_jobs)
 
     async with ClientSession() as session:
         tasks = [fetch_json(url, session) for url in urls]
@@ -38,16 +34,13 @@ async def main(
         }
 
     builds_headings = " | ".join(
-        f"{extract_build_number_from_jenkins_submission_json_url(url): <4}"
-        for url in url_to_statuses
+        f"{extract_build_number_from_jenkins_submission_json_url(url): <4}" for url in url_to_statuses
     )
 
     print(f"{builds_headings} | case")
 
     for case in cases:
-        statuses = " | ".join(
-            str(statuses[case]) for statuses in url_to_statuses.values()
-        )
+        statuses = " | ".join(str(statuses[case]) for statuses in url_to_statuses.values())
         print(f"{statuses} | {case}")
 
 
@@ -61,9 +54,7 @@ def get_previous_jenkins_submission_json_urls(url: str, count: int) -> list[str]
         if build_number < 1:
             break
 
-        urls.append(
-            f"{build_url_prefix}{build_number}/artifact/artifacts/submission.json"
-        )
+        urls.append(f"{build_url_prefix}{build_number}/artifact/artifacts/submission.json")
 
     return urls
 
@@ -108,14 +99,11 @@ if __name__ == "__main__":
         description="Takes a jenkins url of a submission json, and a test case id."
         "Returns a string code showing the result of this test case in past runs",
     )
-    parser.add_argument(
-        "submission_json_jenkins_url", help="Jenkins URL of the latest submission json"
-    )
+    parser.add_argument("submission_json_jenkins_url", help="Jenkins URL of the latest submission json")
     parser.add_argument(
         "cases",
         nargs="+",
-        help="ids of the test cases you want to see the history for"
-        " (e.g. camera/detect bluetooth/detect)",
+        help="ids of the test cases you want to see the history for (e.g. camera/detect bluetooth/detect)",
     )
     parser.add_argument(
         "--number-of-jenkins-jobs",
@@ -125,6 +113,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    asyncio.run(
-        main(args.submission_json_jenkins_url, args.cases, args.number_of_jenkins_jobs)
-    )
+    asyncio.run(main(args.submission_json_jenkins_url, args.cases, args.number_of_jenkins_jobs))

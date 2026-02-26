@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from dataclasses import dataclass
+
 from test_observer.external_apis.synchronizers.base import SyncResult
 
 

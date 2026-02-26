@@ -16,9 +16,10 @@
 import logging
 from os import environ
 
-from celery import Celery, Task
+from celery import Celery
 
 from test_observer.data_access.setup import SessionLocal
+
 # from test_observer.external_apis.synchronizers.factory import (
 #     create_synchronization_service,
 # )
@@ -32,6 +33,7 @@ from test_observer.promotion.promoter import promote_artefacts
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
+
 # from test_observer.external_apis.synchronizers.config import SyncConfig
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"

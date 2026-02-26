@@ -14,7 +14,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import re
+
 from pydantic import HttpUrl
+
 from test_observer.data_access.models_enums import IssueSource
 
 

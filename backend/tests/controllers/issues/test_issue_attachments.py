@@ -15,10 +15,10 @@
 
 from fastapi.testclient import TestClient
 
-from tests.data_generator import DataGenerator
-from tests.conftest import make_authenticated_request
-from test_observer.data_access.models import FamilyName, IssueTestResultAttachmentRule
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models import FamilyName, IssueTestResultAttachmentRule
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 attach_endpoint = "/v1/issues/{id}/attach"
 detach_endpoint = "/v1/issues/{id}/detach"
@@ -65,9 +65,7 @@ def test_issue_attach_one(test_client: TestClient, generator: DataGenerator):
         attach_endpoint.format(id=issue.id),
         {"test_results": [test_result.id]},
     )
-    assert {
-        attachment.test_result.id for attachment in issue.test_result_attachments
-    } == {test_result.id}
+    assert {attachment.test_result.id for attachment in issue.test_result_attachments} == {test_result.id}
 
 
 def test_issue_attach_repeat(test_client: TestClient, generator: DataGenerator):
@@ -83,9 +81,7 @@ def test_issue_attach_repeat(test_client: TestClient, generator: DataGenerator):
         attach_endpoint.format(id=issue.id),
         {"test_results": [test_result.id]},
     )
-    assert {
-        attachment.test_result.id for attachment in issue.test_result_attachments
-    } == {test_result.id}
+    assert {attachment.test_result.id for attachment in issue.test_result_attachments} == {test_result.id}
 
 
 def test_issue_attach_multiple(test_client: TestClient, generator: DataGenerator):
@@ -101,9 +97,10 @@ def test_issue_attach_multiple(test_client: TestClient, generator: DataGenerator
         attach_endpoint.format(id=issue.id),
         {"test_results": [test_results[1].id]},
     )
-    assert {
-        attachment.test_result.id for attachment in issue.test_result_attachments
-    } == {test_results[0].id, test_results[1].id}
+    assert {attachment.test_result.id for attachment in issue.test_result_attachments} == {
+        test_results[0].id,
+        test_results[1].id,
+    }
 
 
 def test_issue_detach_one(test_client: TestClient, generator: DataGenerator):
@@ -156,22 +153,16 @@ def test_issue_detach_some(test_client: TestClient, generator: DataGenerator):
         detach_endpoint.format(id=issue.id),
         {"test_results": [test_results[0].id]},
     )
-    assert {
-        attachment.test_result.id for attachment in issue.test_result_attachments
-    } == {test_results[1].id}
+    assert {attachment.test_result.id for attachment in issue.test_result_attachments} == {test_results[1].id}
 
 
 def test_issue_attach_no_filters(test_client: TestClient, generator: DataGenerator):
     issue = generator.gen_issue()
-    resp = auth_post_bulk(
-        test_client, attach_endpoint.format(id=issue.id), {"test_results_filters": {}}
-    )
+    resp = auth_post_bulk(test_client, attach_endpoint.format(id=issue.id), {"test_results_filters": {}})
     assert resp.status_code == 422
 
 
-def test_issue_attach_with_filters_family(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_issue_attach_with_filters_family(test_client: TestClient, generator: DataGenerator):
     # Create two artefacts with different families
     artefact_snap = generator.gen_artefact(family=FamilyName.snap, name="snap1")
     artefact_charm = generator.gen_artefact(family=FamilyName.charm, name="charm1")
@@ -197,9 +188,7 @@ def test_issue_attach_with_filters_family(
     assert tr_charm.id not in attached_ids
 
 
-def test_issue_detach_with_filters_environment(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_issue_detach_with_filters_environment(test_client: TestClient, generator: DataGenerator):
     # Create two environments
     env1 = generator.gen_environment(name="laptop")
     env2 = generator.gen_environment(name="server")
@@ -229,19 +218,13 @@ def test_issue_detach_with_filters_environment(
     assert tr2.id in remaining_ids
 
 
-def test_issue_attach_with_filters_execution_metadata(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_issue_attach_with_filters_execution_metadata(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact()
     build = generator.gen_artefact_build(artefact)
     env = generator.gen_environment()
     tc = generator.gen_test_case()
-    te1 = generator.gen_test_execution(
-        build, env, execution_metadata={"hw": ["laptop"]}
-    )
-    te2 = generator.gen_test_execution(
-        build, env, execution_metadata={"hw": ["server"]}
-    )
+    te1 = generator.gen_test_execution(build, env, execution_metadata={"hw": ["laptop"]})
+    te2 = generator.gen_test_execution(build, env, execution_metadata={"hw": ["server"]})
     tr1 = generator.gen_test_result(tc, te1)
     tr2 = generator.gen_test_result(tc, te2)
     issue = generator.gen_issue()
@@ -257,9 +240,7 @@ def test_issue_attach_with_filters_execution_metadata(
     assert tr2.id not in attached_ids
 
 
-def test_issue_attach_with_filters_template_id_unique_names(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_issue_attach_with_filters_template_id_unique_names(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact()
     build = generator.gen_artefact_build(artefact)
     env = generator.gen_environment()
@@ -281,9 +262,7 @@ def test_issue_attach_with_filters_template_id_unique_names(
     assert tr2.id not in attached_ids
 
 
-def test_issue_detach_with_filters_template_id_unique_names(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_issue_detach_with_filters_template_id_unique_names(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact()
     build = generator.gen_artefact_build(artefact)
     env = generator.gen_environment()
@@ -311,9 +290,7 @@ def test_issue_detach_with_filters_template_id_unique_names(
     assert tr2.id in remaining_ids
 
 
-def test_issue_attach_with_filters_template_id_repeat(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_issue_attach_with_filters_template_id_repeat(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact()
     build = generator.gen_artefact_build(artefact)
     env = generator.gen_environment()
@@ -335,9 +312,7 @@ def test_issue_attach_with_filters_template_id_repeat(
     assert len(attached_ids) == 1
 
 
-def test_issue_attach_with_attachment_rule(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_issue_attach_with_attachment_rule(test_client: TestClient, generator: DataGenerator):
     """Test that attachment_rule_id is set in IssueTestResultAttachment."""
     # Generate test data
     test_result = gen_test_results(generator)[0]

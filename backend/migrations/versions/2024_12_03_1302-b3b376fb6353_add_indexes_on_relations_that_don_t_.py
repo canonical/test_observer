@@ -89,9 +89,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(op.f("test_execution_environment_id_ix"), table_name="test_execution")
-    op.drop_index(
-        op.f("test_execution_artefact_build_id_ix"), table_name="test_execution"
-    )
+    op.drop_index(op.f("test_execution_artefact_build_id_ix"), table_name="test_execution")
     op.drop_index(op.f("test_event_test_execution_id_ix"), table_name="test_event")
     op.drop_index(op.f("stage_family_id_ix"), table_name="stage")
     op.drop_index(

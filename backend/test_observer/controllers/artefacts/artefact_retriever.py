@@ -29,9 +29,7 @@ class ArtefactRetriever:
         self._options = options
 
     def __call__(self, artefact_id: int, db: Session = Depends(get_db)):
-        artefact = db.scalar(
-            select(Artefact).where(Artefact.id == artefact_id).options(*self._options)
-        )
+        artefact = db.scalar(select(Artefact).where(Artefact.id == artefact_id).options(*self._options))
         if artefact is None:
             msg = f"Artefact with id {artefact_id} not found"
             raise HTTPException(status_code=404, detail=msg)

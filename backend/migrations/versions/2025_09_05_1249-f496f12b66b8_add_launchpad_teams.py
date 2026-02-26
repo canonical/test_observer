@@ -21,9 +21,8 @@ Create Date: 2025-09-05 12:49:49.974922+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "f496f12b66b8"
@@ -46,17 +45,13 @@ def upgrade() -> None:
         "team_users_association",
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("team_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["team_id"], ["team.id"], name=op.f("team_users_association_team_id_fkey")
-        ),
+        sa.ForeignKeyConstraint(["team_id"], ["team.id"], name=op.f("team_users_association_team_id_fkey")),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["app_user.id"],
             name=op.f("team_users_association_user_id_fkey"),
         ),
-        sa.PrimaryKeyConstraint(
-            "user_id", "team_id", name=op.f("team_users_association_pkey")
-        ),
+        sa.PrimaryKeyConstraint("user_id", "team_id", name=op.f("team_users_association_pkey")),
     )
 
 

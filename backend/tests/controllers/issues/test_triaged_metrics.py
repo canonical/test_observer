@@ -16,11 +16,11 @@
 from fastapi.testclient import TestClient
 from prometheus_client import REGISTRY
 
-from tests.data_generator import DataGenerator
-from tests.conftest import make_authenticated_request
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import FamilyName
 from test_observer.data_access.models_enums import StageName
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def auth_post(test_client: TestClient, endpoint: str, json: dict):
@@ -35,16 +35,12 @@ def get_metric_value(metric_name: str, labels: dict) -> float:
     for metric in REGISTRY.collect():
         if metric.name == metric_name:
             for sample in metric.samples:
-                if sample.name == metric_name and all(
-                    sample.labels.get(k) == v for k, v in labels.items()
-                ):
+                if sample.name == metric_name and all(sample.labels.get(k) == v for k, v in labels.items()):
                     return sample.value
     return 0.0
 
 
-def test_triaged_metric_incremented_on_attach(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_triaged_metric_incremented_on_attach(test_client: TestClient, generator: DataGenerator):
     """
     Test that the triaged metric is incremented when an issue is attached
     to a test result.
@@ -61,9 +57,7 @@ def test_triaged_metric_incremented_on_attach(
     artefact_build = generator.gen_artefact_build(artefact)
     test_plan_name = "integration/provider:endpoint1/interface1/requirer:endpoint2"
     generator.gen_test_plan(name=test_plan_name)
-    test_execution = generator.gen_test_execution(
-        artefact_build, environment, test_plan=test_plan_name
-    )
+    test_execution = generator.gen_test_execution(artefact_build, environment, test_plan=test_plan_name)
     test_result = generator.gen_test_result(test_case, test_execution)
     issue = generator.gen_issue()
 
@@ -83,9 +77,7 @@ def test_triaged_metric_incremented_on_attach(
         "issue_project": issue.project,
         "issue_key": issue.key,
     }
-    initial_value = get_metric_value(
-        "test_observer_test_results_triaged", metric_labels
-    )
+    initial_value = get_metric_value("test_observer_test_results_triaged", metric_labels)
 
     # Attach the issue
     response = auth_post(
@@ -100,9 +92,7 @@ def test_triaged_metric_incremented_on_attach(
     assert new_value == initial_value + 1
 
 
-def test_triaged_metric_decremented_on_detach(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_triaged_metric_decremented_on_detach(test_client: TestClient, generator: DataGenerator):
     """
     Test that the triaged metric is decremented when an issue is detached
     from a test result.
@@ -119,9 +109,7 @@ def test_triaged_metric_decremented_on_detach(
     artefact_build = generator.gen_artefact_build(artefact)
     test_plan_name = "integration/provider:endpoint1/interface1/requirer:endpoint2"
     generator.gen_test_plan(name=test_plan_name)
-    test_execution = generator.gen_test_execution(
-        artefact_build, environment, test_plan=test_plan_name
-    )
+    test_execution = generator.gen_test_execution(artefact_build, environment, test_plan=test_plan_name)
     test_result = generator.gen_test_result(test_case, test_execution)
     issue = generator.gen_issue()
 
@@ -149,9 +137,7 @@ def test_triaged_metric_decremented_on_detach(
         "issue_project": issue.project,
         "issue_key": issue.key,
     }
-    value_after_attach = get_metric_value(
-        "test_observer_test_results_triaged", metric_labels
-    )
+    value_after_attach = get_metric_value("test_observer_test_results_triaged", metric_labels)
 
     # Detach the issue
     response = auth_post(
@@ -166,16 +152,12 @@ def test_triaged_metric_decremented_on_detach(
     assert new_value == value_after_attach - 1
 
 
-def test_triaged_metric_not_updated_for_non_charm_family(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_triaged_metric_not_updated_for_non_charm_family(test_client: TestClient, generator: DataGenerator):
     """Test that the triaged metric is not updated for non-charm families."""
     # Generate test data for snap family
     environment = generator.gen_environment()
     test_case = generator.gen_test_case()
-    artefact = generator.gen_artefact(
-        name="test-snap", family=FamilyName.snap, track="latest", stage=StageName.edge
-    )
+    artefact = generator.gen_artefact(name="test-snap", family=FamilyName.snap, track="latest", stage=StageName.edge)
     artefact_build = generator.gen_artefact_build(artefact)
     test_execution = generator.gen_test_execution(artefact_build, environment)
     test_result = generator.gen_test_result(test_case, test_execution)

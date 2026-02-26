@@ -14,22 +14,23 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query, Security
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
-from . import reported_issues
-from .models import EnvironmentsResponse
-
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
+    Artefact,
+    ArtefactBuild,
     Environment,
     TestExecution,
-    ArtefactBuild,
-    Artefact,
 )
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
+
+from . import reported_issues
+from .models import EnvironmentsResponse
 
 router = APIRouter(tags=["environments"])
 router.include_router(reported_issues.router)

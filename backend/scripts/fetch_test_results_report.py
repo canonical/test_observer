@@ -14,19 +14,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import argparse
-from collections import defaultdict
 import csv
 import io
 import logging
 import os
-import httpx
+from collections import defaultdict
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 
-from fastapi.testclient import TestClient
-
-
+import httpx
 import requests
+from fastapi.testclient import TestClient
 
 DATE_FORMAT = "%Y-%m-%d"
 TO_API_URL = os.environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
@@ -54,9 +52,7 @@ def _validate_date(date_str: str) -> datetime:
     try:
         return datetime.strptime(date_str, DATE_FORMAT)
     except ValueError as err:
-        raise argparse.ArgumentTypeError(
-            f"Date {date_str} is not in the correct format: {DATE_FORMAT}"
-        ) from err
+        raise argparse.ArgumentTypeError(f"Date {date_str} is not in the correct format: {DATE_FORMAT}") from err
 
 
 def _save_test_results_report_data(
@@ -78,9 +74,7 @@ def _read_test_results_report_data(date_string: str) -> Iterable[dict]:
         yield from csv.DictReader(file)
 
 
-def get_test_results_report_data(
-    date: datetime, client: TestClient | requests.Session
-) -> Iterable[dict]:
+def get_test_results_report_data(date: datetime, client: TestClient | requests.Session) -> Iterable[dict]:
     date_string = date.strftime(DATE_FORMAT)
     if os.path.exists(f"test-results-reports/{date_string}.csv"):
         logging.info(f"Test results report data for {date_string} already exists.")
@@ -126,9 +120,7 @@ def fetch_test_results_report(
     output_file: str,
     client: TestClient | requests.Session,
 ) -> None:
-    test_results_summary: dict = defaultdict(
-        lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy()
-    )
+    test_results_summary: dict = defaultdict(lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy())
 
     current_date = start_date
     while current_date <= end_date:
@@ -163,9 +155,7 @@ if __name__ == "__main__":
         epilog=example_usage,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(
-        "--start_date", help="Start date, format: YYYY-MM-DD", required=True, type=str
-    )
+    parser.add_argument("--start_date", help="Start date, format: YYYY-MM-DD", required=True, type=str)
     parser.add_argument(
         "--end_date",
         help="End date, format: YYYY-MM-DD",
@@ -186,15 +176,9 @@ if __name__ == "__main__":
     end_date = _validate_date(args.end_date)
 
     if start_date > end_date:
-        raise argparse.ArgumentTypeError(
-            f"Start date '{start_date}' must be before end date '{end_date}'"
-        )
+        raise argparse.ArgumentTypeError(f"Start date '{start_date}' must be before end date '{end_date}'")
 
     if os.path.exists(args.output_file):
-        raise argparse.ArgumentTypeError(
-            f"Output file '{args.output_file}' already exists"
-        )
+        raise argparse.ArgumentTypeError(f"Output file '{args.output_file}' already exists")
 
-    fetch_test_results_report(
-        start_date, end_date, args.output_file, requests.Session()
-    )
+    fetch_test_results_report(start_date, end_date, args.output_file, requests.Session())
