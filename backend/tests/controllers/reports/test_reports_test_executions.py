@@ -28,8 +28,8 @@ from test_observer.data_access.models import (
     TestExecution,
 )
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 EXPECTED_COLUMN_NAMES = [
     "Artefact.family",
@@ -63,9 +63,7 @@ def test_get_testexecutions_report_in_range_with_test_events(
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build, environment, created_at=datetime.now()
-    )
+    test_execution = generator.gen_test_execution(artefact_build, environment, created_at=datetime.now())
     generator.gen_artefact_build_environment_review(artefact_build, environment)
     generator.gen_test_event(test_execution, "job_start")
     generator.gen_test_event(test_execution, "provision_fail")
@@ -91,9 +89,7 @@ def test_get_testexecutions_report_in_range_without_test_events(
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build, environment, created_at=datetime.now()
-    )
+    test_execution = generator.gen_test_execution(artefact_build, environment, created_at=datetime.now())
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
     response = make_authenticated_request(
@@ -111,17 +107,11 @@ def test_get_testexecutions_report_in_range_without_test_events(
     assert table[1] == _expected_report_row(test_execution, db_session=db_session)
 
 
-def test_get_testexecutions_report_out_range(
-    test_client: TestClient, generator: DataGenerator
-):
-    artefact = generator.gen_artefact(
-        StageName.beta, created_at=datetime.now() - timedelta(days=2)
-    )
+def test_get_testexecutions_report_out_range(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.beta, created_at=datetime.now() - timedelta(days=2))
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
-    generator.gen_test_execution(
-        artefact_build, environment, created_at=datetime.now() - timedelta(days=2)
-    )
+    generator.gen_test_execution(artefact_build, environment, created_at=datetime.now() - timedelta(days=2))
     generator.gen_artefact_build_environment_review(artefact_build, environment)
 
     response = make_authenticated_request(
@@ -155,10 +145,8 @@ def _expected_report_row(
     artefact = test_execution.artefact_build.artefact
     environment_review = db_session.execute(
         select(ArtefactBuildEnvironmentReview).where(
-            ArtefactBuildEnvironmentReview.artefact_build_id
-            == test_execution.artefact_build_id,
-            ArtefactBuildEnvironmentReview.environment_id
-            == test_execution.environment_id,
+            ArtefactBuildEnvironmentReview.artefact_build_id == test_execution.artefact_build_id,
+            ArtefactBuildEnvironmentReview.environment_id == test_execution.environment_id,
         )
     ).scalar_one()
 
@@ -188,9 +176,7 @@ def _expected_report_row(
             [
                 {
                     "event_name": test_event.event_name,
-                    "timestamp": test_event.timestamp.strftime("%Y-%m-%d %H:%M:%S:%f")[
-                        :-3
-                    ],
+                    "timestamp": test_event.timestamp.strftime("%Y-%m-%d %H:%M:%S:%f")[:-3],
                     "detail": test_event.detail,
                 }
                 for test_event in test_execution.test_events

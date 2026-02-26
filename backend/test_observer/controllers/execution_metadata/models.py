@@ -13,11 +13,11 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from pydantic import BaseModel, RootModel, Field
-
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Annotated
+
+from pydantic import BaseModel, Field, RootModel
 
 from test_observer.data_access.models import TestExecutionMetadata
 

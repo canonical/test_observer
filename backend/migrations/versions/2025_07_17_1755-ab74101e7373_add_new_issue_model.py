@@ -21,9 +21,8 @@ Create Date: 2025-07-17 17:55:35.565545+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "ab74101e7373"
@@ -52,9 +51,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("issue_pkey")),
-        sa.UniqueConstraint(
-            "project", "source", "key", name=op.f("issue_project_source_key_key")
-        ),
+        sa.UniqueConstraint("project", "source", "key", name=op.f("issue_project_source_key_key")),
     )
 
 

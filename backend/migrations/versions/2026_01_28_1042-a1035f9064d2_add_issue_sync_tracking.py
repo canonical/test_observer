@@ -21,9 +21,8 @@ Create Date: 2026-01-28 10:42:17.613892+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "a1035f9064d2"
@@ -37,9 +36,7 @@ def upgrade() -> None:
     op.add_column("issue", sa.Column("last_synced_at", sa.DateTime(), nullable=True))
 
     # Add index for efficient querying
-    op.create_index(
-        "idx_issue_status_last_synced", "issue", ["status", "last_synced_at"]
-    )
+    op.create_index("idx_issue_status_last_synced", "issue", ["status", "last_synced_at"])
 
 
 def downgrade() -> None:

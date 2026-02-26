@@ -31,15 +31,9 @@ endpoint = "/reported-issues"
 @router.get(
     endpoint,
     response_model=list[EnvironmentReportedIssueResponse],
-    dependencies=[
-        Security(
-            permission_checker, scopes=[Permission.view_environment_reported_issue]
-        )
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_environment_reported_issue])],
 )
-def get_reported_issues(
-    is_confirmed: bool | None = None, db: Session = Depends(get_db)
-):
+def get_reported_issues(is_confirmed: bool | None = None, db: Session = Depends(get_db)):
     stmt = select(EnvironmentIssue)
     if is_confirmed is not None:
         stmt = stmt.where(EnvironmentIssue.is_confirmed == is_confirmed)
@@ -49,15 +43,9 @@ def get_reported_issues(
 @router.post(
     endpoint,
     response_model=EnvironmentReportedIssueResponse,
-    dependencies=[
-        Security(
-            permission_checker, scopes=[Permission.change_environment_reported_issue]
-        )
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_environment_reported_issue])],
 )
-def create_reported_issue(
-    request: EnvironmentReportedIssueRequest, db: Session = Depends(get_db)
-):
+def create_reported_issue(request: EnvironmentReportedIssueRequest, db: Session = Depends(get_db)):
     issue = EnvironmentIssue(
         environment_name=request.environment_name,
         url=request.url,
@@ -73,11 +61,7 @@ def create_reported_issue(
 @router.put(
     endpoint + "/{issue_id}",
     response_model=EnvironmentReportedIssueResponse,
-    dependencies=[
-        Security(
-            permission_checker, scopes=[Permission.change_environment_reported_issue]
-        )
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_environment_reported_issue])],
 )
 def update_reported_issue(
     issue_id: int,
@@ -93,11 +77,7 @@ def update_reported_issue(
 
 @router.delete(
     endpoint + "/{issue_id}",
-    dependencies=[
-        Security(
-            permission_checker, scopes=[Permission.change_environment_reported_issue]
-        )
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_environment_reported_issue])],
 )
 def delete_reported_issue(issue_id: int, db: Session = Depends(get_db)):
     db.delete(db.get(EnvironmentIssue, issue_id))

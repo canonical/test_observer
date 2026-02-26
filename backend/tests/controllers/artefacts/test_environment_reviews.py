@@ -22,8 +22,8 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     StageName,
 )
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_get_404_when_artefact_is_not_found(test_client: TestClient):
@@ -34,9 +34,7 @@ def test_get_404_when_artefact_is_not_found(test_client: TestClient):
     assert response.status_code == 404
 
 
-def test_get_no_environment_reviews_exist(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_no_environment_reviews_exist(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/artefacts/{a.id}/environment-reviews"),
@@ -45,9 +43,7 @@ def test_get_no_environment_reviews_exist(
     assert response.status_code == 200
 
 
-def test_get_with_two_environment_reviews(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_with_two_environment_reviews(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
@@ -94,9 +90,7 @@ def test_get_with_two_environment_reviews(
     ]
 
 
-def test_get_only_considers_latest_builds(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_only_considers_latest_builds(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab1 = generator.gen_artefact_build(a, revision=1)
     ab2 = generator.gen_artefact_build(a, revision=2)
@@ -137,14 +131,10 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
 
     update = {
         "review_comment": "Some Comment",
-        "review_decision": [
-            ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
-        ],
+        "review_decision": [ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST],
     }
     response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update
-        ),
+        lambda: test_client.patch(f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update),
         Permission.change_environment_review,
     )
 
@@ -166,9 +156,7 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
     }
 
 
-def test_requires_review_to_belong_to_artefact(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_requires_review_to_belong_to_artefact(test_client: TestClient, generator: DataGenerator):
     a1 = generator.gen_artefact(StageName.beta, name="a1")
     a2 = generator.gen_artefact(StageName.beta, name="a2")
     ab = generator.gen_artefact_build(a1)
@@ -176,18 +164,14 @@ def test_requires_review_to_belong_to_artefact(
     er = generator.gen_artefact_build_environment_review(ab, e)
 
     response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{a2.id}/environment-reviews/{er.id}", json={}
-        ),
+        lambda: test_client.patch(f"/v1/artefacts/{a2.id}/environment-reviews/{er.id}", json={}),
         Permission.change_environment_review,
     )
 
     assert response.status_code == 422
 
 
-def test_environment_review_fails_if_both_rejected_and_approved(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_environment_review_fails_if_both_rejected_and_approved(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
@@ -209,9 +193,7 @@ def test_environment_review_fails_if_both_rejected_and_approved(
     assert response.status_code == 422
 
 
-def test_environment_review_reset_review(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_environment_review_reset_review(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")

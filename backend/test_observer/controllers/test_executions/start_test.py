@@ -13,8 +13,8 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import date, timedelta
 import random
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
 from sqlalchemy import select
@@ -32,8 +32,8 @@ from test_observer.data_access.models import (
     User,
 )
 from test_observer.data_access.repository import (
-    get_or_create,
     create_test_execution_relevant_link,
+    get_or_create,
 )
 from test_observer.data_access.setup import get_db
 
@@ -83,12 +83,7 @@ class StartTestExecutionController:
             family_str = self.artefact.family.value
 
             users = (
-                self.db.execute(
-                    select(User)
-                    .join(User.teams)
-                    .where(Team.reviewer_families.any(family_str))
-                    .distinct()
-                )
+                self.db.execute(select(User).join(User.teams).where(Team.reviewer_families.any(family_str)).distinct())
                 .scalars()
                 .all()
             )

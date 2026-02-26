@@ -67,10 +67,7 @@ def initialize_all_metrics(db: Session) -> None:
         logger.info("Metrics initialization disabled (METRICS_INIT_ENABLED=false)")
         return
 
-    logger.info(
-        f"Initializing Prometheus metrics from database "
-        f"(last {METRICS_INIT_DAYS} days)..."
-    )
+    logger.info(f"Initializing Prometheus metrics from database (last {METRICS_INIT_DAYS} days)...")
 
     try:
         count_basic = _initialize_test_results_metric(db)
@@ -273,13 +270,11 @@ def _initialize_metadata_metrics(db: Session) -> int:
         .select_from(TestExecution)
         .join(
             test_execution_metadata_association_table,
-            TestExecution.id
-            == test_execution_metadata_association_table.c.test_execution_id,
+            TestExecution.id == test_execution_metadata_association_table.c.test_execution_id,
         )
         .join(
             TestExecutionMetadata,
-            test_execution_metadata_association_table.c.test_execution_metadata_id
-            == TestExecutionMetadata.id,
+            test_execution_metadata_association_table.c.test_execution_metadata_id == TestExecutionMetadata.id,
         )
         .join(TestResult, TestResult.test_execution_id == TestExecution.id)
         .join(TestCase, TestResult.test_case_id == TestCase.id)

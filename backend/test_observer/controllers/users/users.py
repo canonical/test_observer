@@ -14,8 +14,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Security, Query
-from sqlalchemy import select, func, or_, and_, ColumnElement
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -27,7 +28,6 @@ from test_observer.controllers.users.models import (
 from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
-
 
 router = APIRouter(tags=["users"])
 

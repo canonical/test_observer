@@ -54,9 +54,11 @@ test = [
 ]
 
 [tool.ruff]
+line-length = 120
 lint.select = [
     "E",
     "F",
+    "I",
     "B",
     "N",
     "UP",

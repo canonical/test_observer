@@ -13,20 +13,19 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import subprocess
 from collections.abc import Generator
 from datetime import datetime, timedelta
 from pathlib import Path
+
 import pytest
-import subprocess
+from fastapi.testclient import TestClient
 
 from scripts.fetch_test_results_report import fetch_test_results_report
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import override_permissions
-
-
-from fastapi.testclient import TestClient
+from tests.data_generator import DataGenerator
 
 
 def _run_script(input_params: list[str]) -> tuple[bytes, bytes]:
@@ -60,9 +59,7 @@ def test_fetch_test_results_report_missing_output_file():
 
 
 def test_fetch_test_results_report_invalid_start_date():
-    _, stderr = _run_script(
-        ["--start_date", "2023.01.15", "--output_file", "output.csv"]
-    )
+    _, stderr = _run_script(["--start_date", "2023.01.15", "--output_file", "output.csv"])
     assert "Date 2023.01.15 is not in the correct format: %Y-%m-%d" in str(stderr)
 
 

@@ -56,9 +56,7 @@ def promote_artefacts(db: Session):
                     if artefact_status is False
                 }
             )
-        return logger.info(
-            {"detail": "All the artefacts have been processed successfully"}
-        )
+        return logger.info({"detail": "All the artefacts have been processed successfully"})
     except Exception as exc:
         return logger.error({"detail": str(exc)})
 
@@ -146,9 +144,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
             name_found = True
 
             if deb_version == artefact.version:
-                highest_pocket_found = max(
-                    highest_pocket_found or StageName(pocket), StageName(pocket)
-                )
+                highest_pocket_found = max(highest_pocket_found or StageName(pocket), StageName(pocket))
 
     artefact.archived = name_found and not highest_pocket_found
     artefact.stage = highest_pocket_found or artefact.stage

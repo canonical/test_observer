@@ -13,21 +13,21 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime, timedelta
-from fastapi.testclient import TestClient
-import uuid
-import pytest
 import base64
+import uuid
+from datetime import datetime, timedelta
 
+import pytest
+from fastapi.testclient import TestClient
+
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
-from test_observer.common.permissions import Permission
-
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def generate_unique_name(prefix: str = "test") -> str:
@@ -38,9 +38,7 @@ def generate_unique_name(prefix: str = "test") -> str:
 class TestSearchTestResults:
     """Test class for the test results search endpoint"""
 
-    def test_search_all_test_results(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_all_test_results(self, test_client: TestClient, generator: DataGenerator):
         """Test searching all test results without filters"""
         # Create test data
         environment = generator.gen_environment()
@@ -60,9 +58,7 @@ class TestSearchTestResults:
         assert "count" in data
         assert "test_results" in data
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
     def test_search_limit_0(self, test_client: TestClient, generator: DataGenerator):
         """Test searching all test results with limit 0"""
@@ -86,16 +82,12 @@ class TestSearchTestResults:
         assert data["count"] >= 1
         assert len(data["test_results"]) == 0
 
-    def test_window_function_count_accuracy(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_window_function_count_accuracy(self, test_client: TestClient, generator: DataGenerator):
         """Test that window function count matches actual number of results"""
         # Create multiple test results with specific family
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("window_count"))
-        snap_artefact = generator.gen_artefact(
-            family=FamilyName.snap, name=generate_unique_name("snap_artefact")
-        )
+        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_artefact"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
 
@@ -121,16 +113,12 @@ class TestSearchTestResults:
         test_result_ids = {tr.id for tr in test_results}
         assert returned_ids.issubset(test_result_ids)
 
-    def test_pagination_consistency(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_pagination_consistency(self, test_client: TestClient, generator: DataGenerator):
         """Test that pagination works correctly with window function"""
         # Create test data
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("pagination"))
-        charm_artefact = generator.gen_artefact(
-            family=FamilyName.charm, name=generate_unique_name("charm_artefact")
-        )
+        charm_artefact = generator.gen_artefact(family=FamilyName.charm, name=generate_unique_name("charm_artefact"))
         artefact_build = generator.gen_artefact_build(charm_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
 
@@ -172,19 +160,13 @@ class TestSearchTestResults:
             FamilyName.charm,
         ],
     )
-    def test_search_by_family(
-        self, test_client: TestClient, generator: DataGenerator, family: FamilyName
-    ):
+    def test_search_by_family(self, test_client: TestClient, generator: DataGenerator, family: FamilyName):
         """the filter returns only results from the requested family"""
         env = generator.gen_environment()
-        tc = generator.gen_test_case(
-            name=generate_unique_name(f"family_{family.value}")
-        )
+        tc = generator.gen_test_case(name=generate_unique_name(f"family_{family.value}"))
 
         # Matching family
-        artefact_yes = generator.gen_artefact(
-            family=family, name=generate_unique_name(f"{family.value}_yes")
-        )
+        artefact_yes = generator.gen_artefact(family=family, name=generate_unique_name(f"{family.value}_yes"))
         ab_yes = generator.gen_artefact_build(artefact_yes)
         te_yes = generator.gen_test_execution(ab_yes, env)
         tr_yes = generator.gen_test_result(tc, te_yes)
@@ -198,9 +180,7 @@ class TestSearchTestResults:
         ]
 
         other_family = next(f for f in all_families if f != family)
-        artefact_no = generator.gen_artefact(
-            family=other_family, name=generate_unique_name(f"{other_family.value}_no")
-        )
+        artefact_no = generator.gen_artefact(family=other_family, name=generate_unique_name(f"{other_family.value}_no"))
         ab_no = generator.gen_artefact_build(artefact_no)
         te_no = generator.gen_test_execution(ab_no, env)
         tr_no = generator.gen_test_result(tc, te_no)
@@ -220,19 +200,13 @@ class TestSearchTestResults:
         assert tr_no.id not in ids
 
         # Every returned row belongs to the requested family
-        assert all(
-            tr["artefact"]["family"] == family.value for tr in data["test_results"]
-        )
+        assert all(tr["artefact"]["family"] == family.value for tr in data["test_results"])
 
-    def test_search_by_template_id(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_template_id(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by template ID"""
         # Create test data with specific template ID
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("template"), template_id="test_template_123"
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("template"), template_id="test_template_123")
         artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
         artefact_build = generator.gen_artefact_build(artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
@@ -246,9 +220,7 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
     def test_search_by_issues(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by issue IDs with window function"""
@@ -263,9 +235,7 @@ class TestSearchTestResults:
         # Create an issue and attach it to the test result via API
         issue = generator.gen_issue()
         attach_response = make_authenticated_request(
-            lambda: test_client.post(
-                f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}
-            ),
+            lambda: test_client.post(f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}),
             Permission.change_issue_attachment,
         )
         assert attach_response.status_code == 200
@@ -278,13 +248,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
-    def test_search_by_multiple_issues(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_multiple_issues(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by multiple issue IDs with window function"""
         # Create test data
         environment = generator.gen_environment()
@@ -317,9 +283,7 @@ class TestSearchTestResults:
         assert attach_response2.status_code == 200
 
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?issues={issue1.id}&issues={issue2.id}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?issues={issue1.id}&issues={issue2.id}"),
             Permission.view_test,
         )
 
@@ -330,9 +294,7 @@ class TestSearchTestResults:
         assert test_result1.id in result_ids
         assert test_result2.id in result_ids
 
-    def test_search_by_issues_any(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_issues_any(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by issues=any to find test results with any issue attached"""
         # Create test data
         environment = generator.gen_environment()
@@ -368,9 +330,7 @@ class TestSearchTestResults:
         # Should not include test result without issue
         assert test_result_without_issue.id not in result_ids
 
-    def test_search_by_issues_none(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_issues_none(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by issues=none (test results without any issue attached)"""
         # Create test data
         environment = generator.gen_environment()
@@ -416,9 +376,7 @@ class TestSearchTestResults:
             "issues=none&issues=1",
         ],
     )
-    def test_search_by_issues_conflicting_params(
-        self, test_client: TestClient, query_params: str
-    ):
+    def test_search_by_issues_conflicting_params(self, test_client: TestClient, query_params: str):
         """Test that using conflicting issue parameters returns an error"""
         response = make_authenticated_request(
             lambda: test_client.get(f"/v1/test-results?{query_params}"),
@@ -428,9 +386,7 @@ class TestSearchTestResults:
         # Should return 422 for conflicting parameters
         assert response.status_code == 422
 
-    def test_search_by_execution_metadata(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_execution_metadata(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by execution metadata"""
         # Create test data
         environment = generator.gen_environment()
@@ -492,8 +448,7 @@ class TestSearchTestResults:
             ),
         ]
         test_results = [
-            (expect, generator.gen_test_result(test_case, test_execution))
-            for expect, test_execution in test_executions
+            (expect, generator.gen_test_result(test_case, test_execution)) for expect, test_execution in test_executions
         ]
 
         category_b64 = base64.b64encode(b"category1").decode("utf-8")
@@ -518,16 +473,12 @@ class TestSearchTestResults:
         # Test with invalid execution metadata format (no colon after decoding)
         invalid_base64 = base64.b64encode(b"invalid-format").decode("utf-8")
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?execution_metadata={invalid_base64}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?execution_metadata={invalid_base64}"),
             Permission.view_test,
         )
         assert response.status_code == 422
 
-    def test_search_with_date_range(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_with_date_range(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by date range with window function"""
         # Create test data
         environment = generator.gen_environment()
@@ -542,9 +493,7 @@ class TestSearchTestResults:
         until_date = (datetime.now() + timedelta(days=1)).isoformat()
 
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?from_date={from_date}&until_date={until_date}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?from_date={from_date}&until_date={until_date}"),
             Permission.view_test,
         )
 
@@ -554,9 +503,7 @@ class TestSearchTestResults:
         assert "test_results" in data
         assert data["count"] >= 1
         # Verify our specific test result is included
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
     def test_search_with_future_date_range(self, test_client: TestClient):
         """Test filtering by future date range should return no results"""
@@ -565,9 +512,7 @@ class TestSearchTestResults:
         until_date = (datetime.now() + timedelta(days=2)).isoformat()
 
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?from_date={from_date}&until_date={until_date}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?from_date={from_date}&until_date={until_date}"),
             Permission.view_test,
         )
 
@@ -576,9 +521,7 @@ class TestSearchTestResults:
         assert data["count"] == 0
         assert data["test_results"] == []
 
-    def test_search_with_from_date_only(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_with_from_date_only(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering with only from_date parameter"""
         # Create test data first
         environment = generator.gen_environment()
@@ -602,9 +545,7 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
         # Test with from_date after the test execution was created
         from_date_after = (execution_created_at + timedelta(minutes=1)).isoformat()
@@ -617,19 +558,13 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         # Our test result should not be in results from after its creation
-        assert not any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert not any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
-    def test_search_with_until_date_only(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_with_until_date_only(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering with only until date parameter"""
         # Create test data first
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("until_date_only")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("until_date_only"))
         artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
         artefact_build = generator.gen_artefact_build(artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
@@ -650,9 +585,7 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
         # Test with until date before the test execution was created
         until_date_before = (execution_created_at - timedelta(minutes=1)).isoformat()
@@ -665,13 +598,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         # The test result should not be in results until before its creation
-        assert not any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert not any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
-    def test_search_date_boundary_conditions(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_date_boundary_conditions(self, test_client: TestClient, generator: DataGenerator):
         """Test date filtering boundary conditions"""
         # Create test data
         environment = generator.gen_environment()
@@ -690,28 +619,20 @@ class TestSearchTestResults:
         range_after = (execution_created_at + timedelta(minutes=1)).isoformat()
 
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?from_date={range_before}&until_date={range_after}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?from_date={range_before}&until_date={range_after}"),
             Permission.view_test,
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
-    def test_search_date_combined_with_other_filters(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_date_combined_with_other_filters(self, test_client: TestClient, generator: DataGenerator):
         """Test date filtering combined with other filter parameters"""
         # Create test data with specific family
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("date_combined"))
-        snap_artefact = generator.gen_artefact(
-            family=FamilyName.snap, name=generate_unique_name("snap_date")
-        )
+        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_date"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
@@ -726,33 +647,25 @@ class TestSearchTestResults:
 
         # Test combining date filter with family filter
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?families=snap&from_date={from_date}&until_date={until_date}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?families=snap&from_date={from_date}&until_date={until_date}"),
             Permission.view_test,
         )
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
         # Test that wrong family + date range excludes our result
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?families=deb&from_date={from_date}&until_date={until_date}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?families=deb&from_date={from_date}&until_date={until_date}"),
             Permission.view_test,
         )
 
         assert response.status_code == 200
         data = response.json()
         # Our snap test result should not be in deb family results
-        assert not any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert not any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
     def test_search_invalid_date_formats(self, test_client: TestClient):
         """Test handling of invalid date format parameters"""
@@ -776,9 +689,7 @@ class TestSearchTestResults:
         )
         assert response.status_code == 422
 
-    def test_search_multiple_filters_complex(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_multiple_filters_complex(self, test_client: TestClient, generator: DataGenerator):
         """Test combining multiple filters with window function"""
         # Create specific test data
         environment_name = "multi-filter-env"
@@ -789,9 +700,7 @@ class TestSearchTestResults:
             name=test_case_name,
             template_id="multi_filter_template",
         )
-        snap_artefact = generator.gen_artefact(
-            family=FamilyName.snap, name=generate_unique_name("snap_multi")
-        )
+        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_multi"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
@@ -799,9 +708,7 @@ class TestSearchTestResults:
         # Create an issue and attach it
         issue = generator.gen_issue(key="789")
         attach_response = make_authenticated_request(
-            lambda: test_client.post(
-                f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}
-            ),
+            lambda: test_client.post(f"/v1/issues/{issue.id}/attach", json={"test_results": [test_result.id]}),
             Permission.change_issue_attachment,
         )
         assert attach_response.status_code == 200
@@ -816,16 +723,12 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
     def test_search_invalid_family(self, test_client: TestClient):
         """Test handling invalid family name"""
@@ -839,9 +742,7 @@ class TestSearchTestResults:
     def test_search_no_results(self, test_client: TestClient):
         """Test search with filters that match no results"""
         response = make_authenticated_request(
-            lambda: test_client.get(
-                "/v1/test-results?test_cases=nonexistent_test_case_12345"
-            ),
+            lambda: test_client.get("/v1/test-results?test_cases=nonexistent_test_case_12345"),
             Permission.view_test,
         )
 
@@ -876,9 +777,7 @@ class TestSearchTestResults:
         actual_count = response_check.json()["count"]
 
         response = make_authenticated_request(
-            lambda: test_client.get(
-                "/v1/test-results?families=deb&limit=10&offset=1000"
-            ),
+            lambda: test_client.get("/v1/test-results?families=deb&limit=10&offset=1000"),
             Permission.view_test,
         )
         data = response.json()
@@ -886,18 +785,12 @@ class TestSearchTestResults:
         assert data["count"] == actual_count
         assert len(data["test_results"]) == 0
 
-    def test_case_insensitive_family_filtering(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_case_insensitive_family_filtering(self, test_client: TestClient, generator: DataGenerator):
         """Test that family filtering is case insensitive"""
         # Create a snap artefact
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("case_insensitive")
-        )
-        snap_artefact = generator.gen_artefact(
-            family=FamilyName.snap, name=generate_unique_name("snap_case")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("case_insensitive"))
+        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_case"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
@@ -911,13 +804,9 @@ class TestSearchTestResults:
         assert response.status_code == 200
         data = response.json()
         assert data["count"] >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
-    def test_ordering_consistency(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_ordering_consistency(self, test_client: TestClient, generator: DataGenerator):
         """Test that results are consistently ordered by creation date desc"""
         # Create test data with different creation times
         environment = generator.gen_environment()
@@ -945,26 +834,20 @@ class TestSearchTestResults:
         if len(data["test_results"]) >= 2:
             # Find our test results in the response
             our_results = [
-                tr
-                for tr in data["test_results"]
-                if tr["test_result"]["id"] in [test_result1.id, test_result2.id]
+                tr for tr in data["test_results"] if tr["test_result"]["id"] in [test_result1.id, test_result2.id]
             ]
 
             # Should have both results
             assert len(our_results) == 2
 
-    def test_search_by_artefact_name(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_artefact_name(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by artefact name"""
         # Create test data with specific artefact names
         unique_marker = uuid.uuid4().hex[:8]
         artefact_name = f"test_artefact_{unique_marker}"
 
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("artefact_filter")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("artefact_filter"))
         artefact = generator.gen_artefact(name=artefact_name)
         artefact_build = generator.gen_artefact_build(artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
@@ -991,9 +874,7 @@ class TestSearchTestResults:
         # Should not include other artefact's result
         assert other_result.id not in result_ids
 
-    def test_search_by_multiple_artefacts(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_multiple_artefacts(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by multiple artefact names"""
         unique_marker = uuid.uuid4().hex[:8]
 
@@ -1019,9 +900,7 @@ class TestSearchTestResults:
 
         # Search with multiple artefacts
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?artefacts={artefact1.name}&artefacts={artefact2.name}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?artefacts={artefact1.name}&artefacts={artefact2.name}"),
             Permission.view_test,
         )
 
@@ -1035,9 +914,7 @@ class TestSearchTestResults:
         # Should not include third artefact's result
         assert result3.id not in result_ids
 
-    def test_search_artefacts_combined_with_other_filters(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_artefacts_combined_with_other_filters(self, test_client: TestClient, generator: DataGenerator):
         """Test combining artefact filter with other filters"""
         unique_marker = uuid.uuid4().hex[:8]
 
@@ -1059,9 +936,7 @@ class TestSearchTestResults:
 
         # Search with both artefact and environment filters
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?artefacts={artefact_name}&environments={env_name}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?artefacts={artefact_name}&environments={env_name}"),
             Permission.view_test,
         )
 
@@ -1073,29 +948,21 @@ class TestSearchTestResults:
         assert test_result.id in result_ids
         assert other_result.id not in result_ids
 
-    def test_search_by_artefact_is_archived_true(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_artefact_is_archived_true(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering for archived artefacts only"""
         unique_marker = uuid.uuid4().hex[:8]
 
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name(f"archived_{unique_marker}")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name(f"archived_{unique_marker}"))
 
         # Create archived artefact with test result
-        archived_artefact = generator.gen_artefact(
-            name=f"archived_artefact_{unique_marker}", archived=True
-        )
+        archived_artefact = generator.gen_artefact(name=f"archived_artefact_{unique_marker}", archived=True)
         archived_build = generator.gen_artefact_build(archived_artefact)
         archived_execution = generator.gen_test_execution(archived_build, environment)
         archived_result = generator.gen_test_result(test_case, archived_execution)
 
         # Create non-archived artefact with test result
-        active_artefact = generator.gen_artefact(
-            name=f"active_artefact_{unique_marker}", archived=False
-        )
+        active_artefact = generator.gen_artefact(name=f"active_artefact_{unique_marker}", archived=False)
         active_build = generator.gen_artefact_build(active_artefact)
         active_execution = generator.gen_test_execution(active_build, environment)
         active_result = generator.gen_test_result(test_case, active_execution)
@@ -1118,29 +985,21 @@ class TestSearchTestResults:
         # Verify all returned results are from archived artefacts
         assert all(tr["artefact"]["archived"] is True for tr in data["test_results"])
 
-    def test_search_by_artefact_is_archived_false(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_artefact_is_archived_false(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering for non-archived artefacts only"""
         unique_marker = uuid.uuid4().hex[:8]
 
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name(f"not_archived_{unique_marker}")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name(f"not_archived_{unique_marker}"))
 
         # Create archived artefact with test result
-        archived_artefact = generator.gen_artefact(
-            name=f"archived_artefact_{unique_marker}", archived=True
-        )
+        archived_artefact = generator.gen_artefact(name=f"archived_artefact_{unique_marker}", archived=True)
         archived_build = generator.gen_artefact_build(archived_artefact)
         archived_execution = generator.gen_test_execution(archived_build, environment)
         archived_result = generator.gen_test_result(test_case, archived_execution)
 
         # Create non-archived artefact with test result
-        active_artefact = generator.gen_artefact(
-            name=f"active_artefact_{unique_marker}", archived=False
-        )
+        active_artefact = generator.gen_artefact(name=f"active_artefact_{unique_marker}", archived=False)
         active_build = generator.gen_artefact_build(active_artefact)
         active_execution = generator.gen_test_execution(active_build, environment)
         active_result = generator.gen_test_result(test_case, active_execution)
@@ -1163,9 +1022,7 @@ class TestSearchTestResults:
         # Verify all returned results are from non-archived artefacts
         assert all(tr["artefact"]["archived"] is False for tr in data["test_results"])
 
-    def test_search_without_artefact_is_archived_filter(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_without_artefact_is_archived_filter(self, test_client: TestClient, generator: DataGenerator):
         """
         Test that without the artefact_is_archived filter,
         both archived and active artefacts are returned
@@ -1173,22 +1030,16 @@ class TestSearchTestResults:
         unique_marker = uuid.uuid4().hex[:8]
 
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name(f"no_filter_{unique_marker}")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name(f"no_filter_{unique_marker}"))
 
         # Create archived artefact with test result
-        archived_artefact = generator.gen_artefact(
-            name=f"archived_artefact_{unique_marker}", archived=True
-        )
+        archived_artefact = generator.gen_artefact(name=f"archived_artefact_{unique_marker}", archived=True)
         archived_build = generator.gen_artefact_build(archived_artefact)
         archived_execution = generator.gen_test_execution(archived_build, environment)
         archived_result = generator.gen_test_result(test_case, archived_execution)
 
         # Create non-archived artefact with test result
-        active_artefact = generator.gen_artefact(
-            name=f"active_artefact_{unique_marker}", archived=False
-        )
+        active_artefact = generator.gen_artefact(name=f"active_artefact_{unique_marker}", archived=False)
         active_build = generator.gen_artefact_build(active_artefact)
         active_execution = generator.gen_test_execution(active_build, environment)
         active_result = generator.gen_test_result(test_case, active_execution)
@@ -1215,9 +1066,7 @@ class TestSearchTestResults:
         artefact_name = f"test_artefact_{unique_marker}"
 
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name(f"combined_{unique_marker}")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name(f"combined_{unique_marker}"))
 
         # Create archived artefact with the specific name
         archived_artefact = generator.gen_artefact(name=artefact_name, archived=True)
@@ -1226,26 +1075,20 @@ class TestSearchTestResults:
         archived_result = generator.gen_test_result(test_case, archived_execution)
 
         # Create another archived artefact with different name
-        other_archived = generator.gen_artefact(
-            name=f"other_archived_{unique_marker}", archived=True
-        )
+        other_archived = generator.gen_artefact(name=f"other_archived_{unique_marker}", archived=True)
         other_build = generator.gen_artefact_build(other_archived)
         other_execution = generator.gen_test_execution(other_build, environment)
         other_result = generator.gen_test_result(test_case, other_execution)
 
         # Create non-archived artefact with the same name
-        active_artefact = generator.gen_artefact(
-            name=f"{artefact_name}_active", archived=False
-        )
+        active_artefact = generator.gen_artefact(name=f"{artefact_name}_active", archived=False)
         active_build = generator.gen_artefact_build(active_artefact)
         active_execution = generator.gen_test_execution(active_build, environment)
         active_result = generator.gen_test_result(test_case, active_execution)
 
         # Search for archived artefacts with specific name
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?artefact_is_archived=true&artefacts={artefact_name}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?artefact_is_archived=true&artefacts={artefact_name}"),
             Permission.view_test,
         )
 
@@ -1276,9 +1119,7 @@ class TestSearchTestResults:
     ):
         """The filter returns only results with the requested status"""
         env = generator.gen_environment()
-        tc = generator.gen_test_case(
-            name=generate_unique_name(f"status_{status.value}")
-        )
+        tc = generator.gen_test_case(name=generate_unique_name(f"status_{status.value}"))
         artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
         ab = generator.gen_artefact_build(artefact)
         te = generator.gen_test_execution(ab, env)
@@ -1288,15 +1129,10 @@ class TestSearchTestResults:
 
         # Create test results with other statuses
         other_statuses = [s for s in TestResultStatus if s != status]
-        tr_no_list = [
-            generator.gen_test_result(tc, te, status=other_status)
-            for other_status in other_statuses
-        ]
+        tr_no_list = [generator.gen_test_result(tc, te, status=other_status) for other_status in other_statuses]
 
         resp = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?test_result_statuses={status.value}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?test_result_statuses={status.value}"),
             Permission.view_test,
         )
         assert resp.status_code == 200
@@ -1311,13 +1147,9 @@ class TestSearchTestResults:
             assert tr_no.id not in ids
 
         # Every returned row has the requested status
-        assert all(
-            tr["test_result"]["status"] == status.value for tr in data["test_results"]
-        )
+        assert all(tr["test_result"]["status"] == status.value for tr in data["test_results"])
 
-    def test_search_by_multiple_test_result_statuses(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_multiple_test_result_statuses(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by multiple test result statuses"""
         env = generator.gen_environment()
         tc = generator.gen_test_case(name=generate_unique_name("multi_status"))
@@ -1352,8 +1184,7 @@ class TestSearchTestResults:
 
         # Every returned row has one of the requested statuses
         assert all(
-            tr["test_result"]["status"]
-            in [TestResultStatus.PASSED.value, TestResultStatus.FAILED.value]
+            tr["test_result"]["status"] in [TestResultStatus.PASSED.value, TestResultStatus.FAILED.value]
             for tr in data["test_results"]
         )
 
@@ -1376,9 +1207,7 @@ class TestSearchTestResults:
     ):
         """The filter returns only results with the requested execution status"""
         env = generator.gen_environment()
-        tc = generator.gen_test_case(
-            name=generate_unique_name(f"exec_status_{status.value}")
-        )
+        tc = generator.gen_test_case(name=generate_unique_name(f"exec_status_{status.value}"))
         artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
         ab = generator.gen_artefact_build(artefact)
 
@@ -1395,9 +1224,7 @@ class TestSearchTestResults:
             tr_no_list.append(tr_no)
 
         resp = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?test_execution_statuses={status.value}"
-            ),
+            lambda: test_client.get(f"/v1/test-results?test_execution_statuses={status.value}"),
             Permission.view_test,
         )
         assert resp.status_code == 200
@@ -1412,14 +1239,9 @@ class TestSearchTestResults:
             assert tr_no.id not in ids
 
         # Every returned row has the requested execution status
-        assert all(
-            tr["test_execution"]["status"] == status.value
-            for tr in data["test_results"]
-        )
+        assert all(tr["test_execution"]["status"] == status.value for tr in data["test_results"])
 
-    def test_search_by_multiple_test_execution_statuses(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_by_multiple_test_execution_statuses(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by multiple test execution statuses"""
         env = generator.gen_environment()
         tc = generator.gen_test_case(name=generate_unique_name("multi_exec_status"))
@@ -1427,19 +1249,13 @@ class TestSearchTestResults:
         ab = generator.gen_artefact_build(artefact)
 
         # Create test executions with different statuses
-        te_passed = generator.gen_test_execution(
-            ab, env, status=TestExecutionStatus.PASSED
-        )
+        te_passed = generator.gen_test_execution(ab, env, status=TestExecutionStatus.PASSED)
         tr_passed = generator.gen_test_result(tc, te_passed)
 
-        te_failed = generator.gen_test_execution(
-            ab, env, status=TestExecutionStatus.FAILED
-        )
+        te_failed = generator.gen_test_execution(ab, env, status=TestExecutionStatus.FAILED)
         tr_failed = generator.gen_test_result(tc, te_failed)
 
-        te_not_started = generator.gen_test_execution(
-            ab, env, status=TestExecutionStatus.NOT_STARTED
-        )
+        te_not_started = generator.gen_test_execution(ab, env, status=TestExecutionStatus.NOT_STARTED)
         tr_not_started = generator.gen_test_result(tc, te_not_started)
 
         # Query for PASSED and FAILED
@@ -1464,14 +1280,11 @@ class TestSearchTestResults:
 
         # Every returned row has one of the requested execution statuses
         assert all(
-            tr["test_execution"]["status"]
-            in [TestExecutionStatus.PASSED.value, TestExecutionStatus.FAILED.value]
+            tr["test_execution"]["status"] in [TestExecutionStatus.PASSED.value, TestExecutionStatus.FAILED.value]
             for tr in data["test_results"]
         )
 
-    def test_search_combined_result_and_execution_statuses(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_search_combined_result_and_execution_statuses(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by both test result and test execution statuses"""
         env = generator.gen_environment()
         tc = generator.gen_test_case(name=generate_unique_name("combined_statuses"))
@@ -1480,30 +1293,18 @@ class TestSearchTestResults:
 
         # Create combinations of result and execution statuses
         # Match both filters
-        te_passed = generator.gen_test_execution(
-            ab, env, status=TestExecutionStatus.PASSED
-        )
-        tr_passed_passed = generator.gen_test_result(
-            tc, te_passed, status=TestResultStatus.PASSED
-        )
+        te_passed = generator.gen_test_execution(ab, env, status=TestExecutionStatus.PASSED)
+        tr_passed_passed = generator.gen_test_result(tc, te_passed, status=TestResultStatus.PASSED)
 
         # Match execution status but not result status
-        tr_failed_passed = generator.gen_test_result(
-            tc, te_passed, status=TestResultStatus.FAILED
-        )
+        tr_failed_passed = generator.gen_test_result(tc, te_passed, status=TestResultStatus.FAILED)
 
         # Match result status but not execution status
-        te_failed = generator.gen_test_execution(
-            ab, env, status=TestExecutionStatus.FAILED
-        )
-        tr_passed_failed = generator.gen_test_result(
-            tc, te_failed, status=TestResultStatus.PASSED
-        )
+        te_failed = generator.gen_test_execution(ab, env, status=TestExecutionStatus.FAILED)
+        tr_passed_failed = generator.gen_test_result(tc, te_failed, status=TestResultStatus.PASSED)
 
         # Match neither
-        tr_failed_failed = generator.gen_test_result(
-            tc, te_failed, status=TestResultStatus.FAILED
-        )
+        tr_failed_failed = generator.gen_test_result(tc, te_failed, status=TestResultStatus.FAILED)
 
         # Query for PASSED result status and PASSED execution status
         resp = make_authenticated_request(
@@ -1533,9 +1334,7 @@ class TestSearchTestResults:
             for tr in data["test_results"]
         )
 
-    def test_pagination_metadata(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_pagination_metadata(self, test_client: TestClient, generator: DataGenerator):
         """count reflects total results, limit and offset echo back the used values"""
         unique_marker = uuid.uuid4().hex[:8]
         environment = generator.gen_environment()
@@ -1547,9 +1346,7 @@ class TestSearchTestResults:
             generator.gen_test_result(test_case, test_execution)
 
         response = make_authenticated_request(
-            lambda: test_client.get(
-                f"/v1/test-results?artefacts={artefact.name}&limit=2&offset=1"
-            ),
+            lambda: test_client.get(f"/v1/test-results?artefacts={artefact.name}&limit=2&offset=1"),
             Permission.view_test,
         )
 
@@ -1573,15 +1370,11 @@ class TestWindowFunctionSpecific:
 
         assert response.status_code == 422
 
-    def test_window_function_single_result(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_window_function_single_result(self, test_client: TestClient, generator: DataGenerator):
         """Test window function with exactly one result"""
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("single_result"))
-        image_artefact = generator.gen_artefact(
-            family=FamilyName.image, name=generate_unique_name("image_single")
-        )
+        image_artefact = generator.gen_artefact(family=FamilyName.image, name=generate_unique_name("image_single"))
         artefact_build = generator.gen_artefact_build(image_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
@@ -1595,13 +1388,9 @@ class TestWindowFunctionSpecific:
         data = response.json()
         assert data["count"] >= 1
         assert len(data["test_results"]) >= 1
-        assert any(
-            tr["test_result"]["id"] == test_result.id for tr in data["test_results"]
-        )
+        assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
-    def test_window_function_pagination_edge_cases(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_window_function_pagination_edge_cases(self, test_client: TestClient, generator: DataGenerator):
         """Test window function with various pagination edge cases"""
         # Create test data
         environment = generator.gen_environment()
@@ -1633,16 +1422,12 @@ class TestWindowFunctionSpecific:
         data = response.json()
         assert len(data["test_results"]) <= data["count"]
 
-    def test_filter_by_rerun_is_requested_true(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_by_rerun_is_requested_true(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering test results by rerun_is_requested=true"""
         # Create test data
         env1 = generator.gen_environment(name=generate_unique_name("env1"))
         env2 = generator.gen_environment(name=generate_unique_name("env2"))
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("rerun_requested")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("rerun_requested"))
         artefact = generator.gen_artefact(name=generate_unique_name("rerun_artefact"))
         artefact_build = generator.gen_artefact_build(artefact)
 
@@ -1667,19 +1452,13 @@ class TestWindowFunctionSpecific:
         assert tr_with_rerun.id in result_ids
         assert tr_without_rerun.id not in result_ids
 
-    def test_filter_by_rerun_is_requested_false(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_by_rerun_is_requested_false(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering test results by rerun_is_requested=false"""
         # Create test data
         env1 = generator.gen_environment(name=generate_unique_name("env1"))
         env2 = generator.gen_environment(name=generate_unique_name("env2"))
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("no_rerun_requested")
-        )
-        artefact = generator.gen_artefact(
-            name=generate_unique_name("no_rerun_artefact")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("no_rerun_requested"))
+        artefact = generator.gen_artefact(name=generate_unique_name("no_rerun_artefact"))
         artefact_build = generator.gen_artefact_build(artefact)
 
         # Create a test execution with rerun request (in env1)
@@ -1703,9 +1482,7 @@ class TestWindowFunctionSpecific:
         assert tr_without_rerun.id in result_ids
         assert tr_with_rerun.id not in result_ids
 
-    def test_filter_by_execution_is_latest_true(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_by_execution_is_latest_true(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering test results by execution_is_latest=true"""
         # Create test data
         environment = generator.gen_environment()
@@ -1736,18 +1513,12 @@ class TestWindowFunctionSpecific:
         assert newer_result.id in result_ids
         assert older_result.id not in result_ids
 
-    def test_filter_by_execution_is_latest_false(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_by_execution_is_latest_false(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering test results by execution_is_latest=false"""
         # Create test data
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("not_latest_exec")
-        )
-        artefact = generator.gen_artefact(
-            name=generate_unique_name("not_latest_artefact")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("not_latest_exec"))
+        artefact = generator.gen_artefact(name=generate_unique_name("not_latest_artefact"))
         artefact_build = generator.gen_artefact_build(artefact)
 
         # Create an older test execution
@@ -1773,20 +1544,14 @@ class TestWindowFunctionSpecific:
         assert older_result.id in result_ids
         assert newer_result.id not in result_ids
 
-    def test_filter_combination_rerun_and_latest(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_combination_rerun_and_latest(self, test_client: TestClient, generator: DataGenerator):
         """Test combining rerun_is_requested and execution_is_latest filters"""
         # Create test data
         env1 = generator.gen_environment(name=generate_unique_name("env1"))
         env2 = generator.gen_environment(name=generate_unique_name("env2"))
         env3 = generator.gen_environment(name=generate_unique_name("env3"))
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("combined_filters")
-        )
-        artefact = generator.gen_artefact(
-            name=generate_unique_name("combined_artefact")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("combined_filters"))
+        artefact = generator.gen_artefact(name=generate_unique_name("combined_artefact"))
         artefact_build = generator.gen_artefact_build(artefact)
 
         # Create latest execution with rerun requested (env1)
@@ -1806,15 +1571,11 @@ class TestWindowFunctionSpecific:
 
         # Create latest execution without rerun in env3
         latest_without_rerun = generator.gen_test_execution(artefact_build, env3)
-        tr_latest_without_rerun = generator.gen_test_result(
-            test_case, latest_without_rerun
-        )
+        tr_latest_without_rerun = generator.gen_test_result(test_case, latest_without_rerun)
 
         # Search for results with rerun requested AND latest execution
         response = make_authenticated_request(
-            lambda: test_client.get(
-                "/v1/test-results?rerun_is_requested=true&execution_is_latest=true"
-            ),
+            lambda: test_client.get("/v1/test-results?rerun_is_requested=true&execution_is_latest=true"),
             Permission.view_test,
         )
 
@@ -1830,29 +1591,19 @@ class TestWindowFunctionSpecific:
         # Should NOT include latest without rerun (env3)
         assert tr_latest_without_rerun.id not in result_ids
 
-    def test_execution_is_latest_different_test_plans(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_execution_is_latest_different_test_plans(self, test_client: TestClient, generator: DataGenerator):
         """Test that execution_is_latest considers test plan in grouping"""
         # Create test data
         environment = generator.gen_environment()
-        test_case = generator.gen_test_case(
-            name=generate_unique_name("test_plan_grouping")
-        )
-        artefact = generator.gen_artefact(
-            name=generate_unique_name("test_plan_artefact")
-        )
+        test_case = generator.gen_test_case(name=generate_unique_name("test_plan_grouping"))
+        artefact = generator.gen_artefact(name=generate_unique_name("test_plan_artefact"))
         artefact_build = generator.gen_artefact_build(artefact)
 
         # Create executions with different test plans
-        te1 = generator.gen_test_execution(
-            artefact_build, environment, test_plan=generate_unique_name("plan1")
-        )
+        te1 = generator.gen_test_execution(artefact_build, environment, test_plan=generate_unique_name("plan1"))
         tr1 = generator.gen_test_result(test_case, te1)
 
-        te2 = generator.gen_test_execution(
-            artefact_build, environment, test_plan=generate_unique_name("plan2")
-        )
+        te2 = generator.gen_test_execution(artefact_build, environment, test_plan=generate_unique_name("plan2"))
         tr2 = generator.gen_test_result(test_case, te2)
 
         # Both should be latest since they have different test plans
@@ -1867,9 +1618,7 @@ class TestWindowFunctionSpecific:
         assert tr1.id in result_ids
         assert tr2.id in result_ids
 
-    def test_execution_is_latest_different_environments(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_execution_is_latest_different_environments(self, test_client: TestClient, generator: DataGenerator):
         """Test that execution_is_latest considers environment in grouping"""
         # Create test data
         env1 = generator.gen_environment(name=generate_unique_name("env1"))
@@ -1897,9 +1646,7 @@ class TestWindowFunctionSpecific:
         assert tr1.id in result_ids
         assert tr2.id in result_ids
 
-    def test_execution_is_latest_different_artefact_builds(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_execution_is_latest_different_artefact_builds(self, test_client: TestClient, generator: DataGenerator):
         """Test that execution_is_latest considers artefact_build in grouping"""
         # Create test data
         environment = generator.gen_environment()

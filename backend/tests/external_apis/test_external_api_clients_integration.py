@@ -13,13 +13,15 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import pytest
-import requests
 import os
 from typing import cast
+
+import pytest
+import requests
+
+from test_observer.external_apis.exceptions import IssueNotFoundError
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
-from test_observer.external_apis.exceptions import IssueNotFoundError
 
 
 @pytest.mark.integration

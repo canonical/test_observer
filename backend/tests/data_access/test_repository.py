@@ -15,43 +15,36 @@
 
 """Test services functions"""
 
+from typing import TypeVar
+
+from pydantic import HttpUrl
+from pytest import MonkeyPatch
 from sqlalchemy.orm import Query, Session
 
+from test_observer.data_access.models import TestCase
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
 )
 from tests.data_generator import DataGenerator
 
-from test_observer.data_access.models import TestCase
-
-from pydantic import HttpUrl
-from pytest import MonkeyPatch
-from typing import TypeVar
-
 _T = TypeVar("_T")
 
 
-def test_create_test_execution_relevant_link(
-    db_session: Session, generator: DataGenerator
-):
+def test_create_test_execution_relevant_link(db_session: Session, generator: DataGenerator):
     """Test creating a relevant link for a test execution."""
     # Arrange
     artefact = generator.gen_artefact()
     artefact_build = generator.gen_artefact_build(artefact=artefact)
     environment = generator.gen_environment()
 
-    test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build, environment=environment
-    )
+    test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
 
     label = "Test Link"
     url = HttpUrl("https://example.com/test-link")
 
     # Act
-    link = create_test_execution_relevant_link(
-        db_session, test_execution.id, label, url
-    )
+    link = create_test_execution_relevant_link(db_session, test_execution.id, label, url)
 
     # Assert
     assert link.label == label
@@ -182,9 +175,5 @@ def test_get_or_create_does_not_commit(
     db_session.rollback()
 
     # Query again - should not find the instance since it wasn't committed
-    not_found = (
-        db_session.query(TestCase)
-        .filter_by(name=test_case_name, category=test_case_category)
-        .first()
-    )
+    not_found = db_session.query(TestCase).filter_by(name=test_case_name, category=test_case_category).first()
     assert not_found is None

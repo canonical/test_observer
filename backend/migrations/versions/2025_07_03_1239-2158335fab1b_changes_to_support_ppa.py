@@ -21,9 +21,8 @@ Create Date: 2025-07-03 12:39:07.797701+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "2158335fab1b"
@@ -81,15 +80,6 @@ def _revert_unique_constraints() -> None:
 
 
 def _revert_stage_type() -> None:
-    op.execute(
-        "DELETE FROM artefact WHERE stage NOT IN "
-        "('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')"
-    )
-    op.execute(
-        "CREATE TYPE stagename AS "
-        "ENUM('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')"
-    )
-    op.execute(
-        "ALTER TABLE artefact ALTER COLUMN stage TYPE "
-        "stagename USING stage::text::stagename"
-    )
+    op.execute("DELETE FROM artefact WHERE stage NOT IN ('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')")
+    op.execute("CREATE TYPE stagename AS ENUM('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')")
+    op.execute("ALTER TABLE artefact ALTER COLUMN stage TYPE stagename USING stage::text::stagename")

@@ -14,11 +14,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def generate_unique_name(prefix: str) -> str:
@@ -52,9 +53,7 @@ def test_get_test_cases_response_format(test_client: TestClient):
     assert isinstance(data["test_cases"], list)
 
 
-def test_get_test_cases_with_actual_data(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_test_cases_with_actual_data(test_client: TestClient, generator: DataGenerator):
     """Test that actual test cases are returned and properly validated"""
     # Create test data with specific test case
     environment = generator.gen_environment()
@@ -90,9 +89,7 @@ def test_get_test_cases_with_actual_data(
     assert found_case["test_case"] == test_case.name
 
 
-def test_get_test_cases_empty_template_id(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_test_cases_empty_template_id(test_client: TestClient, generator: DataGenerator):
     """Test test cases with empty template_id are handled properly"""
     # Create test data with no template_id
     environment = generator.gen_environment()
@@ -115,10 +112,7 @@ def test_get_test_cases_empty_template_id(
     test_cases = data["test_cases"]
 
     # Verify test case with empty template_id is included
-    found_case = any(
-        case["test_case"] == test_case.name and case["template_id"] == ""
-        for case in test_cases
-    )
+    found_case = any(case["test_case"] == test_case.name and case["template_id"] == "" for case in test_cases)
     assert found_case, f"Test case {test_case.name} with empty template_id not found"
 
 
@@ -164,9 +158,7 @@ def test_default_limit_is_50(test_client: TestClient, generator: DataGenerator):
     assert len(data["test_cases"]) == 50  # exactly 50 when >=50 exist
 
 
-def test_explicit_limit_and_offset_window(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_explicit_limit_and_offset_window(test_client: TestClient, generator: DataGenerator):
     """
     Verify limit/offset produce expected window with deterministic
     ordering by name.

@@ -21,10 +21,8 @@ from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import TestExecutionMetadata
 from test_observer.data_access.setup import get_db
 
-from .models import ExecutionMetadataGetResponse, ExecutionMetadata
-
-
 from . import execution_metadata
+from .models import ExecutionMetadata, ExecutionMetadataGetResponse
 
 router = APIRouter(tags=["execution-metadata"])
 router.include_router(execution_metadata.router)
@@ -37,7 +35,5 @@ router.include_router(execution_metadata.router)
 )
 def get_execution_metadata(db: Session = Depends(get_db)):
     return ExecutionMetadataGetResponse(
-        execution_metadata=ExecutionMetadata.from_rows(
-            db.execute(select(TestExecutionMetadata)).scalars().all()
-        ),
+        execution_metadata=ExecutionMetadata.from_rows(db.execute(select(TestExecutionMetadata)).scalars().all()),
     )

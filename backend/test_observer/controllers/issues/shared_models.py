@@ -13,26 +13,28 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from pydantic import BaseModel, HttpUrl
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
-
-from pydantic import ConfigDict, Field, AliasPath
-
+from collections.abc import Sequence
 
 from pydantic import (
+    AliasPath,
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
     field_validator,
 )
 
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.data_access.models_enums import (
-    FamilyName,
-    TestResultStatus,
-)
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRuleExecutionMetadata,
     TestExecutionMetadata,
 )
-from collections.abc import Sequence
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    IssueSource,
+    IssueStatus,
+    TestResultStatus,
+)
 
 
 class MinimalIssueResponse(BaseModel):
@@ -65,15 +67,11 @@ class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
     @classmethod
     def convert_execution_metadata(
         cls,
-        metadata: Sequence[IssueTestResultAttachmentRuleExecutionMetadata]
-        | ExecutionMetadata,
+        metadata: Sequence[IssueTestResultAttachmentRuleExecutionMetadata] | ExecutionMetadata,
     ) -> ExecutionMetadata:
         if not isinstance(metadata, ExecutionMetadata):
             return ExecutionMetadata.from_rows(
-                [
-                    TestExecutionMetadata(category=item.category, value=item.value)
-                    for item in metadata
-                ]
+                [TestExecutionMetadata(category=item.category, value=item.value) for item in metadata]
             )
 
         return metadata

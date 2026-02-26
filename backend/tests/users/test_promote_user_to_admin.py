@@ -63,7 +63,5 @@ def test_promote_user_already_admin(db_session: Session):
 def test_promote_user_not_found(db_session: Session):
     email = "nonexistent@canonical.com"
 
-    with pytest.raises(
-        ValueError, match="User with email nonexistent@canonical.com not found"
-    ):
+    with pytest.raises(ValueError, match="User with email nonexistent@canonical.com not found"):
         promote_user_to_admin(email, db_session)

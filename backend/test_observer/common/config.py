@@ -15,7 +15,6 @@
 
 import os
 
-
 VERSION = os.getenv("VERSION", "0.0.0")
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 SAML_SP_BASE_URL = os.getenv("SAML_SP_BASE_URL", "http://localhost:30000")
@@ -29,8 +28,6 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
 SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")
 SESSIONS_HTTPS_ONLY = os.getenv("SESSIONS_HTTPS_ONLY", "true").lower() == "true"
 IGNORE_PERMISSIONS = {
-    permission.strip()
-    for permission in os.getenv("IGNORE_PERMISSIONS", "").lower().split(",")
-    if permission.strip()
+    permission.strip() for permission in os.getenv("IGNORE_PERMISSIONS", "").lower().split(",") if permission.strip()
 }
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9090"))

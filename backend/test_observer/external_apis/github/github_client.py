@@ -13,10 +13,11 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from github import Github, GithubIntegration, Auth
-from test_observer.external_apis.models import IssueData
 import logging
 from typing import Any, cast
+
+from github import Auth, Github, GithubIntegration
+from test_observer.external_apis.models import IssueData
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +69,7 @@ class GitHubClient:
         """
 
         if "/" not in project:
-            raise ValueError(
-                f"Invalid project format: {project}. Expected 'owner/repo'"
-            )
+            raise ValueError(f"Invalid project format: {project}. Expected 'owner/repo'")
 
         try:
             # Parse issue number

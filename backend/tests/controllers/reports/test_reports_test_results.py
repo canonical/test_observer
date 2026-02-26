@@ -26,13 +26,11 @@ from test_observer.controllers.reports.test_results import (
 )
 from test_observer.data_access.models import TestResult
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
-def test_get_testresults_report_in_range(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_testresults_report_in_range(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -58,12 +56,8 @@ def test_get_testresults_report_in_range(
     assert table[1] == _expected_report_row(test_result)
 
 
-def test_get_testresults_report_out_range(
-    test_client: TestClient, generator: DataGenerator
-):
-    artefact = generator.gen_artefact(
-        StageName.beta, created_at=datetime.now() - timedelta(days=2)
-    )
+def test_get_testresults_report_out_range(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.beta, created_at=datetime.now() - timedelta(days=2))
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build, environment)

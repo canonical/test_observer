@@ -15,19 +15,20 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Security
-from fastapi import HTTPException
-from sqlalchemy import func, select, String
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from sqlalchemy import String, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
     Issue,
 )
-from test_observer.data_access.setup import get_db
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.setup import get_db
 
+from . import attachment_rules, issue_attachments
+from .issue_url_parser import issue_source_project_key_from_url
 from .models import (
     IssuePatchRequest,
     IssuePutRequest,
@@ -35,9 +36,6 @@ from .models import (
     IssuesGetResponse,
     MinimalIssueResponse,
 )
-from .issue_url_parser import issue_source_project_key_from_url
-
-from . import issue_attachments, attachment_rules
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -79,9 +77,7 @@ def get_issues(
     ] = 0,
     q: Annotated[
         str | None,
-        Query(
-            description="Search term for issue source, project, keys, title, and status"
-        ),
+        Query(description="Search term for issue source, project, keys, title, and status"),
     ] = None,
     db: Session = Depends(get_db),
 ):

@@ -13,9 +13,9 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
-from test_observer.external_apis.github.github_client import GitHubClient
 from test_observer.data_access.models import Issue, IssueStatus
+from test_observer.external_apis.github.github_client import GitHubClient
+from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
 
 
 class GitHubIssueSynchronizer(BaseIssueSynchronizer):

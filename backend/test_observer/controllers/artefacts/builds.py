@@ -41,16 +41,12 @@ router = APIRouter(tags=["artefact-builds"])
 def get_artefact_builds(
     artefact: Artefact = Depends(
         ArtefactRetriever(
-            selectinload(Artefact.builds)
-            .selectinload(ArtefactBuild.test_executions)
-            .options(*TEST_EXECUTION_OPTIONS)
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions).options(*TEST_EXECUTION_OPTIONS)
         )
     ),
 ):
     """Get latest artefact builds of an artefact together with their test executions"""
     for artefact_build in artefact.latest_builds:
-        artefact_build.test_executions.sort(
-            key=lambda test_execution: test_execution.environment.name
-        )
+        artefact_build.test_executions.sort(key=lambda test_execution: test_execution.environment.name)
 
     return artefact.latest_builds

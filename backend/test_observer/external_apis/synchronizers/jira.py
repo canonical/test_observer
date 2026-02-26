@@ -13,9 +13,9 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
-from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.data_access.models import Issue, IssueStatus
+from test_observer.external_apis.jira.jira_client import JiraClient
+from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
 
 
 class JiraIssueSynchronizer(BaseIssueSynchronizer):
@@ -31,9 +31,7 @@ class JiraIssueSynchronizer(BaseIssueSynchronizer):
 
     def can_sync(self, issue: Issue) -> bool:
         """Check if this issue is from Jira"""
-        return issue.url is not None and (
-            "atlassian.net" in issue.url or "jira" in issue.url.lower()
-        )
+        return issue.url is not None and ("atlassian.net" in issue.url or "jira" in issue.url.lower())
 
     @staticmethod
     def _map_issue_status(state: str) -> IssueStatus:

@@ -19,9 +19,7 @@ from test_observer.data_access.models import Artefact, User
 from test_observer.data_access.setup import SessionLocal
 
 
-def change_assignee(
-    artefact_id: int, user_id: int, session: Session | None = None
-) -> Artefact:
+def change_assignee(artefact_id: int, user_id: int, session: Session | None = None) -> Artefact:
     if session is None:
         session = SessionLocal()
         try:

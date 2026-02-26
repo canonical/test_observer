@@ -87,15 +87,11 @@ def upgrade() -> None:
             name=op.f("artefact_build_environment_review_environment_id_fkey"),
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint(
-            "id", name=op.f("artefact_build_environment_review_pkey")
-        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("artefact_build_environment_review_pkey")),
         sa.UniqueConstraint(
             "artefact_build_id",
             "environment_id",
-            name=op.f(
-                "artefact_build_environment_review_artefact_build_id_environment_id_key"
-            ),
+            name=op.f("artefact_build_environment_review_artefact_build_id_environment_id_key"),
         ),
     )
 
