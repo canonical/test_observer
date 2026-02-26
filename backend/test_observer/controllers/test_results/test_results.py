@@ -262,6 +262,8 @@ def search_test_results(
     # Return results
     return TestResultSearchResponseWithContext(
         count=total_count or 0,
+        limit=limit,
+        offset=offset,
         test_results=[
             TestResultResponseWithContext(
                 test_result=tr,

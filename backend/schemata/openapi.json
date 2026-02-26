@@ -4286,11 +4286,26 @@
             },
             "type": "array",
             "title": "Artefacts"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
-          "artefacts"
+          "artefacts",
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "ArtefactSearchResponse"
       },
@@ -4658,11 +4673,26 @@
             },
             "type": "array",
             "title": "Environments"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
-          "environments"
+          "environments",
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "EnvironmentsResponse",
         "description": "Response model for environments endpoint"
@@ -5003,11 +5033,26 @@
             },
             "type": "array",
             "title": "Issues"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
-          "issues"
+          "issues",
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "IssuesGetResponse"
       },
@@ -6550,6 +6595,14 @@
             "type": "integer",
             "title": "Count"
           },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
           "test_results": {
             "items": {
               "$ref": "#/components/schemas/TestResultResponseWithContext"
@@ -6561,6 +6614,8 @@
         "type": "object",
         "required": [
           "count",
+          "limit",
+          "offset",
           "test_results"
         ],
         "title": "TestResultSearchResponseWithContext",
@@ -6690,12 +6745,22 @@
           "count": {
             "type": "integer",
             "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
           "users",
-          "count"
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "UsersResponse"
       },

@@ -53,3 +53,6 @@ class EnvironmentsResponse(BaseModel):
     """Response model for environments endpoint"""
 
     environments: list[str]
+    count: int
+    limit: int
+    offset: int
