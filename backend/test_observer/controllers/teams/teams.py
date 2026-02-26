@@ -54,7 +54,8 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
     Sync artefact matching rules by creating/removing ArtefactMatchingRules.
     Replaces all existing rules for the team with the provided ones.
     """
-    # Clear existing rules for this team
+    # Clear existing rules for this team (make a copy first)
+    removed_rules = list(team.artefact_matching_rules)
     team.artefact_matching_rules.clear()
     
     # Deduplicate rules in the request
@@ -92,6 +93,14 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
             )
             db.add(new_rule)
 
+    # Flush to synchronize relationships before checking for orphans
+    db.flush()
+
+    # Cleanup orphaned rules
+    for rule in removed_rules:
+        if not rule.teams:
+            db.delete(rule)
+
 
 def _team_to_response(team: Team) -> TeamResponse:
     """Convert Team model to TeamResponse"""
@@ -121,7 +130,6 @@ def _team_to_response(team: Team) -> TeamResponse:
             for rule in team.artefact_matching_rules
         ],
     )
-
 
 
 @router.post(

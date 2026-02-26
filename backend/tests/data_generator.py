@@ -73,7 +73,6 @@ class DataGenerator:
         self._add_object(team)
         return team
 
-    
     def gen_artefact_matching_rule(
         self,
         family: FamilyName,
