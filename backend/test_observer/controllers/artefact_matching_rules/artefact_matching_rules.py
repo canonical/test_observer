@@ -247,5 +247,7 @@ def delete_artefact_matching_rule(
     """Delete an artefact matching rule"""
     rule = _get_rule_or_raise_404(db, rule_id)
 
+    # Clear the teams relationship to remove association table entries
+    rule.teams = []
     db.delete(rule)
     db.commit()

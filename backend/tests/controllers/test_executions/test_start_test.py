@@ -35,6 +35,7 @@ from test_observer.data_access.models_enums import (
     CharmStage,
     ImageStage,
     TestExecutionStatus,
+    FamilyName
 )
 from test_observer.common.permissions import Permission
 from tests.asserts import assert_fails_validation
@@ -171,9 +172,14 @@ class TestFamilyIndependentTests:
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        # Create a team that can review all families
+        # Create a team with matching rules for all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
         team = generator.gen_team(
-            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+            name="reviewers", artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # User is member of this team
         user = generator.gen_user(teams=[team])
@@ -377,9 +383,11 @@ def test_non_kernel_artefact_due_date(
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+
     snap_reviewers = generator.gen_team(
         name="snap_reviewers",
-        reviewer_families=["snap"],
+        artefact_matching_rules=[snap_rule],
     )
     generator.gen_user(teams=[snap_reviewers])
 
@@ -515,13 +523,18 @@ def test_charm_assigned_to_charm_team_reviewer(
 ):
     """Charms should be assigned to reviewers whose teams can review charms"""
     # Create teams with different families
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     other_team = generator.gen_team(
         name="other_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[snap_rule, deb_rule, image_rule],
     )
 
     # Create users in these teams
@@ -551,13 +564,18 @@ def test_snap_assigned_to_snap_team_reviewer(
 ):
     """Snaps should be assigned to reviewers whose teams can review snaps"""
     # Create teams with different families
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     snap_team = generator.gen_team(
         name="snap_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[snap_rule, deb_rule, image_rule],
     )
 
     # Create users in these teams
@@ -586,13 +604,18 @@ def test_deb_assigned_to_deb_team_reviewer(
 ):
     """Debs should be assigned to reviewers whose teams can review debs"""
     # Create teams with different families
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     deb_team = generator.gen_team(
         name="deb_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[deb_rule, snap_rule, image_rule],
     )
 
     # Create users in these teams
@@ -621,13 +644,18 @@ def test_image_assigned_to_image_team_reviewer(
 ):
     """Images should be assigned to reviewers whose teams can review images"""
     # Create teams with different families
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     image_team = generator.gen_team(
         name="image_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[image_rule, snap_rule, deb_rule],
     )
 
     # Create users in these teams
@@ -712,9 +740,11 @@ def test_no_assignment_when_no_team_reviewers_available(
 ):
     """When no teams can review the family, no assignment should occur"""
     # Create a team that can only review charms
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     generator.gen_user(
         email="charm@example.com",

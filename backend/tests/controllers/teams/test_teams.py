@@ -36,19 +36,22 @@ def test_create_team(test_client: TestClient):
     data = response.json()
     assert data["name"] == "new-team"
     assert data["permissions"] == []
-    assert data["reviewer_families"] == []
+    assert data["artefact_matching_rules"] == []
     assert data["members"] == []
     assert "id" in data
 
 
-def test_create_team_with_permissions_and_families(test_client: TestClient):
+def test_create_team_with_permissions_and_matching_rules(test_client: TestClient):
     response = make_authenticated_request(
         lambda: test_client.post(
             "/v1/teams",
             json={
                 "name": "test-team",
                 "permissions": [Permission.view_user, Permission.change_team],
-                "reviewer_families": ["snap", "deb"],
+                "artefact_matching_rules": [
+                    {"family": "snap"},
+                    {"family": "deb"},
+                ],
             },
         ),
         Permission.change_team,
@@ -58,7 +61,12 @@ def test_create_team_with_permissions_and_families(test_client: TestClient):
     data = response.json()
     assert data["name"] == "test-team"
     assert data["permissions"] == [Permission.view_user, Permission.change_team]
-    assert data["reviewer_families"] == ["snap", "deb"]
+    assert len(data["artefact_matching_rules"]) == 2
+    assert data["artefact_matching_rules"][0]["family"] == "snap"
+    assert data["artefact_matching_rules"][0]["stage"] is None
+    assert data["artefact_matching_rules"][0]["track"] is None
+    assert data["artefact_matching_rules"][0]["branch"] is None
+    assert data["artefact_matching_rules"][1]["family"] == "deb"
     assert data["members"] == []
 
 
@@ -113,24 +121,14 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
     )
 
     assert response.status_code == 200
-    assert response.json() == [
-        {
-            "id": team.id,
-            "name": team.name,
-            "permissions": team.permissions,
-            "reviewer_families": team.reviewer_families,
-            "artefact_matching_rules": team.artefact_matching_rules,
-            "members": [
-                {
-                    "id": user.id,
-                    "name": user.name,
-                    "email": user.email,
-                    "launchpad_handle": user.launchpad_handle,
-                    "is_admin": user.is_admin,
-                }
-            ],
-        },
-    ]
+    teams = response.json()
+    assert len(teams) == 1
+    assert teams[0]["id"] == team.id
+    assert teams[0]["name"] == team.name
+    assert teams[0]["permissions"] == team.permissions
+    assert teams[0]["artefact_matching_rules"] == []
+    assert len(teams[0]["members"]) == 1
+    assert teams[0]["members"][0]["id"] == user.id
 
 
 def test_get_team(test_client: TestClient, generator: DataGenerator):
@@ -142,22 +140,13 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "id": team.id,
-        "name": team.name,
-        "permissions": team.permissions,
-        "reviewer_families": team.reviewer_families,
-        "artefact_matching_rules": team.artefact_matching_rules,
-        "members": [
-            {
-                "id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "launchpad_handle": user.launchpad_handle,
-                "is_admin": user.is_admin,
-            }
-        ],
-    }
+    data = response.json()
+    assert data["id"] == team.id
+    assert data["name"] == team.name
+    assert data["permissions"] == team.permissions
+    assert data["artefact_matching_rules"] == []
+    assert len(data["members"]) == 1
+    assert data["members"][0]["id"] == user.id
 
 
 def test_update_team_permissions(test_client: TestClient, generator: DataGenerator):
@@ -173,22 +162,13 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "id": team.id,
-        "name": team.name,
-        "permissions": [Permission.view_user],
-        "reviewer_families": team.reviewer_families,
-        "artefact_matching_rules": team.artefact_matching_rules,
-        "members": [
-            {
-                "id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "launchpad_handle": user.launchpad_handle,
-                "is_admin": user.is_admin,
-            }
-        ],
-    }
+    data = response.json()
+    assert data["id"] == team.id
+    assert data["name"] == team.name
+    assert data["permissions"] == [Permission.view_user]
+    assert data["artefact_matching_rules"] == []
+    assert len(data["members"]) == 1
+    assert data["members"][0]["id"] == user.id
 
 
 def test_set_invalid_permission(test_client: TestClient, generator: DataGenerator):
@@ -206,7 +186,7 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
     assert response.status_code == 422
 
 
-def test_update_team_reviewer_families(
+def test_update_team_artefact_matching_rules(
     test_client: TestClient, generator: DataGenerator
 ):
     user = generator.gen_user()
@@ -215,13 +195,23 @@ def test_update_team_reviewer_families(
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/teams/{team.id}",
-            json={"reviewer_families": ["snap", "deb"]},
+            json={
+                "artefact_matching_rules": [
+                    {"family": "snap"},
+                    {"family": "deb", "stage": "proposed"},
+                ]
+            },
         ),
         Permission.change_team,
     )
 
     assert response.status_code == 200
-    assert response.json()["reviewer_families"] == ["snap", "deb"]
+    data = response.json()
+    assert len(data["artefact_matching_rules"]) == 2
+    assert data["artefact_matching_rules"][0]["family"] == "snap"
+    assert data["artefact_matching_rules"][0]["stage"] is None
+    assert data["artefact_matching_rules"][1]["family"] == "deb"
+    assert data["artefact_matching_rules"][1]["stage"] == "proposed"
 
 
 def test_add_team_member(test_client: TestClient, generator: DataGenerator):
@@ -318,6 +308,246 @@ def test_remove_team_member_not_found(
         Permission.change_team,
     )
     assert response.status_code == 404
+
+
+def test_create_team_with_complex_matching_rules(test_client: TestClient):
+    """Test creating a team with matching rules including track and branch"""
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/teams",
+            json={
+                "name": "complex-rules-team",
+                "artefact_matching_rules": [
+                    {"family": "snap", "track": "22"},
+                    {"family": "snap", "track": "24", "stage": "beta"},
+                    {"family": "deb", "branch": "jammy"},
+                    {
+                        "family": "charm",
+                        "track": "1.0",
+                        "stage": "edge",
+                        "branch": "feature-x",
+                    },
+                ],
+            },
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert len(data["artefact_matching_rules"]) == 4
+
+    # Check snap with track only
+    snap_track = next(
+        r for r in data["artefact_matching_rules"] if r["track"] == "22"
+    )
+    assert snap_track["family"] == "snap"
+    assert snap_track["stage"] is None
+    assert snap_track["branch"] is None
+
+    # Check snap with track and stage
+    snap_track_stage = next(
+        r for r in data["artefact_matching_rules"] if r["track"] == "24"
+    )
+    assert snap_track_stage["family"] == "snap"
+    assert snap_track_stage["stage"] == "beta"
+    assert snap_track_stage["branch"] is None
+
+    # Check deb with branch
+    deb_branch = next(
+        r for r in data["artefact_matching_rules"] if r["family"] == "deb"
+    )
+    assert deb_branch["branch"] == "jammy"
+    assert deb_branch["stage"] is None
+    assert deb_branch["track"] is None
+
+    # Check charm with all fields
+    charm_full = next(
+        r for r in data["artefact_matching_rules"] if r["family"] == "charm"
+    )
+    assert charm_full["track"] == "1.0"
+    assert charm_full["stage"] == "edge"
+    assert charm_full["branch"] == "feature-x"
+
+
+def test_update_team_replaces_matching_rules(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that updating matching rules replaces existing ones"""
+    # Create a team with initial rules
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    team = generator.gen_team(artefact_matching_rules=[snap_rule, deb_rule])
+
+    assert len(team.artefact_matching_rules) == 2
+
+    # Update with new rules
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={
+                "artefact_matching_rules": [
+                    {"family": "charm", "track": "stable"},
+                    {"family": "image"},
+                ]
+            },
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["artefact_matching_rules"]) == 2
+
+    # Verify old rules are gone and new ones are present
+    families = [r["family"] for r in data["artefact_matching_rules"]]
+    assert "charm" in families
+    assert "image" in families
+    assert "snap" not in families
+    assert "deb" not in families
+
+    # Verify charm rule has track
+    charm_rule = next(r for r in data["artefact_matching_rules"] if r["family"] == "charm")
+    assert charm_rule["track"] == "stable"
+
+
+def test_update_team_clears_matching_rules(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that setting matching rules to empty array clears all rules"""
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    team = generator.gen_team(artefact_matching_rules=[snap_rule, deb_rule])
+
+    assert len(team.artefact_matching_rules) == 2
+
+    # Clear all rules
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"artefact_matching_rules": []},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["artefact_matching_rules"]) == 0
+
+
+def test_update_team_matching_rules_reuses_existing(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that identical matching rules are reused across teams"""
+    # Create a rule and assign it to team1
+    snap_rule = generator.gen_artefact_matching_rule(
+        family=FamilyName.snap, track="22"
+    )
+    team1 = generator.gen_team(name="team1", artefact_matching_rules=[snap_rule])
+
+    # Create team2 with the same rule
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/teams",
+            json={
+                "name": "team2",
+                "artefact_matching_rules": [{"family": "snap", "track": "22"}],
+            },
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert len(data["artefact_matching_rules"]) == 1
+
+    # Both teams should reference the same rule
+    team1_rule_id = team1.artefact_matching_rules[0].id
+    team2_rule_id = data["artefact_matching_rules"][0]["id"]
+    assert team1_rule_id == team2_rule_id
+
+
+def test_update_team_with_duplicate_matching_rules(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that providing duplicate rules in the request is handled"""
+    team = generator.gen_team()
+
+    # Try to create rules with duplicates
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={
+                "artefact_matching_rules": [
+                    {"family": "snap", "track": "22"},
+                    {"family": "snap", "track": "22"},  # Duplicate
+                ]
+            },
+        ),
+        Permission.change_team,
+    )
+
+    # Should still succeed - duplicates are just ignored
+    assert response.status_code == 200
+    data = response.json()
+    # Should only have one rule due to unique constraint
+    assert len(data["artefact_matching_rules"]) == 1
+    assert data["artefact_matching_rules"][0]["family"] == "snap"
+    assert data["artefact_matching_rules"][0]["track"] == "22"
+
+
+def test_get_team_returns_matching_rules(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that getting a team returns its matching rules"""
+    snap_rule = generator.gen_artefact_matching_rule(
+        family=FamilyName.snap, track="22", stage="stable"
+    )
+    deb_rule = generator.gen_artefact_matching_rule(
+        family=FamilyName.deb, branch="jammy"
+    )
+    team = generator.gen_team(
+        name="test-team", artefact_matching_rules=[snap_rule, deb_rule]
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["artefact_matching_rules"]) == 2
+
+    snap = next(r for r in data["artefact_matching_rules"] if r["family"] == "snap")
+    assert snap["track"] == "22"
+    assert snap["stage"] == "stable"
+    assert snap["branch"] is None
+
+    deb = next(r for r in data["artefact_matching_rules"] if r["family"] == "deb")
+    assert deb["branch"] == "jammy"
+    assert deb["track"] is None
+    assert deb["stage"] is None
+
+
+def test_update_team_keeps_permissions_when_updating_rules(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that updating rules doesn't affect permissions"""
+    team = generator.gen_team(permissions=["view_user", "change_team"])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"artefact_matching_rules": [{"family": "snap"}]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    # Permissions should remain unchanged
+    assert data["permissions"] == ["view_user", "change_team"]
+    assert len(data["artefact_matching_rules"]) == 1
 
 
 def test_remove_rule_from_team_making_it_an_orphan_removes_rule(

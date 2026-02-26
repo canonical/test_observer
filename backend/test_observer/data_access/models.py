@@ -102,7 +102,7 @@ artefact_matching_rule_team_association = Table(
     Base.metadata,
     Column(
         "artefact_matching_rule_id",
-        ForeignKey("artefact_matching_rule.id"),
+        ForeignKey("artefact_matching_rule.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column("team_id", ForeignKey("team.id"), primary_key=True),
@@ -161,7 +161,6 @@ class Team(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    reviewer_families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
     members: Mapped[list[User]] = relationship(
         secondary=team_users_association, back_populates="teams"
