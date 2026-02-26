@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
 name: Check copyright and license notices
 
 on:
@@ -5,7 +8,7 @@ on:
     branches-ignore:
       - 'main'
 
-# Cancel inprogress runs if new commit pushed
+# Cancel in-progress runs if new commit pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
