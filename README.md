@@ -115,3 +115,18 @@ charmcraft.spread -v -shell lxd-vm
 # open a shell to the execution environment _after_ of executing each test task 
 charmcraft.spread -v -shell-after lxd-vm
 ```
+
+## Copyright Information
+
+Test Observer uses the [REUSE tool](https://reuse.software/) to check copyright notices as part of the CI process.
+
+Canonical's guidelines for copyright is that all source code files should have a header/notice for the copyright, and that "in all cases, the year in the copyright notice should be the year the project / file was released.".
+However, not all files are source code,
+and so this guideline doesn't always apply.
+Additionally, some files are either not text files
+or don't support comments (e.g. JSON), so these are handled in the `REUSE.toml` file.
+
+We also include auto-generated files in the `REUSE.toml`,
+since these would otherwise have the copyright values overwritten. Charm libraries (those fetched by `charmcraft fetch-libs`) and package locks are included in `REUSE.toml` for this reason.
+Furthermore, we use `REUSE.toml` to tag everything under `docs/`, because the process of building the docs inserts the copyright notice on each page, but the raw source pages do not include the copyright info.
+ 
