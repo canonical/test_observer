@@ -16,14 +16,15 @@
 import logging
 from os import environ
 
-from celery import Celery
+from celery import Celery, Task
 
+from test_observer.data_access.models import Issue
 from test_observer.data_access.setup import SessionLocal
+from test_observer.external_apis.synchronizers.config import SyncConfig
 from test_observer.external_apis.synchronizers.factory import (
     create_synchronization_service,
 )
 from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
-from test_observer.data_access.models import Issue
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
@@ -32,7 +33,6 @@ from test_observer.promotion.promoter import promote_artefacts
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
-from test_observer.external_apis.synchronizers.config import SyncConfig
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"
 broker_url = environ.get("CELERY_BROKER_URL", DEVELOPMENT_BROKER_URL)
@@ -55,15 +55,9 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 
     # Staggered sync tasks
     if environ.get("ENABLE_ISSUE_SYNC", "false").lower() == "true":
-        sender.add_periodic_task(
-            SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s()
-        )
-        sender.add_periodic_task(
-            SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s()
-        )
-        sender.add_periodic_task(
-            SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s()
-        )
+        sender.add_periodic_task(SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s())
+        sender.add_periodic_task(SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s())
+        sender.add_periodic_task(SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s())
 
 
 @app.task
@@ -118,18 +112,13 @@ def _sync_issues_by_priority(priority: str) -> dict:
         batch_count = 0
 
         while True:
-            issues = SyncStrategy.get_issues_due_for_sync(
-                db, batch_size=SyncConfig.BATCH_SIZE, priority=priority
-            )
+            issues = SyncStrategy.get_issues_due_for_sync(db, batch_size=SyncConfig.BATCH_SIZE, priority=priority)
 
             if not issues:
                 break
 
             batch_count += 1
-            logger.info(
-                f"Processing {priority} priority batch "
-                f"{batch_count} ({len(issues)} issues)"
-            )
+            logger.info(f"Processing {priority} priority batch {batch_count} ({len(issues)} issues)")
 
             # Sync the batch
             results = service.sync_issues_batch(issues, db)
