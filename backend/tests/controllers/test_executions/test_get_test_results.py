@@ -20,7 +20,7 @@
 from fastapi.testclient import TestClient
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
-from test_observer.data_access.models_enums import IssueStatus, StageName
+from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.models import TestExecution, TestExecutionMetadata
 
 from tests.data_generator import DataGenerator
@@ -287,43 +287,3 @@ def test_attachment_rule_listed_in_issue_attachment(
             },
         }
     ]
-
-
-def test_closed_issue_attachment_excluded_from_test_results(
-    test_client: TestClient, test_execution: TestExecution, generator: DataGenerator
-):
-    """Closed issues attached to test results should not appear in the response."""
-    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, key="CLOSED-TR-1")
-
-    make_authenticated_request(
-        lambda: test_client.post(
-            f"/v1/test-executions/{test_execution.id}/test-results",
-            json=[{"name": "test", "status": "FAILED", "template_id": "tmpl"}],
-        ),
-        Permission.change_test,
-    )
-
-    test_result_id = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/test-executions/{test_execution.id}/test-results"
-        ),
-        Permission.view_test,
-    ).json()[0]["id"]
-
-    make_authenticated_request(
-        lambda: test_client.post(
-            f"/v1/issues/{closed_issue.id}/attach",
-            json={"test_results": [test_result_id]},
-        ),
-        Permission.change_issue_attachment,
-    )
-
-    response = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/test-executions/{test_execution.id}/test-results"
-        ),
-        Permission.view_test,
-    )
-
-    assert response.status_code == 200
-    assert response.json()[0]["issues"] == []

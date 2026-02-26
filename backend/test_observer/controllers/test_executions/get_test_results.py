@@ -17,16 +17,14 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload, with_loader_criteria
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
-    Issue,
-    IssueTestResultAttachment,
     TestExecution,
     TestResult,
+    IssueTestResultAttachment,
 )
-from test_observer.data_access.models_enums import IssueStatus
 from test_observer.data_access.setup import get_db
 
 from .logic import get_previous_test_results
@@ -55,12 +53,6 @@ def get_test_results(id: int, db: Session = Depends(get_db)):
                 selectinload(TestResult.test_case),
                 selectinload(TestResult.issue_attachments).selectinload(
                     IssueTestResultAttachment.issue
-                ),
-                with_loader_criteria(
-                    IssueTestResultAttachment,
-                    IssueTestResultAttachment.issue_id.not_in(
-                        select(Issue.id).where(Issue.status == IssueStatus.CLOSED)
-                    ),
                 ),
             )
         )
