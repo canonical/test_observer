@@ -34,9 +34,9 @@ def test_change_assignee(db_session: Session, generator: DataGenerator):
         launchpad_handle="user2",
         name="User 2",
     )
-    artefact.assignee = user1
+    artefact.reviewers = [user1]
     db_session.commit()
 
     change_assignee(artefact.id, user2.id, db_session)
 
-    assert artefact.assignee == user2
+    assert artefact.reviewers == [user2]
