@@ -24,6 +24,7 @@ from test_observer.controllers.teams.models import (
     TeamCreate,
     TeamPatch,
     TeamResponse,
+    UserMinimalResponse,
 )
 from test_observer.controllers.common.artefact_matching_rule_models import (
     ArtefactMatchingRuleInResponse,
@@ -109,13 +110,13 @@ def _team_to_response(team: Team) -> TeamResponse:
         name=team.name,
         permissions=team.permissions,
         members=[
-            {
-                "id": user.id,
-                "launchpad_handle": user.launchpad_handle,
-                "email": user.email,
-                "name": user.name,
-                "is_admin": user.is_admin,
-            }
+            UserMinimalResponse(
+                id=user.id,
+                launchpad_handle=user.launchpad_handle,
+                email=user.email,
+                name=user.name,
+                is_admin=user.is_admin,
+            )
             for user in team.members
         ],
         reviewer_families=team.reviewer_families,
