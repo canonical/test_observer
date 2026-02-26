@@ -257,6 +257,7 @@ class TestObserverBackendCharm(CharmBase):
             "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
             "SESSIONS_SECRET": self.config["sessions_secret"],
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
+            "ENABLE_ISSUE_SYNC": self.config.get("enable_issue_sync", "false"),
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):

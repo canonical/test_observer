@@ -54,15 +54,16 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
     sender.add_periodic_task(600, clean_user_sessions.s())
 
     # Staggered sync tasks
-    sender.add_periodic_task(
-        SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s()
-    )
-    sender.add_periodic_task(
-        SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s()
-    )
-    sender.add_periodic_task(
-        SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s()
-    )
+    if environ.get("ENABLE_ISSUE_SYNC", "false").lower() == "true":
+        sender.add_periodic_task(
+            SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s()
+        )
+        sender.add_periodic_task(
+            SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s()
+        )
+        sender.add_periodic_task(
+            SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s()
+        )
 
 
 @app.task
