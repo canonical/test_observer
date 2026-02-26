@@ -1174,16 +1174,14 @@
         "x-permissions": [
           "view_environment_review"
         ]
-      }
-    },
-    "/v1/artefacts/{artefact_id}/environment-reviews/bulk": {
+      },
       "patch": {
         "tags": [
           "artefacts",
           "environment-reviews"
         ],
         "summary": "Bulk Update Environment Reviews",
-        "operationId": "bulk_update_environment_reviews_v1_artefacts__artefact_id__environment_reviews_bulk_patch",
+        "operationId": "bulk_update_environment_reviews_v1_artefacts__artefact_id__environment_reviews_patch",
         "parameters": [
           {
             "name": "artefact_id",
@@ -1219,7 +1217,7 @@
                   "items": {
                     "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewResponse"
                   },
-                  "title": "Response Bulk Update Environment Reviews V1 Artefacts  Artefact Id  Environment Reviews Bulk Patch"
+                  "title": "Response Bulk Update Environment Reviews V1 Artefacts  Artefact Id  Environment Reviews Patch"
                 }
               }
             }

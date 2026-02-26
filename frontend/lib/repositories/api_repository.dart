@@ -290,7 +290,7 @@ class ApiRepository {
     List<EnvironmentReview> reviews,
   ) async {
     final response = await dio.patch(
-      '/v1/artefacts/$artefactId/environment-reviews/bulk',
+      '/v1/artefacts/$artefactId/environment-reviews',
       data: reviews.map((review) => review.toJson()).toList(),
     );
     final List environmentReviewsJson = response.data;

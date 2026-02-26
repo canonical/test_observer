@@ -96,7 +96,6 @@ class _BulkEnvironmentReviewDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      scrollable: true,
       title: const Text('Bulk Environment Review'),
       content: SizedBox(
         width: 500,
@@ -114,24 +113,28 @@ class _BulkEnvironmentReviewDialogState
                 border: Border.all(color: Colors.grey[300]!),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: widget.environments.length,
-                separatorBuilder: (_, __) =>
-                    Divider(height: 1, color: Colors.grey[300]),
-                itemBuilder: (context, index) {
-                  final env = widget.environments[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.level2,
-                      vertical: Spacing.level1,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < widget.environments.length; i++) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.level2,
+                        vertical: Spacing.level1,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${widget.environments[i].environment.name} '
+                          '(${widget.environments[i].environment.architecture})',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
                     ),
-                    child: Text(
-                      '${env.environment.name} (${env.environment.architecture})',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  );
-                },
+                    if (i != widget.environments.length - 1)
+                      Divider(height: 1, color: Colors.grey[300]),
+                  ],
+                ],
               ),
             ),
             const SizedBox(height: Spacing.level4),
