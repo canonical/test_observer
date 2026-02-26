@@ -18,7 +18,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 import secrets
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from sqlalchemy import (
     Enum,
@@ -35,7 +35,6 @@ from sqlalchemy import (
     Table,
     Column,
     DateTime,
-    event,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -45,7 +44,6 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
     foreign,
-    validates,
 )
 from sqlalchemy.sql import func, ColumnElement
 
@@ -175,7 +173,6 @@ class Team(Base):
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")
-
 
 
 class ArtefactMatchingRule(Base):

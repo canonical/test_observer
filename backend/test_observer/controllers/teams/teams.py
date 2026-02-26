@@ -25,7 +25,6 @@ from test_observer.controllers.teams.models import (
     TeamPatch,
     TeamResponse,
 )
-from test_observer.data_access.models import Team, User
 from test_observer.controllers.common.artefact_matching_rule_models import (
     ArtefactMatchingRuleInResponse,
 )
