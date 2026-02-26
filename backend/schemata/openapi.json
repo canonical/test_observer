@@ -2357,6 +2357,18 @@
             "description": "Filter by issue status (e.g., open, closed, unknown)"
           },
           {
+            "name": "include_closed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include closed issues in results (default: false)",
+              "default": false,
+              "title": "Include Closed"
+            },
+            "description": "Include closed issues in results (default: false)"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
