@@ -1,22 +1,21 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi.testclient import TestClient
 
+from test_observer.controllers.issues.shared_models import MinimalIssueResponse
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -37,32 +36,27 @@ def test_empty_get_all(test_client: TestClient):
         Permission.view_issue,
     )
     assert response.status_code == 200
-    assert response.json() == {"issues": []}
+    data = response.json()
+    assert data["issues"] == []
+    assert data["count"] == 0
+    assert data["limit"] == 50
+    assert data["offset"] == 0
 
 
 def test_get_all(test_client: TestClient, generator: DataGenerator):
     issue = generator.gen_issue()
-
     response = make_authenticated_request(
         lambda: test_client.get(endpoint),
         Permission.view_issue,
     )
-
     assert response.status_code == 200
-    assert response.json() == {
-        "issues": [
-            {
-                "id": issue.id,
-                "source": issue.source,
-                "project": issue.project,
-                "key": issue.key,
-                "title": issue.title,
-                "status": issue.status,
-                "url": issue.url,
-                "labels": issue.labels,
-            }
-        ],
-    }
+    data = response.json()
+    assert data["issues"] == [
+        MinimalIssueResponse.model_validate(issue).model_dump(mode="json")
+    ]
+    assert data["count"] == 1
+    assert data["limit"] == 50
+    assert data["offset"] == 0
 
 
 def test_get_issue(test_client: TestClient, generator: DataGenerator):
@@ -535,3 +529,23 @@ def test_get_all_filter_by_status_and_source(
     issues = response.json()["issues"]
     assert len(issues) == 1
     assert issues[0]["id"] == target_issue.id
+
+
+def test_get_issues_pagination_metadata(
+    test_client: TestClient, generator: DataGenerator
+):
+    """count reflects total results, limit and offset echo back the used values"""
+    for i in range(5):
+        generator.gen_issue(key=f"META-{i}")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"limit": 2, "offset": 1}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["issues"]) == 2

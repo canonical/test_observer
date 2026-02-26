@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from base64 import b64encode
 from datetime import datetime, timedelta
@@ -450,3 +448,25 @@ def test_promote_user_to_admin(
     assert response.status_code == 200
     db_session.refresh(user)
     assert user.is_admin
+
+
+def test_get_issues_pagination_metadata(
+    test_client: TestClient, generator: DataGenerator
+):
+    """count reflects total results, limit and offset echo back the used values"""
+    for i in range(5):
+        generator.gen_issue(key=f"PAGEMETA-{i}")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/issues", params={"limit": 2, "offset": 1, "q": "PAGEMETA"}
+        ),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["issues"]) == 2
