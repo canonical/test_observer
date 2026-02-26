@@ -175,6 +175,7 @@ def update_artefact_matching_rule(
         )
 
     # Validate team_ids if provided
+    teams = []
     if request.team_ids is not None:
         if not request.team_ids:
             raise HTTPException(
@@ -183,7 +184,6 @@ def update_artefact_matching_rule(
             )
 
         # Validate that all teams exist
-        teams = []
         for team_id in request.team_ids:
             team = db.get(Team, team_id)
             if not team:
@@ -211,12 +211,14 @@ def update_artefact_matching_rule(
         )
 
     # Update fields
-    rule.family = request.family
-    rule.stage = request.stage
-    rule.track = request.track
-    rule.branch = request.branch
-
-    # Update teams if provided
+    if request.family is not None:
+        rule.family = request.family
+    if request.stage is not None:
+        rule.stage = request.stage
+    if request.track is not None:
+        rule.track = request.track
+    if request.branch is not None:
+        rule.branch = request.branch
     if request.team_ids is not None:
         rule.teams = teams
 
