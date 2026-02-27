@@ -186,7 +186,7 @@ def test_bulk_review_multiple_environments(
 
     response = make_authenticated_request(
         lambda: test_client.patch(
-            f"/v1/artefacts/{a.id}/environment-reviews/bulk",
+            f"/v1/artefacts/{a.id}/environment-reviews",
             json=update,
         ),
         Permission.change_environment_review,
@@ -232,7 +232,7 @@ def test_bulk_review_with_same_comment_and_decision(
 
     response = make_authenticated_request(
         lambda: test_client.patch(
-            f"/v1/artefacts/{a.id}/environment-reviews/bulk",
+            f"/v1/artefacts/{a.id}/environment-reviews",
             json=update,
         ),
         Permission.change_environment_review,
@@ -265,7 +265,7 @@ def test_bulk_review_rejects_if_review_belongs_to_different_artefact(
 
     response = make_authenticated_request(
         lambda: test_client.patch(
-            f"/v1/artefacts/{a1.id}/environment-reviews/bulk",
+            f"/v1/artefacts/{a1.id}/environment-reviews",
             json=update,
         ),
         Permission.change_environment_review,
@@ -305,7 +305,7 @@ def test_bulk_review_reset_review(test_client: TestClient, generator: DataGenera
 
     response = make_authenticated_request(
         lambda: test_client.patch(
-            f"/v1/artefacts/{a.id}/environment-reviews/bulk",
+            f"/v1/artefacts/{a.id}/environment-reviews",
             json=update,
         ),
         Permission.change_environment_review,
