@@ -123,7 +123,7 @@ class _BulkAttachIssueOptionState extends ConsumerState<BulkAttachIssueOption> {
         // so that is an XOR
         final toggleVisibility =
             (_visibleEnough != (info.visibleFraction >= 0.75));
-        if (toggleVisibility) {
+        if (toggleVisibility && mounted) {
           setState(() {
             _visibleEnough = !_visibleEnough;
           });

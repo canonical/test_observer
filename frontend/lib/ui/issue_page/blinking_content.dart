@@ -40,14 +40,17 @@ class _BlinkingContentState extends State<BlinkingContent> {
     _backgroundColor = null;
     if (widget.blink) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
         final theme = Theme.of(context);
         final baseColor = theme.colorScheme.surface;
         final blinkColor = theme.brightness == Brightness.dark
             ? baseColor.withValues(alpha: 0.7)
             : Colors.grey.shade300;
         for (int i = 0; i < (widget.numBlinks ?? 3); i++) {
+          if (!mounted) return;
           setState(() => _backgroundColor = blinkColor);
           await Future.delayed(const Duration(milliseconds: 120));
+          if (!mounted) return;
           setState(() => _backgroundColor = null);
           await Future.delayed(const Duration(milliseconds: 120));
         }
