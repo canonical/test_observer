@@ -112,6 +112,21 @@ artefact_reviewers_association = Table(
     ),
 )
 
+environment_review_reviewers_association = Table(
+    "environment_review_reviewers_association",
+    Base.metadata,
+    Column(
+        "environment_review_id",
+        ForeignKey("artefact_build_environment_review.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "user_id",
+        ForeignKey("app_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
 
 class User(Base):
     """
@@ -907,6 +922,10 @@ class ArtefactBuildEnvironmentReview(Base):
     )
     artefact_build: Mapped["ArtefactBuild"] = relationship(
         back_populates="environment_reviews",
+    )
+
+    reviewers: Mapped[list["User"]] = relationship(
+        secondary=environment_review_reviewers_association,
     )
 
     @property
