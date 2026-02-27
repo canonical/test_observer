@@ -251,14 +251,20 @@ class TestFamilyIndependentTests:
             }
             execute(env_request)
 
+        # Clear reviewers to allow reassignment based on the new environment count
+        artefact.reviewers = []
+        self._db_session.commit()
+
+        # Trigger assignment again now that we have 52 environments
+        execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
+
         # Refresh the artefact to get updated relationships
         self._db_session.refresh(artefact)
 
-        # Verify the artefact now has more than 50 environments
-        assert artefact.all_environment_reviews_count > 50
+        # Verify the artefact now has more than 50 environments (52 from before + 1 new = 53)
+        assert artefact.all_environment_reviews_count == 53
 
-        # Despite having eligible reviewers, no reviewer should be assigned because of too many environments
-        assert len(artefact.reviewers) > 1
+        assert len(artefact.reviewers) == 2
 
     def test_deletes_rerun_requests(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
