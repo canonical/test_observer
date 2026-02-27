@@ -77,6 +77,7 @@ def test_get_with_two_environment_reviews(
                 "architecture": ab.architecture,
                 "revision": ab.revision,
             },
+            "reviewers": [],
         },
         {
             "id": review2.id,
@@ -92,6 +93,7 @@ def test_get_with_two_environment_reviews(
                 "architecture": ab.architecture,
                 "revision": ab.revision,
             },
+            "reviewers": [],
         },
     ]
 
@@ -127,6 +129,7 @@ def test_get_only_considers_latest_builds(
                 "architecture": review2.artefact_build.architecture,
                 "revision": review2.artefact_build.revision,
             },
+            "reviewers": [],
         },
     ]
 
@@ -165,6 +168,7 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
             "revision": ab.revision,
             "architecture": ab.architecture,
         },
+        "reviewers": [],
     }
 
 
@@ -247,4 +251,99 @@ def test_environment_review_reset_review(
             "revision": ab.revision,
             "architecture": ab.architecture,
         },
+        "reviewers": [],
+    }
+
+
+def test_get_environment_reviews_includes_reviewers(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("env1")
+    user1 = generator.gen_user(name="User One", email="user1@test.com")
+    user2 = generator.gen_user(name="User Two", email="user2@test.com")
+    review = generator.gen_artefact_build_environment_review(
+        ab, e, reviewers=[user1, user2]
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{a.id}/environment-reviews"),
+        Permission.view_environment_review,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": review.id,
+            "review_decision": review.review_decision,
+            "review_comment": review.review_comment,
+            "environment": {
+                "id": e.id,
+                "name": e.name,
+                "architecture": e.architecture,
+            },
+            "artefact_build": {
+                "id": ab.id,
+                "architecture": ab.architecture,
+                "revision": ab.revision,
+            },
+            "reviewers": [
+                {
+                    "id": user1.id,
+                    "launchpad_handle": user1.launchpad_handle,
+                    "email": user1.email,
+                    "name": user1.name,
+                },
+                {
+                    "id": user2.id,
+                    "launchpad_handle": user2.launchpad_handle,
+                    "email": user2.email,
+                    "name": user2.name,
+                },
+            ],
+        },
+    ]
+
+
+def test_patch_environment_review_includes_reviewers(
+    test_client: TestClient, generator: DataGenerator
+):
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("env1")
+    user = generator.gen_user(name="Reviewer", email="reviewer@test.com")
+    er = generator.gen_artefact_build_environment_review(ab, e, reviewers=[user])
+
+    update = {"review_comment": "Updated comment"}
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update
+        ),
+        Permission.change_environment_review,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": er.id,
+        "review_decision": er.review_decision,
+        "review_comment": update["review_comment"],
+        "environment": {
+            "id": e.id,
+            "name": e.name,
+            "architecture": e.architecture,
+        },
+        "artefact_build": {
+            "id": ab.id,
+            "revision": ab.revision,
+            "architecture": ab.architecture,
+        },
+        "reviewers": [
+            {
+                "id": user.id,
+                "launchpad_handle": user.launchpad_handle,
+                "email": user.email,
+                "name": user.name,
+            },
+        ],
     }
