@@ -23,6 +23,7 @@ import '../expandable.dart';
 import '../spacing.dart';
 import 'environment_issues/environment_issues_expandable.dart';
 import 'environment_review_button.dart';
+import 'environment_reviewers_avatars.dart';
 import 'test_plan_expandable.dart';
 
 class EnvironmentExpandable extends StatelessWidget {
@@ -94,6 +95,10 @@ class _EnvironmentExpandableTitle extends StatelessWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const Spacer(),
+        EnvironmentReviewersAvatars(
+          reviewers: artefactEnvironment.review.reviewers,
+        ),
+        const SizedBox(width: Spacing.level3),
         EnvironmentReviewButton(environmentReview: artefactEnvironment.review),
       ],
     );
