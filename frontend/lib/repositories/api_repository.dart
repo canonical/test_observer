@@ -559,7 +559,7 @@ class ApiRepository {
     required bool autoRerunEnabled,
   }) async {
     final response = await dio.patch(
-      '/v1/issues/$issueId/auto-rerun',
+      '/v1/issues/$issueId',
       data: {
         'auto_rerun_enabled': autoRerunEnabled,
       },

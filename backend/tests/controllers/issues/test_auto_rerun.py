@@ -52,13 +52,13 @@ def test_patch_issue_auto_rerun_endpoint(
     test_client: TestClient,
     generator: DataGenerator,
 ):
-    """Test PATCH /v1/issues/{issue_id}/auto-rerun endpoint"""
+    """Test PATCH /v1/issues/{issue_id} endpoint"""
     issue = generator.gen_issue()
 
     # Enable auto-rerun
     response = make_authenticated_request(
         lambda: test_client.patch(
-            f"/v1/issues/{issue.id}/auto-rerun",
+            f"/v1/issues/{issue.id}",
             json={"auto_rerun_enabled": True},
         ),
         Permission.change_auto_rerun,
@@ -70,7 +70,7 @@ def test_patch_issue_auto_rerun_endpoint(
     # Disable auto-rerun
     response = make_authenticated_request(
         lambda: test_client.patch(
-            f"/v1/issues/{issue.id}/auto-rerun",
+            f"/v1/issues/{issue.id}",
             json={"auto_rerun_enabled": False},
         ),
         Permission.change_auto_rerun,
@@ -89,7 +89,7 @@ def test_patch_issue_auto_rerun_requires_permission(
 
     # Try without permission
     response = test_client.patch(
-        f"/v1/issues/{issue.id}/auto-rerun",
+        f"/v1/issues/{issue.id}",
         json={"auto_rerun_enabled": True},
     )
 
@@ -102,7 +102,7 @@ def test_patch_issue_auto_rerun_not_found(
     """Test PATCH auto-rerun with non-existent issue returns 404"""
     response = make_authenticated_request(
         lambda: test_client.patch(
-            "/v1/issues/999999/auto-rerun",
+            "/v1/issues/999999",
             json={"auto_rerun_enabled": True},
         ),
         Permission.change_auto_rerun,

@@ -22,8 +22,13 @@ from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.data_access.models import (
+    Application,
     Issue,
+    User,
 )
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
@@ -163,28 +168,32 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     return issue
 
 
+def check_issue_or_auto_rerun_permission(
+    current_user: User | None = Depends(get_current_user),
+    current_app: Application | None = Depends(get_current_application),
+) -> None:
+    """Check if user has either change_issue or change_auto_rerun permission"""
+    try:
+        permission_checker(
+            SecurityScopes(scopes=[Permission.change_issue]),
+            current_user,
+            current_app,
+        )
+    except HTTPException:
+        # If change_issue fails, try change_auto_rerun
+        permission_checker(
+            SecurityScopes(scopes=[Permission.change_auto_rerun]),
+            current_user,
+            current_app,
+        )
+
+
 @router.patch(
     "/{issue_id}",
     response_model=IssueResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+    dependencies=[Depends(check_issue_or_auto_rerun_permission)],
 )
 def patch_issue(
-    issue_id: int,
-    request: IssuePatchRequest,
-    db: Session = Depends(get_db),
-):
-    issue = db.get(Issue, issue_id)
-    if issue is None:
-        raise HTTPException(status_code=404, detail="Issue not found")
-    return update_issue(db, issue, request)
-
-
-@router.patch(
-    "/{issue_id}/auto-rerun",
-    response_model=IssueResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_auto_rerun])],
-)
-def patch_issue_auto_rerun(
     issue_id: int,
     request: IssuePatchRequest,
     db: Session = Depends(get_db),
