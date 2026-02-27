@@ -55,6 +55,7 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 
     # Staggered sync tasks
     if environ.get("ENABLE_ISSUE_SYNC", "false").lower() == "true":
+        logger.info("Issue synchronization tasks enabled")
         sender.add_periodic_task(SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s())
         sender.add_periodic_task(SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s())
         sender.add_periodic_task(SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s())
