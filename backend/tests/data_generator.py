@@ -340,12 +340,14 @@ class DataGenerator:
         environment: Environment,
         review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None,
         review_comment: str = "",
+        reviewers: list[User] | None = None,
     ):
         review = ArtefactBuildEnvironmentReview(
             artefact_build=artefact_build,
             environment=environment,
             review_decision=review_decision,
             review_comment=review_comment,
+            reviewers=reviewers or [],
         )
         self._add_object(review)
         return review
