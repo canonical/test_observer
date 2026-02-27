@@ -117,5 +117,3 @@ Either way the command will produce json files with results under the `/benchmar
 ## Connect to backend
 
 By default the Test Observer frontend will use `http://localhost:30000/` to communicate with the backend. To use a different address you can modify `window.testObserverAPIBaseURI` attribute in `web/index.html`.
-
-
