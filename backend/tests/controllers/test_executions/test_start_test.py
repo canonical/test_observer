@@ -266,6 +266,70 @@ class TestFamilyIndependentTests:
 
         assert len(artefact.reviewers) == 2
 
+    def test_environment_reviews_get_assigned_reviewer_from_artefact_reviewers(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """Assert that environment reviews get assigned a reviewer from the artefact's reviewers"""
+        team = generator.gen_team(
+            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+        )
+        user = generator.gen_user(email="reviewer@example.com", teams=[team])
+
+        response = execute({**start_request, "needs_assignment": True})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        artefact = test_execution.artefact_build.artefact
+
+        # Verify the artefact has a reviewer
+        assert len(artefact.reviewers) == 1
+        assert artefact.reviewers[0] == user
+
+        # Verify the environment review also has the reviewer assigned
+        env_review = artefact.builds[0].environment_reviews[0]
+        assert len(env_review.reviewers) == 1
+        assert env_review.reviewers[0] == user
+
+    def test_multiple_environment_reviews_each_get_assigned_reviewer(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """Assert that when multiple environments are created in one assignment, each gets a reviewer"""
+        team = generator.gen_team(
+            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+        )
+        generator.gen_user(email="user1@example.com", teams=[team])
+        generator.gen_user(email="user2@example.com", teams=[team])
+
+        # Artefact needs many environments to get multiple reviewers
+        for i in range(52):
+            execute({
+                **start_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://ci/{i}",
+                "needs_assignment": False,
+            })
+
+        # Trigger assignment
+        response = execute({
+            **start_request,
+            "environment": "final-env",
+            "ci_link": "http://final",
+            "needs_assignment": True,
+        })
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        artefact = test_execution.artefact_build.artefact
+
+        # Verify artefact has multiple reviewers
+        assert len(artefact.reviewers) == 2
+
+        # Verify all environment reviews have a reviewer assigned
+        for build in artefact.builds:
+            for env_review in build.environment_reviews:
+                assert len(env_review.reviewers) == 1
+                assert env_review.reviewers[0] in artefact.reviewers
+
     def test_deletes_rerun_requests(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
