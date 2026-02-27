@@ -17,15 +17,23 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import String, func, select
+from fastapi import HTTPException
+from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.data_access.models import (
+    Application,
     Issue,
+    User,
 )
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
 from . import attachment_rules, issue_attachments
 from .issue_url_parser import issue_source_project_key_from_url
@@ -36,6 +44,9 @@ from .models import (
     IssuesGetResponse,
     MinimalIssueResponse,
 )
+from .issue_url_parser import issue_source_project_key_from_url
+
+from . import issue_attachments, attachment_rules
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -150,15 +161,30 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
         issue.title = request.title
     if request.status is not None:
         issue.status = request.status
+    if request.auto_rerun_enabled is not None:
+        issue.auto_rerun_enabled = request.auto_rerun_enabled
     db.commit()
     db.refresh(issue)
     return issue
 
 
+def require_auto_rerun_permission(
+    security_scopes: SecurityScopes,
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    request: IssuePatchRequest = Depends(),
+):
+    if request.auto_rerun_enabled is not None:
+        permission_checker(security_scopes, user, app)
+
+
 @router.patch(
     "/{issue_id}",
     response_model=IssueResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue]), 
+        Security(require_auto_rerun_permission, scopes=[Permission.change_auto_rerun])
+        ],
 )
 def patch_issue(
     issue_id: int,
