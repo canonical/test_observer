@@ -156,6 +156,169 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
     }
 
 
+def test_bulk_review_multiple_environments(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test bulk reviewing multiple environments at once."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    er1 = generator.gen_artefact_build_environment_review(ab, e1)
+    er2 = generator.gen_artefact_build_environment_review(ab, e2)
+
+    update = [
+        {
+            "id": er1.id,
+            "review_comment": "Approved env1",
+            "review_decision": [
+                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
+            ],
+        },
+        {
+            "id": er2.id,
+            "review_comment": "Approved env2",
+            "review_decision": [
+                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
+            ],
+        },
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews",
+            json=update,
+        ),
+        Permission.change_environment_review,
+    )
+
+    assert response.status_code == 200
+    reviews = response.json()
+    assert len(reviews) == 2
+    assert sorted([r["id"] for r in reviews]) == sorted([er1.id, er2.id])
+
+    for review in reviews:
+        if review["id"] == er1.id:
+            assert review["review_comment"] == "Approved env1"
+            assert review["review_decision"] == [
+                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
+            ]
+        elif review["id"] == er2.id:
+            assert review["review_comment"] == "Approved env2"
+            assert review["review_decision"] == [
+                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
+            ]
+
+
+def test_bulk_review_with_same_comment_and_decision(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test bulk reviewing with same comment and decision for multiple environments."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    e3 = generator.gen_environment("env3")
+    er1 = generator.gen_artefact_build_environment_review(ab, e1)
+    er2 = generator.gen_artefact_build_environment_review(ab, e2)
+    er3 = generator.gen_artefact_build_environment_review(ab, e3)
+
+    # Apply the same review to all environments
+    update = [
+        {"id": er1.id, "review_comment": "All good"},
+        {"id": er2.id, "review_comment": "All good"},
+        {"id": er3.id, "review_comment": "All good"},
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews",
+            json=update,
+        ),
+        Permission.change_environment_review,
+    )
+
+    assert response.status_code == 200
+    reviews = response.json()
+    assert len(reviews) == 3
+    for review in reviews:
+        assert review["review_comment"] == "All good"
+
+
+def test_bulk_review_rejects_if_review_belongs_to_different_artefact(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that bulk review silently skips reviews from a different artefact."""
+    a1 = generator.gen_artefact(StageName.beta, name="artefact1")
+    a2 = generator.gen_artefact(StageName.beta, name="artefact2")
+    ab1 = generator.gen_artefact_build(a1)
+    ab2 = generator.gen_artefact_build(a2)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    er1 = generator.gen_artefact_build_environment_review(ab1, e1)
+    er2 = generator.gen_artefact_build_environment_review(ab2, e2)
+
+    update = [
+        {"id": er1.id, "review_comment": "Comment"},
+        {"id": er2.id, "review_comment": "Comment"},
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a1.id}/environment-reviews",
+            json=update,
+        ),
+        Permission.change_environment_review,
+    )
+
+    assert response.status_code == 200
+    reviews = response.json()
+    # Only er1 should be updated; er2 is silently skipped as it belongs to a2
+    assert len(reviews) == 1
+    assert reviews[0]["id"] == er1.id
+    assert reviews[0]["review_comment"] == "Comment"
+
+
+def test_bulk_review_reset_review(test_client: TestClient, generator: DataGenerator):
+    """Test resetting reviews (clearing comment and decisions) in bulk."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    er1 = generator.gen_artefact_build_environment_review(
+        ab,
+        e1,
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.REJECTED],
+        review_comment="rejected",
+    )
+    er2 = generator.gen_artefact_build_environment_review(
+        ab,
+        e2,
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.REJECTED],
+        review_comment="rejected",
+    )
+
+    update = [
+        {"id": er1.id, "review_decision": [], "review_comment": ""},
+        {"id": er2.id, "review_decision": [], "review_comment": ""},
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews",
+            json=update,
+        ),
+        Permission.change_environment_review,
+    )
+
+    assert response.status_code == 200
+    reviews = response.json()
+    assert len(reviews) == 2
+    for review in reviews:
+        assert review["review_decision"] == []
+        assert review["review_comment"] == ""
+
+
 def test_requires_review_to_belong_to_artefact(test_client: TestClient, generator: DataGenerator):
     a1 = generator.gen_artefact(StageName.beta, name="a1")
     a2 = generator.gen_artefact(StageName.beta, name="a2")

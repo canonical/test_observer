@@ -174,6 +174,7 @@ class ArtefactBuildEnvironmentReviewResponse(BaseModel):
 
 
 class EnvironmentReviewPatch(BaseModel):
+    id: int | None = None
     review_decision: list[ArtefactBuildEnvironmentReviewDecision] | None = None
     review_comment: str | None = None
 

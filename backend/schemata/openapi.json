@@ -1174,6 +1174,68 @@
         "x-permissions": [
           "view_environment_review"
         ]
+      },
+      "patch": {
+        "tags": [
+          "artefacts",
+          "environment-reviews"
+        ],
+        "summary": "Bulk Update Environment Reviews",
+        "operationId": "bulk_update_environment_reviews_v1_artefacts__artefact_id__environment_reviews_patch",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EnvironmentReviewPatch"
+                },
+                "title": "Requests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewResponse"
+                  },
+                  "title": "Response Bulk Update Environment Reviews V1 Artefacts  Artefact Id  Environment Reviews Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_environment_review"
+        ]
       }
     },
     "/v1/artefacts/{artefact_id}/environment-reviews/{review_id}": {
@@ -4685,6 +4747,17 @@
       },
       "EnvironmentReviewPatch": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
           "review_decision": {
             "anyOf": [
               {
