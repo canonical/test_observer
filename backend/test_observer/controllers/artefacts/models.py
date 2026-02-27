@@ -167,12 +167,22 @@ class ArtefactSearchResponse(BaseModel):
     artefacts: list[str]
 
 
+class EnvironmentReviewReviewerResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    launchpad_handle: str | None = None
+    email: str
+    name: str
+
+
 class ArtefactBuildEnvironmentReviewResponse(BaseModel):
     id: int
     review_decision: list[ArtefactBuildEnvironmentReviewDecision]
     review_comment: str
     environment: EnvironmentResponse
     artefact_build: ArtefactBuildMinimalResponse
+    reviewers: list[EnvironmentReviewReviewerResponse] = []
 
 
 class EnvironmentReviewPatch(BaseModel):

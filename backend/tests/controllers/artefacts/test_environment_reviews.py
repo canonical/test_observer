@@ -77,6 +77,7 @@ def test_get_with_two_environment_reviews(
                 "architecture": ab.architecture,
                 "revision": ab.revision,
             },
+            "reviewers": [],
         },
         {
             "id": review2.id,
@@ -92,6 +93,7 @@ def test_get_with_two_environment_reviews(
                 "architecture": ab.architecture,
                 "revision": ab.revision,
             },
+            "reviewers": [],
         },
     ]
 
@@ -127,6 +129,7 @@ def test_get_only_considers_latest_builds(
                 "architecture": review2.artefact_build.architecture,
                 "revision": review2.artefact_build.revision,
             },
+            "reviewers": [],
         },
     ]
 
@@ -165,6 +168,7 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
             "revision": ab.revision,
             "architecture": ab.architecture,
         },
+        "reviewers": [],
     }
 
 
@@ -247,6 +251,7 @@ def test_environment_review_reset_review(
             "revision": ab.revision,
             "architecture": ab.architecture,
         },
+        "reviewers": [],
     }
 
 
