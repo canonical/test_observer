@@ -93,6 +93,18 @@ team_users_association = Table(
 )
 
 
+artefact_matching_rule_team_association = Table(
+    "artefact_matching_rule_team_association",
+    Base.metadata,
+    Column(
+        "artefact_matching_rule_id",
+        ForeignKey("artefact_matching_rule.id"),
+        primary_key=True,
+    ),
+    Column("team_id", ForeignKey("team.id"), primary_key=True),
+)
+
+
 class User(Base):
     """
     ORM representing users that can be assigned to review artefacts
@@ -143,10 +155,44 @@ class Team(Base):
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     reviewer_families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
-    members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
+    members: Mapped[list[User]] = relationship(
+        secondary=team_users_association, back_populates="teams"
+    )
+    artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="teams",
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")
+
+
+class ArtefactMatchingRule(Base):
+    """
+    A model to define rules for matching artefacts to reviewer teams.
+    Teams can have multiple matching rules to specify which artefacts they can review.
+    """
+
+    __tablename__ = "artefact_matching_rule"
+
+    family: Mapped[FamilyName]
+    stage: Mapped[str | None] = mapped_column(String(100), default=None)
+    track: Mapped[str | None] = mapped_column(String(200), default=None)
+    branch: Mapped[str | None] = mapped_column(String(200), default=None)
+
+    teams: Mapped[list[Team]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="artefact_matching_rules",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "family", "stage", "track", "branch", postgresql_nulls_not_distinct=True
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "family", "stage", "track", "branch")
 
 
 class UserSession(Base):

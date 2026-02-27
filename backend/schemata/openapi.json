@@ -3840,6 +3840,243 @@
         ]
       }
     },
+    "/v1/artefact-matching-rules": {
+      "post": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Create Artefact Matching Rule",
+        "description": "Create a new artefact matching rule with at least one team",
+        "operationId": "create_artefact_matching_rule_v1_artefact_matching_rules_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactMatchingRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      },
+      "get": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Get Artefact Matching Rules",
+        "description": "Get all artefact matching rules, optionally filtered by family",
+        "operationId": "get_artefact_matching_rules_v1_artefact_matching_rules_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FamilyName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                  },
+                  "title": "Response Get Artefact Matching Rules V1 Artefact Matching Rules Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_team"
+        ]
+      }
+    },
+    "/v1/artefact-matching-rules/{rule_id}": {
+      "get": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Get Artefact Matching Rule",
+        "description": "Get a specific artefact matching rule by ID",
+        "operationId": "get_artefact_matching_rule_v1_artefact_matching_rules__rule_id__get",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_team"
+        ]
+      },
+      "patch": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Update Artefact Matching Rule",
+        "description": "Update an artefact matching rule",
+        "operationId": "update_artefact_matching_rule_v1_artefact_matching_rules__rule_id__patch",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactMatchingRulePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Delete Artefact Matching Rule",
+        "description": "Delete an artefact matching rule",
+        "operationId": "delete_artefact_matching_rule_v1_artefact_matching_rules__rule_id__delete",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -4060,6 +4297,286 @@
           "test_executions"
         ],
         "title": "ArtefactBuildResponse"
+      },
+      "ArtefactMatchingRuleBase": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "title": "ArtefactMatchingRuleBase",
+        "description": "Base model for artefact matching rule with common fields"
+      },
+      "ArtefactMatchingRuleInResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "family",
+          "stage",
+          "track",
+          "branch"
+        ],
+        "title": "ArtefactMatchingRuleInResponse",
+        "description": "Artefact matching rule fields when included in responses (no relationships)"
+      },
+      "ArtefactMatchingRulePatch": {
+        "properties": {
+          "family": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FamilyName"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "team_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Ids"
+          }
+        },
+        "type": "object",
+        "title": "ArtefactMatchingRulePatch",
+        "description": "Patch request for artefact matching rule"
+      },
+      "ArtefactMatchingRuleRequest": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "team_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Team Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family",
+          "team_ids"
+        ],
+        "title": "ArtefactMatchingRuleRequest",
+        "description": "Request to create an artefact matching rule (extends base with team_ids)"
+      },
+      "ArtefactMatchingRuleResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMinimal"
+            },
+            "type": "array",
+            "title": "Teams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "family",
+          "stage",
+          "track",
+          "branch",
+          "teams"
+        ],
+        "title": "ArtefactMatchingRuleResponse",
+        "description": "Artefact matching rule with associated teams"
       },
       "ArtefactPatch": {
         "properties": {
@@ -5831,6 +6348,14 @@
             "type": "array",
             "title": "Reviewer Families",
             "default": []
+          },
+          "artefact_matching_rules": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
+            },
+            "type": "array",
+            "title": "Artefact Matching Rules",
+            "default": []
           }
         },
         "type": "object",
@@ -5838,6 +6363,24 @@
           "name"
         ],
         "title": "TeamCreate"
+      },
+      "TeamMinimal": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TeamMinimal"
       },
       "TeamMinimalResponse": {
         "properties": {
@@ -5902,6 +6445,20 @@
               }
             ],
             "title": "Reviewer Families"
+          },
+          "artefact_matching_rules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -5938,6 +6495,13 @@
             },
             "type": "array",
             "title": "Members"
+          },
+          "artefact_matching_rules": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactMatchingRuleInResponse"
+            },
+            "type": "array",
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -5945,7 +6509,8 @@
           "id",
           "name",
           "permissions",
-          "members"
+          "members",
+          "artefact_matching_rules"
         ],
         "title": "TeamResponse"
       },
