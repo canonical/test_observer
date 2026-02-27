@@ -185,7 +185,11 @@ class ArtefactMatchingRule(Base):
         back_populates="artefact_matching_rules",
     )
 
-    __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "family", "stage", "track", "branch", postgresql_nulls_not_distinct=True
+        ),
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "family", "stage", "track", "branch")
