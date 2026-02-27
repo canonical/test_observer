@@ -16,7 +16,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.teams.models import (
@@ -168,7 +168,12 @@ def create_team(
 def get_teams(
     db: Session = Depends(get_db),
 ):
-    teams = db.scalars(select(Team)).all()
+    teams = db.scalars(
+        select(Team).options(
+            selectinload(Team.members),
+            selectinload(Team.artefact_matching_rules),
+        )
+    ).all()
     return [_team_to_response(team) for team in teams]
 
 

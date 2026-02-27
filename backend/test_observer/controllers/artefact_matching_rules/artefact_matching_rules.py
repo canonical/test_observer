@@ -17,7 +17,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefact_matching_rules.models import (
@@ -131,7 +131,9 @@ def get_artefact_matching_rules(
     family: FamilyName | None = None,
 ):
     """Get all artefact matching rules, optionally filtered by family"""
-    query = select(ArtefactMatchingRule)
+    query = select(ArtefactMatchingRule).options(
+        selectinload(ArtefactMatchingRule.teams)
+    )
 
     if family:
         query = query.where(ArtefactMatchingRule.family == family)
