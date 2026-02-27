@@ -1,24 +1,25 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+
 from fastapi.testclient import TestClient
+
 from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def generate_unique_name(prefix: str) -> str:
@@ -77,9 +78,7 @@ def test_search_artefacts_with_query(test_client: TestClient, generator: DataGen
     assert other_artefact.name not in artefacts
 
 
-def test_search_artefacts_case_insensitive(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_search_artefacts_case_insensitive(test_client: TestClient, generator: DataGenerator):
     """Test that search is case-insensitive"""
     unique_marker = uuid.uuid4().hex[:8]
     artefact_name = f"MixedCase_Artefact_{unique_marker}"
@@ -96,9 +95,7 @@ def test_search_artefacts_case_insensitive(
         assert artefact_name in artefacts
 
 
-def test_search_artefacts_partial_match(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_search_artefacts_partial_match(test_client: TestClient, generator: DataGenerator):
     """Test that search supports partial matching"""
     unique_marker = uuid.uuid4().hex[:8]
     artefact_name = f"ubuntu_desktop_{unique_marker}"
@@ -129,9 +126,7 @@ def test_search_artefacts_pagination(test_client: TestClient, generator: DataGen
 
     # Get first page
     response = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=0"
-        ),
+        lambda: test_client.get(f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=0"),
         Permission.view_artefact,
     )
     assert response.status_code == 200
@@ -141,9 +136,7 @@ def test_search_artefacts_pagination(test_client: TestClient, generator: DataGen
 
     # Get second page
     response = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=3"
-        ),
+        lambda: test_client.get(f"/v1/artefacts/search?q=paginated_artefact_{unique_marker}&limit=3&offset=3"),
         Permission.view_artefact,
     )
     assert response.status_code == 200
@@ -190,9 +183,7 @@ def test_search_artefacts_empty_result(test_client: TestClient):
     assert response.json()["artefacts"] == []
 
 
-def test_search_artefacts_strips_whitespace(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_search_artefacts_strips_whitespace(test_client: TestClient, generator: DataGenerator):
     """Test that search query strips leading/trailing whitespace"""
     unique_marker = uuid.uuid4().hex[:8]
     artefact_name = f"whitespace_test_{unique_marker}"
@@ -208,17 +199,13 @@ def test_search_artefacts_strips_whitespace(
     assert artefact_name in artefacts
 
 
-def test_search_artefacts_excludes_archived(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_search_artefacts_excludes_archived(test_client: TestClient, generator: DataGenerator):
     """Test that archived artefacts are excluded from search"""
     unique_marker = uuid.uuid4().hex[:8]
 
     active_artefact = generator.gen_artefact(name=f"active_artefact_{unique_marker}")
 
-    archived_artefact = generator.gen_artefact(
-        name=f"archived_artefact_{unique_marker}", archived=True
-    )
+    archived_artefact = generator.gen_artefact(name=f"archived_artefact_{unique_marker}", archived=True)
 
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/artefacts/search?q=artefact_{unique_marker}"),
@@ -232,9 +219,7 @@ def test_search_artefacts_excludes_archived(
     assert archived_artefact.name not in artefacts
 
 
-def test_search_artefacts_default_limit(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_search_artefacts_default_limit(test_client: TestClient, generator: DataGenerator):
     """Test that default limit is 50"""
     unique_marker = uuid.uuid4().hex[:8]
 
@@ -250,3 +235,22 @@ def test_search_artefacts_default_limit(
     artefacts = response.json()["artefacts"]
     assert len(artefacts) <= 50
     assert len(artefacts) == 50
+
+
+def test_search_artefacts_pagination_metadata(test_client: TestClient, generator: DataGenerator):
+    """count reflects total results, limit and offset echo back the used values"""
+    unique_marker = uuid.uuid4().hex[:8]
+    for i in range(5):
+        generator.gen_artefact(name=f"meta_artefact_{unique_marker}_{i:02d}")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/search?q=meta_artefact_{unique_marker}&limit=2&offset=1"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["artefacts"]) == 2

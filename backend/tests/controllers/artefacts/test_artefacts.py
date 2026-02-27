@@ -1,28 +1,27 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import date, timedelta
 from operator import itemgetter
 from typing import Any
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import Artefact, TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -30,14 +29,11 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
 )
-from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
-def test_get_artefacts_ignores_archived(
-    generator: DataGenerator, test_client: TestClient
-):
+def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: TestClient):
     a1 = generator.gen_artefact(
         stage=StageName.proposed,
         family=FamilyName.deb,
@@ -113,9 +109,7 @@ def test_get_artefacts_ignores_archived(
         },
     ],
 )
-def test_get_artefacts_returns_latest_on_each_stage(
-    generator: DataGenerator, test_client: TestClient, artefact: dict
-):
+def test_get_artefacts_returns_latest_on_each_stage(generator: DataGenerator, test_client: TestClient, artefact: dict):
     """If multiple versions of an artefact exist on the same stage, return the latest"""
     generator.gen_artefact(**artefact, version="1")
     new = generator.gen_artefact(**artefact, version="2")
@@ -128,9 +122,7 @@ def test_get_artefacts_returns_latest_on_each_stage(
     _assert_get_artefacts_response(response.json(), [new])
 
 
-def test_get_relevant_image_artefacts(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_relevant_image_artefacts(test_client: TestClient, generator: DataGenerator):
     old_image = generator.gen_image()
     new_image = generator.gen_image(
         sha256="someothersha256",
@@ -232,9 +224,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     _assert_get_artefact_response(response.json(), a)
 
 
-def test_get_artefact_environment_reviews_counts_only_latest_build(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_artefact_environment_reviews_counts_only_latest_build(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(artefact=a, revision=1)
     e = generator.gen_environment()
@@ -246,9 +236,7 @@ def test_get_artefact_environment_reviews_counts_only_latest_build(
     generator.gen_artefact_build_environment_review(
         ab_second,
         e,
-        review_decision=[
-            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-        ],
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS],
     )
 
     response = make_authenticated_request(
@@ -280,9 +268,7 @@ def test_get_artefact_environment_reviews_counts(
     assert response.json()["all_environment_reviews_count"] == 1
     assert response.json()["completed_environment_reviews_count"] == 0
 
-    er.review_decision = [
-        ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-    ]
+    er.review_decision = [ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS]
     db_session.commit()
     db_session.refresh(er)
 
@@ -311,9 +297,7 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
     assert artefact.status == ArtefactStatus.APPROVED
 
 
-def test_artefact_signoff_disallow_approve(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_artefact_signoff_disallow_approve(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
@@ -329,9 +313,7 @@ def test_artefact_signoff_disallow_approve(
     assert response.status_code == 400
 
 
-def test_artefact_signoff_disallow_reject(
-    test_client: TestClient, test_execution: TestExecution
-):
+def test_artefact_signoff_disallow_reject(test_client: TestClient, test_execution: TestExecution):
     artefact_id = test_execution.artefact_build.artefact_id
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -344,9 +326,7 @@ def test_artefact_signoff_disallow_reject(
     assert response.status_code == 400
 
 
-def test_artefact_signoff_ignore_old_build_on_approve(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
     build1 = generator.gen_artefact_build(artefact, revision=1)
     build2 = generator.gen_artefact_build(artefact, revision=1, architecture="arm64")
@@ -356,16 +336,12 @@ def test_artefact_signoff_ignore_old_build_on_approve(
     generator.gen_artefact_build_environment_review(
         build2,
         environment,
-        review_decision=[
-            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-        ],
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS],
     )
     generator.gen_artefact_build_environment_review(
         build3,
         environment,
-        review_decision=[
-            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-        ],
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS],
     )
 
     response = make_authenticated_request(
@@ -380,9 +356,7 @@ def test_artefact_signoff_ignore_old_build_on_approve(
     assert artefact.status == ArtefactStatus.APPROVED
 
 
-def test_artefact_signoff_ignore_old_build_on_reject(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_artefact_signoff_ignore_old_build_on_reject(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
     build_1 = generator.gen_artefact_build(artefact, revision=1)
     build_2 = generator.gen_artefact_build(artefact, revision=2)
@@ -407,9 +381,7 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     assert response.status_code == 400
 
 
-def test_artefact_rejection_requires_comment(
-    test_client: TestClient, test_execution: TestExecution
-):
+def test_artefact_rejection_requires_comment(test_client: TestClient, test_execution: TestExecution):
     # Reject an environment as that's required to reject an artefact
     test_execution.artefact_build.environment_reviews[0].review_decision = [
         ArtefactBuildEnvironmentReviewDecision.REJECTED
@@ -436,9 +408,7 @@ def test_artefact_rejection_requires_comment(
     )
 
     assert response.status_code == 200
-    assert (
-        test_execution.artefact_build.artefact.status == ArtefactStatus.MARKED_AS_FAILED
-    )
+    assert test_execution.artefact_build.artefact.status == ArtefactStatus.MARKED_AS_FAILED
 
 
 def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
@@ -552,9 +522,7 @@ def test_update_artefact_assignee(test_client: TestClient, generator: DataGenera
     assert a.assignee_id == u.id
 
 
-def test_update_artefact_assignee_nonexistent_user(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_assignee_nonexistent_user(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_user_id = 99999
 
@@ -570,9 +538,7 @@ def test_update_artefact_assignee_nonexistent_user(
     assert "User with id 99999 not found" in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_assignee_clear(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
     a = generator.gen_artefact(assignee_id=u.id)
 
@@ -592,9 +558,7 @@ def test_update_artefact_assignee_clear(
     assert a.assignee_id is None
 
 
-def test_update_artefact_assignee_by_email(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_assignee_by_email(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -610,9 +574,7 @@ def test_update_artefact_assignee_by_email(
     assert a.assignee_id == u.id
 
 
-def test_update_artefact_assignee_by_email_nonexistent(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_assignee_by_email_nonexistent(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_email = "nonexistent@example.com"
 
@@ -629,9 +591,7 @@ def test_update_artefact_assignee_by_email_nonexistent(
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear_by_email(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_assignee_clear_by_email(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
     a = generator.gen_artefact(assignee_id=u.id)
 
@@ -651,9 +611,7 @@ def test_update_artefact_assignee_clear_by_email(
     assert a.assignee_id is None
 
 
-def test_update_artefact_assignee_both_id_and_email_error(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_assignee_both_id_and_email_error(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -705,12 +663,8 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 
 
-def _assert_get_artefacts_response(
-    response_json: list[dict[str, Any]], artefacts: list[Artefact]
-) -> None:
-    for r, a in zip(
-        sorted(response_json, key=itemgetter("id")), artefacts, strict=True
-    ):
+def _assert_get_artefacts_response(response_json: list[dict[str, Any]], artefacts: list[Artefact]) -> None:
+    for r, a in zip(sorted(response_json, key=itemgetter("id")), artefacts, strict=True):
         _assert_get_artefact_response(r, a)
 
 
@@ -736,9 +690,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "archived": artefact.archived,
         "family": artefact.family,
         "assignee": None,
-        "due_date": (
-            artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
-        ),
+        "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501

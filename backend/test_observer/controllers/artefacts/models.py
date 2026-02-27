@@ -1,42 +1,39 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
+from collections.abc import Sequence
 from datetime import date, datetime
 from typing import Any
-from collections.abc import Sequence
 
 from pydantic import (
     AliasPath,
     BaseModel,
     ConfigDict,
     Field,
+    HttpUrl,
     computed_field,
     field_validator,
-    HttpUrl,
-)
-
-from test_observer.data_access.models_enums import (
-    ArtefactBuildEnvironmentReviewDecision,
-    ArtefactStatus,
-    TestExecutionStatus,
-    StageName,
 )
 
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
+    ArtefactStatus,
+    StageName,
+    TestExecutionStatus,
+)
 
 
 class AssigneeResponse(BaseModel):
@@ -111,9 +108,7 @@ class TestExecutionResponse(BaseModel):
     id: int
     ci_link: str | None
     c3_link: str | None
-    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(
-        default_factory=list
-    )
+    relevant_links: list[TestExecutionRelevantLinkResponse] = Field(default_factory=list)
     environment: EnvironmentResponse
     status: TestExecutionStatus
     rerun_request: Any = Field(exclude=True)
@@ -165,6 +160,9 @@ class ArtefactBuildMinimalResponse(BaseModel):
 
 class ArtefactSearchResponse(BaseModel):
     artefacts: list[str]
+    count: int
+    limit: int
+    offset: int
 
 
 class ArtefactBuildEnvironmentReviewResponse(BaseModel):

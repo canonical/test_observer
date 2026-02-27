@@ -1,18 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """add_test_plan_id_to_test_execution
 
@@ -22,9 +21,8 @@ Create Date: 2025-11-26 20:19:26.684626+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "b329c0aa09ac"
@@ -35,9 +33,7 @@ depends_on = None
 
 def upgrade() -> None:
     # Add test_plan_id column (nullable initially)
-    op.add_column(
-        "test_execution", sa.Column("test_plan_id", sa.Integer(), nullable=True)
-    )
+    op.add_column("test_execution", sa.Column("test_plan_id", sa.Integer(), nullable=True))
 
     # Populate test_plan_id by looking up test_plan name
     op.execute("""
@@ -59,9 +55,7 @@ def upgrade() -> None:
         ["id"],
         ondelete="CASCADE",
     )
-    op.create_index(
-        op.f("test_execution_test_plan_id_ix"), "test_execution", ["test_plan_id"]
-    )
+    op.create_index(op.f("test_execution_test_plan_id_ix"), "test_execution", ["test_plan_id"])
 
     # Drop old test_plan string column
     op.drop_column("test_execution", "test_plan")
@@ -69,9 +63,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Re-add test_plan string column
-    op.add_column(
-        "test_execution", sa.Column("test_plan", sa.String(length=200), nullable=True)
-    )
+    op.add_column("test_execution", sa.Column("test_plan", sa.String(length=200), nullable=True))
 
     # Populate from test_plan table
     op.execute("""
@@ -86,7 +78,5 @@ def downgrade() -> None:
 
     # Drop foreign key, index, and test_plan_id column
     op.drop_index(op.f("test_execution_test_plan_id_ix"), table_name="test_execution")
-    op.drop_constraint(
-        "fk_test_execution_test_plan_id", "test_execution", type_="foreignkey"
-    )
+    op.drop_constraint("fk_test_execution_test_plan_id", "test_execution", type_="foreignkey")
     op.drop_column("test_execution", "test_plan_id")

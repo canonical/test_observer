@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
@@ -26,19 +24,19 @@ from test_observer.controllers.users import users
 from test_observer.data_access.setup import get_db
 
 from . import (
+    auth,
     environments,
     reports,
     test_cases,
     test_executions,
     test_results,
-    auth,
 )
 from .application import version
 from .artefacts import artefacts
+from .execution_metadata import execution_metadata
+from .issues import issues
 from .teams import teams
 from .test_executions import relevant_links
-from .issues import issues
-from .execution_metadata import execution_metadata
 from .artefact_matching_rules import artefact_matching_rules
 
 router: APIRouter = APIRouter()

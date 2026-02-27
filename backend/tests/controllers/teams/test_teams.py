@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi.testclient import TestClient
 
@@ -108,9 +106,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/teams"), Permission.view_team
-    )
+    response = make_authenticated_request(lambda: test_client.get("/v1/teams"), Permission.view_team)
 
     assert response.status_code == 200
     assert response.json() == [
@@ -137,9 +133,7 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(permissions=["create_artefact"], members=[user])
 
-    response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team
-    )
+    response = make_authenticated_request(lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team)
 
     assert response.status_code == 200
     assert response.json() == {
@@ -206,9 +200,7 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
     assert response.status_code == 422
 
 
-def test_update_team_reviewer_families(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_reviewer_families(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
@@ -284,9 +276,7 @@ def test_remove_team_member(test_client: TestClient, generator: DataGenerator):
     assert response.json()["members"] == []
 
 
-def test_remove_team_member_not_member(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_remove_team_member_not_member(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user()
 
@@ -299,9 +289,7 @@ def test_remove_team_member_not_member(
     assert response.json()["members"] == []
 
 
-def test_remove_team_member_not_found(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_remove_team_member_not_found(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     user = generator.gen_user()
 

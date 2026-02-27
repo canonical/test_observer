@@ -1,23 +1,22 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2025 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yaru/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yaru/yaru.dart';
 
 import '../../models/test_results_filters.dart';
 import '../../routing.dart';
@@ -82,13 +81,18 @@ class _TestResultsPageState extends ConsumerState<TestResultsPage> {
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 const Spacer(),
-                YaruOptionButton(
-                  child: const Icon(Icons.filter_alt),
-                  onPressed: () {
-                    setState(() {
-                      showFilters = !showFilters;
-                    });
-                  },
+                Badge(
+                  isLabelVisible: appliedFilters.hasFilters,
+                  smallSize: 8,
+                  backgroundColor: YaruColors.orange,
+                  child: YaruOptionButton(
+                    child: const Icon(Icons.filter_alt),
+                    onPressed: () {
+                      setState(() {
+                        showFilters = !showFilters;
+                      });
+                    },
+                  ),
                 ),
               ],
             ),

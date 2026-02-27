@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: "2025 Canonical Ltd."
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Juju deployment
 
 Local Juju and charm deployment via microk8s and terraform.

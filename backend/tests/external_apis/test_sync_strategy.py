@@ -1,25 +1,25 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from sqlalchemy.orm import Session
 
-from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
 from test_observer.data_access.models import Issue, IssueSource, IssueStatus
+from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
 
 
 def test_get_open_issues_never_synced(db_session: Session) -> None:
@@ -37,9 +37,7 @@ def test_get_open_issues_never_synced(db_session: Session) -> None:
     db_session.commit()
 
     # Should be returned for high priority sync
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="high"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="high")
 
     assert len(issues) == 1
     assert issues[0].id == issue.id
@@ -60,9 +58,7 @@ def test_get_open_issues_synced_recently(db_session: Session) -> None:
     db_session.commit()
 
     # Should NOT be returned (synced < 1 hour ago)
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="high"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="high")
 
     assert len(issues) == 0
 
@@ -82,9 +78,7 @@ def test_get_open_issues_synced_long_ago(db_session: Session) -> None:
     db_session.commit()
 
     # Should be returned (synced > 1 hour ago)
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="high"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="high")
 
     assert len(issues) == 1
     assert issues[0].id == issue.id
@@ -106,9 +100,7 @@ def test_get_recent_closed_issues(db_session: Session) -> None:
     db_session.commit()
 
     # Should be returned for medium priority sync
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="medium"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="medium")
 
     assert len(issues) == 1
     assert issues[0].id == issue.id
@@ -130,9 +122,7 @@ def test_old_closed_issues_not_in_medium_priority(db_session: Session) -> None:
     db_session.commit()
 
     # Should NOT be in medium priority (too old)
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="medium"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="medium")
 
     assert len(issues) == 0
 
@@ -153,9 +143,7 @@ def test_get_old_closed_issues(db_session: Session) -> None:
     db_session.commit()
 
     # Should be returned for low priority sync
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="low"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="low")
 
     assert len(issues) == 1
     assert issues[0].id == issue.id
@@ -177,9 +165,7 @@ def test_batch_size_limit(db_session: Session) -> None:
     db_session.commit()
 
     # Request batch of 25
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=25, priority="high"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=25, priority="high")
 
     assert len(issues) == 25
 
@@ -214,9 +200,7 @@ def test_oldest_sync_first(db_session: Session) -> None:
     db_session.add_all([issue1, issue2, issue3])
     db_session.commit()
 
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="high"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="high")
 
     # Never synced should be first, then oldest
     assert len(issues) == 3
@@ -281,9 +265,7 @@ def test_get_sync_stats(db_session: Session) -> None:
 def test_invalid_priority_raises_error(db_session: Session) -> None:
     """Test that invalid priority raises ValueError"""
     with pytest.raises(ValueError, match="Invalid priority"):
-        SyncStrategy.get_issues_due_for_sync(
-            db_session, batch_size=50, priority="invalid"
-        )
+        SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="invalid")
 
 
 def test_closed_issue_respects_sync_interval(db_session: Session) -> None:
@@ -302,9 +284,7 @@ def test_closed_issue_respects_sync_interval(db_session: Session) -> None:
     db_session.commit()
 
     # Should NOT be returned (synced < 6 hours ago)
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="medium"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="medium")
 
     assert len(issues) == 0
 
@@ -322,9 +302,7 @@ def test_closed_issue_respects_sync_interval(db_session: Session) -> None:
     db_session.commit()
 
     # Should be returned (synced > 6 hours ago)
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="medium"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="medium")
 
     assert len(issues) == 1
     assert issues[0].id == old_sync_issue.id
@@ -364,9 +342,7 @@ def test_unknown_issues_in_high_priority(db_session: Session) -> None:
     db_session.commit()
 
     # High priority should include both UNKNOWN and OPEN
-    issues = SyncStrategy.get_issues_due_for_sync(
-        db_session, batch_size=50, priority="high"
-    )
+    issues = SyncStrategy.get_issues_due_for_sync(db_session, batch_size=50, priority="high")
 
     assert len(issues) == 2  # UNKNOWN + OPEN only
     issue_ids = {issue.id for issue in issues}

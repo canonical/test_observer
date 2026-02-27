@@ -1,26 +1,24 @@
-# Copyright (C) 2026 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Services for working with objects from DB"""
 
 from collections.abc import Iterable
 from typing import Any
-from pydantic import HttpUrl
 
+from pydantic import HttpUrl
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
@@ -45,9 +43,7 @@ def get_artefacts_by_family(
     """
     if family == FamilyName.charm:
         # For charm family, only filter by archived status
-        query = session.query(Artefact).filter(
-            Artefact.family == family, Artefact.archived.is_(False)
-        )
+        query = session.query(Artefact).filter(Artefact.family == family, Artefact.archived.is_(False))
     else:
         base_query = (
             session.query(
@@ -80,9 +76,7 @@ def get_artefacts_by_family(
 
             case FamilyName.deb:
                 subquery = (
-                    base_query.add_columns(
-                        Artefact.repo, Artefact.series, Artefact.source
-                    )
+                    base_query.add_columns(Artefact.repo, Artefact.series, Artefact.source)
                     .group_by(Artefact.repo, Artefact.series, Artefact.source)
                     .subquery()
                 )
@@ -118,9 +112,7 @@ def get_artefacts_by_family(
                 )
 
     if load_environment_reviews:
-        query = query.options(
-            joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews)
-        )
+        query = query.options(joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews))
 
     if order_by_columns:
         query = query.order_by(*order_by_columns)
@@ -192,9 +184,7 @@ def get_or_create(
 def create_test_execution_relevant_link(
     session: Session, test_execution_id: int, label: str, url: HttpUrl
 ) -> TestExecutionRelevantLink:
-    new_link = TestExecutionRelevantLink(
-        test_execution_id=test_execution_id, label=label, url=url
-    )
+    new_link = TestExecutionRelevantLink(test_execution_id=test_execution_id, label=label, url=url)
     session.add(new_link)
     session.commit()
     session.refresh(new_link)

@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
 from sqlalchemy import select
@@ -65,7 +63,5 @@ def test_promote_user_already_admin(db_session: Session):
 def test_promote_user_not_found(db_session: Session):
     email = "nonexistent@canonical.com"
 
-    with pytest.raises(
-        ValueError, match="User with email nonexistent@canonical.com not found"
-    ):
+    with pytest.raises(ValueError, match="User with email nonexistent@canonical.com not found"):
         promote_user_to_admin(email, db_session)

@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 # ruff: noqa: T201
 
@@ -31,55 +29,35 @@ requests.request = functools.partial(requests.request, timeout=30)  # type: igno
 
 
 def main(artefact_id: int, test_case_regex: str, reversed: bool):
-    artefact_builds = requests.get(
-        f"{TO_API_URL}/v1/artefacts/{artefact_id}/builds"
-    ).json()
+    artefact_builds = requests.get(f"{TO_API_URL}/v1/artefacts/{artefact_id}/builds").json()
 
     test_case_matcher = re.compile(test_case_regex)
 
     relevant_test_executions = []
     for ab in artefact_builds:
         for te in ab["test_executions"]:
-            if (
-                te["review_decision"] == []
-                and not te["is_rerun_requested"]
-                and te["status"] == "FAILED"
-            ):
+            if te["review_decision"] == [] and not te["is_rerun_requested"] and te["status"] == "FAILED":
                 relevant_test_executions.append(te)
 
     test_execution_ids_to_rerun = []
     for te in relevant_test_executions:
-        test_results = requests.get(
-            f"{TO_API_URL}/v1/test-executions/{te['id']}/test-results"
-        ).json()
+        test_results = requests.get(f"{TO_API_URL}/v1/test-executions/{te['id']}/test-results").json()
 
         matching_failed_tests = (
-            tr
-            for tr in test_results
-            if tr["status"] == "FAILED" and test_case_matcher.match(tr["name"])
+            tr for tr in test_results if tr["status"] == "FAILED" and test_case_matcher.match(tr["name"])
         )
 
         first_failing_test = next(matching_failed_tests, None)
 
         if first_failing_test and not reversed:
             test_execution_ids_to_rerun.append(te["id"])
-            print(
-                f"will rerun {te['environment']['name']}"
-                f" for failing {first_failing_test['name']}"
-            )
+            print(f"will rerun {te['environment']['name']} for failing {first_failing_test['name']}")
         elif not first_failing_test and reversed:
             test_execution_ids_to_rerun.append(te["id"])
-            print(
-                f"will rerun {te['environment']['name']}"
-                f" as no failing matches found and reversed option is set"
-            )
+            print(f"will rerun {te['environment']['name']} as no failing matches found and reversed option is set")
 
     should_rerun = (
-        input(
-            f"Will rerun {len(test_execution_ids_to_rerun)}"
-            " test executions is that ok? (y/N) "
-        ).lower()
-        == "y"
+        input(f"Will rerun {len(test_execution_ids_to_rerun)} test executions is that ok? (y/N) ").lower() == "y"
     )
 
     if should_rerun:

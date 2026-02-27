@@ -1,33 +1,31 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
+import subprocess
 from collections.abc import Generator
 from datetime import datetime, timedelta
 from pathlib import Path
+
 import pytest
-import subprocess
+from fastapi.testclient import TestClient
 
 from scripts.fetch_test_results_report import fetch_test_results_report
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName
-from tests.data_generator import DataGenerator
 from tests.conftest import override_permissions
-
-
-from fastapi.testclient import TestClient
+from tests.data_generator import DataGenerator
 
 
 def _run_script(input_params: list[str]) -> tuple[bytes, bytes]:
@@ -61,9 +59,7 @@ def test_fetch_test_results_report_missing_output_file():
 
 
 def test_fetch_test_results_report_invalid_start_date():
-    _, stderr = _run_script(
-        ["--start_date", "2023.01.15", "--output_file", "output.csv"]
-    )
+    _, stderr = _run_script(["--start_date", "2023.01.15", "--output_file", "output.csv"])
     assert "Date 2023.01.15 is not in the correct format: %Y-%m-%d" in str(stderr)
 
 

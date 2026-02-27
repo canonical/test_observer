@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import date, datetime
 
@@ -43,11 +41,11 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    IssueSource,
+    IssueStatus,
     StageName,
     TestExecutionStatus,
     TestResultStatus,
-    IssueSource,
-    IssueStatus,
 )
 
 DEFAULT_ARCHITECTURE = "amd64"
@@ -117,9 +115,7 @@ class DataGenerator:
         self._add_object(application)
         return application
 
-    def gen_user_session(
-        self, user: User, expires_at: datetime | None = None
-    ) -> UserSession:
+    def gen_user_session(self, user: User, expires_at: datetime | None = None) -> UserSession:
         session = UserSession(user=user)
         if expires_at:
             session.expires_at = expires_at
@@ -187,12 +183,9 @@ class DataGenerator:
         version: str = "20240827",
         os: str = "ubuntu",
         release: str = "noble",
-        sha256: str = "e71fb5681e63330445eec6fc3fe043f36"
-        "5289c2e595e3ceeac08fbeccfb9a957",
+        sha256: str = "e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
         owner: str = "foundations",
-        image_url: str = (
-            "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
-        ),
+        image_url: str = ("https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"),
         created_at: datetime | None = None,
         status: ArtefactStatus = ArtefactStatus.UNDECIDED,
         bug_link: str = "",
@@ -279,16 +272,12 @@ class DataGenerator:
             for category, values in execution_metadata.items():
                 for value in values:
                     existing_row = (
-                        self.db_session.query(TestExecutionMetadata)
-                        .filter_by(category=category, value=value)
-                        .first()
+                        self.db_session.query(TestExecutionMetadata).filter_by(category=category, value=value).first()
                     )
                     if existing_row:
                         execution_metadata_row = existing_row
                     else:
-                        execution_metadata_row = TestExecutionMetadata(
-                            category=category, value=value
-                        )
+                        execution_metadata_row = TestExecutionMetadata(category=category, value=value)
                         self._add_object(execution_metadata_row)
                     execution_metadata_rows.append(execution_metadata_row)
 
@@ -342,9 +331,7 @@ class DataGenerator:
         self._add_object(test_result)
         return test_result
 
-    def gen_rerun_request(
-        self, test_execution: TestExecution
-    ) -> TestExecutionRerunRequest:
+    def gen_rerun_request(self, test_execution: TestExecution) -> TestExecutionRerunRequest:
         rerun = TestExecutionRerunRequest(
             test_plan_id=test_execution.test_plan_id,
             artefact_build_id=test_execution.artefact_build_id,

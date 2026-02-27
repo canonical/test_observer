@@ -1,24 +1,23 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import select, distinct
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
-from typing import Annotated
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
@@ -29,12 +28,12 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
-    FamilyName,
-    StageName,
-    SnapStage,
-    DebStage,
     CharmStage,
+    DebStage,
+    FamilyName,
     ImageStage,
+    SnapStage,
+    StageName,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
@@ -45,10 +44,10 @@ from .logic import (
     is_there_a_rejected_environment,
 )
 from .models import (
-    ArtefactResponse,
     ArtefactPatch,
-    ArtefactVersionResponse,
+    ArtefactResponse,
     ArtefactSearchResponse,
+    ArtefactVersionResponse,
 )
 
 router = APIRouter(tags=["artefacts"])
@@ -116,11 +115,7 @@ def search_artefacts(
 
     Returns a list of distinct artefact names that match the search query.
     """
-    query = (
-        select(distinct(Artefact.name))
-        .where(Artefact.archived.is_(False))
-        .order_by(Artefact.name)
-    )
+    query = select(distinct(Artefact.name)).where(Artefact.archived.is_(False)).order_by(Artefact.name)
 
     if families and len(families) > 0:
         query = query.where(Artefact.family.in_(families))
@@ -130,11 +125,20 @@ def search_artefacts(
         search_term = f"%{q.strip()}%"
         query = query.where(Artefact.name.ilike(search_term))
 
+    # Count total before pagination
+    count_query = select(func.count()).select_from(query.subquery())
+    total_count = db.execute(count_query).scalar() or 0
+
     # Apply pagination
     query = query.offset(offset).limit(limit)
 
     artefacts = db.execute(query).scalars().all()
-    return ArtefactSearchResponse(artefacts=list(artefacts))
+    return ArtefactSearchResponse(
+        artefacts=list(artefacts),
+        count=total_count,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get(
@@ -144,11 +148,7 @@ def search_artefacts(
 )
 def get_artefact(
     artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(
-                ArtefactBuild.environment_reviews
-            )
-        )
+        ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     ),
 ):
     return artefact
@@ -163,11 +163,7 @@ def patch_artefact(
     request: ArtefactPatch,
     db: Session = Depends(get_db),
     artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(
-                ArtefactBuild.environment_reviews
-            )
-        )
+        ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     ),
 ):
     if request.status is not None:
@@ -181,13 +177,8 @@ def patch_artefact(
     if request.comment is not None:
         artefact.comment = request.comment
 
-    assignee_id_set = (
-        hasattr(request, "assignee_id") and "assignee_id" in request.model_fields_set
-    )
-    assignee_email_set = (
-        hasattr(request, "assignee_email")
-        and "assignee_email" in request.model_fields_set
-    )
+    assignee_id_set = hasattr(request, "assignee_id") and "assignee_id" in request.model_fields_set
+    assignee_email_set = hasattr(request, "assignee_email") and "assignee_email" in request.model_fields_set
 
     if assignee_id_set and assignee_email_set:
         raise HTTPException(
@@ -224,23 +215,15 @@ def patch_artefact(
 
 
 def _validate_artefact_status(artefact: Artefact, request: ArtefactPatch) -> None:
-    if request.status == ArtefactStatus.APPROVED and not are_all_environments_approved(
-        artefact.latest_builds
-    ):
-        raise HTTPException(
-            status_code=400, detail="All test executions need to be approved"
-        )
+    if request.status == ArtefactStatus.APPROVED and not are_all_environments_approved(artefact.latest_builds):
+        raise HTTPException(status_code=400, detail="All test executions need to be approved")
 
     if request.status == ArtefactStatus.MARKED_AS_FAILED:
         if not is_there_a_rejected_environment(artefact.latest_builds):
-            raise HTTPException(
-                400, detail="At least one test execution needs to be rejected"
-            )
+            raise HTTPException(400, detail="At least one test execution needs to be rejected")
 
         if not (request.comment or artefact.comment):
-            raise HTTPException(
-                400, detail="Can't reject an artefact without a comment"
-            )
+            raise HTTPException(400, detail="Can't reject an artefact without a comment")
 
 
 def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
@@ -266,9 +249,7 @@ def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
     response_model=list[ArtefactVersionResponse],
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
-def get_artefact_versions(
-    artefact: Artefact = Depends(ArtefactRetriever()), db: Session = Depends(get_db)
-):
+def get_artefact_versions(artefact: Artefact = Depends(ArtefactRetriever()), db: Session = Depends(get_db)):
     return db.scalars(
         select(Artefact)
         .where(Artefact.name == artefact.name)

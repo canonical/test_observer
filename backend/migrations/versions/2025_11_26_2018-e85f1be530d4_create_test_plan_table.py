@@ -1,18 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """create_test_plan_table
 
@@ -22,9 +21,8 @@ Create Date: 2025-11-26 20:18:06.935230+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "e85f1be530d4"
@@ -39,12 +37,8 @@ def upgrade() -> None:
         "test_plan",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=200), nullable=False),
-        sa.Column(
-            "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
-        ),
-        sa.Column(
-            "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
-        ),
+        sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("test_plan_name_ix"), "test_plan", ["name"], unique=True)

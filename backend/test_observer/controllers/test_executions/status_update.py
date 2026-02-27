@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session, joinedload
@@ -37,9 +35,7 @@ router = APIRouter()
     "/{id}/status_update",
     dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
 )
-def put_status_update(
-    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
-):
+def put_status_update(id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
         id,
@@ -93,9 +89,7 @@ def get_status_update(id: int, db: Session = Depends(get_db)):
     "/{id}/status_update",
     dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
 )
-def post_status_update(
-    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
-):
+def post_status_update(id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
         id,

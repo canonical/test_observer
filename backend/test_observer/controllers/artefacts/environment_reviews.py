@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
@@ -39,32 +37,20 @@ router = APIRouter(tags=["environment-reviews"])
 @router.get(
     "/{artefact_id}/environment-reviews",
     response_model=list[ArtefactBuildEnvironmentReviewResponse],
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.view_environment_review])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.view_environment_review])],
 )
 def get_environment_reviews(
     artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(
-                ArtefactBuild.environment_reviews
-            )
-        )
+        ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     ),
 ):
-    return [
-        review
-        for build in artefact.latest_builds
-        for review in build.environment_reviews
-    ]
+    return [review for build in artefact.latest_builds for review in build.environment_reviews]
 
 
 @router.patch(
     "/{artefact_id}/environment-reviews/{review_id}",
     response_model=ArtefactBuildEnvironmentReviewResponse,
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_environment_review])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_environment_review])],
 )
 def update_environment_review(
     artefact_id: int,

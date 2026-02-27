@@ -1,29 +1,25 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
-
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 test_executions_patch_endpoint = "/v1/test-executions/{id}"
 get_endpoint = "/v1/execution-metadata"

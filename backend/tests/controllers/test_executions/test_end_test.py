@@ -1,30 +1,28 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission
-from tests.conftest import make_authenticated_request
 from test_observer.data_access.models_enums import (
     StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
+from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
@@ -70,10 +68,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
                         "io_log": "",
                     },
                 ],
-                "relevant_links": [
-                    {"label": link.label, "url": link.url}
-                    for link in test_execution.relevant_links
-                ],
+                "relevant_links": [{"label": link.label, "url": link.url} for link in test_execution.relevant_links],
             },
         ),
         Permission.change_test,
@@ -96,9 +91,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.relevant_links[1].url == "http://example.com/wiki"
 
 
-def test_end_test_is_idempotent(
-    test_client: TestClient, generator: DataGenerator, db_session: Session
-):
+def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator, db_session: Session):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -126,8 +119,7 @@ def test_end_test_is_idempotent(
                         }
                     ],
                     "relevant_links": [
-                        {"label": link.label, "url": link.url}
-                        for link in test_execution.relevant_links
+                        {"label": link.label, "url": link.url} for link in test_execution.relevant_links
                     ],
                 },
             ),
@@ -141,9 +133,7 @@ def test_end_test_is_idempotent(
     assert test_execution.relevant_links[0].url == "http://docs.example.com"
 
 
-def test_end_test_updates_template_id(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_end_test_updates_template_id(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -172,10 +162,7 @@ def test_end_test_updates_template_id(
                         "io_log": "",
                     }
                 ],
-                "relevant_links": [
-                    {"label": link.label, "url": link.url}
-                    for link in test_execution.relevant_links
-                ],
+                "relevant_links": [{"label": link.label, "url": link.url} for link in test_execution.relevant_links],
             },
         ),
         Permission.change_test,
@@ -188,9 +175,7 @@ def test_end_test_updates_template_id(
     assert test_execution.relevant_links[0].url == "http://report.example.com"
 
 
-def test_apply_test_result_attachment_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_apply_test_result_attachment_rules(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -236,7 +221,4 @@ def test_apply_test_result_attachment_rules(
 
     assert response.status_code == 200
     assert test_execution.test_results[0].issue_attachments[0].issue_id == issue.id
-    assert (
-        test_execution.test_results[0].issue_attachments[0].attachment_rule_id
-        == attachment_rule_id
-    )
+    assert test_execution.test_results[0].issue_attachments[0].attachment_rule_id == attachment_rule_id
