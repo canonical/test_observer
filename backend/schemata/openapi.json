@@ -2563,65 +2563,7 @@
               }
             }
           }
-        },
-        "x-permissions": [
-          "change_issue"
-        ]
-      }
-    },
-    "/v1/issues/{issue_id}/auto-rerun": {
-      "patch": {
-        "tags": [
-          "issues"
-        ],
-        "summary": "Patch Issue Auto Rerun",
-        "operationId": "patch_issue_auto_rerun_v1_issues__issue_id__auto_rerun_patch",
-        "parameters": [
-          {
-            "name": "issue_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Issue Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IssuePatchRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IssueResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-permissions": [
-          "change_auto_rerun"
-        ]
+        }
       }
     },
     "/v1/test-results": {
