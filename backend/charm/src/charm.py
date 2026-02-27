@@ -255,7 +255,6 @@ class TestObserverBackendCharm(CharmBase):
     @property
     def _app_environment(self):
         """This creates a dictionary of environment variables needed by the application."""
-
         # All environment variables must be strings, since they are passed to Pebble,
         # and the Pebble environment struct requires strings.
         # Otherwise, we will trigger an ops.pebble.APIError
