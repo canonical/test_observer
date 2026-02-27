@@ -1,27 +1,28 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from unittest.mock import Mock
+
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
+from test_observer.external_apis.models import IssueData
 from test_observer.external_apis.synchronizers.launchpad import (
     LaunchpadIssueSynchronizer,
 )
-from test_observer.external_apis.models import IssueData
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
-from sqlalchemy.orm import Session
 
 
 def test_can_sync_launchpad_url():

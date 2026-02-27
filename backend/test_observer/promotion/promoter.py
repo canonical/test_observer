@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import itertools
 import logging
@@ -58,9 +56,7 @@ def promote_artefacts(db: Session):
                     if artefact_status is False
                 }
             )
-        return logger.info(
-            {"detail": "All the artefacts have been processed successfully"}
-        )
+        return logger.info({"detail": "All the artefacts have been processed successfully"})
     except Exception as exc:
         return logger.error({"detail": str(exc)})
 
@@ -148,9 +144,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
             name_found = True
 
             if deb_version == artefact.version:
-                highest_pocket_found = max(
-                    highest_pocket_found or StageName(pocket), StageName(pocket)
-                )
+                highest_pocket_found = max(highest_pocket_found or StageName(pocket), StageName(pocket))
 
     artefact.archived = name_found and not highest_pocket_found
     artefact.stage = highest_pocket_found or artefact.stage

@@ -1,52 +1,52 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
+import base64
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, HTTPException, Security
+from typing import Annotated, Literal, TypeVar
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import (
-    func,
     desc,
+    func,
     select,
 )
 from sqlalchemy.orm import Session, selectinload
-from typing import Annotated, Literal, TypeVar
-import base64
 
-from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.constants import QueryValue
-
+from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestExecution,
-    TestResult,
     TestExecutionMetadata,
+    TestResult,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 from test_observer.data_access.setup import get_db
+
+from .filter_test_results import filter_test_results
 from .models import (
-    TestResultSearchResponseWithContext,
     TestResultResponseWithContext,
+    TestResultSearchResponseWithContext,
 )
 from .shared_models import TestResultSearchFilters
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from .filter_test_results import filter_test_results
 
 router = APIRouter(tags=["test-results"])
 
@@ -56,9 +56,7 @@ T = TypeVar("T")
 def parse_execution_metadata(
     execution_metadata: list[str] | None = Query(
         None,
-        description=(
-            "Filter by execution metadata (base64 encoded category:value pairs)."
-        ),
+        description=("Filter by execution metadata (base64 encoded category:value pairs)."),
     ),
 ) -> ExecutionMetadata | None:
     if execution_metadata is None:
@@ -70,10 +68,7 @@ def parse_execution_metadata(
         if colon_index == -1:
             raise HTTPException(
                 status_code=422,
-                detail=(
-                    f"Invalid execution metadata format: '{item}'. "
-                    "Expected base64 encoded 'category:value'."
-                ),
+                detail=(f"Invalid execution metadata format: '{item}'. Expected base64 encoded 'category:value'."),
             )
 
         try:
@@ -88,10 +83,7 @@ def parse_execution_metadata(
         if not category or not value:
             raise HTTPException(
                 status_code=422,
-                detail=(
-                    f"Invalid execution metadata format: '{item}'. "
-                    "Both category and value must be non-empty."
-                ),
+                detail=(f"Invalid execution metadata format: '{item}'. Both category and value must be non-empty."),
             )
 
         result.append(
@@ -148,17 +140,10 @@ def search_test_results(
         list[str] | None,
         Query(description="Filter by test case names"),
     ] = None,
-    template_ids: Annotated[
-        list[str] | None, Query(description="Filter by template IDs")
-    ] = None,
-    execution_metadata: Annotated[
-        ExecutionMetadata | None, Depends(parse_execution_metadata)
-    ] = None,
+    template_ids: Annotated[list[str] | None, Query(description="Filter by template IDs")] = None,
+    execution_metadata: Annotated[ExecutionMetadata | None, Depends(parse_execution_metadata)] = None,
     issues: Annotated[
-        list[int]
-        | list[Literal[QueryValue.ANY]]
-        | list[Literal[QueryValue.NONE]]
-        | None,
+        list[int] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
         Query(description="Filter by issue IDs"),
     ] = None,
     test_result_statuses: Annotated[
@@ -170,41 +155,25 @@ def search_test_results(
         Query(description="Filter by test execution statuses"),
     ] = None,
     assignee_ids: Annotated[
-        list[int]
-        | list[Literal[QueryValue.ANY]]
-        | list[Literal[QueryValue.NONE]]
-        | None,
+        list[int] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
         Query(description="Filter by assignee user ids"),
     ] = None,
     rerun_is_requested: Annotated[
         bool | None,
-        Query(
-            description=(
-                "Filter by whether a rerun has been requested for the test execution"
-            )
-        ),
+        Query(description=("Filter by whether a rerun has been requested for the test execution")),
     ] = None,
     execution_is_latest: Annotated[
         bool | None,
         Query(
             description=(
-                "Filter by whether the test execution is the latest "
-                "in its environment/artifact/test plan combination"
+                "Filter by whether the test execution is the latest in its environment/artifact/test plan combination"
             )
         ),
     ] = None,
-    from_date: Annotated[
-        datetime | None, Query(description="Filter results from this timestamp")
-    ] = None,
-    until_date: Annotated[
-        datetime | None, Query(description="Filter results until this timestamp")
-    ] = None,
-    limit: Annotated[
-        int, Query(ge=0, le=1000, description="Maximum number of results to return")
-    ] = 50,
-    offset: Annotated[
-        int, Query(ge=0, description="Number of results to skip for pagination")
-    ] = 0,
+    from_date: Annotated[datetime | None, Query(description="Filter results from this timestamp")] = None,
+    until_date: Annotated[datetime | None, Query(description="Filter results until this timestamp")] = None,
+    limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
+    offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
 ) -> TestResultSearchResponseWithContext:
     """
@@ -237,9 +206,7 @@ def search_test_results(
     # Run paginated query
     pagination_query = select(TestResult)
     paginated_query = filter_test_results(pagination_query, filters)
-    paginated_query = paginated_query.order_by(
-        desc(TestResult.created_at), desc(TestResult.id)
-    )
+    paginated_query = paginated_query.order_by(desc(TestResult.created_at), desc(TestResult.id))
     pagination_query = pagination_query.options(
         selectinload(TestResult.test_case),
         selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
@@ -247,9 +214,7 @@ def search_test_results(
         .selectinload(TestExecution.artefact_build)
         .selectinload(ArtefactBuild.artefact),
         selectinload(TestResult.issue_attachments),
-        selectinload(TestResult.test_execution).selectinload(
-            TestExecution.execution_metadata
-        ),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
     )
     test_results = db.execute(paginated_query).scalars().all()
 
@@ -262,6 +227,8 @@ def search_test_results(
     # Return results
     return TestResultSearchResponseWithContext(
         count=total_count or 0,
+        limit=limit,
+        offset=offset,
         test_results=[
             TestResultResponseWithContext(
                 test_result=tr,

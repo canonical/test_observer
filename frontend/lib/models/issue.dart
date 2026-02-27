@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2025 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -32,6 +31,8 @@ abstract class Issue with _$Issue {
     required String title,
     required IssueStatus status,
     required String url,
+    @JsonKey(name: 'auto_rerun_enabled', defaultValue: false)
+    required bool autoRerunEnabled,
   }) = _Issue;
 
   factory Issue.fromJson(Map<String, Object?> json) => _$IssueFromJson(json);
@@ -48,6 +49,8 @@ abstract class IssueWithContext with _$IssueWithContext {
     required String title,
     required IssueStatus status,
     required String url,
+    @JsonKey(name: 'auto_rerun_enabled', defaultValue: false)
+    required bool autoRerunEnabled,
     @JsonKey(name: 'attachment_rules')
     required List<AttachmentRule> attachmentRules,
   }) = _IssueWithContext;
@@ -64,6 +67,7 @@ abstract class IssueWithContext with _$IssueWithContext {
       title: title,
       status: status,
       url: url,
+      autoRerunEnabled: autoRerunEnabled,
     );
   }
 }

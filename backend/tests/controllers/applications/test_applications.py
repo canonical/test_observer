@@ -1,21 +1,21 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import Application
 from tests.conftest import make_authenticated_request
@@ -54,9 +54,7 @@ def test_create_application(test_client: TestClient, db_session: Session):
 def test_get_applications(test_client: TestClient, generator: DataGenerator):
     application = generator.gen_application()
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/applications"), Permission.view_application
-    )
+    response = make_authenticated_request(lambda: test_client.get("/v1/applications"), Permission.view_application)
 
     assert response.status_code == 200
     assert response.json() == [
@@ -103,9 +101,7 @@ def test_get_current_application(test_client: TestClient, generator: DataGenerat
     }
 
 
-def test_update_application_permissions(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_application_permissions(test_client: TestClient, generator: DataGenerator):
     application = generator.gen_application()
 
     response = make_authenticated_request(
