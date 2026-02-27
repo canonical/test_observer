@@ -199,6 +199,73 @@ class TestFamilyIndependentTests:
         assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
         assert assignee is None
 
+    def test_artefact_with_few_environments_gets_assigned_single_reviewer(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """Assert that an artefact with only 1 environment gets assigned to a single reviewer even if multiple are available"""
+        # Create a team that can review all families
+        team = generator.gen_team(
+            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+        )
+        # Create multiple users who can review
+        generator.gen_user(email="user1@example.com", teams=[team])
+        generator.gen_user(email="user2@example.com", teams=[team])
+        generator.gen_user(email="user3@example.com", teams=[team])
+
+        response = execute({**start_request, "needs_assignment": True})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        # Verify the artefact has only 1 environment
+        artefact = test_execution.artefact_build.artefact
+        assert len(artefact.builds) == 1
+        assert len(artefact.builds[0].environment_reviews) == 1
+        # Even with multiple reviewers available, only one should be assigned
+        assert len(artefact.reviewers) == 1
+
+    def test_artefact_with_many_environments_is_assigned_multiple_reviewers(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """Assert that an artefact with more than 50 environments is assigned more than one reviewer"""
+        # Create a team that can review all families
+        team = generator.gen_team(
+            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+        )
+        # Create multiple users who can review
+        generator.gen_user(email="user1@example.com", teams=[team])
+        generator.gen_user(email="user2@example.com", teams=[team])
+
+        # Execute the first test to create the artefact
+        response = execute({**start_request, "needs_assignment": True})
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        artefact = test_execution.artefact_build.artefact
+
+        # Now create 50+ more environments for the same artefact by executing tests with different environment names
+        for i in range(51):
+            env_request = {
+                **start_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": False,  # Don't trigger assignment for these
+            }
+            execute(env_request)
+
+        # Clear reviewers to allow reassignment based on the new environment count
+        artefact.reviewers = []
+        self._db_session.commit()
+
+        # Trigger assignment again now that we have 52 environments
+        execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
+
+        # Refresh the artefact to get updated relationships
+        self._db_session.refresh(artefact)
+
+        # Verify the artefact now has more than 50 environments (52 from before + 1 new = 53)
+        assert artefact.all_environment_reviews_count == 53
+
+        assert len(artefact.reviewers) == 2
+
     def test_deletes_rerun_requests(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
