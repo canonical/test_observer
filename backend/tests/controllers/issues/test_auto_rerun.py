@@ -60,6 +60,7 @@ def test_patch_issue_auto_rerun_endpoint(
             f"/v1/issues/{issue.id}",
             json={"auto_rerun_enabled": True},
         ),
+        Permission.change_issue,
         Permission.change_auto_rerun,
     )
 
@@ -72,6 +73,7 @@ def test_patch_issue_auto_rerun_endpoint(
             f"/v1/issues/{issue.id}",
             json={"auto_rerun_enabled": False},
         ),
+        Permission.change_issue,
         Permission.change_auto_rerun,
     )
 
@@ -104,6 +106,7 @@ def test_patch_issue_auto_rerun_not_found(
             "/v1/issues/999999",
             json={"auto_rerun_enabled": True},
         ),
+        Permission.change_issue,
         Permission.change_auto_rerun,
     )
 

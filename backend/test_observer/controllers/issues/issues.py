@@ -168,30 +168,23 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
     return issue
 
 
-def check_issue_or_auto_rerun_permission(
-    current_user: User | None = Depends(get_current_user),
-    current_app: Application | None = Depends(get_current_application),
-) -> None:
-    """Check if user has either change_issue or change_auto_rerun permission"""
-    try:
-        permission_checker(
-            SecurityScopes(scopes=[Permission.change_issue]),
-            current_user,
-            current_app,
-        )
-    except HTTPException:
-        # If change_issue fails, try change_auto_rerun
-        permission_checker(
-            SecurityScopes(scopes=[Permission.change_auto_rerun]),
-            current_user,
-            current_app,
-        )
+def require_auto_rerun_permission(
+    security_scopes: SecurityScopes,
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    request: IssuePatchRequest = Depends(),
+):
+    if request.auto_rerun_enabled is not None:
+        permission_checker(security_scopes, user, app)
 
 
 @router.patch(
     "/{issue_id}",
     response_model=IssueResponse,
-    dependencies=[Depends(check_issue_or_auto_rerun_permission)],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue]), 
+        Security(require_auto_rerun_permission, scopes=[Permission.change_auto_rerun])
+        ],
 )
 def patch_issue(
     issue_id: int,
