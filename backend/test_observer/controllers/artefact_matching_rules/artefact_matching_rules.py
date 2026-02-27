@@ -167,22 +167,9 @@ def update_artefact_matching_rule(
     """Update an artefact matching rule"""
     rule = _get_rule_or_raise_404(db, rule_id)
 
-    # Check if at least one field is being updated
-    if request.family is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Family field is required and cannot be set to None",
-        )
-
     # Validate team_ids if provided
     teams = []
     if request.team_ids is not None:
-        if not request.team_ids:
-            raise HTTPException(
-                status_code=400,
-                detail="At least one team is required. Use DELETE to remove the rule.",
-            )
-
         # Validate that all teams exist
         for team_id in request.team_ids:
             team = db.get(Team, team_id)
@@ -192,6 +179,23 @@ def update_artefact_matching_rule(
                     detail=f"Team {team_id} doesn't exist",
                 )
             teams.append(team)
+        if len(teams) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="At least one team is required for a matching rule",
+            )
+
+    # Update fields
+    if request.family is not None:
+        rule.family = request.family
+    if request.stage is not None:
+        rule.stage = request.stage
+    if request.track is not None:
+        rule.track = request.track
+    if request.branch is not None:
+        rule.branch = request.branch
+    if request.team_ids is not None:
+        rule.teams = teams
 
     # Check if updated rule would conflict with existing rule
     existing_rule = db.execute(
@@ -209,18 +213,6 @@ def update_artefact_matching_rule(
             status_code=409,
             detail="Another artefact matching rule with these values already exists",
         )
-
-    # Update fields
-    if request.family is not None:
-        rule.family = request.family
-    if request.stage is not None:
-        rule.stage = request.stage
-    if request.track is not None:
-        rule.track = request.track
-    if request.branch is not None:
-        rule.branch = request.branch
-    if request.team_ids is not None:
-        rule.teams = teams
 
     try:
         db.commit()
