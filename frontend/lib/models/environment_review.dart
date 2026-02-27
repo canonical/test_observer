@@ -17,6 +17,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'environment.dart';
+import 'user.dart';
 
 part 'environment_review.freezed.dart';
 part 'environment_review.g.dart';
@@ -35,6 +36,7 @@ abstract class EnvironmentReview with _$EnvironmentReview {
     required String reviewComment,
     @JsonKey(name: EnvironmentReview.reviewDecisionJsonKey)
     required List<EnvironmentReviewDecision> reviewDecision,
+    @Default([]) List<User> reviewers,
   }) = _EnvironmentReview;
 
   factory EnvironmentReview.fromJson(Map<String, Object?> json) =>
