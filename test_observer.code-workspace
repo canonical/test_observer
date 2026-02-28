@@ -16,6 +16,9 @@
 		{
 			"path": "frontend/charm",
 			"name": "frontend-charm"
+		},
+		{
+			"path": "docs"
 		}
 	],
 	"settings": {
