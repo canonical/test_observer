@@ -71,15 +71,11 @@ def downgrade() -> None:
     op.execute("UPDATE artefact SET store = NULL WHERE store = ''")
     op.execute("UPDATE artefact SET track = NULL WHERE track = ''")
 
-    op.drop_index(
-        "unique_snap", table_name="artefact", postgresql_where=sa.text("track != ''")
-    )
+    op.drop_index("unique_snap", table_name="artefact", postgresql_where=sa.text("track != ''"))
     op.create_unique_constraint("unique_snap", "artefact", ["name", "version", "track"])
     op.drop_index(
         "unique_deb",
         table_name="artefact",
         postgresql_where=sa.text("series != '' AND repo != ''"),
     )
-    op.create_unique_constraint(
-        "unique_deb", "artefact", ["name", "version", "series", "repo"]
-    )
+    op.create_unique_constraint("unique_deb", "artefact", ["name", "version", "series", "repo"])

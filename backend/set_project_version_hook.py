@@ -13,10 +13,10 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from hatchling.metadata.plugin.interface import MetadataHookInterface
-
-import subprocess
 import shutil
+import subprocess
+
+from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 from test_observer.common.config import VERSION
 
@@ -45,9 +45,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
     """
     if shutil.which("git"):
         tags = (
-            subprocess.check_output(
-                ["git", "tag", "--list", "v*"], stderr=subprocess.DEVNULL
-            )
+            subprocess.check_output(["git", "tag", "--list", "v*"], stderr=subprocess.DEVNULL)
             .decode()
             .strip()
             .split("\n")
@@ -56,10 +54,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
         if tags and tags[0]:
             latest_tag = sorted(
                 tags,
-                key=lambda t: [
-                    int(n) if n.isdigit() else n
-                    for n in t.lstrip("v").replace("-", ".").split(".")
-                ],
+                key=lambda t: [int(n) if n.isdigit() else n for n in t.lstrip("v").replace("-", ".").split(".")],
             )[-1]
 
             # Get commit count since the tag

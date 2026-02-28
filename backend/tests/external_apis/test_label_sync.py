@@ -14,17 +14,19 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from unittest.mock import Mock
+
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.github import GitHubClient
 from test_observer.external_apis.jira import JiraClient
 from test_observer.external_apis.launchpad import LaunchpadClient
+from test_observer.external_apis.models import IssueData
 from test_observer.external_apis.synchronizers.github import GitHubIssueSynchronizer
 from test_observer.external_apis.synchronizers.jira import JiraIssueSynchronizer
 from test_observer.external_apis.synchronizers.launchpad import (
     LaunchpadIssueSynchronizer,
 )
-from test_observer.external_apis.models import IssueData
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
-from sqlalchemy.orm import Session
 
 
 def test_github_sync_adds_new_labels(db_session: Session):

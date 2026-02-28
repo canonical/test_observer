@@ -31,12 +31,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_unique_constraint(
-        op.f("test_execution_ci_link_key"), "test_execution", ["ci_link"]
-    )
+    op.create_unique_constraint(op.f("test_execution_ci_link_key"), "test_execution", ["ci_link"])
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        op.f("test_execution_ci_link_key"), "test_execution", type_="unique"
-    )
+    op.drop_constraint(op.f("test_execution_ci_link_key"), "test_execution", type_="unique")

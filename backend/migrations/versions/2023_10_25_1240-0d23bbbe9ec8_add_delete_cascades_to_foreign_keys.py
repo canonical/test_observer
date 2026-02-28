@@ -40,9 +40,7 @@ def upgrade() -> None:
         ["id"],
         ondelete="CASCADE",
     )
-    op.drop_constraint(
-        "artefact_build_artefact_id_fkey", "artefact_build", type_="foreignkey"
-    )
+    op.drop_constraint("artefact_build_artefact_id_fkey", "artefact_build", type_="foreignkey")
     op.create_foreign_key(
         "artefact_build_artefact_id_fkey",
         "artefact_build",
@@ -60,9 +58,7 @@ def upgrade() -> None:
         ["id"],
         ondelete="CASCADE",
     )
-    op.drop_constraint(
-        "test_execution_artefact_build_id_fkey", "test_execution", type_="foreignkey"
-    )
+    op.drop_constraint("test_execution_artefact_build_id_fkey", "test_execution", type_="foreignkey")
     op.create_foreign_key(
         "test_execution_artefact_build_id_fkey",
         "test_execution",
@@ -74,9 +70,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "test_execution_artefact_build_id_fkey", "test_execution", type_="foreignkey"
-    )
+    op.drop_constraint("test_execution_artefact_build_id_fkey", "test_execution", type_="foreignkey")
     op.create_foreign_key(
         "test_execution_artefact_build_id_fkey",
         "test_execution",
@@ -85,12 +79,8 @@ def downgrade() -> None:
         ["id"],
     )
     op.drop_constraint("stage_family_id_fkey", "stage", type_="foreignkey")
-    op.create_foreign_key(
-        "stage_family_id_fkey", "stage", "family", ["family_id"], ["id"]
-    )
-    op.drop_constraint(
-        "artefact_build_artefact_id_fkey", "artefact_build", type_="foreignkey"
-    )
+    op.create_foreign_key("stage_family_id_fkey", "stage", "family", ["family_id"], ["id"])
+    op.drop_constraint("artefact_build_artefact_id_fkey", "artefact_build", type_="foreignkey")
     op.create_foreign_key(
         "artefact_build_artefact_id_fkey",
         "artefact_build",
@@ -99,6 +89,4 @@ def downgrade() -> None:
         ["id"],
     )
     op.drop_constraint("artefact_stage_id_fkey", "artefact", type_="foreignkey")
-    op.create_foreign_key(
-        "artefact_stage_id_fkey", "artefact", "stage", ["stage_id"], ["id"]
-    )
+    op.create_foreign_key("artefact_stage_id_fkey", "artefact", "stage", ["stage_id"], ["id"])

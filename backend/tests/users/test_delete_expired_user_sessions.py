@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import datetime, timedelta
+
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 

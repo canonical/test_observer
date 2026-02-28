@@ -13,10 +13,12 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
+
 import requests
 from requests.auth import HTTPBasicAuth
+
 from test_observer.external_apis.models import IssueData
-import logging
 
 logger = logging.getLogger(__name__)
 

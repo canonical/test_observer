@@ -20,9 +20,8 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import StageName, TestExecutionStatus
-
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_status_updates_stored(test_client: TestClient, generator: DataGenerator):
@@ -65,21 +64,15 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
     )
     assert response.status_code == 200
     assert test_execution.test_events[0].event_name == "started_setup"
-    assert test_execution.test_events[0].timestamp == datetime.datetime.fromisoformat(
-        "2015-03-21T11:08:14.859831"
-    )
+    assert test_execution.test_events[0].timestamp == datetime.datetime.fromisoformat("2015-03-21T11:08:14.859831")
     assert test_execution.test_events[0].detail == "my_detail_one"
     assert test_execution.test_events[1].event_name == "ended_setup"
-    assert test_execution.test_events[1].timestamp == datetime.datetime.fromisoformat(
-        "2015-03-21T11:08:15.859831"
-    )
+    assert test_execution.test_events[1].timestamp == datetime.datetime.fromisoformat("2015-03-21T11:08:15.859831")
     assert test_execution.test_events[1].detail == "my_detail_two"
     assert test_execution.status == "ENDED_PREMATURELY"
 
 
-def test_status_updates_is_idempotent(
-    test_client: TestClient, generator: DataGenerator, db_session: Session
-):
+def test_status_updates_is_idempotent(test_client: TestClient, generator: DataGenerator, db_session: Session):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -87,9 +80,7 @@ def test_status_updates_is_idempotent(
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[
-            {"label": "Support Ticket", "url": "http://example.com/ticket/456"}
-        ],
+        relevant_links=[{"label": "Support Ticket", "url": "http://example.com/ticket/456"}],
     )
 
     for _ in range(3):
@@ -128,9 +119,7 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
         artefact_build,
         environment,
         ci_link="http://localhost",
-        relevant_links=[
-            {"label": "Release Notes", "url": "http://example.com/release"}
-        ],
+        relevant_links=[{"label": "Release Notes", "url": "http://example.com/release"}],
     )
 
     make_authenticated_request(
@@ -161,9 +150,7 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
         Permission.change_test,
     )
     get_response = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/test-executions/{test_execution.id}/status_update"
-        ),
+        lambda: test_client.get(f"/v1/test-executions/{test_execution.id}/status_update"),
         Permission.view_test,
     )
 
@@ -177,9 +164,7 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
     assert json[1]["detail"] == "my_detail_two"
 
 
-def test_status_updates_invalid_timestamp(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_status_updates_invalid_timestamp(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -256,9 +241,7 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
     assert test_execution.status == TestExecutionStatus.ENDED_PREMATURELY
 
 
-def test_post_status_update_appends_events(
-    test_client: TestClient, generator: DataGenerator, db_session: Session
-):
+def test_post_status_update_appends_events(test_client: TestClient, generator: DataGenerator, db_session: Session):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()

@@ -48,14 +48,10 @@ def extract_results(submission: dict[str, Any]) -> dict[str, str]:
     return {result["id"]: result["status"] for result in submission["results"]}
 
 
-def diff_between_results(
-    results1: dict[str, str], results2: dict[str, str]
-) -> dict[str, Any]:
+def diff_between_results(results1: dict[str, str], results2: dict[str, str]) -> dict[str, Any]:
     result: dict[str, Any] = {}
 
-    result["only_in_1"] = {
-        key: results1[key] for key in results1.keys() - results2.keys()
-    }
+    result["only_in_1"] = {key: results1[key] for key in results1.keys() - results2.keys()}
 
     result["different"] = {
         key: (results1[key], results2[key])
@@ -63,9 +59,7 @@ def diff_between_results(
         if results1[key] != results2[key]
     }
 
-    result["only_in_2"] = {
-        key: results2[key] for key in results2.keys() - results1.keys()
-    }
+    result["only_in_2"] = {key: results2[key] for key in results2.keys() - results1.keys()}
 
     return result
 

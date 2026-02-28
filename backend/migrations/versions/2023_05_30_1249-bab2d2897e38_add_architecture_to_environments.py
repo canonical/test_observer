@@ -21,9 +21,8 @@ Create Date: 2023-05-30 12:49:03.545470+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "bab2d2897e38"
@@ -33,13 +32,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "environment", sa.Column("architecture", sa.String(length=100), nullable=False)
-    )
+    op.add_column("environment", sa.Column("architecture", sa.String(length=100), nullable=False))
     op.drop_index("ix_environment_name", table_name="environment")
-    op.create_unique_constraint(
-        "unique_environment", "environment", ["name", "architecture"]
-    )
+    op.create_unique_constraint("unique_environment", "environment", ["name", "architecture"])
 
 
 def downgrade() -> None:

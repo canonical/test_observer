@@ -13,43 +13,42 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import SecurityScopes
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import delete, select, literal
+from sqlalchemy import delete, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
 from test_observer.common.metric_collectors import update_triaged_results_metric
-from test_observer.controllers.test_results.filter_test_results import (
-    filter_test_results,
-)
-from test_observer.data_access.setup import get_db
-from test_observer.data_access.models import (
-    ArtefactBuild,
-    Issue,
-    IssueTestResultAttachment,
-    TestExecution,
-    TestResult,
-    IssueTestResultAttachmentRule,
-)
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.data_access.models import Application, User
-from test_observer.users.user_injection import get_current_user
-from .models import (
-    IssueResponse,
-    IssueAttachmentRequest,
+from test_observer.controllers.test_results.filter_test_results import (
+    filter_test_results,
 )
+from test_observer.data_access.models import (
+    Application,
+    ArtefactBuild,
+    Issue,
+    IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
+    TestExecution,
+    TestResult,
+    User,
+)
+from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
+from .models import (
+    IssueAttachmentRequest,
+    IssueResponse,
+)
 
 router = APIRouter()
 
 
-def load_test_results_with_relations(
-    db: Session, test_result_ids: list[int] | set[int]
-) -> list[TestResult]:
+def load_test_results_with_relations(db: Session, test_result_ids: list[int] | set[int]) -> list[TestResult]:
     """Load test results with all necessary relationships for metric updates."""
     return (
         db.query(TestResult)
@@ -58,9 +57,7 @@ def load_test_results_with_relations(
             selectinload(TestResult.test_execution)
             .selectinload(TestExecution.artefact_build)
             .selectinload(ArtefactBuild.artefact),
-            selectinload(TestResult.test_execution).selectinload(
-                TestExecution.test_plan
-            ),
+            selectinload(TestResult.test_execution).selectinload(TestExecution.test_plan),
             selectinload(TestResult.test_case),
         )
         .all()
@@ -129,18 +126,14 @@ def modify_issue_attachments(
         base_query = select(TestResult.id)
         filtered_ids_query = filter_test_results(base_query, filters).subquery()
 
-        filtered_result_ids = [
-            row[0] for row in db.execute(select(filtered_ids_query.c.id)).all()
-        ]
+        filtered_result_ids = [row[0] for row in db.execute(select(filtered_ids_query.c.id)).all()]
         test_results = load_test_results_with_relations(db, filtered_result_ids)
 
         if detach:
             db.execute(
                 delete(IssueTestResultAttachment).where(
                     IssueTestResultAttachment.issue_id == issue_id,
-                    IssueTestResultAttachment.test_result_id.in_(
-                        select(filtered_ids_query.c.id)
-                    ),
+                    IssueTestResultAttachment.test_result_id.in_(select(filtered_ids_query.c.id)),
                 )
             )
 
@@ -154,9 +147,7 @@ def modify_issue_attachments(
             )
             db.execute(
                 pg_insert(IssueTestResultAttachment)
-                .from_select(
-                    ["issue_id", "test_result_id", "attachment_rule_id"], insert_select
-                )
+                .from_select(["issue_id", "test_result_id", "attachment_rule_id"], insert_select)
                 .on_conflict_do_nothing()
             )
 
@@ -188,9 +179,7 @@ def require_bulk_permission(
     response_model=IssueResponse,
     dependencies=[
         Security(permission_checker, scopes=[Permission.change_issue_attachment]),
-        Security(
-            require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]
-        ),
+        Security(require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]),
     ],
 )
 def add_issue_attachments(
@@ -206,9 +195,7 @@ def add_issue_attachments(
     response_model=IssueResponse,
     dependencies=[
         Security(permission_checker, scopes=[Permission.change_issue_attachment]),
-        Security(
-            require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]
-        ),
+        Security(require_bulk_permission, scopes=[Permission.change_issue_attachment_bulk]),
     ],
 )
 def remove_issue_attachments(

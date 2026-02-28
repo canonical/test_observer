@@ -1,4 +1,4 @@
-# Copyright 2024 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
@@ -10,33 +10,35 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-"""Rename user table to app_user
 
-Revision ID: bb2a51214402
-Revises: c9851b127edc
-Create Date: 2024-01-12 10:40:00.596887+00:00
+"""Add auto_rerun_enabled to issue
+
+Revision ID: a1b2c3d4e5f6
+Revises: f5f3abf809b3
+Create Date: 2026-02-25 16:00:00.000000+00:00
 
 """
 
 from alembic import op
+import sqlalchemy as sa
+
 
 # revision identifiers, used by Alembic.
-revision = "bb2a51214402"
-down_revision = "c9851b127edc"
+revision = "a1b2c3d4e5f6"
+down_revision = "f5f3abf809b3"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    op.execute('ALTER TABLE "user" RENAME TO app_user')
-    op.drop_constraint("user_launchpad_email_key", "app_user", type_="unique")
-    op.create_unique_constraint(op.f("app_user_launchpad_email_key"), "app_user", ["launchpad_email"])
+    op.add_column(
+        "issue",
+        sa.Column("auto_rerun_enabled", sa.Boolean(), nullable=False, server_default=sa.false()),
+    )
 
 
 def downgrade() -> None:
-    op.execute('ALTER TABLE app_user RENAME TO "user"')
-    op.drop_constraint(op.f("app_user_launchpad_email_key"), "user", type_="unique")
-    op.create_unique_constraint("user_launchpad_email_key", "user", ["launchpad_email"])
+    op.drop_column("issue", "auto_rerun_enabled")

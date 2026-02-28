@@ -17,22 +17,22 @@ import logging
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-from prometheus_client import start_http_server
-from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import start_http_server
+from starlette.middleware.sessions import SessionMiddleware
 
 from test_observer.common.config import (
     FRONTEND_URL,
     METRICS_PORT,
     SENTRY_DSN,
-    SESSIONS_SECRET,
     SESSIONS_HTTPS_ONLY,
+    SESSIONS_SECRET,
 )
 from test_observer.common.metrics import instrumentator
 from test_observer.common.metrics_initializer import initialize_all_metrics
-from test_observer.data_access.setup import SessionLocal
 from test_observer.controllers.router import router
+from test_observer.data_access.setup import SessionLocal
 
 if SENTRY_DSN:
     sentry_sdk.init(SENTRY_DSN)  # type: ignore

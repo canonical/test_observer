@@ -17,12 +17,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission
-from tests.conftest import make_authenticated_request
 from test_observer.data_access.models_enums import (
     StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
+from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
@@ -68,10 +68,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
                         "io_log": "",
                     },
                 ],
-                "relevant_links": [
-                    {"label": link.label, "url": link.url}
-                    for link in test_execution.relevant_links
-                ],
+                "relevant_links": [{"label": link.label, "url": link.url} for link in test_execution.relevant_links],
             },
         ),
         Permission.change_test,
@@ -94,9 +91,7 @@ def test_report_test_execution_data(test_client: TestClient, generator: DataGene
     assert test_execution.relevant_links[1].url == "http://example.com/wiki"
 
 
-def test_end_test_is_idempotent(
-    test_client: TestClient, generator: DataGenerator, db_session: Session
-):
+def test_end_test_is_idempotent(test_client: TestClient, generator: DataGenerator, db_session: Session):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -124,8 +119,7 @@ def test_end_test_is_idempotent(
                         }
                     ],
                     "relevant_links": [
-                        {"label": link.label, "url": link.url}
-                        for link in test_execution.relevant_links
+                        {"label": link.label, "url": link.url} for link in test_execution.relevant_links
                     ],
                 },
             ),
@@ -139,9 +133,7 @@ def test_end_test_is_idempotent(
     assert test_execution.relevant_links[0].url == "http://docs.example.com"
 
 
-def test_end_test_updates_template_id(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_end_test_updates_template_id(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -170,10 +162,7 @@ def test_end_test_updates_template_id(
                         "io_log": "",
                     }
                 ],
-                "relevant_links": [
-                    {"label": link.label, "url": link.url}
-                    for link in test_execution.relevant_links
-                ],
+                "relevant_links": [{"label": link.label, "url": link.url} for link in test_execution.relevant_links],
             },
         ),
         Permission.change_test,
@@ -186,9 +175,7 @@ def test_end_test_updates_template_id(
     assert test_execution.relevant_links[0].url == "http://report.example.com"
 
 
-def test_apply_test_result_attachment_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_apply_test_result_attachment_rules(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
@@ -234,7 +221,4 @@ def test_apply_test_result_attachment_rules(
 
     assert response.status_code == 200
     assert test_execution.test_results[0].issue_attachments[0].issue_id == issue.id
-    assert (
-        test_execution.test_results[0].issue_attachments[0].attachment_rule_id
-        == attachment_rule_id
-    )
+    assert test_execution.test_results[0].issue_attachments[0].attachment_rule_id == attachment_rule_id

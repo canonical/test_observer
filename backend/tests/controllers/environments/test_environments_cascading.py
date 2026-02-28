@@ -14,17 +14,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+
 from fastapi.testclient import TestClient
 
-from tests.data_generator import DataGenerator
-from tests.conftest import make_authenticated_request
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import FamilyName
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
-def test_environments_filter_by_family(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_environments_filter_by_family(test_client: TestClient, generator: DataGenerator):
     """Test that environments are filtered by family"""
     unique_marker = uuid.uuid4().hex[:8]
 
@@ -47,9 +46,7 @@ def test_environments_filter_by_family(
 
     # Filter environments by snap family
     response = make_authenticated_request(
-        lambda: test_client.get(
-            f"/v1/environments?families=snap&q=env_{unique_marker}"
-        ),
+        lambda: test_client.get(f"/v1/environments?families=snap&q=env_{unique_marker}"),
         Permission.view_test,
     )
 

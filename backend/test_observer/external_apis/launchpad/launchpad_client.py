@@ -17,17 +17,16 @@ from __future__ import annotations
 
 from launchpadlib.launchpad import Launchpad  # type: ignore[import-untyped]
 from lazr.restfulclient.errors import (  # type: ignore[import-untyped]
-    NotFound,
-    Unauthorized,
     HTTPError,
+    NotFound,
     ServerError,
+    Unauthorized,
 )
 
 from test_observer.external_apis.exceptions import (
-    IssueNotFoundError,
     APIError,
+    IssueNotFoundError,
 )
-
 from test_observer.external_apis.models import IssueData
 
 
@@ -126,11 +125,7 @@ class LaunchpadClient:
                     "id": bug_id,
                     "title": bug.title,
                     "status": status,
-                    "importance": (
-                        getattr(chosen_task, "importance", None)
-                        if chosen_task
-                        else None
-                    ),
+                    "importance": (getattr(chosen_task, "importance", None) if chosen_task else None),
                     "url": bug.web_link,
                     "labels": labels,
                 },

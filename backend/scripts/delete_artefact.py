@@ -45,8 +45,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(
         prog="delete_artefact",
         description="Given an artefact id, deletes this artefact",
-        epilog="Note that this will also delete builds, test executions"
-        " and test results belonging to the artefact",
+        epilog="Note that this will also delete builds, test executions and test results belonging to the artefact",
     )
 
     parser.add_argument("artefact_id", type=int)

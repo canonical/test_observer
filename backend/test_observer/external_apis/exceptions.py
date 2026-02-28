@@ -13,6 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+
 class IssueNotFoundError(Exception):
     """Raised when an issue doesn't exist in the external system"""
 

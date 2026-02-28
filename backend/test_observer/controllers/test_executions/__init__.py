@@ -18,12 +18,12 @@ from fastapi import APIRouter
 from . import (
     end_test,
     get_test_results,
-    test_execution,
     post_results,
+    relevant_links,
     reruns,
     start_test,
     status_update,
-    relevant_links,
+    test_execution,
 )
 
 router = APIRouter(tags=["test-executions"])

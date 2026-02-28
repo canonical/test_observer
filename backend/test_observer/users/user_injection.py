@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import datetime
+
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session, selectinload
 
@@ -21,9 +22,7 @@ from test_observer.data_access.models import User, UserSession
 from test_observer.data_access.setup import get_db
 
 
-def get_user_session(
-    request: Request, db: Session = Depends(get_db)
-) -> UserSession | None:
+def get_user_session(request: Request, db: Session = Depends(get_db)) -> UserSession | None:
     # This is a protection against CSRF see "Disallowing simple requests" under
     # https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
     if "X-CSRF-Token" not in request.headers:

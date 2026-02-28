@@ -47,10 +47,7 @@ def upgrade() -> None:
         "review_decision testexecutionreviewdecision[] NOT NULL "
         "DEFAULT '{}'::testexecutionreviewdecision[]"
     )
-    op.execute(
-        "ALTER TABLE test_execution ADD COLUMN "
-        "review_comment VARCHAR NOT NULL DEFAULT ''"
-    )
+    op.execute("ALTER TABLE test_execution ADD COLUMN review_comment VARCHAR NOT NULL DEFAULT ''")
 
 
 def downgrade() -> None:

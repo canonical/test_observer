@@ -17,12 +17,9 @@ from fastapi import APIRouter, Security
 
 from test_observer.common.permissions import Permission, permission_checker
 
-
 router: APIRouter = APIRouter(tags=["permissions"])
 
 
-@router.get(
-    "", dependencies=[Security(permission_checker, scopes=[Permission.view_permission])]
-)
+@router.get("", dependencies=[Security(permission_checker, scopes=[Permission.view_permission])])
 def get_permissions():
     return [p.value for p in Permission]

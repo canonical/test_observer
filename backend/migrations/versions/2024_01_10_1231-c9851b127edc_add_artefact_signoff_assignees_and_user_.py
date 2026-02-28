@@ -44,14 +44,10 @@ def upgrade() -> None:
         sa.UniqueConstraint("launchpad_email", name=op.f("user_launchpad_email_key")),
     )
     op.add_column("artefact", sa.Column("assignee_id", sa.Integer(), nullable=True))
-    op.create_foreign_key(
-        op.f("artefact_assignee_id_fkey"), "artefact", "user", ["assignee_id"], ["id"]
-    )
+    op.create_foreign_key(op.f("artefact_assignee_id_fkey"), "artefact", "user", ["assignee_id"], ["id"])
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        op.f("artefact_assignee_id_fkey"), "artefact", type_="foreignkey"
-    )
+    op.drop_constraint(op.f("artefact_assignee_id_fkey"), "artefact", type_="foreignkey")
     op.drop_column("artefact", "assignee_id")
     op.drop_table("user")

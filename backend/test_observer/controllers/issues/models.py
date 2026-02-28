@@ -13,24 +13,24 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from pydantic import BaseModel, HttpUrl, ConfigDict, Field, AliasPath
+from pydantic import AliasPath, BaseModel, ConfigDict, Field, HttpUrl
 
-from test_observer.data_access.models_enums import (
-    IssueSource,
-    IssueStatus,
-    FamilyName,
-    TestResultStatus,
-)
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
     TestExecutionResponse,
 )
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_executions.shared_models import (
     TestResultResponse,
 )
-from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    IssueSource,
+    IssueStatus,
+    TestResultStatus,
+)
 
 from .shared_models import (
     MinimalIssueResponse,
@@ -40,9 +40,7 @@ from .shared_models import (
 
 class IssueTestResultAttachmentResponse(BaseModel):
     test_result: TestResultResponse = Field(validation_alias=AliasPath("test_result"))
-    test_execution: TestExecutionResponse = Field(
-        validation_alias=AliasPath("test_result", "test_execution")
-    )
+    test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_result", "test_execution"))
     artefact: ArtefactResponse = Field(
         validation_alias=AliasPath(
             "test_result",
@@ -82,6 +80,7 @@ class IssueResponse(BaseModel):
     status: IssueStatus
     url: HttpUrl
     labels: list[str] | None = None
+    auto_rerun_enabled: bool
 
     attachment_rules: list[MinimalIssueTestResultAttachmentRuleResponse] = Field(
         validation_alias=AliasPath("test_result_attachment_rules")
@@ -98,6 +97,7 @@ class IssuesGetResponse(BaseModel):
 class IssuePatchRequest(BaseModel):
     title: str | None = None
     status: IssueStatus | None = None
+    auto_rerun_enabled: bool | None = None
 
 
 class IssuePutRequest(IssuePatchRequest):

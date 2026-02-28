@@ -14,13 +14,15 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from unittest.mock import Mock
+
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
+from test_observer.external_apis.models import IssueData
 from test_observer.external_apis.synchronizers.launchpad import (
     LaunchpadIssueSynchronizer,
 )
-from test_observer.external_apis.models import IssueData
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
-from sqlalchemy.orm import Session
 
 
 def test_can_sync_launchpad_url():

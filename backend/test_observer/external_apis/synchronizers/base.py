@@ -13,13 +13,15 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 from abc import ABC, abstractmethod
+
 from sqlalchemy.orm import Session
+
 from test_observer.data_access.models import Issue, IssueStatus
 from test_observer.external_apis.github import GitHubClient
 from test_observer.external_apis.jira import JiraClient
 from test_observer.external_apis.launchpad import LaunchpadClient
-import logging
 
 logger = logging.getLogger(__name__)
 

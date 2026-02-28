@@ -17,7 +17,7 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, BackgroundTasks, Security
+from fastapi import APIRouter, BackgroundTasks, Depends, Security
 from fastapi.responses import FileResponse
 from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
@@ -87,9 +87,7 @@ TEST_EXECUTIONS_REPORT_HEADERS = [
 ]
 
 
-def _get_test_executions_reports_query(
-    start_date: datetime, end_date: datetime
-) -> Select:
+def _get_test_executions_reports_query(start_date: datetime, end_date: datetime) -> Select:
     """
     Builds the query that retrieves the test executions based on the parameters set
     """
@@ -107,9 +105,7 @@ def _get_test_executions_reports_query(
                 ),
             ).label("testevents"),
         )
-        .where(
-            TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
-        )
+        .where(TestExecution.created_at >= start_date, TestExecution.created_at <= end_date)
         .join_from(TestEvent, TestExecution)
         .group_by(TestEvent.test_execution_id)
         .alias("test_executions_events")
@@ -133,9 +129,7 @@ def _get_test_executions_reports_query(
             TestExecution.id == test_events_subq.c.test_execution_id,
             isouter=True,
         )
-        .where(
-            TestExecution.created_at >= start_date, TestExecution.created_at <= end_date
-        )
+        .where(TestExecution.created_at >= start_date, TestExecution.created_at <= end_date)
     )
 
 

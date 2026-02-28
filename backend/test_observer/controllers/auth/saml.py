@@ -13,11 +13,12 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 from datetime import datetime, timedelta
 from functools import cache
-import logging
 from typing import Any
 from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
@@ -36,7 +37,6 @@ from test_observer.data_access.setup import get_db
 from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
 from test_observer.main import FRONTEND_URL
 from test_observer.users.user_injection import get_user_session
-
 
 router: APIRouter = APIRouter(prefix="/saml")
 
@@ -63,9 +63,7 @@ def _get_saml_settings() -> dict[str, Any]:
             "x509cert": SAML_SP_X509_CERT,
             "privateKey": SAML_SP_KEY,
         },
-        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL)[
-            "idp"
-        ],
+        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL)["idp"],
     }
 
 
@@ -73,9 +71,7 @@ def _get_saml_settings() -> dict[str, Any]:
 async def saml_login(request: Request, return_to: str | None = None):
     settings = _get_saml_settings()
     if settings is None:
-        raise HTTPException(
-            status_code=503, detail="SAML authentication is not configured"
-        )
+        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
     return RedirectResponse(url=auth.login(return_to=return_to))
@@ -96,9 +92,7 @@ async def saml_logout(
 
     settings = _get_saml_settings()
     if settings is None:
-        raise HTTPException(
-            status_code=503, detail="SAML authentication is not configured"
-        )
+        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
 
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
@@ -109,9 +103,7 @@ async def saml_logout(
 async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     settings = _get_saml_settings()
     if settings is None:
-        raise HTTPException(
-            status_code=503, detail="SAML authentication is not configured"
-        )
+        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
 
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
@@ -120,9 +112,7 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
 
     if errors:
         logger.warning(
-            "Error when processing SAML ACS Response: {} {}".format(
-                ", ".join(errors), auth.get_last_error_reason()
-            )
+            "Error when processing SAML ACS Response: {} {}".format(", ".join(errors), auth.get_last_error_reason())
         )
         raise HTTPException(500, "Authentication failed")
 
@@ -130,9 +120,7 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(403, "Authentication failed")
 
     user = _create_user(db, auth)
-    session = UserSession(
-        user_id=user.id, expires_at=datetime.now() + timedelta(days=14)
-    )
+    session = UserSession(user_id=user.id, expires_at=datetime.now() + timedelta(days=14))
     db.add(session)
     db.commit()
 
@@ -174,9 +162,7 @@ def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
 async def saml_logout_callback(request: Request):
     settings = _get_saml_settings()
     if settings is None:
-        raise HTTPException(
-            status_code=503, detail="SAML authentication is not configured"
-        )
+        raise HTTPException(status_code=503, detail="SAML authentication is not configured")
     req = await _prepare_from_fastapi_request(request)
     auth = OneLogin_Saml2_Auth(req, settings)
     auth.process_slo()
@@ -184,9 +170,7 @@ async def saml_logout_callback(request: Request):
 
     if errors:
         logger.warning(
-            "Error when processing SAML SLS Response: {} {}".format(
-                ", ".join(errors), auth.get_last_error_reason()
-            )
+            "Error when processing SAML SLS Response: {} {}".format(", ".join(errors), auth.get_last_error_reason())
         )
         raise HTTPException(500, "Logout failed")
 

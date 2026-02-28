@@ -14,7 +14,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from unittest.mock import Mock
+
 import pytest
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
@@ -22,8 +26,6 @@ from test_observer.external_apis.synchronizers.base import (
 from test_observer.external_apis.synchronizers.service import (
     IssueSynchronizationService,
 )
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
-from sqlalchemy.orm import Session
 
 
 def test_service_initialization_requires_synchronizers():

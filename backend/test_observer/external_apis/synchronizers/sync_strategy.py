@@ -13,14 +13,15 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime, timedelta, UTC
+import logging
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue, IssueStatus
 from test_observer.external_apis.synchronizers.config import SyncConfig
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +30,7 @@ class SyncStrategy:
     """Determines which issues need syncing based on priority and last sync time"""
 
     @classmethod
-    def get_issues_due_for_sync(
-        cls, db: Session, batch_size: int = 50, priority: str = "high"
-    ) -> Sequence[Issue]:
+    def get_issues_due_for_sync(cls, db: Session, batch_size: int = 50, priority: str = "high") -> Sequence[Issue]:
         """
         Get issues that need syncing based on priority
 
@@ -55,9 +54,7 @@ class SyncStrategy:
 
         elif priority == "medium":
             # Recently closed issues (< 30 days) not synced in last 6 hours
-            closed_threshold = now - timedelta(
-                days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS
-            )
+            closed_threshold = now - timedelta(days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS)
             sync_threshold = now - timedelta(seconds=SyncConfig.RECENT_CLOSED_INTERVAL)
             query = db.query(Issue).filter(
                 Issue.status == IssueStatus.CLOSED,
@@ -70,9 +67,7 @@ class SyncStrategy:
 
         elif priority == "low":
             # Old closed issues (> 30 days) not synced in last 7 days
-            closed_threshold = now - timedelta(
-                days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS
-            )
+            closed_threshold = now - timedelta(days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS)
             sync_threshold = now - timedelta(seconds=SyncConfig.OLD_CLOSED_INTERVAL)
             query = db.query(Issue).filter(
                 Issue.status == IssueStatus.CLOSED,
@@ -87,11 +82,7 @@ class SyncStrategy:
             raise ValueError(f"Invalid priority: {priority}")
 
         # Order by oldest sync first, limit to batch size
-        issues = (
-            query.order_by(Issue.last_synced_at.asc().nullsfirst())
-            .limit(batch_size)
-            .all()
-        )
+        issues = query.order_by(Issue.last_synced_at.asc().nullsfirst()).limit(batch_size).all()
 
         logger.info(f"Found {len(issues)} {priority} priority issues due for sync")
         return issues
@@ -102,16 +93,10 @@ class SyncStrategy:
         now = datetime.now(UTC)
 
         # Count open and unknown issues
-        open_count = (
-            db.query(Issue)
-            .filter(Issue.status.in_([IssueStatus.OPEN, IssueStatus.UNKNOWN]))
-            .count()
-        )
+        open_count = db.query(Issue).filter(Issue.status.in_([IssueStatus.OPEN, IssueStatus.UNKNOWN])).count()
 
         # Count recently closed issues
-        recent_closed_threshold = now - timedelta(
-            days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS
-        )
+        recent_closed_threshold = now - timedelta(days=SyncConfig.OLD_CLOSED_THRESHOLD_DAYS)
         recent_closed_count = (
             db.query(Issue)
             .filter(

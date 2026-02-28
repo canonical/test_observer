@@ -17,18 +17,18 @@ from typing import TYPE_CHECKING
 
 from test_observer.common.metrics import (
     test_results,
-    test_results_triaged,
     test_results_metadata,
+    test_results_triaged,
 )
 
 if TYPE_CHECKING:
-    from test_observer.controllers.test_executions.models import TestResultRequest
     from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+    from test_observer.controllers.test_executions.models import TestResultRequest
     from test_observer.data_access.models import (
-        TestExecution,
-        TestCase,
-        TestResult,
         Issue,
+        TestCase,
+        TestExecution,
+        TestResult,
     )
 
 from test_observer.data_access.models import TestExecution

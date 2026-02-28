@@ -14,14 +14,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
-
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 test_executions_patch_endpoint = "/v1/test-executions/{id}"
 get_endpoint = "/v1/execution-metadata"

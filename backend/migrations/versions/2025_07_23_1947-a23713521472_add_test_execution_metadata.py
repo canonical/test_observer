@@ -21,9 +21,8 @@ Create Date: 2025-07-23 19:47:49.937408+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "a23713521472"
@@ -41,9 +40,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("test_execution_metadata_pkey")),
-        sa.UniqueConstraint(
-            "category", "value", name=op.f("test_execution_metadata_category_value_key")
-        ),
+        sa.UniqueConstraint("category", "value", name=op.f("test_execution_metadata_category_value_key")),
     )
     op.create_table(
         "test_execution_metadata_association_table",
@@ -52,16 +49,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["test_execution_id"],
             ["test_execution.id"],
-            name=op.f(
-                "test_execution_metadata_association_table_test_execution_id_fkey"
-            ),
+            name=op.f("test_execution_metadata_association_table_test_execution_id_fkey"),
         ),
         sa.ForeignKeyConstraint(
             ["test_execution_metadata_id"],
             ["test_execution_metadata.id"],
-            name=op.f(
-                "test_execution_metadata_association_table_test_execution_metadata_id_fkey"
-            ),
+            name=op.f("test_execution_metadata_association_table_test_execution_metadata_id_fkey"),
         ),
         sa.PrimaryKeyConstraint(
             "test_execution_id",

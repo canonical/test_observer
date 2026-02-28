@@ -15,8 +15,7 @@
 
 from fastapi import APIRouter
 
-from . import test_results
-from . import test_executions
+from . import test_executions, test_results
 
 router = APIRouter(tags=["reports"])
 router.include_router(test_results.router)

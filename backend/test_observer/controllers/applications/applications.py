@@ -29,7 +29,6 @@ from test_observer.controllers.applications.models import (
 from test_observer.data_access.models import Application
 from test_observer.data_access.setup import get_db
 
-
 router: APIRouter = APIRouter(tags=["applications"])
 
 

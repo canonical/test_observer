@@ -15,15 +15,13 @@
 
 from pydantic import BaseModel, ConfigDict
 
-from test_observer.controllers.test_executions.shared_models import (
-    TestResultResponse,
-)
 from test_observer.controllers.artefacts.models import (
+    ArtefactBuildMinimalResponse,
+    ArtefactResponse,
     TestExecutionResponse,
 )
-from test_observer.controllers.artefacts.models import (
-    ArtefactResponse,
-    ArtefactBuildMinimalResponse,
+from test_observer.controllers.test_executions.shared_models import (
+    TestResultResponse,
 )
 
 

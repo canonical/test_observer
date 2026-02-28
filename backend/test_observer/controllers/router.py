@@ -24,19 +24,19 @@ from test_observer.controllers.users import users
 from test_observer.data_access.setup import get_db
 
 from . import (
+    auth,
     environments,
     reports,
     test_cases,
     test_executions,
     test_results,
-    auth,
 )
 from .application import version
 from .artefacts import artefacts
+from .execution_metadata import execution_metadata
+from .issues import issues
 from .teams import teams
 from .test_executions import relevant_links
-from .issues import issues
-from .execution_metadata import execution_metadata
 
 router: APIRouter = APIRouter()
 router.include_router(version.router, prefix="/v1/version")

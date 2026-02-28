@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Check libs
-        uses: canonical/charming-actions/check-libraries@934193396735701141a1decc3613818e412da606 # 2.6.3
+        uses: canonical/charming-actions/check-libraries@1753e0803f70445132e92acd45c905aba6473225 # 2.7.0
         with:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"

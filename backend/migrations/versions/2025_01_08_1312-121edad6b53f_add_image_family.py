@@ -96,21 +96,12 @@ def downgrade() -> None:
 def remove_image_family_enum_value():
     op.execute("ALTER TYPE familyname RENAME TO familyname_old")
     op.execute("CREATE TYPE familyname AS ENUM('snap', 'deb', 'charm')")
-    op.execute(
-        "ALTER TABLE artefact ALTER COLUMN family TYPE "
-        "familyname USING family::text::familyname"
-    )
+    op.execute("ALTER TABLE artefact ALTER COLUMN family TYPE familyname USING family::text::familyname")
     op.execute("DROP TYPE familyname_old")
 
 
 def remove_added_stage_enum_values():
     op.execute("ALTER TYPE stagename RENAME TO stagename_old")
-    op.execute(
-        "CREATE TYPE stagename AS "
-        "ENUM('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')"
-    )
-    op.execute(
-        "ALTER TABLE artefact ALTER COLUMN stage TYPE "
-        "stagename USING stage::text::stagename"
-    )
+    op.execute("CREATE TYPE stagename AS ENUM('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')")
+    op.execute("ALTER TABLE artefact ALTER COLUMN stage TYPE stagename USING stage::text::stagename")
     op.execute("DROP TYPE stagename_old")
