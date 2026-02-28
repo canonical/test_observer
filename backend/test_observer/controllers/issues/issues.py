@@ -71,6 +71,12 @@ def get_issues(
         IssueStatus | None,
         Query(description="Filter by issue status (e.g., open, closed, unknown)"),
     ] = None,
+    include_closed: Annotated[
+        bool,
+        Query(
+            description="Include closed issues in results (default: false)",
+        ),
+    ] = False,
     limit: Annotated[
         int,
         Query(
@@ -99,6 +105,8 @@ def get_issues(
         stmt = stmt.where(Issue.project == project)
     if status:
         stmt = stmt.where(Issue.status == status)
+    elif not include_closed:
+        stmt = stmt.where(Issue.status != IssueStatus.CLOSED)
 
     # Apply search filter if query string provided
     if q:

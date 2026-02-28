@@ -507,3 +507,53 @@ def test_get_issues_pagination_metadata(test_client: TestClient, generator: Data
     assert data["limit"] == 2
     assert data["offset"] == 1
     assert len(data["issues"]) == 2
+
+
+def test_get_all_excludes_closed_by_default(
+    test_client: TestClient, generator: DataGenerator
+):
+    open_issue = generator.gen_issue(status=IssueStatus.OPEN, key="DEF-OPEN-1")
+    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, key="DEF-CLOSED-1")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issue_ids = {i["id"] for i in response.json()["issues"]}
+    assert open_issue.id in issue_ids
+    assert closed_issue.id not in issue_ids
+
+
+def test_get_all_includes_closed_when_requested(
+    test_client: TestClient, generator: DataGenerator
+):
+    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, key="INC-CLOSED-1")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"include_closed": True}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issue_ids = {i["id"] for i in response.json()["issues"]}
+    assert closed_issue.id in issue_ids
+
+
+def test_get_all_status_param_overrides_include_closed(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Returns only closed issues regardless of include_closed."""
+    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, key="STAT-CLOSED-1")
+    generator.gen_issue(status=IssueStatus.OPEN, key="STAT-OPEN-1")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"status": IssueStatus.CLOSED}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    issues = response.json()["issues"]
+    assert len(issues) == 1
+    assert issues[0]["id"] == closed_issue.id
