@@ -19,3 +19,6 @@
 build
 
 backend/scripts/test-results-reports/
+
+# spread artifacts
+artifacts/
