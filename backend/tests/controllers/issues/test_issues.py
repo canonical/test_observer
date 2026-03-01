@@ -76,6 +76,7 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
         "title",
         "status",
         "labels",
+        "auto_rerun_enabled",
     }
     assert response.json()["id"] == issue.id
     assert response.json()["source"] == issue.source
@@ -84,6 +85,7 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
     assert response.json()["title"] == issue.title
     assert response.json()["status"] == issue.status
     assert response.json()["url"] == issue.url
+    assert response.json()["auto_rerun_enabled"] == issue.auto_rerun_enabled
 
 
 def test_patch_invalid_status(test_client: TestClient):

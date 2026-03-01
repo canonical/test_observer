@@ -2530,6 +2530,54 @@
               "type": "integer",
               "title": "Issue Id"
             }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Title"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IssueStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "auto_rerun_enabled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Auto Rerun Enabled"
+            }
           }
         ],
         "requestBody": {
@@ -2565,7 +2613,8 @@
           }
         },
         "x-permissions": [
-          "change_issue"
+          "change_issue",
+          "change_auto_rerun"
         ]
       }
     },
@@ -4833,6 +4882,17 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
           }
         },
         "type": "object",
@@ -4860,6 +4920,17 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
           },
           "url": {
             "type": "string",
@@ -4920,6 +4991,10 @@
             ],
             "title": "Labels"
           },
+          "auto_rerun_enabled": {
+            "type": "boolean",
+            "title": "Auto Rerun Enabled"
+          },
           "attachment_rules": {
             "items": {
               "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
@@ -4937,6 +5012,7 @@
           "title",
           "status",
           "url",
+          "auto_rerun_enabled",
           "attachment_rules"
         ],
         "title": "IssueResponse"
@@ -5256,6 +5332,7 @@
           "change_issue_attachment",
           "change_issue_attachment_bulk",
           "change_attachment_rule",
+          "change_auto_rerun",
           "view_test",
           "change_test",
           "view_rerun",

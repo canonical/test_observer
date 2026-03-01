@@ -48,6 +48,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     project: '',
     key: '',
     title: 'Dummy Issue',
+    autoRerunEnabled: false,
     attachmentRules: [],
   );
 
