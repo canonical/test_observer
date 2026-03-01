@@ -64,7 +64,7 @@ jobs:
           echo "Docker tag: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
 
       - name: Log in to the Container registry
-        uses: docker/login-action@6d4b68b490aef8836e8fb5e50ee7b3bdfa5894f0
+        uses: docker/login-action@3227f5311cb93ffd14d13e65d8cc400d30f4dd8a
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
