@@ -58,5 +58,6 @@ jobs:
           channel: 'stable'
       - if: always()
         run: dart format --set-exit-if-changed lib
+      - run: flutter pub get
       - if: always()
         run: flutter analyze
