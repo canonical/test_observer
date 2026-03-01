@@ -36,12 +36,12 @@ jobs:
       - run: pip install uv
       - run: uv sync --all-groups
       - run: uv pip install -e .
-      - run: uv run ruff check
-        continue-on-error: true
-      - run: uv run ruff format --check
-        continue-on-error: true
-      - run: uv run mypy .
-        continue-on-error: true
+      - if: always()
+        run: uv run ruff check
+      - if: always()
+        run: uv run ruff format --check
+      - if: always()
+        run: uv run mypy .
 
   analyze-frontend:
     runs-on: ubuntu-24.04
@@ -56,7 +56,7 @@ jobs:
         with:
           flutter-version: '3.29.3'
           channel: 'stable'
-      - run: dart format --set-exit-if-changed lib
-        continue-on-error: true
-      - run: flutter analyze
-        continue-on-error: true
+      - if: always()
+        run: dart format --set-exit-if-changed lib
+      - if: always()
+        run: flutter analyze
