@@ -12,6 +12,7 @@ Additionally, TO provides a mechanism to assign reviewers that can look at resul
    :hidden:
    :maxdepth: 2
 
+   tutorial/index
    how-to/index
    explanation/index
 
@@ -21,7 +22,7 @@ Additionally, TO provides a mechanism to assign reviewers that can look at resul
 In this documentation
 ---------------------
 
-* **Submitting tests**: :doc:`Authenticate <how-to/authenticate>` • :doc:`Submit a test <how-to/submit-a-test>`
+* **Submitting tests**: :doc:`Authenticate <how-to/authenticate>` • :doc:`Submit test results </tutorial/first-test-execution>`
 * **Reviewing tests**: :doc:`Triage test results <how-to/triage-test-results>`
 * **Key concepts**: :doc:`explanation/glossary`
 
