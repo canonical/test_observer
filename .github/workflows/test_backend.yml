@@ -56,8 +56,9 @@ jobs:
         with:
           flutter-version: '3.29.3'
           channel: 'stable'
-      - if: always()
-        run: dart format --set-exit-if-changed lib
       - run: flutter pub get
+      - run: flutter pub run build_runner build
       - if: always()
         run: flutter analyze
+      - if: always()
+        run: dart format --set-exit-if-changed lib
