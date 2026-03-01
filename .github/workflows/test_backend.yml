@@ -1,4 +1,4 @@
-# Copyright 2026 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,53 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Static Analysis
-
+name: Test Backend
 on:
-  pull_request:
-
+  push:
+    branches-ignore:
+      - 'main'
+    paths:
+      - 'backend/**'
+      - '.github/workflows/test_backend.yml'
+# Cancel inprogress runs if new commit pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  analyze-backend:
-    runs-on: ubuntu-24.04
+  test:
+    runs-on: [self-hosted, linux, large, jammy, x64]
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.12"
-      - run: pip install uv
-      - run: uv sync --all-groups
-      - run: uv pip install -e .
-      - if: always()
-        run: uv run ruff check
-      - if: always()
-        run: uv run ruff format --check
-      - if: always()
-        run: uv run mypy .
-
-  analyze-frontend:
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.29.3'
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter pub run build_runner build
-      - if: always()
-        run: flutter analyze
-      - if: always()
-        run: dart format --set-exit-if-changed lib
+      - name: Install docker compose
+        run: |
+          sudo apt update -y
+          sudo apt install docker.io docker-compose-v2 -y
+      - name: Start test observer api
+        run: docker compose up --wait -d test-observer-api
+      - name: Run test observer api tests
+        run: docker compose exec test-observer-api pytest
+      - name: Check if alembic migrations are up to date
+        run: docker compose exec test-observer-api alembic check
+      - name: Compare schema with repository
+        run: diff <(curl -s http://localhost:30000/openapi.json | jq) schemata/openapi.json
+      - name: Ensure all endpoints are secured
+        run: ./scripts/check_endpoint_permissions.sh schemata/openapi.json
