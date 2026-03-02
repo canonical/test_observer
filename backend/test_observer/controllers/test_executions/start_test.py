@@ -101,9 +101,10 @@ class StartTestExecutionController:
 
             if users:
                 self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
-                for build in self.artefact.builds:
-                    for env_review in build.environment_reviews:
-                        env_review.reviewers = [random.choice(self.artefact.reviewers)]
+                if expected_number_of_reviewers > 1:
+                    for build in self.artefact.builds:
+                        for env_review in build.environment_reviews:
+                            env_review.reviewers = [random.choice(self.artefact.reviewers)]
                 self.artefact.due_date = self.determine_due_date()
                 self.db.commit()
 

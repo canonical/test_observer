@@ -266,10 +266,10 @@ class TestFamilyIndependentTests:
 
         assert len(artefact.reviewers) == 2
 
-    def test_environment_reviews_get_assigned_reviewer_from_artefact_reviewers(
+    def test_environment_reviews_do_not_get_assigned_reviewer_from_artefact_reviewers_if_small_artefact(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        """Assert that environment reviews get assigned a reviewer from the artefact's reviewers"""
+        """Assert that environment reviews do not get assigned a reviewer from the artefact's reviewers when the artefact is small"""
         team = generator.gen_team(
             name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
         )
@@ -285,10 +285,9 @@ class TestFamilyIndependentTests:
         assert len(artefact.reviewers) == 1
         assert artefact.reviewers[0] == user
 
-        # Verify the environment review also has the reviewer assigned
+        # Verify the environment review does not have the reviewer assigned
         env_review = artefact.builds[0].environment_reviews[0]
-        assert len(env_review.reviewers) == 1
-        assert env_review.reviewers[0] == user
+        assert len(env_review.reviewers) == 0
 
     def test_multiple_environment_reviews_each_get_assigned_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
