@@ -195,6 +195,11 @@ def patch_artefact(
     if reviewer_ids_set:
         if request.reviewer_ids is None:
             artefact.reviewers = []
+        elif len(request.reviewer_ids) != len(set(request.reviewer_ids)):
+            raise HTTPException(
+                status_code=422,
+                detail="Duplicate user ids are not allowed in reviewer_ids",
+            )
         else:
             reviewers = []
             for user_id in request.reviewer_ids:
@@ -205,12 +210,17 @@ def patch_artefact(
                         detail=f"User with id {user_id} not found",
                     )
                 reviewers.append(user)
-            artefact.reviewers = reviewers
+            artefact.reviewers = list(set(reviewers))
 
     # Handle reviewer_emails
     if reviewer_emails_set:
         if request.reviewer_emails is None:
             artefact.reviewers = []
+        elif len(request.reviewer_emails) != len(set(request.reviewer_emails)):
+            raise HTTPException(
+                status_code=422,
+                detail="Duplicate user emails are not allowed in reviewer_emails",
+            )
         else:
             reviewers = []
             for email in request.reviewer_emails:
