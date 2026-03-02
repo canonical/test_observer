@@ -14,21 +14,20 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from tests.conftest import make_authenticated_request
-from tests.data_generator import DataGenerator
 from test_observer.common.permissions import Permission
+from test_observer.controllers.issues.attachment_rules_logic import (
+    apply_test_result_attachment_rules,
+)
 from test_observer.data_access.models import (
     IssueTestResultAttachmentRule,
     TestExecutionRerunRequest,
 )
 from test_observer.data_access.models_enums import FamilyName
-from test_observer.controllers.issues.attachment_rules_logic import (
-    apply_test_result_attachment_rules,
-)
+from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_issue_auto_rerun_enabled_default_false(
@@ -122,14 +121,10 @@ def test_auto_rerun_creates_rerun_request_when_enabled(
     artefact = generator.gen_artefact(family=FamilyName.snap)
     artefact_build = generator.gen_artefact_build(artefact=artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build, environment=environment
-    )
+    test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case()
-    test_result = generator.gen_test_result(
-        test_case=test_case, test_execution=test_execution
-    )
-    
+    test_result = generator.gen_test_result(test_case=test_case, test_execution=test_execution)
+
     # Create issue with auto_rerun enabled
     issue = generator.gen_issue()
     issue.auto_rerun_enabled = True
@@ -167,14 +162,10 @@ def test_auto_rerun_does_not_create_rerun_request_when_disabled(
     artefact = generator.gen_artefact(family=FamilyName.snap)
     artefact_build = generator.gen_artefact_build(artefact=artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build, environment=environment
-    )
+    test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case()
-    test_result = generator.gen_test_result(
-        test_case=test_case, test_execution=test_execution
-    )
-    
+    test_result = generator.gen_test_result(test_case=test_case, test_execution=test_execution)
+
     # Create issue with auto_rerun DISABLED (default)
     issue = generator.gen_issue()
     assert issue.auto_rerun_enabled is False
@@ -204,22 +195,18 @@ def test_auto_rerun_multiple_issues_with_different_settings(
     artefact = generator.gen_artefact(family=FamilyName.snap)
     artefact_build = generator.gen_artefact_build(artefact=artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build, environment=environment
-    )
+    test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case()
-    test_result = generator.gen_test_result(
-        test_case=test_case, test_execution=test_execution
-    )
-    
+    test_result = generator.gen_test_result(test_case=test_case, test_execution=test_execution)
+
     # Create issue 1 with auto_rerun enabled
     issue1 = generator.gen_issue(key="1")
     issue1.auto_rerun_enabled = True
-    
+
     # Create issue 2 with auto_rerun disabled
     issue2 = generator.gen_issue(key="2")
     issue2.auto_rerun_enabled = False
-    
+
     db_session.commit()
 
     # Create attachment rules that match for both issues
@@ -254,18 +241,12 @@ def test_auto_rerun_no_duplicate_rerun_requests(
     artefact = generator.gen_artefact(family=FamilyName.snap)
     artefact_build = generator.gen_artefact_build(artefact=artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build, environment=environment
-    )
+    test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case1 = generator.gen_test_case(name="test1")
     test_case2 = generator.gen_test_case(name="test2")
-    test_result1 = generator.gen_test_result(
-        test_case=test_case1, test_execution=test_execution
-    )
-    test_result2 = generator.gen_test_result(
-        test_case=test_case2, test_execution=test_execution
-    )
-    
+    test_result1 = generator.gen_test_result(test_case=test_case1, test_execution=test_execution)
+    test_result2 = generator.gen_test_result(test_case=test_case2, test_execution=test_execution)
+
     # Create issue with auto_rerun enabled
     issue = generator.gen_issue()
     issue.auto_rerun_enabled = True

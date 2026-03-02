@@ -28,16 +28,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from test_observer.data_access.models import (
+    Issue,
     IssueTestResultAttachment,
-    TestExecutionRerunRequest,
-    TestResult,
     IssueTestResultAttachmentRule,
     IssueTestResultAttachmentRuleExecutionMetadata,
     TestExecution,
     TestExecutionMetadata,
+    TestExecutionRerunRequest,
     TestResult,
-    IssueTestResultAttachment,
-    Issue,
 )
 
 
@@ -191,7 +189,7 @@ def apply_test_result_attachment_rules(db: Session, test_result: TestResult):
             )
             .select_from(TestExecution)
             .join(
-                TestResult, 
+                TestResult,
                 TestResult.test_execution_id == TestExecution.id,
             )
             .join(
