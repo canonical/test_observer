@@ -23,9 +23,7 @@ from sqlalchemy import func, select, String
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.data_access.models import (
-    Issue,
-)
+from test_observer.data_access.models import Issue
 from test_observer.data_access.setup import get_db
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
@@ -61,15 +59,11 @@ def get_issues(
         Query(description="Filter by project name"),
     ] = None,
     status: Annotated[
-        IssueStatus | None,
-        Query(description="Filter by issue status (e.g., open, closed, unknown)"),
-    ] = None,
-    include_closed: Annotated[
-        bool,
+        list[IssueStatus] | None,
         Query(
-            description="Include closed issues in results (default: false)",
+            description="Filter by issue status. Accepts multiple values",
         ),
-    ] = False,
+    ] = None,
     limit: Annotated[
         int,
         Query(
@@ -99,9 +93,7 @@ def get_issues(
     if project:
         stmt = stmt.where(Issue.project == project)
     if status:
-        stmt = stmt.where(Issue.status == status)
-    elif not include_closed:
-        stmt = stmt.where(Issue.status != IssueStatus.CLOSED)
+        stmt = stmt.where(Issue.status.in_(status))
 
     # Apply search filter if query string provided
     if q:

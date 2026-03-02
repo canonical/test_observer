@@ -41,6 +41,8 @@ class IssuesFilters extends _$IssuesFilters {
   static const projectParam = 'project';
   static const statusParam = 'status';
 
+  static const defaultStatuses = {IssueStatus.open, IssueStatus.unknown};
+
   @override
   IssuesFiltersState build(Uri pageUri) {
     final issues = ref.watch(issuesProvider()).value ?? [];
@@ -53,18 +55,20 @@ class IssuesFilters extends _$IssuesFilters {
     final possibleSources = issues.map((i) => i.source).toSet();
     final validSelectedSources = selectedSources.intersection(possibleSources);
 
-    // Statuses
+    // Statuses — default to open+unknown when no status param is present
     final possibleStatuses = IssueStatus.values.toSet();
-    final selectedStatuses = IssueStatus.values
-        .where((v) => (params[statusParam] ?? []).contains(v.name))
-        .toSet();
+    final selectedStatuses = params.containsKey(statusParam)
+        ? IssueStatus.values
+            .where((v) => (params[statusParam] ?? []).contains(v.name))
+            .toSet()
+        : defaultStatuses;
     final validSelectedStatuses =
         selectedStatuses.intersection(possibleStatuses);
 
     // Projects
     final selectedProjects = (params[projectParam] ?? []).toSet();
     var filtered = issues;
-    if (selectedSources.isNotEmpty) {
+    if (validSelectedSources.isNotEmpty) {
       filtered = filtered
           .where((i) => validSelectedSources.contains(i.source))
           .toList();
