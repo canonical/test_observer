@@ -30,6 +30,7 @@ from test_observer.data_access.models import (
     TestExecutionMetadata,
     TestExecutionRerunRequest,
     TestResult,
+    User,
     test_execution_metadata_association_table,
 )
 
@@ -128,11 +129,11 @@ def build_query_filters_and_joins(
 
     if filters.assignee_ids != []:
         if filters.assignee_ids == QueryValue.ANY:
-            query_filters.append(Artefact.reviewers.isnot(None))
+            query_filters.append(Artefact.reviewers.any())
         elif filters.assignee_ids == QueryValue.NONE:
-            query_filters.append(Artefact.reviewers.is_(None))
+            query_filters.append(~Artefact.reviewers.any())
         elif len(filters.assignee_ids) > 0:
-            query_filters.append(Artefact.reviewers.overlap(filters.assignee_ids))
+            query_filters.append(Artefact.reviewers.any(User.id.in_(filters.assignee_ids)))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
     if filters.rerun_is_requested is not None:
