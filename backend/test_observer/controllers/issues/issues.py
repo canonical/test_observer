@@ -16,8 +16,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import String, func, select
 from fastapi.security import SecurityScopes
+from sqlalchemy import String, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -35,6 +35,7 @@ from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
 from . import attachment_rules, issue_attachments
+from .issue_url_parser import issue_source_project_key_from_url
 from .models import (
     IssuePatchRequest,
     IssuePutRequest,
@@ -42,7 +43,6 @@ from .models import (
     IssuesGetResponse,
     MinimalIssueResponse,
 )
-from .issue_url_parser import issue_source_project_key_from_url
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -180,9 +180,9 @@ def require_auto_rerun_permission(
     "/{issue_id}",
     response_model=IssueResponse,
     dependencies=[
-        Security(permission_checker, scopes=[Permission.change_issue]), 
-        Security(require_auto_rerun_permission, scopes=[Permission.change_auto_rerun])
-        ],
+        Security(permission_checker, scopes=[Permission.change_issue]),
+        Security(require_auto_rerun_permission, scopes=[Permission.change_auto_rerun]),
+    ],
 )
 def patch_issue(
     issue_id: int,
