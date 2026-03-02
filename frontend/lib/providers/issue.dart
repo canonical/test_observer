@@ -152,4 +152,16 @@ class Issue extends _$Issue {
       filters: filters,
     );
   }
+
+  Future<void> setAutoRerun({
+    required int issueId,
+    required bool enabled,
+  }) async {
+    final api = ref.read(apiProvider);
+    final updatedIssue = await api.patchIssueAutoRerun(
+      issueId: issueId,
+      autoRerunEnabled: enabled,
+    );
+    state = AsyncData(updatedIssue);
+  }
 }

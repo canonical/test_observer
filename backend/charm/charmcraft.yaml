@@ -94,6 +94,10 @@ config:
     ignore_permissions:
       description: Comma separated list of API permissions to ignore for all requests
       type: string
+    enable_issue_sync:
+      description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
+      type: boolean
+      default: false
 
 resources:
   api-image:

@@ -316,7 +316,7 @@ def test_search_strips_whitespace(test_client: TestClient, generator: DataGenera
 def test_get_environments_pagination_metadata(test_client: TestClient, generator: DataGenerator):
     """count reflects total results, limit and offset echo back the used values"""
     unique_marker = uuid.uuid4().hex[:8]
-    names = _seed_environments(generator, count=5, prefix=f"meta_env_{unique_marker}")
+    _ = _seed_environments(generator, count=5, prefix=f"meta_env_{unique_marker}")
 
     resp = make_authenticated_request(
         lambda: test_client.get(

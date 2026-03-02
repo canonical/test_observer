@@ -76,6 +76,7 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
         "title",
         "status",
         "labels",
+        "auto_rerun_enabled",
     }
     assert response.json()["id"] == issue.id
     assert response.json()["source"] == issue.source
@@ -84,6 +85,7 @@ def test_get_issue(test_client: TestClient, generator: DataGenerator):
     assert response.json()["title"] == issue.title
     assert response.json()["status"] == issue.status
     assert response.json()["url"] == issue.url
+    assert response.json()["auto_rerun_enabled"] == issue.auto_rerun_enabled
 
 
 def test_patch_invalid_status(test_client: TestClient):
@@ -385,8 +387,6 @@ def test_get_all_search_no_results(test_client: TestClient, generator: DataGener
 
 
 def test_get_all_ordering(test_client: TestClient, generator: DataGenerator):
-    # Create issues in mixed order
-    # IssueSource enum order is: JIRA, GITHUB, LAUNCHPAD
     issue3 = generator.gen_issue(source=IssueSource.LAUNCHPAD, project="B", key="LP-3")
     issue1 = generator.gen_issue(source=IssueSource.GITHUB, project="A", key="GH-1")
     issue4 = generator.gen_issue(source=IssueSource.LAUNCHPAD, project="B", key="LP-1")
@@ -399,14 +399,10 @@ def test_get_all_ordering(test_client: TestClient, generator: DataGenerator):
 
     assert response.status_code == 200
     issues = response.json()["issues"]
-    # Should be ordered by source (enum order), then project, then key
-    # Filter to only the 4 issues we created (in case there are others from other tests)
     created_ids = {issue1.id, issue2.id, issue3.id, issue4.id}
     our_issues = [i for i in issues if i["id"] in created_ids]
 
     assert len(our_issues) == 4
-    # Verify the relative ordering of our issues
-    # Expected: jira C JIRA-1, then github A GH-1, then launchpad B LP-1, LP-3
     id_to_index = {i["id"]: idx for idx, i in enumerate(our_issues)}
     assert id_to_index[issue2.id] < id_to_index[issue1.id]  # jira < github (enum order)
     assert id_to_index[issue1.id] < id_to_index[issue4.id]  # github < launchpad
@@ -438,12 +434,10 @@ def test_get_all_combined_filters(test_client: TestClient, generator: DataGenera
     assert issues[0]["id"] == target_issue.id
 
 
-def test_get_all_filter_by_status(test_client: TestClient, generator: DataGenerator):
+def test_get_all_filter_by_single_status(test_client: TestClient, generator: DataGenerator):
     open_issue = generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="GH-FTST-1")
-    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, source=IssueSource.JIRA, key="TS-FTST-2")
-    unknown_issue = generator.gen_issue(status=IssueStatus.UNKNOWN, source=IssueSource.GITHUB, key="GH-FTST-3")
-
-    # Filter by open status
+    generator.gen_issue(status=IssueStatus.CLOSED, source=IssueSource.JIRA, key="TS-FTST-2")
+    generator.gen_issue(status=IssueStatus.UNKNOWN, source=IssueSource.GITHUB, key="GH-FTST-3")
     response = make_authenticated_request(
         lambda: test_client.get(endpoint, params={"status": IssueStatus.OPEN}),
         Permission.view_issue,
@@ -453,25 +447,40 @@ def test_get_all_filter_by_status(test_client: TestClient, generator: DataGenera
     assert len(issues) == 1
     assert issues[0]["id"] == open_issue.id
 
-    # Filter by closed status
-    response = make_authenticated_request(
-        lambda: test_client.get(endpoint, params={"status": IssueStatus.CLOSED}),
-        Permission.view_issue,
-    )
-    assert response.status_code == 200
-    issues = response.json()["issues"]
-    assert len(issues) == 1
-    assert issues[0]["id"] == closed_issue.id
 
-    # Filter by unknown status
+def test_get_all_filter_by_multiple_statuses(test_client: TestClient, generator: DataGenerator):
+    open_issue = generator.gen_issue(status=IssueStatus.OPEN, source=IssueSource.GITHUB, key="MS-OPEN-1")
+    unknown_issue = generator.gen_issue(status=IssueStatus.UNKNOWN, source=IssueSource.GITHUB, key="MS-UNKNOWN-1")
+    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, source=IssueSource.JIRA, key="MS-CLOSED-1")
+
     response = make_authenticated_request(
-        lambda: test_client.get(endpoint, params={"status": IssueStatus.UNKNOWN}),
+        lambda: test_client.get(
+            endpoint,
+            params=[("status", IssueStatus.OPEN), ("status", IssueStatus.UNKNOWN)],
+        ),
         Permission.view_issue,
     )
     assert response.status_code == 200
-    issues = response.json()["issues"]
-    assert len(issues) == 1
-    assert issues[0]["id"] == unknown_issue.id
+    issue_ids = {i["id"] for i in response.json()["issues"]}
+    assert open_issue.id in issue_ids
+    assert unknown_issue.id in issue_ids
+    assert closed_issue.id not in issue_ids
+
+
+def test_get_all_no_status_filter_returns_all(test_client: TestClient, generator: DataGenerator):
+    open_issue = generator.gen_issue(status=IssueStatus.OPEN, key="ALL-OPEN-1")
+    closed_issue = generator.gen_issue(status=IssueStatus.CLOSED, key="ALL-CLOSED-1")
+    unknown_issue = generator.gen_issue(status=IssueStatus.UNKNOWN, key="ALL-UNK-1")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_issue,
+    )
+    assert response.status_code == 200
+    issue_ids = {i["id"] for i in response.json()["issues"]}
+    assert open_issue.id in issue_ids
+    assert closed_issue.id in issue_ids
+    assert unknown_issue.id in issue_ids
 
 
 def test_get_all_filter_by_status_and_source(test_client: TestClient, generator: DataGenerator):
