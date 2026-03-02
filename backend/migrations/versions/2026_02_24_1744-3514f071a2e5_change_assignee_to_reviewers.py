@@ -64,8 +64,8 @@ def upgrade() -> None:
     """)
 
     # Drop the old foreign key constraint and column
-    op.drop_constraint("artefact_assignee_id_fkey", "artefact", type_="foreignkey")
-    op.drop_index("artefact_assignee_id_ix", table_name="artefact")
+    op.drop_constraint(op.f("artefact_assignee_id_fkey"), "artefact", type_="foreignkey")
+    op.drop_index(op.f("artefact_assignee_id_ix"), table_name="artefact")
     op.drop_column("artefact", "assignee_id")
 
 
@@ -75,9 +75,9 @@ def downgrade() -> None:
         "artefact",
         sa.Column("assignee_id", sa.Integer(), nullable=True),
     )
-    op.create_index("artefact_assignee_id_ix", "artefact", ["assignee_id"])
+    op.create_index(op.f("artefact_assignee_id_ix"), "artefact", ["assignee_id"])
     op.create_foreign_key(
-        "artefact_assignee_id_fkey",
+        op.f("artefact_assignee_id_fkey"),
         "artefact",
         "app_user",
         ["assignee_id"],
