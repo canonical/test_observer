@@ -82,6 +82,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   Future<List<Issue>> getIssues({
     String? source,
     String? project,
+    List<IssueStatus>? statuses,
     int? limit,
     int? offset,
     String? q,
