@@ -81,17 +81,17 @@ class FilteredIssues extends _$FilteredIssues {
       );
     }
 
-    // Convert filter state to API parameters
     // Single-value filters are passed to API for server-side filtering
-    // Multi-value filters fall back to client-side filtering
+    // Multi-value source/project fall back to client-side filtering
     final source = filtersState.selectedSources.length == 1
         ? filtersState.selectedSources.first.name
         : null;
     final project = filtersState.selectedProjects.length == 1
         ? filtersState.selectedProjects.first
         : null;
-    final status = filtersState.selectedStatuses.length == 1
-        ? filtersState.selectedStatuses.first.name
+    // Status supports multi-select natively in the API
+    final statuses = filtersState.selectedStatuses.isNotEmpty
+        ? filtersState.selectedStatuses.toList()
         : null;
 
     // Fetch issues from API with filters
@@ -99,15 +99,14 @@ class FilteredIssues extends _$FilteredIssues {
       issuesProvider(
         source: source,
         project: project,
-        status: status,
+        statuses: statuses,
         limit: paginationState.limit,
         offset: paginationState.offset,
         q: searchQuery.isNotEmpty ? searchQuery : null,
       ).future,
     );
 
-    // Apply client-side filtering for multi-select cases
-    // This handles the edge case where users select multiple sources/projects/statuses
+    // Apply client-side filtering for multi-select source/project
     var filtered = issues;
     if (filtersState.selectedSources.length > 1) {
       filtered = filtered
@@ -117,11 +116,6 @@ class FilteredIssues extends _$FilteredIssues {
     if (filtersState.selectedProjects.length > 1) {
       filtered = filtered
           .where((i) => filtersState.selectedProjects.contains(i.project))
-          .toList();
-    }
-    if (filtersState.selectedStatuses.length > 1) {
-      filtered = filtered
-          .where((i) => filtersState.selectedStatuses.contains(i.status))
           .toList();
     }
 

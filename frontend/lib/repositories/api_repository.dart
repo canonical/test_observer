@@ -439,7 +439,7 @@ class ApiRepository {
   Future<List<Issue>> getIssues({
     String? source,
     String? project,
-    String? status,
+    List<IssueStatus>? statuses,
     int? limit,
     int? offset,
     String? q,
@@ -449,7 +449,8 @@ class ApiRepository {
       queryParameters: {
         if (source != null) 'source': source,
         if (project != null) 'project': project,
-        if (status != null) 'status': status,
+        if (statuses != null && statuses.isNotEmpty)
+          'status': statuses.map((s) => s.name).toList(),
         if (limit != null) 'limit': limit,
         if (offset != null) 'offset': offset,
         if (q != null) 'q': q,
