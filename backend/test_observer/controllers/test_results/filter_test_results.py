@@ -128,11 +128,11 @@ def build_query_filters_and_joins(
 
     if filters.assignee_ids != []:
         if filters.assignee_ids == QueryValue.ANY:
-            query_filters.append(Artefact.assignee_id.isnot(None))
+            query_filters.append(Artefact.reviewers.isnot(None))
         elif filters.assignee_ids == QueryValue.NONE:
-            query_filters.append(Artefact.assignee_id.is_(None))
+            query_filters.append(Artefact.reviewers.is_(None))
         elif len(filters.assignee_ids) > 0:
-            query_filters.append(Artefact.assignee_id.in_(filters.assignee_ids))
+            query_filters.append(Artefact.reviewers.overlap(filters.assignee_ids))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
     if filters.rerun_is_requested is not None:

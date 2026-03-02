@@ -17,7 +17,7 @@
 """Add auto_rerun_enabled to issue
 
 Revision ID: a1b2c3d4e5f6
-Revises: f5f3abf809b3
+Revises: 3514f071a2e5
 Create Date: 2026-02-25 16:00:00.000000+00:00
 
 """
@@ -28,7 +28,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "a1b2c3d4e5f6"
-down_revision = "f5f3abf809b3"
+down_revision = "3514f071a2e5"
 branch_labels = None
 depends_on = None
 

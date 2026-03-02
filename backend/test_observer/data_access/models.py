@@ -131,7 +131,6 @@ class User(Base):
     teams: Mapped[list["Team"]] = relationship(
         secondary=team_users_association, back_populates="members"
     )
-    assignments: Mapped[list["Artefact"]] = relationship(back_populates="reviewers")
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
