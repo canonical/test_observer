@@ -202,15 +202,16 @@ def patch_artefact(
             )
         else:
             reviewers = []
+            users_by_id = {user.id: user for user in db.scalars(select(User).where(User.id.in_(request.reviewer_ids))).all()}
             for user_id in request.reviewer_ids:
-                user = db.get(User, user_id)
+                user = users_by_id.get(user_id, None)
                 if user is None:
                     raise HTTPException(
                         status_code=422,
                         detail=f"User with id {user_id} not found",
                     )
                 reviewers.append(user)
-            artefact.reviewers = list(set(reviewers))
+            artefact.reviewers = reviewers
 
     # Handle reviewer_emails
     if reviewer_emails_set:
@@ -223,8 +224,9 @@ def patch_artefact(
             )
         else:
             reviewers = []
+            users_by_email = {user.email: user for user in db.scalars(select(User).where(User.email.in_(request.reviewer_emails))).all()}
             for email in request.reviewer_emails:
-                user = db.scalar(select(User).where(User.email == email))
+                user = users_by_email.get(email, None)
                 if user is None:
                     raise HTTPException(
                         status_code=422,
