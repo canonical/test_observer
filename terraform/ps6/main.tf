@@ -144,6 +144,7 @@ resource "juju_application" "test-observer-api" {
     saml_sp_key           = var.saml_sp_key
     sessions_secret       = var.sessions_secret
     ignore_permissions    = join(",", var.ignore_permissions)
+    enable_issue_sync     = var.enable_issue_sync
   }
 
   units = 3

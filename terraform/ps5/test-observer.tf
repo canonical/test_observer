@@ -119,6 +119,12 @@ variable "frontend_channel" {
   default     = "latest/edge"
 }
 
+variable "enable_issue_sync" {
+  description = "Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad"
+  type        = bool
+  default     = false
+}
+
 
 
 locals {
@@ -219,6 +225,7 @@ resource "juju_application" "test-observer-api" {
     saml_sp_key           = var.saml_sp_key
     sessions_secret       = var.sessions_secret
     ignore_permissions    = join(",", var.ignore_permissions)
+    enable_issue_sync     = var.enable_issue_sync
   }
 
   units = 3
