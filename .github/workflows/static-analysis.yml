@@ -44,11 +44,11 @@ jobs:
       - run: pip install uv
       - run: uv sync --all-groups
       - run: uv pip install -e .
-      - if: always()
+      - if: ! cancelled()
         run: uv run ruff check
-      - if: always()
+      - if: ! cancelled()
         run: uv run ruff format --check
-      - if: always()
+      - if: ! cancelled()
         run: uv run mypy .
 
   analyze-frontend:
@@ -66,7 +66,7 @@ jobs:
           channel: 'stable'
       - run: flutter pub get
       - run: flutter pub run build_runner build
-      - if: always()
+      - if: ! cancelled()
         run: flutter analyze
-      - if: always()
+      - if: ! cancelled()
         run: dart format --set-exit-if-changed lib
