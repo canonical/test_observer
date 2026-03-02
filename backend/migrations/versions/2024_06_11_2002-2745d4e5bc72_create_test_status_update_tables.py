@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Create test status update tables
 
@@ -23,9 +21,8 @@ Create Date: 2024-06-11 20:02:00.064753+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "2745d4e5bc72"
@@ -54,9 +51,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("test_event_pkey")),
     )
     # ### end Alembic commands ###
-    op.execute(
-        "ALTER TABLE test_execution ADD COLUMN resource_url VARCHAR NOT NULL DEFAULT ''"
-    )
+    op.execute("ALTER TABLE test_execution ADD COLUMN resource_url VARCHAR NOT NULL DEFAULT ''")
 
     with op.get_context().autocommit_block():
         op.execute("ALTER TYPE testexecutionstatus ADD VALUE 'ENDED_PREMATURELY'")
@@ -68,8 +63,7 @@ def downgrade() -> None:
     # ### end Alembic commands ###
     op.execute("ALTER TYPE testexecutionstatus RENAME TO testexecutionstatus_old")
     op.execute(
-        "CREATE TYPE testexecutionstatus AS "
-        "ENUM('NOT_STARTED', 'IN_PROGRESS', 'PASSED', 'FAILED', 'NOT_TESTED')"
+        "CREATE TYPE testexecutionstatus AS ENUM('NOT_STARTED', 'IN_PROGRESS', 'PASSED', 'FAILED', 'NOT_TESTED')"
     )
     op.execute(
         "ALTER TABLE test_execution ALTER COLUMN status TYPE testexecutionstatus USING "

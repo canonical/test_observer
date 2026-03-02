@@ -1,3 +1,22 @@
+<!--
+Copyright 2023 Canonical Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Test Observer
 
 Test Observer (TO) is a dashboard for viewing the results of tests run on different environments for a particular artefact. A user interested in testing an artefact (a deb, snap, charm or image) under different environments (particular machines or cloud setups) can use TO as means for storing, viewing and comparing results with previous runs or versions of an artefact. The last use case is particularly useful for catching regressions. Additionally, TO provides a mechanism to assign reviewers that can look at results and mark artefacts as approved or failed to gate updates. It is important to note that TO does not run the tests itself, but provides an API with which users can report the results to.
@@ -96,3 +115,18 @@ charmcraft.spread -v -shell lxd-vm
 # open a shell to the execution environment _after_ of executing each test task 
 charmcraft.spread -v -shell-after lxd-vm
 ```
+
+## Copyright Information
+
+Test Observer uses the [REUSE tool](https://reuse.software/) to check copyright notices as part of the CI process.
+
+Canonical's guidelines for copyright is that all source code files should have a header/notice for the copyright, and that "in all cases, the year in the copyright notice should be the year the project / file was released.".
+However, not all files are source code,
+and so this guideline doesn't always apply.
+Additionally, some files are either not text files
+or don't support comments (e.g. JSON), so these are handled in the `REUSE.toml` file.
+
+We also include auto-generated files in the `REUSE.toml`,
+since these would otherwise have the copyright values overwritten. Charm libraries (those fetched by `charmcraft fetch-libs`) and package locks are included in `REUSE.toml` for this reason.
+Furthermore, we use `REUSE.toml` to tag everything under `docs/`, because the process of building the docs inserts the copyright notice on each page, but the raw source pages do not include the copyright info.
+ 

@@ -1,26 +1,24 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi.testclient import TestClient
 
-from test_observer.data_access.models_enums import StageName
 from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
+from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
@@ -121,9 +119,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
     ]
 
 
-def test_get_artefact_builds_only_latest(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_artefact_builds_only_latest(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     generator.gen_artefact_build(artefact=artefact, revision=1)
     artefact_build2 = generator.gen_artefact_build(artefact=artefact, revision=2)
@@ -144,9 +140,7 @@ def test_get_artefact_builds_only_latest(
     ]
 
 
-def test_get_artefact_builds_with_rerun_requested(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_artefact_builds_with_rerun_requested(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()

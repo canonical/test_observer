@@ -1,33 +1,40 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Security
-from fastapi import HTTPException
-from sqlalchemy import func, select, String
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from sqlalchemy import String, func, select
+from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
-from test_observer.data_access.models import Issue
-from test_observer.data_access.setup import get_db
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
+from test_observer.data_access.models import (
+    Application,
+    Issue,
+    User,
+)
 from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
+from . import attachment_rules, issue_attachments
 from .models import (
     IssuePatchRequest,
     IssuePutRequest,
@@ -36,8 +43,6 @@ from .models import (
     MinimalIssueResponse,
 )
 from .issue_url_parser import issue_source_project_key_from_url
-
-from . import issue_attachments, attachment_rules
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -81,9 +86,7 @@ def get_issues(
     ] = 0,
     q: Annotated[
         str | None,
-        Query(
-            description="Search term for issue source, project, keys, title, and status"
-        ),
+        Query(description="Search term for issue source, project, keys, title, and status"),
     ] = None,
     db: Session = Depends(get_db),
 ):
@@ -156,15 +159,30 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
         issue.title = request.title
     if request.status is not None:
         issue.status = request.status
+    if request.auto_rerun_enabled is not None:
+        issue.auto_rerun_enabled = request.auto_rerun_enabled
     db.commit()
     db.refresh(issue)
     return issue
 
 
+def require_auto_rerun_permission(
+    security_scopes: SecurityScopes,
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    request: IssuePatchRequest = Depends(),
+):
+    if request.auto_rerun_enabled is not None:
+        permission_checker(security_scopes, user, app)
+
+
 @router.patch(
     "/{issue_id}",
     response_model=IssueResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue]), 
+        Security(require_auto_rerun_permission, scopes=[Permission.change_auto_rerun])
+        ],
 )
 def patch_issue(
     issue_id: int,
