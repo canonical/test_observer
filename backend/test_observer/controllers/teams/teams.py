@@ -19,16 +19,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
+from test_observer.controllers.artefact_matching_rules.models import (
+    ArtefactMatchingRuleInResponse,
+)
 from test_observer.controllers.teams.models import (
     TeamCreate,
     TeamPatch,
     TeamResponse,
     UserMinimalResponse,
 )
-from test_observer.controllers.common.artefact_matching_rule_models import (
-    ArtefactMatchingRuleInResponse,
-)
-from test_observer.data_access.models import Team, User, ArtefactMatchingRule
+from test_observer.data_access.models import ArtefactMatchingRule, Team, User
 from test_observer.data_access.setup import get_db
 
 router: APIRouter = APIRouter(tags=["teams"])

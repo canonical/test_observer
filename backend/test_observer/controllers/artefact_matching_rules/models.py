@@ -17,9 +17,23 @@
 from pydantic import BaseModel
 
 from test_observer.data_access.models_enums import FamilyName
-from test_observer.controllers.common.artefact_matching_rule_models import (
-    ArtefactMatchingRuleBase,
-)
+
+
+class ArtefactMatchingRuleBase(BaseModel):
+    """Base model for artefact matching rule with common fields"""
+    family: FamilyName
+    stage: str | None = None
+    track: str | None = None
+    branch: str | None = None
+
+
+class ArtefactMatchingRuleInResponse(BaseModel):
+    """Artefact matching rule fields when included in responses (no relationships)"""
+    id: int
+    family: FamilyName
+    stage: str | None
+    track: str | None
+    branch: str | None
 
 
 class TeamMinimal(BaseModel):

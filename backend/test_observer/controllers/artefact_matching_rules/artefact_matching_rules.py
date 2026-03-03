@@ -21,15 +21,14 @@ from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefact_matching_rules.models import (
-    ArtefactMatchingRuleRequest,
     ArtefactMatchingRulePatch,
+    ArtefactMatchingRuleRequest,
     ArtefactMatchingRuleResponse,
     TeamMinimal,
 )
 from test_observer.data_access.models import ArtefactMatchingRule, Team
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
-
 
 router: APIRouter = APIRouter(tags=["artefact-matching-rules"])
 
