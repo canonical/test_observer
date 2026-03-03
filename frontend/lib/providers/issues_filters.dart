@@ -17,6 +17,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../models/issue.dart';
+import '../models/family_name.dart';
 import 'issues.dart';
 
 part 'issues_filters.freezed.dart';
@@ -31,6 +32,8 @@ abstract class IssuesFiltersState with _$IssuesFiltersState {
     @Default({}) Set<IssueSource> selectedSources,
     @Default({}) Set<String> selectedProjects,
     @Default({}) Set<IssueStatus> selectedStatuses,
+    @Default({}) Set<FamilyName> possibleFamilies,
+    @Default({}) Set<FamilyName> selectedFamilies,
   }) = _IssuesFiltersState;
 }
 
@@ -39,6 +42,7 @@ class IssuesFilters extends _$IssuesFilters {
   static const sourceParam = 'source';
   static const projectParam = 'project';
   static const statusParam = 'status';
+  static const familyParam = 'family';
 
   static const defaultStatuses = {IssueStatus.open, IssueStatus.unknown};
 
@@ -81,6 +85,13 @@ class IssuesFilters extends _$IssuesFilters {
     final validSelectedProjects =
         selectedProjects.intersection(possibleProjects);
 
+    final possibleFamilies = FamilyName.values.toSet();
+    final selectedFamilies = FamilyName.values
+        .where((v) => (params[familyParam] ?? []).contains(v.name))
+        .toSet();
+    final validSelectedFamilies =
+        selectedFamilies.intersection(possibleFamilies);
+
     return IssuesFiltersState(
       possibleSources: possibleSources,
       possibleProjects: possibleProjects,
@@ -88,6 +99,8 @@ class IssuesFilters extends _$IssuesFilters {
       selectedSources: validSelectedSources,
       selectedProjects: validSelectedProjects,
       selectedStatuses: validSelectedStatuses,
+      possibleFamilies: possibleFamilies,
+      selectedFamilies: validSelectedFamilies,
     );
   }
 }

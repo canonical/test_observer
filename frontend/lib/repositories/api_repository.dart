@@ -454,6 +454,7 @@ class ApiRepository {
     String? source,
     String? project,
     List<IssueStatus>? statuses,
+    List<String>? families,
     int? limit,
     int? offset,
     String? q,
@@ -465,6 +466,7 @@ class ApiRepository {
         if (project != null) 'project': project,
         if (statuses != null && statuses.isNotEmpty)
           'status': statuses.map((s) => s.name).toList(),
+        if (families != null && families.isNotEmpty) 'families': families,
         if (limit != null) 'limit': limit,
         if (offset != null) 'offset': offset,
         if (q != null) 'q': q,

@@ -114,6 +114,24 @@ class IssuesPageSide extends ConsumerWidget {
           setQueryParam(IssuesFilters.statusParam, newStatuses.toList());
         },
       ),
+      CheckboxListExpandable(
+        title: 'Family',
+        options: filtersState.possibleFamilies
+            .map(
+              (family) => (
+                name: family.name,
+                isSelected: filtersState.selectedFamilies.contains(family),
+              ),
+            )
+            .toList(),
+        onChanged: (option, isSelected) {
+          final newFamilies = Set<String>.from(
+            filtersState.selectedFamilies.map((f) => f.name),
+          );
+          isSelected ? newFamilies.add(option) : newFamilies.remove(option);
+          setQueryParam(IssuesFilters.familyParam, newFamilies.toList());
+        },
+      ),
       MultiSelectCombobox<String>(
         title: 'Project',
         allOptions: filtersState.possibleProjects.toList(),
