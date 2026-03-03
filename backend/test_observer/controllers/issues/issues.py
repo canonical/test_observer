@@ -64,8 +64,10 @@ def get_issues(
         Query(description="Filter by project name"),
     ] = None,
     status: Annotated[
-        IssueStatus | None,
-        Query(description="Filter by issue status (e.g., open, closed, unknown)"),
+        list[IssueStatus] | None,
+        Query(
+            description="Filter by issue status. Accepts multiple values",
+        ),
     ] = None,
     limit: Annotated[
         int,
@@ -94,7 +96,7 @@ def get_issues(
     if project:
         stmt = stmt.where(Issue.project == project)
     if status:
-        stmt = stmt.where(Issue.status == status)
+        stmt = stmt.where(Issue.status.in_(status))
 
     # Apply search filter if query string provided
     if q:
