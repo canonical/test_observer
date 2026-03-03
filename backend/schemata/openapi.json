@@ -2360,6 +2360,27 @@
             "description": "Filter by issue status. Accepts multiple values"
           },
           {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact family (e.g., snap, deb, charm, image)",
+              "title": "Families"
+            },
+            "description": "Filter by artefact family (e.g., snap, deb, charm, image)"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
