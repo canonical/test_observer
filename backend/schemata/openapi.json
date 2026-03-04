@@ -5273,6 +5273,11 @@
               }
             ],
             "title": "Labels"
+          },
+          "test_executions_count": {
+            "type": "integer",
+            "title": "Test Executions Count",
+            "default": 0
           }
         },
         "type": "object",
