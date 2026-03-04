@@ -555,3 +555,42 @@ def test_get_all_filter_by_family(test_client: TestClient, generator: DataGenera
     assert snap_issue.id in ids
     assert deb_issue.id not in ids
     assert unattached_issue.id not in ids
+
+
+def test_get_all_test_executions_count(test_client: TestClient, generator: DataGenerator):
+    issue = generator.gen_issue(key="RUNS-COUNT-1")
+    unrelated_issue = generator.gen_issue(key="RUNS-COUNT-2")
+
+    environment = generator.gen_environment()
+    test_case = generator.gen_test_case()
+    artefact = generator.gen_artefact()
+    artefact_build = generator.gen_artefact_build(artefact)
+    te1 = generator.gen_test_execution(artefact_build, environment)
+    te2 = generator.gen_test_execution(artefact_build, environment)
+    tr1 = generator.gen_test_result(test_case, te1)
+    tr2 = generator.gen_test_result(test_case, te2)
+
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/issues/{issue.id}/attach",
+            json={"test_results": [tr1.id]},
+        ),
+        Permission.change_issue_attachment,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/issues/{issue.id}/attach",
+            json={"test_results": [tr2.id]},
+        ),
+        Permission.change_issue_attachment,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_issue,
+    )
+    assert response.status_code == 200
+
+    issues_by_id = {i["id"]: i for i in response.json()["issues"]}
+    assert issues_by_id[issue.id]["test_executions_count"] == 2
+    assert issues_by_id[unrelated_issue.id]["test_executions_count"] == 0
