@@ -97,7 +97,7 @@ class AttachmentRuleExpandable extends ConsumerWidget {
                     );
                 context.go(filters.toTestResultsUri().toString());
               },
-              child: const Text('view filter'),
+              child: const Text('view filters'),
             ),
             TextButton(
               child: Text(attachmentRule.enabled ? 'disable' : 'enable'),
