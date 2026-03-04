@@ -146,9 +146,20 @@ def get_issues(
     # Apply limit and offset
     stmt = stmt.limit(limit).offset(offset)
 
-    issues = db.execute(stmt).scalars().all()
+    runs_count_subq = (
+        select(func.count(func.distinct(TestExecution.id)))
+        .join(TestResult, TestResult.test_execution_id == TestExecution.id)
+        .join(IssueTestResultAttachment, IssueTestResultAttachment.test_result_id == TestResult.id)
+        .where(IssueTestResultAttachment.issue_id == Issue.id)
+        .correlate(Issue)
+        .scalar_subquery()
+    )
+    rows = db.execute(stmt.add_columns(runs_count_subq)).all()
     return IssuesGetResponse(
-        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues],
+        issues=[
+            MinimalIssueResponse.model_validate(issue).model_copy(update={"affected_runs_count": affected_runs_count})
+            for issue, affected_runs_count in rows
+        ],
         count=total_count,
         limit=limit,
         offset=offset,

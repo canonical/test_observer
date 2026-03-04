@@ -5273,6 +5273,11 @@
               }
             ],
             "title": "Labels"
+          },
+          "affected_runs_count": {
+            "type": "integer",
+            "title": "Affected Runs Count",
+            "default": 0
           }
         },
         "type": "object",
