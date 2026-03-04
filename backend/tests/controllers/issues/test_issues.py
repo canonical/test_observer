@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
 from test_observer.controllers.issues.shared_models import MinimalIssueResponse
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
+from test_observer.data_access.models_enums import FamilyName, IssueSource, IssueStatus
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -514,3 +514,83 @@ def test_get_issues_pagination_metadata(test_client: TestClient, generator: Data
     assert data["limit"] == 2
     assert data["offset"] == 1
     assert len(data["issues"]) == 2
+
+
+def test_get_all_filter_by_family(test_client: TestClient, generator: DataGenerator):
+    snap_artefact = generator.gen_artefact(family=FamilyName.snap)
+    deb_artefact = generator.gen_artefact(family=FamilyName.deb)
+
+    snap_issue = generator.gen_issue(key="SNAP-FAM-1")
+    deb_issue = generator.gen_issue(key="DEB-FAM-1")
+    unattached_issue = generator.gen_issue(key="NONE-FAM-1")
+
+    snap_te = generator.gen_test_execution(
+        generator.gen_artefact_build(snap_artefact),
+        generator.gen_environment(name="env-snap-family"),
+    )
+    deb_te = generator.gen_test_execution(
+        generator.gen_artefact_build(deb_artefact),
+        generator.gen_environment(name="env-deb-family"),
+    )
+
+    snap_tr = generator.gen_test_result(generator.gen_test_case(name="tc-snap-family"), snap_te)
+    deb_tr = generator.gen_test_result(generator.gen_test_case(name="tc-deb-family"), deb_te)
+
+    make_authenticated_request(
+        lambda: test_client.post(f"/v1/issues/{snap_issue.id}/attach", json={"test_results": [snap_tr.id]}),
+        Permission.change_issue_attachment,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(f"/v1/issues/{deb_issue.id}/attach", json={"test_results": [deb_tr.id]}),
+        Permission.change_issue_attachment,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint, params={"families": "snap"}),
+        Permission.view_issue,
+    )
+
+    assert response.status_code == 200
+    ids = {i["id"] for i in response.json()["issues"]}
+    assert snap_issue.id in ids
+    assert deb_issue.id not in ids
+    assert unattached_issue.id not in ids
+
+
+def test_get_all_test_executions_count(test_client: TestClient, generator: DataGenerator):
+    issue = generator.gen_issue(key="RUNS-COUNT-1")
+    unrelated_issue = generator.gen_issue(key="RUNS-COUNT-2")
+
+    environment = generator.gen_environment()
+    test_case = generator.gen_test_case()
+    artefact = generator.gen_artefact()
+    artefact_build = generator.gen_artefact_build(artefact)
+    te1 = generator.gen_test_execution(artefact_build, environment)
+    te2 = generator.gen_test_execution(artefact_build, environment)
+    tr1 = generator.gen_test_result(test_case, te1)
+    tr2 = generator.gen_test_result(test_case, te2)
+
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/issues/{issue.id}/attach",
+            json={"test_results": [tr1.id]},
+        ),
+        Permission.change_issue_attachment,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/issues/{issue.id}/attach",
+            json={"test_results": [tr2.id]},
+        ),
+        Permission.change_issue_attachment,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(endpoint),
+        Permission.view_issue,
+    )
+    assert response.status_code == 200
+
+    issues_by_id = {i["id"]: i for i in response.json()["issues"]}
+    assert issues_by_id[issue.id]["test_executions_count"] == 2
+    assert issues_by_id[unrelated_issue.id]["test_executions_count"] == 0

@@ -52,7 +52,9 @@ class FilteredIssues extends _$FilteredIssues {
     final projects = filtersState.selectedProjects.toList()..sort();
     final statuses = filtersState.selectedStatuses.map((s) => s.name).toList()
       ..sort();
-    return '${sources.join(',')}|${projects.join(',')}|${statuses.join(',')}|$searchQuery';
+    final families = filtersState.selectedFamilies.map((f) => f.name).toList()
+      ..sort();
+    return '${sources.join(',')}|${projects.join(',')}|${statuses.join(',')}|${families.join(',')}|$searchQuery';
   }
 
   @override
@@ -93,6 +95,9 @@ class FilteredIssues extends _$FilteredIssues {
     final statuses = filtersState.selectedStatuses.isNotEmpty
         ? filtersState.selectedStatuses.toList()
         : null;
+    final families = filtersState.selectedFamilies.isNotEmpty
+        ? filtersState.selectedFamilies.map((f) => f.name).toList()
+        : null;
 
     // Fetch issues from API with filters
     final issues = await ref.watch(
@@ -100,6 +105,7 @@ class FilteredIssues extends _$FilteredIssues {
         source: source,
         project: project,
         statuses: statuses,
+        families: families,
         limit: paginationState.limit,
         offset: paginationState.offset,
         q: searchQuery.isNotEmpty ? searchQuery : null,

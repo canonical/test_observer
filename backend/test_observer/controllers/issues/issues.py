@@ -26,10 +26,15 @@ from test_observer.controllers.applications.application_injection import (
 )
 from test_observer.data_access.models import (
     Application,
+    Artefact,
+    ArtefactBuild,
     Issue,
+    IssueTestResultAttachment,
+    TestExecution,
+    TestResult,
     User,
 )
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
+from test_observer.data_access.models_enums import FamilyName, IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
@@ -69,6 +74,10 @@ def get_issues(
             description="Filter by issue status. Accepts multiple values",
         ),
     ] = None,
+    families: Annotated[
+        list[FamilyName] | None,
+        Query(description="Filter by artefact family (e.g., snap, deb, charm, image)"),
+    ] = None,
     limit: Annotated[
         int,
         Query(
@@ -97,6 +106,17 @@ def get_issues(
         stmt = stmt.where(Issue.project == project)
     if status:
         stmt = stmt.where(Issue.status.in_(status))
+    if families:
+        stmt = stmt.where(
+            Issue.id.in_(
+                select(IssueTestResultAttachment.issue_id)
+                .join(IssueTestResultAttachment.test_result)
+                .join(TestResult.test_execution)
+                .join(TestExecution.artefact_build)
+                .join(ArtefactBuild.artefact)
+                .where(Artefact.family.in_(families))
+            )
+        )
 
     # Apply search filter if query string provided
     if q:
@@ -126,9 +146,22 @@ def get_issues(
     # Apply limit and offset
     stmt = stmt.limit(limit).offset(offset)
 
-    issues = db.execute(stmt).scalars().all()
+    runs_count_subq = (
+        select(func.count(func.distinct(TestExecution.id)))
+        .join(TestResult, TestResult.test_execution_id == TestExecution.id)
+        .join(IssueTestResultAttachment, IssueTestResultAttachment.test_result_id == TestResult.id)
+        .where(IssueTestResultAttachment.issue_id == Issue.id)
+        .correlate(Issue)
+        .scalar_subquery()
+    )
+    rows = db.execute(stmt.add_columns(runs_count_subq)).all()
     return IssuesGetResponse(
-        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues],
+        issues=[
+            MinimalIssueResponse.model_validate(issue).model_copy(
+                update={"test_executions_count": test_executions_count}
+            )
+            for issue, test_executions_count in rows
+        ],
         count=total_count,
         limit=limit,
         offset=offset,
