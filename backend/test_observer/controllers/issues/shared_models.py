@@ -48,7 +48,7 @@ class MinimalIssueResponse(BaseModel):
     status: IssueStatus
     url: HttpUrl
     labels: list[str] | None = None
-    test_results_count: int = 0
+    test_executions_count: int = 0
 
 
 class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):

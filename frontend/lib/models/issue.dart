@@ -33,9 +33,9 @@ abstract class Issue with _$Issue {
     required String url,
     @JsonKey(name: 'auto_rerun_enabled', defaultValue: false)
     required bool autoRerunEnabled,
-    @JsonKey(name: 'test_results_count', defaultValue: 0)
+    @JsonKey(name: 'test_executions_count', defaultValue: 0)
     @Default(0)
-    int testResultsCount,
+    int testExecutionsCount,
   }) = _Issue;
 
   factory Issue.fromJson(Map<String, Object?> json) => _$IssueFromJson(json);

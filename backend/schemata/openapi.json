@@ -5274,9 +5274,9 @@
             ],
             "title": "Labels"
           },
-          "test_results_count": {
+          "test_executions_count": {
             "type": "integer",
-            "title": "Test Results Count",
+            "title": "Test Executions Count",
             "default": 0
           }
         },
