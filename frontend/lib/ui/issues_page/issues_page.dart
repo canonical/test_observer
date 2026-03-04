@@ -43,6 +43,7 @@ class IssuesPage extends ConsumerWidget {
         final hasActiveFilters = filtersState.selectedSources.isNotEmpty ||
             filtersState.selectedProjects.isNotEmpty ||
             filtersState.selectedStatuses != IssuesFilters.defaultStatuses ||
+            filtersState.selectedFamilies.isNotEmpty ||
             searchQuery.isNotEmpty;
 
         return Column(

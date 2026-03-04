@@ -15,11 +15,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:dartx/dartx.dart';
 
 import 'blinking_content.dart';
 
 import '../../models/attachment_rule.dart';
+import '../../models/attachment_rule_filters.dart';
+import '../../models/test_results_filters.dart';
 import '../../providers/issue.dart';
 import '../../routing.dart';
 import '../attachment_rule.dart';
@@ -85,6 +88,17 @@ class AttachmentRuleExpandable extends ConsumerWidget {
           children: [
             Text('Attachment Rule #${attachmentRule.id}'),
             const Spacer(),
+            TextButton(
+              onPressed: () {
+                final filters = AttachmentRuleFilters.fromAttachmentRule(
+                  attachmentRule,
+                ).toTestResultsFilters().copyWith(
+                      issues: IntListFilter.list([issueId]),
+                    );
+                context.go(filters.toTestResultsUri().toString());
+              },
+              child: const Text('view filters'),
+            ),
             TextButton(
               child: Text(attachmentRule.enabled ? 'disable' : 'enable'),
               onPressed: () async {

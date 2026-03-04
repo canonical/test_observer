@@ -83,6 +83,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     String? source,
     String? project,
     List<IssueStatus>? statuses,
+    List<String>? families,
     int? limit,
     int? offset,
     String? q,

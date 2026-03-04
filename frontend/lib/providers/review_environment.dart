@@ -50,4 +50,27 @@ class ReviewEnvironment extends _$ReviewEnvironment {
           newCompletedEnvironmentReviewsCount,
         );
   }
+
+  Future<void> bulkReview(
+    List<EnvironmentReview> reviews,
+    int artefactId,
+  ) async {
+    await ref
+        .read(artefactEnvironmentReviewsProvider(artefactId).notifier)
+        .bulkUpdateReviews(reviews);
+
+    final environmentReviews =
+        await ref.read(artefactEnvironmentReviewsProvider(artefactId).future);
+
+    final newCompletedEnvironmentReviewsCount = environmentReviews.fold(
+      0,
+      (count, review) => count + (review.reviewDecision.isEmpty ? 0 : 1),
+    );
+
+    await ref
+        .read(artefactProvider(artefactId).notifier)
+        .updateCompletedEnvironmentReviewsCount(
+          newCompletedEnvironmentReviewsCount,
+        );
+  }
 }
