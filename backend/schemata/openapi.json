@@ -4240,27 +4240,33 @@
             ],
             "title": "Comment"
           },
-          "assignee_id": {
+          "reviewer_ids": {
             "anyOf": [
               {
-                "type": "integer"
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Assignee Id"
+            "title": "Reviewer Ids"
           },
-          "assignee_email": {
+          "reviewer_emails": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Assignee Email"
+            "title": "Reviewer Emails"
           }
         },
         "type": "object",
@@ -4343,15 +4349,12 @@
             "type": "boolean",
             "title": "Archived"
           },
-          "assignee": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AssigneeResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "reviewers": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewerResponse"
+            },
+            "type": "array",
+            "title": "Reviewers"
           },
           "due_date": {
             "anyOf": [
@@ -4404,7 +4407,7 @@
           "status",
           "comment",
           "archived",
-          "assignee",
+          "reviewers",
           "due_date",
           "created_at",
           "bug_link",
@@ -4470,46 +4473,6 @@
           "artefact_id"
         ],
         "title": "ArtefactVersionResponse"
-      },
-      "AssigneeResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "launchpad_handle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Launchpad Handle"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "launchpad_email": {
-            "type": "string",
-            "title": "Launchpad Email",
-            "deprecated": true
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "email",
-          "launchpad_email",
-          "name"
-        ],
-        "title": "AssigneeResponse"
       },
       "C3TestResult": {
         "properties": {
@@ -5507,6 +5470,46 @@
         },
         "type": "object",
         "title": "RerunRequest"
+      },
+      "ReviewerResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "launchpad_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Launchpad Handle"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "launchpad_email": {
+            "type": "string",
+            "title": "Launchpad Email",
+            "deprecated": true
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "launchpad_email",
+          "name"
+        ],
+        "title": "ReviewerResponse"
       },
       "SnapStage": {
         "type": "string",
