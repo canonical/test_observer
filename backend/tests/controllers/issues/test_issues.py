@@ -557,7 +557,7 @@ def test_get_all_filter_by_family(test_client: TestClient, generator: DataGenera
     assert unattached_issue.id not in ids
 
 
-def test_get_all_affected_runs_count(test_client: TestClient, generator: DataGenerator):
+def test_get_all_test_results_count(test_client: TestClient, generator: DataGenerator):
     issue = generator.gen_issue(key="RUNS-COUNT-1")
     unrelated_issue = generator.gen_issue(key="RUNS-COUNT-2")
 
@@ -592,5 +592,5 @@ def test_get_all_affected_runs_count(test_client: TestClient, generator: DataGen
     assert response.status_code == 200
 
     issues_by_id = {i["id"]: i for i in response.json()["issues"]}
-    assert issues_by_id[issue.id]["affected_runs_count"] == 2
-    assert issues_by_id[unrelated_issue.id]["affected_runs_count"] == 0
+    assert issues_by_id[issue.id]["test_results_count"] == 2
+    assert issues_by_id[unrelated_issue.id]["test_results_count"] == 0

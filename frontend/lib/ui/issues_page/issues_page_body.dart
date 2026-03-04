@@ -131,7 +131,9 @@ class _IssuesPageBodyState extends ConsumerState<IssuesPageBody> {
                     children: [
                       IssueLinkWidget(issue: issue),
                       IssueStatusWidget(issue: issue),
-                      _AffectedRunsWidget(count: issue.affectedRunsCount),
+                      _TestResultsCountWidget(
+                        count: issue.testResultsCount,
+                      ),
                     ],
                   ),
                   IssueTitleWidget(issue: issue),
@@ -154,8 +156,8 @@ class _IssuesPageBodyState extends ConsumerState<IssuesPageBody> {
   }
 }
 
-class _AffectedRunsWidget extends StatelessWidget {
-  const _AffectedRunsWidget({required this.count});
+class _TestResultsCountWidget extends StatelessWidget {
+  const _TestResultsCountWidget({required this.count});
 
   final int count;
 
@@ -171,7 +173,7 @@ class _AffectedRunsWidget extends StatelessWidget {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         Text(
-          '$count ${count == 1 ? 'run' : 'runs'}',
+          '$count ${count == 1 ? 'test result' : 'test results'}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

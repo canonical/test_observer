@@ -5274,9 +5274,9 @@
             ],
             "title": "Labels"
           },
-          "affected_runs_count": {
+          "test_results_count": {
             "type": "integer",
-            "title": "Affected Runs Count",
+            "title": "Test Results Count",
             "default": 0
           }
         },

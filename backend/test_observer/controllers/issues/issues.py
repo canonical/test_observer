@@ -157,8 +157,8 @@ def get_issues(
     rows = db.execute(stmt.add_columns(runs_count_subq)).all()
     return IssuesGetResponse(
         issues=[
-            MinimalIssueResponse.model_validate(issue).model_copy(update={"affected_runs_count": affected_runs_count})
-            for issue, affected_runs_count in rows
+            MinimalIssueResponse.model_validate(issue).model_copy(update={"test_results_count": test_results_count})
+            for issue, test_results_count in rows
         ],
         count=total_count,
         limit=limit,
