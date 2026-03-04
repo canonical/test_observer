@@ -16,6 +16,7 @@
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -114,6 +115,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
             "name": team.name,
             "permissions": team.permissions,
             "reviewer_families": team.reviewer_families,
+            "artefact_matching_rules": team.artefact_matching_rules,
             "members": [
                 {
                     "id": user.id,
@@ -139,6 +141,7 @@ def test_get_team(test_client: TestClient, generator: DataGenerator):
         "name": team.name,
         "permissions": team.permissions,
         "reviewer_families": team.reviewer_families,
+        "artefact_matching_rules": team.artefact_matching_rules,
         "members": [
             {
                 "id": user.id,
@@ -169,6 +172,7 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
         "name": team.name,
         "permissions": [Permission.view_user],
         "reviewer_families": team.reviewer_families,
+        "artefact_matching_rules": team.artefact_matching_rules,
         "members": [
             {
                 "id": user.id,
@@ -302,3 +306,52 @@ def test_remove_team_member_not_found(test_client: TestClient, generator: DataGe
         Permission.change_team,
     )
     assert response.status_code == 404
+
+
+def test_remove_rule_from_team_making_it_an_orphan_removes_rule(
+    test_client: TestClient, generator: DataGenerator
+):
+    team = generator.gen_team()
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, teams=[team])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"artefact_matching_rules": []},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["artefact_matching_rules"] == []
+    # assert that rule is deleted
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefact-matching-rules/{rule.id}"),
+        Permission.view_team,
+    )
+    assert response.status_code == 404
+
+
+def test_remove_rule_from_team_without_making_it_an_orphan_does_not_remove_rule(
+    test_client: TestClient, generator: DataGenerator
+):
+    team = generator.gen_team(name="team1")
+    other_team = generator.gen_team(name="team2")
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, teams=[team, other_team])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"artefact_matching_rules": []},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["artefact_matching_rules"] == []
+    # assert that rule is deleted
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefact-matching-rules/{rule.id}"),
+        Permission.view_team,
+    )
+    assert response.status_code == 200
