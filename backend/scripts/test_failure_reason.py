@@ -2,18 +2,23 @@ import os
 import csv
 import json
 import string
+import time
 import urllib.request
 from multiprocessing import Pool
 from argparse import ArgumentParser
 
+RETRY = 10
+
 access_token = os.getenv("C3_TOKEN")
+if not access_token:
+    raise SystemExit("C3_TOKEN required")
 
 
 def parse_args():
     ap = ArgumentParser()
     ap.add_argument("--filter", choices=("id", "artifact_name"), default="id")
     ap.add_argument("csvs", nargs="+")
-    ap.add_argument("test_id")
+    ap.add_argument("--test-ids", nargs="+", required=True)
     return ap.parse_args()
 
 
@@ -21,26 +26,34 @@ def get_summary(sub_id):
     """
     Get the validation results of a given list of submissions from the C3 API.
     """
-    api_url = (
-        f"https://certification.canonical.com/api/v2/reports/summary/{sub_id}"
-    )
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
-    }
-    # Convert the payload to a JSON string
-    # Create the request object with the data and headers
-    req = urllib.request.Request(api_url, headers=headers, method="GET")
-    # Send the request and get the response
-    with urllib.request.urlopen(req) as response:
-        result = json.loads(response.read().decode("utf-8"))
+    for i in range(RETRY):
+        try:
+            api_url = f"https://certification.canonical.com/api/v2/reports/summary/{sub_id}"
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            }
+            # Convert the payload to a JSON string
+            # Create the request object with the data and headers
+            req = urllib.request.Request(
+                api_url, headers=headers, method="GET"
+            )
+            # Send the request and get the response
+            with urllib.request.urlopen(req, timeout=60) as response:
+                result = json.loads(response.read().decode("utf-8"))
 
-    return (sub_id, result)
+            return (sub_id, result)
+        except Exception as e:
+            if i == RETRY - 1:
+                raise
+            print(f"C3 failed with exception: {e}", flush=True)
+            time.sleep(min(i * 10, 60))
 
 
 def slugify(_string: str):
     if not _string:
         return _string
+    _string = _string.replace("com.canonical.certification::", "")
 
     valid_chars = frozenset(f"_{string.ascii_letters}{string.digits}")
     # Python identifiers cannot start with a digit
@@ -75,12 +88,11 @@ def get_filter(filter_name, filter_param):
     ]
 
 
-def main():
-    args = parse_args()
+def do_test_id(filter_arg, csvs, test_id):
     lines_of_interest = []
-    filter_f = get_filter(args.filter, args.test_id)
+    filter_f = get_filter(filter_arg, test_id)
 
-    for f_path in args.csvs:
+    for f_path in csvs:
         with open(f_path) as f:
             reader = csv.DictReader(f, delimiter=",")
             lines_of_interest += list(filter(filter_f, reader))
@@ -109,7 +121,7 @@ def main():
     } | relevant_template_id
     relevant_ids = relevant_ids - {None, ""}
 
-    file_name = slugify(args.test_id)
+    file_name = slugify(test_id)
 
     with open(f"{file_name}.url", "w+") as f:
         f.writelines("\n".join(sub_links))
@@ -191,6 +203,14 @@ def main():
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(result_rows)
+
+
+def main():
+    args = parse_args()
+    tot = len(args.test_ids)
+    for i, test_id in enumerate(args.test_ids, 1):
+        print(f"Doing [{i}/{tot}]: {test_id}")
+        do_test_id(args.filter, args.csvs, test_id)
 
 
 if __name__ == "__main__":
