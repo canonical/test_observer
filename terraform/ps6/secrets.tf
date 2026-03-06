@@ -16,6 +16,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 data "juju_secret" "lego_credentials" {
-  name  = "lego-credentials"
-  model = var.juju_model
+  name       = "lego-credentials"
+  model_uuid = data.juju_model.model.uuid
 }

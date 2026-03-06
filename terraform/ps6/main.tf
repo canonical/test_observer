@@ -15,10 +15,14 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
+data "juju_model" "model" {
+  uuid = data.juju_model.model.uuid
+}
+
 resource "juju_application" "api_ingress" {
-  name  = "api-ingress"
-  model = var.juju_model
-  trust = true
+  name       = "api-ingress"
+  model_uuid = data.juju_model.model.uuid
+  trust      = true
 
   charm {
     name     = "nginx-ingress-integrator"
@@ -33,9 +37,9 @@ resource "juju_application" "api_ingress" {
 }
 
 resource "juju_application" "frontend_ingress" {
-  name  = "frontend-ingress"
-  model = var.juju_model
-  trust = true
+  name       = "frontend-ingress"
+  model_uuid = data.juju_model.model.uuid
+  trust      = true
 
   charm {
     name     = "nginx-ingress-integrator"
@@ -50,9 +54,9 @@ resource "juju_application" "frontend_ingress" {
 }
 
 resource "juju_application" "api_ingress_lego" {
-  name  = "api-ingress-lego"
-  model = var.juju_model
-  trust = true
+  name       = "api-ingress-lego"
+  model_uuid = data.juju_model.model.uuid
+  trust      = true
 
   charm {
     name     = "lego"
@@ -68,9 +72,9 @@ resource "juju_application" "api_ingress_lego" {
 }
 
 resource "juju_application" "frontend_ingress_lego" {
-  name  = "frontend-ingress-lego"
-  model = var.juju_model
-  trust = true
+  name       = "frontend-ingress-lego"
+  model_uuid = data.juju_model.model.uuid
+  trust      = true
 
   charm {
     name     = "lego"
@@ -90,14 +94,14 @@ resource "juju_access_secret" "lego_credentials_access" {
     juju_application.api_ingress_lego.name,
     juju_application.frontend_ingress_lego.name,
   ]
-  model     = var.juju_model
+  model_uuid     = data.juju_model.model.uuid
   secret_id = data.juju_secret.lego_credentials.secret_id
 }
 
 resource "juju_application" "pg" {
-  name  = "db"
-  model = var.juju_model
-  trust = true
+  name       = "db"
+  model_uuid = data.juju_model.model.uuid
+  trust      = true
 
   charm {
     name     = "postgresql-k8s"
@@ -125,8 +129,8 @@ resource "juju_application" "pg" {
 }
 
 resource "juju_application" "test-observer-api" {
-  name  = "api"
-  model = var.juju_model
+  name       = "api"
+  model_uuid = data.juju_model.model.uuid
 
   charm {
     name    = "test-observer-api"
@@ -151,8 +155,8 @@ resource "juju_application" "test-observer-api" {
 }
 
 resource "juju_application" "test-observer-frontend" {
-  name  = "frontend"
-  model = var.juju_model
+  name       = "frontend"
+  model_uuid = data.juju_model.model.uuid
 
   charm {
     name    = "test-observer-frontend"
@@ -170,8 +174,8 @@ resource "juju_application" "test-observer-frontend" {
 }
 
 resource "juju_application" "redis" {
-  name  = "redis"
-  model = var.juju_model
+  name       = "redis"
+  model_uuid = data.juju_model.model.uuid
 
   charm {
     name     = "redis-k8s"
@@ -182,8 +186,8 @@ resource "juju_application" "redis" {
 }
 
 resource "juju_application" "main-s3-integrator" {
-  name  = "main-s3-integrator"
-  model = var.juju_model
+  name       = "main-s3-integrator"
+  model_uuid = data.juju_model.model.uuid
 
   charm {
     name     = "s3-integrator"
@@ -202,7 +206,7 @@ resource "juju_application" "main-s3-integrator" {
 }
 
 resource "juju_integration" "db-backups" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.pg.name
@@ -214,7 +218,7 @@ resource "juju_integration" "db-backups" {
 }
 
 resource "juju_integration" "test-observer-api-database-access" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.test-observer-api.name
@@ -226,7 +230,7 @@ resource "juju_integration" "test-observer-api-database-access" {
 }
 
 resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.test-observer-api.name
@@ -238,7 +242,7 @@ resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
 }
 
 resource "juju_integration" "test-observer-frontend-ingress" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.test-observer-frontend.name
@@ -250,7 +254,7 @@ resource "juju_integration" "test-observer-frontend-ingress" {
 }
 
 resource "juju_integration" "test-observer-api-ingress" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.test-observer-api.name
@@ -262,7 +266,7 @@ resource "juju_integration" "test-observer-api-ingress" {
 }
 
 resource "juju_integration" "test-observer-api-ingress-lego" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.api_ingress.name
@@ -274,7 +278,7 @@ resource "juju_integration" "test-observer-api-ingress-lego" {
 }
 
 resource "juju_integration" "test-observer-fronted-ingress-lego" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.frontend_ingress.name
@@ -286,7 +290,7 @@ resource "juju_integration" "test-observer-fronted-ingress-lego" {
 }
 
 resource "juju_integration" "test-observer-redis-access" {
-  model = var.juju_model
+  model_uuid = data.juju_model.model.uuid
 
   application {
     name = juju_application.test-observer-api.name
