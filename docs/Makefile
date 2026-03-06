@@ -124,7 +124,7 @@ lint-md: pymarkdownlnt-install
 		echo "No Markdown files selected for linting"; \
 		exit 0; \
 	fi; \
-	exit $$status
+	exit $$status &>/dev/null;
 
 vale-install: install
 	@. $(DOCS_VENV); test -f $(VALE_CONFIG) || python3 $(SPHINX_DIR)/get_vale_conf.py
