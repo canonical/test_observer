@@ -26,6 +26,7 @@ packaging~=24.0
 sphinxcontrib-svg2pdfconverter[CairoSVG]~=2.0
 sphinx-last-updated-by-git~=0.3
 sphinx-sitemap~=2.9
+sphinxcontrib-mermaid~=2.0 
 
 # Vale dependencies
 rst2html
