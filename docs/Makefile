@@ -110,7 +110,7 @@ pa11y: pa11y-install html
 
 # Without --return-code-scheme explicit, pymarkdownlnt returns 1 for multiple scenarios
 # By using the explicit scheme, it only returns 1 when no files are found,
-# which should not result in failure 
+# which should not result in failure
 lint-md: pymarkdownlnt-install
 	@. $(DOCS_VENV); pymarkdownlnt \
 		--config $(SPHINX_DIR)/.pymarkdown.json \
@@ -124,7 +124,8 @@ lint-md: pymarkdownlnt-install
 		echo "No Markdown files selected for linting"; \
 		exit 0; \
 	fi; \
-	exit $$status &>/dev/null;
+	echo "pymarkdownlnt exited with code $$status"; \
+	exit $$status;
 
 vale-install: install
 	@. $(DOCS_VENV); test -f $(VALE_CONFIG) || python3 $(SPHINX_DIR)/get_vale_conf.py
