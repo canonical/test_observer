@@ -16,9 +16,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 resource "juju_application" "ingress" {
-  name  = "ingress"
+  name       = "ingress"
   model_uuid = data.juju_model.model.uuid
-  trust = true
+  trust      = true
 
   charm {
     name     = "nginx-ingress-integrator"
@@ -33,9 +33,9 @@ resource "juju_application" "ingress" {
 }
 
 resource "juju_application" "pg" {
-  name  = "db"
+  name       = "db"
   model_uuid = data.juju_model.model.uuid
-  trust = true
+  trust      = true
 
   charm {
     name     = "postgresql-k8s"
@@ -59,9 +59,9 @@ resource "juju_application" "pg" {
 }
 
 resource "juju_application" "backup-restoring-db" {
-  name  = "backup-restoring-db"
+  name       = "backup-restoring-db"
   model_uuid = data.juju_model.model.uuid
-  trust = true
+  trust      = true
 
   charm {
     name     = "postgresql-k8s"
@@ -85,7 +85,7 @@ resource "juju_application" "backup-restoring-db" {
 }
 
 resource "juju_application" "test-observer-api" {
-  name  = "api"
+  name       = "api"
   model_uuid = data.juju_model.model.uuid
 
   charm {
@@ -111,7 +111,7 @@ resource "juju_application" "test-observer-api" {
 }
 
 resource "juju_application" "test-observer-frontend" {
-  name  = "frontend"
+  name       = "frontend"
   model_uuid = data.juju_model.model.uuid
 
   charm {
@@ -129,7 +129,7 @@ resource "juju_application" "test-observer-frontend" {
 }
 
 resource "juju_application" "redis" {
-  name  = "redis"
+  name       = "redis"
   model_uuid = data.juju_model.model.uuid
 
   charm {
@@ -141,7 +141,7 @@ resource "juju_application" "redis" {
 }
 
 resource "juju_application" "s3-integrator" {
-  name  = "backups-s3-integrator"
+  name       = "backups-s3-integrator"
   model_uuid = data.juju_model.model.uuid
 
   charm {
