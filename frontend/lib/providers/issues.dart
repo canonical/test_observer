@@ -51,7 +51,8 @@ class Issues extends _$Issues {
   Future<List<Issue>> build({
     String? source,
     String? project,
-    String? status,
+    List<IssueStatus>? statuses,
+    List<String>? families,
     int? limit,
     int? offset,
     String? q,
@@ -60,7 +61,8 @@ class Issues extends _$Issues {
     final issues = await api.getIssues(
       source: source,
       project: project,
-      status: status,
+      statuses: statuses,
+      families: families,
       limit: limit,
       offset: offset,
       q: q,

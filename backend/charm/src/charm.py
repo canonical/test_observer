@@ -30,7 +30,7 @@ from ops import StoredState
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import ExecError, Layer
+from ops.pebble import APIError, ExecError, Layer
 from requests import get
 
 # Log messages can be retrieved using juju debug-log
@@ -122,11 +122,16 @@ class TestObserverBackendCharm(CharmBase):
 
         self.unit.status = MaintenanceStatus("Migrating database")
 
-        process = self.api_container.exec(
-            ["alembic", "upgrade", "head"],
-            working_dir="/home/app",
-            environment=self._app_environment,
-        )
+        try:
+            process = self.api_container.exec(
+                ["alembic", "upgrade", "head"],
+                working_dir="/home/app",
+                environment=self._app_environment,
+            )
+        except APIError as e:
+            logger.error(f"Failed to execute database migration command: {e}")
+            self.unit.status = BlockedStatus("Database migration failed")
+            raise SystemExit(0)
 
         try:
             stdout, _ = process.wait_output()
@@ -250,6 +255,9 @@ class TestObserverBackendCharm(CharmBase):
     @property
     def _app_environment(self):
         """This creates a dictionary of environment variables needed by the application."""
+        # All environment variables must be strings, since they are passed to Pebble,
+        # and the Pebble environment struct requires strings.
+        # Otherwise, we will trigger an ops.pebble.APIError
         env = {
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
@@ -257,6 +265,7 @@ class TestObserverBackendCharm(CharmBase):
             "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
             "SESSIONS_SECRET": self.config["sessions_secret"],
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
+            "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):

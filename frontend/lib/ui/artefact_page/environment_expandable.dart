@@ -15,8 +15,10 @@
 
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/artefact_environment.dart';
+import '../../providers/selected_environments.dart';
 import '../../routing.dart';
 import '../expandable.dart';
 import '../spacing.dart';
@@ -24,7 +26,7 @@ import 'environment_issues/environment_issues_expandable.dart';
 import 'environment_review_button.dart';
 import 'test_plan_expandable.dart';
 
-class EnvironmentExpandable extends StatelessWidget {
+class EnvironmentExpandable extends ConsumerWidget {
   const EnvironmentExpandable({
     super.key,
     required this.artefactId,
@@ -35,7 +37,7 @@ class EnvironmentExpandable extends StatelessWidget {
   final ArtefactEnvironment artefactEnvironment;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final groupedTestExecutions =
         artefactEnvironment.runsDescending.groupBy((te) => te.testPlan);
 
@@ -72,15 +74,30 @@ class EnvironmentExpandable extends StatelessWidget {
   }
 }
 
-class _EnvironmentExpandableTitle extends StatelessWidget {
+class _EnvironmentExpandableTitle extends ConsumerWidget {
   const _EnvironmentExpandableTitle({required this.artefactEnvironment});
 
   final ArtefactEnvironment artefactEnvironment;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSelected = ref.watch(
+      selectedEnvironmentsProvider.select(
+        (selected) => selected.contains(artefactEnvironment.environment.id),
+      ),
+    );
+
     return Row(
       children: [
+        Checkbox(
+          value: isSelected,
+          onChanged: (value) {
+            ref
+                .read(selectedEnvironmentsProvider.notifier)
+                .toggle(artefactEnvironment.environment.id);
+          },
+        ),
+        const SizedBox(width: Spacing.level2),
         artefactEnvironment.runsDescending.first.status.icon,
         const SizedBox(width: Spacing.level4),
         Text(

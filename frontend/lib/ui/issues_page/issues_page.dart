@@ -41,8 +41,9 @@ class IssuesPage extends ConsumerWidget {
         final searchQuery =
             pageUri.queryParameters[CommonQueryParameters.searchQuery] ?? '';
         final hasActiveFilters = filtersState.selectedSources.isNotEmpty ||
-            filtersState.selectedStatuses.isNotEmpty ||
             filtersState.selectedProjects.isNotEmpty ||
+            filtersState.selectedStatuses != IssuesFilters.defaultStatuses ||
+            filtersState.selectedFamilies.isNotEmpty ||
             searchQuery.isNotEmpty;
 
         return Column(

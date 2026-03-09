@@ -26,6 +26,7 @@ import '../../providers/tests_issues.dart';
 import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
+import 'bulk_environment_selection_controls.dart';
 import 'environment_expandable.dart';
 import 'manual_testing_button.dart';
 import 'rerun_filtered_plans_button.dart';
@@ -68,6 +69,12 @@ class ArtefactPageBody extends ConsumerWidget {
             const RerunFilteredPlansButton(),
           ],
         ),
+        const SizedBox(height: Spacing.level3),
+        BulkEnvironmentSelectionControls(
+          environments: environments,
+          artefactId: artefact.id,
+        ),
+        const SizedBox(height: Spacing.level2),
         NonBlockingProviderPreloader(
           provider: environmentsIssuesProvider,
           child: NonBlockingProviderPreloader(

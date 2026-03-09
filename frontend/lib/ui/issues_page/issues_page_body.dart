@@ -131,6 +131,9 @@ class _IssuesPageBodyState extends ConsumerState<IssuesPageBody> {
                     children: [
                       IssueLinkWidget(issue: issue),
                       IssueStatusWidget(issue: issue),
+                      _TestExecutionsCountWidget(
+                        count: issue.testExecutionsCount,
+                      ),
                     ],
                   ),
                   IssueTitleWidget(issue: issue),
@@ -148,6 +151,33 @@ class _IssuesPageBodyState extends ConsumerState<IssuesPageBody> {
               child: CircularProgressIndicator(),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _TestExecutionsCountWidget extends StatelessWidget {
+  const _TestExecutionsCountWidget({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 4,
+      children: [
+        Icon(
+          Icons.play_circle_outline,
+          size: Theme.of(context).textTheme.bodySmall?.fontSize ?? 14,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        Text(
+          '$count ${count == 1 ? 'test execution' : 'test executions'}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
       ],
     );
   }

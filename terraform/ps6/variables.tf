@@ -148,3 +148,9 @@ variable "frontend_channel" {
   type        = string
   default     = "latest/edge"
 }
+
+variable "enable_issue_sync" {
+  description = "Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad"
+  type        = bool
+  default     = false
+}
