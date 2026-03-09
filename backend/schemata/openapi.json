@@ -979,6 +979,94 @@
         ]
       }
     },
+    "/v1/artefacts/history": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact History",
+        "operationId": "get_artefact_history_v1_artefacts_history_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Artefact name",
+              "title": "Name"
+            },
+            "description": "Artefact name"
+          },
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Artefact track",
+              "default": "latest",
+              "title": "Track"
+            },
+            "description": "Artefact track"
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StageName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by stage/channel",
+              "title": "Stage"
+            },
+            "description": "Filter by stage/channel"
+          },
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FamilyName",
+              "description": "Artefact family",
+              "default": "charm"
+            },
+            "description": "Artefact family"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
+      }
+    },
     "/v1/artefacts/{artefact_id}": {
       "get": {
         "tags": [

@@ -28,6 +28,7 @@ from test_observer.data_access.models_enums import (
     ArtefactStatus,
     FamilyName,
     StageName,
+    TestExecutionStatus,
 )
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -714,6 +715,119 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     )
     assert response.status_code == 200
     assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
+
+
+def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
+    charm_latest_1 = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="499",
+        track="latest",
+        stage=StageName.edge,
+    )
+    charm_latest_2 = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="498",
+        track="latest",
+        stage=StageName.beta,
+    )
+
+    # Different family should be excluded by default family=charm
+    generator.gen_artefact(
+        family=FamilyName.snap,
+        name="postgresql-k8s",
+        version="999",
+        track="latest",
+        stage=StageName.edge,
+    )
+    # Different track should be excluded by default track=latest
+    generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="497",
+        track="2.0",
+        stage=StageName.stable,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/history", params={"name": "postgresql-k8s"}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 2
+    assert [item["artefact_id"] for item in body["items"]] == [charm_latest_2.id, charm_latest_1.id]
+    assert [item["version"] for item in body["items"]] == ["498", "499"]
+
+
+def test_get_artefact_history_filters_by_stage(test_client: TestClient, generator: DataGenerator):
+    generator.gen_artefact(
+        family=FamilyName.charm,
+        name="mysql-k8s",
+        version="2",
+        track="latest",
+        stage=StageName.edge,
+    )
+    beta = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="mysql-k8s",
+        version="1",
+        track="latest",
+        stage=StageName.beta,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "mysql-k8s", "stage": StageName.beta},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+    assert body["items"][0]["artefact_id"] == beta.id
+    assert body["items"][0]["channel"] == StageName.beta
+
+
+def test_get_artefact_history_includes_latest_tests_summary(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="redis-k8s",
+        version="10",
+        track="latest",
+        stage=StageName.edge,
+    )
+
+    # Older build revision should not be included in summary.
+    old_build = generator.gen_artefact_build(artefact=artefact, revision=1)
+    new_build = generator.gen_artefact_build(artefact=artefact, revision=2)
+    env1 = generator.gen_environment(name="env-1")
+    env2 = generator.gen_environment(name="env-2")
+    env3 = generator.gen_environment(name="env-3")
+
+    generator.gen_test_execution(old_build, env1, status=TestExecutionStatus.FAILED)
+    generator.gen_test_execution(new_build, env1, status=TestExecutionStatus.PASSED)
+    generator.gen_test_execution(new_build, env2, status=TestExecutionStatus.FAILED)
+    generator.gen_test_execution(new_build, env3, status=TestExecutionStatus.NOT_TESTED)
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/history", params={"name": "redis-k8s"}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    summary = response.json()["items"][0]["latest_tests"]
+    assert summary == {
+        "all_passed": False,
+        "execution_count": 3,
+        "passed_count": 1,
+        "failed_count": 1,
+        "in_progress_count": 0,
+    }
 
 
 def _assert_get_artefacts_response(response_json: list[dict[str, Any]], artefacts: list[Artefact]) -> None:

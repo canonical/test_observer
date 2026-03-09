@@ -165,6 +165,28 @@ class ArtefactSearchResponse(BaseModel):
     offset: int
 
 
+class ArtefactLatestTestsSummaryResponse(BaseModel):
+    all_passed: bool
+    execution_count: int
+    passed_count: int
+    failed_count: int
+    in_progress_count: int
+
+
+class ArtefactHistoryItemResponse(BaseModel):
+    artefact_id: int
+    name: str
+    version: str
+    channel: str
+    created_at: datetime
+    latest_tests: ArtefactLatestTestsSummaryResponse
+
+
+class ArtefactHistoryResponse(BaseModel):
+    count: int
+    items: list[ArtefactHistoryItemResponse]
+
+
 class ArtefactBuildEnvironmentReviewResponse(BaseModel):
     id: int
     review_decision: list[ArtefactBuildEnvironmentReviewDecision]

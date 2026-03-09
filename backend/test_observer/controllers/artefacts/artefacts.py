@@ -34,6 +34,7 @@ from test_observer.data_access.models_enums import (
     ImageStage,
     SnapStage,
     StageName,
+    TestExecutionStatus,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
@@ -44,6 +45,9 @@ from .logic import (
     is_there_a_rejected_environment,
 )
 from .models import (
+    ArtefactHistoryItemResponse,
+    ArtefactHistoryResponse,
+    ArtefactLatestTestsSummaryResponse,
     ArtefactPatch,
     ArtefactResponse,
     ArtefactSearchResponse,
@@ -138,6 +142,66 @@ def search_artefacts(
         count=total_count,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get(
+    "/history",
+    response_model=ArtefactHistoryResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
+)
+def get_artefact_history(
+    name: Annotated[str, Query(description="Artefact name")],
+    track: Annotated[str, Query(description="Artefact track")] = "latest",
+    stage: Annotated[StageName | None, Query(description="Filter by stage/channel")] = None,
+    family: Annotated[FamilyName, Query(description="Artefact family")] = FamilyName.charm,
+    db: Session = Depends(get_db),
+) -> ArtefactHistoryResponse:
+    query = (
+        select(Artefact)
+        .where(Artefact.name == name)
+        .where(Artefact.track == track)
+        .where(Artefact.family == family)
+        .where(Artefact.archived.is_(False))
+        .order_by(Artefact.id.desc())
+        .options(selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions))
+    )
+
+    if stage is not None:
+        query = query.where(Artefact.stage == stage)
+
+    artefacts = db.scalars(query).all()
+
+    return ArtefactHistoryResponse(
+        count=len(artefacts),
+        items=[
+            ArtefactHistoryItemResponse(
+                artefact_id=artefact.id,
+                name=artefact.name,
+                version=artefact.version,
+                channel=artefact.stage,
+                created_at=artefact.created_at,
+                latest_tests=_get_latest_tests_summary(artefact),
+            )
+            for artefact in artefacts
+        ],
+    )
+
+
+def _get_latest_tests_summary(artefact: Artefact) -> ArtefactLatestTestsSummaryResponse:
+    test_executions = [te for build in artefact.latest_builds for te in build.test_executions]
+
+    execution_count = len(test_executions)
+    passed_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.PASSED)
+    failed_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.FAILED)
+    in_progress_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.IN_PROGRESS)
+
+    return ArtefactLatestTestsSummaryResponse(
+        all_passed=(execution_count > 0 and passed_count == execution_count),
+        execution_count=execution_count,
+        passed_count=passed_count,
+        failed_count=failed_count,
+        in_progress_count=in_progress_count,
     )
 
 
