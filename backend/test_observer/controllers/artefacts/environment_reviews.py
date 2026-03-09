@@ -50,9 +50,7 @@ def get_environment_reviews(
 @router.patch(
     "/{artefact_id}/environment-reviews",
     response_model=list[ArtefactBuildEnvironmentReviewResponse],
-    dependencies=[
-        Security(permission_checker, scopes=[Permission.change_environment_review])
-    ],
+    dependencies=[Security(permission_checker, scopes=[Permission.change_environment_review])],
 )
 def bulk_update_environment_reviews(
     artefact_id: int,
