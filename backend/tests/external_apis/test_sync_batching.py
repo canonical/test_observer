@@ -48,7 +48,7 @@ def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
     # Mock synchronizer
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=True)
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=True)
 
     # Create service and sync
     service = IssueSynchronizationService([mock_sync])
@@ -84,7 +84,7 @@ def test_sync_issue_does_not_update_on_failure(db_session: Session) -> None:
     # Mock synchronizer to fail
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=False, error="API Error")
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=False, error="API Error")
 
     # Create service and sync
     service = IssueSynchronizationService([mock_sync])
@@ -115,7 +115,7 @@ def test_sync_issues_batch(db_session: Session) -> None:
     # Mock synchronizer
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=True, title_updated=True)
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=True, title_updated=True)
 
     # Create service and sync batch
     service = IssueSynchronizationService([mock_sync])
@@ -154,12 +154,12 @@ def test_sync_issues_batch_mixed_results(db_session: Session) -> None:
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
 
-    def side_effect(issue: Issue, _db: Session) -> SyncResult:
+    def side_effect(issue: Issue) -> SyncResult:
         if issue.key == "1":
             return SyncResult(success=False, error="API Error")
         return SyncResult(success=True, title_updated=True)
 
-    mock_sync.sync_issue.side_effect = side_effect
+    mock_sync.fetch_issue_update.side_effect = side_effect
 
     # Create service and sync batch
     service = IssueSynchronizationService([mock_sync])

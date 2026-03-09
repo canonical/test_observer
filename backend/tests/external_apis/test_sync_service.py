@@ -42,7 +42,7 @@ def test_service_routes_to_correct_synchronizer(db_session: Session):
 
     jira_sync = Mock(spec=BaseIssueSynchronizer)
     jira_sync.can_sync.return_value = True
-    jira_sync.sync_issue.return_value = SyncResult(success=True)
+    jira_sync.fetch_issue_update.return_value = SyncResult(success=True)
 
     # Create service
     service = IssueSynchronizationService([github_sync, jira_sync])
@@ -65,7 +65,7 @@ def test_service_routes_to_correct_synchronizer(db_session: Session):
     # Verify correct synchronizer was used
     assert github_sync.can_sync.called
     assert jira_sync.can_sync.called
-    assert jira_sync.sync_issue.called
+    assert jira_sync.fetch_issue_update.called
     assert result.success is True
 
 
@@ -104,7 +104,7 @@ def test_sync_all_issues(db_session: Session):
     # Create mock synchronizer
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=True, title_updated=True)
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=True, title_updated=True)
 
     # Create service
     service = IssueSynchronizationService([mock_sync])

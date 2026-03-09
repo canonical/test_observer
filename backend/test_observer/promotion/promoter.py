@@ -69,27 +69,47 @@ def promoter_controller(session: Session) -> tuple[dict, dict]:
     :return: tuple of dicts, the first the processed cards and the status of execution
     the second only for the processed cards with the corresponding error message
     """
-    family_mapping = {
-        FamilyName.snap: run_snap_promoter,
-        FamilyName.deb: run_deb_promoter,
-    }
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
-    for family, promoter_function in family_mapping.items():
-        artefacts = get_artefacts_by_family(session, family)
-        for artefact in artefacts:
-            artefact_key = f"{family} - {artefact.name} - {artefact.version}"
-            try:
-                processed_artefacts_status[artefact_key] = True
-                promoter_function(session, artefact)
-            except Exception as exc:
-                processed_artefacts_status[artefact_key] = False
-                processed_artefacts_error_messages[artefact_key] = str(exc)
-                logger.warning("WARNING: %s", str(exc), exc_info=True)
+
+    # Snap artefacts: read, then HTTP fetch, then write per artefact
+    snap_artefacts = get_artefacts_by_family(session, FamilyName.snap)
+    session.commit()  # end read transaction before HTTP calls
+    for snap in snap_artefacts:
+        artefact_key = f"{FamilyName.snap} - {snap.name} - {snap.version}"
+        try:
+            processed_artefacts_status[artefact_key] = True
+            new_stage = fetch_snap_promotion(snap)
+            _apply_snap_promotion(snap, new_stage)
+            session.commit()
+        except Exception as exc:
+            session.rollback()
+            processed_artefacts_status[artefact_key] = False
+            processed_artefacts_error_messages[artefact_key] = str(exc)
+            logger.warning("WARNING: %s", str(exc), exc_info=True)
+
+    # Deb artefacts: read, then HTTP fetch, then write per artefact
+    deb_artefacts = get_artefacts_by_family(session, FamilyName.deb)
+    session.commit()  # end read transaction before HTTP calls
+    for artefact in deb_artefacts:
+        artefact_key = f"{FamilyName.deb} - {artefact.name} - {artefact.version}"
+        try:
+            processed_artefacts_status[artefact_key] = True
+            result = fetch_deb_promotion(artefact)
+            if result is not None:  # None means "nothing to do" (no stage set)
+                _apply_deb_promotion(artefact, result)
+                session.commit()
+        except Exception as exc:
+            session.rollback()
+            processed_artefacts_status[artefact_key] = False
+            processed_artefacts_error_messages[artefact_key] = str(exc)
+            logger.warning("WARNING: %s", str(exc), exc_info=True)
+
     return processed_artefacts_status, processed_artefacts_error_messages
 
 
-def run_snap_promoter(db_session: Session, snap: Artefact):
+def fetch_snap_promotion(snap: Artefact) -> StageName | None:
+    """Fetch snap promotion data from Snapcraft. Returns new stage, or None to archive."""
     assert snap.family == FamilyName.snap
     assert snap.store, f"Store is not set for the snap artefact {snap.id}"
 
@@ -99,7 +119,7 @@ def run_snap_promoter(db_session: Session, snap: Artefact):
     )
 
     try:
-        snap.stage = max(
+        return max(
             (
                 cm.channel.risk
                 for cm in all_channel_maps
@@ -109,17 +129,20 @@ def run_snap_promoter(db_session: Session, snap: Artefact):
             ),
         )
     except ValueError:
+        return None  # no matching channel map — archive the snap
+
+
+def _apply_snap_promotion(snap: Artefact, new_stage: StageName | None) -> None:
+    if new_stage is None:
         snap.archived = True
+    else:
+        snap.stage = new_stage
 
-    db_session.commit()
 
+def fetch_deb_promotion(artefact: Artefact) -> tuple[bool, StageName | None] | None:
+    """Fetch deb promotion data from the Ubuntu archive.
 
-def run_deb_promoter(session: Session, artefact: Artefact) -> None:
-    """
-    Check deb artefacts state and move/archive them if necessary
-
-    :session: DB connection session
-    :artefact: an Artefact object
+    Returns (name_found, highest_pocket_found), or None if no HTTP call is needed.
     """
     series = artefact.series
     repo = artefact.repo
@@ -127,7 +150,7 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
     assert repo is not None, f"Repo is not set for the artefact {artefact.id}"
 
     if not artefact.stage:
-        return
+        return None  # nothing to do yet
 
     name_found = False
     highest_pocket_found: None | StageName = None
@@ -146,6 +169,10 @@ def run_deb_promoter(session: Session, artefact: Artefact) -> None:
             if deb_version == artefact.version:
                 highest_pocket_found = max(highest_pocket_found or StageName(pocket), StageName(pocket))
 
+    return name_found, highest_pocket_found
+
+
+def _apply_deb_promotion(artefact: Artefact, result: tuple[bool, StageName | None]) -> None:
+    name_found, highest_pocket_found = result
     artefact.archived = name_found and not highest_pocket_found
     artefact.stage = highest_pocket_found or artefact.stage
-    session.commit()

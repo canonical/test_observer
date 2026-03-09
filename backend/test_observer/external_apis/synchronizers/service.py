@@ -59,10 +59,15 @@ class IssueSynchronizationService:
         for synchronizer in self.synchronizers:
             if synchronizer.can_sync(issue):
                 logger.debug(f"Using {synchronizer.__class__.__name__} for issue {issue.id}")
-                result = synchronizer.sync_issue(issue, db)
+                result = synchronizer.fetch_issue_update(issue)  # HTTP — no transaction held
 
-                # Update last_synced_at timestamp on success
                 if result.success:
+                    if result.new_title is not None:
+                        issue.title = result.new_title
+                    if result.new_status is not None:
+                        issue.status = result.new_status
+                    if result.new_labels is not None:
+                        issue.labels = result.new_labels
                     issue.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
                     db.commit()
 
@@ -106,4 +111,5 @@ class IssueSynchronizationService:
             SyncResults with aggregated results
         """
         issues = db.query(Issue).all()
+        db.commit()  # end read transaction before HTTP calls
         return self.sync_issues_batch(issues, db)
