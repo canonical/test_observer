@@ -156,9 +156,7 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
     }
 
 
-def test_bulk_review_multiple_environments(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_bulk_review_multiple_environments(test_client: TestClient, generator: DataGenerator):
     """Test bulk reviewing multiple environments at once."""
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
@@ -171,16 +169,12 @@ def test_bulk_review_multiple_environments(
         {
             "id": er1.id,
             "review_comment": "Approved env1",
-            "review_decision": [
-                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
-            ],
+            "review_decision": [ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST],
         },
         {
             "id": er2.id,
             "review_comment": "Approved env2",
-            "review_decision": [
-                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
-            ],
+            "review_decision": [ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST],
         },
     ]
 
@@ -200,19 +194,13 @@ def test_bulk_review_multiple_environments(
     for review in reviews:
         if review["id"] == er1.id:
             assert review["review_comment"] == "Approved env1"
-            assert review["review_decision"] == [
-                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
-            ]
+            assert review["review_decision"] == [ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST]
         elif review["id"] == er2.id:
             assert review["review_comment"] == "Approved env2"
-            assert review["review_decision"] == [
-                ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST
-            ]
+            assert review["review_decision"] == [ArtefactBuildEnvironmentReviewDecision.APPROVED_INCONSISTENT_TEST]
 
 
-def test_bulk_review_with_same_comment_and_decision(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_bulk_review_with_same_comment_and_decision(test_client: TestClient, generator: DataGenerator):
     """Test bulk reviewing with same comment and decision for multiple environments."""
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
@@ -245,9 +233,7 @@ def test_bulk_review_with_same_comment_and_decision(
         assert review["review_comment"] == "All good"
 
 
-def test_bulk_review_rejects_if_review_belongs_to_different_artefact(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_bulk_review_rejects_if_review_belongs_to_different_artefact(test_client: TestClient, generator: DataGenerator):
     """Test that bulk review silently skips reviews from a different artefact."""
     a1 = generator.gen_artefact(StageName.beta, name="artefact1")
     a2 = generator.gen_artefact(StageName.beta, name="artefact2")
