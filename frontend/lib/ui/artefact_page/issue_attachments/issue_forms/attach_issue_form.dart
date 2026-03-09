@@ -168,7 +168,7 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                   onPressed: () => context.pop(),
                   child: Text(
                     'cancel',
-                    style: buttonFontStyle?.apply(color: Colors.grey),
+                    style: buttonFontStyle?.apply(color: Colors.black),
                   ),
                 ),
                 const Spacer(),
