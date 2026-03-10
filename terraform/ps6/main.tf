@@ -16,8 +16,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 data "juju_model" "model" {
-  uuid = data.juju_model.model.uuid
+  name  = var.juju_model.name
+  owner = var.juju_model.owner
 }
+
 
 resource "juju_application" "api_ingress" {
   name       = "api-ingress"
@@ -94,8 +96,8 @@ resource "juju_access_secret" "lego_credentials_access" {
     juju_application.api_ingress_lego.name,
     juju_application.frontend_ingress_lego.name,
   ]
-  model_uuid     = data.juju_model.model.uuid
-  secret_id = data.juju_secret.lego_credentials.secret_id
+  model_uuid = data.juju_model.model.uuid
+  secret_id  = data.juju_secret.lego_credentials.secret_id
 }
 
 resource "juju_application" "pg" {

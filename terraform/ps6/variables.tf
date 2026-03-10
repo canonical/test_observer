@@ -15,9 +15,12 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-variable "juju_model_uuid" {
+variable "juju_model" {
   description = "UUID of juju model"
-  type        = string
+  type = object({
+    name  = string
+    owner = string
+  })
 }
 
 variable "environment" {

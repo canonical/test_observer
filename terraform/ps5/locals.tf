@@ -7,7 +7,7 @@ locals {
   }
 
   juju_model = {
-      name = "test-observer-${var.environment}"
-      owner = "admin"
+    name  = "test-observer-${var.environment}"
+    owner = "admin"
   }
 }
