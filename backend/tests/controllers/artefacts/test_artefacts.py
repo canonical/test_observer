@@ -751,7 +751,7 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
     )
 
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/artefacts/history", params={"name": "postgresql-k8s"}),
+        lambda: test_client.get("/v1/artefacts/history", params={"name": "postgresql-k8s", "family": FamilyName.charm}),
         Permission.view_artefact,
     )
 
@@ -761,6 +761,27 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
     assert [item["artefact_id"] for item in body["items"]] == [charm_latest_2.id, charm_latest_1.id]
     assert [item["version"] for item in body["items"]] == ["498", "499"]
 
+
+def test_get_artefact_history_limit(test_client: TestClient, generator: DataGenerator):
+    for i in range(20):
+        generator.gen_artefact(
+            family=FamilyName.charm,
+            name="postgresql-k8s",
+            version=str(i),
+            track="latest",
+            stage=StageName.edge,
+        )
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/history", params={"name": "postgresql-k8s", "family": FamilyName.charm, "limit": 5}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 5
+    assert len(body["items"]) == 5
+    assert [item["version"] for item in body["items"]] == ["19", "18", "17", "16", "15"]
 
 def test_get_artefact_history_filters_by_stage(test_client: TestClient, generator: DataGenerator):
     generator.gen_artefact(
@@ -781,7 +802,7 @@ def test_get_artefact_history_filters_by_stage(test_client: TestClient, generato
     response = make_authenticated_request(
         lambda: test_client.get(
             "/v1/artefacts/history",
-            params={"name": "mysql-k8s", "stage": StageName.beta},
+            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": StageName.beta},
         ),
         Permission.view_artefact,
     )
@@ -790,7 +811,7 @@ def test_get_artefact_history_filters_by_stage(test_client: TestClient, generato
     body = response.json()
     assert body["count"] == 1
     assert body["items"][0]["artefact_id"] == beta.id
-    assert body["items"][0]["channel"] == StageName.beta
+    assert body["items"][0]["stage"] == StageName.beta
 
 
 def test_get_artefact_history_includes_latest_tests_summary(test_client: TestClient, generator: DataGenerator):
@@ -815,7 +836,7 @@ def test_get_artefact_history_includes_latest_tests_summary(test_client: TestCli
     generator.gen_test_execution(new_build, env3, status=TestExecutionStatus.NOT_TESTED)
 
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/artefacts/history", params={"name": "redis-k8s"}),
+        lambda: test_client.get("/v1/artefacts/history", params={"name": "redis-k8s", "family": FamilyName.charm}),
         Permission.view_artefact,
     )
 

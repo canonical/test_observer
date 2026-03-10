@@ -152,9 +152,13 @@ def search_artefacts(
 )
 def get_artefact_history(
     name: Annotated[str, Query(description="Artefact name")],
+    family: Annotated[FamilyName, Query(description="Artefact family")],
     track: Annotated[str, Query(description="Artefact track")] = "latest",
-    stage: Annotated[StageName | None, Query(description="Filter by stage/channel")] = None,
-    family: Annotated[FamilyName, Query(description="Artefact family")] = FamilyName.charm,
+    stage: Annotated[StageName | None, Query(description="Filter by stage")] = None,
+    limit: Annotated[
+        int, 
+        Query(ge=1, le=500, description="Maximum number of results (defaults to 10 if not specified)")
+        ] = 10,
     db: Session = Depends(get_db),
 ) -> ArtefactHistoryResponse:
     query = (
@@ -164,6 +168,7 @@ def get_artefact_history(
         .where(Artefact.family == family)
         .where(Artefact.archived.is_(False))
         .order_by(Artefact.id.desc())
+        .limit(limit)
         .options(selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions))
     )
 
@@ -179,7 +184,7 @@ def get_artefact_history(
                 artefact_id=artefact.id,
                 name=artefact.name,
                 version=artefact.version,
-                channel=artefact.stage,
+                stage=artefact.stage,
                 created_at=artefact.created_at,
                 latest_tests=_get_latest_tests_summary(artefact),
             )

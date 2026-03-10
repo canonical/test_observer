@@ -177,7 +177,7 @@ class ArtefactHistoryItemResponse(BaseModel):
     artefact_id: int
     name: str
     version: str
-    channel: str
+    stage: str
     created_at: datetime
     latest_tests: ArtefactLatestTestsSummaryResponse
 

@@ -999,6 +999,16 @@
             "description": "Artefact name"
           },
           {
+            "name": "family",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FamilyName",
+              "description": "Artefact family"
+            },
+            "description": "Artefact family"
+          },
+          {
             "name": "track",
             "in": "query",
             "required": false,
@@ -1023,21 +1033,24 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by stage/channel",
+              "description": "Filter by stage",
               "title": "Stage"
             },
-            "description": "Filter by stage/channel"
+            "description": "Filter by stage"
           },
           {
-            "name": "family",
+            "name": "limit",
             "in": "query",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/FamilyName",
-              "description": "Artefact family",
-              "default": "charm"
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 10 if not specified)",
+              "default": 10,
+              "title": "Limit"
             },
-            "description": "Artefact family"
+            "description": "Maximum number of results (defaults to 10 if not specified)"
           }
         ],
         "responses": {
