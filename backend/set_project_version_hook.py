@@ -16,9 +16,14 @@
 import shutil
 import subprocess
 
-from hatchling.metadata.plugin.interface import MetadataHookInterface
+try:
+    from hatchling.metadata.plugin.interface import MetadataHookInterface
+except ImportError:
+    # If hatchling is not installed, define a dummy interface to avoid import errors.
+    class MetadataHookInterface:
+        def update(self, metadata: dict) -> None:
+            pass
 
-from test_observer.common.config import VERSION
 
 
 def get_git_version_info(fallback_version: str = "0.0.0") -> str:
@@ -87,7 +92,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
             except subprocess.CalledProcessError:
                 dirty_suffix = "-dirty"
 
-            return f"{latest_tag.lstrip('v')}-{commit_count}+{short_rev}{dirty_suffix}"
+            return f"{latest_tag.lstrip('v')}.post{commit_count}+g{short_rev}{dirty_suffix}"
         else:
             # Fallback if no tags found
             short_rev = (
@@ -109,7 +114,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
             except subprocess.CalledProcessError:
                 dirty_suffix = "-dirty"
 
-            return f"0.0.0-{short_rev}{dirty_suffix}"
+            return f"0.0.0+g{short_rev}{dirty_suffix}"
     else:
         return fallback_version
 
@@ -122,6 +127,7 @@ if __name__ == "__main__":
 
 
 class VersionMetadataHook(MetadataHookInterface):
+    from test_observer.common.config import VERSION
     def update(self, metadata: dict) -> None:
         version = get_git_version_info(VERSION)
         metadata["version"] = version

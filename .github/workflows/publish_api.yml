@@ -85,14 +85,23 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Get version from git
+        id: version
+        run: |
+          VERSION=$(python3 backend/set_project_version_hook.py)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Determined version: $VERSION"
+
       - name: Build and push backend Docker image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
-          context: .
-          file: ./backend/Dockerfile.production
+          context: ./backend
+          file:  ./backend/Dockerfile.production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            UV_DYNAMIC_VERSIONING_BYPASS=${{ steps.version.outputs.VERSION }}
 
   build-and-push-charm:
     runs-on: [self-hosted, linux, xlarge, jammy, x64]
