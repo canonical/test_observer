@@ -2,11 +2,6 @@ variable "environment" {
   description = "The environment to deploy to (development, stg, production)"
 }
 
-variable "model_uuid" {
-  description = "UUID of the Juju model to deploy to"
-  type        = string
-}
-
 variable "tls_secret_name" {
   description = "Secret where the TLS certificate for ingress is stored"
   type        = string

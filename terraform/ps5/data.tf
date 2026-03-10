@@ -1,3 +1,4 @@
 data "juju_model" "model" {
-  uuid = var.model_uuid
+  name = local.juju_model.name
+  owner = local.juju_model.owner
 }
