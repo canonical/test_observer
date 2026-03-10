@@ -14,11 +14,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
+from datetime import UTC, datetime
 from os import environ
 
 from celery import Celery, Task
 
 from test_observer.data_access.models import Issue
+from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import SessionLocal
 from test_observer.external_apis.synchronizers.config import SyncConfig
 from test_observer.external_apis.synchronizers.factory import (
@@ -29,7 +32,7 @@ from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
 from test_observer.kernel_swm_integration.swm_reader import get_artefacts_swm_info
-from test_observer.promotion.promoter import promote_artefacts
+from test_observer.promotion.promoter import promoter_controller
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
@@ -65,21 +68,34 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 def integrate_with_kernel_swm():
     with SessionLocal() as db:
         swm_info = get_artefacts_swm_info()
-        # update_artefacts_with_tracker_info calls db.commit()
         update_artefacts_with_tracker_info(db, swm_info)
 
 
 @app.task
 def run_promote_artefacts():
     with SessionLocal() as db:
-        # The underlying functions called in promoote_artefacts call db.commit()
-        promote_artefacts(db)
+        snap_artefacts = get_artefacts_by_family(db, FamilyName.snap)
+        deb_artefacts = get_artefacts_by_family(db, FamilyName.deb)
+
+    # HTTP — no session open
+    processed_status, error_messages = promoter_controller(snap_artefacts, deb_artefacts)
+
+    # Write phase — re-merge detached objects and commit
+    with SessionLocal() as db:
+        for artefact in snap_artefacts + deb_artefacts:
+            db.merge(artefact)
+        db.commit()
+
+    logger.info("INFO: Processed artefacts %s", processed_status)
+    if False in processed_status.values():
+        logger.error(
+            {key: error_messages[key] for key, status in processed_status.items() if status is False}
+        )
 
 
 @app.task
 def clean_user_sessions():
     with SessionLocal() as db:
-        # delete_expired_user_sessions calls db.commit()
         delete_expired_user_sessions(db)
 
 
@@ -102,44 +118,64 @@ def sync_low_priority_issues() -> dict:
 
 
 def _sync_issues_by_priority(priority: str) -> dict:
-    """Sync issues of a given priority in batches"""
+    """Sync issues of a given priority in batches.
+
+    Each batch follows: short read session → HTTP (no session) → short write session.
+    """
     try:
-        with SessionLocal() as db:
-            service = create_synchronization_service()
+        service = create_synchronization_service()
 
-            total_synced = 0
-            total_updated = 0
-            total_failed = 0
-            batch_count = 0
+        total_synced = 0
+        total_updated = 0
+        total_failed = 0
+        batch_count = 0
 
-            while True:
+        while True:
+            with SessionLocal() as db:
                 issues = SyncStrategy.get_issues_due_for_sync(db, batch_size=SyncConfig.BATCH_SIZE, priority=priority)
 
-                if not issues:
-                    break
+            if not issues:
+                break
 
-                batch_count += 1
-                logger.info(f"Processing {priority} priority batch {batch_count} ({len(issues)} issues)")
+            batch_count += 1
+            logger.info(f"Processing {priority} priority batch {batch_count} ({len(issues)} issues)")
 
-                results = service.sync_issues_batch(issues, db)
+            # HTTP — no session open
+            results = service.sync_issues_batch(issues)
 
-                total_synced += results.total
-                total_updated += results.updated
-                total_failed += results.failed
+            # Write phase
+            with SessionLocal() as db:
+                for issue, result in zip(issues, results.results, strict=True):
+                    if result.success:
+                        fresh = db.get(Issue, issue.id)
+                        if fresh is not None:
+                            if result.new_title is not None:
+                                fresh.title = result.new_title
+                            if result.new_status is not None:
+                                fresh.status = result.new_status
+                            if result.new_labels is not None:
+                                fresh.labels = result.new_labels
+                            fresh.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
+                db.commit()
 
-                if len(issues) < SyncConfig.BATCH_SIZE:
-                    break
+            total_synced += results.total
+            total_updated += results.updated
+            total_failed += results.failed
 
+            if len(issues) < SyncConfig.BATCH_SIZE:
+                break
+
+        with SessionLocal() as db:
             stats = SyncStrategy.get_sync_stats(db)
 
-            return {
-                "priority": priority,
-                "batches_processed": batch_count,
-                "total_synced": total_synced,
-                "total_updated": total_updated,
-                "total_failed": total_failed,
-                "sync_stats": stats,
-            }
+        return {
+            "priority": priority,
+            "batches_processed": batch_count,
+            "total_synced": total_synced,
+            "total_updated": total_updated,
+            "total_failed": total_failed,
+            "sync_stats": stats,
+        }
 
     except Exception as e:
         logger.error(f"Failed to sync {priority} priority issues: {e}")
@@ -151,16 +187,34 @@ def sync_all_issues() -> dict:
     """Sync all issues from external platforms (runs periodically)"""
     try:
         with SessionLocal() as db:
-            service = create_synchronization_service()
-            results = service.sync_all_issues(db)
+            issues = db.query(Issue).all()
 
-            return {
-                "total": results.total,
-                "successful": results.successful,
-                "failed": results.failed,
-                "updated": results.updated,
-                "success_rate": results.success_rate,
-            }
+        # HTTP — no session open
+        service = create_synchronization_service()
+        results = service.sync_issues_batch(issues)
+
+        # Write phase
+        with SessionLocal() as db:
+            for issue, result in zip(issues, results.results, strict=True):
+                if result.success:
+                    fresh = db.get(Issue, issue.id)
+                    if fresh is not None:
+                        if result.new_title is not None:
+                            fresh.title = result.new_title
+                        if result.new_status is not None:
+                            fresh.status = result.new_status
+                        if result.new_labels is not None:
+                            fresh.labels = result.new_labels
+                        fresh.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
+            db.commit()
+
+        return {
+            "total": results.total,
+            "successful": results.successful,
+            "failed": results.failed,
+            "updated": results.updated,
+            "success_rate": results.success_rate,
+        }
     except Exception as e:
         logger.error(f"Failed to sync all issues: {e}")
         return {"error": str(e), "total": 0, "successful": 0, "failed": 0}
@@ -171,19 +225,34 @@ def sync_issue_by_id(self: Task, issue_id: int) -> dict:
     """Manually synchronize a specific issue by ID (called on-demand)"""
     try:
         with SessionLocal() as db:
-            issue = db.query(Issue).filter(Issue.id == issue_id).first()
+            issue = db.get(Issue, issue_id)
             if not issue:
                 return {"success": False, "error": "Issue not found"}
 
-            service = create_synchronization_service()
-            result = service.sync_issue(issue, db)
+        # HTTP — no session open
+        service = create_synchronization_service()
+        result = service.sync_issue(issue)
 
-            return {
-                "success": result.success,
-                "title_updated": result.title_updated,
-                "status_updated": result.status_updated,
-                "error": result.error,
-            }
+        # Write phase
+        with SessionLocal() as db:
+            if result.success:
+                fresh = db.get(Issue, issue_id)
+                if fresh is not None:
+                    if result.new_title is not None:
+                        fresh.title = result.new_title
+                    if result.new_status is not None:
+                        fresh.status = result.new_status
+                    if result.new_labels is not None:
+                        fresh.labels = result.new_labels
+                    fresh.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
+            db.commit()
+
+        return {
+            "success": result.success,
+            "title_updated": result.title_updated,
+            "status_updated": result.status_updated,
+            "error": result.error,
+        }
     except Exception as e:
         logger.error(f"Failed to sync issue {issue_id}: {e}")
         raise self.retry(exc=e, countdown=60 * (2**self.request.retries)) from e
@@ -191,3 +260,4 @@ def sync_issue_by_id(self: Task, issue_id: int) -> dict:
 
 if __name__ == "__main__":
     app.start()
+

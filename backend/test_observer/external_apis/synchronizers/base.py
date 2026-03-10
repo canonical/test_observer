@@ -30,22 +30,28 @@ class SyncResult:
     def __init__(
         self,
         success: bool,
-        title_updated: bool = False,
-        status_updated: bool = False,
-        labels_updated: bool = False,
         error: str | None = None,
         new_title: str | None = None,
         new_status: IssueStatus | None = None,
         new_labels: list[str] | None = None,
     ):
         self.success = success
-        self.title_updated = title_updated
-        self.status_updated = status_updated
-        self.labels_updated = labels_updated
         self.error = error
         self.new_title = new_title
         self.new_status = new_status
         self.new_labels = new_labels
+
+    @property
+    def title_updated(self) -> bool:
+        return self.new_title is not None
+
+    @property
+    def status_updated(self) -> bool:
+        return self.new_status is not None
+
+    @property
+    def labels_updated(self) -> bool:
+        return self.new_labels is not None
 
 
 class BaseIssueSynchronizer(ABC):
@@ -65,36 +71,22 @@ class BaseIssueSynchronizer(ABC):
         try:
             client_issue = self.client.get_issue(issue.project, issue.key)
 
-            title_updated = False
-            status_updated = False
-            labels_updated = False
-            new_title = None
-            new_status = None
-            new_labels = None
-
-            if client_issue.title != issue.title:
-                new_title = client_issue.title
-                title_updated = True
-                logger.info(f"Updated title for issue {issue.id}: {client_issue.title}")
+            new_title = client_issue.title if client_issue.title != issue.title else None
+            if new_title is not None:
+                logger.info(f"Detected title change for issue {issue.id}: {new_title}")
 
             mapped_status = self._map_issue_status(client_issue.state)
-            if mapped_status != issue.status:
-                new_status = mapped_status
-                status_updated = True
-                logger.info(f"Updated status for issue {issue.id}: {mapped_status}")
+            new_status = mapped_status if mapped_status != issue.status else None
+            if new_status is not None:
+                logger.info(f"Detected status change for issue {issue.id}: {new_status}")
 
             sorted_labels = sorted(client_issue.labels)
-            current_labels = sorted(issue.labels or [])
-            if sorted_labels != current_labels:
-                new_labels = sorted_labels
-                labels_updated = True
-                logger.info(f"Updated labels for issue {issue.id}: {sorted_labels}")
+            new_labels = sorted_labels if sorted_labels != sorted(issue.labels or []) else None
+            if new_labels is not None:
+                logger.info(f"Detected label change for issue {issue.id}: {new_labels}")
 
             return SyncResult(
                 success=True,
-                title_updated=title_updated,
-                status_updated=status_updated,
-                labels_updated=labels_updated,
                 new_title=new_title,
                 new_status=new_status,
                 new_labels=new_labels,

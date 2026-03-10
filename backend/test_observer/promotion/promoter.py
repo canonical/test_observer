@@ -16,11 +16,8 @@
 import itertools
 import logging
 
-from sqlalchemy.orm import Session
-
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName, StageName
-from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.external_apis.archive import ArchiveManager
 from test_observer.external_apis.snapcraft import (
     get_channel_map_from_snapcraft,
@@ -34,73 +31,36 @@ POCKET_PROMOTION_MAP = {
 }
 
 
-def promote_artefacts(db: Session):
+def promoter_controller(snap_artefacts: list, deb_artefacts: list) -> tuple[dict, dict]:
     """
-    Promote all the artefacts in all the families if it has been updated on the
-    external source
-    """
-    try:
-        (
-            processed_artefacts_status,
-            processed_artefacts_error_messages,
-        ) = promoter_controller(db)
-        logger.info("INFO: Processed artefacts %s", processed_artefacts_status)
-        if False in processed_artefacts_status.values():
-            logger.error(
-                {
-                    artefact_key: processed_artefacts_error_messages[artefact_key]
-                    for (
-                        artefact_key,
-                        artefact_status,
-                    ) in processed_artefacts_status.items()
-                    if artefact_status is False
-                }
-            )
-        return logger.info({"detail": "All the artefacts have been processed successfully"})
-    except Exception as exc:
-        return logger.error({"detail": str(exc)})
+    Fetch promotion data for all artefacts via HTTP. Does not write to the database.
 
-
-def promoter_controller(session: Session) -> tuple[dict, dict]:
-    """
-    Orchestrate the snap promoter job
-
-    :session: DB connection session
-    :return: tuple of dicts, the first the processed cards and the status of execution
-    the second only for the processed cards with the corresponding error message
+    :snap_artefacts: List of snap Artefact objects (detached from any session)
+    :deb_artefacts: List of deb Artefact objects (detached from any session)
+    :return: tuple of dicts — processed statuses and error messages
     """
     processed_artefacts_status = {}
     processed_artefacts_error_messages = {}
 
-    # Snap artefacts: read, then HTTP fetch, then write per artefact
-    snap_artefacts = get_artefacts_by_family(session, FamilyName.snap)
-    session.commit()  # end read transaction before HTTP calls
     for snap in snap_artefacts:
         artefact_key = f"{FamilyName.snap} - {snap.name} - {snap.version}"
         try:
             processed_artefacts_status[artefact_key] = True
             new_stage = fetch_snap_promotion(snap)
             _apply_snap_promotion(snap, new_stage)
-            session.commit()
         except Exception as exc:
-            session.rollback()
             processed_artefacts_status[artefact_key] = False
             processed_artefacts_error_messages[artefact_key] = str(exc)
             logger.warning("WARNING: %s", str(exc), exc_info=True)
 
-    # Deb artefacts: read, then HTTP fetch, then write per artefact
-    deb_artefacts = get_artefacts_by_family(session, FamilyName.deb)
-    session.commit()  # end read transaction before HTTP calls
     for artefact in deb_artefacts:
         artefact_key = f"{FamilyName.deb} - {artefact.name} - {artefact.version}"
         try:
             processed_artefacts_status[artefact_key] = True
             result = fetch_deb_promotion(artefact)
-            if result is not None:  # None means "nothing to do" (no stage set)
+            if result is not None:
                 _apply_deb_promotion(artefact, result)
-                session.commit()
         except Exception as exc:
-            session.rollback()
             processed_artefacts_status[artefact_key] = False
             processed_artefacts_error_messages[artefact_key] = str(exc)
             logger.warning("WARNING: %s", str(exc), exc_info=True)

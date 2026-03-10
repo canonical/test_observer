@@ -15,9 +15,6 @@
 
 import logging
 from collections.abc import Sequence
-from datetime import UTC, datetime
-
-from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue
 from test_observer.external_apis.synchronizers.base import (
@@ -45,13 +42,13 @@ class IssueSynchronizationService:
         self.synchronizers = synchronizers
         logger.info(f"Initialized service with {len(synchronizers)} synchronizers")
 
-    def sync_issue(self, issue: Issue, db: Session) -> SyncResult:
+    def sync_issue(self, issue: Issue) -> SyncResult:
         """
-        Find appropriate synchronizer and sync the issue
+        Find appropriate synchronizer and fetch the latest state via HTTP.
+        Does not write to the database.
 
         Args:
             issue: Issue to synchronize
-            db: Database session
 
         Returns:
             SyncResult with synchronization outcome
@@ -59,37 +56,24 @@ class IssueSynchronizationService:
         for synchronizer in self.synchronizers:
             if synchronizer.can_sync(issue):
                 logger.debug(f"Using {synchronizer.__class__.__name__} for issue {issue.id}")
-                result = synchronizer.fetch_issue_update(issue)  # HTTP — no transaction held
-
-                if result.success:
-                    if result.new_title is not None:
-                        issue.title = result.new_title
-                    if result.new_status is not None:
-                        issue.status = result.new_status
-                    if result.new_labels is not None:
-                        issue.labels = result.new_labels
-                    issue.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
-                    db.commit()
-
-                return result
+                return synchronizer.fetch_issue_update(issue)
 
         logger.warning(f"No synchronizer available for issue {issue.id} with URL: {issue.url}")
         return SyncResult(success=False, error=f"No synchronizer available for URL: {issue.url}")
 
-    def sync_issues_batch(self, issues: Sequence[Issue], db: Session) -> SyncResults:
+    def sync_issues_batch(self, issues: Sequence[Issue]) -> SyncResults:
         """
-        Sync a batch of issues
+        Fetch updates for a batch of issues via HTTP. Does not write to the database.
 
         Args:
             issues: List of issues to sync
-            db: Database session
 
         Returns:
             SyncResults with aggregated results
         """
         logger.info(f"Starting synchronization of {len(issues)} issues in batch")
 
-        results = [self.sync_issue(issue, db) for issue in issues]
+        results = [self.sync_issue(issue) for issue in issues]
 
         sync_results = SyncResults.from_results(results)
         logger.info(
@@ -99,17 +83,3 @@ class IssueSynchronizationService:
         )
 
         return sync_results
-
-    def sync_all_issues(self, db: Session) -> SyncResults:
-        """
-        Sync all issues in the database (legacy method - kept for compatibility)
-
-        Args:
-            db: Database session
-
-        Returns:
-            SyncResults with aggregated results
-        """
-        issues = db.query(Issue).all()
-        db.commit()  # end read transaction before HTTP calls
-        return self.sync_issues_batch(issues, db)
