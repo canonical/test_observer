@@ -34,8 +34,8 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
             or an error occurs.
 
     Returns:
-        str: The version string in the format 'latest_tag.commit_count.short_rev',
-             or '0.0.0.0.short_rev' if no tags are found, or the fallback version
+        str: The version string in the format 'latest_tag.postcommit_count+gshort_rev',
+             or '0.0.0+gshort_rev' if no tags are found, or the fallback version
              if git is unavailable.
 
     Example:
@@ -45,7 +45,7 @@ def get_git_version_info(fallback_version: str = "0.0.0") -> str:
         ...     b'5' if 'rev-list' in cmd else b'abc123'
         ... )
         >>> get_git_version_info()
-        '1.2.3-5+abc123'
+        '1.2.3.post5+gabc123'
     """
     if shutil.which("git"):
         tags = (
