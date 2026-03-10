@@ -85,23 +85,14 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Get git version
-        id: gitversion
-        run: |
-          VERSION=$(git describe --tags --always)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-
       - name: Build and push backend Docker image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
-          context: ./backend
+          context: .
           file: ./backend/Dockerfile.production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            UV_DYNAMIC_VERSIONING_BYPASS=${{ steps.gitversion.outputs.version }}
 
   build-and-push-charm:
     runs-on: [self-hosted, linux, xlarge, jammy, x64]

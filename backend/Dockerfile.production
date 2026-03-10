@@ -36,9 +36,9 @@ RUN apt-get update && \
 
 ENV PYTHONPATH=/home/app
 
-COPY uv.lock .
-COPY pyproject.toml .
-COPY . .
+COPY backend/uv.lock .
+COPY backend/pyproject.toml .
+COPY ./backend .
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev
