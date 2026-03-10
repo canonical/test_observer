@@ -25,7 +25,6 @@ except ImportError:
             pass
 
 
-
 def get_git_version_info(fallback_version: str = "0.0.0") -> str:
     """
     Retrieves version information for the package from git.
@@ -128,6 +127,7 @@ if __name__ == "__main__":
 
 class VersionMetadataHook(MetadataHookInterface):
     from test_observer.common.config import VERSION
+
     def update(self, metadata: dict) -> None:
-        version = get_git_version_info(VERSION)
+        version = get_git_version_info(VersionMetadataHook.VERSION)
         metadata["version"] = version
