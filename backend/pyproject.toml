@@ -21,7 +21,7 @@ dynamic = ["version"] # uv-dynamic-versioning used
 requires-python = ">=3.12"
 
 dependencies = [
-    "fastapi>=0.115.0,<0.116.0",
+    "fastapi>=0.135.1,<0.136.0",
     "uvicorn[standard]>=0.21.1,<0.22.0",
     "sqlalchemy>=2.0.16,<3.0.0",
     "pg8000>=1.29.4,<2.0.0",
