@@ -32,7 +32,7 @@ dev_dependencies:
   dependency_validator: ^5.0.2
   build_runner: ^2.4.15
   freezed: ^3.0.6
-  custom_lint: ^0.7.5
+  custom_lint: 0.8.1
   riverpod_lint: ^2.6.5
   riverpod_generator: ^2.6.5
   json_serializable: ^6.9.5
