@@ -51,6 +51,7 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     IssueSource,
     IssueStatus,
+    NotificationType,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -156,6 +157,20 @@ class UserSession(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True)
     user: Mapped[User] = relationship(back_populates="sessions", foreign_keys=[user_id])
+
+
+class Notification(Base):
+    __tablename__ = "notification"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True)
+    notification_type: Mapped[NotificationType]
+    target_url: Mapped[str | None] = mapped_column(default=None)
+    dismissed_at: Mapped[datetime | None] = mapped_column(default=None)
+
+    user: Mapped[User] = relationship(foreign_keys=[user_id])
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "user_id", "notification_type")
 
 
 class Artefact(Base):
