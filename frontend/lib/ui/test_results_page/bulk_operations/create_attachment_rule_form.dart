@@ -103,7 +103,7 @@ class _CreateAttachmentRuleFormState
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(
                     'cancel',
-                    style: buttonFontStyle?.apply(color: Colors.grey),
+                    style: buttonFontStyle?.apply(color: Colors.black),
                   ),
                 ),
                 const Spacer(),

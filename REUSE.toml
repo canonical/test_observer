@@ -7,6 +7,7 @@ SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [
+    "backend/.vscode/settings.json",
     "backend/charm/.vscode/settings.json",
     "frontend/charm/.vscode/settings.json"
 ]
