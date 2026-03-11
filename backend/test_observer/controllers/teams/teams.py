@@ -117,7 +117,6 @@ def _team_to_response(team: Team) -> TeamResponse:
             )
             for user in team.members
         ],
-        reviewer_families=team.reviewer_families,
         artefact_matching_rules=[
             ArtefactMatchingRuleInResponse(
                 id=rule.id,
@@ -145,7 +144,6 @@ def create_team(
     team = Team(
         name=request.name,
         permissions=[p.value for p in request.permissions],
-        reviewer_families=request.reviewer_families,
     )
     db.add(team)
     try:
@@ -204,9 +202,6 @@ def update_team(
 
     if request.permissions:
         team.permissions = [p.value for p in request.permissions]
-
-    if request.reviewer_families is not None:
-        team.reviewer_families = request.reviewer_families
 
     if request.artefact_matching_rules is not None:
         _sync_artefact_matching_rules(db, team, request.artefact_matching_rules)

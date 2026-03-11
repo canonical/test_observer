@@ -6520,14 +6520,6 @@
             "title": "Permissions",
             "default": []
           },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
-          },
           "artefact_matching_rules": {
             "items": {
               "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
@@ -6577,14 +6569,6 @@
             },
             "type": "array",
             "title": "Permissions"
-          },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
           }
         },
         "type": "object",
@@ -6610,20 +6594,6 @@
               }
             ],
             "title": "Permissions"
-          },
-          "reviewer_families": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reviewer Families"
           },
           "artefact_matching_rules": {
             "anyOf": [
@@ -6659,14 +6629,6 @@
             },
             "type": "array",
             "title": "Permissions"
-          },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
           },
           "members": {
             "items": {
