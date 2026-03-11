@@ -4547,6 +4547,66 @@
         ],
         "title": "ArtefactBuildResponse"
       },
+      "ArtefactHistoryItemResponse": {
+        "properties": {
+          "artefact_id": {
+            "type": "integer",
+            "title": "Artefact Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "passed_deploy": {
+            "type": "boolean",
+            "title": "Passed Deploy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "artefact_id",
+          "name",
+          "version",
+          "stage",
+          "created_at",
+          "passed_deploy"
+        ],
+        "title": "ArtefactHistoryItemResponse"
+      },
+      "ArtefactHistoryResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactHistoryItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "ArtefactHistoryResponse"
+      },
       "ArtefactMatchingRuleBase": {
         "properties": {
           "family": {
