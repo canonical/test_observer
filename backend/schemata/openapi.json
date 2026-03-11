@@ -6527,14 +6527,6 @@
             "type": "array",
             "title": "Artefact Matching Rules",
             "default": []
-          },
-          "artefact_matching_rules": {
-            "items": {
-              "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
-            },
-            "type": "array",
-            "title": "Artefact Matching Rules",
-            "default": []
           }
         },
         "type": "object",
@@ -6602,20 +6594,6 @@
               }
             ],
             "title": "Permissions"
-          },
-          "artefact_matching_rules": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reviewer Families"
           },
           "artefact_matching_rules": {
             "anyOf": [
