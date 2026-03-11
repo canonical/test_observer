@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from test_observer.data_access.models import ArtefactBuild
 from test_observer.data_access.models_enums import FamilyName, StageName
 from test_observer.data_access.repository import get_artefacts_by_family
-from test_observer.promotion.promoter import promoter_controller
+from test_observer.promotion.promoter import process_artefact_promotions
 from tests.data_generator import DataGenerator
 
 
@@ -31,7 +31,8 @@ def _run_promoter(db_session: Session) -> None:
     """Test helper replicating run_promote_artefacts task: read → HTTP → write."""
     snap_artefacts = get_artefacts_by_family(db_session, FamilyName.snap)
     deb_artefacts = get_artefacts_by_family(db_session, FamilyName.deb)
-    promoter_controller(snap_artefacts, deb_artefacts)
+    db_session.expunge_all()  # detach before HTTP phase, mirroring production pattern
+    process_artefact_promotions(snap_artefacts, deb_artefacts)
     for artefact in snap_artefacts + deb_artefacts:
         db_session.merge(artefact)
     db_session.commit()

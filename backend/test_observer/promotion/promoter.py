@@ -15,6 +15,7 @@
 
 import itertools
 import logging
+from collections.abc import Sequence
 
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName, StageName
@@ -31,16 +32,19 @@ POCKET_PROMOTION_MAP = {
 }
 
 
-def promoter_controller(snap_artefacts: list, deb_artefacts: list) -> tuple[dict, dict]:
+def process_artefact_promotions(
+    snap_artefacts: Sequence[Artefact],
+    deb_artefacts: Sequence[Artefact],
+) -> tuple[dict[str, bool], dict[str, str]]:
     """
     Fetch promotion data for all artefacts via HTTP. Does not write to the database.
 
-    :snap_artefacts: List of snap Artefact objects (detached from any session)
-    :deb_artefacts: List of deb Artefact objects (detached from any session)
-    :return: tuple of dicts — processed statuses and error messages
+    :snap_artefacts: Snap Artefact objects (detached from any session)
+    :deb_artefacts: Deb Artefact objects (detached from any session)
+    :return: tuple of (processed statuses, error messages) keyed by artefact identifier
     """
-    processed_artefacts_status = {}
-    processed_artefacts_error_messages = {}
+    processed_artefacts_status: dict[str, bool] = {}
+    processed_artefacts_error_messages: dict[str, str] = {}
 
     for snap in snap_artefacts:
         artefact_key = f"{FamilyName.snap} - {snap.name} - {snap.version}"
@@ -53,13 +57,13 @@ def promoter_controller(snap_artefacts: list, deb_artefacts: list) -> tuple[dict
             processed_artefacts_error_messages[artefact_key] = str(exc)
             logger.warning("WARNING: %s", str(exc), exc_info=True)
 
-    for artefact in deb_artefacts:
-        artefact_key = f"{FamilyName.deb} - {artefact.name} - {artefact.version}"
+    for deb in deb_artefacts:
+        artefact_key = f"{FamilyName.deb} - {deb.name} - {deb.version}"
         try:
             processed_artefacts_status[artefact_key] = True
-            result = fetch_deb_promotion(artefact)
+            result = fetch_deb_promotion(deb)
             if result is not None:
-                _apply_deb_promotion(artefact, result)
+                _apply_deb_promotion(deb, result)
         except Exception as exc:
             processed_artefacts_status[artefact_key] = False
             processed_artefacts_error_messages[artefact_key] = str(exc)

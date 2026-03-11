@@ -13,9 +13,13 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from os import environ
+from typing import TYPE_CHECKING
 
 from celery import Celery, Task
 
@@ -27,15 +31,19 @@ from test_observer.external_apis.synchronizers.config import SyncConfig
 from test_observer.external_apis.synchronizers.factory import (
     create_synchronization_service,
 )
+from test_observer.external_apis.synchronizers.models import SyncResults
 from test_observer.external_apis.synchronizers.sync_strategy import SyncStrategy
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
 from test_observer.kernel_swm_integration.swm_reader import get_artefacts_swm_info
-from test_observer.promotion.promoter import promoter_controller
+from test_observer.promotion.promoter import process_artefact_promotions
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"
 broker_url = environ.get("CELERY_BROKER_URL", DEVELOPMENT_BROKER_URL)
@@ -66,8 +74,9 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 
 @app.task
 def integrate_with_kernel_swm():
+    # HTTP — no session open
+    swm_info = get_artefacts_swm_info()
     with SessionLocal() as db:
-        swm_info = get_artefacts_swm_info()
         update_artefacts_with_tracker_info(db, swm_info)
 
 
@@ -76,21 +85,26 @@ def run_promote_artefacts():
     with SessionLocal() as db:
         snap_artefacts = get_artefacts_by_family(db, FamilyName.snap)
         deb_artefacts = get_artefacts_by_family(db, FamilyName.deb)
+        db.expunge_all()  # detach objects before session closes so attributes remain accessible
 
     # HTTP — no session open
-    processed_status, error_messages = promoter_controller(snap_artefacts, deb_artefacts)
+    processed_status, error_messages = process_artefact_promotions(snap_artefacts, deb_artefacts)
 
-    # Write phase — re-merge detached objects and commit
-    with SessionLocal() as db:
-        for artefact in snap_artefacts + deb_artefacts:
-            db.merge(artefact)
-        db.commit()
+    # Write phase — one session per artefact so a single failure doesn't roll back others
+    for artefact in snap_artefacts + deb_artefacts:
+        artefact_key = f"{artefact.family} - {artefact.name} - {artefact.version}"
+        try:
+            with SessionLocal() as db:
+                db.merge(artefact)
+                db.commit()
+        except Exception as exc:
+            processed_status[artefact_key] = False
+            error_messages[artefact_key] = str(exc)
+            logger.error("Failed to write artefact %s: %s", artefact_key, exc)
 
     logger.info("INFO: Processed artefacts %s", processed_status)
     if False in processed_status.values():
-        logger.error(
-            {key: error_messages[key] for key, status in processed_status.items() if status is False}
-        )
+        logger.error({key: error_messages[key] for key, status in processed_status.items() if status is False})
 
 
 @app.task
@@ -117,6 +131,25 @@ def sync_low_priority_issues() -> dict:
     return _sync_issues_by_priority("low")
 
 
+def _apply_sync_results(
+    db: Session,
+    issues: Sequence[Issue],
+    results: SyncResults,
+) -> None:
+    """Apply HTTP sync results to freshly-fetched Issue rows within an open session."""
+    for issue, result in zip(issues, results.results, strict=True):
+        if result.success:
+            fresh = db.get(Issue, issue.id)
+            if fresh is not None:
+                if result.new_title is not None:
+                    fresh.title = result.new_title
+                if result.new_status is not None:
+                    fresh.status = result.new_status
+                if result.new_labels is not None:
+                    fresh.labels = result.new_labels
+                fresh.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
+
+
 def _sync_issues_by_priority(priority: str) -> dict:
     """Sync issues of a given priority in batches.
 
@@ -133,6 +166,7 @@ def _sync_issues_by_priority(priority: str) -> dict:
         while True:
             with SessionLocal() as db:
                 issues = SyncStrategy.get_issues_due_for_sync(db, batch_size=SyncConfig.BATCH_SIZE, priority=priority)
+                db.expunge_all()  # detach before session closes so attributes remain accessible
 
             if not issues:
                 break
@@ -145,17 +179,7 @@ def _sync_issues_by_priority(priority: str) -> dict:
 
             # Write phase
             with SessionLocal() as db:
-                for issue, result in zip(issues, results.results, strict=True):
-                    if result.success:
-                        fresh = db.get(Issue, issue.id)
-                        if fresh is not None:
-                            if result.new_title is not None:
-                                fresh.title = result.new_title
-                            if result.new_status is not None:
-                                fresh.status = result.new_status
-                            if result.new_labels is not None:
-                                fresh.labels = result.new_labels
-                            fresh.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
+                _apply_sync_results(db, issues, results)
                 db.commit()
 
             total_synced += results.total
@@ -188,6 +212,7 @@ def sync_all_issues() -> dict:
     try:
         with SessionLocal() as db:
             issues = db.query(Issue).all()
+            db.expunge_all()  # detach before session closes so attributes remain accessible
 
         # HTTP — no session open
         service = create_synchronization_service()
@@ -195,17 +220,7 @@ def sync_all_issues() -> dict:
 
         # Write phase
         with SessionLocal() as db:
-            for issue, result in zip(issues, results.results, strict=True):
-                if result.success:
-                    fresh = db.get(Issue, issue.id)
-                    if fresh is not None:
-                        if result.new_title is not None:
-                            fresh.title = result.new_title
-                        if result.new_status is not None:
-                            fresh.status = result.new_status
-                        if result.new_labels is not None:
-                            fresh.labels = result.new_labels
-                        fresh.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
+            _apply_sync_results(db, issues, results)
             db.commit()
 
         return {
@@ -228,6 +243,7 @@ def sync_issue_by_id(self: Task, issue_id: int) -> dict:
             issue = db.get(Issue, issue_id)
             if not issue:
                 return {"success": False, "error": "Issue not found"}
+            db.expunge(issue)  # detach before session closes so attributes remain accessible
 
         # HTTP — no session open
         service = create_synchronization_service()
@@ -235,16 +251,7 @@ def sync_issue_by_id(self: Task, issue_id: int) -> dict:
 
         # Write phase
         with SessionLocal() as db:
-            if result.success:
-                fresh = db.get(Issue, issue_id)
-                if fresh is not None:
-                    if result.new_title is not None:
-                        fresh.title = result.new_title
-                    if result.new_status is not None:
-                        fresh.status = result.new_status
-                    if result.new_labels is not None:
-                        fresh.labels = result.new_labels
-                    fresh.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
+            _apply_sync_results(db, [issue], SyncResults.from_results([result]))
             db.commit()
 
         return {
@@ -260,4 +267,3 @@ def sync_issue_by_id(self: Task, issue_id: int) -> dict:
 
 if __name__ == "__main__":
     app.start()
-
