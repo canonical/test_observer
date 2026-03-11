@@ -37,6 +37,33 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Update foreign key constraints to add CASCADE on delete
+    op.drop_constraint(
+        op.f('artefact_matching_rule_team_association_artefact_matching_rule_id_fkey'),
+        'artefact_matching_rule_team_association',
+        type_='foreignkey'
+    )
+    op.drop_constraint(
+        op.f('artefact_matching_rule_team_association_team_id_fkey'),
+        'artefact_matching_rule_team_association',
+        type_='foreignkey'
+    )
+    op.create_foreign_key(
+        None,
+        op.f('artefact_matching_rule_team_association'),
+        'artefact_matching_rule',
+        ['artefact_matching_rule_id'],
+        ['id'],
+        ondelete='CASCADE'
+    )
+    op.create_foreign_key(
+        None,
+        op.f('artefact_matching_rule_team_association'),
+        'team',
+        ['team_id'],
+        ['id']
+    )
+
     # Create a connection to execute raw SQL
     connection = op.get_bind()
     
