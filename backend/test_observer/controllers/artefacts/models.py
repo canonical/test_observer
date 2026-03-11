@@ -165,21 +165,13 @@ class ArtefactSearchResponse(BaseModel):
     offset: int
 
 
-class ArtefactLatestTestsSummaryResponse(BaseModel):
-    all_passed: bool
-    execution_count: int
-    passed_count: int
-    failed_count: int
-    in_progress_count: int
-
-
 class ArtefactHistoryItemResponse(BaseModel):
     artefact_id: int
     name: str
     version: str
     stage: str
     created_at: datetime
-    latest_tests: ArtefactLatestTestsSummaryResponse
+    passed_deploy: bool
 
 
 class ArtefactHistoryResponse(BaseModel):

@@ -1051,6 +1051,19 @@
               "title": "Limit"
             },
             "description": "Maximum number of results (defaults to 10 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
           }
         ],
         "responses": {

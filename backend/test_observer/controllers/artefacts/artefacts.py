@@ -16,14 +16,17 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import distinct, func, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import distinct, exists, func, select
+from sqlalchemy.orm import Session, aliased, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
+    TestCase,
+    TestExecution,
+    TestResult,
     User,
 )
 from test_observer.data_access.models_enums import (
@@ -47,7 +50,6 @@ from .logic import (
 from .models import (
     ArtefactHistoryItemResponse,
     ArtefactHistoryResponse,
-    ArtefactLatestTestsSummaryResponse,
     ArtefactPatch,
     ArtefactResponse,
     ArtefactSearchResponse,
@@ -159,6 +161,10 @@ def get_artefact_history(
         int, 
         Query(ge=1, le=500, description="Maximum number of results (defaults to 10 if not specified)")
         ] = 10,
+    offset: Annotated[
+        int, 
+        Query(ge=0, description="Number of results to skip for pagination")
+        ] = 0,
     db: Session = Depends(get_db),
 ) -> ArtefactHistoryResponse:
     query = (
@@ -166,9 +172,9 @@ def get_artefact_history(
         .where(Artefact.name == name)
         .where(Artefact.track == track)
         .where(Artefact.family == family)
-        .where(Artefact.archived.is_(False))
         .order_by(Artefact.id.desc())
         .limit(limit)
+        .offset(offset)
         .options(selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions))
     )
 
@@ -186,28 +192,43 @@ def get_artefact_history(
                 version=artefact.version,
                 stage=artefact.stage,
                 created_at=artefact.created_at,
-                latest_tests=_get_latest_tests_summary(artefact),
+                passed_deploy=_get_latest_tests_summary(artefact, db),
             )
             for artefact in artefacts
         ],
     )
 
 
-def _get_latest_tests_summary(artefact: Artefact) -> ArtefactLatestTestsSummaryResponse:
-    test_executions = [te for build in artefact.latest_builds for te in build.test_executions]
+def _get_latest_tests_summary(artefact: Artefact, db: Session) -> bool:
+    latest_build_ids = [build.id for build in artefact.latest_builds]
+    if not latest_build_ids:
+        return False
 
-    execution_count = len(test_executions)
-    passed_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.PASSED)
-    failed_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.FAILED)
-    in_progress_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.IN_PROGRESS)
-
-    return ArtefactLatestTestsSummaryResponse(
-        all_passed=(execution_count > 0 and passed_count == execution_count),
-        execution_count=execution_count,
-        passed_count=passed_count,
-        failed_count=failed_count,
-        in_progress_count=in_progress_count,
+    newer_execution = aliased(TestExecution)
+    newer_execution_exists = exists(
+        select(1)
+        .select_from(newer_execution)
+        .where(
+            TestExecution.test_plan_id == newer_execution.test_plan_id,
+            TestExecution.artefact_build_id == newer_execution.artefact_build_id,
+            TestExecution.environment_id == newer_execution.environment_id,
+            TestExecution.id < newer_execution.id,
+        )
     )
+
+    test_executions = db.scalars(
+        select(TestExecution)
+        .join(TestExecution.test_results)
+        .join(TestResult.test_case)
+        .where(TestExecution.artefact_build_id.in_(latest_build_ids))
+        .where(TestCase.name == "test_deploy")
+        .where(~newer_execution_exists)
+        .distinct()
+    ).all()
+
+    passed_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.PASSED)
+
+    return passed_count >= 1
 
 
 @router.get(

@@ -29,6 +29,7 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
     TestExecutionStatus,
+    TestResultStatus,
 )
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -751,7 +752,10 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
     )
 
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/artefacts/history", params={"name": "postgresql-k8s", "family": FamilyName.charm}),
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "postgresql-k8s", "family": FamilyName.charm, "offset": 0},
+        ),
         Permission.view_artefact,
     )
 
@@ -773,7 +777,10 @@ def test_get_artefact_history_limit(test_client: TestClient, generator: DataGene
         )
 
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/artefacts/history", params={"name": "postgresql-k8s", "family": FamilyName.charm, "limit": 5}),
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "postgresql-k8s", "family": FamilyName.charm, "limit": 5, "offset": 0},
+        ),
         Permission.view_artefact,
     )
 
@@ -802,7 +809,7 @@ def test_get_artefact_history_filters_by_stage(test_client: TestClient, generato
     response = make_authenticated_request(
         lambda: test_client.get(
             "/v1/artefacts/history",
-            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": StageName.beta},
+            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": StageName.beta, "offset": 0},
         ),
         Permission.view_artefact,
     )
@@ -814,7 +821,7 @@ def test_get_artefact_history_filters_by_stage(test_client: TestClient, generato
     assert body["items"][0]["stage"] == StageName.beta
 
 
-def test_get_artefact_history_includes_latest_tests_summary(test_client: TestClient, generator: DataGenerator):
+def test_get_artefact_history_includes_passed_deploy(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(
         family=FamilyName.charm,
         name="redis-k8s",
@@ -823,32 +830,63 @@ def test_get_artefact_history_includes_latest_tests_summary(test_client: TestCli
         stage=StageName.edge,
     )
 
-    # Older build revision should not be included in summary.
+    # Older build revision should not be included in latest build selection.
     old_build = generator.gen_artefact_build(artefact=artefact, revision=1)
     new_build = generator.gen_artefact_build(artefact=artefact, revision=2)
     env1 = generator.gen_environment(name="env-1")
     env2 = generator.gen_environment(name="env-2")
-    env3 = generator.gen_environment(name="env-3")
+    tc_deploy = generator.gen_test_case(name="test_deploy")
 
-    generator.gen_test_execution(old_build, env1, status=TestExecutionStatus.FAILED)
-    generator.gen_test_execution(new_build, env1, status=TestExecutionStatus.PASSED)
-    generator.gen_test_execution(new_build, env2, status=TestExecutionStatus.FAILED)
-    generator.gen_test_execution(new_build, env3, status=TestExecutionStatus.NOT_TESTED)
+    old_exec = generator.gen_test_execution(old_build, env1, status=TestExecutionStatus.FAILED)
+    new_exec_1 = generator.gen_test_execution(new_build, env1, status=TestExecutionStatus.PASSED)
+    new_exec_2 = generator.gen_test_execution(new_build, env2, status=TestExecutionStatus.FAILED)
+
+    generator.gen_test_result(tc_deploy, old_exec, status=TestResultStatus.FAILED)
+    generator.gen_test_result(tc_deploy, new_exec_1, status=TestResultStatus.PASSED)
+    generator.gen_test_result(tc_deploy, new_exec_2, status=TestResultStatus.FAILED)
 
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/artefacts/history", params={"name": "redis-k8s", "family": FamilyName.charm}),
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "redis-k8s", "family": FamilyName.charm, "offset": 0},
+        ),
         Permission.view_artefact,
     )
 
     assert response.status_code == 200
-    summary = response.json()["items"][0]["latest_tests"]
-    assert summary == {
-        "all_passed": False,
-        "execution_count": 3,
-        "passed_count": 1,
-        "failed_count": 1,
-        "in_progress_count": 0,
-    }
+    assert response.json()["items"][0]["passed_deploy"] is True
+
+
+def test_get_artefact_history_uses_latest_execution_per_scope(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="vault-k8s",
+        version="10",
+        track="latest",
+        stage=StageName.edge,
+    )
+
+    build = generator.gen_artefact_build(artefact=artefact, revision=2)
+    env = generator.gen_environment(name="env-1")
+    tc_deploy = generator.gen_test_case(name="test_deploy")
+
+    # Same scope (test_plan/build/environment): latest execution should win.
+    execution_old = generator.gen_test_execution(build, env, status=TestExecutionStatus.FAILED, test_plan="smoke")
+    execution_new = generator.gen_test_execution(build, env, status=TestExecutionStatus.PASSED, test_plan="smoke")
+
+    generator.gen_test_result(tc_deploy, execution_old, status=TestResultStatus.FAILED)
+    generator.gen_test_result(tc_deploy, execution_new, status=TestResultStatus.PASSED)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "vault-k8s", "family": FamilyName.charm, "offset": 0},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["passed_deploy"] is True
 
 
 def _assert_get_artefacts_response(response_json: list[dict[str, Any]], artefacts: list[Artefact]) -> None:
