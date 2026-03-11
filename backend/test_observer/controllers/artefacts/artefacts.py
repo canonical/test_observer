@@ -167,6 +167,13 @@ def get_artefact_history(
         ] = 0,
     db: Session = Depends(get_db),
 ) -> ArtefactHistoryResponse:
+    """
+    Get the versioning history of an artefact for a given name, family, and track,
+    optionally filtered by stage, with pagination support.
+
+    Returns a list of artefact versions along with their creation date and 
+    whether they passed deployment tests.
+    """
     query = (
         select(Artefact)
         .where(Artefact.name == name)

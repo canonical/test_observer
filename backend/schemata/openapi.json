@@ -985,6 +985,7 @@
           "artefacts"
         ],
         "summary": "Get Artefact History",
+        "description": "Get the versioning history of an artefact for a given name, family, and track,\noptionally filtered by stage, with pagination support.\n\nReturns a list of artefact versions along with their creation date and \nwhether they passed deployment tests.",
         "operationId": "get_artefact_history_v1_artefacts_history_get",
         "parameters": [
           {
