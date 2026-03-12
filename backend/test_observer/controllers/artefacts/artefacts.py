@@ -44,6 +44,8 @@ from .logic import (
     is_there_a_rejected_environment,
 )
 from .models import (
+    ArtefactHistoryItemResponse,
+    ArtefactHistoryResponse,
     ArtefactPatch,
     ArtefactResponse,
     ArtefactSearchResponse,
@@ -138,6 +140,63 @@ def search_artefacts(
         count=total_count,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get(
+    "/history",
+    response_model=ArtefactHistoryResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
+)
+def get_artefact_history(
+    name: Annotated[str, Query(description="Artefact name")],
+    family: Annotated[FamilyName, Query(description="Artefact family")],
+    track: Annotated[str, Query(description="Artefact track")] = "latest",
+    stage: Annotated[StageName | None, Query(description="Filter by stage")] = None,
+    limit: Annotated[
+        int, 
+        Query(ge=1, le=500, description="Maximum number of results (defaults to 10 if not specified)")
+        ] = 10,
+    offset: Annotated[
+        int, 
+        Query(ge=0, description="Number of results to skip for pagination")
+        ] = 0,
+    db: Session = Depends(get_db),
+) -> ArtefactHistoryResponse:
+    """
+    Get the versioning history of an artefact for a given name, family, and track,
+    optionally filtered by stage, with pagination support.
+
+    Returns a list of artefact versions along with their creation date.
+    """
+    query = (
+        select(Artefact)
+        .where(Artefact.name == name)
+        .where(Artefact.track == track)
+        .where(Artefact.family == family)
+        .order_by(Artefact.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .options(selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions))
+    )
+
+    if stage is not None:
+        query = query.where(Artefact.stage == stage)
+
+    artefacts = db.scalars(query).all()
+
+    return ArtefactHistoryResponse(
+        count=len(artefacts),
+        items=[
+            ArtefactHistoryItemResponse(
+                artefact_id=artefact.id,
+                name=artefact.name,
+                version=artefact.version,
+                stage=artefact.stage,
+                created_at=artefact.created_at,
+            )
+            for artefact in artefacts
+        ],
     )
 
 

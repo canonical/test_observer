@@ -165,6 +165,19 @@ class ArtefactSearchResponse(BaseModel):
     offset: int
 
 
+class ArtefactHistoryItemResponse(BaseModel):
+    artefact_id: int
+    name: str
+    version: str
+    stage: str
+    created_at: datetime
+
+
+class ArtefactHistoryResponse(BaseModel):
+    count: int
+    items: list[ArtefactHistoryItemResponse]
+
+
 class ArtefactBuildEnvironmentReviewResponse(BaseModel):
     id: int
     review_decision: list[ArtefactBuildEnvironmentReviewDecision]
