@@ -204,10 +204,10 @@ def update_artefact_matching_rule(
     # Check if updated rule would conflict with existing rule
     existing_rule = db.execute(
         select(ArtefactMatchingRule).where(
-            ArtefactMatchingRule.family == request.family,
-            ArtefactMatchingRule.stage == request.stage,
-            ArtefactMatchingRule.track == request.track,
-            ArtefactMatchingRule.branch == request.branch,
+            ArtefactMatchingRule.family == (request.family if request.family is not None else rule.family),
+            ArtefactMatchingRule.stage == (request.stage if request.stage is not None else rule.stage),
+            ArtefactMatchingRule.track == (request.track if request.track is not None else rule.track),
+            ArtefactMatchingRule.branch == (request.branch if request.branch is not None else rule.branch),
             ArtefactMatchingRule.id != rule_id,
         )
     ).scalar_one_or_none()

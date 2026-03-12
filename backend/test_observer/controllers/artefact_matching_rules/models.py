@@ -25,18 +25,18 @@ from test_observer.data_access.models_enums import FamilyName
 class ArtefactMatchingRuleBase(BaseModel):
     """Base model for artefact matching rule with common fields"""
     family: FamilyName
-    stage: str | None = None
-    track: str | None = None
-    branch: str | None = None
+    stage: str = ""
+    track: str = ""
+    branch: str = ""
 
 
 class ArtefactMatchingRuleInResponse(BaseModel):
     """Artefact matching rule fields when included in responses (no relationships)"""
     id: int
     family: FamilyName
-    stage: str | None
-    track: str | None
-    branch: str | None
+    stage: str
+    track: str
+    branch: str
 
 
 class TeamMinimal(BaseModel):
@@ -48,9 +48,9 @@ class ArtefactMatchingRuleResponse(BaseModel):
     """Artefact matching rule with associated teams"""
     id: int
     family: FamilyName
-    stage: str | None
-    track: str | None
-    branch: str | None
+    stage: str
+    track: str
+    branch: str
     teams: list[TeamMinimal]
 
 
