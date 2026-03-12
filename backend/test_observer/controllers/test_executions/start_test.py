@@ -47,6 +47,8 @@ from .models import (
 
 router = APIRouter()
 
+ENVIRONMENTS_PER_REVIEWER = 50
+
 
 class StartTestExecutionController:
     def __init__(
@@ -112,8 +114,12 @@ class StartTestExecutionController:
                     .distinct()
                 ).scalars().all())
 
+                # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
+                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
+                expected_number_of_reviewers = (environment_count + ENVIRONMENTS_PER_REVIEWER - 1) // ENVIRONMENTS_PER_REVIEWER
+
                 if users:
-                    self.artefact.reviewers = [random.choice(users)]
+                    self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
                     self.artefact.due_date = self.determine_due_date()
                     self.db.commit()
 
