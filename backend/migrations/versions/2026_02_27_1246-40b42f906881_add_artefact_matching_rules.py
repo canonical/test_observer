@@ -46,7 +46,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('artefact_matching_rule_pkey')),
-    sa.UniqueConstraint('family', 'stage', 'track', 'branch', name=op.f('artefact_matching_rule_family_stage_track_branch_key'), postgresql_nulls_not_distinct=True)
+    sa.UniqueConstraint('family', 'stage', 'track', 'branch', name=op.f('artefact_matching_rule_family_stage_track_branch_key'))
     )
     op.create_table('artefact_matching_rule_team_association',
     sa.Column('artefact_matching_rule_id', sa.Integer(), nullable=False),
