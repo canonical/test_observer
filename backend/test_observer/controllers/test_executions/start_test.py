@@ -79,7 +79,7 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
-        if self.request.needs_assignment and self.artefact.assignee_id is None:
+        if self.request.needs_assignment and len(self.artefact.reviewers) == 0:
             # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
 
@@ -110,7 +110,7 @@ class StartTestExecutionController:
                 ).scalars().all())
 
                 if users:
-                    self.artefact.assignee = random.choice(users)
+                    self.artefact.reviewers = [random.choice(users)]
                     self.artefact.due_date = self.determine_due_date()
                     self.db.commit()
 

@@ -158,7 +158,7 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assert test_execution.artefact_build.artefact.assignee is None
+        assert test_execution.artefact_build.artefact.reviewers == []
         assert test_execution.artefact_build.artefact.due_date is None
 
     def test_new_artefacts_get_assigned_a_reviewer(
@@ -180,7 +180,7 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assignee = test_execution.artefact_build.artefact.assignee
+        assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
         assert assignee is not None
         assert assignee.launchpad_handle == user.launchpad_handle
 
@@ -194,7 +194,7 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assignee = test_execution.artefact_build.artefact.assignee
+        assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
         assert assignee is None
 
     def test_deletes_rerun_requests(self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]):
@@ -532,7 +532,7 @@ def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Exe
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
     assert assignee is not None
     # Check that assignee is in charm_team
     assert any(team.id == charm_team.id for team in assignee.teams)
@@ -571,7 +571,7 @@ def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execu
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
     assert assignee is not None
     assert any(team.id == snap_team.id for team in assignee.teams)
     assert assignee.id == snap_reviewer.id
@@ -609,7 +609,7 @@ def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
     assert assignee is not None
     assert any(team.id == deb_team.id for team in assignee.teams)
     assert assignee.id == deb_reviewer.id
@@ -647,7 +647,7 @@ def test_image_assigned_to_image_team_reviewer(db_session: Session, execute: Exe
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
     assert assignee is not None
     assert any(team.id == image_team.id for team in assignee.teams)
     assert assignee.id == image_reviewer.id
@@ -728,5 +728,5 @@ def test_no_assignment_when_no_team_reviewers_available(
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
     assert assignee is None

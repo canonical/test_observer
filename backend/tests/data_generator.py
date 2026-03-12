@@ -139,7 +139,7 @@ class DataGenerator:
         archived: bool = False,
         bug_link: str = "",
         due_date: date | None = None,
-        assignee_id: int | None = None,
+        reviewers: list[User] | None = None,
     ) -> Artefact:
         family = FamilyName(family)
 
@@ -154,6 +154,7 @@ class DataGenerator:
                 track = track or "latest"
 
         created_at = created_at or datetime.utcnow()
+        reviewers = reviewers or []
 
         artefact = Artefact(
             name=name,
@@ -171,7 +172,7 @@ class DataGenerator:
             archived=archived,
             bug_link=bug_link,
             due_date=due_date,
-            assignee_id=assignee_id,
+            reviewers=reviewers,
         )
         self._add_object(artefact)
         return artefact
@@ -190,7 +191,7 @@ class DataGenerator:
         status: ArtefactStatus = ArtefactStatus.UNDECIDED,
         bug_link: str = "",
         due_date: date | None = None,
-        assignee_id: int | None = None,
+        reviewers: list[User] | None = None,
     ):
         image = Artefact(
             name=name,
@@ -206,7 +207,7 @@ class DataGenerator:
             status=status,
             bug_link=bug_link,
             due_date=due_date,
-            assignee_id=assignee_id,
+            reviewers=reviewers or [],
         )
         self._add_object(image)
         return image

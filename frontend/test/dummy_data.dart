@@ -39,7 +39,7 @@ const dummyArtefact = Artefact(
   repo: '',
   status: ArtefactStatus.undecided,
   stage: StageName.beta,
-  assignee: dummyUser,
+  reviewers: [dummyUser],
   bugLink: '',
   allEnvironmentReviewsCount: 1,
   completedEnvironmentReviewsCount: 0,
