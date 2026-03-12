@@ -16,7 +16,7 @@
 """Add notifications
 
 Revision ID: 983168a63271
-Revises: a1b2c3d4e5f6
+Revises: 3514f071a2e5
 Create Date: 2026-03-10 16:18:40.152277+00:00
 
 """
@@ -26,7 +26,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '983168a63271'
-down_revision = 'a1b2c3d4e5f6'
+down_revision = '3514f071a2e5'
 branch_labels = None
 depends_on = None
 
