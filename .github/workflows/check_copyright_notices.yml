@@ -32,7 +32,7 @@ jobs:
   check-notices:
     runs-on: [self-hosted, linux, large, jammy, x64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check Copyright and License Notices
         # By default, the action runs `reuse lint`, which checks all files
         uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6

@@ -33,7 +33,7 @@ jobs:
     name: Lint and format report
     runs-on: [self-hosted, linux, large, jammy, x64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -46,7 +46,7 @@ jobs:
     name: Static analysis
     runs-on: [self-hosted, linux, jammy, x64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -59,7 +59,7 @@ jobs:
     name: Unit tests
     runs-on: [self-hosted, linux, jammy, x64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox

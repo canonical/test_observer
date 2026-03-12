@@ -47,7 +47,7 @@ jobs:
               mirrors = ["https://github-runner-dockerhub-cache.canonical.com:5000"]
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Determine tag
         id: tag
@@ -95,7 +95,7 @@ jobs:
     runs-on: [self-hosted, linux, xlarge, jammy, x64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Determine channel
         id: channel
