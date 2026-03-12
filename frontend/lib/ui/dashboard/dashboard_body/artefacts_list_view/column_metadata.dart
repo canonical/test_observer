@@ -72,7 +72,7 @@ const _snapColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -135,7 +135,7 @@ const _debColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -192,7 +192,7 @@ const _charmColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -249,7 +249,7 @@ const _imageColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -294,8 +294,16 @@ Widget _buildStatusCell(BuildContext context, Artefact artefact) {
   );
 }
 
-Widget _buildAssigneeCell(BuildContext context, Artefact artefact) =>
-    Text(artefact.assignee.name);
+Widget _buildAssigneeCell(BuildContext context, Artefact artefact) {
+  if (artefact.reviewers.isEmpty) {
+    return const Text('N/A');
+  }
+  if (artefact.reviewers.length == 1) {
+    return Text(artefact.reviewers.first.name);
+  }
+  // Show count for multiple reviewers
+  return Text('${artefact.reviewers.length} reviewers');
+}
 
 Widget _buildOSCell(BuildContext context, Artefact artefact) =>
     Text(artefact.os);
