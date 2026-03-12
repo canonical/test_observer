@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 # ruff: noqa: T201
 
@@ -33,9 +31,7 @@ requests.request = functools.partial(requests.request, timeout=30)  # type: igno
 
 
 def main(artefact_id: int):
-    artefact_builds = requests.get(
-        f"{TO_API_URL}/v1/artefacts/{artefact_id}/builds"
-    ).json()
+    artefact_builds = requests.get(f"{TO_API_URL}/v1/artefacts/{artefact_id}/builds").json()
 
     relevant_test_executions = [
         te
@@ -46,15 +42,9 @@ def main(artefact_id: int):
 
     failing_test_cases: list[str] = []
     for i, te in enumerate(relevant_test_executions):
-        test_results = requests.get(
-            f"{TO_API_URL}/v1/test-executions/{te['id']}/test-results"
-        ).json()
+        test_results = requests.get(f"{TO_API_URL}/v1/test-executions/{te['id']}/test-results").json()
 
-        failing_test_cases.extend(
-            tr["template_id"] or tr["name"]
-            for tr in test_results
-            if tr["status"] == "FAILED"
-        )
+        failing_test_cases.extend(tr["template_id"] or tr["name"] for tr in test_results if tr["status"] == "FAILED")
 
         sys.stdout.write("\r")
         sys.stdout.write(f"{i + 1}/{len(relevant_test_executions)}")

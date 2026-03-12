@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Fixtures for testing"""
 
@@ -25,13 +23,13 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_utils import (  # type: ignore
     create_database,
     drop_database,
 )
-from httpx import Response
 
 from test_observer.common.permissions import Permission
 from test_observer.controllers.applications.application_injection import (
@@ -86,9 +84,7 @@ def db_url():
     # Find the first host that we can connect to
     selected_host = None
     for host in hosts:
-        if _check_postgres_connection(
-            host, db_params["port"], db_params["user"], db_params["password"]
-        ):
+        if _check_postgres_connection(host, db_params["port"], db_params["user"], db_params["password"]):
             selected_host = host
             break
 
@@ -167,18 +163,14 @@ def test_execution(generator: DataGenerator) -> TestExecution:
 @contextmanager
 def override_permissions(*permissions: Permission):
     """Context manager for temporarily overriding permissions"""
-    app.dependency_overrides[get_current_application] = lambda: Application(
-        name="override", permissions=permissions
-    )
+    app.dependency_overrides[get_current_application] = lambda: Application(name="override", permissions=permissions)
     try:
         yield
     finally:
         del app.dependency_overrides[get_current_application]
 
 
-def make_authenticated_request(
-    request_func: Callable[[], Response], *permissions: Permission
-):
+def make_authenticated_request(request_func: Callable[[], Response], *permissions: Permission):
     # First, make sure the endpoint returns 403 without permissions
     assert request_func().status_code == 403
     with override_permissions(*permissions):

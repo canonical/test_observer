@@ -1,21 +1,24 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from unittest.mock import Mock
+
 import pytest
+from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
@@ -23,8 +26,6 @@ from test_observer.external_apis.synchronizers.base import (
 from test_observer.external_apis.synchronizers.service import (
     IssueSynchronizationService,
 )
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
-from sqlalchemy.orm import Session
 
 
 def test_service_initialization_requires_synchronizers():
@@ -41,7 +42,7 @@ def test_service_routes_to_correct_synchronizer(db_session: Session):
 
     jira_sync = Mock(spec=BaseIssueSynchronizer)
     jira_sync.can_sync.return_value = True
-    jira_sync.sync_issue.return_value = SyncResult(success=True)
+    jira_sync.fetch_issue_update.return_value = SyncResult(success=True)
 
     # Create service
     service = IssueSynchronizationService([github_sync, jira_sync])
@@ -59,12 +60,12 @@ def test_service_routes_to_correct_synchronizer(db_session: Session):
     db_session.refresh(issue)
 
     # Sync issue
-    result = service.sync_issue(issue, db_session)
+    result = service.sync_issue(issue)
 
     # Verify correct synchronizer was used
     assert github_sync.can_sync.called
     assert jira_sync.can_sync.called
-    assert jira_sync.sync_issue.called
+    assert jira_sync.fetch_issue_update.called
     assert result.success is True
 
 
@@ -90,7 +91,7 @@ def test_service_handles_no_matching_synchronizer(db_session: Session):
     db_session.refresh(issue)
 
     # Sync issue
-    result = service.sync_issue(issue, db_session)
+    result = service.sync_issue(issue)
 
     # Verify error result
     assert result.success is False
@@ -98,12 +99,12 @@ def test_service_handles_no_matching_synchronizer(db_session: Session):
     assert "No synchronizer available" in result.error
 
 
-def test_sync_all_issues(db_session: Session):
-    """Test syncing all issues in database"""
+def test_sync_issues_batch_routes_correctly(db_session: Session):
+    """Test syncing a batch of issues"""
     # Create mock synchronizer
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=True, title_updated=True)
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=True, new_title="Updated Title")
 
     # Create service
     service = IssueSynchronizationService([mock_sync])
@@ -126,8 +127,8 @@ def test_sync_all_issues(db_session: Session):
     db_session.add_all([issue1, issue2])
     db_session.commit()
 
-    # Sync all issues
-    results = service.sync_all_issues(db_session)
+    # Sync batch (HTTP only — no DB writes)
+    results = service.sync_issues_batch([issue1, issue2])
 
     # Verify results
     assert results.total == 2
