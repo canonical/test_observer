@@ -20,7 +20,7 @@
 """Change assignee to reviewers
 
 Revision ID: 3514f071a2e5
-Revises: a1b2c3d4e5f6
+Revises: 40b42f906881
 Create Date: 2026-02-24 17:44:00.000000+00:00
 
 """
@@ -30,7 +30,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "3514f071a2e5"
-down_revision = "a1b2c3d4e5f6"
+down_revision = ("40b42f906881", "e9ada0b8b7a4")
 branch_labels = None
 depends_on = None
 
