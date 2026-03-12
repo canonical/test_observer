@@ -16,17 +16,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import distinct, exists, func, select
-from sqlalchemy.orm import Session, aliased, selectinload
+from sqlalchemy import distinct, func, select
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
-    TestCase,
-    TestExecution,
-    TestResult,
     User,
 )
 from test_observer.data_access.models_enums import (
@@ -37,7 +34,6 @@ from test_observer.data_access.models_enums import (
     ImageStage,
     SnapStage,
     StageName,
-    TestExecutionStatus,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
