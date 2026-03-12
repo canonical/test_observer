@@ -19,9 +19,9 @@ import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from os import environ
-from typing import TYPE_CHECKING
 
 from celery import Celery, Task
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue
 from test_observer.data_access.models_enums import FamilyName
@@ -41,9 +41,6 @@ from test_observer.promotion.promoter import process_artefact_promotions
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
 
 DEVELOPMENT_BROKER_URL = "redis://test-observer-redis"
 broker_url = environ.get("CELERY_BROKER_URL", DEVELOPMENT_BROKER_URL)
