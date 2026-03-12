@@ -94,9 +94,36 @@ team_users_association = Table(
 )
 
 
+artefact_reviewers_association = Table(
+    "artefact_reviewers_association",
+    Base.metadata,
+    Column(
+        "artefact_id",
+        ForeignKey("artefact.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "user_id",
+        ForeignKey("app_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
+artefact_matching_rule_team_association = Table(
+    "artefact_matching_rule_team_association",
+    Base.metadata,
+    Column(
+        "artefact_matching_rule_id",
+        ForeignKey("artefact_matching_rule.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("team_id", ForeignKey("team.id"), primary_key=True),
+)
+
+
 class User(Base):
     """
-    ORM representing users that can be assigned to review artefacts
+    ORM representing users that can review artefacts
     """
 
     # user is a reserved name in PostgreSQL
@@ -107,9 +134,15 @@ class User(Base):
     name: Mapped[str]
     is_admin: Mapped[bool] = mapped_column(default=False)
 
-    assignments: Mapped[list["Artefact"]] = relationship(back_populates="assignee")
-    sessions: Mapped[list["UserSession"]] = relationship(back_populates="user", cascade="all, delete")
-    teams: Mapped[list["Team"]] = relationship(secondary=team_users_association, back_populates="members")
+    artefact_reviews: Mapped[list["Artefact"]] = relationship(
+        secondary=artefact_reviewers_association, back_populates="reviewers"
+    )
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user", cascade="all, delete"
+    )
+    teams: Mapped[list["Team"]] = relationship(
+        secondary=team_users_association, back_populates="members"
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
@@ -142,12 +175,45 @@ class Team(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    reviewer_families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
-    members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
+    members: Mapped[list[User]] = relationship(
+        secondary=team_users_association, back_populates="teams"
+    )
+    artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="teams",
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")
+
+
+class ArtefactMatchingRule(Base):
+    """
+    A model to define rules for matching artefacts to reviewer teams.
+    Teams can have multiple matching rules to specify which artefacts they can review.
+    """
+
+    __tablename__ = "artefact_matching_rule"
+
+    family: Mapped[FamilyName]
+    stage: Mapped[str | None] = mapped_column(String(100), default=None)
+    track: Mapped[str | None] = mapped_column(String(200), default=None)
+    branch: Mapped[str | None] = mapped_column(String(200), default=None)
+
+    teams: Mapped[list[Team]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="artefact_matching_rules",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "family", "stage", "track", "branch", postgresql_nulls_not_distinct=True
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "family", "stage", "track", "branch")
 
 
 class UserSession(Base):
@@ -209,9 +275,12 @@ class Artefact(Base):
     image_url: Mapped[str] = mapped_column(String(200), default="")
 
     # Relationships
-    builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
-    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"), index=True)
-    assignee: Mapped[User | None] = relationship(back_populates="assignments")
+    builds: Mapped[list["ArtefactBuild"]] = relationship(
+        back_populates="artefact", cascade="all, delete"
+    )
+    reviewers: Mapped[list[User]] = relationship(
+        secondary=artefact_reviewers_association, back_populates="artefact_reviews"
+    )
 
     @property
     def architectures(self) -> set[str]:

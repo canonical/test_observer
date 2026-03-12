@@ -22,6 +22,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
+    ArtefactMatchingRule,
     Environment,
     Issue,
     Team,
@@ -58,17 +59,36 @@ class DataGenerator:
         self,
         name: str = "canonical",
         permissions: list[str] | None = None,
-        reviewer_families: list[str] | None = None,
         members: list[User] | None = None,
+        artefact_matching_rules: list[ArtefactMatchingRule] | None = None,
     ) -> Team:
         team = Team(
             name=name,
             permissions=permissions or [],
-            reviewer_families=reviewer_families or [],
+            artefact_matching_rules=artefact_matching_rules or [],
             members=members or [],
         )
         self._add_object(team)
         return team
+
+    def gen_artefact_matching_rule(
+        self,
+        family: FamilyName,
+        stage: str | None = None,
+        track: str | None = None,
+        branch: str | None = None,
+        teams: list[Team] | None = None,
+    ) -> ArtefactMatchingRule:
+        teams = teams or []
+        rule = ArtefactMatchingRule(
+            family=family,
+            stage=stage,
+            track=track,
+            branch=branch,
+            teams=teams,
+        )
+        self._add_object(rule)
+        return rule
 
     def gen_user(
         self,
@@ -119,7 +139,7 @@ class DataGenerator:
         archived: bool = False,
         bug_link: str = "",
         due_date: date | None = None,
-        assignee_id: int | None = None,
+        reviewers: list[User] | None = None,
     ) -> Artefact:
         family = FamilyName(family)
 
@@ -134,6 +154,7 @@ class DataGenerator:
                 track = track or "latest"
 
         created_at = created_at or datetime.utcnow()
+        reviewers = reviewers or []
 
         artefact = Artefact(
             name=name,
@@ -151,7 +172,7 @@ class DataGenerator:
             archived=archived,
             bug_link=bug_link,
             due_date=due_date,
-            assignee_id=assignee_id,
+            reviewers=reviewers,
         )
         self._add_object(artefact)
         return artefact
@@ -170,7 +191,7 @@ class DataGenerator:
         status: ArtefactStatus = ArtefactStatus.UNDECIDED,
         bug_link: str = "",
         due_date: date | None = None,
-        assignee_id: int | None = None,
+        reviewers: list[User] | None = None,
     ):
         image = Artefact(
             name=name,
@@ -186,7 +207,7 @@ class DataGenerator:
             status=status,
             bug_link=bug_link,
             due_date=due_date,
-            assignee_id=assignee_id,
+            reviewers=reviewers or [],
         )
         self._add_object(image)
         return image

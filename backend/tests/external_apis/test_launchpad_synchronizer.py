@@ -90,14 +90,14 @@ def test_sync_issue_updates_title_and_status(db_session: Session):
     assert "launchpad" in issue.url
 
     # Sync the issue
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify results
     assert result.success is True
     assert result.title_updated is True
     assert result.status_updated is True
-    assert issue.title == "Updated Launchpad Bug"
-    assert issue.status == IssueStatus.CLOSED
+    assert result.new_title == "Updated Launchpad Bug"
+    assert result.new_status == IssueStatus.CLOSED
 
     # Verify client was called with project and key
     mock_client.get_issue.assert_called_once_with("ubuntu", "123456")
@@ -135,7 +135,7 @@ def test_sync_issue_no_changes(db_session: Session):
     assert "launchpad" in issue.url
 
     # Sync the issue
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify no changes
     assert result.success is True
@@ -168,7 +168,7 @@ def test_sync_issue_handles_error(db_session: Session):
     assert "launchpad" in issue.url
 
     # Sync the issue
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify error result
     assert result.success is False
@@ -208,14 +208,14 @@ def test_sync_issue_handles_different_projects(db_session: Session):
     assert "launchpad" in issue.url
 
     # Sync the issue
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify results
     assert result.success is True
     assert result.title_updated is True
     assert result.status_updated is True
-    assert issue.title == "Debian Bug"
-    assert issue.status == IssueStatus.OPEN
+    assert result.new_title == "Debian Bug"
+    assert result.new_status == IssueStatus.OPEN
 
     # Verify client was called with debian project
     mock_client.get_issue.assert_called_once_with("debian", "555555")
