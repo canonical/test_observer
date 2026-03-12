@@ -17,7 +17,7 @@ import random
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
-from sqlalchemy import select, and_, or_
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -25,12 +25,12 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
+    ArtefactMatchingRule,
     Environment,
     Team,
     TestExecution,
     TestPlan,
     User,
-    ArtefactMatchingRule,
 )
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
@@ -88,14 +88,17 @@ class StartTestExecutionController:
                 .where(
                     and_(
                         ArtefactMatchingRule.family == family_str,
-                        or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage.is_(None)),
-                        or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track.is_(None)),
-                        or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch.is_(None)),
+                        or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
+                        or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
+                        or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
                     ),
             )).scalars().all()
 
-            # sort rules by number of non-null fields to prioritize specificity
-            rules_with_score = [[r, sum(1 for field in [r.stage, r.track, r.branch] if field is not None)] for r in possible_rules]
+            # sort rules by number of non-empty fields to prioritize specificity
+            rules_with_score = [
+                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")]
+                for r in possible_rules
+            ]
             sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
             highest_score = sorted_rules[0][1] if sorted_rules else 0
             rules = [r[0] for r in sorted_rules if r[1] == highest_score]

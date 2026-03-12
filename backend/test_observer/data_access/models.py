@@ -196,9 +196,9 @@ class ArtefactMatchingRule(Base):
     __tablename__ = "artefact_matching_rule"
 
     family: Mapped[FamilyName]
-    stage: Mapped[str | None] = mapped_column(String(100), default=None)
-    track: Mapped[str | None] = mapped_column(String(200), default=None)
-    branch: Mapped[str | None] = mapped_column(String(200), default=None)
+    stage: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    track: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    branch: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     teams: Mapped[list[Team]] = relationship(
         secondary="artefact_matching_rule_team_association",
@@ -207,7 +207,7 @@ class ArtefactMatchingRule(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "family", "stage", "track", "branch", postgresql_nulls_not_distinct=True
+            "family", "stage", "track", "branch"
         ),
     )
 

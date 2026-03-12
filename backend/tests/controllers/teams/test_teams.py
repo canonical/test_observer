@@ -61,9 +61,9 @@ def test_create_team_with_permissions_and_matching_rules(test_client: TestClient
     assert data["permissions"] == [Permission.view_user, Permission.change_team]
     assert len(data["artefact_matching_rules"]) == 2
     assert data["artefact_matching_rules"][0]["family"] == "snap"
-    assert data["artefact_matching_rules"][0]["stage"] is None
-    assert data["artefact_matching_rules"][0]["track"] is None
-    assert data["artefact_matching_rules"][0]["branch"] is None
+    assert data["artefact_matching_rules"][0]["stage"] == ""
+    assert data["artefact_matching_rules"][0]["track"] == ""
+    assert data["artefact_matching_rules"][0]["branch"] == ""
     assert data["artefact_matching_rules"][1]["family"] == "deb"
     assert data["members"] == []
 
@@ -203,7 +203,7 @@ def test_update_team_artefact_matching_rules(
     data = response.json()
     assert len(data["artefact_matching_rules"]) == 2
     assert data["artefact_matching_rules"][0]["family"] == "snap"
-    assert data["artefact_matching_rules"][0]["stage"] is None
+    assert data["artefact_matching_rules"][0]["stage"] == ""
     assert data["artefact_matching_rules"][1]["family"] == "deb"
     assert data["artefact_matching_rules"][1]["stage"] == "proposed"
 
@@ -332,8 +332,8 @@ def test_create_team_with_complex_matching_rules(test_client: TestClient):
         r for r in data["artefact_matching_rules"] if r["track"] == "22"
     )
     assert snap_track["family"] == "snap"
-    assert snap_track["stage"] is None
-    assert snap_track["branch"] is None
+    assert snap_track["stage"] == ""
+    assert snap_track["branch"] == ""
 
     # Check snap with track and stage
     snap_track_stage = next(
@@ -341,15 +341,15 @@ def test_create_team_with_complex_matching_rules(test_client: TestClient):
     )
     assert snap_track_stage["family"] == "snap"
     assert snap_track_stage["stage"] == "beta"
-    assert snap_track_stage["branch"] is None
+    assert snap_track_stage["branch"] == ""
 
     # Check deb with branch
     deb_branch = next(
         r for r in data["artefact_matching_rules"] if r["family"] == "deb"
     )
     assert deb_branch["branch"] == "jammy"
-    assert deb_branch["stage"] is None
-    assert deb_branch["track"] is None
+    assert deb_branch["stage"] == ""
+    assert deb_branch["track"] == ""
 
     # Check charm with all fields
     charm_full = next(
@@ -511,12 +511,12 @@ def test_get_team_returns_matching_rules(
     snap = next(r for r in data["artefact_matching_rules"] if r["family"] == "snap")
     assert snap["track"] == "22"
     assert snap["stage"] == "stable"
-    assert snap["branch"] is None
+    assert snap["branch"] == ""
 
     deb = next(r for r in data["artefact_matching_rules"] if r["family"] == "deb")
     assert deb["branch"] == "jammy"
-    assert deb["track"] is None
-    assert deb["stage"] is None
+    assert deb["track"] == ""
+    assert deb["stage"] == ""
 
 
 def test_update_team_keeps_permissions_when_updating_rules(

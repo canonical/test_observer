@@ -4609,37 +4609,19 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stage"
+            "type": "string",
+            "title": "Stage",
+            "default": ""
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Track"
+            "type": "string",
+            "title": "Track",
+            "default": ""
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Branch"
+            "type": "string",
+            "title": "Branch",
+            "default": ""
           }
         },
         "type": "object",
@@ -4659,36 +4641,15 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Stage"
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Track"
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Branch"
           }
         },
@@ -4773,37 +4734,19 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stage"
+            "type": "string",
+            "title": "Stage",
+            "default": ""
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Track"
+            "type": "string",
+            "title": "Track",
+            "default": ""
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Branch"
+            "type": "string",
+            "title": "Branch",
+            "default": ""
           },
           "team_ids": {
             "items": {
@@ -4831,36 +4774,15 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Stage"
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Track"
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Branch"
           },
           "teams": {
