@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,6 +26,7 @@ import '../../providers/tests_issues.dart';
 import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
+import 'bulk_environment_selection_controls.dart';
 import 'environment_expandable.dart';
 import 'manual_testing_button.dart';
 import 'rerun_filtered_plans_button.dart';
@@ -69,6 +69,12 @@ class ArtefactPageBody extends ConsumerWidget {
             const RerunFilteredPlansButton(),
           ],
         ),
+        const SizedBox(height: Spacing.level3),
+        BulkEnvironmentSelectionControls(
+          environments: environments,
+          artefactId: artefact.id,
+        ),
+        const SizedBox(height: Spacing.level2),
         NonBlockingProviderPreloader(
           provider: environmentsIssuesProvider,
           child: NonBlockingProviderPreloader(

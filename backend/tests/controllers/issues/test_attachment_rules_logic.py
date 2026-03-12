@@ -1,34 +1,31 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-
-from tests.data_generator import DataGenerator
 from sqlalchemy.orm import Session
-from test_observer.data_access.models import (
-    IssueTestResultAttachmentRuleExecutionMetadata,
-    IssueTestResultAttachmentRule,
-)
-from test_observer.data_access.models_enums import FamilyName
 
 from test_observer.controllers.issues.attachment_rules_logic import (
-    query_matching_test_result_attachment_rules,
     apply_test_result_attachment_rules,
+    query_matching_test_result_attachment_rules,
 )
+from test_observer.data_access.models import (
+    IssueTestResultAttachmentRule,
+    IssueTestResultAttachmentRuleExecutionMetadata,
+)
+from test_observer.data_access.models_enums import FamilyName
+from tests.data_generator import DataGenerator
 
 params_query_matching_test_result_attachment_rules: list[dict] = [
     {
@@ -153,9 +150,7 @@ params_query_matching_test_result_attachment_rules: list[dict] = [
 @pytest.mark.parametrize(
     "params",
     params_query_matching_test_result_attachment_rules,
-    ids=[
-        params["label"] for params in params_query_matching_test_result_attachment_rules
-    ],
+    ids=[params["label"] for params in params_query_matching_test_result_attachment_rules],
 )
 def test_query_matching_test_result_attachment_rules(
     params: dict,
@@ -180,9 +175,7 @@ def test_query_matching_test_result_attachment_rules(
         },
     )
     test_case = generator.gen_test_case(template_id="some-template")
-    test_result = generator.gen_test_result(
-        test_case=test_case, test_execution=test_execution
-    )
+    test_result = generator.gen_test_result(test_case=test_case, test_execution=test_execution)
     issue = generator.gen_issue()
 
     expected_matched_rules = set()
@@ -196,9 +189,7 @@ def test_query_matching_test_result_attachment_rules(
             test_case_names=spec.get("test_case_names", []),
             template_ids=spec.get("template_ids", []),
             execution_metadata=[
-                IssueTestResultAttachmentRuleExecutionMetadata(
-                    category=category, value=value
-                )
+                IssueTestResultAttachmentRuleExecutionMetadata(category=category, value=value)
                 for category, value in spec.get("execution_metadata", [])
             ],
         )
@@ -220,13 +211,9 @@ def test_apply_test_result_attachment_rules(
     artefact = generator.gen_artefact()
     artefact_build = generator.gen_artefact_build(artefact=artefact)
     environment = generator.gen_environment()
-    test_execution = generator.gen_test_execution(
-        artefact_build=artefact_build, environment=environment
-    )
+    test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case(template_id="some-template")
-    test_result = generator.gen_test_result(
-        test_case=test_case, test_execution=test_execution
-    )
+    test_result = generator.gen_test_result(test_case=test_case, test_execution=test_execution)
     issue_1 = generator.gen_issue(key="1")
     issue_2 = generator.gen_issue(key="2")
     issue_3 = generator.gen_issue(key="3")
@@ -243,7 +230,7 @@ def test_apply_test_result_attachment_rules(
 
     apply_test_result_attachment_rules(db_session, test_result)
 
-    assert {
-        (attachment.issue_id, attachment.attachment_rule_id)
-        for attachment in test_result.issue_attachments
-    } == {(issue_1.id, attachment_rules[0].id), (issue_3.id, attachment_rules[2].id)}
+    assert {(attachment.issue_id, attachment.attachment_rule_id) for attachment in test_result.issue_attachments} == {
+        (issue_1.id, attachment_rules[0].id),
+        (issue_3.id, attachment_rules[2].id),
+    }

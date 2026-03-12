@@ -1,23 +1,23 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2025 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../models/issue.dart';
+import '../models/family_name.dart';
 import 'issues.dart';
 
 part 'issues_filters.freezed.dart';
@@ -32,6 +32,8 @@ abstract class IssuesFiltersState with _$IssuesFiltersState {
     @Default({}) Set<IssueSource> selectedSources,
     @Default({}) Set<String> selectedProjects,
     @Default({}) Set<IssueStatus> selectedStatuses,
+    @Default({}) Set<FamilyName> possibleFamilies,
+    @Default({}) Set<FamilyName> selectedFamilies,
   }) = _IssuesFiltersState;
 }
 
@@ -40,6 +42,9 @@ class IssuesFilters extends _$IssuesFilters {
   static const sourceParam = 'source';
   static const projectParam = 'project';
   static const statusParam = 'status';
+  static const familyParam = 'family';
+
+  static const defaultStatuses = {IssueStatus.open, IssueStatus.unknown};
 
   @override
   IssuesFiltersState build(Uri pageUri) {
@@ -53,18 +58,20 @@ class IssuesFilters extends _$IssuesFilters {
     final possibleSources = issues.map((i) => i.source).toSet();
     final validSelectedSources = selectedSources.intersection(possibleSources);
 
-    // Statuses
+    // Statuses — default to open+unknown when no status param is present
     final possibleStatuses = IssueStatus.values.toSet();
-    final selectedStatuses = IssueStatus.values
-        .where((v) => (params[statusParam] ?? []).contains(v.name))
-        .toSet();
+    final selectedStatuses = params.containsKey(statusParam)
+        ? IssueStatus.values
+            .where((v) => (params[statusParam] ?? []).contains(v.name))
+            .toSet()
+        : defaultStatuses;
     final validSelectedStatuses =
         selectedStatuses.intersection(possibleStatuses);
 
     // Projects
     final selectedProjects = (params[projectParam] ?? []).toSet();
     var filtered = issues;
-    if (selectedSources.isNotEmpty) {
+    if (validSelectedSources.isNotEmpty) {
       filtered = filtered
           .where((i) => validSelectedSources.contains(i.source))
           .toList();
@@ -78,6 +85,13 @@ class IssuesFilters extends _$IssuesFilters {
     final validSelectedProjects =
         selectedProjects.intersection(possibleProjects);
 
+    final possibleFamilies = FamilyName.values.toSet();
+    final selectedFamilies = FamilyName.values
+        .where((v) => (params[familyParam] ?? []).contains(v.name))
+        .toSet();
+    final validSelectedFamilies =
+        selectedFamilies.intersection(possibleFamilies);
+
     return IssuesFiltersState(
       possibleSources: possibleSources,
       possibleProjects: possibleProjects,
@@ -85,6 +99,8 @@ class IssuesFilters extends _$IssuesFilters {
       selectedSources: validSelectedSources,
       selectedProjects: validSelectedProjects,
       selectedStatuses: validSelectedStatuses,
+      possibleFamilies: possibleFamilies,
+      selectedFamilies: validSelectedFamilies,
     );
   }
 }

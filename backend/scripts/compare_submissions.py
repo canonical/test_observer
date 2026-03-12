@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 # ruff: noqa: T203
 
@@ -50,14 +48,10 @@ def extract_results(submission: dict[str, Any]) -> dict[str, str]:
     return {result["id"]: result["status"] for result in submission["results"]}
 
 
-def diff_between_results(
-    results1: dict[str, str], results2: dict[str, str]
-) -> dict[str, Any]:
+def diff_between_results(results1: dict[str, str], results2: dict[str, str]) -> dict[str, Any]:
     result: dict[str, Any] = {}
 
-    result["only_in_1"] = {
-        key: results1[key] for key in results1.keys() - results2.keys()
-    }
+    result["only_in_1"] = {key: results1[key] for key in results1.keys() - results2.keys()}
 
     result["different"] = {
         key: (results1[key], results2[key])
@@ -65,9 +59,7 @@ def diff_between_results(
         if results1[key] != results2[key]
     }
 
-    result["only_in_2"] = {
-        key: results2[key] for key in results2.keys() - results1.keys()
-    }
+    result["only_in_2"] = {key: results2[key] for key in results2.keys() - results1.keys()}
 
     return result
 

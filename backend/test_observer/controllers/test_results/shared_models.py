@@ -1,18 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import datetime
 from typing import Literal
@@ -23,8 +22,8 @@ from test_observer.common.constants import QueryValue
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models_enums import (
     FamilyName,
-    TestResultStatus,
     TestExecutionStatus,
+    TestResultStatus,
 )
 
 
@@ -36,14 +35,10 @@ class TestResultSearchFilters(BaseModel):
     test_cases: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
-    issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
-        default_factory=list
-    )
+    issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
     test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
-    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(
-        default_factory=list
-    )
+    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     rerun_is_requested: bool | None = None
     execution_is_latest: bool | None = None
     from_date: datetime | None = None
