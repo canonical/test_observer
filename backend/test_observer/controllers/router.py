@@ -32,6 +32,7 @@ from . import (
     test_results,
 )
 from .application import version
+from .artefact_matching_rules import artefact_matching_rules
 from .artefacts import artefacts
 from .execution_metadata import execution_metadata
 from .issues import issues
@@ -57,6 +58,9 @@ router.include_router(permissions.router, prefix="/v1/permissions")
 router.include_router(applications.router, prefix="/v1/applications")
 router.include_router(docs.router)
 router.include_router(test_execution_search.router, prefix="/v1/test-executions")
+router.include_router(
+    artefact_matching_rules.router, prefix="/v1/artefact-matching-rules"
+)
 
 
 @router.get("/")
