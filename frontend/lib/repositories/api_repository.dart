@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:dio/dio.dart';
 
@@ -286,6 +285,20 @@ class ApiRepository {
     return EnvironmentReview.fromJson(response.data);
   }
 
+  Future<List<EnvironmentReview>> bulkUpdateEnvironmentReviews(
+    int artefactId,
+    List<EnvironmentReview> reviews,
+  ) async {
+    final response = await dio.patch(
+      '/v1/artefacts/$artefactId/environment-reviews',
+      data: reviews.map((review) => review.toJson()).toList(),
+    );
+    final List environmentReviewsJson = response.data;
+    return environmentReviewsJson
+        .map((json) => EnvironmentReview.fromJson(json))
+        .toList();
+  }
+
   Future<List<String>> searchArtefacts({
     String? query,
     List<String>? families,
@@ -440,7 +453,8 @@ class ApiRepository {
   Future<List<Issue>> getIssues({
     String? source,
     String? project,
-    String? status,
+    List<IssueStatus>? statuses,
+    List<String>? families,
     int? limit,
     int? offset,
     String? q,
@@ -450,7 +464,9 @@ class ApiRepository {
       queryParameters: {
         if (source != null) 'source': source,
         if (project != null) 'project': project,
-        if (status != null) 'status': status,
+        if (statuses != null && statuses.isNotEmpty)
+          'status': statuses.map((s) => s.name).toList(),
+        if (families != null && families.isNotEmpty) 'families': families,
         if (limit != null) 'limit': limit,
         if (offset != null) 'offset': offset,
         if (q != null) 'q': q,
@@ -553,5 +569,18 @@ class ApiRepository {
         if (enabled != null) 'enabled': enabled,
       },
     );
+  }
+
+  Future<IssueWithContext> patchIssueAutoRerun({
+    required int issueId,
+    required bool autoRerunEnabled,
+  }) async {
+    final response = await dio.patch(
+      '/v1/issues/$issueId',
+      data: {
+        'auto_rerun_enabled': autoRerunEnabled,
+      },
+    );
+    return IssueWithContext.fromJson(response.data);
   }
 }

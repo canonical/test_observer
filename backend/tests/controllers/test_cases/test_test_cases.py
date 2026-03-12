@@ -1,25 +1,25 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+
 from fastapi.testclient import TestClient
 
 from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 def generate_unique_name(prefix: str) -> str:
@@ -53,9 +53,7 @@ def test_get_test_cases_response_format(test_client: TestClient):
     assert isinstance(data["test_cases"], list)
 
 
-def test_get_test_cases_with_actual_data(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_test_cases_with_actual_data(test_client: TestClient, generator: DataGenerator):
     """Test that actual test cases are returned and properly validated"""
     # Create test data with specific test case
     environment = generator.gen_environment()
@@ -91,9 +89,7 @@ def test_get_test_cases_with_actual_data(
     assert found_case["test_case"] == test_case.name
 
 
-def test_get_test_cases_empty_template_id(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_test_cases_empty_template_id(test_client: TestClient, generator: DataGenerator):
     """Test test cases with empty template_id are handled properly"""
     # Create test data with no template_id
     environment = generator.gen_environment()
@@ -116,10 +112,7 @@ def test_get_test_cases_empty_template_id(
     test_cases = data["test_cases"]
 
     # Verify test case with empty template_id is included
-    found_case = any(
-        case["test_case"] == test_case.name and case["template_id"] == ""
-        for case in test_cases
-    )
+    found_case = any(case["test_case"] == test_case.name and case["template_id"] == "" for case in test_cases)
     assert found_case, f"Test case {test_case.name} with empty template_id not found"
 
 
@@ -165,9 +158,7 @@ def test_default_limit_is_50(test_client: TestClient, generator: DataGenerator):
     assert len(data["test_cases"]) == 50  # exactly 50 when >=50 exist
 
 
-def test_explicit_limit_and_offset_window(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_explicit_limit_and_offset_window(test_client: TestClient, generator: DataGenerator):
     """
     Verify limit/offset produce expected window with deterministic
     ordering by name.

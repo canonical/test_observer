@@ -1,24 +1,25 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
+
+from collections.abc import Sequence
+from datetime import datetime
 
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
-from datetime import datetime
-from test_observer.common.constants import VALID_ISSUE_HOSTS
 from sqlalchemy.engine import RowMapping
-from collections.abc import Sequence
+
+from test_observer.common.constants import VALID_ISSUE_HOSTS
 
 
 class TestReportedIssueRequest(BaseModel):
@@ -36,9 +37,7 @@ class TestReportedIssueRequest(BaseModel):
 
     @field_validator("url")
     @classmethod
-    def name_must_contain_space(
-        cls: type["TestReportedIssueRequest"], url: HttpUrl
-    ) -> HttpUrl:
+    def name_must_contain_space(cls: type["TestReportedIssueRequest"], url: HttpUrl) -> HttpUrl:
         if url.host not in VALID_ISSUE_HOSTS:
             raise ValueError(f"Issue url must belong to one of {VALID_ISSUE_HOSTS}")
         return url
@@ -64,12 +63,7 @@ class TestCasesResponse(BaseModel):
 
     @classmethod
     def from_rows(cls, rows: Sequence[RowMapping]) -> "TestCasesResponse":
-        return cls(
-            test_cases=[
-                TestCaseInfo(test_case=r["test_case"], template_id=r["template_id"])
-                for r in rows
-            ]
-        )
+        return cls(test_cases=[TestCaseInfo(test_case=r["test_case"], template_id=r["template_id"]) for r in rows])
 
 
 class TestCaseSearchResponse(BaseModel):

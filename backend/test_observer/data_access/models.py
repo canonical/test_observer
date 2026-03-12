@@ -1,60 +1,58 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
+import secrets
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-import secrets
 from typing import TypeVar
 
 from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
     Enum,
     ForeignKey,
     Index,
     MetaData,
     String,
+    Table,
     UniqueConstraint,
     and_,
-    column,
-    Boolean,
     case,
+    column,
     desc,
-    Table,
-    Column,
-    DateTime,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    foreign,
     mapped_column,
     relationship,
-    foreign,
 )
-from sqlalchemy.sql import func, ColumnElement
+from sqlalchemy.sql import ColumnElement, func
 
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
-    TestExecutionStatus,
-    TestResultStatus,
     IssueSource,
     IssueStatus,
+    TestExecutionStatus,
+    TestResultStatus,
 )
 
 
@@ -63,9 +61,7 @@ class Base(DeclarativeBase):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     created_at: Mapped[datetime] = mapped_column(default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
 
     metadata = MetaData(
         # Use a naming convention so that alembic knows the name of constraints
@@ -110,6 +106,17 @@ artefact_reviewers_association = Table(
         ForeignKey("app_user.id", ondelete="CASCADE"),
         primary_key=True,
     ),
+)
+
+artefact_matching_rule_team_association = Table(
+    "artefact_matching_rule_team_association",
+    Base.metadata,
+    Column(
+        "artefact_matching_rule_id",
+        ForeignKey("artefact_matching_rule.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("team_id", ForeignKey("team.id"), primary_key=True),
 )
 
 
@@ -167,26 +174,53 @@ class Team(Base):
 
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    reviewer_families: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
     members: Mapped[list[User]] = relationship(
         secondary=team_users_association, back_populates="teams"
+    )
+    artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="teams",
     )
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")
 
 
+class ArtefactMatchingRule(Base):
+    """
+    A model to define rules for matching artefacts to reviewer teams.
+    Teams can have multiple matching rules to specify which artefacts they can review.
+    """
+
+    __tablename__ = "artefact_matching_rule"
+
+    family: Mapped[FamilyName]
+    stage: Mapped[str | None] = mapped_column(String(100), default=None)
+    track: Mapped[str | None] = mapped_column(String(200), default=None)
+    branch: Mapped[str | None] = mapped_column(String(200), default=None)
+
+    teams: Mapped[list[Team]] = relationship(
+        secondary="artefact_matching_rule_team_association",
+        back_populates="artefact_matching_rules",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "family", "stage", "track", "branch", postgresql_nulls_not_distinct=True
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return data_model_repr(self, "family", "stage", "track", "branch")
+
+
 class UserSession(Base):
     __tablename__ = "user_session"
 
-    expires_at: Mapped[datetime] = mapped_column(
-        default=datetime.now() + timedelta(days=14)
-    )
+    expires_at: Mapped[datetime] = mapped_column(default=datetime.now() + timedelta(days=14))
 
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("app_user.id", ondelete="CASCADE"), index=True
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True)
     user: Mapped[User] = relationship(back_populates="sessions", foreign_keys=[user_id])
 
 
@@ -309,10 +343,7 @@ class Artefact(Base):
         for build in self.builds:
             grouped_builds[build.architecture].append(build)
 
-        return [
-            max(builds, key=lambda b: b.revision if b.revision else 0)
-            for builds in grouped_builds.values()
-        ]
+        return [max(builds, key=lambda b: b.revision if b.revision else 0) for builds in grouped_builds.values()]
 
     @property
     def all_environment_reviews_count(self) -> int:
@@ -320,10 +351,7 @@ class Artefact(Base):
 
     @property
     def completed_environment_reviews_count(self) -> int:
-        return sum(
-            len([er for er in ab.environment_reviews if er.review_decision])
-            for ab in self.latest_builds
-        )
+        return sum(len([er for er in ab.environment_reviews if er.review_decision]) for ab in self.latest_builds)
 
 
 class ArtefactBuild(Base):
@@ -334,12 +362,8 @@ class ArtefactBuild(Base):
     architecture: Mapped[str] = mapped_column(String(100), index=True)
     revision: Mapped[int | None]
     # Relationships
-    artefact_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact.id", ondelete="CASCADE"), index=True
-    )
-    artefact: Mapped[Artefact] = relationship(
-        back_populates="builds", foreign_keys=[artefact_id]
-    )
+    artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id", ondelete="CASCADE"), index=True)
+    artefact: Mapped[Artefact] = relationship(back_populates="builds", foreign_keys=[artefact_id])
     test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete"
     )
@@ -381,9 +405,7 @@ class Environment(Base):
 
     name: Mapped[str] = mapped_column(String(200), index=True)
     architecture: Mapped[str] = mapped_column(String(100), index=True)
-    test_executions: Mapped[list["TestExecution"]] = relationship(
-        back_populates="environment"
-    )
+    test_executions: Mapped[list["TestExecution"]] = relationship(back_populates="environment")
 
     __table_args__ = (UniqueConstraint("name", "architecture"),)
 
@@ -402,12 +424,8 @@ class TestPlan(Base):
     name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
 
     # Relationships
-    test_executions: Mapped[list["TestExecution"]] = relationship(
-        back_populates="test_plan"
-    )
-    rerun_requests: Mapped[list["TestExecutionRerunRequest"]] = relationship(
-        back_populates="test_plan"
-    )
+    test_executions: Mapped[list["TestExecution"]] = relationship(back_populates="test_plan")
+    rerun_requests: Mapped[list["TestExecutionRerunRequest"]] = relationship(back_populates="test_plan")
 
 
 class TestExecutionRerunRequest(Base):
@@ -431,37 +449,25 @@ class TestExecutionRerunRequest(Base):
         ),
     )
 
-    test_plan_id: Mapped[int] = mapped_column(
-        ForeignKey("test_plan.id", ondelete="CASCADE"), index=True
-    )
+    test_plan_id: Mapped[int] = mapped_column(ForeignKey("test_plan.id", ondelete="CASCADE"), index=True)
     test_plan: Mapped["TestPlan"] = relationship(back_populates="rerun_requests")
 
-    artefact_build_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True
-    )
+    artefact_build_id: Mapped[int] = mapped_column(ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True)
     artefact_build: Mapped["ArtefactBuild"] = relationship()
 
-    environment_id: Mapped[int] = mapped_column(
-        ForeignKey("environment.id", ondelete="CASCADE"), index=True
-    )
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id", ondelete="CASCADE"), index=True)
     environment: Mapped["Environment"] = relationship()
 
     test_executions: Mapped[list["TestExecution"]] = relationship(
         "TestExecution",
         primaryjoin=lambda: and_(
-            TestExecutionRerunRequest.test_plan_id
-            == foreign(TestExecution.test_plan_id),
-            TestExecutionRerunRequest.artefact_build_id
-            == foreign(TestExecution.artefact_build_id),
-            TestExecutionRerunRequest.environment_id
-            == foreign(TestExecution.environment_id),
+            TestExecutionRerunRequest.test_plan_id == foreign(TestExecution.test_plan_id),
+            TestExecutionRerunRequest.artefact_build_id == foreign(TestExecution.artefact_build_id),
+            TestExecutionRerunRequest.environment_id == foreign(TestExecution.environment_id),
         ),
         order_by=lambda: desc(TestExecution.created_at),
         viewonly=True,
-        doc=(
-            "All test executions matching this rerun request's composite key, "
-            "ordered by creation date descending."
-        ),
+        doc=("All test executions matching this rerun request's composite key, ordered by creation date descending."),
     )
 
 
@@ -508,39 +514,26 @@ class TestExecution(Base):
     ci_link: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
     c3_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # Relationships
-    artefact_build_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True
-    )
-    artefact_build: Mapped["ArtefactBuild"] = relationship(
-        back_populates="test_executions"
-    )
-    environment_id: Mapped[int] = mapped_column(
-        ForeignKey("environment.id"), index=True
-    )
+    artefact_build_id: Mapped[int] = mapped_column(ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True)
+    artefact_build: Mapped["ArtefactBuild"] = relationship(back_populates="test_executions")
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id"), index=True)
     environment: Mapped["Environment"] = relationship(back_populates="test_executions")
 
-    test_plan_id: Mapped[int] = mapped_column(
-        ForeignKey("test_plan.id", ondelete="CASCADE"), index=True
-    )
+    test_plan_id: Mapped[int] = mapped_column(ForeignKey("test_plan.id", ondelete="CASCADE"), index=True)
     test_plan: Mapped["TestPlan"] = relationship(back_populates="test_executions")
 
     rerun_request: Mapped["TestExecutionRerunRequest | None"] = relationship(
         "TestExecutionRerunRequest",
         primaryjoin=lambda: and_(
-            TestExecution.test_plan_id
-            == foreign(TestExecutionRerunRequest.test_plan_id),
-            TestExecution.artefact_build_id
-            == foreign(TestExecutionRerunRequest.artefact_build_id),
-            TestExecution.environment_id
-            == foreign(TestExecutionRerunRequest.environment_id),
+            TestExecution.test_plan_id == foreign(TestExecutionRerunRequest.test_plan_id),
+            TestExecution.artefact_build_id == foreign(TestExecutionRerunRequest.artefact_build_id),
+            TestExecution.environment_id == foreign(TestExecutionRerunRequest.environment_id),
         ),
         viewonly=True,
         uselist=False,
     )
 
-    test_results: Mapped[list["TestResult"]] = relationship(
-        back_populates="test_execution", cascade="all, delete"
-    )
+    test_results: Mapped[list["TestResult"]] = relationship(back_populates="test_execution", cascade="all, delete")
     test_events: Mapped[list["TestEvent"]] = relationship(
         back_populates="test_execution",
         cascade="all, delete",
@@ -549,13 +542,9 @@ class TestExecution(Base):
     resource_url: Mapped[str] = mapped_column(default="")
 
     # Default fields
-    status: Mapped[TestExecutionStatus] = mapped_column(
-        default=TestExecutionStatus.NOT_STARTED
-    )
+    status: Mapped[TestExecutionStatus] = mapped_column(default=TestExecutionStatus.NOT_STARTED)
 
-    checkbox_version: Mapped[str | None] = mapped_column(
-        String(200), nullable=True, default=None
-    )
+    checkbox_version: Mapped[str | None] = mapped_column(String(200), nullable=True, default=None)
 
     relevant_links: Mapped[list["TestExecutionRelevantLink"]] = relationship(
         back_populates="test_execution", cascade="all, delete-orphan"
@@ -620,21 +609,13 @@ class TestResult(Base):
 
     __table_args__ = (Index(None, "created_at"),)
 
-    test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id", ondelete="CASCADE"), index=True
-    )
-    test_execution: Mapped["TestExecution"] = relationship(
-        back_populates="test_results"
-    )
+    test_execution_id: Mapped[int] = mapped_column(ForeignKey("test_execution.id", ondelete="CASCADE"), index=True)
+    test_execution: Mapped["TestExecution"] = relationship(back_populates="test_results")
 
-    test_case_id: Mapped[int] = mapped_column(
-        ForeignKey("test_case.id", ondelete="CASCADE"), index=True
-    )
+    test_case_id: Mapped[int] = mapped_column(ForeignKey("test_case.id", ondelete="CASCADE"), index=True)
     test_case: Mapped["TestCase"] = relationship()
 
-    issue_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
-        back_populates="test_result"
-    )
+    issue_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(back_populates="test_result")
 
     def __repr__(self) -> str:
         return data_model_repr(
@@ -658,9 +639,7 @@ class TestEvent(Base):
     event_name: Mapped[str]
     timestamp: Mapped[datetime]
     detail: Mapped[str]
-    test_execution_id: Mapped[int] = mapped_column(
-        ForeignKey("test_execution.id", ondelete="CASCADE"), index=True
-    )
+    test_execution_id: Mapped[int] = mapped_column(ForeignKey("test_execution.id", ondelete="CASCADE"), index=True)
     test_execution: Mapped["TestExecution"] = relationship(back_populates="test_events")
 
     def __repr__(self) -> str:
@@ -730,16 +709,15 @@ class Issue(Base):
     title: Mapped[str] = mapped_column(default="")
     status: Mapped[IssueStatus] = mapped_column(default=IssueStatus.UNKNOWN)
     last_synced_at = Column(DateTime, nullable=True)
-    labels: Mapped[list[str] | None] = mapped_column(
-        ARRAY(String), nullable=True, default=None
-    )
+    labels: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True, default=None)
+    auto_rerun_enabled: Mapped[bool] = mapped_column(default=False)
 
     test_result_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
         back_populates="issue", cascade="all, delete"
     )
 
-    test_result_attachment_rules: Mapped[list["IssueTestResultAttachmentRule"]] = (
-        relationship(back_populates="issue", cascade="all, delete")
+    test_result_attachment_rules: Mapped[list["IssueTestResultAttachmentRule"]] = relationship(
+        back_populates="issue", cascade="all, delete"
     )
 
     def __repr__(self) -> str:
@@ -810,14 +788,10 @@ class IssueTestResultAttachment(Base):
 
     __tablename__ = "issue_test_result_attachment"
 
-    issue_id: Mapped[int] = mapped_column(
-        ForeignKey("issue.id", ondelete="CASCADE"), index=True
-    )
+    issue_id: Mapped[int] = mapped_column(ForeignKey("issue.id", ondelete="CASCADE"), index=True)
     issue: Mapped["Issue"] = relationship(back_populates="test_result_attachments")
 
-    test_result_id: Mapped[int] = mapped_column(
-        ForeignKey("test_result.id", ondelete="CASCADE"), index=True
-    )
+    test_result_id: Mapped[int] = mapped_column(ForeignKey("test_result.id", ondelete="CASCADE"), index=True)
     test_result: Mapped["TestResult"] = relationship(back_populates="issue_attachments")
 
     attachment_rule_id: Mapped[int] = mapped_column(
@@ -825,9 +799,7 @@ class IssueTestResultAttachment(Base):
         nullable=True,
         index=True,
     )
-    attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(
-        back_populates="test_results"
-    )
+    attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(back_populates="test_results")
 
     __table_args__ = (UniqueConstraint("issue_id", "test_result_id"),)
 
@@ -839,29 +811,21 @@ class IssueTestResultAttachmentRule(Base):
 
     __tablename__ = "issue_test_result_attachment_rule"
 
-    issue_id: Mapped[int] = mapped_column(
-        ForeignKey("issue.id", ondelete="CASCADE"), index=True
-    )
+    issue_id: Mapped[int] = mapped_column(ForeignKey("issue.id", ondelete="CASCADE"), index=True)
     issue: Mapped["Issue"] = relationship(back_populates="test_result_attachment_rules")
 
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
-    test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(
-        back_populates="attachment_rule"
-    )
+    test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(back_populates="attachment_rule")
 
-    families: Mapped[list[FamilyName]] = mapped_column(
-        ARRAY(Enum(FamilyName)), default=list
-    )
+    families: Mapped[list[FamilyName]] = mapped_column(ARRAY(Enum(FamilyName)), default=list)
     environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    execution_metadata: Mapped[
-        list["IssueTestResultAttachmentRuleExecutionMetadata"]
-    ] = relationship(back_populates="attachment_rule", cascade="all, delete")
-    test_result_statuses: Mapped[list[TestResultStatus]] = mapped_column(
-        ARRAY(Enum(TestResultStatus)), default=list
+    execution_metadata: Mapped[list["IssueTestResultAttachmentRuleExecutionMetadata"]] = relationship(
+        back_populates="attachment_rule", cascade="all, delete"
     )
+    test_result_statuses: Mapped[list[TestResultStatus]] = mapped_column(ARRAY(Enum(TestResultStatus)), default=list)
 
 
 class IssueTestResultAttachmentRuleExecutionMetadata(Base):
@@ -875,9 +839,7 @@ class IssueTestResultAttachmentRuleExecutionMetadata(Base):
     attachment_rule_id: Mapped[int] = mapped_column(
         ForeignKey("issue_test_result_attachment_rule.id", ondelete="CASCADE")
     )
-    attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(
-        back_populates="execution_metadata"
-    )
+    attachment_rule: Mapped["IssueTestResultAttachmentRule"] = relationship(back_populates="execution_metadata")
 
     category: Mapped[str] = mapped_column(String(200))
     value: Mapped[str] = mapped_column(String(200))
@@ -892,19 +854,15 @@ class ArtefactBuildEnvironmentReview(Base):
     __tablename__ = "artefact_build_environment_review"
     __table_args__ = (UniqueConstraint("artefact_build_id", "environment_id"),)
 
-    review_decision: Mapped[list[ArtefactBuildEnvironmentReviewDecision]] = (
-        mapped_column(ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[])
+    review_decision: Mapped[list[ArtefactBuildEnvironmentReviewDecision]] = mapped_column(
+        ARRAY(Enum(ArtefactBuildEnvironmentReviewDecision)), default=[]
     )
     review_comment: Mapped[str] = mapped_column(default="")
 
-    environment_id: Mapped[int] = mapped_column(
-        ForeignKey("environment.id", ondelete="CASCADE"), index=True
-    )
+    environment_id: Mapped[int] = mapped_column(ForeignKey("environment.id", ondelete="CASCADE"), index=True)
     environment: Mapped["Environment"] = relationship()
 
-    artefact_build_id: Mapped[int] = mapped_column(
-        ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True
-    )
+    artefact_build_id: Mapped[int] = mapped_column(ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True)
     artefact_build: Mapped["ArtefactBuild"] = relationship(
         back_populates="environment_reviews",
     )
@@ -926,6 +884,4 @@ class TestExecutionRelevantLink(Base):
     label: Mapped[str]
     url: Mapped[str]
 
-    test_execution: Mapped["TestExecution"] = relationship(
-        back_populates="relevant_links"
-    )
+    test_execution: Mapped["TestExecution"] = relationship(back_populates="relevant_links")

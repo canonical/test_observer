@@ -1,23 +1,23 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime, UTC
 from unittest.mock import Mock
+
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
@@ -25,11 +25,10 @@ from test_observer.external_apis.synchronizers.base import (
 from test_observer.external_apis.synchronizers.service import (
     IssueSynchronizationService,
 )
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
 
 
-def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
-    """Test that successful sync updates last_synced_at"""
+def test_sync_issue_returns_success(db_session: Session) -> None:
+    """Test that successful sync returns a successful SyncResult"""
     # Create issue
     issue = Issue(
         source=IssueSource.GITHUB,
@@ -43,33 +42,23 @@ def test_sync_issue_updates_last_synced_at(db_session: Session) -> None:
     db_session.commit()
     db_session.refresh(issue)
 
-    assert issue.last_synced_at is None
-
     # Mock synchronizer
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=True)
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=True)
 
-    # Create service and sync
+    # Create service and sync — service does HTTP only, no DB writes
     service = IssueSynchronizationService([mock_sync])
-    before_sync = datetime.now(UTC)
-    result = service.sync_issue(issue, db_session)
-    after_sync = datetime.now(UTC)
+    result = service.sync_issue(issue)
 
-    # Verify last_synced_at was updated
     assert result.success is True
-    assert issue.last_synced_at is not None
-
-    synced_at = (
-        issue.last_synced_at.replace(tzinfo=UTC)
-        if issue.last_synced_at.tzinfo is None
-        else issue.last_synced_at
-    )
-    assert before_sync <= synced_at <= after_sync
+    # last_synced_at is written at task level, not service level
+    db_session.refresh(issue)
+    assert issue.last_synced_at is None
 
 
 def test_sync_issue_does_not_update_on_failure(db_session: Session) -> None:
-    """Test that failed sync does NOT update last_synced_at"""
+    """Test that failed sync returns a failure SyncResult"""
     # Create issue
     issue = Issue(
         source=IssueSource.GITHUB,
@@ -86,15 +75,14 @@ def test_sync_issue_does_not_update_on_failure(db_session: Session) -> None:
     # Mock synchronizer to fail
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=False, error="API Error")
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=False, error="API Error")
 
     # Create service and sync
     service = IssueSynchronizationService([mock_sync])
-    result = service.sync_issue(issue, db_session)
+    result = service.sync_issue(issue)
 
-    # Verify last_synced_at was NOT updated
     assert result.success is False
-    assert issue.last_synced_at is None
+    assert result.error == "API Error"
 
 
 def test_sync_issues_batch(db_session: Session) -> None:
@@ -117,11 +105,11 @@ def test_sync_issues_batch(db_session: Session) -> None:
     # Mock synchronizer
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=True, title_updated=True)
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=True, new_title="Updated Title")
 
     # Create service and sync batch
     service = IssueSynchronizationService([mock_sync])
-    results = service.sync_issues_batch(issues, db_session)
+    results = service.sync_issues_batch(issues)
 
     # Verify results
     assert results.total == 5
@@ -129,10 +117,7 @@ def test_sync_issues_batch(db_session: Session) -> None:
     assert results.updated == 5
     assert results.failed == 0
 
-    # Verify all issues have last_synced_at set
-    for issue in issues:
-        db_session.refresh(issue)
-        assert issue.last_synced_at is not None
+    # last_synced_at is written at task level, not service level
 
 
 def test_sync_issues_batch_mixed_results(db_session: Session) -> None:
@@ -156,28 +141,19 @@ def test_sync_issues_batch_mixed_results(db_session: Session) -> None:
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
 
-    def side_effect(issue: Issue, _db: Session) -> SyncResult:
+    def side_effect(issue: Issue) -> SyncResult:
         if issue.key == "1":
             return SyncResult(success=False, error="API Error")
-        return SyncResult(success=True, title_updated=True)
+        return SyncResult(success=True, new_title="Updated Title")
 
-    mock_sync.sync_issue.side_effect = side_effect
+    mock_sync.fetch_issue_update.side_effect = side_effect
 
     # Create service and sync batch
     service = IssueSynchronizationService([mock_sync])
-    results = service.sync_issues_batch(issues, db_session)
+    results = service.sync_issues_batch(issues)
 
     # Verify results
     assert results.total == 3
     assert results.successful == 2
     assert results.updated == 2
     assert results.failed == 1
-
-    # Verify only successful issues have last_synced_at set
-    db_session.refresh(issues[0])
-    db_session.refresh(issues[1])
-    db_session.refresh(issues[2])
-
-    assert issues[0].last_synced_at is not None  # Success
-    assert issues[1].last_synced_at is None  # Failed
-    assert issues[2].last_synced_at is not None  # Success

@@ -1,40 +1,38 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-from prometheus_client import start_http_server
-from starlette.middleware.sessions import SessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import start_http_server
+from starlette.middleware.sessions import SessionMiddleware
 
 from test_observer.common.config import (
     FRONTEND_URL,
     METRICS_PORT,
     SENTRY_DSN,
-    SESSIONS_SECRET,
     SESSIONS_HTTPS_ONLY,
+    SESSIONS_SECRET,
 )
 from test_observer.common.metrics import instrumentator
 from test_observer.common.metrics_initializer import initialize_all_metrics
-from test_observer.data_access.setup import SessionLocal
 from test_observer.controllers.router import router
+from test_observer.data_access.setup import SessionLocal
 
 if SENTRY_DSN:
     sentry_sdk.init(SENTRY_DSN)  # type: ignore

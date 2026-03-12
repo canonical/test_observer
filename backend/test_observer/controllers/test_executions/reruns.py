@@ -1,28 +1,26 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import contextlib
-
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Security, Query
-from fastapi.security import SecurityScopes
-from sqlalchemy import delete, select, asc, tuple_, or_
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security, status
+from fastapi.security import SecurityScopes
+from sqlalchemy import asc, delete, or_, select, tuple_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.applications.application_injection import (
@@ -33,13 +31,13 @@ from test_observer.controllers.test_results.filter_test_results import (
 )
 from test_observer.data_access.models import (
     Application,
+    Artefact,
     ArtefactBuild,
     Environment,
+    FamilyName,
     TestExecution,
     TestExecutionRerunRequest,
     TestResult,
-    Artefact,
-    FamilyName,
     User,
 )
 from test_observer.data_access.repository import get_or_create
@@ -69,9 +67,7 @@ def modify_reruns(
                 status_code=422,
                 detail="At least one filter must be provided in test_results_filters",
             )
-        filtered_ids_query = filter_test_results(
-            select(TestResult.test_execution_id).distinct(), filters
-        )
+        filtered_ids_query = filter_test_results(select(TestResult.test_execution_id).distinct(), filters)
         conditions.append(TestExecution.id.in_(filtered_ids_query))
 
     # Do nothing if no conditions were added
@@ -122,9 +118,9 @@ def require_bulk_permission(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ):
-    if (
-        request.test_execution_ids is not None and len(request.test_execution_ids) > 1
-    ) or (request.test_results_filters is not None):
+    if (request.test_execution_ids is not None and len(request.test_execution_ids) > 1) or (
+        request.test_results_filters is not None
+    ):
         permission_checker(security_scopes, user, app)
 
 
@@ -181,9 +177,7 @@ def create_rerun_requests(
     return rerun_requests
 
 
-def _create_rerun_request(
-    test_execution_id: int, db: Session
-) -> TestExecutionRerunRequest:
+def _create_rerun_request(test_execution_id: int, db: Session) -> TestExecutionRerunRequest:
     te = db.get(TestExecution, test_execution_id)
     if not te:
         raise _TestExecutionNotFound
