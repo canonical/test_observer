@@ -146,15 +146,13 @@ def get_issues(
     # Apply limit and offset
     stmt = stmt.limit(limit).offset(offset)
 
-    runs_count_subq = (
-        select(func.count(func.distinct(TestExecution.id)))
-        .join(TestResult, TestResult.test_execution_id == TestExecution.id)
-        .join(IssueTestResultAttachment, IssueTestResultAttachment.test_result_id == TestResult.id)
-        .where(IssueTestResultAttachment.issue_id == Issue.id)
-        .correlate(Issue)
-        .scalar_subquery()
-    )
-    rows = db.execute(stmt.add_columns(runs_count_subq)).all()
+    rows = db.execute(
+        stmt.outerjoin(IssueTestResultAttachment, IssueTestResultAttachment.issue_id == Issue.id)
+        .outerjoin(TestResult, TestResult.id == IssueTestResultAttachment.test_result_id)
+        .outerjoin(TestExecution, TestExecution.id == TestResult.test_execution_id)
+        .add_columns(func.count(func.distinct(TestExecution.id)))
+        .group_by(Issue.id)
+    ).all()
     return IssuesGetResponse(
         issues=[
             MinimalIssueResponse.model_validate(issue).model_copy(

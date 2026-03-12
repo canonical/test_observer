@@ -220,7 +220,7 @@ class _EnvironmentIssueFormState extends ConsumerState<_EnvironmentIssueForm> {
                   onPressed: () => context.pop(),
                   child: Text(
                     'cancel',
-                    style: buttonFontStyle?.apply(color: Colors.grey),
+                    style: buttonFontStyle?.apply(color: Colors.black),
                   ),
                 ),
                 const Spacer(),
