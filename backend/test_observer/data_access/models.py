@@ -207,7 +207,7 @@ class ArtefactMatchingRule(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "family", "stage", "track", "branch", postgresql_nulls_not_distinct=True
+            "family", "stage", "track", "branch"
         ),
     )
 
