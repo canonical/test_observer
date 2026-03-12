@@ -37,6 +37,7 @@ from .execution_metadata import execution_metadata
 from .issues import issues
 from .teams import teams
 from .test_executions import relevant_links
+from .test_executions import search as test_execution_search
 
 router: APIRouter = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
@@ -55,6 +56,7 @@ router.include_router(teams.router, prefix="/v1/teams")
 router.include_router(permissions.router, prefix="/v1/permissions")
 router.include_router(applications.router, prefix="/v1/applications")
 router.include_router(docs.router)
+router.include_router(test_execution_search.router, prefix="/v1/test-executions")
 
 
 @router.get("/")
