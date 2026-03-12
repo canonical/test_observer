@@ -196,9 +196,9 @@ class ArtefactMatchingRule(Base):
     __tablename__ = "artefact_matching_rule"
 
     family: Mapped[FamilyName]
-    stage: Mapped[str | None] = mapped_column(String(100), default=None)
-    track: Mapped[str | None] = mapped_column(String(200), default=None)
-    branch: Mapped[str | None] = mapped_column(String(200), default=None)
+    stage: Mapped[str] = mapped_column(String(100), default="")
+    track: Mapped[str] = mapped_column(String(200), default="")
+    branch: Mapped[str] = mapped_column(String(200), default="")
 
     teams: Mapped[list[Team]] = relationship(
         secondary="artefact_matching_rule_team_association",
