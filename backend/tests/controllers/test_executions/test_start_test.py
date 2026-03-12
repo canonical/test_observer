@@ -202,8 +202,12 @@ class TestFamilyIndependentTests:
     ):
         """Assert that an artefact with only 1 environment gets assigned to a single reviewer even if multiple are available"""
         # Create a team that can review all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
         team = generator.gen_team(
-            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+            name="reviewers", artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # Create multiple users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
@@ -226,8 +230,12 @@ class TestFamilyIndependentTests:
     ):
         """Assert that an artefact with more than 50 environments is assigned more than one reviewer"""
         # Create a team that can review all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
         team = generator.gen_team(
-            name="reviewers", reviewer_families=["snap", "deb", "charm", "image"]
+            name="reviewers", artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # Create multiple users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
