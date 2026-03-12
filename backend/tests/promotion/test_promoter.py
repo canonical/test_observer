@@ -29,12 +29,12 @@ from tests.data_generator import DataGenerator
 
 def _run_promoter(db_session: Session) -> None:
     """Test helper replicating run_promote_artefacts task: read → HTTP → write."""
-    snap_artefacts = get_artefacts_by_family(db_session, FamilyName.snap)
-    deb_artefacts = get_artefacts_by_family(db_session, FamilyName.deb)
+    snap_artefacts = get_artefacts_by_family(db_session, FamilyName.snap, load_builds=True)
+    deb_artefacts = get_artefacts_by_family(db_session, FamilyName.deb, load_builds=True)
     db_session.expunge_all()  # detach before HTTP phase, mirroring production pattern
     process_artefact_promotions(snap_artefacts, deb_artefacts)
     for artefact in snap_artefacts + deb_artefacts:
-        db_session.merge(artefact)
+        db_session.add(artefact)
     db_session.commit()
 
 

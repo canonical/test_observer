@@ -83,8 +83,8 @@ def integrate_with_kernel_swm():
 @app.task
 def run_promote_artefacts():
     with SessionLocal() as db:
-        snap_artefacts = get_artefacts_by_family(db, FamilyName.snap)
-        deb_artefacts = get_artefacts_by_family(db, FamilyName.deb)
+        snap_artefacts = get_artefacts_by_family(db, FamilyName.snap, load_builds=True)
+        deb_artefacts = get_artefacts_by_family(db, FamilyName.deb, load_builds=True)
         db.expunge_all()  # detach objects before session closes so attributes remain accessible
 
     # HTTP — no session open
