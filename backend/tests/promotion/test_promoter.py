@@ -22,8 +22,20 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import ArtefactBuild
 from test_observer.data_access.models_enums import FamilyName, StageName
-from test_observer.promotion.promoter import promote_artefacts
+from test_observer.data_access.repository import get_artefacts_by_family
+from test_observer.promotion.promoter import process_artefact_promotions
 from tests.data_generator import DataGenerator
+
+
+def _run_promoter(db_session: Session) -> None:
+    """Test helper replicating run_promote_artefacts task: read → HTTP → write."""
+    snap_artefacts = get_artefacts_by_family(db_session, FamilyName.snap, load_builds=True)
+    deb_artefacts = get_artefacts_by_family(db_session, FamilyName.deb, load_builds=True)
+    db_session.expunge_all()  # detach before HTTP phase, mirroring production pattern
+    process_artefact_promotions(snap_artefacts, deb_artefacts)
+    for artefact in snap_artefacts + deb_artefacts:
+        db_session.add(artefact)
+    db_session.commit()
 
 
 def test_run_to_move_artefact_snap(
@@ -74,7 +86,7 @@ def test_run_to_move_artefact_snap(
     )
 
     # Act
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     db_session.refresh(artefact)
 
@@ -101,7 +113,7 @@ def test_archives_snap_if_not_found(
         json={"channel-map": []},
     )
 
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     assert a.archived
 
@@ -122,7 +134,7 @@ def test_custom_named_snaps_not_archived(
 
     requests_mock.get(f"https://api.snapcraft.io/v2/snaps/info/{a.name}", status_code=404)
 
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     assert not a.archived
 
@@ -153,7 +165,7 @@ def test_promote_snap_from_beta_to_stable(
         },
     )
 
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     assert artefact.stage == StageName.stable
 
@@ -194,7 +206,7 @@ def test_snap_that_is_in_two_stages(
         },
     )
 
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     assert artefact.stage == StageName.beta
 
@@ -248,7 +260,7 @@ def test_run_to_move_artefact_deb(
     _prepare_archive_mock(requests_mock)
 
     # Act
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     db_session.refresh(artefact1)
 
@@ -271,7 +283,7 @@ def test_archives_deb_if_version_not_found(generator: DataGenerator, db_session:
 
     _prepare_archive_mock(requests_mock)
 
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     assert a.archived
 
@@ -289,7 +301,7 @@ def test_keeps_deb_unarchived_if_custom_name(generator: DataGenerator, db_sessio
 
     _prepare_archive_mock(requests_mock)
 
-    promote_artefacts(db_session)
+    _run_promoter(db_session)
 
     assert not a.archived
 
