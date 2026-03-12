@@ -985,7 +985,7 @@
           "artefacts"
         ],
         "summary": "Get Artefact History",
-        "description": "Get the versioning history of an artefact for a given name, family, and track,\noptionally filtered by stage, with pagination support.\n\nReturns a list of artefact versions along with their creation date and \nwhether they passed deployment tests.",
+        "description": "Get the versioning history of an artefact for a given name, family, and track,\noptionally filtered by stage, with pagination support.\n\nReturns a list of artefact versions along with their creation date.",
         "operationId": "get_artefact_history_v1_artefacts_history_get",
         "parameters": [
           {
@@ -4570,10 +4570,6 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
-          },
-          "passed_deploy": {
-            "type": "boolean",
-            "title": "Passed Deploy"
           }
         },
         "type": "object",
@@ -4582,8 +4578,7 @@
           "name",
           "version",
           "stage",
-          "created_at",
-          "passed_deploy"
+          "created_at"
         ],
         "title": "ArtefactHistoryItemResponse"
       },

@@ -171,7 +171,6 @@ class ArtefactHistoryItemResponse(BaseModel):
     version: str
     stage: str
     created_at: datetime
-    passed_deploy: bool
 
 
 class ArtefactHistoryResponse(BaseModel):

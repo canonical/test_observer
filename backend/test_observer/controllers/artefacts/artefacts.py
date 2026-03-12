@@ -171,8 +171,7 @@ def get_artefact_history(
     Get the versioning history of an artefact for a given name, family, and track,
     optionally filtered by stage, with pagination support.
 
-    Returns a list of artefact versions along with their creation date and 
-    whether they passed deployment tests.
+    Returns a list of artefact versions along with their creation date.
     """
     query = (
         select(Artefact)
@@ -199,43 +198,10 @@ def get_artefact_history(
                 version=artefact.version,
                 stage=artefact.stage,
                 created_at=artefact.created_at,
-                passed_deploy=_get_latest_tests_summary(artefact, db),
             )
             for artefact in artefacts
         ],
     )
-
-
-def _get_latest_tests_summary(artefact: Artefact, db: Session) -> bool:
-    latest_build_ids = [build.id for build in artefact.latest_builds]
-    if not latest_build_ids:
-        return False
-
-    newer_execution = aliased(TestExecution)
-    newer_execution_exists = exists(
-        select(1)
-        .select_from(newer_execution)
-        .where(
-            TestExecution.test_plan_id == newer_execution.test_plan_id,
-            TestExecution.artefact_build_id == newer_execution.artefact_build_id,
-            TestExecution.environment_id == newer_execution.environment_id,
-            TestExecution.id < newer_execution.id,
-        )
-    )
-
-    test_executions = db.scalars(
-        select(TestExecution)
-        .join(TestExecution.test_results)
-        .join(TestResult.test_case)
-        .where(TestExecution.artefact_build_id.in_(latest_build_ids))
-        .where(TestCase.name == "test_deploy")
-        .where(~newer_execution_exists)
-        .distinct()
-    ).all()
-
-    passed_count = sum(1 for te in test_executions if te.status == TestExecutionStatus.PASSED)
-
-    return passed_count >= 1
 
 
 @router.get(
