@@ -25,8 +25,8 @@ Create Date: 2026-02-24 17:44:00.000000+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "3514f071a2e5"
@@ -53,9 +53,7 @@ def upgrade() -> None:
             name="artefact_reviewers_association_user_id_fkey",
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint(
-            "artefact_id", "user_id", name="artefact_reviewers_association_pkey"
-        ),
+        sa.PrimaryKeyConstraint("artefact_id", "user_id", name="artefact_reviewers_association_pkey"),
     )
 
     # Migrate existing assignee data to the new association table

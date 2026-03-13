@@ -60,7 +60,8 @@ class ReviewersAvatars extends StatelessWidget {
             child: UserAvatar(
               user: reviewers[i],
               allEnvironmentReviewsCount: allEnvironmentReviewsCount,
-              completedEnvironmentReviewsCount: completedEnvironmentReviewsCount,
+              completedEnvironmentReviewsCount:
+                  completedEnvironmentReviewsCount,
             ),
           ),
       ],
