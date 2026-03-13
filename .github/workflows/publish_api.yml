@@ -30,8 +30,11 @@ on:
 env:
   REGISTRY: ghcr.io
 
+permissions: {}
+
 jobs:
   build-and-push-image:
+    name: Build and Push API Image
     runs-on: [self-hosted, linux, jammy, x64]
     permissions:
       contents: read
@@ -105,6 +108,7 @@ jobs:
             UV_DYNAMIC_VERSIONING_BYPASS=${{ steps.version.outputs.VERSION }}
 
   build-and-push-charm:
+    name: Build and Push API Charm
     runs-on: [self-hosted, linux, xlarge, jammy, x64]
     needs: build-and-push-image
 

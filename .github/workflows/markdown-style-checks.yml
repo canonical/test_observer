@@ -29,8 +29,11 @@ on:
     paths:
     - 'docs/**'   # Only run on changes to the docs directory
 
+permissions: {}
+
 jobs:
   markdown-lint:
+    name: Check Markdown Linting
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v5

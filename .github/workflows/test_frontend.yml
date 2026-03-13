@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Test Frontend
+
 on:
   push:
     branches-ignore:
@@ -23,12 +24,17 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/test_frontend.yml'
+
 # Cancel inprogress runs if new commit pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions: {}
+
 jobs:
   test:
+    name: Test Frontend
     runs-on: [self-hosted, linux, large, jammy, x64]
     defaults:
       run:

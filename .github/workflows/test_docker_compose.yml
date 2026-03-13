@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Test Docker Compose
+
 on:
   pull_request:
     paths:
@@ -29,8 +30,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   test-docker-compose:
+    name: Test Docker Compose
     runs-on: ubuntu-latest
     timeout-minutes: 15
     

@@ -29,8 +29,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   analyze-terraform:
+    name: Analyze Terraform
     runs-on: ubuntu-latest
 
     steps:

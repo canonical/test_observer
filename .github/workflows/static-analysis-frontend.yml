@@ -27,8 +27,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   analyze-frontend:
+    name: Analyze Frontend
     runs-on: ubuntu-24.04
     defaults:
       run:

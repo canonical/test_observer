@@ -21,8 +21,11 @@ on:
   pull_request:
     branches: [main]
 
+permissions: {}
+
 jobs:
   build-docs:
+    name: Build Documentation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch

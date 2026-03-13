@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Run charm tests
+
 on:
   pull_request:
     branches:
@@ -27,6 +28,8 @@ on:
     tags: ["v*.*.*"]
     paths:
       - 'frontend/charm/**'
+
+permissions: {}
 
 jobs:
   lint-report:

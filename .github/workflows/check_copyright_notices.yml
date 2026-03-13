@@ -27,9 +27,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
 
 jobs:
   check-notices:
+    name: Check Copyright and License Notices
     runs-on: [self-hosted, linux, large, jammy, x64]
     steps:
       - uses: actions/checkout@v4

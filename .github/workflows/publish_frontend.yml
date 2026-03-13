@@ -28,8 +28,11 @@ on:
 env:
   REGISTRY: ghcr.io
 
+permissions: {}
+
 jobs:
   build-and-push-frontend-image:
+    name: Build and Push Frontend Image
     runs-on: [self-hosted, linux, jammy, x64]
     permissions:
       contents: read
@@ -91,6 +94,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   build-and-push-frontend-charm:
+    name: Build and Push Frontend Charm
     needs: build-and-push-frontend-image
     runs-on: [self-hosted, linux, xlarge, jammy, x64]
     steps:
