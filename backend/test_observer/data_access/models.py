@@ -151,6 +151,10 @@ class User(Base):
     artefact_reviews: Mapped[list["Artefact"]] = relationship(
         secondary=artefact_reviewers_association, back_populates="reviewers"
     )
+    environment_reviews: Mapped[list["ArtefactBuildEnvironmentReview"]] = relationship(
+        secondary=environment_review_reviewers_association,
+        back_populates="reviewers",
+    )
     sessions: Mapped[list["UserSession"]] = relationship(
         back_populates="user", cascade="all, delete"
     )
@@ -884,6 +888,7 @@ class ArtefactBuildEnvironmentReview(Base):
 
     reviewers: Mapped[list["User"]] = relationship(
         secondary=environment_review_reviewers_association,
+        back_populates="environment_reviews",
     )
 
     @property
