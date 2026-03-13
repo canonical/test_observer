@@ -979,6 +979,121 @@
         ]
       }
     },
+    "/v1/artefacts/history": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact History",
+        "description": "Get the versioning history of an artefact for a given name, family, and track,\noptionally filtered by stage, with pagination support.\n\nReturns a list of artefact versions along with their creation date.",
+        "operationId": "get_artefact_history_v1_artefacts_history_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Artefact name",
+              "title": "Name"
+            },
+            "description": "Artefact name"
+          },
+          {
+            "name": "family",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FamilyName",
+              "description": "Artefact family"
+            },
+            "description": "Artefact family"
+          },
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Artefact track",
+              "default": "latest",
+              "title": "Track"
+            },
+            "description": "Artefact track"
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StageName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by stage",
+              "title": "Stage"
+            },
+            "description": "Filter by stage"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 10 if not specified)",
+              "default": 10,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 10 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
+      }
+    },
     "/v1/artefacts/{artefact_id}": {
       "get": {
         "tags": [
@@ -4433,43 +4548,80 @@
         ],
         "title": "ArtefactBuildResponse"
       },
+      "ArtefactHistoryItemResponse": {
+        "properties": {
+          "artefact_id": {
+            "type": "integer",
+            "title": "Artefact Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "artefact_id",
+          "name",
+          "version",
+          "stage",
+          "created_at"
+        ],
+        "title": "ArtefactHistoryItemResponse"
+      },
+      "ArtefactHistoryResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactHistoryItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "ArtefactHistoryResponse"
+      },
       "ArtefactMatchingRuleBase": {
         "properties": {
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stage"
+            "type": "string",
+            "title": "Stage",
+            "default": ""
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Track"
+            "type": "string",
+            "title": "Track",
+            "default": ""
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Branch"
+            "type": "string",
+            "title": "Branch",
+            "default": ""
           }
         },
         "type": "object",
@@ -4489,36 +4641,15 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Stage"
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Track"
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Branch"
           }
         },
@@ -4603,37 +4734,19 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stage"
+            "type": "string",
+            "title": "Stage",
+            "default": ""
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Track"
+            "type": "string",
+            "title": "Track",
+            "default": ""
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Branch"
+            "type": "string",
+            "title": "Branch",
+            "default": ""
           },
           "team_ids": {
             "items": {
@@ -4661,36 +4774,15 @@
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Stage"
           },
           "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Track"
           },
           "branch": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Branch"
           },
           "teams": {

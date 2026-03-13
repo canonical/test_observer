@@ -83,9 +83,9 @@ def upgrade() -> None:
                     """
                     SELECT id FROM artefact_matching_rule 
                     WHERE family = :family 
-                    AND stage IS NULL 
-                    AND track IS NULL 
-                    AND branch IS NULL
+                    AND stage = '' 
+                    AND track = '' 
+                    AND branch = ''
                     """
                 ),
                 {"family": family}
@@ -99,7 +99,7 @@ def upgrade() -> None:
                     sa.text(
                         """
                         INSERT INTO artefact_matching_rule (family, stage, track, branch, created_at, updated_at)
-                        VALUES (:family, NULL, NULL, NULL, NOW(), NOW())
+                        VALUES (:family, '', '', '', NOW(), NOW())
                         RETURNING id
                         """
                     ),

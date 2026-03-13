@@ -74,9 +74,9 @@ class DataGenerator:
     def gen_artefact_matching_rule(
         self,
         family: FamilyName,
-        stage: str | None = None,
-        track: str | None = None,
-        branch: str | None = None,
+        stage: str = "",
+        track: str = "",
+        branch: str = "",
         teams: list[Team] | None = None,
     ) -> ArtefactMatchingRule:
         teams = teams or []
