@@ -42,7 +42,7 @@ jobs:
     runs-on: [self-hosted, linux, jammy, x64]
     permissions:
       contents: read
-      packages: write
+      packages: write # Needed to publish Docker image
 
     env:
       IMAGE_NAME: ${{ github.repository }}/api
@@ -75,15 +75,16 @@ jobs:
           echo "Docker tag: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
 
       - name: Log in to the Container registry
-        uses: docker/login-action@9fe7774c8f8ebfade96f0a62aa10f3882309d517
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # Ignoring until we set up environments
+          password: ${{ secrets.GITHUB_TOKEN }} # zizmor: ignore[secrets-outside-env]
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@b13d25e5fcf2e04305d8aedc9a6c28ebe258e934
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -101,7 +102,7 @@ jobs:
           echo "Determined version: $VERSION"
 
       - name: Build and push backend Docker image
-        uses: docker/build-push-action@dbac3ca1e5410ec04d2cce48cfbcfa3175fb8f4f
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: ./backend
           file: ./backend/Dockerfile.production
@@ -151,8 +152,9 @@ jobs:
         uses: canonical/charming-actions/upload-charm@1753e0803f70445132e92acd45c905aba6473225 # v2.7.0
         with:
           charm-path: "backend/charm"
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          # Ignoring until we set up environments
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
+          github-token: "${{ secrets.GITHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
           tag-prefix: "api"
           channel: "${{ steps.channel.outputs.name }}"
 
