@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v4
         with:
           python-version: "3.12"
