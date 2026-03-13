@@ -20,7 +20,7 @@ try:
     from hatchling.metadata.plugin.interface import MetadataHookInterface
 except ImportError:
     # If hatchling is not installed, define a dummy interface to avoid import errors.
-    class MetadataHookInterface:
+    class MetadataHookInterface: # type: ignore
         def update(self, metadata: dict) -> None:
             pass
 

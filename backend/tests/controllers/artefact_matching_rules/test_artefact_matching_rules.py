@@ -595,7 +595,7 @@ def test_create_rule_with_multiple_teams_association(test_client: TestClient, ge
     # Verify the rule appears in both teams
     for team in [team1, team2]:
         team_get = make_authenticated_request(
-            lambda team=team: test_client.get(f"/v1/teams/{team.id}"),
+            lambda team=team: test_client.get(f"/v1/teams/{team.id}"), # type: ignore
             Permission.view_team,
         )
         assert team_get.status_code == 200

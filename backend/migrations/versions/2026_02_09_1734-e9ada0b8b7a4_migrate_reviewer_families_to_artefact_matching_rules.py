@@ -97,7 +97,7 @@ def upgrade() -> None:
                     ),
                     {"family": family},
                 )
-                rule_id = result.fetchone()[0]
+                rule_id = result.one()[0]
 
             # Check if association already exists
             existing_association = connection.execute(
