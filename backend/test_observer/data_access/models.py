@@ -108,6 +108,21 @@ artefact_reviewers_association = Table(
     ),
 )
 
+environment_review_reviewers_association = Table(
+    "environment_review_reviewers_association",
+    Base.metadata,
+    Column(
+        "environment_review_id",
+        ForeignKey("artefact_build_environment_review.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "user_id",
+        ForeignKey("app_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
 artefact_matching_rule_team_association = Table(
     "artefact_matching_rule_team_association",
     Base.metadata,
@@ -135,6 +150,10 @@ class User(Base):
 
     artefact_reviews: Mapped[list["Artefact"]] = relationship(
         secondary=artefact_reviewers_association, back_populates="reviewers"
+    )
+    environment_reviews: Mapped[list["ArtefactBuildEnvironmentReview"]] = relationship(
+        secondary=environment_review_reviewers_association,
+        back_populates="reviewers",
     )
     sessions: Mapped[list["UserSession"]] = relationship(
         back_populates="user", cascade="all, delete"
@@ -864,6 +883,11 @@ class ArtefactBuildEnvironmentReview(Base):
 
     artefact_build_id: Mapped[int] = mapped_column(ForeignKey("artefact_build.id", ondelete="CASCADE"), index=True)
     artefact_build: Mapped["ArtefactBuild"] = relationship(
+        back_populates="environment_reviews",
+    )
+
+    reviewers: Mapped[list["User"]] = relationship(
+        secondary=environment_review_reviewers_association,
         back_populates="environment_reviews",
     )
 
