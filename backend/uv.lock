@@ -1508,7 +1508,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.31.0,<3.0.0" },
     { name = "sentry-sdk", specifier = "==0.10.2" },
     { name = "sqlalchemy", specifier = ">=2.0.16,<3.0.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.21.1,<0.22.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.41.0,<0.42.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1577,15 +1577,15 @@ wheels = [
 
 [[package]]
 name = "uvicorn"
-version = "0.21.1"
+version = "0.41.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "h11" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ea/fa/362dc074f4c886e4bff1d994ed1929ed2c2a5ba85827d8f1d745fbe66de2/uvicorn-0.21.1.tar.gz", hash = "sha256:0fac9cb342ba099e0d582966005f3fdba5b0290579fed4a6266dc702ca7bb032", size = 37176, upload-time = "2023-03-16T12:30:15.614Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/32/ce/eeb58ae4ac36fe09e3842eb02e0eb676bf2c53ae062b98f1b2531673efdd/uvicorn-0.41.0.tar.gz", hash = "sha256:09d11cf7008da33113824ee5a1c6422d89fbc2ff476540d69a34c87fab8b571a", size = 82633, upload-time = "2026-02-16T23:07:24.1Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8c/f1/7c45fe2a09133e103dcf0621831545c268cd3f7a5d58dc7e470be91b2cd0/uvicorn-0.21.1-py3-none-any.whl", hash = "sha256:e47cac98a6da10cd41e6fd036d472c6f58ede6c5dbee3dbee3ef7a100ed97742", size = 57824, upload-time = "2023-03-16T12:30:13.762Z" },
+    { url = "https://files.pythonhosted.org/packages/83/e4/d04a086285c20886c0daad0e026f250869201013d18f81d9ff5eada73a88/uvicorn-0.41.0-py3-none-any.whl", hash = "sha256:29e35b1d2c36a04b9e180d4007ede3bcb32a85fbdfd6c6aeb3f26839de088187", size = 68783, upload-time = "2026-02-16T23:07:22.357Z" },
 ]
 
 [package.optional-dependencies]
