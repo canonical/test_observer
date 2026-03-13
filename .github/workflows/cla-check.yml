@@ -22,9 +22,16 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
 jobs:
   cla-check:
+    name: Check Canonical Contributor Licence Agreement
     runs-on: ubuntu-latest
     steps:
       - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@v2
+        uses: canonical/has-signed-canonical-cla@1c20438ad54b4d37105e777000545881d2293ba4 # v2.2.0

@@ -1,4 +1,4 @@
-# Copyright 2025 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Automatic doc checks
+name: Static Analysis - Workflows
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     paths:
-      - 'docs/**'   # Only run on changes to the docs directory
-      - '.github/workflows/automatic-doc-checks.yml'
-
-  workflow_dispatch:
-    # Manual trigger
-
+      - '.github/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,8 +29,15 @@ concurrency:
 permissions: {}
 
 jobs:
-  documentation-checks:
-    name: Run documentation checks
-    uses: canonical/documentation-workflows/.github/workflows/documentation-checks.yaml@aaeaf091e8f55145184ad897cb9834f224bd31de # No version/tag available
-    with:
-      working-directory: "docs"
+  analyze-workflows:
+    name: Analyze Workflows
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8 # v0.5.2
+        with:
+          advanced-security: false
+          persona: pedantic
+          version: 1.23.1

@@ -1,4 +1,4 @@
-# Copyright 2025 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Check copyright and license notices
+name: Static Analysis - Backend
 
 on:
-  push:
-    branches-ignore:
-      - 'main'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/static-analysis-backend.yml'
 
-# Cancel in-progress runs if new commit pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -30,14 +30,25 @@ concurrency:
 permissions: {}
 
 jobs:
-  check-notices:
-    name: Check Copyright and License Notices
-    runs-on: [self-hosted, linux, large, jammy, x64]
+  analyze-backend:
+    name: Analyze Backend
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
-
-      - name: Check Copyright and License Notices
-        # By default, the action runs `reuse lint`, which checks all files
-        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - run: pip install uv
+      - run: uv sync --all-groups
+      - run: uv pip install -e .
+      - if: ! cancelled()
+        run: uv run ruff check
+      - if: ! cancelled()
+        run: uv run ruff format --check
+      - if: ! cancelled()
+        run: uv run mypy .

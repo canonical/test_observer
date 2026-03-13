@@ -15,27 +15,40 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Lint terraform config
+name: Static Analysis - Terraform
+
 on:
   push:
     branches: [ main ]
   pull_request:
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/static-analysis-terraform.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
 
 jobs:
-  tflint:
+  analyze-terraform:
+    name: Analyze Terraform
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       name: Checkout source code
+      with:
+        persist-credentials: false
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       name: Cache plugin dir
       with:
         path: ~/.tflint.d/plugins
         key: ubuntu-latest-tflint-${{ hashFiles('.tflint.hcl') }}
 
-    - uses: terraform-linters/setup-tflint@v4
+    - uses: terraform-linters/setup-tflint@4cb9feea73331a35b422df102992a03a44a3bb33 # v6.2.1
       name: Setup TFLint
       with:
         tflint_version: latest

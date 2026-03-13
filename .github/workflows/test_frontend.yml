@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Test Frontend
+
 on:
   push:
     branches-ignore:
@@ -23,19 +24,26 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/test_frontend.yml'
+
 # Cancel inprogress runs if new commit pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions: {}
+
 jobs:
   test:
+    name: Test Frontend
     runs-on: [self-hosted, linux, large, jammy, x64]
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
         with:
           flutter-version: '3.29.3'
           channel: 'stable'
@@ -46,7 +54,7 @@ jobs:
           sudo apt update -y
           wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -P /tmp
           sudo apt install /tmp/google-chrome-stable_current_amd64.deb -y
-      - uses: nanasess/setup-chromedriver@v2
+      - uses: nanasess/setup-chromedriver@e93e57b843c0c92788f22483f1a31af8ee48db25 # v2.3.0
       - run: flutter test --platform chrome
       - run: chromedriver --port=4444 &
       - run: ./run_integration_tests.sh
