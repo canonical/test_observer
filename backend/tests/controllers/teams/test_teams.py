@@ -180,9 +180,7 @@ def test_set_invalid_permission(test_client: TestClient, generator: DataGenerato
     assert response.status_code == 422
 
 
-def test_update_team_artefact_matching_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_artefact_matching_rules(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])
 
@@ -328,41 +326,31 @@ def test_create_team_with_complex_matching_rules(test_client: TestClient):
     assert len(data["artefact_matching_rules"]) == 4
 
     # Check snap with track only
-    snap_track = next(
-        r for r in data["artefact_matching_rules"] if r["track"] == "22"
-    )
+    snap_track = next(r for r in data["artefact_matching_rules"] if r["track"] == "22")
     assert snap_track["family"] == "snap"
     assert snap_track["stage"] == ""
     assert snap_track["branch"] == ""
 
     # Check snap with track and stage
-    snap_track_stage = next(
-        r for r in data["artefact_matching_rules"] if r["track"] == "24"
-    )
+    snap_track_stage = next(r for r in data["artefact_matching_rules"] if r["track"] == "24")
     assert snap_track_stage["family"] == "snap"
     assert snap_track_stage["stage"] == "beta"
     assert snap_track_stage["branch"] == ""
 
     # Check deb with branch
-    deb_branch = next(
-        r for r in data["artefact_matching_rules"] if r["family"] == "deb"
-    )
+    deb_branch = next(r for r in data["artefact_matching_rules"] if r["family"] == "deb")
     assert deb_branch["branch"] == "jammy"
     assert deb_branch["stage"] == ""
     assert deb_branch["track"] == ""
 
     # Check charm with all fields
-    charm_full = next(
-        r for r in data["artefact_matching_rules"] if r["family"] == "charm"
-    )
+    charm_full = next(r for r in data["artefact_matching_rules"] if r["family"] == "charm")
     assert charm_full["track"] == "1.0"
     assert charm_full["stage"] == "edge"
     assert charm_full["branch"] == "feature-x"
 
 
-def test_update_team_replaces_matching_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_replaces_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test that updating matching rules replaces existing ones"""
     # Create a team with initial rules
     snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
@@ -401,9 +389,7 @@ def test_update_team_replaces_matching_rules(
     assert charm_rule["track"] == "stable"
 
 
-def test_update_team_clears_matching_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_clears_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test that setting matching rules to empty array clears all rules"""
     snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
     deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
@@ -425,14 +411,10 @@ def test_update_team_clears_matching_rules(
     assert len(data["artefact_matching_rules"]) == 0
 
 
-def test_update_team_matching_rules_reuses_existing(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_matching_rules_reuses_existing(test_client: TestClient, generator: DataGenerator):
     """Test that identical matching rules are reused across teams"""
     # Create a rule and assign it to team1
-    snap_rule = generator.gen_artefact_matching_rule(
-        family=FamilyName.snap, track="22"
-    )
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22")
     team1 = generator.gen_team(name="team1", artefact_matching_rules=[snap_rule])
 
     # Create team2 with the same rule
@@ -457,9 +439,7 @@ def test_update_team_matching_rules_reuses_existing(
     assert team1_rule_id == team2_rule_id
 
 
-def test_update_team_with_duplicate_matching_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_with_duplicate_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test that providing duplicate rules in the request is handled"""
     team = generator.gen_team()
 
@@ -486,23 +466,13 @@ def test_update_team_with_duplicate_matching_rules(
     assert data["artefact_matching_rules"][0]["track"] == "22"
 
 
-def test_get_team_returns_matching_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_team_returns_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test that getting a team returns its matching rules"""
-    snap_rule = generator.gen_artefact_matching_rule(
-        family=FamilyName.snap, track="22", stage="stable"
-    )
-    deb_rule = generator.gen_artefact_matching_rule(
-        family=FamilyName.deb, branch="jammy"
-    )
-    team = generator.gen_team(
-        name="test-team", artefact_matching_rules=[snap_rule, deb_rule]
-    )
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", stage="stable")
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb, branch="jammy")
+    team = generator.gen_team(name="test-team", artefact_matching_rules=[snap_rule, deb_rule])
 
-    response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team
-    )
+    response = make_authenticated_request(lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team)
 
     assert response.status_code == 200
     data = response.json()
@@ -519,9 +489,7 @@ def test_get_team_returns_matching_rules(
     assert deb["stage"] == ""
 
 
-def test_update_team_keeps_permissions_when_updating_rules(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_team_keeps_permissions_when_updating_rules(test_client: TestClient, generator: DataGenerator):
     """Test that updating rules doesn't affect permissions"""
     team = generator.gen_team(permissions=["view_user", "change_team"])
 
@@ -540,9 +508,7 @@ def test_update_team_keeps_permissions_when_updating_rules(
     assert len(data["artefact_matching_rules"]) == 1
 
 
-def test_remove_rule_from_team_making_it_an_orphan_removes_rule(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_remove_rule_from_team_making_it_an_orphan_removes_rule(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, teams=[team])
 

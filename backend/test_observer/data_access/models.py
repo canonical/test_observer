@@ -136,12 +136,8 @@ class User(Base):
     artefact_reviews: Mapped[list["Artefact"]] = relationship(
         secondary=artefact_reviewers_association, back_populates="reviewers"
     )
-    sessions: Mapped[list["UserSession"]] = relationship(
-        back_populates="user", cascade="all, delete"
-    )
-    teams: Mapped[list["Team"]] = relationship(
-        secondary=team_users_association, back_populates="members"
-    )
+    sessions: Mapped[list["UserSession"]] = relationship(back_populates="user", cascade="all, delete")
+    teams: Mapped[list["Team"]] = relationship(secondary=team_users_association, back_populates="members")
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
@@ -175,9 +171,7 @@ class Team(Base):
     name: Mapped[str] = mapped_column(unique=True)
     permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
 
-    members: Mapped[list[User]] = relationship(
-        secondary=team_users_association, back_populates="teams"
-    )
+    members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
     artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
         secondary="artefact_matching_rule_team_association",
         back_populates="teams",
@@ -205,11 +199,7 @@ class ArtefactMatchingRule(Base):
         back_populates="artefact_matching_rules",
     )
 
-    __table_args__ = (
-        UniqueConstraint(
-            "family", "stage", "track", "branch"
-        ),
-    )
+    __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
 
     def __repr__(self) -> str:
         return data_model_repr(self, "family", "stage", "track", "branch")
@@ -260,9 +250,7 @@ class Artefact(Base):
     image_url: Mapped[str] = mapped_column(String(200), default="")
 
     # Relationships
-    builds: Mapped[list["ArtefactBuild"]] = relationship(
-        back_populates="artefact", cascade="all, delete"
-    )
+    builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )

@@ -154,13 +154,9 @@ def get_artefact_history(
     track: Annotated[str, Query(description="Artefact track")] = "latest",
     stage: Annotated[StageName | None, Query(description="Filter by stage")] = None,
     limit: Annotated[
-        int, 
-        Query(ge=1, le=500, description="Maximum number of results (defaults to 10 if not specified)")
-        ] = 10,
-    offset: Annotated[
-        int, 
-        Query(ge=0, description="Number of results to skip for pagination")
-        ] = 0,
+        int, Query(ge=1, le=500, description="Maximum number of results (defaults to 10 if not specified)")
+    ] = 10,
+    offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
 ) -> ArtefactHistoryResponse:
     """
@@ -236,13 +232,8 @@ def patch_artefact(
     if request.comment is not None:
         artefact.comment = request.comment
 
-    reviewer_ids_set = (
-        hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
-    )
-    reviewer_emails_set = (
-        hasattr(request, "reviewer_emails")
-        and "reviewer_emails" in request.model_fields_set
-    )
+    reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
+    reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set
 
     if reviewer_ids_set and reviewer_emails_set:
         raise HTTPException(
@@ -261,9 +252,11 @@ def patch_artefact(
             )
         else:
             reviewers = []
-            users_by_id = {user.id: user for user in db.scalars(select(User).where(User.id.in_(request.reviewer_ids))).all()}
+            users_by_id = {
+                user.id: user for user in db.scalars(select(User).where(User.id.in_(request.reviewer_ids))).all()
+            }
             for user_id in request.reviewer_ids:
-                user = users_by_id.get(user_id, None)
+                user = users_by_id.get(user_id)
                 if user is None:
                     raise HTTPException(
                         status_code=422,
@@ -283,9 +276,12 @@ def patch_artefact(
             )
         else:
             reviewers = []
-            users_by_email = {user.email: user for user in db.scalars(select(User).where(User.email.in_(request.reviewer_emails))).all()}
+            users_by_email = {
+                user.email: user
+                for user in db.scalars(select(User).where(User.email.in_(request.reviewer_emails))).all()
+            }
             for email in request.reviewer_emails:
-                user = users_by_email.get(email, None)
+                user = users_by_email.get(email)
                 if user is None:
                     raise HTTPException(
                         status_code=422,

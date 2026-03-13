@@ -85,38 +85,47 @@ class StartTestExecutionController:
             # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
 
-            possible_rules = self.db.execute(
-                select(ArtefactMatchingRule)
-                .where(
-                    and_(
-                        ArtefactMatchingRule.family == family_str,
-                        or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
-                        or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
-                        or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
-                    ),
-            )).scalars().all()
+            possible_rules = (
+                self.db.execute(
+                    select(ArtefactMatchingRule).where(
+                        and_(
+                            ArtefactMatchingRule.family == family_str,
+                            or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
+                            or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
+                            or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
+                        ),
+                    )
+                )
+                .scalars()
+                .all()
+            )
 
             # sort rules by number of non-empty fields to prioritize specificity
             rules_with_score = [
-                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")]
-                for r in possible_rules
+                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")] for r in possible_rules
             ]
             sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
             highest_score = sorted_rules[0][1] if sorted_rules else 0
             rules = [r[0] for r in sorted_rules if r[1] == highest_score]
 
             if rules:
-                users = (self.db.execute(
-                    select(User)
-                    .join(User.teams)
-                    .join(Team.artefact_matching_rules)
-                    .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
-                    .distinct()
-                ).scalars().all())
+                users = (
+                    self.db.execute(
+                        select(User)
+                        .join(User.teams)
+                        .join(Team.artefact_matching_rules)
+                        .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
+                        .distinct()
+                    )
+                    .scalars()
+                    .all()
+                )
 
                 # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
                 environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
-                expected_number_of_reviewers = (environment_count + ENVIRONMENTS_PER_REVIEWER - 1) // ENVIRONMENTS_PER_REVIEWER
+                expected_number_of_reviewers = (
+                    environment_count + ENVIRONMENTS_PER_REVIEWER - 1
+                ) // ENVIRONMENTS_PER_REVIEWER
 
                 if users:
                     self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))

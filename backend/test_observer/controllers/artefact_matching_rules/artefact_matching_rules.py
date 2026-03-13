@@ -39,9 +39,7 @@ router: APIRouter = APIRouter(tags=["artefact-matching-rules"])
 def _get_rule_or_raise_404(db: Session, rule_id: int) -> ArtefactMatchingRule:
     rule = db.get(ArtefactMatchingRule, rule_id)
     if rule is None:
-        raise HTTPException(
-            status_code=404, detail=f"Artefact matching rule {rule_id} doesn't exist"
-        )
+        raise HTTPException(status_code=404, detail=f"Artefact matching rule {rule_id} doesn't exist")
     return rule
 
 
@@ -133,9 +131,7 @@ def get_artefact_matching_rules(
     family: FamilyName | None = None,
 ):
     """Get all artefact matching rules, optionally filtered by family"""
-    query = select(ArtefactMatchingRule).options(
-        selectinload(ArtefactMatchingRule.teams)
-    )
+    query = select(ArtefactMatchingRule).options(selectinload(ArtefactMatchingRule.teams))
 
     if family:
         query = query.where(ArtefactMatchingRule.family == family)
