@@ -15,14 +15,13 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Static Analysis
+name: Static Analysis - Backend
 
 on:
   pull_request:
     paths:
       - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/**'
+      - '.github/workflows/static-analysis-backend.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -50,35 +49,3 @@ jobs:
         run: uv run ruff format --check
       - if: ! cancelled()
         run: uv run mypy .
-
-  analyze-frontend:
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.29.3'
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter pub run build_runner build
-      - if: ! cancelled()
-        run: flutter analyze
-      - if: ! cancelled()
-        run: dart format --set-exit-if-changed lib
-
-  analyze-workflows:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-      - uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8 # v0.5.2
-        with:
-          advanced-security: false
-          persona: pedantic
-          version: 1.23.1
