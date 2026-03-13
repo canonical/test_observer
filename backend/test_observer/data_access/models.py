@@ -155,12 +155,8 @@ class User(Base):
         secondary=environment_review_reviewers_association,
         back_populates="reviewers",
     )
-    sessions: Mapped[list["UserSession"]] = relationship(
-        back_populates="user", cascade="all, delete"
-    )
-    teams: Mapped[list["Team"]] = relationship(
-        secondary=team_users_association, back_populates="members"
-    )
+    sessions: Mapped[list["UserSession"]] = relationship(back_populates="user", cascade="all, delete")
+    teams: Mapped[list["Team"]] = relationship(secondary=team_users_association, back_populates="members")
 
     def __repr__(self) -> str:
         return data_model_repr(self, "email", "name")
