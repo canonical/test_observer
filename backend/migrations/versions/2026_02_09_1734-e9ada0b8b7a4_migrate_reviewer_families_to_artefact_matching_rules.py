@@ -24,14 +24,14 @@ Revises: a3c0e9e00850
 Create Date: 2026-02-09 17:34:00.000000+00:00
 
 """
-from alembic import op
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
-
 # revision identifiers, used by Alembic.
-revision = 'e9ada0b8b7a4'
-down_revision = '40b42f906881'
+revision = "e9ada0b8b7a4"
+down_revision = "40b42f906881"
 branch_labels = None
 depends_on = None
 
@@ -39,43 +39,35 @@ depends_on = None
 def upgrade() -> None:
     # Update foreign key constraints to add CASCADE on delete
     op.drop_constraint(
-        op.f('artefact_matching_rule_team_association_artefact_matching_rule_id_fkey'),
-        'artefact_matching_rule_team_association',
-        type_='foreignkey'
+        op.f("artefact_matching_rule_team_association_artefact_matching_rule_id_fkey"),
+        "artefact_matching_rule_team_association",
+        type_="foreignkey",
     )
     op.drop_constraint(
-        op.f('artefact_matching_rule_team_association_team_id_fkey'),
-        'artefact_matching_rule_team_association',
-        type_='foreignkey'
+        op.f("artefact_matching_rule_team_association_team_id_fkey"),
+        "artefact_matching_rule_team_association",
+        type_="foreignkey",
     )
     op.create_foreign_key(
         None,
-        op.f('artefact_matching_rule_team_association'),
-        'artefact_matching_rule',
-        ['artefact_matching_rule_id'],
-        ['id'],
-        ondelete='CASCADE'
+        op.f("artefact_matching_rule_team_association"),
+        "artefact_matching_rule",
+        ["artefact_matching_rule_id"],
+        ["id"],
+        ondelete="CASCADE",
     )
-    op.create_foreign_key(
-        None,
-        op.f('artefact_matching_rule_team_association'),
-        'team',
-        ['team_id'],
-        ['id']
-    )
+    op.create_foreign_key(None, op.f("artefact_matching_rule_team_association"), "team", ["team_id"], ["id"])
 
     # Create a connection to execute raw SQL
     connection = op.get_bind()
-    
+
     # Get all teams with reviewer_families
     teams = connection.execute(
-        sa.text(
-            "SELECT id, name, reviewer_families FROM team WHERE array_length(reviewer_families, 1) > 0"
-        )
+        sa.text("SELECT id, name, reviewer_families FROM team WHERE array_length(reviewer_families, 1) > 0")
     ).fetchall()
-    
+
     # For each team, create ArtefactMatchingRule entries for each family
-    for team_id, team_name, reviewer_families in teams:
+    for team_id, _team_name, reviewer_families in teams:
         for family in reviewer_families:
             # Check if a matching rule already exists for this family (with all other fields NULL)
             existing_rule = connection.execute(
@@ -88,9 +80,9 @@ def upgrade() -> None:
                     AND branch = ''
                     """
                 ),
-                {"family": family}
+                {"family": family},
             ).fetchone()
-            
+
             if existing_rule:
                 rule_id = existing_rule[0]
             else:
@@ -103,10 +95,10 @@ def upgrade() -> None:
                         RETURNING id
                         """
                     ),
-                    {"family": family}
+                    {"family": family},
                 )
-                rule_id = result.fetchone()[0]
-            
+                rule_id = result.one()[0]
+
             # Check if association already exists
             existing_association = connection.execute(
                 sa.text(
@@ -115,9 +107,9 @@ def upgrade() -> None:
                     WHERE artefact_matching_rule_id = :rule_id AND team_id = :team_id
                     """
                 ),
-                {"rule_id": rule_id, "team_id": team_id}
+                {"rule_id": rule_id, "team_id": team_id},
             ).fetchone()
-            
+
             if not existing_association:
                 # Create association between the rule and the team
                 connection.execute(
@@ -127,28 +119,22 @@ def upgrade() -> None:
                         VALUES (:rule_id, :team_id)
                         """
                     ),
-                    {"rule_id": rule_id, "team_id": team_id}
+                    {"rule_id": rule_id, "team_id": team_id},
                 )
-    
+
     # Drop the reviewer_families column
-    op.drop_column('team', 'reviewer_families')
+    op.drop_column("team", "reviewer_families")
 
 
 def downgrade() -> None:
     # Re-add the reviewer_families column
     op.add_column(
-        'team',
-        sa.Column(
-            'reviewer_families',
-            postgresql.ARRAY(sa.String()),
-            nullable=False,
-            server_default='{}'
-        )
+        "team", sa.Column("reviewer_families", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}")
     )
-    
+
     # Populate reviewer_families from artefact_matching_rules
     connection = op.get_bind()
-    
+
     # Get all teams with their associated matching rules
     teams = connection.execute(
         sa.text(
@@ -158,8 +144,8 @@ def downgrade() -> None:
             """
         )
     ).fetchall()
-    
-    for team_id, team_name in teams:
+
+    for team_id, _team_name in teams:
         # Get all family-only matching rules for this team
         families = connection.execute(
             sa.text(
@@ -173,9 +159,9 @@ def downgrade() -> None:
                 AND amr.branch IS NULL
                 """
             ),
-            {"team_id": team_id}
+            {"team_id": team_id},
         ).fetchall()
-        
+
         if families:
             family_list = [f[0] for f in families]
             connection.execute(
@@ -186,5 +172,5 @@ def downgrade() -> None:
                     WHERE id = :team_id
                     """
                 ),
-                {"families": family_list, "team_id": team_id}
+                {"families": family_list, "team_id": team_id},
             )

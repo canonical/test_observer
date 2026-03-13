@@ -116,7 +116,8 @@ jobs:
     name: Build and Push API Charm
     runs-on: [self-hosted, linux, xlarge, jammy, x64]
     needs: build-and-push-image
-
+    permissions:
+      contents: write # Needed to create a release
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6

@@ -48,7 +48,7 @@ def _get_user_or_raise_404(db: Session, user_id: int) -> User:
     return user
 
 
-def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
+def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> None:
     """
     Sync artefact matching rules by creating/removing ArtefactMatchingRules.
     Replaces all existing rules for the team with the provided ones.
@@ -56,7 +56,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
     # Clear existing rules for this team (make a copy first)
     removed_rules = list(team.artefact_matching_rules)
     team.artefact_matching_rules.clear()
-    
+
     # Deduplicate rules in the request
     seen_rules = set()
     unique_rules_data = []
@@ -65,7 +65,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
         if rule_key not in seen_rules:
             seen_rules.add(rule_key)
             unique_rules_data.append(rule_data)
-    
+
     # Add new rules
     for rule_data in unique_rules_data:
         # Check if an identical rule already exists
@@ -77,7 +77,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
                 ArtefactMatchingRule.branch == rule_data.branch,
             )
         ).scalar_one_or_none()
-        
+
         if existing_rule:
             # Use existing rule
             team.artefact_matching_rules.append(existing_rule)
@@ -88,7 +88,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list):
                 stage=rule_data.stage,
                 track=rule_data.track,
                 branch=rule_data.branch,
-                teams=[team]
+                teams=[team],
             )
             db.add(new_rule)
 
