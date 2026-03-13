@@ -17,21 +17,23 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Callable
+
 import pytest
+from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from fastapi.encoders import jsonable_encoder
 
+from test_observer.common.permissions import Permission
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
+    CharmStage,
+    DebStage,
     FamilyName,
     SnapStage,
-    DebStage,
-    CharmStage,
 )
-from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
 @pytest.fixture
@@ -60,8 +62,8 @@ class TestReviewerAssignmentWithMatchingRules:
                     "rules": [{"family": FamilyName.snap, "team": "snap-team"}],
                 },
                 {
-                    "family": "snap", 
-                    "name": "core22", 
+                    "family": "snap",
+                    "name": "core22",
                     "execution_stage": SnapStage.beta,
                     "track": "22",
                     "store": "ubuntu",
@@ -76,8 +78,8 @@ class TestReviewerAssignmentWithMatchingRules:
                     "rules": [{"family": FamilyName.snap, "stage": SnapStage.beta, "team": "beta-team"}],
                 },
                 {
-                    "family": "snap", 
-                    "name": "core22", 
+                    "family": "snap",
+                    "name": "core22",
                     "execution_stage": SnapStage.beta,
                     "track": "22",
                     "store": "ubuntu",
@@ -92,11 +94,11 @@ class TestReviewerAssignmentWithMatchingRules:
                     "rules": [{"family": FamilyName.deb, "stage": DebStage.proposed, "team": "deb-team"}],
                 },
                 {
-                    "family": "deb", 
-                    "name": "linux", 
-                    "execution_stage": DebStage.proposed, 
-                    "series": "jammy", 
-                    "repo": "main"
+                    "family": "deb",
+                    "name": "linux",
+                    "execution_stage": DebStage.proposed,
+                    "series": "jammy",
+                    "repo": "main",
                 },
                 ["DebUser"],
                 id="match-deb-artefact",
@@ -107,8 +109,8 @@ class TestReviewerAssignmentWithMatchingRules:
                     "rules": [{"family": FamilyName.charm, "stage": CharmStage.beta, "team": "charm-team"}],
                 },
                 {
-                    "family": "charm", 
-                    "name": "postgresql", 
+                    "family": "charm",
+                    "name": "postgresql",
                     "execution_stage": CharmStage.beta,
                     "track": "3.0",
                     "revision": 1,
@@ -118,12 +120,18 @@ class TestReviewerAssignmentWithMatchingRules:
             ),
             pytest.param(
                 {
-                    "teams": [{"name": "charm-team", "users": ["CharmUser"]},  {"name": "beta-team", "users": ["BetaUser"]}],
-                    "rules": [{"family": FamilyName.charm, "team": "charm-team"}, {"family": FamilyName.charm, "stage": CharmStage.beta, "team": "beta-team"}],
+                    "teams": [
+                        {"name": "charm-team", "users": ["CharmUser"]},
+                        {"name": "beta-team", "users": ["BetaUser"]},
+                    ],
+                    "rules": [
+                        {"family": FamilyName.charm, "team": "charm-team"},
+                        {"family": FamilyName.charm, "stage": CharmStage.beta, "team": "beta-team"},
+                    ],
                 },
                 {
-                    "family": "charm", 
-                    "name": "postgresql", 
+                    "family": "charm",
+                    "name": "postgresql",
                     "execution_stage": CharmStage.beta,
                     "track": "3.0",
                     "revision": 1,
@@ -135,26 +143,22 @@ class TestReviewerAssignmentWithMatchingRules:
     )
     def test_reviewer_assignment_scenarios(
         self,
-        start_test,
+        start_test: Callable[[dict], dict],
         db_session: Session,
         generator: DataGenerator,
-        setup_data,
-        artefact_params,
-        expected_user_names,
+        setup_data: dict,
+        artefact_params: dict,
+        expected_user_names: list[str],
     ):
         # GIVEN users and teams
         user_map = {}
         team_map = {}
-        
+
         for team_conf in setup_data["teams"]:
             team = generator.gen_team(name=team_conf["name"])
             team_map[team_conf["name"]] = team
             for username in team_conf["users"]:
-                user = generator.gen_user(
-                    name=username, 
-                    email=f"{username.lower()}@test.com", 
-                    teams=[team]
-                )
+                user = generator.gen_user(name=username, email=f"{username.lower()}@test.com", teams=[team])
                 user_map[username] = user
 
         # GIVEN matching rules
@@ -179,9 +183,11 @@ class TestReviewerAssignmentWithMatchingRules:
 
         # THEN the test execution's artefact is assigned to the expected user
         test_execution = db_session.get(TestExecution, result["id"])
+        assert test_execution is not None
+        assert test_execution.artefact_build is not None
         assert len(test_execution.artefact_build.artefact.reviewers or []) == 1
         assignee = test_execution.artefact_build.artefact.reviewers[0]
-        
+
         if not expected_user_names:
             assert assignee is None
         else:

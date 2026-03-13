@@ -374,12 +374,10 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
     }
 
 
-def test_set_user_as_reviewer(
-    test_client: TestClient, generator: DataGenerator, db_session: Session
-):
+def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator, db_session: Session):
     snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
     deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-    
+
     team = generator.gen_team(artefact_matching_rules=[snap_rule, deb_rule])
     user = generator.gen_user(teams=[team])
 

@@ -41,6 +41,8 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.job }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   lib-check:
     name: Check charm libraries
@@ -48,15 +50,20 @@ jobs:
     strategy:
       matrix:
         charm: [backend, frontend]
+    permissions:
+      pull-requests: write # Needed for the library check to add labels
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
       - name: Check libs
         uses: canonical/charming-actions/check-libraries@1753e0803f70445132e92acd45c905aba6473225 # 2.7.0
         with:
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          # Ignoring until we set up environments
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
+          github-token: "${{ secrets.GITHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
           charm-path: "${{ matrix.charm }}/charm"
 
   pack-charm:
@@ -67,10 +74,12 @@ jobs:
         charm: [backend, frontend]
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
       - name: Setup LXD
-        uses: canonical/setup-lxd@v0.1.3
+        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
         with:
           channel: 5.21/stable
 
@@ -79,7 +88,9 @@ jobs:
 
       - name: Cache wheels
         id: cache-wheels
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        # Ignoring the zizmor error since these artifacts are not used in releases,
+        # but we may want to revisit this to actually address the zizmor complaint
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # zizmor: ignore[cache-poisoning] Hash points to v4
         with:
           path: /home/runner/snap/charmcraft/common/cache/charmcraft
           key: ${{ runner.os }}-wheel-cache-${{ hashFiles('./uv.lock') }}
@@ -111,7 +122,9 @@ jobs:
       - pack-charm
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
       - name: Download backend charm artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -126,14 +139,15 @@ jobs:
           path: ${{ github.workspace }}/frontend/charm
   
       - name: Setup LXD
-        uses: canonical/setup-lxd@v0.1.3
+        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
         with:
           channel: 5.21/stable
 
       - name: Setup Go
-        uses: actions/setup-go@v5.6.0
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
           go-version: 1.26.1
+          cache: false
   
       - name: Install spread
         run: |

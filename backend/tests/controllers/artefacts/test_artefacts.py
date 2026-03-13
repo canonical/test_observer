@@ -28,8 +28,6 @@ from test_observer.data_access.models_enums import (
     ArtefactStatus,
     FamilyName,
     StageName,
-    TestExecutionStatus,
-    TestResultStatus,
 )
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -524,9 +522,7 @@ def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenera
     assert a.reviewers == [u]
 
 
-def test_update_artefact_reviewer_nonexistent_user(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_nonexistent_user(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_user_id = 99999
 
@@ -542,9 +538,7 @@ def test_update_artefact_reviewer_nonexistent_user(
     assert "User with id 99999 not found" in response.json()["detail"]
 
 
-def test_update_artefact_reviewer_clear(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_clear(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
     a = generator.gen_artefact(reviewers=[u])
 
@@ -564,9 +558,7 @@ def test_update_artefact_reviewer_clear(
     assert a.reviewers == []
 
 
-def test_update_artefact_reviewer_by_email(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_by_email(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -582,9 +574,7 @@ def test_update_artefact_reviewer_by_email(
     assert a.reviewers == [u]
 
 
-def test_update_artefact_reviewer_by_email_nonexistent(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_by_email_nonexistent(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_email = "nonexistent@example.com"
 
@@ -601,9 +591,7 @@ def test_update_artefact_reviewer_by_email_nonexistent(
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_reviewer_clear_by_email(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_clear_by_email(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
     a = generator.gen_artefact(reviewers=[u])
 
@@ -623,9 +611,7 @@ def test_update_artefact_reviewer_clear_by_email(
     assert a.reviewers == []
 
 
-def test_update_artefact_reviewer_both_id_and_email_error(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_both_id_and_email_error(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -645,9 +631,7 @@ def test_update_artefact_reviewer_both_id_and_email_error(
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_multiple_reviewers_by_id(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_multiple_reviewers_by_id(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
 
@@ -665,9 +649,7 @@ def test_update_artefact_multiple_reviewers_by_id(
     assert a.reviewers == users
 
 
-def test_update_artefact_multiple_reviewers_by_email(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_multiple_reviewers_by_email(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
 
     users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
@@ -790,6 +772,7 @@ def test_get_artefact_history_limit(test_client: TestClient, generator: DataGene
     assert len(body["items"]) == 5
     assert [item["version"] for item in body["items"]] == ["19", "18", "17", "16", "15"]
 
+
 def test_get_artefact_history_filters_by_stage(test_client: TestClient, generator: DataGenerator):
     generator.gen_artefact(
         family=FamilyName.charm,
@@ -848,20 +831,21 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "archived": artefact.archived,
         "family": artefact.family,
         "reviewers": [],
-        "due_date": (
-            artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
-        ),
+        "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
     }
     if artefact.reviewers:
-        expected["reviewers"] = [{
-            "id": r.id,
-            "email": r.email,
-            "launchpad_email": r.email,
-            "launchpad_handle": r.launchpad_handle,
-            "name": r.name,
-        } for r in artefact.reviewers]
+        expected["reviewers"] = [
+            {
+                "id": r.id,
+                "email": r.email,
+                "launchpad_email": r.email,
+                "launchpad_handle": r.launchpad_handle,
+                "name": r.name,
+            }
+            for r in artefact.reviewers
+        ]
     assert response == expected

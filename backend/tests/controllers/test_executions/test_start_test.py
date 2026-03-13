@@ -30,11 +30,11 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import (
     CharmStage,
     DebStage,
+    FamilyName,
     ImageStage,
     SnapStage,
     StageName,
     TestExecutionStatus,
-    FamilyName
 )
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
@@ -171,7 +171,8 @@ class TestFamilyIndependentTests:
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
 
         team = generator.gen_team(
-            name="reviewers", artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # User is member of this team
         user = generator.gen_user(teams=[team])
@@ -180,7 +181,11 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
+        assignee = (
+            test_execution.artefact_build.artefact.reviewers[0]
+            if test_execution.artefact_build.artefact.reviewers
+            else None
+        )
         assert assignee is not None
         assert assignee.launchpad_handle == user.launchpad_handle
 
@@ -194,20 +199,28 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
+        assignee = (
+            test_execution.artefact_build.artefact.reviewers[0]
+            if test_execution.artefact_build.artefact.reviewers
+            else None
+        )
         assert assignee is None
 
     def test_artefact_with_few_environments_gets_assigned_single_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        """Assert that an artefact with only 1 environment gets assigned to a single reviewer even if multiple are available"""
+        """
+        Assert that an artefact with only 1 environment
+        gets assigned to a single reviewer even if multiple are available
+        """
         # Create a team that can review all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
         team = generator.gen_team(
-            name="reviewers", artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # Create multiple users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
@@ -235,7 +248,8 @@ class TestFamilyIndependentTests:
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
         team = generator.gen_team(
-            name="reviewers", artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # Create multiple users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
@@ -607,7 +621,11 @@ def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Exe
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     # Check that assignee is in charm_team
     assert any(team.id == charm_team.id for team in assignee.teams)
@@ -646,7 +664,11 @@ def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execu
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     assert any(team.id == snap_team.id for team in assignee.teams)
     assert assignee.id == snap_reviewer.id
@@ -684,7 +706,11 @@ def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     assert any(team.id == deb_team.id for team in assignee.teams)
     assert assignee.id == deb_reviewer.id
@@ -722,7 +748,11 @@ def test_image_assigned_to_image_team_reviewer(db_session: Session, execute: Exe
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     assert any(team.id == image_team.id for team in assignee.teams)
     assert assignee.id == image_reviewer.id
@@ -803,5 +833,9 @@ def test_no_assignment_when_no_team_reviewers_available(
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.reviewers[0] if test_execution.artefact_build.artefact.reviewers else None
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is None
