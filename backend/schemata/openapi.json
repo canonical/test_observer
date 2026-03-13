@@ -4468,6 +4468,14 @@
           },
           "artefact_build": {
             "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          },
+          "reviewers": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentReviewReviewerResponse"
+            },
+            "type": "array",
+            "title": "Reviewers",
+            "default": []
           }
         },
         "type": "object",
@@ -5382,6 +5390,40 @@
         },
         "type": "object",
         "title": "EnvironmentReviewPatch"
+      },
+      "EnvironmentReviewReviewerResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "launchpad_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Launchpad Handle"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name"
+        ],
+        "title": "EnvironmentReviewReviewerResponse"
       },
       "EnvironmentsResponse": {
         "properties": {
