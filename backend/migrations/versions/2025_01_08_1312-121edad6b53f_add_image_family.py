@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Add image family
 
@@ -98,21 +96,12 @@ def downgrade() -> None:
 def remove_image_family_enum_value():
     op.execute("ALTER TYPE familyname RENAME TO familyname_old")
     op.execute("CREATE TYPE familyname AS ENUM('snap', 'deb', 'charm')")
-    op.execute(
-        "ALTER TABLE artefact ALTER COLUMN family TYPE "
-        "familyname USING family::text::familyname"
-    )
+    op.execute("ALTER TABLE artefact ALTER COLUMN family TYPE familyname USING family::text::familyname")
     op.execute("DROP TYPE familyname_old")
 
 
 def remove_added_stage_enum_values():
     op.execute("ALTER TYPE stagename RENAME TO stagename_old")
-    op.execute(
-        "CREATE TYPE stagename AS "
-        "ENUM('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')"
-    )
-    op.execute(
-        "ALTER TABLE artefact ALTER COLUMN stage TYPE "
-        "stagename USING stage::text::stagename"
-    )
+    op.execute("CREATE TYPE stagename AS ENUM('edge', 'beta', 'candidate', 'stable', 'proposed', 'updates')")
+    op.execute("ALTER TABLE artefact ALTER COLUMN stage TYPE stagename USING stage::text::stagename")
     op.execute("DROP TYPE stagename_old")

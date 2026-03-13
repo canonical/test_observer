@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import datetime
 from enum import StrEnum
@@ -32,20 +30,20 @@ from pydantic import (
 from test_observer.controllers.artefacts.models import (
     ArtefactBuildMinimalResponse,
     ArtefactResponse,
-    TestExecutionResponse,
     TestExecutionRelevantLinkCreate,
+    TestExecutionResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models_enums import (
-    FamilyName,
-    SnapStage,
-    DebStage,
     CharmStage,
+    DebStage,
+    FamilyName,
     ImageStage,
+    SnapStage,
     TestExecutionStatus,
     TestResultStatus,
 )
-from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 
 
 class _StartTestExecutionRequest(BaseModel):
@@ -221,25 +219,19 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
         "Options: 'pending' (awaiting approval), 'current' (approved and published). "
         "Use 'pending' for images undergoing testing before promotion."
     )
-    os: str = Field(
-        description="Operating system of the image. "
-        "Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'"
-    )
+    os: str = Field(description="Operating system of the image. Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'")
     release: str = Field(
-        description="OS release codename or version. "
-        "Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
+        description="OS release codename or version. Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
     )
     sha256: str = Field(
         description="SHA256 checksum hash uniquely identifying this image build. "
         "Used to verify image integrity and uniqueness."
     )
     owner: str = Field(
-        description="Team or organization responsible for the image. "
-        "Examples: 'canonical', 'ubuntu-images', team names"
+        description="Team or organization responsible for the image. Examples: 'canonical', 'ubuntu-images', team names"
     )
     image_url: HttpUrl = Field(
-        description="Direct URL where the image file can be downloaded or accessed. "
-        "Should be a valid HTTP/HTTPS URL."
+        description="Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL."
     )
 
 
@@ -291,24 +283,12 @@ class RerunRequest(BaseModel):
 class PendingRerun(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    test_execution_id: int = Field(
-        validation_alias=AliasPath("test_executions", 0, "id")
-    )
-    ci_link: str | None = Field(
-        validation_alias=AliasPath("test_executions", 0, "ci_link")
-    )
-    family: FamilyName = Field(
-        validation_alias=AliasPath("artefact_build", "artefact", "family")
-    )
-    test_execution: TestExecutionResponse = Field(
-        validation_alias=AliasPath("test_executions", 0)
-    )
-    artefact: ArtefactResponse = Field(
-        validation_alias=AliasPath("artefact_build", "artefact")
-    )
-    artefact_build: ArtefactBuildMinimalResponse = Field(
-        validation_alias=AliasPath("artefact_build")
-    )
+    test_execution_id: int = Field(validation_alias=AliasPath("test_executions", 0, "id"))
+    ci_link: str | None = Field(validation_alias=AliasPath("test_executions", 0, "ci_link"))
+    family: FamilyName = Field(validation_alias=AliasPath("artefact_build", "artefact", "family"))
+    test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_executions", 0))
+    artefact: ArtefactResponse = Field(validation_alias=AliasPath("artefact_build", "artefact"))
+    artefact_build: ArtefactBuildMinimalResponse = Field(validation_alias=AliasPath("artefact_build"))
 
 
 class DeleteReruns(BaseModel):

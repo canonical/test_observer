@@ -1,3 +1,22 @@
+# Copyright 2023 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Publish Frontend
+
 on:
   push:
     branches:
@@ -11,26 +30,35 @@ on:
 env:
   REGISTRY: ghcr.io
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
 jobs:
   build-and-push-frontend-image:
+    name: Build and Push Frontend Image
     runs-on: [self-hosted, linux, jammy, x64]
     permissions:
       contents: read
-      packages: write
+      packages: write # Needed to publish Docker image
 
     env:
       IMAGE_NAME: ${{ github.repository }}/frontend
 
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
         with:
-          config-inline: |
+          buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["https://github-runner-dockerhub-cache.canonical.com:5000"]
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
       - name: Determine tag
         id: tag
@@ -47,15 +75,16 @@ jobs:
           echo "Docker tag: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
 
       - name: Log in to the Container registry
-        uses: docker/login-action@6d4b68b490aef8836e8fb5e50ee7b3bdfa5894f0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # Ignoring until we set up environments
+          password: ${{ secrets.GITHUB_TOKEN }} # zizmor: ignore[secrets-outside-env]
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@418e4b98bf2841bd337d0b24fe63cb36dc8afa55
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -66,7 +95,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend Docker image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: ./frontend
           push: true
@@ -74,11 +103,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   build-and-push-frontend-charm:
+    name: Build and Push Frontend Charm
     needs: build-and-push-frontend-image
     runs-on: [self-hosted, linux, xlarge, jammy, x64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
       - name: Determine channel
         id: channel
@@ -97,17 +129,21 @@ jobs:
           echo "Publishing to: $(grep name $GITHUB_OUTPUT | cut -d= -f2)"
 
       - name: Update OCI image reference in charmcraft.yaml
+        env:
+          TAG: ${{ steps.channel.outputs.tag }}
         run: |
-          sed -i "s|ghcr.io/canonical/test_observer/frontend:main|ghcr.io/canonical/test_observer/frontend:${{ steps.channel.outputs.tag }}|g" frontend/charm/charmcraft.yaml
-          echo "Updated charmcraft.yaml to use image tag: ${{ steps.channel.outputs.tag }}"
+          sed -i "s|ghcr.io/canonical/test_observer/frontend:main|ghcr.io/canonical/test_observer/frontend:${TAG}|g" frontend/charm/charmcraft.yaml
+          echo "Updated charmcraft.yaml to use image tag: ${TAG}"
           grep "upstream-source" frontend/charm/charmcraft.yaml
 
       - name: Upload charm to charmhub
-        uses: canonical/charming-actions/upload-charm@2.7.0
+        # The version seems to really apply to the whole repo, rather than this specific action
+        uses: canonical/charming-actions/upload-charm@1753e0803f70445132e92acd45c905aba6473225 # v2.7.0
         with:
           charm-path: "frontend/charm"
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          # Ignoring until we set up environments
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
+          github-token: "${{ secrets.GITHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
           tag-prefix: "frontend"
           channel: "${{ steps.channel.outputs.name }}"
 

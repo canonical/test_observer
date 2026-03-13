@@ -1,4 +1,4 @@
 {
   "python.analysis.extraPaths": ["lib"],
-  "python.defaultInterpreterPath": ".venv/bin/python"
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
 }

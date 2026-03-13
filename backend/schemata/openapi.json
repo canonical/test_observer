@@ -979,6 +979,121 @@
         ]
       }
     },
+    "/v1/artefacts/history": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact History",
+        "description": "Get the versioning history of an artefact for a given name, family, and track,\noptionally filtered by stage, with pagination support.\n\nReturns a list of artefact versions along with their creation date.",
+        "operationId": "get_artefact_history_v1_artefacts_history_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Artefact name",
+              "title": "Name"
+            },
+            "description": "Artefact name"
+          },
+          {
+            "name": "family",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FamilyName",
+              "description": "Artefact family"
+            },
+            "description": "Artefact family"
+          },
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Artefact track",
+              "default": "latest",
+              "title": "Track"
+            },
+            "description": "Artefact track"
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StageName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by stage",
+              "title": "Stage"
+            },
+            "description": "Filter by stage"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 10 if not specified)",
+              "default": 10,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 10 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
+      }
+    },
     "/v1/artefacts/{artefact_id}": {
       "get": {
         "tags": [
@@ -1173,6 +1288,68 @@
         },
         "x-permissions": [
           "view_environment_review"
+        ]
+      },
+      "patch": {
+        "tags": [
+          "artefacts",
+          "environment-reviews"
+        ],
+        "summary": "Bulk Update Environment Reviews",
+        "operationId": "bulk_update_environment_reviews_v1_artefacts__artefact_id__environment_reviews_patch",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EnvironmentReviewPatch"
+                },
+                "title": "Requests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactBuildEnvironmentReviewResponse"
+                  },
+                  "title": "Response Bulk Update Environment Reviews V1 Artefacts  Artefact Id  Environment Reviews Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_environment_review"
         ]
       }
     },
@@ -2345,16 +2522,40 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/IssueStatus"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueStatus"
+                  }
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "Filter by issue status (e.g., open, closed, unknown)",
+              "description": "Filter by issue status. Accepts multiple values",
               "title": "Status"
             },
-            "description": "Filter by issue status (e.g., open, closed, unknown)"
+            "description": "Filter by issue status. Accepts multiple values"
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact family (e.g., snap, deb, charm, image)",
+              "title": "Families"
+            },
+            "description": "Filter by artefact family (e.g., snap, deb, charm, image)"
           },
           {
             "name": "limit",
@@ -2530,6 +2731,54 @@
               "type": "integer",
               "title": "Issue Id"
             }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Title"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IssueStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "auto_rerun_enabled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Auto Rerun Enabled"
+            }
           }
         ],
         "requestBody": {
@@ -2565,7 +2814,8 @@
           }
         },
         "x-permissions": [
-          "change_issue"
+          "change_issue",
+          "change_auto_rerun"
         ]
       }
     },
@@ -3840,6 +4090,243 @@
         ]
       }
     },
+    "/v1/artefact-matching-rules": {
+      "post": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Create Artefact Matching Rule",
+        "description": "Create a new artefact matching rule with at least one team",
+        "operationId": "create_artefact_matching_rule_v1_artefact_matching_rules_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactMatchingRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      },
+      "get": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Get Artefact Matching Rules",
+        "description": "Get all artefact matching rules, optionally filtered by family",
+        "operationId": "get_artefact_matching_rules_v1_artefact_matching_rules_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FamilyName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                  },
+                  "title": "Response Get Artefact Matching Rules V1 Artefact Matching Rules Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_team"
+        ]
+      }
+    },
+    "/v1/artefact-matching-rules/{rule_id}": {
+      "get": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Get Artefact Matching Rule",
+        "description": "Get a specific artefact matching rule by ID",
+        "operationId": "get_artefact_matching_rule_v1_artefact_matching_rules__rule_id__get",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_team"
+        ]
+      },
+      "patch": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Update Artefact Matching Rule",
+        "description": "Update an artefact matching rule",
+        "operationId": "update_artefact_matching_rule_v1_artefact_matching_rules__rule_id__patch",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactMatchingRulePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Delete Artefact Matching Rule",
+        "description": "Delete an artefact matching rule",
+        "operationId": "delete_artefact_matching_rule_v1_artefact_matching_rules__rule_id__delete",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -4060,6 +4547,263 @@
           "test_executions"
         ],
         "title": "ArtefactBuildResponse"
+      },
+      "ArtefactHistoryItemResponse": {
+        "properties": {
+          "artefact_id": {
+            "type": "integer",
+            "title": "Artefact Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "artefact_id",
+          "name",
+          "version",
+          "stage",
+          "created_at"
+        ],
+        "title": "ArtefactHistoryItemResponse"
+      },
+      "ArtefactHistoryResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactHistoryItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "ArtefactHistoryResponse"
+      },
+      "ArtefactMatchingRuleBase": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage",
+            "default": ""
+          },
+          "track": {
+            "type": "string",
+            "title": "Track",
+            "default": ""
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "title": "ArtefactMatchingRuleBase",
+        "description": "Base model for artefact matching rule with common fields"
+      },
+      "ArtefactMatchingRuleInResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "family",
+          "stage",
+          "track",
+          "branch"
+        ],
+        "title": "ArtefactMatchingRuleInResponse",
+        "description": "Artefact matching rule fields when included in responses (no relationships)"
+      },
+      "ArtefactMatchingRulePatch": {
+        "properties": {
+          "family": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FamilyName"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "team_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Ids"
+          }
+        },
+        "type": "object",
+        "title": "ArtefactMatchingRulePatch",
+        "description": "Patch request for artefact matching rule"
+      },
+      "ArtefactMatchingRuleRequest": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage",
+            "default": ""
+          },
+          "track": {
+            "type": "string",
+            "title": "Track",
+            "default": ""
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
+          },
+          "team_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Team Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family",
+          "team_ids"
+        ],
+        "title": "ArtefactMatchingRuleRequest",
+        "description": "Request to create an artefact matching rule (extends base with team_ids)"
+      },
+      "ArtefactMatchingRuleResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMinimal"
+            },
+            "type": "array",
+            "title": "Teams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "family",
+          "stage",
+          "track",
+          "branch",
+          "teams"
+        ],
+        "title": "ArtefactMatchingRuleResponse",
+        "description": "Artefact matching rule with associated teams"
       },
       "ArtefactPatch": {
         "properties": {
@@ -4289,11 +5033,26 @@
             },
             "type": "array",
             "title": "Artefacts"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
-          "artefacts"
+          "artefacts",
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "ArtefactSearchResponse"
       },
@@ -4584,6 +5343,17 @@
       },
       "EnvironmentReviewPatch": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
           "review_decision": {
             "anyOf": [
               {
@@ -4621,11 +5391,26 @@
             },
             "type": "array",
             "title": "Environments"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
-          "environments"
+          "environments",
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "EnvironmentsResponse",
         "description": "Response model for environments endpoint"
@@ -4766,6 +5551,17 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
           }
         },
         "type": "object",
@@ -4793,6 +5589,17 @@
                 "type": "null"
               }
             ]
+          },
+          "auto_rerun_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Rerun Enabled"
           },
           "url": {
             "type": "string",
@@ -4853,6 +5660,10 @@
             ],
             "title": "Labels"
           },
+          "auto_rerun_enabled": {
+            "type": "boolean",
+            "title": "Auto Rerun Enabled"
+          },
           "attachment_rules": {
             "items": {
               "$ref": "#/components/schemas/MinimalIssueTestResultAttachmentRuleResponse"
@@ -4870,6 +5681,7 @@
           "title",
           "status",
           "url",
+          "auto_rerun_enabled",
           "attachment_rules"
         ],
         "title": "IssueResponse"
@@ -4966,11 +5778,26 @@
             },
             "type": "array",
             "title": "Issues"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
-          "issues"
+          "issues",
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "IssuesGetResponse"
       },
@@ -5018,6 +5845,11 @@
               }
             ],
             "title": "Labels"
+          },
+          "test_executions_count": {
+            "type": "integer",
+            "title": "Test Executions Count",
+            "default": 0
           }
         },
         "type": "object",
@@ -5174,6 +6006,7 @@
           "change_issue_attachment",
           "change_issue_attachment_bulk",
           "change_attachment_rule",
+          "change_auto_rerun",
           "view_test",
           "change_test",
           "view_rerun",
@@ -5782,12 +6615,12 @@
             "title": "Permissions",
             "default": []
           },
-          "reviewer_families": {
+          "artefact_matching_rules": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
             },
             "type": "array",
-            "title": "Reviewer Families",
+            "title": "Artefact Matching Rules",
             "default": []
           }
         },
@@ -5796,6 +6629,24 @@
           "name"
         ],
         "title": "TeamCreate"
+      },
+      "TeamMinimal": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TeamMinimal"
       },
       "TeamMinimalResponse": {
         "properties": {
@@ -5813,14 +6664,6 @@
             },
             "type": "array",
             "title": "Permissions"
-          },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
           }
         },
         "type": "object",
@@ -5847,11 +6690,11 @@
             ],
             "title": "Permissions"
           },
-          "reviewer_families": {
+          "artefact_matching_rules": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
                 },
                 "type": "array"
               },
@@ -5859,7 +6702,7 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewer Families"
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -5882,20 +6725,19 @@
             "type": "array",
             "title": "Permissions"
           },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
-          },
           "members": {
             "items": {
               "$ref": "#/components/schemas/UserMinimalResponse"
             },
             "type": "array",
             "title": "Members"
+          },
+          "artefact_matching_rules": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactMatchingRuleInResponse"
+            },
+            "type": "array",
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -5903,7 +6745,8 @@
           "id",
           "name",
           "permissions",
-          "members"
+          "members",
+          "artefact_matching_rules"
         ],
         "title": "TeamResponse"
       },
@@ -6553,6 +7396,14 @@
             "type": "integer",
             "title": "Count"
           },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
           "test_results": {
             "items": {
               "$ref": "#/components/schemas/TestResultResponseWithContext"
@@ -6564,6 +7415,8 @@
         "type": "object",
         "required": [
           "count",
+          "limit",
+          "offset",
           "test_results"
         ],
         "title": "TestResultSearchResponseWithContext",
@@ -6693,12 +7546,22 @@
           "count": {
             "type": "integer",
             "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
           }
         },
         "type": "object",
         "required": [
           "users",
-          "count"
+          "count",
+          "limit",
+          "offset"
         ],
         "title": "UsersResponse"
       },

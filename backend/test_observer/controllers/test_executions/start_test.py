@@ -1,25 +1,23 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
-from datetime import date, timedelta
 import random
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -27,6 +25,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
+    ArtefactMatchingRule,
     Environment,
     Team,
     TestExecution,
@@ -34,8 +33,8 @@ from test_observer.data_access.models import (
     User,
 )
 from test_observer.data_access.repository import (
-    get_or_create,
     create_test_execution_relevant_link,
+    get_or_create,
 )
 from test_observer.data_access.setup import get_db
 
@@ -47,6 +46,8 @@ from .models import (
 )
 
 router = APIRouter()
+
+ENVIRONMENTS_PER_REVIEWER = 50
 
 
 class StartTestExecutionController:
@@ -84,25 +85,43 @@ class StartTestExecutionController:
             # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
 
-            users = (
-                self.db.execute(
+            possible_rules = self.db.execute(
+                select(ArtefactMatchingRule)
+                .where(
+                    and_(
+                        ArtefactMatchingRule.family == family_str,
+                        or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
+                        or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
+                        or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
+                    ),
+            )).scalars().all()
+
+            # sort rules by number of non-empty fields to prioritize specificity
+            rules_with_score = [
+                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")]
+                for r in possible_rules
+            ]
+            sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
+            highest_score = sorted_rules[0][1] if sorted_rules else 0
+            rules = [r[0] for r in sorted_rules if r[1] == highest_score]
+
+            if rules:
+                users = (self.db.execute(
                     select(User)
                     .join(User.teams)
-                    .where(Team.reviewer_families.any(family_str))
+                    .join(Team.artefact_matching_rules)
+                    .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
                     .distinct()
-                )
-                .scalars()
-                .all()
-            )
+                ).scalars().all())
 
-            # Get number of environments for the artefact, which is ceil(count/50)
-            environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
-            expected_number_of_reviewers = (environment_count + 50 - 1) // 50
+                # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
+                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
+                expected_number_of_reviewers = (environment_count + ENVIRONMENTS_PER_REVIEWER - 1) // ENVIRONMENTS_PER_REVIEWER
 
-            if users:
-                self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
-                self.artefact.due_date = self.determine_due_date()
-                self.db.commit()
+                if users:
+                    self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
+                    self.artefact.due_date = self.determine_due_date()
+                    self.db.commit()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
