@@ -46,7 +46,7 @@ jobs:
           channel: 'stable'
       - run: flutter pub get
       - run: flutter pub run build_runner build
-      - if: ! cancelled()
+      - if: ${{ !cancelled() }}
         run: flutter analyze
-      - if: ! cancelled()
+      - if: ${{ !cancelled() }}
         run: dart format --set-exit-if-changed lib
