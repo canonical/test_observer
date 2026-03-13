@@ -90,7 +90,7 @@ jobs:
         id: cache-wheels
         # Ignoring the zizmor error since these artifacts are not used in releases,
         # but we may want to revisit this to actually address the zizmor complaint
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # zizmor: ignore[cache-poisoning] Hash points to v4
+        uses: actions/cache@565629816435f6c0b50676926c9b05c254113c0c # zizmor: ignore[cache-poisoning] Hash points to v4
         with:
           path: /home/runner/snap/charmcraft/common/cache/charmcraft
           key: ${{ runner.os }}-wheel-cache-${{ hashFiles('./uv.lock') }}
