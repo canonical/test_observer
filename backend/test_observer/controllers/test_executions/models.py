@@ -34,6 +34,7 @@ from test_observer.controllers.artefacts.models import (
     TestExecutionResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.test_executions.shared_models import TestResultResponse
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models_enums import (
     CharmStage,
@@ -304,3 +305,19 @@ class TestEventResponse(BaseModel):
 
 class StatusUpdateRequest(BaseModel):
     events: list[TestEventResponse]
+
+
+class TestExecutionSearchItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    test_execution: TestExecutionResponse
+    test_result: TestResultResponse | None = None
+    artefact: ArtefactResponse
+    artefact_build: ArtefactBuildMinimalResponse
+
+
+class TestExecutionSearchResponse(BaseModel):
+    count: int
+    limit: int
+    offset: int
+    test_executions: list[TestExecutionSearchItem]

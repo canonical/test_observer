@@ -4090,6 +4090,435 @@
         ]
       }
     },
+    "/v1/test-executions": {
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Search Test Executions",
+        "description": "Search test executions with optional test result context.\n\nReturns at least one item per matching test execution:\n- If the execution has no relevant test results, test_result is null.\n- Otherwise one item per test result (as in GET /v1/test-results).\n\nUse test_result=none to find executions without results,\ntest_result=any to find executions with results,\nor test_result={id} to filter by specific test result IDs.",
+        "operationId": "search_test_executions_v1_test_executions_get",
+        "parameters": [
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families (e.g., charm,snap)",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families (e.g., charm,snap)"
+          },
+          {
+            "name": "artefacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact names",
+              "title": "Artefacts"
+            },
+            "description": "Filter by artefact names"
+          },
+          {
+            "name": "artefact_is_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the artefact is archived",
+              "title": "Artefact Is Archived"
+            },
+            "description": "Filter by whether the artefact is archived"
+          },
+          {
+            "name": "environments",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environment names",
+              "title": "Environments"
+            },
+            "description": "Filter by environment names"
+          },
+          {
+            "name": "test_cases",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test case names",
+              "title": "Test Cases"
+            },
+            "description": "Filter by test case names"
+          },
+          {
+            "name": "template_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by template IDs",
+              "title": "Template Ids"
+            },
+            "description": "Filter by template IDs"
+          },
+          {
+            "name": "issues",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by issue IDs attached to test results",
+              "title": "Issues"
+            },
+            "description": "Filter by issue IDs attached to test results"
+          },
+          {
+            "name": "test_result_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestResultStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test result statuses",
+              "title": "Test Result Statuses"
+            },
+            "description": "Filter by test result statuses"
+          },
+          {
+            "name": "test_execution_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestExecutionStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test execution statuses",
+              "title": "Test Execution Statuses"
+            },
+            "description": "Filter by test execution statuses"
+          },
+          {
+            "name": "assignee_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by assignee user ids",
+              "title": "Assignee Ids"
+            },
+            "description": "Filter by assignee user ids"
+          },
+          {
+            "name": "rerun_is_requested",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether a rerun has been requested for the test execution",
+              "title": "Rerun Is Requested"
+            },
+            "description": "Filter by whether a rerun has been requested for the test execution"
+          },
+          {
+            "name": "execution_is_latest",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the test execution is the latest in its environment/artefact/test plan combination",
+              "title": "Execution Is Latest"
+            },
+            "description": "Filter by whether the test execution is the latest in its environment/artefact/test plan combination"
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results from this timestamp",
+              "title": "From Date"
+            },
+            "description": "Filter results from this timestamp"
+          },
+          {
+            "name": "until_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results until this timestamp",
+              "title": "Until Date"
+            },
+            "description": "Filter results until this timestamp"
+          },
+          {
+            "name": "test_result",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)",
+              "title": "Test Result"
+            },
+            "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 0,
+              "description": "Maximum number of results to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          },
+          {
+            "name": "execution_metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by execution metadata (base64 encoded category:value pairs).",
+              "title": "Execution Metadata"
+            },
+            "description": "Filter by execution metadata (base64 encoded category:value pairs)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
     "/v1/artefact-matching-rules": {
       "post": {
         "tags": [
@@ -6939,6 +7368,67 @@
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponse"
+      },
+      "TestExecutionSearchItem": {
+        "properties": {
+          "test_execution": {
+            "$ref": "#/components/schemas/TestExecutionResponse"
+          },
+          "test_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestResultResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/ArtefactResponse"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "TestExecutionSearchItem"
+      },
+      "TestExecutionSearchResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "test_executions": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionSearchItem"
+            },
+            "type": "array",
+            "title": "Test Executions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "limit",
+          "offset",
+          "test_executions"
+        ],
+        "title": "TestExecutionSearchResponse"
       },
       "TestExecutionStatus": {
         "type": "string",
