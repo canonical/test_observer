@@ -14,8 +14,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,21 @@ router = APIRouter(tags=["notifications"])
 
 @router.get("", response_model=NotificationsResponse)
 def get_notifications(
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=1000,
+            description="Maximum number of results to return (default: 50)",
+        ),
+    ] = 50,
+    offset: Annotated[
+        int,
+        Query(
+            ge=0,
+            description="Number of results to skip for pagination (default: 0)",
+        ),
+    ] = 0,
     user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -39,13 +55,24 @@ def get_notifications(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
+    # Get total count
+    total_count = db.scalar(select(func.count(Notification.id)).where(Notification.user_id == user.id)) or 0
+
+    # Get paginated notifications
     notifications = db.scalars(
         select(Notification)
         .where(Notification.user_id == user.id)
         .order_by(Notification.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     ).all()
 
-    return NotificationsResponse(notifications=list(notifications))
+    return NotificationsResponse(
+        notifications=list(notifications),  # type: ignore[arg-type]
+        count=total_count,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/unread-count", response_model=int)
@@ -76,15 +103,15 @@ def mark_notification_as_read(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    notification = db.get(Notification, notification_id)
+    notification = db.scalar(
+        select(Notification).where(Notification.id == notification_id).where(Notification.user_id == user.id)
+    )
     if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
 
-    if notification.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to modify this notification")
-
-    notification.dismissed_at = datetime.now()
-    db.commit()
-    db.refresh(notification)
+    if notification.dismissed_at is None:
+        notification.dismissed_at = datetime.now()
+        db.commit()
+        db.refresh(notification)
 
     return notification

@@ -34,7 +34,7 @@ def _create_session_cookie(session_id: int) -> str:
     return signer.sign(b64encode(session_json.encode()).decode()).decode()
 
 
-def _authenticate_user(test_client: TestClient, user: User, generator: DataGenerator):
+def _authenticate_user(test_client: TestClient, user: User, generator: DataGenerator) -> None:
     """Helper to authenticate a user in test client"""
     session = generator.gen_user_session(user)
     session_cookie = _create_session_cookie(session.id)
@@ -74,6 +74,9 @@ def test_get_notifications(test_client: TestClient, generator: DataGenerator):
     assert len(data["notifications"]) == 2
     assert data["notifications"][0]["id"] in [notification1.id, notification2.id]
     assert data["notifications"][1]["id"] in [notification1.id, notification2.id]
+    assert data["count"] == 2
+    assert data["limit"] == 50
+    assert data["offset"] == 0
 
 
 def test_get_unread_count_without_auth(test_client: TestClient):
@@ -117,9 +120,7 @@ def test_mark_notification_as_read(test_client: TestClient, generator: DataGener
     assert notification.dismissed_at is None
 
     _authenticate_user(test_client, user, generator)
-    response = test_client.patch(
-        f"/v1/notifications/{notification.id}/read", headers={"X-CSRF-Token": "1"}
-    )
+    response = test_client.patch(f"/v1/notifications/{notification.id}/read", headers={"X-CSRF-Token": "1"})
 
     assert response.status_code == 200
     data = response.json()
@@ -134,11 +135,9 @@ def test_mark_notification_as_read_wrong_user(test_client: TestClient, generator
     notification = generator.gen_notification(user=user)
 
     _authenticate_user(test_client, other_user, generator)
-    response = test_client.patch(
-        f"/v1/notifications/{notification.id}/read", headers={"X-CSRF-Token": "1"}
-    )
+    response = test_client.patch(f"/v1/notifications/{notification.id}/read", headers={"X-CSRF-Token": "1"})
 
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 def test_mark_nonexistent_notification_as_read(test_client: TestClient, generator: DataGenerator):
@@ -150,3 +149,46 @@ def test_mark_nonexistent_notification_as_read(test_client: TestClient, generato
 
     assert response.status_code == 404
 
+
+def test_get_notifications_with_pagination(test_client: TestClient, generator: DataGenerator):
+    """Test getting notifications with limit and offset"""
+    user = generator.gen_user(email="pagination@test.com")
+
+    # Create 5 notifications
+    notifications = []
+    for i in range(5):
+        notification = generator.gen_notification(
+            user=user,
+            notification_type=NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+            target_url=f"/artefacts/{i}",
+        )
+        notifications.append(notification)
+
+    _authenticate_user(test_client, user, generator)
+
+    # Test limit
+    response = test_client.get("/v1/notifications?limit=2", headers={"X-CSRF-Token": "1"})
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["notifications"]) == 2
+    assert data["count"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 0
+
+    # Test offset
+    response = test_client.get("/v1/notifications?limit=2&offset=2", headers={"X-CSRF-Token": "1"})
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["notifications"]) == 2
+    assert data["count"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 2
+
+    # Test offset beyond results
+    response = test_client.get("/v1/notifications?limit=10&offset=3", headers={"X-CSRF-Token": "1"})
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["notifications"]) == 2
+    assert data["count"] == 5
+    assert data["limit"] == 10
+    assert data["offset"] == 3
