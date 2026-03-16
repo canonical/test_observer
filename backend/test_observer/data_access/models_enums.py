@@ -118,3 +118,8 @@ class IssueStatus(StrEnum):
     UNKNOWN = "unknown"
     OPEN = "open"
     CLOSED = "closed"
+
+
+class NotificationType(StrEnum):
+    USER_ASSIGNED_ARTEFACT_REVIEW = "USER_ASSIGNED_ARTEFACT_REVIEW"
+    USER_ASSIGNED_ENVIRONMENT_REVIEW = "USER_ASSIGNED_ENVIRONMENT_REVIEW"
