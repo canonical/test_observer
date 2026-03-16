@@ -30,6 +30,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import (
     CharmStage,
     DebStage,
+    FamilyName,
     ImageStage,
     SnapStage,
     StageName,
@@ -157,14 +158,22 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assert test_execution.artefact_build.artefact.assignee is None
+        assert test_execution.artefact_build.artefact.reviewers == []
         assert test_execution.artefact_build.artefact.due_date is None
 
     def test_new_artefacts_get_assigned_a_reviewer(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        # Create a team that can review all families
-        team = generator.gen_team(name="reviewers", reviewer_families=["snap", "deb", "charm", "image"])
+        # Create a team with matching rules for all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+        )
         # User is member of this team
         user = generator.gen_user(teams=[team])
 
@@ -172,7 +181,11 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assignee = test_execution.artefact_build.artefact.assignee
+        assignee = (
+            test_execution.artefact_build.artefact.reviewers[0]
+            if test_execution.artefact_build.artefact.reviewers
+            else None
+        )
         assert assignee is not None
         assert assignee.launchpad_handle == user.launchpad_handle
 
@@ -186,8 +199,92 @@ class TestFamilyIndependentTests:
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution
-        assignee = test_execution.artefact_build.artefact.assignee
+        assignee = (
+            test_execution.artefact_build.artefact.reviewers[0]
+            if test_execution.artefact_build.artefact.reviewers
+            else None
+        )
         assert assignee is None
+
+    def test_artefact_with_few_environments_gets_assigned_single_reviewer(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """
+        Assert that an artefact with only 1 environment
+        gets assigned to a single reviewer even if multiple are available
+        """
+        # Create a team that can review all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+        )
+        # Create multiple users who can review
+        generator.gen_user(email="user1@example.com", teams=[team])
+        generator.gen_user(email="user2@example.com", teams=[team])
+        generator.gen_user(email="user3@example.com", teams=[team])
+
+        response = execute({**start_request, "needs_assignment": True})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        # Verify the artefact has only 1 environment
+        artefact = test_execution.artefact_build.artefact
+        assert len(artefact.builds) == 1
+        assert len(artefact.builds[0].environment_reviews) == 1
+        # Even with multiple reviewers available, only one should be assigned
+        assert len(artefact.reviewers) == 1
+
+    def test_artefact_with_many_environments_is_assigned_multiple_reviewers(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """Assert that an artefact with more than 50 environments is assigned more than one reviewer"""
+        # Create a team that can review all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+        )
+        # Create multiple users who can review
+        generator.gen_user(email="user1@example.com", teams=[team])
+        generator.gen_user(email="user2@example.com", teams=[team])
+
+        # Execute the first test to create the artefact
+        response = execute({**start_request, "needs_assignment": True})
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        artefact = test_execution.artefact_build.artefact
+
+        # Now create 50+ more environments for the same artefact by executing tests with different environment names
+        for i in range(51):
+            env_request = {
+                **start_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": False,  # Don't trigger assignment for these
+            }
+            execute(env_request)
+
+        # Clear reviewers to allow reassignment based on the new environment count
+        artefact.reviewers = []
+        self._db_session.commit()
+
+        # Trigger assignment again now that we have 52 environments
+        execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
+
+        # Refresh the artefact to get updated relationships
+        self._db_session.refresh(artefact)
+
+        # Verify the artefact now has more than 50 environments (52 from before + 1 new = 53)
+        assert artefact.all_environment_reviews_count == 53
+
+        assert len(artefact.reviewers) == 2
 
     def test_deletes_rerun_requests(self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]):
         response = execute(start_request)
@@ -357,9 +454,11 @@ def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute, gen
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+
     snap_reviewers = generator.gen_team(
         name="snap_reviewers",
-        reviewer_families=["snap"],
+        artefact_matching_rules=[snap_rule],
     )
     generator.gen_user(teams=[snap_reviewers])
 
@@ -493,13 +592,18 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
 def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Charms should be assigned to reviewers whose teams can review charms"""
     # Create teams with different families
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     other_team = generator.gen_team(
         name="other_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[snap_rule, deb_rule, image_rule],
     )
 
     # Create users in these teams
@@ -517,7 +621,11 @@ def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Exe
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     # Check that assignee is in charm_team
     assert any(team.id == charm_team.id for team in assignee.teams)
@@ -527,13 +635,18 @@ def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Exe
 def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Snaps should be assigned to reviewers whose teams can review snaps"""
     # Create teams with different families
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     snap_team = generator.gen_team(
         name="snap_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[snap_rule, deb_rule, image_rule],
     )
 
     # Create users in these teams
@@ -551,7 +664,11 @@ def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execu
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     assert any(team.id == snap_team.id for team in assignee.teams)
     assert assignee.id == snap_reviewer.id
@@ -560,13 +677,18 @@ def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execu
 def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Debs should be assigned to reviewers whose teams can review debs"""
     # Create teams with different families
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     deb_team = generator.gen_team(
         name="deb_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[deb_rule, snap_rule, image_rule],
     )
 
     # Create users in these teams
@@ -584,7 +706,11 @@ def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     assert any(team.id == deb_team.id for team in assignee.teams)
     assert assignee.id == deb_reviewer.id
@@ -593,13 +719,18 @@ def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute
 def test_image_assigned_to_image_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Images should be assigned to reviewers whose teams can review images"""
     # Create teams with different families
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     image_team = generator.gen_team(
         name="image_reviewers",
-        reviewer_families=["snap", "deb", "image"],
+        artefact_matching_rules=[image_rule, snap_rule, deb_rule],
     )
 
     # Create users in these teams
@@ -617,7 +748,11 @@ def test_image_assigned_to_image_team_reviewer(db_session: Session, execute: Exe
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is not None
     assert any(team.id == image_team.id for team in assignee.teams)
     assert assignee.id == image_reviewer.id
@@ -682,9 +817,11 @@ def test_no_assignment_when_no_team_reviewers_available(
 ):
     """When no teams can review the family, no assignment should occur"""
     # Create a team that can only review charms
+    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+
     charm_team = generator.gen_team(
         name="charm_reviewers",
-        reviewer_families=["charm"],
+        artefact_matching_rules=[charm_rule],
     )
     generator.gen_user(
         email="charm@example.com",
@@ -696,5 +833,9 @@ def test_no_assignment_when_no_team_reviewers_available(
 
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution
-    assignee = test_execution.artefact_build.artefact.assignee
+    assignee = (
+        test_execution.artefact_build.artefact.reviewers[0]
+        if test_execution.artefact_build.artefact.reviewers
+        else None
+    )
     assert assignee is None

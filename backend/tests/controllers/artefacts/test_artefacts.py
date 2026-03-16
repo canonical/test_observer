@@ -212,7 +212,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         status=ArtefactStatus.APPROVED,
         bug_link="localhost/bug",
         due_date=date(2024, 12, 24),
-        assignee_id=u.id,
+        reviewers=[u],
     )
 
     response = make_authenticated_request(
@@ -506,30 +506,30 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
     assert a.comment == comment
 
 
-def test_update_artefact_assignee(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_id": u.id},
+            json={"reviewer_ids": [u.id]},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
 
-def test_update_artefact_assignee_nonexistent_user(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_nonexistent_user(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_user_id = 99999
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_id": nonexistent_user_id},
+            json={"reviewer_ids": [nonexistent_user_id]},
         ),
         Permission.change_artefact,
     )
@@ -538,50 +538,50 @@ def test_update_artefact_assignee_nonexistent_user(test_client: TestClient, gene
     assert "User with id 99999 not found" in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_clear(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
-    a = generator.gen_artefact(assignee_id=u.id)
+    a = generator.gen_artefact(reviewers=[u])
 
-    # Verify assignee is set initially
-    assert a.assignee_id == u.id
+    # Verify reviewer is set initially
+    assert a.reviewers == [u]
 
-    # Clear the assignee
+    # Clear the reviewer
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_id": None},
+            json={"reviewer_ids": None},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id is None
+    assert a.reviewers == []
 
 
-def test_update_artefact_assignee_by_email(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_by_email(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": u.email},
+            json={"reviewer_emails": [u.email]},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
 
-def test_update_artefact_assignee_by_email_nonexistent(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_by_email_nonexistent(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_email = "nonexistent@example.com"
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": nonexistent_email},
+            json={"reviewer_emails": [nonexistent_email]},
         ),
         Permission.change_artefact,
     )
@@ -591,27 +591,27 @@ def test_update_artefact_assignee_by_email_nonexistent(test_client: TestClient, 
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear_by_email(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_clear_by_email(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
-    a = generator.gen_artefact(assignee_id=u.id)
+    a = generator.gen_artefact(reviewers=[u])
 
-    # Verify assignee is set initially
-    assert a.assignee_id == u.id
+    # Verify reviewer is set initially
+    assert a.reviewers == [u]
 
-    # Clear the assignee using email
+    # Clear the reviewer using email
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": None},
+            json={"reviewer_emails": None},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id is None
+    assert a.reviewers == []
 
 
-def test_update_artefact_assignee_both_id_and_email_error(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_both_id_and_email_error(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -619,16 +619,53 @@ def test_update_artefact_assignee_both_id_and_email_error(test_client: TestClien
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
             json={
-                "assignee_id": u.id,
-                "assignee_email": u.email,
+                "reviewer_ids": [u.id],
+                "reviewer_emails": [u.email],
             },
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 422
-    expected_msg = "Cannot specify both assignee_id and assignee_email"
+    expected_msg = "Cannot specify both reviewer_ids and reviewer_emails"
     assert expected_msg in response.json()["detail"]
+
+
+def test_update_artefact_multiple_reviewers_by_id(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={
+                "reviewer_ids": [u.id for u in users],
+            },
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == users
+
+
+def test_update_artefact_multiple_reviewers_by_email(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={
+                "reviewer_emails": [u.email for u in users],
+            },
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == users
 
 
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
@@ -663,6 +700,110 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 
 
+def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
+    charm_latest_1 = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="499",
+        track="latest",
+        stage=StageName.edge,
+    )
+    charm_latest_2 = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="498",
+        track="latest",
+        stage=StageName.beta,
+    )
+
+    # Different family should be excluded by default family=charm
+    generator.gen_artefact(
+        family=FamilyName.snap,
+        name="postgresql-k8s",
+        version="999",
+        track="latest",
+        stage=StageName.edge,
+    )
+    # Different track should be excluded by default track=latest
+    generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="497",
+        track="2.0",
+        stage=StageName.stable,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "postgresql-k8s", "family": FamilyName.charm, "offset": 0},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 2
+    assert [item["artefact_id"] for item in body["items"]] == [charm_latest_2.id, charm_latest_1.id]
+    assert [item["version"] for item in body["items"]] == ["498", "499"]
+
+
+def test_get_artefact_history_limit(test_client: TestClient, generator: DataGenerator):
+    for i in range(20):
+        generator.gen_artefact(
+            family=FamilyName.charm,
+            name="postgresql-k8s",
+            version=str(i),
+            track="latest",
+            stage=StageName.edge,
+        )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "postgresql-k8s", "family": FamilyName.charm, "limit": 5, "offset": 0},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 5
+    assert len(body["items"]) == 5
+    assert [item["version"] for item in body["items"]] == ["19", "18", "17", "16", "15"]
+
+
+def test_get_artefact_history_filters_by_stage(test_client: TestClient, generator: DataGenerator):
+    generator.gen_artefact(
+        family=FamilyName.charm,
+        name="mysql-k8s",
+        version="2",
+        track="latest",
+        stage=StageName.edge,
+    )
+    beta = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="mysql-k8s",
+        version="1",
+        track="latest",
+        stage=StageName.beta,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": StageName.beta, "offset": 0},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+    assert body["items"][0]["artefact_id"] == beta.id
+    assert body["items"][0]["stage"] == StageName.beta
+
+
 def _assert_get_artefacts_response(response_json: list[dict[str, Any]], artefacts: list[Artefact]) -> None:
     for r, a in zip(sorted(response_json, key=itemgetter("id")), artefacts, strict=True):
         _assert_get_artefact_response(r, a)
@@ -689,19 +830,22 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
-        "assignee": None,
+        "reviewers": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
     }
-    if artefact.assignee:
-        expected["assignee"] = {
-            "id": artefact.assignee.id,
-            "email": artefact.assignee.email,
-            "launchpad_email": artefact.assignee.email,
-            "launchpad_handle": artefact.assignee.launchpad_handle,
-            "name": artefact.assignee.name,
-        }
+    if artefact.reviewers:
+        expected["reviewers"] = [
+            {
+                "id": r.id,
+                "email": r.email,
+                "launchpad_email": r.email,
+                "launchpad_handle": r.launchpad_handle,
+                "name": r.name,
+            }
+            for r in artefact.reviewers
+        ]
     assert response == expected

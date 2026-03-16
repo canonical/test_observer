@@ -17,7 +17,7 @@ import random
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -25,6 +25,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
+    ArtefactMatchingRule,
     Environment,
     Team,
     TestExecution,
@@ -45,6 +46,8 @@ from .models import (
 )
 
 router = APIRouter()
+
+ENVIRONMENTS_PER_REVIEWER = 50
 
 
 class StartTestExecutionController:
@@ -78,20 +81,56 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
-        if self.request.needs_assignment and self.artefact.assignee_id is None:
+        if self.request.needs_assignment and len(self.artefact.reviewers) == 0:
             # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
 
-            users = (
-                self.db.execute(select(User).join(User.teams).where(Team.reviewer_families.any(family_str)).distinct())
+            possible_rules = (
+                self.db.execute(
+                    select(ArtefactMatchingRule).where(
+                        and_(
+                            ArtefactMatchingRule.family == family_str,
+                            or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
+                            or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
+                            or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
+                        ),
+                    )
+                )
                 .scalars()
                 .all()
             )
 
-            if users:
-                self.artefact.assignee = random.choice(users)
-                self.artefact.due_date = self.determine_due_date()
-                self.db.commit()
+            # sort rules by number of non-empty fields to prioritize specificity
+            rules_with_score = [
+                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")] for r in possible_rules
+            ]
+            sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
+            highest_score = sorted_rules[0][1] if sorted_rules else 0
+            rules = [r[0] for r in sorted_rules if r[1] == highest_score]
+
+            if rules:
+                users = (
+                    self.db.execute(
+                        select(User)
+                        .join(User.teams)
+                        .join(Team.artefact_matching_rules)
+                        .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
+                        .distinct()
+                    )
+                    .scalars()
+                    .all()
+                )
+
+                # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
+                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
+                expected_number_of_reviewers = (
+                    environment_count + ENVIRONMENTS_PER_REVIEWER - 1
+                ) // ENVIRONMENTS_PER_REVIEWER
+
+                if users:
+                    self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
+                    self.artefact.due_date = self.determine_due_date()
+                    self.db.commit()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(

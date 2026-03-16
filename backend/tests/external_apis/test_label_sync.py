@@ -53,11 +53,11 @@ def test_github_sync_adds_new_labels(db_session: Session):
     db_session.refresh(issue)
 
     synchronizer = GitHubIssueSynchronizer(mock_client)
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     assert result.success is True
     assert result.labels_updated is True
-    assert issue.labels == ["bug", "enhancement", "priority-high"]
+    assert result.new_labels == ["bug", "enhancement", "priority-high"]
 
 
 def test_github_sync_updates_existing_labels(db_session: Session):
@@ -84,11 +84,11 @@ def test_github_sync_updates_existing_labels(db_session: Session):
     db_session.refresh(issue)
 
     synchronizer = GitHubIssueSynchronizer(mock_client)
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     assert result.success is True
     assert result.labels_updated is True
-    assert issue.labels == ["bug", "wontfix"]
+    assert result.new_labels == ["bug", "wontfix"]
 
 
 def test_github_sync_no_label_changes(db_session: Session):
@@ -115,7 +115,7 @@ def test_github_sync_no_label_changes(db_session: Session):
     db_session.refresh(issue)
 
     synchronizer = GitHubIssueSynchronizer(mock_client)
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     assert result.success is True
     assert result.labels_updated is False
@@ -145,11 +145,11 @@ def test_jira_sync_with_labels(db_session: Session):
     db_session.refresh(issue)
 
     synchronizer = JiraIssueSynchronizer(mock_client)
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     assert result.success is True
     assert result.labels_updated is True
-    assert issue.labels == ["backend", "database", "urgent"]
+    assert result.new_labels == ["backend", "database", "urgent"]
 
 
 def test_launchpad_sync_with_labels(db_session: Session):
@@ -176,11 +176,11 @@ def test_launchpad_sync_with_labels(db_session: Session):
     db_session.refresh(issue)
 
     synchronizer = LaunchpadIssueSynchronizer(mock_client)
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     assert result.success is True
     assert result.labels_updated is True
-    assert issue.labels == ["focal", "kernel", "regression"]  # Sorted
+    assert result.new_labels == ["focal", "kernel", "regression"]  # Sorted
 
 
 def test_sync_removes_all_labels(db_session: Session):
@@ -207,8 +207,8 @@ def test_sync_removes_all_labels(db_session: Session):
     db_session.refresh(issue)
 
     synchronizer = GitHubIssueSynchronizer(mock_client)
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     assert result.success is True
     assert result.labels_updated is True
-    assert issue.labels == []
+    assert result.new_labels == []

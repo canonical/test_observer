@@ -42,7 +42,7 @@ def test_service_routes_to_correct_synchronizer(db_session: Session):
 
     jira_sync = Mock(spec=BaseIssueSynchronizer)
     jira_sync.can_sync.return_value = True
-    jira_sync.sync_issue.return_value = SyncResult(success=True)
+    jira_sync.fetch_issue_update.return_value = SyncResult(success=True)
 
     # Create service
     service = IssueSynchronizationService([github_sync, jira_sync])
@@ -60,12 +60,12 @@ def test_service_routes_to_correct_synchronizer(db_session: Session):
     db_session.refresh(issue)
 
     # Sync issue
-    result = service.sync_issue(issue, db_session)
+    result = service.sync_issue(issue)
 
     # Verify correct synchronizer was used
     assert github_sync.can_sync.called
     assert jira_sync.can_sync.called
-    assert jira_sync.sync_issue.called
+    assert jira_sync.fetch_issue_update.called
     assert result.success is True
 
 
@@ -91,7 +91,7 @@ def test_service_handles_no_matching_synchronizer(db_session: Session):
     db_session.refresh(issue)
 
     # Sync issue
-    result = service.sync_issue(issue, db_session)
+    result = service.sync_issue(issue)
 
     # Verify error result
     assert result.success is False
@@ -99,12 +99,12 @@ def test_service_handles_no_matching_synchronizer(db_session: Session):
     assert "No synchronizer available" in result.error
 
 
-def test_sync_all_issues(db_session: Session):
-    """Test syncing all issues in database"""
+def test_sync_issues_batch_routes_correctly(db_session: Session):
+    """Test syncing a batch of issues"""
     # Create mock synchronizer
     mock_sync = Mock(spec=BaseIssueSynchronizer)
     mock_sync.can_sync.return_value = True
-    mock_sync.sync_issue.return_value = SyncResult(success=True, title_updated=True)
+    mock_sync.fetch_issue_update.return_value = SyncResult(success=True, new_title="Updated Title")
 
     # Create service
     service = IssueSynchronizationService([mock_sync])
@@ -127,8 +127,8 @@ def test_sync_all_issues(db_session: Session):
     db_session.add_all([issue1, issue2])
     db_session.commit()
 
-    # Sync all issues
-    results = service.sync_all_issues(db_session)
+    # Sync batch (HTTP only — no DB writes)
+    results = service.sync_issues_batch([issue1, issue2])
 
     # Verify results
     assert results.total == 2

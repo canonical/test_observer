@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Run charm tests
+
 on:
   pull_request:
     branches:
@@ -28,12 +29,20 @@ on:
     paths:
       - 'frontend/charm/**'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
 jobs:
   lint-report:
     name: Lint and format report
     runs-on: [self-hosted, linux, large, jammy, x64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -46,7 +55,9 @@ jobs:
     name: Static analysis
     runs-on: [self-hosted, linux, jammy, x64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox
@@ -59,7 +70,9 @@ jobs:
     name: Unit tests
     runs-on: [self-hosted, linux, jammy, x64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - name: Install tox
         run: pip install tox
       - name: Run tests using tox

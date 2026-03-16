@@ -15,21 +15,23 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Static Analysis
+name: Static Analysis - Backend
 
 on:
   pull_request:
     paths:
       - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/static-analysis.yml'
+      - '.github/workflows/static-analysis-backend.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   analyze-backend:
+    name: Analyze Backend
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -37,36 +39,16 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.12"
       - run: pip install uv
       - run: uv sync --all-groups
       - run: uv pip install -e .
-      - if: ! cancelled()
+      - if: ${{ !cancelled() }}
         run: uv run ruff check
-      - if: ! cancelled()
+      - if: ${{ !cancelled() }}
         run: uv run ruff format --check
-      - if: ! cancelled()
+      - if: ${{ !cancelled() }}
         run: uv run mypy .
-
-  analyze-frontend:
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.29.3'
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter pub run build_runner build
-      - if: ! cancelled()
-        run: flutter analyze
-      - if: ! cancelled()
-        run: dart format --set-exit-if-changed lib
