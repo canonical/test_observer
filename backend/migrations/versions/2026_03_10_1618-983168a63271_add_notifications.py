@@ -16,7 +16,7 @@
 """Add notifications
 
 Revision ID: 983168a63271
-Revises: 3514f071a2e5
+Revises: 2f7a130290ea
 Create Date: 2026-03-10 16:18:40.152277+00:00
 
 """
@@ -26,7 +26,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "983168a63271"
-down_revision = "3514f071a2e5"
+down_revision = "2f7a130290ea"
 branch_labels = None
 depends_on = None
 
