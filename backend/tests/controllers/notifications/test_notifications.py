@@ -104,7 +104,7 @@ def test_mark_notification_as_read_without_auth(test_client: TestClient, generat
     user = generator.gen_user(email="mark-no-auth@test.com")
     notification = generator.gen_notification(user=user)
 
-    response = test_client.patch(f"/v1/notifications/{notification.id}/read")
+    response = test_client.post(f"/v1/notifications/{notification.id}/dismiss")
     assert response.status_code == 403
 
 
@@ -117,7 +117,7 @@ def test_mark_notification_as_read(test_client: TestClient, generator: DataGener
 
     _authenticate_user(test_client, user, generator)
     response = make_authenticated_request(
-        lambda: test_client.patch(f"/v1/notifications/{notification.id}/read", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.post(f"/v1/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}),
         Permission.change_notification,
     )
 
@@ -135,7 +135,7 @@ def test_mark_notification_as_read_wrong_user(test_client: TestClient, generator
 
     _authenticate_user(test_client, other_user, generator)
     response = make_authenticated_request(
-        lambda: test_client.patch(f"/v1/notifications/{notification.id}/read", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.post(f"/v1/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}),
         Permission.change_notification,
     )
 
@@ -148,7 +148,7 @@ def test_mark_nonexistent_notification_as_read(test_client: TestClient, generato
 
     _authenticate_user(test_client, user, generator)
     response = make_authenticated_request(
-        lambda: test_client.patch("/v1/notifications/99999/read", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.post("/v1/notifications/99999/dismiss", headers={"X-CSRF-Token": "1"}),
         Permission.change_notification,
     )
 

@@ -102,8 +102,8 @@ def get_unread_count(
     return count or 0
 
 
-@router.patch(
-    "/{notification_id}/read",
+@router.post(
+    "/{notification_id}/dismiss",
     response_model=NotificationResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.change_notification])],
 )
