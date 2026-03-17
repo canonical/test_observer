@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright (C) 2026 Canonical Ltd.
 #
 # This file is part of Test Observer Backend.
 #
@@ -13,21 +13,24 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Change assignee to reviewers
 
 Revision ID: 3514f071a2e5
-Revises: f5f3abf809b3
+Revises: 40b42f906881
 Create Date: 2026-02-24 17:44:00.000000+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "3514f071a2e5"
-down_revision = "f5f3abf809b3"
+down_revision = ("40b42f906881", "e9ada0b8b7a4")
 branch_labels = None
 depends_on = None
 
@@ -50,9 +53,7 @@ def upgrade() -> None:
             name="artefact_reviewers_association_user_id_fkey",
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint(
-            "artefact_id", "user_id", name="artefact_reviewers_association_pkey"
-        ),
+        sa.PrimaryKeyConstraint("artefact_id", "user_id", name="artefact_reviewers_association_pkey"),
     )
 
     # Migrate existing assignee data to the new association table
@@ -64,8 +65,8 @@ def upgrade() -> None:
     """)
 
     # Drop the old foreign key constraint and column
-    op.drop_constraint("artefact_assignee_id_fkey", "artefact", type_="foreignkey")
-    op.drop_index("artefact_assignee_id_ix", table_name="artefact")
+    op.drop_constraint(op.f("artefact_assignee_id_fkey"), "artefact", type_="foreignkey")
+    op.drop_index(op.f("artefact_assignee_id_ix"), table_name="artefact")
     op.drop_column("artefact", "assignee_id")
 
 
@@ -75,9 +76,9 @@ def downgrade() -> None:
         "artefact",
         sa.Column("assignee_id", sa.Integer(), nullable=True),
     )
-    op.create_index("artefact_assignee_id_ix", "artefact", ["assignee_id"])
+    op.create_index(op.f("artefact_assignee_id_ix"), "artefact", ["assignee_id"])
     op.create_foreign_key(
-        "artefact_assignee_id_fkey",
+        op.f("artefact_assignee_id_fkey"),
         "artefact",
         "app_user",
         ["assignee_id"],

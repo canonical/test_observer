@@ -1,36 +1,36 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, Security
-from sqlalchemy import distinct, select
-from sqlalchemy.orm import Session
 
-from . import reported_issues
-from .models import EnvironmentsResponse
+from fastapi import APIRouter, Depends, Query, Security
+from sqlalchemy import distinct, func, select
+from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.data_access.models import (
+    Artefact,
+    ArtefactBuild,
     Environment,
     TestExecution,
-    ArtefactBuild,
-    Artefact,
 )
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
+
+from . import reported_issues
+from .models import EnvironmentsResponse
 
 router = APIRouter(tags=["environments"])
 router.include_router(reported_issues.router)
@@ -85,8 +85,17 @@ def get_environments(
         search_term = f"%{q.strip()}%"
         query = query.where(Environment.name.ilike(search_term))
 
+    # Count total before pagination
+    count_query = select(func.count()).select_from(query.subquery())
+    total_count = db.execute(count_query).scalar() or 0
+
     # Apply pagination
     query = query.offset(offset).limit(limit)
 
     environments = db.execute(query).scalars().all()
-    return EnvironmentsResponse(environments=list(environments))
+    return EnvironmentsResponse(
+        environments=list(environments),
+        count=total_count,
+        limit=limit,
+        offset=offset,
+    )

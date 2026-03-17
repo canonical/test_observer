@@ -1,28 +1,26 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
 from fastapi.testclient import TestClient
 
-from test_observer.data_access.models import TestExecution, TestResult
 from test_observer.common.permissions import Permission
+from test_observer.data_access.models import TestExecution, TestResult
 from tests.asserts import assert_fails_validation
-from tests.data_generator import DataGenerator
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 maximum_result = {
     "name": "camera detect",
@@ -82,15 +80,11 @@ def test_one_minimum_result(test_client: TestClient, test_execution: TestExecuti
 
 
 @pytest.mark.parametrize("field", ["name", "status"])
-def test_required_fields(
-    test_client: TestClient, test_execution: TestExecution, field: str
-):
+def test_required_fields(test_client: TestClient, test_execution: TestExecution, field: str):
     result = minimum_result.copy()
     result.pop(field)
     response = make_authenticated_request(
-        lambda: test_client.post(
-            f"/v1/test-executions/{test_execution.id}/test-results", json=[result]
-        ),
+        lambda: test_client.post(f"/v1/test-executions/{test_execution.id}/test-results", json=[result]),
         Permission.change_test,
     )
 
@@ -116,9 +110,7 @@ def test_batch_request(test_client: TestClient, test_execution: TestExecution):
     _assert_results(request, test_execution.test_results)
 
 
-def test_multiple_batch_requests(
-    test_client: TestClient, test_execution: TestExecution
-):
+def test_multiple_batch_requests(test_client: TestClient, test_execution: TestExecution):
     request1 = [
         {**maximum_result, "name": "test 1", "status": "PASSED"},
         {**maximum_result, "name": "test 2", "status": "FAILED"},
@@ -132,37 +124,27 @@ def test_multiple_batch_requests(
     ]
 
     make_authenticated_request(
-        lambda: test_client.post(
-            f"/v1/test-executions/{test_execution.id}/test-results", json=request1
-        ),
+        lambda: test_client.post(f"/v1/test-executions/{test_execution.id}/test-results", json=request1),
         Permission.change_test,
     )
     make_authenticated_request(
-        lambda: test_client.post(
-            f"/v1/test-executions/{test_execution.id}/test-results", json=request2
-        ),
+        lambda: test_client.post(f"/v1/test-executions/{test_execution.id}/test-results", json=request2),
         Permission.change_test,
     )
 
     _assert_results([*request1, *request2], test_execution.test_results)
 
 
-def test_overwrites_result_if_matching_case_name(
-    test_client: TestClient, test_execution: TestExecution
-):
+def test_overwrites_result_if_matching_case_name(test_client: TestClient, test_execution: TestExecution):
     request1 = [{**minimum_result, "name": "same", "status": "FAILED"}]
     request2 = [{**minimum_result, "name": "same", "status": "PASSED"}]
 
     make_authenticated_request(
-        lambda: test_client.post(
-            f"/v1/test-executions/{test_execution.id}/test-results", json=request1
-        ),
+        lambda: test_client.post(f"/v1/test-executions/{test_execution.id}/test-results", json=request1),
         Permission.change_test,
     )
     make_authenticated_request(
-        lambda: test_client.post(
-            f"/v1/test-executions/{test_execution.id}/test-results", json=request2
-        ),
+        lambda: test_client.post(f"/v1/test-executions/{test_execution.id}/test-results", json=request2),
         Permission.change_test,
     )
 
@@ -196,7 +178,4 @@ def test_apply_test_result_attachment_rules(
 
     assert response.status_code == 200
     assert test_execution.test_results[0].issue_attachments[0].issue_id == issue.id
-    assert (
-        test_execution.test_results[0].issue_attachments[0].attachment_rule_id
-        == attachment_rule_id
-    )
+    assert test_execution.test_results[0].issue_attachments[0].attachment_rule_id == attachment_rule_id

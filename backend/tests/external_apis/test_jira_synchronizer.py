@@ -1,25 +1,26 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from unittest.mock import Mock
-from test_observer.external_apis.jira.jira_client import JiraClient
-from test_observer.external_apis.synchronizers.jira import JiraIssueSynchronizer
-from test_observer.data_access.models import Issue, IssueStatus, IssueSource
-from test_observer.external_apis.models import IssueData
+
 from sqlalchemy.orm import Session
+
+from test_observer.data_access.models import Issue, IssueSource, IssueStatus
+from test_observer.external_apis.jira.jira_client import JiraClient
+from test_observer.external_apis.models import IssueData
+from test_observer.external_apis.synchronizers.jira import JiraIssueSynchronizer
 
 
 def test_can_sync_jira_url():
@@ -96,14 +97,14 @@ def test_sync_issue_updates_title_and_status(db_session: Session) -> None:
 
     synchronizer = JiraIssueSynchronizer(mock_client)
 
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify results
     assert result.success is True
     assert result.title_updated is True
     assert result.status_updated is True
-    assert issue.title == "Updated Jira Issue"
-    assert issue.status == IssueStatus.CLOSED
+    assert result.new_title == "Updated Jira Issue"
+    assert result.new_status == IssueStatus.CLOSED
 
     mock_client.get_issue.assert_called_once_with("warthogs.atlassian.net", "TO-123")
 
@@ -137,7 +138,7 @@ def test_sync_issue_no_changes(db_session: Session) -> None:
 
     synchronizer = JiraIssueSynchronizer(mock_client)
 
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify no changes
     assert result.success is True
@@ -170,7 +171,7 @@ def test_sync_issue_handles_error(db_session: Session):
     assert "jira" in issue.url or "atlassian" in issue.url
 
     # Sync the issue
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify error result
     assert result.success is False
@@ -205,9 +206,9 @@ def test_sync_issue_in_progress_maps_to_open(db_session: Session) -> None:
 
     synchronizer = JiraIssueSynchronizer(mock_client)
 
-    result = synchronizer.sync_issue(issue, db_session)
+    result = synchronizer.fetch_issue_update(issue)
 
     # Verify "In Progress" maps to OPEN
     assert result.success is True
     assert result.status_updated is True
-    assert issue.status == IssueStatus.OPEN
+    assert result.new_status == IssueStatus.OPEN

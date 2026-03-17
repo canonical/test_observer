@@ -1,18 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Add test execution metadata
 
@@ -22,9 +21,8 @@ Create Date: 2025-07-23 19:47:49.937408+00:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "a23713521472"
@@ -42,9 +40,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("test_execution_metadata_pkey")),
-        sa.UniqueConstraint(
-            "category", "value", name=op.f("test_execution_metadata_category_value_key")
-        ),
+        sa.UniqueConstraint("category", "value", name=op.f("test_execution_metadata_category_value_key")),
     )
     op.create_table(
         "test_execution_metadata_association_table",
@@ -53,16 +49,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["test_execution_id"],
             ["test_execution.id"],
-            name=op.f(
-                "test_execution_metadata_association_table_test_execution_id_fkey"
-            ),
+            name=op.f("test_execution_metadata_association_table_test_execution_id_fkey"),
         ),
         sa.ForeignKeyConstraint(
             ["test_execution_metadata_id"],
             ["test_execution_metadata.id"],
-            name=op.f(
-                "test_execution_metadata_association_table_test_execution_metadata_id_fkey"
-            ),
+            name=op.f("test_execution_metadata_association_table_test_execution_metadata_id_fkey"),
         ),
         sa.PrimaryKeyConstraint(
             "test_execution_id",
