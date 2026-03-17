@@ -288,9 +288,6 @@ class Artefact(Base):
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
-    reviewers: Mapped[list[User]] = relationship(
-        secondary=artefact_reviewers_association, back_populates="artefact_reviews"
-    )
 
     @property
     def architectures(self) -> set[str]:
