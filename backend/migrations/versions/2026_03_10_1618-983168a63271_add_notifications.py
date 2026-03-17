@@ -19,9 +19,9 @@ Revision ID: 983168a63271
 Revises: 2f7a130290ea
 Create Date: 2026-03-10 16:18:40.152277+00:00
 """
-from alembic import op
+
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "983168a63271"

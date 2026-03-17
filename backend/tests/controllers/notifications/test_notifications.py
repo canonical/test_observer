@@ -13,31 +13,20 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
-from base64 import b64encode
 from datetime import datetime
 
-import itsdangerous
 from fastapi.testclient import TestClient
 
-from test_observer.common.config import SESSIONS_SECRET
 from test_observer.data_access.models import User
 from test_observer.data_access.models_enums import NotificationType
+from tests.conftest import create_session_cookie
 from tests.data_generator import DataGenerator
-
-
-def _create_session_cookie(session_id: int) -> str:
-    """Create a signed session cookie for testing"""
-    signer = itsdangerous.TimestampSigner(str(SESSIONS_SECRET))
-    session_data = {"id": session_id}
-    session_json = json.dumps(session_data)
-    return signer.sign(b64encode(session_json.encode()).decode()).decode()
 
 
 def _authenticate_user(test_client: TestClient, user: User, generator: DataGenerator) -> None:
     """Helper to authenticate a user in test client"""
     session = generator.gen_user_session(user)
-    session_cookie = _create_session_cookie(session.id)
+    session_cookie = create_session_cookie(session.id)
     test_client.cookies.set("session", session_cookie)
 
 
