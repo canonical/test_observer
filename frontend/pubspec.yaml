@@ -28,7 +28,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   web_benchmarks: ^4.0.0
-  flutter_lints: ^5.0.0
+  flutter_lints: 6.0.0
   dependency_validator: ^5.0.2
   build_runner: ^2.4.15
   freezed: ^3.0.6
