@@ -16,10 +16,11 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.notifications.models import (
     NotificationResponse,
     NotificationsResponse,
@@ -31,7 +32,11 @@ from test_observer.users.user_injection import get_current_user
 router = APIRouter(tags=["notifications"])
 
 
-@router.get("", response_model=NotificationsResponse)
+@router.get(
+    "",
+    response_model=NotificationsResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
+)
 def get_notifications(
     limit: Annotated[
         int,
@@ -75,7 +80,11 @@ def get_notifications(
     )
 
 
-@router.get("/unread-count", response_model=int)
+@router.get(
+    "/unread-count",
+    response_model=int,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
+)
 def get_unread_count(
     user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -93,7 +102,11 @@ def get_unread_count(
     return count or 0
 
 
-@router.patch("/{notification_id}/read", response_model=NotificationResponse)
+@router.patch(
+    "/{notification_id}/read",
+    response_model=NotificationResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_notification])],
+)
 def mark_notification_as_read(
     notification_id: int,
     user: User | None = Depends(get_current_user),

@@ -71,6 +71,10 @@ class Permission(StrEnum):
     view_environment_reported_issue = auto()
     change_environment_reported_issue = auto()
 
+    # Notifications
+    view_notification = auto()
+    change_notification = auto()
+
 
 def permission_checker(
     security_scopes: SecurityScopes,
