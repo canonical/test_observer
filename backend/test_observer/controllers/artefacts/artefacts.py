@@ -232,13 +232,8 @@ def patch_artefact(
     if request.comment is not None:
         artefact.comment = request.comment
 
-    reviewer_ids_set = (
-        hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
-    )
-    reviewer_emails_set = (
-        hasattr(request, "reviewer_emails")
-        and "reviewer_emails" in request.model_fields_set
-    )
+    reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
+    reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set
 
     if reviewer_ids_set and reviewer_emails_set:
         raise HTTPException(
