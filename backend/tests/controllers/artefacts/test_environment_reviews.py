@@ -468,3 +468,86 @@ def test_patch_environment_review_includes_reviewers(test_client: TestClient, ge
             },
         ],
     }
+
+
+def test_bulk_review_includes_reviewers(test_client: TestClient, generator: DataGenerator):
+    """Test bulk reviewing includes reviewers in response."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env1")
+    e2 = generator.gen_environment("env2")
+    user1 = generator.gen_user(name="Reviewer One", email="reviewer1@test.com")
+    user2 = generator.gen_user(name="Reviewer Two", email="reviewer2@test.com")
+    er1 = generator.gen_artefact_build_environment_review(ab, e1, reviewers=[user1])
+    er2 = generator.gen_artefact_build_environment_review(ab, e2, reviewers=[user1, user2])
+
+    update = [
+        {"id": er1.id, "review_comment": "Updated env1"},
+        {"id": er2.id, "review_comment": "Updated env2"},
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews",
+            json=update,
+        ),
+        Permission.change_environment_review,
+    )
+
+    assert response.status_code == 200
+    reviews = sorted(response.json(), key=itemgetter("id"))
+    assert len(reviews) == 2
+
+    assert reviews[0] == {
+        "id": er1.id,
+        "review_decision": er1.review_decision,
+        "review_comment": "Updated env1",
+        "environment": {
+            "id": e1.id,
+            "name": e1.name,
+            "architecture": e1.architecture,
+        },
+        "artefact_build": {
+            "id": ab.id,
+            "revision": ab.revision,
+            "architecture": ab.architecture,
+        },
+        "reviewers": [
+            {
+                "id": user1.id,
+                "launchpad_handle": user1.launchpad_handle,
+                "email": user1.email,
+                "name": user1.name,
+            },
+        ],
+    }
+
+    assert reviews[1] == {
+        "id": er2.id,
+        "review_decision": er2.review_decision,
+        "review_comment": "Updated env2",
+        "environment": {
+            "id": e2.id,
+            "name": e2.name,
+            "architecture": e2.architecture,
+        },
+        "artefact_build": {
+            "id": ab.id,
+            "revision": ab.revision,
+            "architecture": ab.architecture,
+        },
+        "reviewers": [
+            {
+                "id": user1.id,
+                "launchpad_handle": user1.launchpad_handle,
+                "email": user1.email,
+                "name": user1.name,
+            },
+            {
+                "id": user2.id,
+                "launchpad_handle": user2.launchpad_handle,
+                "email": user2.email,
+                "name": user2.name,
+            },
+        ],
+    }
