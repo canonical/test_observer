@@ -33,7 +33,7 @@ def _authenticate_user(test_client: TestClient, user: User, generator: DataGener
 
 def test_get_notifications_without_auth(test_client: TestClient):
     """Test that accessing notifications without auth returns 403"""
-    response = test_client.get("/v1/notifications")
+    response = test_client.get("/v1/users/me/notifications")
     assert response.status_code == 403
 
 
@@ -58,7 +58,7 @@ def test_get_notifications(test_client: TestClient, generator: DataGenerator):
 
     _authenticate_user(test_client, user, generator)
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/notifications", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.get("/v1/users/me/notifications", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
     )
 
@@ -74,7 +74,7 @@ def test_get_notifications(test_client: TestClient, generator: DataGenerator):
 
 def test_get_unread_count_without_auth(test_client: TestClient):
     """Test that accessing unread count without auth returns 403"""
-    response = test_client.get("/v1/notifications/unread-count")
+    response = test_client.get("/v1/users/me/notifications/unread-count")
     assert response.status_code == 403
 
 
@@ -91,7 +91,7 @@ def test_get_unread_count(test_client: TestClient, generator: DataGenerator):
 
     _authenticate_user(test_client, user, generator)
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/notifications/unread-count", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.get("/v1/users/me/notifications/unread-count", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
     )
 
@@ -104,7 +104,7 @@ def test_mark_notification_as_read_without_auth(test_client: TestClient, generat
     user = generator.gen_user(email="mark-no-auth@test.com")
     notification = generator.gen_notification(user=user)
 
-    response = test_client.post(f"/v1/notifications/{notification.id}/dismiss")
+    response = test_client.post(f"/v1/users/me/notifications/{notification.id}/dismiss")
     assert response.status_code == 403
 
 
@@ -117,7 +117,9 @@ def test_mark_notification_as_read(test_client: TestClient, generator: DataGener
 
     _authenticate_user(test_client, user, generator)
     response = make_authenticated_request(
-        lambda: test_client.post(f"/v1/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.post(
+            f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}
+        ),
         Permission.change_notification,
     )
 
@@ -135,7 +137,9 @@ def test_mark_notification_as_read_wrong_user(test_client: TestClient, generator
 
     _authenticate_user(test_client, other_user, generator)
     response = make_authenticated_request(
-        lambda: test_client.post(f"/v1/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.post(
+            f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}
+        ),
         Permission.change_notification,
     )
 
@@ -148,7 +152,7 @@ def test_mark_nonexistent_notification_as_read(test_client: TestClient, generato
 
     _authenticate_user(test_client, user, generator)
     response = make_authenticated_request(
-        lambda: test_client.post("/v1/notifications/99999/dismiss", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.post("/v1/users/me/notifications/99999/dismiss", headers={"X-CSRF-Token": "1"}),
         Permission.change_notification,
     )
 
@@ -173,7 +177,7 @@ def test_get_notifications_with_pagination(test_client: TestClient, generator: D
 
     # Test limit
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/notifications?limit=2", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.get("/v1/users/me/notifications?limit=2", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
     )
     assert response.status_code == 200
@@ -185,7 +189,7 @@ def test_get_notifications_with_pagination(test_client: TestClient, generator: D
 
     # Test offset
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/notifications?limit=2&offset=2", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.get("/v1/users/me/notifications?limit=2&offset=2", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
     )
     assert response.status_code == 200
@@ -197,7 +201,7 @@ def test_get_notifications_with_pagination(test_client: TestClient, generator: D
 
     # Test offset beyond results
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/notifications?limit=10&offset=3", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.get("/v1/users/me/notifications?limit=10&offset=3", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
     )
     assert response.status_code == 200
