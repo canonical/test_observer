@@ -4148,7 +4148,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
       }
     },
     "/v1/notifications/unread-count": {
@@ -4171,7 +4174,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
       }
     },
     "/v1/notifications/{notification_id}/read": {
@@ -4214,7 +4220,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_notification"
+        ]
       }
     },
     "/v1/artefact-matching-rules": {
@@ -6239,7 +6248,9 @@
           "view_test_case_reported_issue",
           "change_test_case_reported_issue",
           "view_environment_reported_issue",
-          "change_environment_reported_issue"
+          "change_environment_reported_issue",
+          "view_notification",
+          "change_notification"
         ],
         "title": "Permission"
       },
