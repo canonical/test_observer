@@ -4090,14 +4090,14 @@
         ]
       }
     },
-    "/v1/notifications": {
+    "/v1/users/me/notifications": {
       "get": {
         "tags": [
           "notifications"
         ],
         "summary": "Get Notifications",
         "description": "Get all notifications for the logged in user",
-        "operationId": "get_notifications_v1_notifications_get",
+        "operationId": "get_notifications_v1_users_me_notifications_get",
         "parameters": [
           {
             "name": "limit",
@@ -4154,14 +4154,14 @@
         ]
       }
     },
-    "/v1/notifications/unread-count": {
+    "/v1/users/me/notifications/unread-count": {
       "get": {
         "tags": [
           "notifications"
         ],
         "summary": "Get Unread Count",
         "description": "Get the count of unread notifications for the logged in user",
-        "operationId": "get_unread_count_v1_notifications_unread_count_get",
+        "operationId": "get_unread_count_v1_users_me_notifications_unread_count_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -4169,7 +4169,7 @@
               "application/json": {
                 "schema": {
                   "type": "integer",
-                  "title": "Response Get Unread Count V1 Notifications Unread Count Get"
+                  "title": "Response Get Unread Count V1 Users Me Notifications Unread Count Get"
                 }
               }
             }
@@ -4180,14 +4180,14 @@
         ]
       }
     },
-    "/v1/notifications/{notification_id}/read": {
-      "patch": {
+    "/v1/users/me/notifications/{notification_id}/dismiss": {
+      "post": {
         "tags": [
           "notifications"
         ],
         "summary": "Mark Notification As Read",
         "description": "Mark a notification as read",
-        "operationId": "mark_notification_as_read_v1_notifications__notification_id__read_patch",
+        "operationId": "mark_notification_as_read_v1_users_me_notifications__notification_id__dismiss_post",
         "parameters": [
           {
             "name": "notification_id",
