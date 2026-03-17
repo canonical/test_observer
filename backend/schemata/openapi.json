@@ -4468,6 +4468,14 @@
           },
           "artefact_build": {
             "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          },
+          "reviewers": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewerResponse"
+            },
+            "type": "array",
+            "title": "Reviewers",
+            "default": []
           }
         },
         "type": "object",

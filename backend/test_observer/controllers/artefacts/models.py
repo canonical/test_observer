@@ -184,6 +184,7 @@ class ArtefactBuildEnvironmentReviewResponse(BaseModel):
     review_comment: str
     environment: EnvironmentResponse
     artefact_build: ArtefactBuildMinimalResponse
+    reviewers: list[ReviewerResponse] = []
 
 
 class EnvironmentReviewPatch(BaseModel):
