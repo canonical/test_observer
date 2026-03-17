@@ -4471,7 +4471,7 @@
           },
           "reviewers": {
             "items": {
-              "$ref": "#/components/schemas/EnvironmentReviewReviewerResponse"
+              "$ref": "#/components/schemas/ReviewerResponse"
             },
             "type": "array",
             "title": "Reviewers",
@@ -5390,40 +5390,6 @@
         },
         "type": "object",
         "title": "EnvironmentReviewPatch"
-      },
-      "EnvironmentReviewReviewerResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "launchpad_handle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Launchpad Handle"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "email",
-          "name"
-        ],
-        "title": "EnvironmentReviewReviewerResponse"
       },
       "EnvironmentsResponse": {
         "properties": {
