@@ -78,7 +78,7 @@ class _SimpleUserAvatar extends StatelessWidget {
 
   String get _tooltipMessage {
     String result = user.name;
-    if (user.launchpadHandle != null) {
+    if (user.launchpadHandle?.isNotEmpty == true) {
       result = '$result\n${user.launchpadHandle}';
     }
     return result;
