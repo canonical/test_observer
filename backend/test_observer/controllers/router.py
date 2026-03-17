@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
@@ -26,19 +24,20 @@ from test_observer.controllers.users import users
 from test_observer.data_access.setup import get_db
 
 from . import (
+    auth,
     environments,
     reports,
     test_cases,
     test_executions,
     test_results,
-    auth,
 )
 from .application import version
+from .artefact_matching_rules import artefact_matching_rules
 from .artefacts import artefacts
+from .execution_metadata import execution_metadata
+from .issues import issues
 from .teams import teams
 from .test_executions import relevant_links
-from .issues import issues
-from .execution_metadata import execution_metadata
 
 router: APIRouter = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
@@ -57,6 +56,7 @@ router.include_router(teams.router, prefix="/v1/teams")
 router.include_router(permissions.router, prefix="/v1/permissions")
 router.include_router(applications.router, prefix="/v1/applications")
 router.include_router(docs.router)
+router.include_router(artefact_matching_rules.router, prefix="/v1/artefact-matching-rules")
 
 
 @router.get("/")

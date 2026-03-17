@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Add artefact signoff assignees and user model
 
@@ -46,14 +44,10 @@ def upgrade() -> None:
         sa.UniqueConstraint("launchpad_email", name=op.f("user_launchpad_email_key")),
     )
     op.add_column("artefact", sa.Column("assignee_id", sa.Integer(), nullable=True))
-    op.create_foreign_key(
-        op.f("artefact_assignee_id_fkey"), "artefact", "user", ["assignee_id"], ["id"]
-    )
+    op.create_foreign_key(op.f("artefact_assignee_id_fkey"), "artefact", "user", ["assignee_id"], ["id"])
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        op.f("artefact_assignee_id_fkey"), "artefact", type_="foreignkey"
-    )
+    op.drop_constraint(op.f("artefact_assignee_id_fkey"), "artefact", type_="foreignkey")
     op.drop_column("artefact", "assignee_id")
     op.drop_table("user")

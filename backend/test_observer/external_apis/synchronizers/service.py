@@ -1,30 +1,27 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
-from datetime import datetime, UTC
+import logging
 from collections.abc import Sequence
+
+from test_observer.data_access.models import Issue
 from test_observer.external_apis.synchronizers.base import (
     BaseIssueSynchronizer,
     SyncResult,
 )
 from test_observer.external_apis.synchronizers.models import SyncResults
-from test_observer.data_access.models import Issue
-from sqlalchemy.orm import Session
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -45,52 +42,38 @@ class IssueSynchronizationService:
         self.synchronizers = synchronizers
         logger.info(f"Initialized service with {len(synchronizers)} synchronizers")
 
-    def sync_issue(self, issue: Issue, db: Session) -> SyncResult:
+    def sync_issue(self, issue: Issue) -> SyncResult:
         """
-        Find appropriate synchronizer and sync the issue
+        Find appropriate synchronizer and fetch the latest state via HTTP.
+        Does not write to the database.
 
         Args:
             issue: Issue to synchronize
-            db: Database session
 
         Returns:
             SyncResult with synchronization outcome
         """
         for synchronizer in self.synchronizers:
             if synchronizer.can_sync(issue):
-                logger.debug(
-                    f"Using {synchronizer.__class__.__name__} for issue {issue.id}"
-                )
-                result = synchronizer.sync_issue(issue, db)
+                logger.debug(f"Using {synchronizer.__class__.__name__} for issue {issue.id}")
+                return synchronizer.fetch_issue_update(issue)
 
-                # Update last_synced_at timestamp on success
-                if result.success:
-                    issue.last_synced_at = datetime.now(UTC).replace(tzinfo=None)  # type: ignore[assignment]
-                    db.commit()
+        logger.warning(f"No synchronizer available for issue {issue.id} with URL: {issue.url}")
+        return SyncResult(success=False, error=f"No synchronizer available for URL: {issue.url}")
 
-                return result
-
-        logger.warning(
-            f"No synchronizer available for issue {issue.id} with URL: {issue.url}"
-        )
-        return SyncResult(
-            success=False, error=f"No synchronizer available for URL: {issue.url}"
-        )
-
-    def sync_issues_batch(self, issues: Sequence[Issue], db: Session) -> SyncResults:
+    def sync_issues_batch(self, issues: Sequence[Issue]) -> SyncResults:
         """
-        Sync a batch of issues
+        Fetch updates for a batch of issues via HTTP. Does not write to the database.
 
         Args:
             issues: List of issues to sync
-            db: Database session
 
         Returns:
             SyncResults with aggregated results
         """
         logger.info(f"Starting synchronization of {len(issues)} issues in batch")
 
-        results = [self.sync_issue(issue, db) for issue in issues]
+        results = [self.sync_issue(issue) for issue in issues]
 
         sync_results = SyncResults.from_results(results)
         logger.info(
@@ -100,16 +83,3 @@ class IssueSynchronizationService:
         )
 
         return sync_results
-
-    def sync_all_issues(self, db: Session) -> SyncResults:
-        """
-        Sync all issues in the database (legacy method - kept for compatibility)
-
-        Args:
-            db: Database session
-
-        Returns:
-            SyncResults with aggregated results
-        """
-        issues = db.query(Issue).all()
-        return self.sync_issues_batch(issues, db)

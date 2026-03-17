@@ -1,5 +1,7 @@
 // Copyright (C) 2023 Canonical Ltd.
 //
+// SPDX-License-Identifier: GPL-3.0-only
+//
 // This file is part of Test Observer Frontend.
 //
 // Test Observer Frontend is free software: you can redistribute it and/or modify
@@ -76,7 +78,7 @@ class _SimpleUserAvatar extends StatelessWidget {
 
   String get _tooltipMessage {
     String result = user.name;
-    if (user.launchpadHandle != null) {
+    if (user.launchpadHandle?.isNotEmpty == true) {
       result = '$result\n${user.launchpadHandle}';
     }
     return result;
