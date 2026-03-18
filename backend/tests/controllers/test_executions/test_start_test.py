@@ -339,10 +339,13 @@ class TestFamilyIndependentTests:
         # Verify each environment review has exactly one reviewer
         for build in artefact.builds:
             for env_review in build.environment_reviews:
-                assert len(env_review.reviewers) == 1, f"Environment review {env_review.id} should have exactly 1 reviewer"
+                assert len(env_review.reviewers) == 1, (
+                    f"Environment review {env_review.id} should have exactly 1 reviewer"
+                )
                 # Verify the assigned reviewer is from the artefact's reviewers
-                assert env_review.reviewers[0] in artefact.reviewers, \
+                assert env_review.reviewers[0] in artefact.reviewers, (
                     f"Reviewer {env_review.reviewers[0].email} not in artefact reviewers"
+                )
 
     def test_single_reviewer_no_environment_assignment(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
@@ -374,8 +377,9 @@ class TestFamilyIndependentTests:
         # Verify environment reviews have no individual reviewers assigned
         for build in artefact.builds:
             for env_review in build.environment_reviews:
-                assert len(env_review.reviewers) == 0, \
+                assert len(env_review.reviewers) == 0, (
                     f"Environment review {env_review.id} should have no reviewers when only one artefact reviewer"
+                )
 
     def test_environment_reviewers_distributed_across_multiple_builds(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
@@ -443,8 +447,9 @@ class TestFamilyIndependentTests:
         for build in artefact.builds:
             if len(build.environment_reviews) > 0:
                 for env_review in build.environment_reviews:
-                    assert len(env_review.reviewers) == 1, \
+                    assert len(env_review.reviewers) == 1, (
                         f"Environment review {env_review.id} in build {build.id} should have exactly 1 reviewer"
+                    )
 
     def test_deletes_rerun_requests(self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]):
         response = execute(start_request)
