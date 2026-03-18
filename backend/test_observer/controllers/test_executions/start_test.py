@@ -122,7 +122,7 @@ class StartTestExecutionController:
                 )
 
                 # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
-                environment_count = sum(len(b.environment_reviews) for b in self.artefact.builds)
+                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
                 expected_number_of_reviewers = (
                     environment_count + ENVIRONMENTS_PER_REVIEWER - 1
                 ) // ENVIRONMENTS_PER_REVIEWER

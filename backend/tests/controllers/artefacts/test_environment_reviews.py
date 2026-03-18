@@ -384,13 +384,17 @@ def test_environment_review_reset_review(test_client: TestClient, generator: Dat
     }
 
 
-def test_get_environment_reviews_includes_reviewers(test_client: TestClient, generator: DataGenerator):
+def test_get_environment_reviews_includes_reviewers(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     user1 = generator.gen_user(name="User One", email="user1@test.com")
     user2 = generator.gen_user(name="User Two", email="user2@test.com")
-    review = generator.gen_artefact_build_environment_review(ab, e, reviewers=[user1, user2])
+    review = generator.gen_artefact_build_environment_review(
+        ab, e, reviewers=[user1, user2]
+    )
 
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/artefacts/{a.id}/environment-reviews"),
@@ -433,7 +437,9 @@ def test_get_environment_reviews_includes_reviewers(test_client: TestClient, gen
     ]
 
 
-def test_patch_environment_review_includes_reviewers(test_client: TestClient, generator: DataGenerator):
+def test_patch_environment_review_includes_reviewers(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
@@ -442,7 +448,9 @@ def test_patch_environment_review_includes_reviewers(test_client: TestClient, ge
 
     update = {"review_comment": "Updated comment"}
     response = make_authenticated_request(
-        lambda: test_client.patch(f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update),
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}/environment-reviews/{er.id}", json=update
+        ),
         Permission.change_environment_review,
     )
 

@@ -522,7 +522,9 @@ def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenera
     assert a.reviewers == [u]
 
 
-def test_update_artefact_reviewer_nonexistent_user(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_nonexistent_user(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact()
     nonexistent_user_id = 99999
 
@@ -538,7 +540,9 @@ def test_update_artefact_reviewer_nonexistent_user(test_client: TestClient, gene
     assert "User with id 99999 not found" in response.json()["detail"]
 
 
-def test_update_artefact_reviewer_clear(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_clear(
+    test_client: TestClient, generator: DataGenerator
+):
     u = generator.gen_user()
     a = generator.gen_artefact(reviewers=[u])
 
@@ -558,7 +562,9 @@ def test_update_artefact_reviewer_clear(test_client: TestClient, generator: Data
     assert a.reviewers == []
 
 
-def test_update_artefact_reviewer_by_email(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_by_email(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -574,7 +580,9 @@ def test_update_artefact_reviewer_by_email(test_client: TestClient, generator: D
     assert a.reviewers == [u]
 
 
-def test_update_artefact_reviewer_by_email_nonexistent(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_by_email_nonexistent(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact()
     nonexistent_email = "nonexistent@example.com"
 
@@ -591,7 +599,9 @@ def test_update_artefact_reviewer_by_email_nonexistent(test_client: TestClient, 
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_reviewer_clear_by_email(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_clear_by_email(
+    test_client: TestClient, generator: DataGenerator
+):
     u = generator.gen_user()
     a = generator.gen_artefact(reviewers=[u])
 
@@ -611,7 +621,9 @@ def test_update_artefact_reviewer_clear_by_email(test_client: TestClient, genera
     assert a.reviewers == []
 
 
-def test_update_artefact_reviewer_both_id_and_email_error(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_reviewer_both_id_and_email_error(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -631,7 +643,9 @@ def test_update_artefact_reviewer_both_id_and_email_error(test_client: TestClien
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_multiple_reviewers_by_id(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_multiple_reviewers_by_id(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact()
     users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
 
@@ -649,7 +663,9 @@ def test_update_artefact_multiple_reviewers_by_id(test_client: TestClient, gener
     assert a.reviewers == users
 
 
-def test_update_artefact_multiple_reviewers_by_email(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_multiple_reviewers_by_email(
+    test_client: TestClient, generator: DataGenerator
+):
     a = generator.gen_artefact()
 
     users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
@@ -831,7 +847,9 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "archived": artefact.archived,
         "family": artefact.family,
         "reviewers": [],
-        "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
+        "due_date": (
+            artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
+        ),
         "bug_link": artefact.bug_link,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
