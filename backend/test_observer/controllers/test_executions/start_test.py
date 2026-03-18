@@ -80,7 +80,7 @@ class StartTestExecutionController:
 
         return {"id": self.test_execution.id}
 
-    def _assign_reviewers_to_environments(self):
+    def _assign_reviewers_to_environments(self) -> None:
         clear_reviewers = len(self.artefact.reviewers) == 1
         for build in self.artefact.builds:
             for env_review in build.environment_reviews:
