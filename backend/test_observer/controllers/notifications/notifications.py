@@ -108,14 +108,10 @@ def get_notifications(
         return total_count
 
     # Get paginated notifications
-    notifications = db.scalars(
-        select(Notification)
-        .where(Notification.user_id == target_user.id)
-        .where(Notification.dismissed_at.is_(None) if unread_only else True)
-        .order_by(Notification.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    ).all()
+    select_query = select(Notification).where(Notification.user_id == target_user.id)
+    if unread_only:
+        select_query = select_query.where(Notification.dismissed_at.is_(None))
+    notifications = db.scalars(select_query.order_by(Notification.created_at.desc()).limit(limit).offset(offset)).all()
 
     return NotificationsResponse(
         notifications=list(notifications),  # type: ignore[arg-type]
