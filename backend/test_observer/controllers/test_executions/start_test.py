@@ -80,8 +80,23 @@ class StartTestExecutionController:
 
         return {"id": self.test_execution.id}
 
+    def _assign_reviewers_to_environments(self):
+        clear_reviewers = len(self.artefact.reviewers) == 1
+        for build in self.artefact.builds:
+            for env_review in build.environment_reviews:
+                if clear_reviewers:
+                    env_review.reviewers = []
+                elif not env_review.reviewers:
+                    env_review.reviewers = [random.choice(self.artefact.reviewers)]
+        self.db.commit()
+
     def assign_reviewer(self):
-        if self.request.needs_assignment and len(self.artefact.reviewers) == 0:
+        if not self.request.needs_assignment:
+            return
+
+        if len(self.artefact.reviewers) > 0:
+            self._assign_reviewers_to_environments()
+        else:
             # Get reviewers whose teams can review this artefact family
             family_str = self.artefact.family.value
 
@@ -121,20 +136,16 @@ class StartTestExecutionController:
                     .all()
                 )
 
-                # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
-                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
-                expected_number_of_reviewers = (
-                    environment_count + ENVIRONMENTS_PER_REVIEWER - 1
-                ) // ENVIRONMENTS_PER_REVIEWER
-
                 if users:
-                    number_of_reviewers = min(expected_number_of_reviewers, len(users))
+                    # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
+                    environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
+                    expected_number_of_reviewers = (
+                        environment_count + ENVIRONMENTS_PER_REVIEWER - 1
+                    ) // ENVIRONMENTS_PER_REVIEWER
 
+                    number_of_reviewers = min(expected_number_of_reviewers, len(users))
                     self.artefact.reviewers = random.sample(users, number_of_reviewers)
-                    if number_of_reviewers > 1:
-                        for build in self.artefact.builds:
-                            for env_review in build.environment_reviews:
-                                env_review.reviewers = [random.choice(self.artefact.reviewers)]
+                    self._assign_reviewers_to_environments()
                     self.artefact.due_date = self.determine_due_date()
                     self.db.commit()
 

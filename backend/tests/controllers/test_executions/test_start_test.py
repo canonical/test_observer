@@ -305,7 +305,7 @@ class TestFamilyIndependentTests:
         # Create 3 users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
         generator.gen_user(email="user2@example.com", teams=[team])
-        generator.gen_user(email="user3@example.com", teams=[team])
+        generator.gen_user(email="user3@example.com", teams=[])
 
         # Execute the first test to create the artefact
         response = execute({**start_request, "needs_assignment": True})
@@ -334,7 +334,7 @@ class TestFamilyIndependentTests:
         self._db_session.refresh(artefact)
 
         # Verify multiple reviewers were assigned
-        assert len(artefact.reviewers) >= 2
+        assert len(artefact.reviewers) == 2
 
         # Verify each environment review has exactly one reviewer
         for build in artefact.builds:
