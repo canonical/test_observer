@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -37,7 +37,13 @@ router = APIRouter(tags=["notifications"])
     response_model=NotificationsResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
 )
+@router.get(
+    "/count",
+    response_model=int,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
+)
 def get_notifications(
+    request: Request,
     limit: Annotated[
         int,
         Query(
@@ -53,6 +59,12 @@ def get_notifications(
             description="Number of results to skip for pagination (default: 0)",
         ),
     ] = 0,
+    unread_only: Annotated[
+        bool,
+        Query(
+            description="Whether to return only unread notifications (default: false)",
+        ),
+    ] = False,
     user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -61,12 +73,19 @@ def get_notifications(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     # Get total count
-    total_count = db.scalar(select(func.count(Notification.id)).where(Notification.user_id == user.id)) or 0
+    count_query = select(func.count(Notification.id)).where(Notification.user_id == user.id)
+    if unread_only:
+        count_query = count_query.where(Notification.dismissed_at.is_(None))
+    total_count = db.scalar(count_query) or 0
+
+    if request.url.path.endswith("/count"):
+        return total_count
 
     # Get paginated notifications
     notifications = db.scalars(
         select(Notification)
         .where(Notification.user_id == user.id)
+        .where(Notification.dismissed_at.is_(None) if unread_only else True)
         .order_by(Notification.created_at.desc())
         .limit(limit)
         .offset(offset)
@@ -78,28 +97,6 @@ def get_notifications(
         limit=limit,
         offset=offset,
     )
-
-
-@router.get(
-    "/unread-count",
-    response_model=int,
-    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
-)
-def get_unread_count(
-    user: User | None = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Get the count of unread notifications for the logged in user"""
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    count = db.scalar(
-        select(func.count(Notification.id))
-        .where(Notification.user_id == user.id)
-        .where(Notification.dismissed_at.is_(None))
-    )
-
-    return count or 0
 
 
 @router.post(

@@ -72,9 +72,9 @@ def test_get_notifications(test_client: TestClient, generator: DataGenerator):
     assert data["offset"] == 0
 
 
-def test_get_unread_count_without_auth(test_client: TestClient):
+def test_get_count_without_auth(test_client: TestClient):
     """Test that accessing unread count without auth returns 403"""
-    response = test_client.get("/v1/users/me/notifications/unread-count")
+    response = test_client.get("/v1/users/me/notifications/count")
     assert response.status_code == 403
 
 
@@ -91,7 +91,7 @@ def test_get_unread_count(test_client: TestClient, generator: DataGenerator):
 
     _authenticate_user(test_client, user, generator)
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/users/me/notifications/unread-count", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.get("/v1/users/me/notifications/count?unread_only=true", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
     )
 
