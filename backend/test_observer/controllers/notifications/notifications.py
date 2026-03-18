@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Security
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -32,18 +32,45 @@ from test_observer.users.user_injection import get_current_user
 router = APIRouter(tags=["notifications"])
 
 
+def _resolve_user_id(
+    user_id: str,
+    current_user: User | None,
+    db: Session,
+) -> User:
+    """
+    Resolve user_id parameter to a User object.
+    Supports 'me' as an alias for the current user.
+    """
+    if user_id == "me":
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        return current_user
+    
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user_id format")
+    
+    user = db.get(User, user_id_int)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return user
+
+
 @router.get(
-    "",
+    "/{id}/notifications",
     response_model=NotificationsResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
 )
 @router.get(
-    "/count",
+    "/{id}/notifications/count",
     response_model=int,
     dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
 )
 def get_notifications(
     request: Request,
+    id: Annotated[str, Path(description="User ID or 'me' for current user")],
     limit: Annotated[
         int,
         Query(
@@ -68,12 +95,11 @@ def get_notifications(
     user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Get all notifications for the logged in user"""
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    """Get all notifications for the specified user"""
+    target_user = _resolve_user_id(id, user, db)
 
     # Get total count
-    count_query = select(func.count(Notification.id)).where(Notification.user_id == user.id)
+    count_query = select(func.count(Notification.id)).where(Notification.user_id == target_user.id)
     if unread_only:
         count_query = count_query.where(Notification.dismissed_at.is_(None))
     total_count = db.scalar(count_query) or 0
@@ -84,7 +110,7 @@ def get_notifications(
     # Get paginated notifications
     notifications = db.scalars(
         select(Notification)
-        .where(Notification.user_id == user.id)
+        .where(Notification.user_id == target_user.id)
         .where(Notification.dismissed_at.is_(None) if unread_only else True)
         .order_by(Notification.created_at.desc())
         .limit(limit)
@@ -100,21 +126,21 @@ def get_notifications(
 
 
 @router.post(
-    "/{notification_id}/dismiss",
+    "/{id}/notifications/{notification_id}/dismiss",
     response_model=NotificationResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.change_notification])],
 )
 def mark_notification_as_read(
+    id: Annotated[str, Path(description="User ID or 'me' for current user")],
     notification_id: int,
     user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Mark a notification as read"""
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    target_user = _resolve_user_id(id, user, db)
 
     notification = db.scalar(
-        select(Notification).where(Notification.id == notification_id).where(Notification.user_id == user.id)
+        select(Notification).where(Notification.id == notification_id).where(Notification.user_id == target_user.id)
     )
     if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
