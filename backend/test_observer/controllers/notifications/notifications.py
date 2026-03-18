@@ -45,16 +45,16 @@ def _resolve_user_id(
         if not current_user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         return current_user
-    
+
     try:
         user_id_int = int(user_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user_id format")
-    
+        raise HTTPException(status_code=400, detail="Invalid user_id format") from None
+
     user = db.get(User, user_id_int)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     return user
 
 
