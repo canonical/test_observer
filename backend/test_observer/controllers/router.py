@@ -26,6 +26,7 @@ from test_observer.data_access.setup import get_db
 from . import (
     auth,
     environments,
+    notifications,
     reports,
     test_cases,
     test_executions,
@@ -55,6 +56,7 @@ router.include_router(users.router, prefix="/v1/users")
 router.include_router(teams.router, prefix="/v1/teams")
 router.include_router(permissions.router, prefix="/v1/permissions")
 router.include_router(applications.router, prefix="/v1/applications")
+router.include_router(notifications.router, prefix="/v1/users")
 router.include_router(docs.router)
 router.include_router(artefact_matching_rules.router, prefix="/v1/artefact-matching-rules")
 

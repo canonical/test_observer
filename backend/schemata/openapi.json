@@ -4090,6 +4090,238 @@
         ]
       }
     },
+    "/v1/users/{id}/notifications/count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Notifications",
+        "description": "Get all notifications for the specified user",
+        "operationId": "get_notifications_v1_users__id__notifications_count_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "User ID or 'me' for current user",
+              "title": "Id"
+            },
+            "description": "User ID or 'me' for current user"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "title": "Response Get Notifications V1 Users  Id  Notifications Count Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
+      }
+    },
+    "/v1/users/{id}/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Notifications",
+        "description": "Get all notifications for the specified user",
+        "operationId": "get_notifications_v1_users__id__notifications_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "User ID or 'me' for current user",
+              "title": "Id"
+            },
+            "description": "User ID or 'me' for current user"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
+      }
+    },
+    "/v1/users/{id}/notifications/{notification_id}/dismiss": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark Notification As Read",
+        "description": "Mark a notification as read",
+        "operationId": "mark_notification_as_read_v1_users__id__notifications__notification_id__dismiss_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "User ID or 'me' for current user",
+              "title": "Id"
+            },
+            "description": "User ID or 'me' for current user"
+          },
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_notification"
+        ]
+      }
+    },
     "/v1/artefact-matching-rules": {
       "post": {
         "tags": [
@@ -5957,6 +6189,98 @@
         ],
         "title": "MinimalIssueTestResultAttachmentRuleResponse"
       },
+      "NotificationResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "notification_type": {
+            "$ref": "#/components/schemas/NotificationType"
+          },
+          "target_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Url"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "dismissed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dismissed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "notification_type",
+          "target_url",
+          "created_at",
+          "dismissed_at"
+        ],
+        "title": "NotificationResponse"
+      },
+      "NotificationType": {
+        "type": "string",
+        "enum": [
+          "USER_ASSIGNED_ARTEFACT_REVIEW",
+          "USER_ASSIGNED_ENVIRONMENT_REVIEW"
+        ],
+        "title": "NotificationType"
+      },
+      "NotificationsResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponse"
+            },
+            "type": "array",
+            "title": "Notifications"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "notifications",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "title": "NotificationsResponse"
+      },
       "PendingRerun": {
         "properties": {
           "test_execution_id": {
@@ -6028,7 +6352,9 @@
           "view_test_case_reported_issue",
           "change_test_case_reported_issue",
           "view_environment_reported_issue",
-          "change_environment_reported_issue"
+          "change_environment_reported_issue",
+          "view_notification",
+          "change_notification"
         ],
         "title": "Permission"
       },
