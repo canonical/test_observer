@@ -184,9 +184,11 @@ def make_authenticated_request(request_func: Callable[[], Response], *permission
 @pytest.fixture
 def create_session_cookie() -> Callable[[int], str]:
     """Fixture that returns a function to create signed session cookies for testing"""
+
     def _create_session_cookie(session_id: int) -> str:
         signer = itsdangerous.TimestampSigner(str(SESSIONS_SECRET))
         session_data = {"id": session_id}
         session_json = json.dumps(session_data)
         return signer.sign(b64encode(session_json.encode()).decode()).decode()
+
     return _create_session_cookie
