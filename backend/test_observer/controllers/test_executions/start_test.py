@@ -92,7 +92,7 @@ class StartTestExecutionController:
                 env_review.reviewers = []
             self.db.commit()
             return
-        
+
         # sort reviewers based on how many environments are assigned to them, then assign the same quantity to every one
         reviewers_to_assignment_count = {reviewer.id: 0 for reviewer in self.artefact.reviewers}
         for env_review in env_reviews:
@@ -166,7 +166,9 @@ class StartTestExecutionController:
                 environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
                 expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
 
-                number_of_reviewers_to_assign = max(0, min(expected_number_of_reviewers, len(users)) - len(self.artefact.reviewers))
+                number_of_reviewers_to_assign = max(
+                    0, min(expected_number_of_reviewers, len(users)) - len(self.artefact.reviewers)
+                )
                 self.artefact.reviewers += random.sample(users, number_of_reviewers_to_assign)
                 self._assign_reviewers_to_environments()
                 self.artefact.due_date = self.determine_due_date()
