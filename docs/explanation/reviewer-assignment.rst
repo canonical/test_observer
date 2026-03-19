@@ -73,7 +73,7 @@ The number of reviewers needed is based on the number of environments (test exec
 Step 5: Randomly select reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Reviewers are randomly selected from the candidate pool, up to a limit of :math:`\min(\lceil \frac{\text{total\_environments}}{\text{ENVIRONMENTS\_PER\_REVIEWER}} \rceil, \text{available\_users})`. Existing reviewers are not removed, and no more reviewers are added than available candidates.
+Reviewers are randomly selected from the candidate pool, up to a limit of :math:`\min \left( \lceil \frac{\text{total_environments}}{\text{ENVIRONMENTS_PER_REVIEWER}} \rceil, \text{available_users} \right)`. Existing reviewers are not removed, and no more reviewers are added than available candidates.
 
 This ensures:
 
@@ -93,7 +93,7 @@ The goal is to distribute environments evenly across all artefact reviewers:
 
 1. **Count existing assignments**: Tally how many environments each reviewer is already assigned to
 2. **Sort reviewers**: Order reviewers by their current assignment count (ascending)
-3. **Calculate target**: Determine how many environments each reviewer should review: :math:`\lceil \frac{\text{total\_environments}}{\text{total\_reviewers}} \rceil`
+3. **Calculate target**: Determine how many environments each reviewer should review, which is :math:`\lceil \frac{\text{total_environments}}{\text{total_reviewers}} \rceil`
 4. **Round-robin assignment**: Iterate through environments and assign the reviewer with the fewest current assignments
 
 Special case: Single reviewer
