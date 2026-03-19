@@ -81,6 +81,7 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def _assign_reviewers_to_environments(self) -> None:
+        # if an artefact has only one reviewer, there's no need to assign it to the environments
         clear_reviewers = len(self.artefact.reviewers) == 1
         for build in self.artefact.builds:
             for env_review in build.environment_reviews:
