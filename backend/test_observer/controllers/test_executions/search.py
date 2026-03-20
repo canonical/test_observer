@@ -40,7 +40,7 @@ from test_observer.data_access.setup import get_db
 from .models import TestExecutionSearchItem, TestExecutionSearchResponse
 from .test_execution import TEST_EXECUTION_OPTIONS
 
-router = APIRouter(tags=["test-executions"])
+from .router import router
 
 T = TypeVar("T")
 
