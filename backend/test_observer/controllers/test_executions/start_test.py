@@ -32,12 +32,12 @@ from test_observer.data_access.models import (
     TestPlan,
     User,
 )
+from test_observer.data_access.queries import match_artefact
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
 )
 from test_observer.data_access.setup import get_db
-from test_observer.data_access.queries import match_artefact
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -82,31 +82,30 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
-        if self.request.needs_assignment and len(self.artefact.reviewers) == 0:
-            # Get reviewers whose teams can review this artefact family
-            if (rules:= match_artefact(self.artefact, self.db)) and len(rules) > 0:
-                users = (
-                    self.db.execute(
-                        select(User)
-                        .join(User.teams)
-                        .join(Team.artefact_matching_rules)
-                        .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
-                        .distinct()
-                    )
-                    .scalars()
-                    .all()
+        should_assign = self.request.needs_assignment and len(self.artefact.reviewers) == 0
+        if should_assign and (rules := match_artefact(self.artefact, self.db)) and len(rules) > 0:
+            users = (
+                self.db.execute(
+                    select(User)
+                    .join(User.teams)
+                    .join(Team.artefact_matching_rules)
+                    .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
+                    .distinct()
                 )
+                .scalars()
+                .all()
+            )
 
-                # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
-                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
-                expected_number_of_reviewers = (
-                    environment_count + ENVIRONMENTS_PER_REVIEWER - 1
-                ) // ENVIRONMENTS_PER_REVIEWER
+            # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
+            environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
+            expected_number_of_reviewers = (
+                environment_count + ENVIRONMENTS_PER_REVIEWER - 1
+            ) // ENVIRONMENTS_PER_REVIEWER
 
-                if users:
-                    self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
-                    self.artefact.due_date = self.determine_due_date()
-                    self.db.commit()
+            if users:
+                self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
+                self.artefact.due_date = self.determine_due_date()
+                self.db.commit()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
