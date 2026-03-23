@@ -2825,7 +2825,7 @@
           "test-results"
         ],
         "summary": "Search Test Results",
-        "description": "Search test results across artefacts using flexible filters.\n\nThis endpoint uses a single optimized query with window functions to get both\nthe total count and paginated results in one database round trip.",
+        "description": "Search test results across artefacts using flexible filters.\n\nReturns one item per matching test result with execution, artefact, and build context.",
         "operationId": "search_test_results_v1_test_results_get",
         "parameters": [
           {
@@ -3029,6 +3029,41 @@
             "description": "Filter by test execution statuses"
           },
           {
+            "name": "reviewer_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by reviewer user ids",
+              "title": "Reviewer Ids"
+            },
+            "description": "Filter by reviewer user ids"
+          },
+          {
             "name": "assignee_ids",
             "in": "query",
             "required": false,
@@ -3058,10 +3093,12 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by assignee user ids",
+              "description": "DEPRECATED: Use reviewer_ids instead",
+              "deprecated": true,
               "title": "Assignee Ids"
             },
-            "description": "Filter by assignee user ids"
+            "description": "DEPRECATED: Use reviewer_ids instead",
+            "deprecated": true
           },
           {
             "name": "rerun_is_requested",
@@ -7675,7 +7712,7 @@
             "type": "array",
             "title": "Test Execution Statuses"
           },
-          "assignee_ids": {
+          "reviewer_ids": {
             "anyOf": [
               {
                 "items": {
@@ -7691,7 +7728,29 @@
                 ]
               }
             ],
-            "title": "Assignee Ids"
+            "title": "Reviewer Ids"
+          },
+          "assignee_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Ids",
+            "deprecated": true
           },
           "rerun_is_requested": {
             "anyOf": [
