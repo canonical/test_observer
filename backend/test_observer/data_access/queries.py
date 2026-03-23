@@ -14,7 +14,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from sqlalchemy import Select, and_, case, or_, select
-from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Artefact, ArtefactBuild, ArtefactMatchingRule
 
@@ -56,16 +55,13 @@ def match_artefact(artefact: Artefact) -> Select[tuple[ArtefactMatchingRule]]:
     )
 
     # Select rules matching the highest specificity
-    select_rules = (
-        select(ArtefactMatchingRule)
-        .where(
-            and_(
-                ArtefactMatchingRule.family == family_str,
-                or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
-                or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
-                or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
-                specificity == max_specificity_subquery,
-            )
+    select_rules = select(ArtefactMatchingRule).where(
+        and_(
+            ArtefactMatchingRule.family == family_str,
+            or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
+            or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
+            or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
+            specificity == max_specificity_subquery,
         )
     )
 
