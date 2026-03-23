@@ -48,7 +48,7 @@ def match_artefact(artefact: Artefact, db: Session) -> list[ArtefactMatchingRule
     )
 
     # sort rules by number of non-empty fields to prioritize specificity
-    rules_with_score = [[r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")] for r in possible_rules]
+    rules_with_score: list[tuple[ArtefactMatchingRule, int]] = [(r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")) for r in possible_rules]
     sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
     highest_score = sorted_rules[0][1] if sorted_rules else 0
     rules = [r[0] for r in sorted_rules if r[1] == highest_score]
