@@ -15,10 +15,13 @@
 
 """Fixtures for testing"""
 
+import json
+from base64 import b64encode
 from collections.abc import Callable
 from contextlib import contextmanager
 from os import environ
 
+import itsdangerous
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -31,6 +34,7 @@ from sqlalchemy_utils import (  # type: ignore
     drop_database,
 )
 
+from test_observer.common.config import SESSIONS_SECRET
 from test_observer.common.permissions import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
@@ -175,3 +179,16 @@ def make_authenticated_request(request_func: Callable[[], Response], *permission
     assert request_func().status_code == 403
     with override_permissions(*permissions):
         return request_func()
+
+
+@pytest.fixture
+def create_session_cookie() -> Callable[[int], str]:
+    """Fixture that returns a function to create signed session cookies for testing"""
+
+    def _create_session_cookie(session_id: int) -> str:
+        signer = itsdangerous.TimestampSigner(str(SESSIONS_SECRET))
+        session_data = {"id": session_id}
+        session_json = json.dumps(session_data)
+        return signer.sign(b64encode(session_json.encode()).decode()).decode()
+
+    return _create_session_cookie
