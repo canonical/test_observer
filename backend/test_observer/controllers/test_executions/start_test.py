@@ -17,7 +17,7 @@ import random
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Security
-from sqlalchemy import and_, or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -37,6 +37,7 @@ from test_observer.data_access.repository import (
     get_or_create,
 )
 from test_observer.data_access.setup import get_db
+from test_observer.data_access.queries import match_artefact
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -83,32 +84,7 @@ class StartTestExecutionController:
     def assign_reviewer(self):
         if self.request.needs_assignment and len(self.artefact.reviewers) == 0:
             # Get reviewers whose teams can review this artefact family
-            family_str = self.artefact.family.value
-
-            possible_rules = (
-                self.db.execute(
-                    select(ArtefactMatchingRule).where(
-                        and_(
-                            ArtefactMatchingRule.family == family_str,
-                            or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
-                            or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
-                            or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
-                        ),
-                    )
-                )
-                .scalars()
-                .all()
-            )
-
-            # sort rules by number of non-empty fields to prioritize specificity
-            rules_with_score = [
-                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")] for r in possible_rules
-            ]
-            sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
-            highest_score = sorted_rules[0][1] if sorted_rules else 0
-            rules = [r[0] for r in sorted_rules if r[1] == highest_score]
-
-            if rules:
+            if (rules:= match_artefact(self.artefact, self.db)) and len(rules) > 0:
                 users = (
                     self.db.execute(
                         select(User)
