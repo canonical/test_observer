@@ -126,7 +126,18 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: widget.notification.targetUrl != null
-          ? () => context.go(widget.notification.targetUrl!)
+          ? () {
+              try {
+                context.go(widget.notification.targetUrl!);
+              } catch (error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Invalid notification link: ${widget.notification.targetUrl}'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+              }
+            }
           : null,
       child: Card(
         elevation: isRead ? 1 : 2,
