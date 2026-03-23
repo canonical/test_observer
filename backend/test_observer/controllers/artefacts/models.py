@@ -25,6 +25,7 @@ from pydantic import (
     HttpUrl,
     computed_field,
     field_validator,
+    model_validator,
 )
 
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
@@ -77,6 +78,12 @@ class ArtefactResponse(BaseModel):
     bug_link: str
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
+
+    @computed_field(
+        description=("Backward-compatible assignee field. Populated from the first entry in reviewers when present.")
+    )
+    def assignee(self) -> ReviewerResponse | None:
+        return self.reviewers[0] if self.reviewers else None
 
 
 class EnvironmentResponse(BaseModel):
@@ -141,8 +148,46 @@ class ArtefactPatch(BaseModel):
     archived: bool | None = None
     stage: StageName | None = None
     comment: str | None = None
-    reviewer_ids: list[int] | None = None
-    reviewer_emails: list[str] | None = None
+    assignee_id: int | None = Field(
+        default=None,
+        deprecated=True,
+        description=(
+            "Legacy field. Mapped to reviewer_ids as a single-element list when "
+            "reviewer_ids/reviewer_emails are not provided."
+        ),
+    )
+    assignee_email: str | None = Field(
+        default=None,
+        deprecated=True,
+        description=(
+            "Legacy field. Mapped to reviewer_emails as a single-element list "
+            "when reviewer_ids/reviewer_emails are not provided."
+        ),
+    )
+    reviewer_ids: list[int] | None = Field(
+        default=None,
+        description=("Reviewer user IDs. Preferred over legacy assignee_id/assignee_email for setting assignees."),
+    )
+    reviewer_emails: list[str] | None = Field(
+        default=None,
+        description=("Reviewer emails. Preferred over legacy assignee_id/assignee_email for setting assignees."),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_assignee_fields(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+
+        # Backwards compatibility: map legacy assignee fields to reviewer fields
+        # only when reviewer fields are not explicitly provided.
+        if "reviewer_ids" not in data and "reviewer_emails" not in data:
+            if "assignee_id" in data:
+                data["reviewer_ids"] = [data["assignee_id"]] if data["assignee_id"] is not None else None
+            if "assignee_email" in data:
+                data["reviewer_emails"] = [data["assignee_email"]] if data["assignee_email"] is not None else None
+
+        return data
 
 
 class ArtefactVersionResponse(BaseModel):

@@ -4857,6 +4857,32 @@
             ],
             "title": "Comment"
           },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id",
+            "description": "Legacy field. Mapped to reviewer_ids as a single-element list when reviewer_ids/reviewer_emails are not provided.",
+            "deprecated": true
+          },
+          "assignee_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Email",
+            "description": "Legacy field. Mapped to reviewer_emails as a single-element list when reviewer_ids/reviewer_emails are not provided.",
+            "deprecated": true
+          },
           "reviewer_ids": {
             "anyOf": [
               {
@@ -4869,7 +4895,8 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewer Ids"
+            "title": "Reviewer Ids",
+            "description": "Reviewer user IDs. Preferred over legacy assignee_id/assignee_email for setting assignees."
           },
           "reviewer_emails": {
             "anyOf": [
@@ -4883,7 +4910,8 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewer Emails"
+            "title": "Reviewer Emails",
+            "description": "Reviewer emails. Preferred over legacy assignee_id/assignee_email for setting assignees."
           }
         },
         "type": "object",
@@ -5001,6 +5029,18 @@
           "completed_environment_reviews_count": {
             "type": "integer",
             "title": "Completed Environment Reviews Count"
+          },
+          "assignee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewerResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Backward-compatible assignee field. Populated from the first entry in reviewers when present.",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -5029,7 +5069,8 @@
           "created_at",
           "bug_link",
           "all_environment_reviews_count",
-          "completed_environment_reviews_count"
+          "completed_environment_reviews_count",
+          "assignee"
         ],
         "title": "ArtefactResponse"
       },

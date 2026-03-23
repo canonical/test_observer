@@ -522,6 +522,22 @@ def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenera
     assert a.reviewers == [u]
 
 
+def test_update_artefact_reviewer_legacy_assignee_id(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_id": u.id},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == [u]
+
+
 def test_update_artefact_reviewer_nonexistent_user(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_user_id = 99999
@@ -558,6 +574,22 @@ def test_update_artefact_reviewer_clear(test_client: TestClient, generator: Data
     assert a.reviewers == []
 
 
+def test_update_artefact_reviewer_clear_legacy_assignee_id(test_client: TestClient, generator: DataGenerator):
+    u = generator.gen_user()
+    a = generator.gen_artefact(reviewers=[u])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_id": None},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == []
+
+
 def test_update_artefact_reviewer_by_email(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
@@ -566,6 +598,22 @@ def test_update_artefact_reviewer_by_email(test_client: TestClient, generator: D
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
             json={"reviewer_emails": [u.email]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == [u]
+
+
+def test_update_artefact_reviewer_legacy_assignee_email(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"assignee_email": u.email},
         ),
         Permission.change_artefact,
     )
@@ -810,6 +858,17 @@ def _assert_get_artefacts_response(response_json: list[dict[str, Any]], artefact
 
 
 def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) -> None:
+    assignee = None
+    if artefact.reviewers:
+        first_reviewer = artefact.reviewers[0]
+        assignee = {
+            "id": first_reviewer.id,
+            "email": first_reviewer.email,
+            "launchpad_email": first_reviewer.email,
+            "launchpad_handle": first_reviewer.launchpad_handle,
+            "name": first_reviewer.name,
+        }
+
     expected = {
         "id": artefact.id,
         "name": artefact.name,
@@ -830,6 +889,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
+        "assignee": assignee,
         "reviewers": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
