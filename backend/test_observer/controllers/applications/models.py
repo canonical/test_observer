@@ -15,7 +15,7 @@
 
 from pydantic import BaseModel
 
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 
 
 class ApplicationResponse(BaseModel):

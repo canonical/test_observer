@@ -13,63 +13,16 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from enum import StrEnum, auto
-
 from fastapi import Depends, HTTPException
 from fastapi.security import SecurityScopes
 
 from test_observer.common.config import IGNORE_PERMISSIONS
+from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, User
 from test_observer.users.user_injection import get_current_user
-
-
-class Permission(StrEnum):
-    # Authentication
-    view_user = auto()
-    change_user = auto()
-    view_team = auto()
-    change_team = auto()
-    add_application = auto()
-    change_application = auto()
-    view_application = auto()
-    view_permission = auto()
-
-    # Issues
-    view_issue = auto()
-    change_issue = auto()
-    change_issue_attachment = auto()
-    change_issue_attachment_bulk = auto()
-    change_attachment_rule = auto()
-    change_auto_rerun = auto()
-
-    # Tests
-    view_test = auto()
-    change_test = auto()
-    view_rerun = auto()
-    change_rerun = auto()
-    change_rerun_bulk = auto()
-
-    # Artefacts
-    view_artefact = auto()
-    change_artefact = auto()
-
-    # Environment reviews
-    view_environment_review = auto()
-    change_environment_review = auto()
-
-    # Reports
-    view_report = auto()
-
-    # Test cases
-    view_test_case_reported_issue = auto()
-    change_test_case_reported_issue = auto()
-
-    # Environments
-    view_environment_reported_issue = auto()
-    change_environment_reported_issue = auto()
 
 
 def permission_checker(
