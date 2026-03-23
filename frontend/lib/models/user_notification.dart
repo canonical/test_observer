@@ -30,7 +30,8 @@ abstract class UserNotification with _$UserNotification {
   const factory UserNotification({
     required int id,
     @JsonKey(name: 'user_id') required int userId,
-    @JsonKey(name: 'notification_type') required NotificationType notificationType,
+    @JsonKey(name: 'notification_type')
+    required NotificationType notificationType,
     @JsonKey(name: 'target_url') String? targetUrl,
     @JsonKey(name: 'created_at') required DateTime createdAt,
     @JsonKey(name: 'dismissed_at') DateTime? dismissedAt,

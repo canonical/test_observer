@@ -344,4 +344,3 @@ class _NotificationBellIcon extends ConsumerWidget {
     );
   }
 }
-

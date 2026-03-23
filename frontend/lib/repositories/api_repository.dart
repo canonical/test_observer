@@ -586,18 +586,19 @@ class ApiRepository {
   }
 
   Future<UserNotifications> getNotifications() async {
-    final response = await dio.get('/v1/notifications');
+    final response = await dio.get('/v1/users/me/notifications');
     return UserNotifications.fromJson(response.data);
   }
 
   Future<int> getUnreadNotificationCount() async {
-    final response = await dio.get('/v1/notifications/unread-count');
+    final response = await dio.get('/v1/users/me/notifications/count',
+        queryParameters: {'unread_only': true});
     return response.data as int;
   }
 
   Future<UserNotification> markNotificationAsRead(int notificationId) async {
     final response =
-        await dio.patch('/v1/notifications/$notificationId/read');
+        await dio.post('/v1/users/me/notifications/$notificationId/dismiss');
     return UserNotification.fromJson(response.data);
   }
 }

@@ -57,8 +57,8 @@ class NotificationsPage extends ConsumerWidget {
                       Text(
                         'No notifications',
                         style: Theme.of(context).textTheme.titleMedium?.apply(
-                          color: YaruColors.warmGrey,
-                        ),
+                              color: YaruColors.warmGrey,
+                            ),
                       ),
                     ],
                   ),
@@ -103,7 +103,9 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
     setState(() => _isDismissing = true);
 
     try {
-      await ref.read(apiProvider).markNotificationAsRead(widget.notification.id);
+      await ref
+          .read(apiProvider)
+          .markNotificationAsRead(widget.notification.id);
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadNotificationCountProvider);
     } catch (error) {
@@ -132,7 +134,8 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
               } catch (error) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Invalid notification link: ${widget.notification.targetUrl}'),
+                    content: Text(
+                        'Invalid notification link: ${widget.notification.targetUrl}'),
                     backgroundColor: Theme.of(context).colorScheme.error,
                   ),
                 );
@@ -165,7 +168,8 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
                     Text(
                       widget.notification.notificationType.displayTitle,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: isRead ? FontWeight.normal : FontWeight.w500,
+                            fontWeight:
+                                isRead ? FontWeight.normal : FontWeight.w500,
                           ),
                     ),
                     const SizedBox(height: Spacing.level1),
