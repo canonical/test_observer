@@ -13,35 +13,28 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
-from base64 import b64encode
+from collections.abc import Callable
 from datetime import datetime, timedelta
 
-import itsdangerous
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from test_observer.common.config import SESSIONS_SECRET
 from test_observer.common.permissions import Permission
 from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
-def _create_session_cookie(session_id: int) -> str:
-    """Create a signed session cookie for testing"""
-    signer = itsdangerous.TimestampSigner(str(SESSIONS_SECRET))
-    session_data = {"id": session_id}
-    session_json = json.dumps(session_data)
-    return signer.sign(b64encode(session_json.encode()).decode()).decode()
-
-
-def test_get_me_without_csrf_token_returns_none(test_client: TestClient, generator: DataGenerator):
+def test_get_me_without_csrf_token_returns_none(
+    test_client: TestClient,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+):
     """Test that accessing /me without X-CSRF-Token header returns None"""
     user = generator.gen_user()
     session = generator.gen_user_session(user)
 
-    session_cookie = _create_session_cookie(session.id)
+    session_cookie = create_session_cookie(session.id)
     test_client.cookies.set("session", session_cookie)
 
     response = test_client.get("/v1/users/me")
@@ -57,11 +50,15 @@ def test_get_me_without_session_returns_none(test_client: TestClient):
     assert response.json() is None
 
 
-def test_get_me_with_expired_session_returns_none(test_client: TestClient, generator: DataGenerator):
+def test_get_me_with_expired_session_returns_none(
+    test_client: TestClient,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+):
     user = generator.gen_user()
     session = generator.gen_user_session(user, expires_at=datetime.now() - timedelta(days=1))
 
-    session_cookie = _create_session_cookie(session.id)
+    session_cookie = create_session_cookie(session.id)
     test_client.cookies.set("session", session_cookie)
 
     response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
@@ -70,8 +67,11 @@ def test_get_me_with_expired_session_returns_none(test_client: TestClient, gener
     assert response.json() is None
 
 
-def test_get_me_with_nonexistent_session_returns_none(test_client: TestClient):
-    session_cookie = _create_session_cookie(999999)  # Non-existent session ID
+def test_get_me_with_nonexistent_session_returns_none(
+    test_client: TestClient,
+    create_session_cookie: Callable[[int], str],
+):
+    session_cookie = create_session_cookie(999999)  # Non-existent session ID
     test_client.cookies.set("session", session_cookie)
 
     response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
@@ -80,11 +80,15 @@ def test_get_me_with_nonexistent_session_returns_none(test_client: TestClient):
     assert response.json() is None
 
 
-def test_get_me_with_valid_session_returns_user_data(test_client: TestClient, generator: DataGenerator):
+def test_get_me_with_valid_session_returns_user_data(
+    test_client: TestClient,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+):
     user = generator.gen_user()
     session = generator.gen_user_session(user)
 
-    session_cookie = _create_session_cookie(session.id)
+    session_cookie = create_session_cookie(session.id)
     test_client.cookies.set("session", session_cookie)
 
     response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})

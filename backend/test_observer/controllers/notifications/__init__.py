@@ -13,26 +13,6 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime
+from .notifications import router
 
-from pydantic import BaseModel, ConfigDict
-
-from test_observer.data_access.models_enums import NotificationType
-
-
-class NotificationResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    user_id: int
-    notification_type: NotificationType
-    target_url: str | None
-    created_at: datetime
-    dismissed_at: datetime | None
-
-
-class NotificationsResponse(BaseModel):
-    notifications: list[NotificationResponse]
-    count: int
-    limit: int
-    offset: int
+__all__ = ["router"]
