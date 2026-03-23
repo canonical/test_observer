@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import Select, and_, case, or_, select
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Artefact, ArtefactBuild, ArtefactMatchingRule
@@ -29,30 +29,44 @@ latest_artefact_builds = (
 )
 
 
-def match_artefact(artefact: Artefact, db: Session) -> list[ArtefactMatchingRule]:
+def match_artefact(artefact: Artefact) -> Select[tuple[ArtefactMatchingRule]]:
     family_str = artefact.family.value
 
-    possible_rules = (
-        db.execute(
-            select(ArtefactMatchingRule).where(
-                and_(
-                    ArtefactMatchingRule.family == family_str,
-                    or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
-                    or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
-                    or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
-                ),
-            )
-        )
-        .scalars()
-        .all()
+    # Calculate specificity score as the sum of non-empty fields
+    specificity = (
+        case((ArtefactMatchingRule.stage != "", 1), else_=0)
+        + case((ArtefactMatchingRule.track != "", 1), else_=0)
+        + case((ArtefactMatchingRule.branch != "", 1), else_=0)
     )
 
-    # sort rules by number of non-empty fields to prioritize specificity
-    rules_with_score: list[tuple[ArtefactMatchingRule, int]] = [
-        (r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")) for r in possible_rules
-    ]
-    sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
-    highest_score = sorted_rules[0][1] if sorted_rules else 0
-    rules = [r[0] for r in sorted_rules if r[1] == highest_score]
+    # Subquery to get the highest specificity score
+    max_specificity_subquery = (
+        select(specificity.label("score"))
+        .where(
+            and_(
+                ArtefactMatchingRule.family == family_str,
+                or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
+                or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
+                or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
+            )
+        )
+        .order_by(specificity.desc())
+        .limit(1)
+        .scalar_subquery()
+    )
 
-    return rules
+    # Select rules matching the highest specificity
+    select_rules = (
+        select(ArtefactMatchingRule)
+        .where(
+            and_(
+                ArtefactMatchingRule.family == family_str,
+                or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
+                or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
+                or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
+                specificity == max_specificity_subquery,
+            )
+        )
+    )
+
+    return select_rules
