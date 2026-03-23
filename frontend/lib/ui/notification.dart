@@ -29,7 +29,7 @@ void showNotification(
     content: Text(message, style: TextStyle(color: textColor)),
     duration: duration,
     width: 400,
-    backgroundColor: Colors.white,
+    backgroundColor: backgroundColor ?? Colors.white,
   );
   ScaffoldMessenger.of(context).showSnackBar(snackBar);
 }
