@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Test Backend
+
 on:
   push:
     branches-ignore:
@@ -23,19 +24,26 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/test_backend.yml'
-# Cancel inprogress runs if new commit pushed
+
+# Cancel in-progress runs if new commit pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions: {}
+
 jobs:
   test:
+    name: Test Backend
     runs-on: [self-hosted, linux, large, jammy, x64]
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.12"
       - name: Install docker compose

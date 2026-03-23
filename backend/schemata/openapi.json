@@ -979,6 +979,121 @@
         ]
       }
     },
+    "/v1/artefacts/history": {
+      "get": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Get Artefact History",
+        "description": "Get the versioning history of an artefact for a given name, family, and track,\noptionally filtered by stage, with pagination support.\n\nReturns a list of artefact versions along with their creation date.",
+        "operationId": "get_artefact_history_v1_artefacts_history_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Artefact name",
+              "title": "Name"
+            },
+            "description": "Artefact name"
+          },
+          {
+            "name": "family",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FamilyName",
+              "description": "Artefact family"
+            },
+            "description": "Artefact family"
+          },
+          {
+            "name": "track",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Artefact track",
+              "default": "latest",
+              "title": "Track"
+            },
+            "description": "Artefact track"
+          },
+          {
+            "name": "stage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StageName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by stage",
+              "title": "Stage"
+            },
+            "description": "Filter by stage"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 10 if not specified)",
+              "default": 10,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 10 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
+      }
+    },
     "/v1/artefacts/{artefact_id}": {
       "get": {
         "tags": [
@@ -3975,6 +4090,475 @@
         ]
       }
     },
+    "/v1/users/{id}/notifications/count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Notifications",
+        "description": "Get all notifications for the specified user",
+        "operationId": "get_notifications_v1_users__id__notifications_count_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "User ID or 'me' for current user",
+              "title": "Id"
+            },
+            "description": "User ID or 'me' for current user"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "title": "Response Get Notifications V1 Users  Id  Notifications Count Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
+      }
+    },
+    "/v1/users/{id}/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Notifications",
+        "description": "Get all notifications for the specified user",
+        "operationId": "get_notifications_v1_users__id__notifications_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "User ID or 'me' for current user",
+              "title": "Id"
+            },
+            "description": "User ID or 'me' for current user"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
+      }
+    },
+    "/v1/users/{id}/notifications/{notification_id}/dismiss": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark Notification As Read",
+        "description": "Mark a notification as read",
+        "operationId": "mark_notification_as_read_v1_users__id__notifications__notification_id__dismiss_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "User ID or 'me' for current user",
+              "title": "Id"
+            },
+            "description": "User ID or 'me' for current user"
+          },
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_notification"
+        ]
+      }
+    },
+    "/v1/artefact-matching-rules": {
+      "post": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Create Artefact Matching Rule",
+        "description": "Create a new artefact matching rule with at least one team",
+        "operationId": "create_artefact_matching_rule_v1_artefact_matching_rules_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactMatchingRuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      },
+      "get": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Get Artefact Matching Rules",
+        "description": "Get all artefact matching rules, optionally filtered by family",
+        "operationId": "get_artefact_matching_rules_v1_artefact_matching_rules_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FamilyName"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                  },
+                  "title": "Response Get Artefact Matching Rules V1 Artefact Matching Rules Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_team"
+        ]
+      }
+    },
+    "/v1/artefact-matching-rules/{rule_id}": {
+      "get": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Get Artefact Matching Rule",
+        "description": "Get a specific artefact matching rule by ID",
+        "operationId": "get_artefact_matching_rule_v1_artefact_matching_rules__rule_id__get",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_team"
+        ]
+      },
+      "patch": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Update Artefact Matching Rule",
+        "description": "Update an artefact matching rule",
+        "operationId": "update_artefact_matching_rule_v1_artefact_matching_rules__rule_id__patch",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactMatchingRulePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "artefact-matching-rules"
+        ],
+        "summary": "Delete Artefact Matching Rule",
+        "description": "Delete an artefact matching rule",
+        "operationId": "delete_artefact_matching_rule_v1_artefact_matching_rules__rule_id__delete",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Rule Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_team"
+        ]
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -4116,6 +4700,14 @@
           },
           "artefact_build": {
             "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          },
+          "reviewers": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewerResponse"
+            },
+            "type": "array",
+            "title": "Reviewers",
+            "default": []
           }
         },
         "type": "object",
@@ -4196,6 +4788,263 @@
         ],
         "title": "ArtefactBuildResponse"
       },
+      "ArtefactHistoryItemResponse": {
+        "properties": {
+          "artefact_id": {
+            "type": "integer",
+            "title": "Artefact Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "artefact_id",
+          "name",
+          "version",
+          "stage",
+          "created_at"
+        ],
+        "title": "ArtefactHistoryItemResponse"
+      },
+      "ArtefactHistoryResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactHistoryItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "items"
+        ],
+        "title": "ArtefactHistoryResponse"
+      },
+      "ArtefactMatchingRuleBase": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage",
+            "default": ""
+          },
+          "track": {
+            "type": "string",
+            "title": "Track",
+            "default": ""
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "title": "ArtefactMatchingRuleBase",
+        "description": "Base model for artefact matching rule with common fields"
+      },
+      "ArtefactMatchingRuleInResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "family",
+          "stage",
+          "track",
+          "branch"
+        ],
+        "title": "ArtefactMatchingRuleInResponse",
+        "description": "Artefact matching rule fields when included in responses (no relationships)"
+      },
+      "ArtefactMatchingRulePatch": {
+        "properties": {
+          "family": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FamilyName"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "team_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Ids"
+          }
+        },
+        "type": "object",
+        "title": "ArtefactMatchingRulePatch",
+        "description": "Patch request for artefact matching rule"
+      },
+      "ArtefactMatchingRuleRequest": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage",
+            "default": ""
+          },
+          "track": {
+            "type": "string",
+            "title": "Track",
+            "default": ""
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "default": ""
+          },
+          "team_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Team Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family",
+          "team_ids"
+        ],
+        "title": "ArtefactMatchingRuleRequest",
+        "description": "Request to create an artefact matching rule (extends base with team_ids)"
+      },
+      "ArtefactMatchingRuleResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMinimal"
+            },
+            "type": "array",
+            "title": "Teams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "family",
+          "stage",
+          "track",
+          "branch",
+          "teams"
+        ],
+        "title": "ArtefactMatchingRuleResponse",
+        "description": "Artefact matching rule with associated teams"
+      },
       "ArtefactPatch": {
         "properties": {
           "status": {
@@ -4249,7 +5098,9 @@
                 "type": "null"
               }
             ],
-            "title": "Assignee Id"
+            "title": "Assignee Id",
+            "description": "Legacy field. Mapped to reviewer_ids as a single-element list when reviewer_ids/reviewer_emails are not provided.",
+            "deprecated": true
           },
           "assignee_email": {
             "anyOf": [
@@ -4260,7 +5111,39 @@
                 "type": "null"
               }
             ],
-            "title": "Assignee Email"
+            "title": "Assignee Email",
+            "description": "Legacy field. Mapped to reviewer_emails as a single-element list when reviewer_ids/reviewer_emails are not provided.",
+            "deprecated": true
+          },
+          "reviewer_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Ids",
+            "description": "Reviewer user IDs. Preferred over legacy assignee_id/assignee_email for setting assignees."
+          },
+          "reviewer_emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Emails",
+            "description": "Reviewer emails. Preferred over legacy assignee_id/assignee_email for setting assignees."
           }
         },
         "type": "object",
@@ -4343,15 +5226,12 @@
             "type": "boolean",
             "title": "Archived"
           },
-          "assignee": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AssigneeResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "reviewers": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewerResponse"
+            },
+            "type": "array",
+            "title": "Reviewers"
           },
           "due_date": {
             "anyOf": [
@@ -4381,6 +5261,18 @@
           "completed_environment_reviews_count": {
             "type": "integer",
             "title": "Completed Environment Reviews Count"
+          },
+          "assignee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewerResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Backward-compatible assignee field. Populated from the first entry in reviewers when present.",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -4404,12 +5296,13 @@
           "status",
           "comment",
           "archived",
-          "assignee",
+          "reviewers",
           "due_date",
           "created_at",
           "bug_link",
           "all_environment_reviews_count",
-          "completed_environment_reviews_count"
+          "completed_environment_reviews_count",
+          "assignee"
         ],
         "title": "ArtefactResponse"
       },
@@ -4470,46 +5363,6 @@
           "artefact_id"
         ],
         "title": "ArtefactVersionResponse"
-      },
-      "AssigneeResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "launchpad_handle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Launchpad Handle"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "launchpad_email": {
-            "type": "string",
-            "title": "Launchpad Email",
-            "deprecated": true
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "email",
-          "launchpad_email",
-          "name"
-        ],
-        "title": "AssigneeResponse"
       },
       "C3TestResult": {
         "properties": {
@@ -5377,6 +6230,98 @@
         ],
         "title": "MinimalIssueTestResultAttachmentRuleResponse"
       },
+      "NotificationResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "notification_type": {
+            "$ref": "#/components/schemas/NotificationType"
+          },
+          "target_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Url"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "dismissed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dismissed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "notification_type",
+          "target_url",
+          "created_at",
+          "dismissed_at"
+        ],
+        "title": "NotificationResponse"
+      },
+      "NotificationType": {
+        "type": "string",
+        "enum": [
+          "USER_ASSIGNED_ARTEFACT_REVIEW",
+          "USER_ASSIGNED_ENVIRONMENT_REVIEW"
+        ],
+        "title": "NotificationType"
+      },
+      "NotificationsResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponse"
+            },
+            "type": "array",
+            "title": "Notifications"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "notifications",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "title": "NotificationsResponse"
+      },
       "PendingRerun": {
         "properties": {
           "test_execution_id": {
@@ -5448,7 +6393,9 @@
           "view_test_case_reported_issue",
           "change_test_case_reported_issue",
           "view_environment_reported_issue",
-          "change_environment_reported_issue"
+          "change_environment_reported_issue",
+          "view_notification",
+          "change_notification"
         ],
         "title": "Permission"
       },
@@ -5507,6 +6454,46 @@
         },
         "type": "object",
         "title": "RerunRequest"
+      },
+      "ReviewerResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "launchpad_handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Launchpad Handle"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "launchpad_email": {
+            "type": "string",
+            "title": "Launchpad Email",
+            "deprecated": true
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "launchpad_email",
+          "name"
+        ],
+        "title": "ReviewerResponse"
       },
       "SnapStage": {
         "type": "string",
@@ -6003,12 +6990,12 @@
             "title": "Permissions",
             "default": []
           },
-          "reviewer_families": {
+          "artefact_matching_rules": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
             },
             "type": "array",
-            "title": "Reviewer Families",
+            "title": "Artefact Matching Rules",
             "default": []
           }
         },
@@ -6017,6 +7004,24 @@
           "name"
         ],
         "title": "TeamCreate"
+      },
+      "TeamMinimal": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TeamMinimal"
       },
       "TeamMinimalResponse": {
         "properties": {
@@ -6034,14 +7039,6 @@
             },
             "type": "array",
             "title": "Permissions"
-          },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
           }
         },
         "type": "object",
@@ -6068,11 +7065,11 @@
             ],
             "title": "Permissions"
           },
-          "reviewer_families": {
+          "artefact_matching_rules": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ArtefactMatchingRuleBase"
                 },
                 "type": "array"
               },
@@ -6080,7 +7077,7 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewer Families"
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -6103,20 +7100,19 @@
             "type": "array",
             "title": "Permissions"
           },
-          "reviewer_families": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reviewer Families",
-            "default": []
-          },
           "members": {
             "items": {
               "$ref": "#/components/schemas/UserMinimalResponse"
             },
             "type": "array",
             "title": "Members"
+          },
+          "artefact_matching_rules": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactMatchingRuleInResponse"
+            },
+            "type": "array",
+            "title": "Artefact Matching Rules"
           }
         },
         "type": "object",
@@ -6124,7 +7120,8 @@
           "id",
           "name",
           "permissions",
-          "members"
+          "members",
+          "artefact_matching_rules"
         ],
         "title": "TeamResponse"
       },

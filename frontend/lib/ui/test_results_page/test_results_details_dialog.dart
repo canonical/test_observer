@@ -23,6 +23,7 @@ import '../../models/family_name.dart';
 import '../../routing.dart';
 import '../execution_metadata.dart';
 import '../date_time.dart';
+import '../artefact_page/issue_attachments/issue_widget.dart';
 
 class TestResultDetailsDialog extends StatelessWidget {
   final TestResultWithContext result;
@@ -176,6 +177,36 @@ class _DialogContent extends StatelessWidget {
                 ),
               ],
             ),
+
+            // Issues if present
+            if (result.testResult.issueAttachments.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _DialogSection(
+                title: 'Issues',
+                children: result.testResult.issueAttachments
+                    .map(
+                      (attachment) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => launchUrl(
+                            Uri.base.replace(
+                              fragment: '/issues/${attachment.issue.id}',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: IssueWidget(issue: attachment.issue),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
 
             // IO Log if present
             if (result.testResult.ioLog.isNotEmpty) ...[

@@ -33,9 +33,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   documentation-checks:
-    uses: canonical/documentation-workflows/.github/workflows/documentation-checks.yaml@main
+    name: Run documentation checks
+    uses: canonical/documentation-workflows/.github/workflows/documentation-checks.yaml@aaeaf091e8f55145184ad897cb9834f224bd31de # No version/tag available
     with:
       working-directory: "docs"
-      fetch-depth: 0
