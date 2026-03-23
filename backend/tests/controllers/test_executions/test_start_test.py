@@ -347,40 +347,6 @@ class TestFamilyIndependentTests:
                     f"Reviewer {env_review.reviewers[0].email} not in artefact reviewers"
                 )
 
-    def test_single_reviewer_no_environment_assignment(
-        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
-    ):
-        """
-        When only one reviewer is assigned to an artefact,
-        environment reviews should not get individual reviewer assignments
-        """
-        # Create a team with one reviewer
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        team = generator.gen_team(
-            name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
-        )
-        generator.gen_user(email="solo@example.com", teams=[team])
-
-        # Execute test
-        response = execute({**start_request, "needs_assignment": True})
-        test_execution = self._db_session.get(TestExecution, response.json()["id"])
-        assert test_execution
-        artefact = test_execution.artefact_build.artefact
-
-        # Verify only one reviewer assigned to artefact
-        assert len(artefact.reviewers) == 1
-
-        # Verify environment reviews have no individual reviewers assigned
-        for build in artefact.builds:
-            for env_review in build.environment_reviews:
-                assert len(env_review.reviewers) == 0, (
-                    f"Environment review {env_review.id} should have no reviewers when only one artefact reviewer"
-                )
-
     def test_environment_reviewers_distributed_across_multiple_builds(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):

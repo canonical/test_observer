@@ -87,12 +87,6 @@ class StartTestExecutionController:
     def _assign_reviewers_to_environments(self) -> None:
         env_reviews = [env_review for build in self.artefact.builds for env_review in build.environment_reviews]
 
-        if len(self.artefact.reviewers) == 1:
-            for env_review in env_reviews:
-                env_review.reviewers = []
-            self.db.commit()
-            return
-
         # sort reviewers based on how many environments are assigned to them, then assign the same quantity to every one
         reviewers_to_assignment_count = {reviewer.id: 0 for reviewer in self.artefact.reviewers}
         for env_review in env_reviews:
