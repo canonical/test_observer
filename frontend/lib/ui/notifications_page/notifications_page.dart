@@ -87,19 +87,46 @@ class NotificationsPage extends ConsumerWidget {
   }
 }
 
-class _NotificationCard extends ConsumerWidget {
+class _NotificationCard extends ConsumerStatefulWidget {
   final UserNotification notification;
 
   const _NotificationCard({required this.notification});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isRead = notification.dismissedAt != null;
+  ConsumerState<_NotificationCard> createState() => _NotificationCardState();
+}
+
+class _NotificationCardState extends ConsumerState<_NotificationCard> {
+  bool _isDismissing = false;
+
+  Future<void> _dismissNotification() async {
+    setState(() => _isDismissing = true);
+
+    try {
+      await ref.read(apiProvider).markNotificationAsRead(widget.notification.id);
+      ref.invalidate(notificationsProvider);
+      ref.invalidate(unreadNotificationCountProvider);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to dismiss notification: $error'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        setState(() => _isDismissing = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isRead = widget.notification.dismissedAt != null;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: notification.targetUrl != null
-          ? () => context.go(notification.targetUrl!)
+      onTap: widget.notification.targetUrl != null
+          ? () => context.go(widget.notification.targetUrl!)
           : null,
       child: Card(
         elevation: isRead ? 1 : 2,
@@ -125,14 +152,14 @@ class _NotificationCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      notification.notificationType.displayTitle,
+                      widget.notification.notificationType.displayTitle,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: isRead ? FontWeight.normal : FontWeight.w500,
                           ),
                     ),
                     const SizedBox(height: Spacing.level1),
                     Text(
-                      _formatDate(notification.createdAt),
+                      _formatDate(widget.notification.createdAt),
                       style: Theme.of(context).textTheme.bodySmall?.apply(
                             color: YaruColors.warmGrey,
                           ),
@@ -143,13 +170,15 @@ class _NotificationCard extends ConsumerWidget {
               if (!isRead) ...[
                 const SizedBox(width: Spacing.level3),
                 TextButton.icon(
-                  icon: const Icon(YaruIcons.ok, size: 16),
+                  icon: _isDismissing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: YaruCircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(YaruIcons.ok, size: 16),
                   label: const Text('Dismiss'),
-                  onPressed: () async {
-                    await ref.read(apiProvider).markNotificationAsRead(notification.id);
-                    ref.invalidate(notificationsProvider);
-                    ref.invalidate(unreadNotificationCountProvider);
-                  },
+                  onPressed: _isDismissing ? null : _dismissNotification,
                 ),
               ],
             ],
