@@ -55,6 +55,7 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
+from test_observer.common.enums import Permission
 
 
 class Base(DeclarativeBase):
@@ -218,6 +219,8 @@ class ArtefactMatchingRule(Base):
         secondary="artefact_matching_rule_team_association",
         back_populates="artefact_matching_rules",
     )
+
+    grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
     __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
 

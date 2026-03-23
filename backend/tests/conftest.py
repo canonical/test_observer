@@ -34,8 +34,7 @@ from sqlalchemy_utils import (  # type: ignore
     drop_database,
 )
 
-from test_observer.common.config import SESSIONS_SECRET
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
