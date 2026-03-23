@@ -83,7 +83,11 @@ class StartTestExecutionController:
 
     def assign_reviewer(self):
         should_assign = self.request.needs_assignment and len(self.artefact.reviewers) == 0
-        if should_assign and (rules := self.db.execute(match_artefact(self.artefact)).scalars().all()) and len(rules) > 0:
+        if (
+            should_assign
+            and (rules := self.db.execute(match_artefact(self.artefact)).scalars().all())
+            and len(rules) > 0
+        ):
             users = (
                 self.db.execute(
                     select(User)
