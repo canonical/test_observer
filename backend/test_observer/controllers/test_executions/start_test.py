@@ -38,6 +38,7 @@ from test_observer.data_access.repository import (
     get_or_create,
 )
 from test_observer.data_access.setup import get_db
+from test_observer.data_access.queries import match_artefact
 
 from .models import (
     StartCharmTestExecutionRequest,
