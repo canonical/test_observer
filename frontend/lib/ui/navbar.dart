@@ -288,54 +288,57 @@ class _NotificationBellIcon extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
 
-    return InkWell(
-      onTap: () => context.go('/notifications'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.level4,
-          vertical: Spacing.level3,
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Icon(
-              YaruIcons.notification,
-              color: Colors.white,
-              size: 20,
-            ),
-            unreadCountAsync.when(
-              data: (count) {
-                if (count == 0) return const SizedBox.shrink();
-                return Positioned(
-                  right: -8,
-                  top: -8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.error,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Center(
-                      child: Text(
-                        count > 99 ? '99+' : count.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+    return Tooltip(
+      message: 'Notifications',
+      child: InkWell(
+        onTap: () => context.go('/notifications'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.level4,
+            vertical: Spacing.level3,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                YaruIcons.notification,
+                color: Colors.white,
+                size: 20,
+              ),
+              unreadCountAsync.when(
+                data: (count) {
+                  if (count == 0) return const SizedBox.shrink();
+                  return Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          count > 99 ? '99+' : count.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-          ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          ),
         ),
       ),
     );
