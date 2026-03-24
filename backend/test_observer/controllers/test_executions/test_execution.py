@@ -18,8 +18,8 @@ from sqlalchemy import tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from test_observer.common.metric_collectors import update_execution_metadata_metric
 from test_observer.common.enums import Permission
+from test_observer.common.metric_collectors import update_execution_metadata_metric
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata

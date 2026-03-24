@@ -17,7 +17,6 @@ from fastapi import Depends, HTTPException
 from fastapi.security import SecurityScopes
 
 from test_observer.common.config import IGNORE_PERMISSIONS
-from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )

@@ -45,6 +45,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import ColumnElement, func
 
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -55,7 +56,6 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
-from test_observer.common.enums import Permission
 
 
 class Base(DeclarativeBase):
