@@ -437,9 +437,9 @@ class TestFamilyIndependentTests:
             artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # Create 3 users who can review
-        user1 = generator.gen_user(email="user1@example.com", teams=[team])
-        user2 = generator.gen_user(email="user2@example.com", teams=[team])
-        user3 = generator.gen_user(email="user3@example.com", teams=[team])
+        _ = generator.gen_user(email="user1@example.com", teams=[team])
+        _ = generator.gen_user(email="user2@example.com", teams=[team])
+        _ = generator.gen_user(email="user3@example.com", teams=[team])
 
         # Execute the first test to create the artefact
         response = execute({**start_request, "needs_assignment": True})
