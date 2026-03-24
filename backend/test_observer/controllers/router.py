@@ -26,6 +26,7 @@ from test_observer.data_access.setup import get_db
 from . import (
     auth,
     environments,
+    notifications,
     reports,
     test_cases,
     test_executions,
@@ -37,7 +38,6 @@ from .artefacts import artefacts
 from .execution_metadata import execution_metadata
 from .issues import issues
 from .teams import teams
-from .test_executions import relevant_links
 
 router: APIRouter = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
@@ -46,7 +46,6 @@ router.include_router(artefacts.router, prefix="/v1/artefacts")
 router.include_router(reports.router, prefix="/v1/reports")
 router.include_router(test_cases.router, prefix="/v1/test-cases")
 router.include_router(environments.router, prefix="/v1/environments")
-router.include_router(relevant_links.router, prefix="/v1/test-executions")
 router.include_router(issues.router, prefix="/v1/issues")
 router.include_router(test_results.router, prefix="/v1/test-results")
 router.include_router(execution_metadata.router, prefix="/v1/execution-metadata")
@@ -55,6 +54,7 @@ router.include_router(users.router, prefix="/v1/users")
 router.include_router(teams.router, prefix="/v1/teams")
 router.include_router(permissions.router, prefix="/v1/permissions")
 router.include_router(applications.router, prefix="/v1/applications")
+router.include_router(notifications.router, prefix="/v1/users")
 router.include_router(docs.router)
 router.include_router(artefact_matching_rules.router, prefix="/v1/artefact-matching-rules")
 

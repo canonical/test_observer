@@ -25,6 +25,7 @@ from test_observer.data_access.models import (
     ArtefactMatchingRule,
     Environment,
     Issue,
+    Notification,
     Team,
     TestCase,
     TestEvent,
@@ -43,6 +44,7 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     IssueSource,
     IssueStatus,
+    NotificationType,
     StageName,
     TestExecutionStatus,
     TestResultStatus,
@@ -394,6 +396,22 @@ class DataGenerator:
         )
         self._add_object(issue)
         return issue
+
+    def gen_notification(
+        self,
+        user: User,
+        notification_type: NotificationType = NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        target_url: str | None = None,
+        dismissed_at: datetime | None = None,
+    ) -> Notification:
+        notification = Notification(
+            user_id=user.id,
+            notification_type=notification_type,
+            target_url=target_url,
+            dismissed_at=dismissed_at,
+        )
+        self._add_object(notification)
+        return notification
 
     def _add_object(self, instance: object) -> None:
         self.db_session.add(instance)

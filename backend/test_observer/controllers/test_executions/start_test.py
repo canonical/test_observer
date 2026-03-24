@@ -16,7 +16,7 @@
 import random
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Body, Depends, Security
+from fastapi import Body, Depends, Security
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
@@ -44,8 +44,7 @@ from .models import (
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
-
-router = APIRouter()
+from .router import router
 
 ENVIRONMENTS_PER_REVIEWER = 50
 

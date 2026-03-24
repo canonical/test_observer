@@ -152,6 +152,11 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "status": test_execution.artefact_build.artefact.status.name,
             "comment": test_execution.artefact_build.artefact.comment,
             "archived": test_execution.artefact_build.artefact.archived,
+            "assignee": (
+                test_execution.artefact_build.artefact.reviewers[0]
+                if test_execution.artefact_build.artefact.reviewers
+                else None
+            ),
             "reviewers": test_execution.artefact_build.artefact.reviewers,
             "due_date": test_execution.artefact_build.artefact.due_date,
             "bug_link": test_execution.artefact_build.artefact.bug_link,
