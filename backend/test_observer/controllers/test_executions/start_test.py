@@ -90,7 +90,7 @@ class StartTestExecutionController:
                     select(User)
                     .join(User.teams)
                     .join(Team.artefact_matching_rules)
-                    .where(ArtefactMatchingRule.id.in_([id for id in rule_ids]))
+                    .where(ArtefactMatchingRule.id.in_(rule_ids))
                     .distinct()
                 )
                 .scalars()
