@@ -26,41 +26,18 @@
         }
       }
     },
-    "/v1/test-executions/start-test": {
+    "/v1/test-executions/end-test": {
       "put": {
         "tags": [
           "test-executions"
         ],
-        "summary": "Start Test Execution",
-        "operationId": "start_test_execution_v1_test_executions_start_test_put",
+        "summary": "End Test Execution",
+        "operationId": "end_test_execution_v1_test_executions_end_test_put",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/StartSnapTestExecutionRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/StartDebTestExecutionRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/StartCharmTestExecutionRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/StartImageTestExecutionRequest"
-                  }
-                ],
-                "title": "Request",
-                "discriminator": {
-                  "propertyName": "family",
-                  "mapping": {
-                    "snap": "#/components/schemas/StartSnapTestExecutionRequest",
-                    "deb": "#/components/schemas/StartDebTestExecutionRequest",
-                    "charm": "#/components/schemas/StartCharmTestExecutionRequest",
-                    "image": "#/components/schemas/StartImageTestExecutionRequest"
-                  }
-                }
+                "$ref": "#/components/schemas/EndTestExecutionRequest"
               }
             }
           },
@@ -94,8 +71,7 @@
     "/v1/test-executions/{id}/test-results": {
       "get": {
         "tags": [
-          "test-executions",
-          "test-results"
+          "test-executions"
         ],
         "summary": "Get Test Results",
         "operationId": "get_test_results_v1_test_executions__id__test_results_get",
@@ -142,8 +118,7 @@
       },
       "post": {
         "tags": [
-          "test-executions",
-          "test-results"
+          "test-executions"
         ],
         "summary": "Post Results",
         "operationId": "post_results_v1_test_executions__id__test_results_post",
@@ -197,31 +172,91 @@
         ]
       }
     },
-    "/v1/test-executions/end-test": {
-      "put": {
+    "/v1/test-executions/{id}/links": {
+      "post": {
         "tags": [
           "test-executions"
         ],
-        "summary": "End Test Execution",
-        "operationId": "end_test_execution_v1_test_executions_end_test_put",
+        "summary": "Post Link",
+        "operationId": "post_link_v1_test_executions__id__links_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EndTestExecutionRequest"
+                "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+                }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
+      }
+    },
+    "/v1/test-executions/{id}/links/{link_id}": {
+      "delete": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Delete Link",
+        "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Link Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -468,6 +503,71 @@
         ]
       }
     },
+    "/v1/test-executions/start-test": {
+      "put": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Start Test Execution",
+        "operationId": "start_test_execution_v1_test_executions_start_test_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/StartSnapTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartDebTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartCharmTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartImageTestExecutionRequest"
+                  }
+                ],
+                "title": "Request",
+                "discriminator": {
+                  "propertyName": "family",
+                  "mapping": {
+                    "snap": "#/components/schemas/StartSnapTestExecutionRequest",
+                    "deb": "#/components/schemas/StartDebTestExecutionRequest",
+                    "charm": "#/components/schemas/StartCharmTestExecutionRequest",
+                    "image": "#/components/schemas/StartImageTestExecutionRequest"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
+      }
+    },
     "/v1/test-executions/{id}/status_update": {
       "put": {
         "tags": [
@@ -602,108 +702,6 @@
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-permissions": [
-          "change_test"
-        ]
-      }
-    },
-    "/v1/test-executions/{id}/links": {
-      "post": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Post Link",
-        "operationId": "post_link_v1_test_executions__id__links_post",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-permissions": [
-          "change_test"
-        ]
-      }
-    },
-    "/v1/test-executions/{id}/links/{link_id}": {
-      "delete": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Delete Link",
-        "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Id"
-            }
-          },
-          {
-            "name": "link_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Link Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
