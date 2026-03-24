@@ -28,7 +28,7 @@ latest_artefact_builds = (
 )
 
 
-def match_artefact(artefact: Artefact) -> Select[tuple[ArtefactMatchingRule]]:
+def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
     family_str = artefact.family.value
 
     # Calculate specificity score as the sum of non-empty fields
@@ -55,7 +55,7 @@ def match_artefact(artefact: Artefact) -> Select[tuple[ArtefactMatchingRule]]:
     )
 
     # Select rules matching the highest specificity
-    select_rules = select(ArtefactMatchingRule).where(
+    select_rules = select(ArtefactMatchingRule.id).where(
         and_(
             ArtefactMatchingRule.family == family_str,
             or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),

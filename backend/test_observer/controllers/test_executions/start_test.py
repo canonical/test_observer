@@ -82,15 +82,15 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
-        rules = self.db.execute(match_artefact(self.artefact)).scalars().all()
-        should_assign = self.request.needs_assignment and len(self.artefact.reviewers) == 0 and rules
+        rule_ids = self.db.execute(match_artefact(self.artefact)).scalars().all()
+        should_assign = self.request.needs_assignment and len(self.artefact.reviewers) == 0 and rule_ids
         if should_assign:
             users = (
                 self.db.execute(
                     select(User)
                     .join(User.teams)
                     .join(Team.artefact_matching_rules)
-                    .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
+                    .where(ArtefactMatchingRule.id.in_([id for id in rule_ids]))
                     .distinct()
                 )
                 .scalars()
