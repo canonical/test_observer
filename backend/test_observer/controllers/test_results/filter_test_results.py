@@ -127,13 +127,13 @@ def build_query_filters_and_joins(
         query_filters.append(TestExecution.status.in_(filters.test_execution_statuses))
         joins_needed.add("test_execution")
 
-    if filters.assignee_ids != []:
-        if filters.assignee_ids == QueryValue.ANY:
+    if filters.reviewer_ids != []:
+        if filters.reviewer_ids == QueryValue.ANY:
             query_filters.append(Artefact.reviewers.any())
-        elif filters.assignee_ids == QueryValue.NONE:
+        elif filters.reviewer_ids == QueryValue.NONE:
             query_filters.append(~Artefact.reviewers.any())
-        elif len(filters.assignee_ids) > 0:
-            query_filters.append(Artefact.reviewers.any(User.id.in_(filters.assignee_ids)))
+        elif len(filters.reviewer_ids) > 0:
+            query_filters.append(Artefact.reviewers.any(User.id.in_(filters.reviewer_ids)))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
     if filters.rerun_is_requested is not None:
