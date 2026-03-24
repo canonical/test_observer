@@ -115,6 +115,9 @@ class StartTestExecutionController:
     def assign_reviewer(self):
         if not self.request.needs_assignment:
             return
+        if self.artefact.reviewers is not None and len(self.artefact.reviewers) > 0:
+            self._assign_reviewers_to_environments()
+            return
 
         # Get reviewers whose teams can review this artefact family
         family_str = self.artefact.family.value

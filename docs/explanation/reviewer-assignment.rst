@@ -48,7 +48,7 @@ Rule C would be selected as it's the most specific.
 Artefact reviewer assignment
 -----------------------------
 
-When a test execution starts with ``needs_assignment=true``, the following process occurs:
+When a test execution starts with ``needs_assignment=true`` and no reviewers are assigned to the artefact, the following process occurs:
 
 Step 1: Find matching rules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
