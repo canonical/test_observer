@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from sqlalchemy import Select, and_, case, or_, select
+from sqlalchemy import Select, and_, case, literal, or_, select
 
 from test_observer.data_access.models import Artefact, ArtefactBuild, ArtefactMatchingRule
 
@@ -29,8 +29,6 @@ latest_artefact_builds = (
 
 
 def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
-    family_str = artefact.family.value
-
     # Calculate specificity score as the sum of non-empty fields
     specificity = (
         case((ArtefactMatchingRule.stage != "", 1), else_=0)
@@ -43,7 +41,7 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
         select(specificity.label("score"))
         .where(
             and_(
-                ArtefactMatchingRule.family == family_str,
+                ArtefactMatchingRule.family == literal(artefact.family),
                 or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
                 or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
@@ -57,7 +55,7 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
     # Select rules matching the highest specificity
     select_rules = select(ArtefactMatchingRule.id).where(
         and_(
-            ArtefactMatchingRule.family == family_str,
+            ArtefactMatchingRule.family == literal(artefact.family),
             or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
             or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
