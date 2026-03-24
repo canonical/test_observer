@@ -122,10 +122,15 @@ charm-libs:
     version: "0"
   - lib: prometheus_k8s.prometheus_scrape
     version: "0"
+  - lib: traefik_k8s.ingress
+    version: "2"
 
 requires:
   database:
     interface: postgresql_client
+    limit: 1
+  ingress:
+    interface: ingress
     limit: 1
   nginx-route:
     interface: nginx-route

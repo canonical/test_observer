@@ -17,7 +17,7 @@
 
 """Module for generating a NGINX configuration allows for the frontend application to connect to the backend."""
 
-def nginx_config(base_uri: str) -> str:
+def nginx_config(base_uri: str, base_href: str) -> str:
     """Generate nginx configuration for the frontend."""
     return f"""
     server {{
@@ -34,6 +34,7 @@ def nginx_config(base_uri: str) -> str:
             add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
 
             sub_filter 'http://localhost:30000/' '{base_uri}';
+            sub_filter '<base href="/">' '<base href="/{base_href}/">';
             sub_filter_once on;
         }}
 
