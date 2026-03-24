@@ -49,6 +49,8 @@ from .test_execution import TEST_EXECUTION_OPTIONS
 
 T = TypeVar("T")
 
+JoinName = Literal["test_execution", "artefact_build", "artefact", "environment"]
+
 # selectinload options used when querying from TestResult root (test_result=any/{ids})
 _TEST_RESULT_QUERY_OPTIONS = [
     selectinload(TestResult.test_case),
@@ -143,9 +145,9 @@ def _filter_execution_metadata(
 
 def _build_with_result_filters(
     filters: TestExecutionSearchFilters,
-) -> tuple[list[ColumnElement[bool]], set[str]]:
+) -> tuple[list[ColumnElement[bool]], set[JoinName]]:
     query_filters: list[ColumnElement[bool]] = []
-    joins_needed: set[str] = set()
+    joins_needed: set[JoinName] = set()
 
     if filters.families:
         query_filters.append(Artefact.family.in_(filters.families))
@@ -213,9 +215,9 @@ def _build_with_result_filters(
 
 def _build_execution_filters(
     filters: TestExecutionSearchFilters,
-) -> tuple[list[ColumnElement[bool]], set[str]]:
+) -> tuple[list[ColumnElement[bool]], set[JoinName]]:
     query_filters: list[ColumnElement[bool]] = []
-    joins_needed: set[str] = set()
+    joins_needed: set[JoinName] = set()
 
     if filters.families:
         query_filters.append(Artefact.family.in_(filters.families))
@@ -277,7 +279,7 @@ def _build_execution_filters(
     return query_filters, joins_needed
 
 
-def _apply_te_joins(query: Select, joins_needed: set[str]) -> Select:
+def _apply_te_joins(query: Select, joins_needed: set[JoinName]) -> Select:
     if "artefact_build" in joins_needed:
         query = query.join(TestExecution.artefact_build)
     if "artefact" in joins_needed:
