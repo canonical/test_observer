@@ -209,6 +209,7 @@ class ArtefactMatchingRule(Base):
 
     __tablename__ = "artefact_matching_rule"
 
+    name: Mapped[str] = mapped_column(String(200), unique=True)
     family: Mapped[FamilyName]
     stage: Mapped[str] = mapped_column(String(100), default="", server_default="")
     track: Mapped[str] = mapped_column(String(200), default="", server_default="")
