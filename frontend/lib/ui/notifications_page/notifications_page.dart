@@ -135,7 +135,8 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                        'Invalid notification link: ${widget.notification.targetUrl}'),
+                      'Invalid notification link: ${widget.notification.targetUrl}',
+                    ),
                     backgroundColor: Theme.of(context).colorScheme.error,
                   ),
                 );

@@ -591,8 +591,10 @@ class ApiRepository {
   }
 
   Future<int> getUnreadNotificationCount() async {
-    final response = await dio.get('/v1/users/me/notifications/count',
-        queryParameters: {'unread_only': true});
+    final response = await dio.get(
+      '/v1/users/me/notifications/count',
+      queryParameters: {'unread_only': true},
+    );
     return response.data as int;
   }
 
