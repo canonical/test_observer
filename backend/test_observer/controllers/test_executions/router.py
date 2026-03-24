@@ -13,17 +13,6 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from . import (  # noqa: F401
-    end_test,
-    get_test_results,
-    post_results,
-    relevant_links,
-    reruns,
-    search,
-    start_test,
-    status_update,
-    test_execution,
-)
-from .router import router
+from fastapi import APIRouter
 
-__all__ = ["router"]
+router = APIRouter(tags=["test-executions"])
