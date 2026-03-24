@@ -109,4 +109,4 @@ Reviewers can also be manually assigned or changed through a PATCH endpoint. Ref
 When reviewers are manually updated:
 
 * The artefact's reviewer list is replaced with the specified users
-* Environment assignments are recalculated using the same distribution algorithm
+* Existing environment-level assignments are left unchanged

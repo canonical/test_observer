@@ -291,7 +291,9 @@ class TestFamilyIndependentTests:
     ):
         """
         When multiple reviewers are assigned to an artefact,
-        each environment review should get one reviewer randomly assigned
+        each environment review should get exactly one reviewer assigned,
+        with reviewers from an artefact distributed across environment
+        reviews based on current assignment counts.
         """
         # Create a team that can review all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)

@@ -84,7 +84,7 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def _assign_reviewers_to_environments(self) -> None:
-        env_reviews = [env_review for build in self.artefact.builds for env_review in build.environment_reviews]
+        env_reviews = [env_review for build in self.artefact.latest_builds for env_review in build.environment_reviews]
 
         # sort reviewers based on how many environments are assigned to them, then assign the same quantity to every one
         reviewers_to_assignment_count = {reviewer.id: 0 for reviewer in self.artefact.reviewers}
@@ -114,7 +114,13 @@ class StartTestExecutionController:
     def assign_reviewer(self):
         if not self.request.needs_assignment:
             return
-        if self.artefact.reviewers is not None and len(self.artefact.reviewers) > 0:
+
+        # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
+        environment_count = sum(len(b.test_executions) for b in self.artefact.latest_builds)
+        expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
+        number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
+
+        if number_of_reviewers_to_assign == 0:
             self._assign_reviewers_to_environments()
             return
 
@@ -151,6 +157,7 @@ class StartTestExecutionController:
                     .join(User.teams)
                     .join(Team.artefact_matching_rules)
                     .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
+                    .where(User.id.not_in([r.id for r in self.artefact.reviewers]))
                     .distinct()
                 )
                 .scalars()
@@ -158,13 +165,6 @@ class StartTestExecutionController:
             )
 
             if users:
-                # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
-                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
-                expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
-
-                number_of_reviewers_to_assign = max(
-                    0, min(expected_number_of_reviewers, len(users)) - len(self.artefact.reviewers)
-                )
                 self.artefact.reviewers += random.sample(users, number_of_reviewers_to_assign)
                 self._assign_reviewers_to_environments()
                 self.artefact.due_date = self.determine_due_date()
