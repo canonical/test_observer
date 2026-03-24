@@ -16,7 +16,7 @@
 import contextlib
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security, status
+from fastapi import Depends, HTTPException, Query, Response, Security, status
 from fastapi.security import SecurityScopes
 from sqlalchemy import asc, delete, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -45,8 +45,7 @@ from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
 from .models import DeleteReruns, PendingRerun, RerunRequest
-
-router = APIRouter()
+from .router import router
 
 
 def modify_reruns(

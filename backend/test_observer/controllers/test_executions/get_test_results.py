@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -26,9 +26,8 @@ from test_observer.data_access.models import (
 from test_observer.data_access.setup import get_db
 
 from .logic import get_previous_test_results
+from .router import router
 from .shared_models import TestResultResponse
-
-router = APIRouter(tags=["test-results"])
 
 
 @router.get(
