@@ -4845,6 +4845,17 @@
       },
       "ArtefactMatchingRuleBase": {
         "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -4877,6 +4888,17 @@
             "type": "integer",
             "title": "Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -4896,6 +4918,7 @@
         "type": "object",
         "required": [
           "id",
+          "name",
           "family",
           "stage",
           "track",
@@ -4906,6 +4929,17 @@
       },
       "ArtefactMatchingRulePatch": {
         "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "anyOf": [
               {
@@ -4970,6 +5004,17 @@
       },
       "ArtefactMatchingRuleRequest": {
         "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -5010,6 +5055,17 @@
             "type": "integer",
             "title": "Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -5036,6 +5092,7 @@
         "type": "object",
         "required": [
           "id",
+          "name",
           "family",
           "stage",
           "track",

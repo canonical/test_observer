@@ -47,6 +47,7 @@ def _rule_to_response(rule: ArtefactMatchingRule) -> ArtefactMatchingRuleRespons
     """Convert ArtefactMatchingRule model to response"""
     return ArtefactMatchingRuleResponse(
         id=rule.id,
+        name=rule.name,
         family=rule.family,
         stage=rule.stage,
         track=rule.track,
