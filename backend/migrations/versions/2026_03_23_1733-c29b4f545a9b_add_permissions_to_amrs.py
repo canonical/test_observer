@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Add permissions to AMRs
 
 Revision ID: c29b4f545a9b
