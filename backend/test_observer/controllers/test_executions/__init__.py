@@ -19,6 +19,7 @@ from . import (  # noqa: F401
     post_results,
     relevant_links,
     reruns,
+    search,
     start_test,
     status_update,
     test_execution,
