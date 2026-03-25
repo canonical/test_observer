@@ -160,7 +160,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "reviewers": test_execution.artefact_build.artefact.reviewers,
             "due_date": test_execution.artefact_build.artefact.due_date,
             "bug_link": test_execution.artefact_build.artefact.bug_link,
-            "jira_epic": test_execution.artefact_build.artefact.jira_epic,
+            "jira_issue": test_execution.artefact_build.artefact.jira_issue,
             "all_environment_reviews_count": (test_execution.artefact_build.artefact.all_environment_reviews_count),
             "completed_environment_reviews_count": (
                 test_execution.artefact_build.artefact.completed_environment_reviews_count

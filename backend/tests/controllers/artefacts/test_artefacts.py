@@ -506,43 +506,43 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
     assert a.comment == comment
 
 
-def test_update_artefact_jira_epic(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_jira_issue(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
-    jira_epic = "TEST-123"
+    jira_issue = "TEST-123"
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"jira_epic": jira_epic},
+            json={"jira_issue": jira_issue},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert response.json()["jira_epic"] == jira_epic
-    assert a.jira_epic == jira_epic
+    assert response.json()["jira_issue"] == jira_issue
+    assert a.jira_issue == jira_issue
 
 
-def test_clear_artefact_jira_epic(test_client: TestClient, generator: DataGenerator):
+def test_clear_artefact_jira_issue(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
-    a.jira_epic = "TEST-123"
+    a.jira_issue = "TEST-123"
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"jira_epic": None},
+            json={"jira_issue": None},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert response.json()["jira_epic"] is None
-    assert a.jira_epic is None
+    assert response.json()["jira_issue"] is None
+    assert a.jira_issue is None
 
 
-def test_omit_jira_epic_preserves_value(test_client: TestClient, generator: DataGenerator):
+def test_omit_jira_issue_preserves_value(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
-    a.jira_epic = "TEST-123"
+    a.jira_issue = "TEST-123"
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -553,8 +553,8 @@ def test_omit_jira_epic_preserves_value(test_client: TestClient, generator: Data
     )
 
     assert response.status_code == 200
-    assert response.json()["jira_epic"] == "TEST-123"
-    assert a.jira_epic == "TEST-123"
+    assert response.json()["jira_issue"] == "TEST-123"
+    assert a.jira_issue == "TEST-123"
 
 
 def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenerator):
@@ -944,7 +944,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "reviewers": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
-        "jira_epic": artefact.jira_epic,
+        "jira_issue": artefact.jira_issue,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
