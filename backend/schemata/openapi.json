@@ -5211,15 +5211,9 @@
       "ArtefactMatchingRuleBase": {
         "properties": {
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
@@ -5254,14 +5248,7 @@
             "title": "Id"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Name"
           },
           "family": {
@@ -5370,15 +5357,9 @@
       "ArtefactMatchingRuleRequest": {
         "properties": {
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "type": "string",
+            "title": "Name",
+            "default": ""
           },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
@@ -5421,14 +5402,7 @@
             "title": "Id"
           },
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Name"
           },
           "family": {
