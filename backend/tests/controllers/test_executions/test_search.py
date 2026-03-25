@@ -384,3 +384,69 @@ class TestSearchTestExecutions:
         data = response.json()
         assert data["count"] == 0
         assert data["test_executions"] == []
+
+    def test_filter_by_event_names_specific(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env = generator.gen_environment()
+
+        te_with_event = generator.gen_test_execution(build, env)
+        generator.gen_test_event(te_with_event, event_name="install")
+
+        te_with_other_event = generator.gen_test_execution(build, env)
+        generator.gen_test_event(te_with_other_event, event_name="uninstall")
+
+        te_without_event = generator.gen_test_execution(build, env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-executions?test_result=none&artefacts={artefact.name}&event_names=install"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_with_event.id in te_ids
+        assert te_with_other_event.id not in te_ids
+        assert te_without_event.id not in te_ids
+
+    def test_filter_by_event_names_any(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env = generator.gen_environment()
+
+        te_with_event = generator.gen_test_execution(build, env)
+        generator.gen_test_event(te_with_event, event_name="install")
+
+        te_without_event = generator.gen_test_execution(build, env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&artefacts={artefact.name}&event_names=any"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_with_event.id in te_ids
+        assert te_without_event.id not in te_ids
+
+    def test_filter_by_event_names_none(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env = generator.gen_environment()
+
+        te_with_event = generator.gen_test_execution(build, env)
+        generator.gen_test_event(te_with_event, event_name="install")
+
+        te_without_event = generator.gen_test_execution(build, env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&artefacts={artefact.name}&event_names=none"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_without_event.id in te_ids
+        assert te_with_event.id not in te_ids

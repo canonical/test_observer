@@ -33,6 +33,7 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ColumnElement,
     Environment,
+    TestEvent,
     TestExecution,
     TestExecutionMetadata,
     TestExecutionRerunRequest,
@@ -210,6 +211,25 @@ def _build_with_result_filters(
         )
         query_filters.append(~newer_execution_exists if filters.execution_is_latest else newer_execution_exists)
 
+    if filters.event_names != []:
+        joins_needed.add("test_execution")
+        event_exists = exists(select(1).select_from(TestEvent).where(TestEvent.test_execution_id == TestExecution.id))
+        if filters.event_names == QueryValue.ANY:
+            query_filters.append(event_exists)
+        elif filters.event_names == QueryValue.NONE:
+            query_filters.append(~event_exists)
+        elif isinstance(filters.event_names, list) and filters.event_names:
+            query_filters.append(
+                exists(
+                    select(1)
+                    .select_from(TestEvent)
+                    .where(
+                        TestEvent.test_execution_id == TestExecution.id,
+                        TestEvent.event_name.in_(filters.event_names),
+                    )
+                )
+            )
+
     return query_filters, joins_needed
 
 
@@ -275,6 +295,24 @@ def _build_execution_filters(
             )
         )
         query_filters.append(~newer_execution_exists if filters.execution_is_latest else newer_execution_exists)
+
+    if filters.event_names != []:
+        event_exists = exists(select(1).select_from(TestEvent).where(TestEvent.test_execution_id == TestExecution.id))
+        if filters.event_names == QueryValue.ANY:
+            query_filters.append(event_exists)
+        elif filters.event_names == QueryValue.NONE:
+            query_filters.append(~event_exists)
+        elif isinstance(filters.event_names, list) and filters.event_names:
+            query_filters.append(
+                exists(
+                    select(1)
+                    .select_from(TestEvent)
+                    .where(
+                        TestEvent.test_execution_id == TestExecution.id,
+                        TestEvent.event_name.in_(filters.event_names),
+                    )
+                )
+            )
 
     return query_filters, joins_needed
 
@@ -418,6 +456,15 @@ def search_test_executions(
             )
         ),
     ] = None,
+    event_names: Annotated[
+        list[str] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
+        Query(
+            description=(
+                "Filter by event log: 'any' (executions with any events), "
+                "'none' (executions without events), or specific event name(s)"
+            )
+        ),
+    ] = None,
     limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
@@ -444,6 +491,7 @@ def search_test_executions(
         assignee_ids=parse_list_or_query_value(assignee_ids),  # type: ignore[arg-type]
         rerun_is_requested=rerun_is_requested,
         execution_is_latest=execution_is_latest,
+        event_names=parse_list_or_query_value(event_names),  # type: ignore[arg-type]
         limit=limit,
         offset=offset,
     )
