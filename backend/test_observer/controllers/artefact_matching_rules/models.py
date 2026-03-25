@@ -36,11 +36,11 @@ class ArtefactMatchingRuleInResponse(BaseModel):
     """Artefact matching rule fields when included in responses (no relationships)"""
 
     id: int
-    name: str
+    name: str | None
     family: FamilyName
-    stage: str
-    track: str
-    branch: str
+    stage: str | None
+    track: str | None
+    branch: str | None
 
 
 class TeamMinimal(BaseModel):
@@ -52,11 +52,11 @@ class ArtefactMatchingRuleResponse(BaseModel):
     """Artefact matching rule with associated teams"""
 
     id: int
-    name: str
+    name: str | None
     family: FamilyName
-    stage: str
-    track: str
-    branch: str
+    stage: str | None
+    track: str | None
+    branch: str | None
     teams: list[TeamMinimal]
 
 

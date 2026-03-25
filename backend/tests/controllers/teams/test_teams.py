@@ -201,7 +201,7 @@ def test_update_team_artefact_matching_rules(test_client: TestClient, generator:
     data = response.json()
     assert len(data["artefact_matching_rules"]) == 2
     assert data["artefact_matching_rules"][0]["family"] == "snap"
-    assert data["artefact_matching_rules"][0]["stage"] == ""
+    assert data["artefact_matching_rules"][0]["stage"] is None
     assert data["artefact_matching_rules"][1]["family"] == "deb"
     assert data["artefact_matching_rules"][1]["stage"] == "proposed"
 

@@ -120,11 +120,11 @@ def _team_to_response(team: Team) -> TeamResponse:
         artefact_matching_rules=[
             ArtefactMatchingRuleInResponse(
                 id=rule.id,
-                name=rule.name,
+                name=rule.name if rule.name else None,
                 family=rule.family,
-                stage=rule.stage,
-                track=rule.track,
-                branch=rule.branch,
+                stage=rule.stage if rule.stage else None,
+                track=rule.track if rule.track else None,
+                branch=rule.branch if rule.branch else None,
             )
             for rule in team.artefact_matching_rules
         ],
