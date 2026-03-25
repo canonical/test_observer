@@ -61,9 +61,9 @@ def test_create_team_with_permissions_and_matching_rules(test_client: TestClient
     assert data["permissions"] == [Permission.view_user, Permission.change_team]
     assert len(data["artefact_matching_rules"]) == 2
     assert data["artefact_matching_rules"][0]["family"] == "snap"
-    assert data["artefact_matching_rules"][0]["stage"] == ""
-    assert data["artefact_matching_rules"][0]["track"] == ""
-    assert data["artefact_matching_rules"][0]["branch"] == ""
+    assert data["artefact_matching_rules"][0]["stage"] is None
+    assert data["artefact_matching_rules"][0]["track"] is None
+    assert data["artefact_matching_rules"][0]["branch"] is None
     assert data["artefact_matching_rules"][1]["family"] == "deb"
     assert data["members"] == []
 
@@ -328,20 +328,20 @@ def test_create_team_with_complex_matching_rules(test_client: TestClient):
     # Check snap with track only
     snap_track = next(r for r in data["artefact_matching_rules"] if r["track"] == "22")
     assert snap_track["family"] == "snap"
-    assert snap_track["stage"] == ""
-    assert snap_track["branch"] == ""
+    assert snap_track["stage"] is None
+    assert snap_track["branch"] is None
 
     # Check snap with track and stage
     snap_track_stage = next(r for r in data["artefact_matching_rules"] if r["track"] == "24")
     assert snap_track_stage["family"] == "snap"
     assert snap_track_stage["stage"] == "beta"
-    assert snap_track_stage["branch"] == ""
+    assert snap_track_stage["branch"] is None
 
     # Check deb with branch
     deb_branch = next(r for r in data["artefact_matching_rules"] if r["family"] == "deb")
     assert deb_branch["branch"] == "jammy"
-    assert deb_branch["stage"] == ""
-    assert deb_branch["track"] == ""
+    assert deb_branch["stage"] is None
+    assert deb_branch["track"] is None
 
     # Check charm with all fields
     charm_full = next(r for r in data["artefact_matching_rules"] if r["family"] == "charm")
@@ -481,12 +481,12 @@ def test_get_team_returns_matching_rules(test_client: TestClient, generator: Dat
     snap = next(r for r in data["artefact_matching_rules"] if r["family"] == "snap")
     assert snap["track"] == "22"
     assert snap["stage"] == "stable"
-    assert snap["branch"] == ""
+    assert snap["branch"] is None
 
     deb = next(r for r in data["artefact_matching_rules"] if r["family"] == "deb")
     assert deb["branch"] == "jammy"
-    assert deb["track"] == ""
-    assert deb["stage"] == ""
+    assert deb["track"] is None
+    assert deb["stage"] is None
 
 
 def test_update_team_keeps_permissions_when_updating_rules(test_client: TestClient, generator: DataGenerator):
