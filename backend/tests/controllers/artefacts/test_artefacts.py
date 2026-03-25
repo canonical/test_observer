@@ -506,6 +506,23 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
     assert a.comment == comment
 
 
+def test_update_artefact_jira_epic(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    jira_epic = "TEST-123"
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"jira_epic": jira_epic},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["jira_epic"] == jira_epic
+    assert a.jira_epic == jira_epic
+
+
 def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
@@ -893,6 +910,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "reviewers": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
+        "jira_epic": artefact.jira_epic,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
