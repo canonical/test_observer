@@ -523,6 +523,40 @@ def test_update_artefact_jira_epic(test_client: TestClient, generator: DataGener
     assert a.jira_epic == jira_epic
 
 
+def test_clear_artefact_jira_epic(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    a.jira_epic = "TEST-123"
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"jira_epic": None},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["jira_epic"] is None
+    assert a.jira_epic is None
+
+
+def test_omit_jira_epic_preserves_value(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    a.jira_epic = "TEST-123"
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"comment": "Updated comment"},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["jira_epic"] == "TEST-123"
+    assert a.jira_epic == "TEST-123"
+
+
 def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
