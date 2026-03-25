@@ -5454,6 +5454,17 @@
             ],
             "title": "Comment"
           },
+          "jira_epic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Epic"
+          },
           "assignee_id": {
             "anyOf": [
               {
@@ -5619,6 +5630,17 @@
             "type": "string",
             "title": "Bug Link"
           },
+          "jira_epic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Epic"
+          },
           "all_environment_reviews_count": {
             "type": "integer",
             "title": "All Environment Reviews Count"
@@ -5665,6 +5687,7 @@
           "due_date",
           "created_at",
           "bug_link",
+          "jira_epic",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
           "assignee"
