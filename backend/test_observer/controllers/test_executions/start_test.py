@@ -90,6 +90,7 @@ class StartTestExecutionController:
                     select(ArtefactMatchingRule).where(
                         and_(
                             ArtefactMatchingRule.family == family_str,
+                            or_(ArtefactMatchingRule.name == self.artefact.name, ArtefactMatchingRule.name == ""),
                             or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
                             or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
                             or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
@@ -102,7 +103,7 @@ class StartTestExecutionController:
 
             # sort rules by number of non-empty fields to prioritize specificity
             rules_with_score = [
-                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")] for r in possible_rules
+                [r, sum(1 for field in [r.name, r.stage, r.track, r.branch] if field != "")] for r in possible_rules
             ]
             sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
             highest_score = sorted_rules[0][1] if sorted_rules else 0
