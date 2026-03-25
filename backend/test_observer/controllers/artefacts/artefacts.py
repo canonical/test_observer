@@ -231,6 +231,8 @@ def patch_artefact(
         artefact.stage = request.stage
     if request.comment is not None:
         artefact.comment = request.comment
+    if request.jira_epic is not None:
+        artefact.jira_epic = request.jira_epic
 
     reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
     reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set
