@@ -206,7 +206,7 @@ def update_artefact_matching_rule(
     check_stage = request.stage if request.stage is not None else rule.stage
     check_track = request.track if request.track is not None else rule.track
     check_branch = request.branch if request.branch is not None else rule.branch
-    
+
     existing_rule = db.execute(
         select(ArtefactMatchingRule).where(
             ArtefactMatchingRule.name == check_name,
