@@ -961,3 +961,36 @@ class TestCreateArtefactReviewCards:
 
             # create_issue should not be called
             mock_client.create_issue.assert_not_called()
+
+    def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator):
+        """Test that no cards are created when reviewer is not in artefact's reviewer list"""
+        from unittest.mock import Mock, patch
+
+        from test_observer.controllers.test_executions.start_test import (
+            create_artefact_review_cards,
+        )
+
+        # Create two different users
+        assigned_reviewer = generator.gen_user(name="Alice", email="alice@example.com")
+        unrelated_user = generator.gen_user(name="Bob", email="bob@example.com")
+
+        # Create artefact with Alice as reviewer
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[assigned_reviewer],
+        )
+        artefact.jira_issue = "TEST-123"
+
+        with patch("test_observer.controllers.test_executions.start_test.JiraClient") as mock_client_class:
+            mock_client = Mock()
+            mock_client_class.return_value = mock_client
+
+            # Try to create cards for Bob (not a reviewer)
+            create_artefact_review_cards(artefact, unrelated_user)
+
+            # JiraClient should not be instantiated
+            mock_client_class.assert_not_called()
+
+            # create_issue should not be called
+            mock_client.create_issue.assert_not_called()

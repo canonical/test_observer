@@ -306,6 +306,12 @@ def create_artefact_review_cards(artefact: Artefact, reviewer: User) -> None:
         logger.info(f"Artefact {artefact.id} has no reviewers assigned. Skipping review card creation.")
         return
 
+    if reviewer not in artefact.reviewers:
+        logger.warning(
+            f"User {reviewer.id} is not a reviewer for artefact {artefact.id}. Skipping review card creation."
+        )
+        return
+
     try:
         jira_client = JiraClient(
             cloud_id=str(jira_cloud_id),
