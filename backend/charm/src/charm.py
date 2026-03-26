@@ -120,6 +120,15 @@ class TestObserverBackendCharm(CharmBase):
         or if there are conflicting relations.
         The ops framework triggers a CollectStatusEvent at the end of each hook.
         """
+
+        if not self.model.get_relation("database"):
+            event.add_status(BlockedStatus("Missing database relation"))
+            return
+        
+        if not self.model.get_relation("redis"):
+            event.add_status(BlockedStatus("Missing redis relation"))
+            return
+
         if self.model.get_relation("ingress") and self.model.get_relation("nginx-route"):
             event.add_status(BlockedStatus("Cannot have both ingress and nginx-route relations at the same time"))
             return
@@ -479,12 +488,12 @@ class TestObserverBackendCharm(CharmBase):
         # and that was previously hardcoding HTTPS anyway
         # TODO: Improve SAML handling - look into saml-integrator charm
         url = f"https://{self.config['hostname']}"
-        if int(self.config["port"]) not in (80, 443):
-            url = f"{url}:{self.config['port']}"
         # If override_ingress_url is set, we ignore the ingress relation data and use the config value instead.
         # This is useful in cases where the ingress relation data is providing a local IP address instead of a hostname
         if self.config["override_ingress_url"]:
             return url
+        if int(self.config["port"]) not in (80, 443):
+            url = f"{url}:{self.config['port']}"
         if relation := self.model.get_relation(INGRESS_RELATION_NAME):
             # This should be a JSON string containing a "url" key and value
             ingress_data = relation.data[relation.app].get(INGRESS_RELATION_NAME)

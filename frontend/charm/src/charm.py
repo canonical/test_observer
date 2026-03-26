@@ -92,6 +92,10 @@ class TestObserverFrontendCharm(ops.CharmBase):
         or if there are conflicting relations.
         The ops framework triggers a CollectStatusEvent at the end of each hook.
         """
+        if not self.model.get_relation("test-observer-rest-api"):
+            event.add_status(BlockedStatus("Missing test-observer-rest-api relation"))
+            return
+
         if self.model.get_relation("ingress") and self.model.get_relation("nginx-route"):
             event.add_status(BlockedStatus("Cannot have both ingress and nginx-route relations at the same time"))
             return
@@ -281,12 +285,12 @@ class TestObserverFrontendCharm(ops.CharmBase):
         """
         # Hardcoding HTTPS here is not ideal, but it will work for now
         url = f"https://{self.config['hostname']}"
-        if int(self.config["port"]) not in (80, 443):
-            url = f"{url}:{self.config['port']}"
         # If override_ingress_url is set, we ignore the ingress relation data and use the config value instead.
         # This is useful in cases where the ingress relation data is providing a local IP address instead of a hostname
         if self.config["override_ingress_url"]:
             return url
+        if int(self.config["port"]) not in (80, 443):
+            url = f"{url}:{self.config['port']}"
         if relation := self.model.get_relation(INGRESS_RELATION_NAME):
             # This should be a JSON string containing a "url" key and value
             ingress_data = relation.data[relation.app].get(INGRESS_RELATION_NAME)
