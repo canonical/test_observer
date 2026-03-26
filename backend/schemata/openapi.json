@@ -856,6 +856,41 @@
             "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)"
           },
           {
+            "name": "event_names",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by event log: 'any' (executions with any events), 'none' (executions without events), or specific event name(s)",
+              "title": "Event Names"
+            },
+            "description": "Filter by event log: 'any' (executions with any events), 'none' (executions without events), or specific event name(s)"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -5541,6 +5576,17 @@
             ],
             "title": "Comment"
           },
+          "jira_issue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Issue"
+          },
           "assignee_id": {
             "anyOf": [
               {
@@ -5706,6 +5752,17 @@
             "type": "string",
             "title": "Bug Link"
           },
+          "jira_issue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Issue"
+          },
           "all_environment_reviews_count": {
             "type": "integer",
             "title": "All Environment Reviews Count"
@@ -5752,6 +5809,7 @@
           "due_date",
           "created_at",
           "bug_link",
+          "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
           "assignee"
