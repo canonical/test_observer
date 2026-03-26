@@ -137,7 +137,7 @@ class StartTestExecutionController:
                     environment_count + ENVIRONMENTS_PER_REVIEWER - 1, ENVIRONMENTS_PER_REVIEWER
                 )
                 number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
-                self.artefact.reviewers += random.sample(users, number_of_reviewers_to_assign)
+                self.artefact.reviewers += random.sample(users, min(len(users), number_of_reviewers_to_assign))
                 self._assign_reviewers_to_environments()
                 self.artefact.due_date = self.determine_due_date()
 
