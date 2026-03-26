@@ -33,7 +33,7 @@ This file provides guidance for GitHub Copilot when reviewing pull requests in t
 
 ### Backend (Python/FastAPI)
 
-- **Type safety**: All functions should have type hints (enforced by mypy)
+- **Type safety**: All functions should have type hints (enforced by Ruff and reviewed by mypy)
 - **Database patterns**:
   - Use repository pattern via `data_access/` module
   - Verify proper session management and transactions
@@ -114,8 +114,8 @@ This file provides guidance for GitHub Copilot when reviewing pull requests in t
 ### Checklist for PR Approval
 
 - [ ] Code follows repository conventions (see CLAUDE.md)
-- [ ] Tests are included and pass (backend: pytest, frontend: flutter test)
-- [ ] Type checking passes (backend: mypy, frontend: dart analyze)
+- [ ] Tests are included and pass (backend: pytest, frontend: flutter test --platform chrome)
+- [ ] Type checking passes (backend: mypy, frontend: flutter analyze)
 - [ ] Linting passes (backend: ruff, frontend: flutter analyze)
 - [ ] Database migrations are included if schema changed
 - [ ] API changes are properly versioned
