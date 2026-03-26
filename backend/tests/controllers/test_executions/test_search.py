@@ -450,3 +450,29 @@ class TestSearchTestExecutions:
         te_ids = {item["id"] for item in response.json()["test_executions"]}
         assert te_without_event.id in te_ids
         assert te_with_event.id not in te_ids
+
+    def test_filter_by_event_names_mixed_any_and_specific_returns_422(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-executions?test_result=none&artefacts={artefact.name}&event_names=install&event_names=any"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 422
+
+    def test_filter_by_event_names_mixed_none_and_specific_returns_422(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                f"/v1/test-executions?test_result=none&artefacts={artefact.name}&event_names=none&event_names=install"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 422

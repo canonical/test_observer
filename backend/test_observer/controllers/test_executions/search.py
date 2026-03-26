@@ -118,8 +118,27 @@ def parse_list_or_query_value(
 ) -> list[T] | QueryValue:
     if input is None:
         return []
-    if len(input) > 0 and all(item in QueryValue for item in input):
-        return input[-1]  # type: ignore[return-value]
+
+    parsed_query_values = []
+    for item in input:
+        if isinstance(item, QueryValue):
+            parsed_query_values.append(item)
+            continue
+        if isinstance(item, str):
+            try:
+                parsed_query_values.append(QueryValue(item))
+                continue
+            except ValueError:
+                pass
+
+    if parsed_query_values:
+        if len(parsed_query_values) != len(input):
+            raise HTTPException(
+                status_code=422,
+                detail=("Cannot combine reserved values 'any'/'none' with specific filter values."),
+            )
+        return parsed_query_values[-1]
+
     return input  # type: ignore[return-value]
 
 
