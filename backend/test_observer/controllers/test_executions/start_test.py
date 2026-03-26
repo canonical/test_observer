@@ -274,10 +274,10 @@ def start_test_execution(
 def create_artefact_review_cards(artefact: Artefact, reviewer: User) -> None:
     """Create Jira review cards for an artefact and a reviewer
 
-    The card are titled:
+    The cards are titled:
         - "Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
         - "Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
-    And they are linked to the artefact's Jira issue (`artefact.jira_issue`)
+    They are linked to the artefact's Jira issue (`artefact.jira_issue`)
 
     Args:
         artefact: The artefact to create review cards for
@@ -321,10 +321,12 @@ def create_artefact_review_cards(artefact: Artefact, reviewer: User) -> None:
             summary=artefact_summary,
             issue_type="Task",
             description=f"Review artefact {artefact.name} version {artefact.version}",
-            epic_link=artefact.jira_issue,
+            parent_epic_link=artefact.jira_issue,
         )
 
-        environment_summary = f"Review environments of Artefact {artefact.name} version {artefact.version}- {reviewer.name}"
+        environment_summary = (
+            f"Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+        )
         logger.info(f"Creating Jira card: {environment_summary}")
 
         jira_client.create_issue(
@@ -332,10 +334,9 @@ def create_artefact_review_cards(artefact: Artefact, reviewer: User) -> None:
             summary=environment_summary,
             issue_type="Task",
             description=f"Review test environments for artefact {artefact.name} version {artefact.version}",
-            epic_link=artefact.jira_issue,
+            parent_epic_link=artefact.jira_issue,
         )
 
         logger.info(f"Successfully created review cards for artefact {artefact.id} and user {reviewer.id}")
     except Exception as e:
         logger.error(f"Failed to create Jira review cards for artefact {artefact.id} and user {reviewer.id}: {e}")
-        raise

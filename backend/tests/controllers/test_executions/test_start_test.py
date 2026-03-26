@@ -894,7 +894,7 @@ class TestCreateArtefactReviewCards:
             assert calls[0].kwargs["issue_type"] == "Task"
             assert "test-snap" in calls[0].kwargs["description"]
             assert "1.0.0" in calls[0].kwargs["description"]
-            assert calls[0].kwargs["epic_link"] == "TEST-123"
+            assert calls[0].kwargs["parent_epic_link"] == "TEST-123"
 
             # Environment review card
             assert calls[1].kwargs["project_key"] == "TEST"
@@ -902,7 +902,7 @@ class TestCreateArtefactReviewCards:
             assert "Alice" in calls[1].kwargs["summary"]
             assert calls[1].kwargs["issue_type"] == "Task"
             assert "test-snap" in calls[1].kwargs["description"]
-            assert calls[1].kwargs["epic_link"] == "TEST-123"
+            assert calls[1].kwargs["parent_epic_link"] == "TEST-123"
 
     def test_create_review_cards_no_jira_issue(self, generator: DataGenerator):
         """Test that no cards are created when artefact has no jira issue"""
