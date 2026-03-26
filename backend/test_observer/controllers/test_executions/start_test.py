@@ -321,7 +321,7 @@ def create_artefact_review_cards(artefact: Artefact, reviewer: User) -> None:
             summary=artefact_summary,
             issue_type="Task",
             description=f"Review artefact {artefact.name} version {artefact.version}",
-            parent_epic_link=artefact.jira_issue,
+            parent_issue_key=artefact.jira_issue,
         )
 
         environment_summary = (
@@ -334,7 +334,7 @@ def create_artefact_review_cards(artefact: Artefact, reviewer: User) -> None:
             summary=environment_summary,
             issue_type="Task",
             description=f"Review test environments for artefact {artefact.name} version {artefact.version}",
-            parent_epic_link=artefact.jira_issue,
+            parent_issue_key=artefact.jira_issue,
         )
 
         logger.info(f"Successfully created review cards for artefact {artefact.id} and user {reviewer.id}")

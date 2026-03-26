@@ -135,7 +135,7 @@ class TestJiraClient:
             summary="Test Issue Title",
             issue_type="Task",
             description="Test description",
-            parent_epic_link="TEST-123",
+            parent_issue_key="TEST-123",
         )
 
         # THEN

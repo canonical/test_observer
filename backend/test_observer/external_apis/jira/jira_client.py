@@ -103,7 +103,7 @@ class JiraClient:
         summary: str,
         issue_type: str = "Task",
         description: str | None = None,
-        parent_epic_link: str | None = None,
+        parent_issue_key: str | None = None,
     ) -> str:
         """Create a new issue in Jira
 
@@ -112,7 +112,7 @@ class JiraClient:
             summary: Issue title/summary
             issue_type: Issue type (default: "Task")
             description: Issue description
-            parent_epic_link: Epic key to link this issue to (e.g., "TO-123")
+            parent_issue_key: Parent issue key to link this issue to (e.g., "TO-123")
 
         Returns:
             Created issue key (e.g., "TO-456")
@@ -135,8 +135,8 @@ class JiraClient:
                 "content": [{"type": "paragraph", "content": [{"type": "text", "text": description}]}],
             }
 
-        if parent_epic_link:
-            fields["parent"] = {"key": parent_epic_link}
+        if parent_issue_key:
+            fields["parent"] = {"key": parent_issue_key}
 
         payload = {"fields": fields}
 
@@ -163,7 +163,7 @@ class JiraClient:
             logger.error(f"HTTP error creating Jira issue: {e}")
             error_response = getattr(e, "response", None)
             if error_response is not None and hasattr(error_response, "text"):
-                logger.error(f"Response body: {e.response.text}")
+                logger.error(f"Response body: {error_response.text}")
             raise
         except Exception as e:
             logger.error(f"Failed to create Jira issue: {e}")
