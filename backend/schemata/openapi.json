@@ -5454,7 +5454,7 @@
             ],
             "title": "Comment"
           },
-          "jira_epic": {
+          "jira_issue": {
             "anyOf": [
               {
                 "type": "string"
@@ -5463,7 +5463,7 @@
                 "type": "null"
               }
             ],
-            "title": "Jira Epic"
+            "title": "Jira Issue"
           },
           "assignee_id": {
             "anyOf": [
@@ -5630,7 +5630,7 @@
             "type": "string",
             "title": "Bug Link"
           },
-          "jira_epic": {
+          "jira_issue": {
             "anyOf": [
               {
                 "type": "string"
@@ -5639,7 +5639,7 @@
                 "type": "null"
               }
             ],
-            "title": "Jira Epic"
+            "title": "Jira Issue"
           },
           "all_environment_reviews_count": {
             "type": "integer",
@@ -5687,7 +5687,7 @@
           "due_date",
           "created_at",
           "bug_link",
-          "jira_epic",
+          "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
           "assignee"
