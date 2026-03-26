@@ -107,7 +107,6 @@ class StartTestExecutionController:
             if users:
                 self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
                 self.artefact.due_date = self.determine_due_date()
-                self.db.commit()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
