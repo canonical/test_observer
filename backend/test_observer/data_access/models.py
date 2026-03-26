@@ -289,6 +289,8 @@ class Artefact(Base):
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
 
+    jira_issue: Mapped[str | None] = mapped_column(default=None)
+
     @property
     def architectures(self) -> set[str]:
         return {ab.architecture for ab in self.builds}

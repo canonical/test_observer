@@ -5489,6 +5489,17 @@
             ],
             "title": "Comment"
           },
+          "jira_issue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Issue"
+          },
           "assignee_id": {
             "anyOf": [
               {
@@ -5654,6 +5665,17 @@
             "type": "string",
             "title": "Bug Link"
           },
+          "jira_issue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Issue"
+          },
           "all_environment_reviews_count": {
             "type": "integer",
             "title": "All Environment Reviews Count"
@@ -5700,6 +5722,7 @@
           "due_date",
           "created_at",
           "bug_link",
+          "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
           "assignee"
