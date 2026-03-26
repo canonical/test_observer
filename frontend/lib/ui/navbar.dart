@@ -89,7 +89,6 @@ class Navbar extends ConsumerWidget {
                     title: 'Issues',
                     route: '/issues',
                   ),
-                  if (user != null) const _NotificationBellIcon(),
                   _NavbarDropdownEntry(
                     label: 'Help',
                     dropdownChildren: [
@@ -151,6 +150,7 @@ class Navbar extends ConsumerWidget {
                             ),
                           ],
                         ),
+                  if (user != null) const _NotificationBellIcon(),
                 ],
               ),
             ),
