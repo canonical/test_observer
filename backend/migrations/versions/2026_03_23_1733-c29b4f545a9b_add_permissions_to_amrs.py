@@ -4,7 +4,7 @@
 """Add permissions to AMRs
 
 Revision ID: c29b4f545a9b
-Revises: 983168a63271
+Revises: 9bcdf697eaf9
 Create Date: 2026-03-23 17:33:11.270550+00:00
 
 """
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "c29b4f545a9b"
-down_revision = "983168a63271"
+down_revision = "9bcdf697eaf9"
 branch_labels = None
 depends_on = None
 
