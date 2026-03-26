@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from sqlalchemy import Select, and_, case, or_, select
+from sqlalchemy import Select, and_, case, func, or_, select
 
 from test_observer.data_access.models import Artefact, ArtefactBuild, ArtefactMatchingRule
 
@@ -38,7 +38,7 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
 
     # Subquery to get the highest specificity score
     max_specificity_subquery = (
-        select(specificity.label("score"))
+        select(func.max(specificity))
         .where(
             and_(
                 ArtefactMatchingRule.family == artefact.family,
@@ -47,8 +47,6 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
             )
         )
-        .order_by(specificity.desc())
-        .limit(1)
         .scalar_subquery()
     )
 
