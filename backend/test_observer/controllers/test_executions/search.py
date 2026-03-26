@@ -33,6 +33,7 @@ from test_observer.data_access.models import (
     ArtefactBuild,
     ColumnElement,
     Environment,
+    TestEvent,
     TestExecution,
     TestExecutionMetadata,
     TestExecutionRerunRequest,
@@ -117,8 +118,27 @@ def parse_list_or_query_value(
 ) -> list[T] | QueryValue:
     if input is None:
         return []
-    if len(input) > 0 and all(item in QueryValue for item in input):
-        return input[-1]  # type: ignore[return-value]
+
+    parsed_query_values = []
+    for item in input:
+        if isinstance(item, QueryValue):
+            parsed_query_values.append(item)
+            continue
+        if isinstance(item, str):
+            try:
+                parsed_query_values.append(QueryValue(item))
+                continue
+            except ValueError:
+                pass
+
+    if parsed_query_values:
+        if len(parsed_query_values) != len(input):
+            raise HTTPException(
+                status_code=422,
+                detail=("Cannot combine reserved values 'any'/'none' with specific filter values."),
+            )
+        return parsed_query_values[-1]
+
     return input  # type: ignore[return-value]
 
 
@@ -141,76 +161,6 @@ def _filter_execution_metadata(
         conditions.append(exists(subq))
 
     return and_(*conditions)
-
-
-def _build_with_result_filters(
-    filters: TestExecutionSearchFilters,
-) -> tuple[list[ColumnElement[bool]], set[JoinName]]:
-    query_filters: list[ColumnElement[bool]] = []
-    joins_needed: set[JoinName] = set()
-
-    if filters.families:
-        query_filters.append(Artefact.family.in_(filters.families))
-        joins_needed.update(["test_execution", "artefact_build", "artefact"])
-
-    if filters.artefacts:
-        query_filters.append(Artefact.name.in_(filters.artefacts))
-        joins_needed.update(["test_execution", "artefact_build", "artefact"])
-
-    if filters.artefact_is_archived is not None:
-        query_filters.append(Artefact.archived == filters.artefact_is_archived)
-        joins_needed.update(["test_execution", "artefact_build", "artefact"])
-
-    if filters.environments:
-        query_filters.append(Environment.name.in_(filters.environments))
-        joins_needed.update(["test_execution", "environment"])
-
-    if filters.execution_metadata and len(filters.execution_metadata) > 0:
-        query_filters.append(_filter_execution_metadata(filters.execution_metadata))
-        joins_needed.add("test_execution")
-
-    if filters.test_execution_statuses:
-        query_filters.append(TestExecution.status.in_(filters.test_execution_statuses))
-        joins_needed.add("test_execution")
-
-    if filters.reviewer_ids != []:
-        if filters.reviewer_ids == QueryValue.ANY:
-            query_filters.append(Artefact.reviewers.any())
-        elif filters.reviewer_ids == QueryValue.NONE:
-            query_filters.append(~Artefact.reviewers.any())
-        elif isinstance(filters.reviewer_ids, list) and filters.reviewer_ids:
-            query_filters.append(Artefact.reviewers.any(User.id.in_(filters.reviewer_ids)))
-        joins_needed.update(["test_execution", "artefact_build", "artefact"])
-
-    if filters.rerun_is_requested is not None:
-        joins_needed.add("test_execution")
-        rerun_exists = exists(
-            select(1)
-            .select_from(TestExecutionRerunRequest)
-            .where(
-                TestExecutionRerunRequest.test_plan_id == TestExecution.test_plan_id,
-                TestExecutionRerunRequest.artefact_build_id == TestExecution.artefact_build_id,
-                TestExecutionRerunRequest.environment_id == TestExecution.environment_id,
-            )
-        )
-        query_filters.append(rerun_exists if filters.rerun_is_requested else ~rerun_exists)
-
-    if filters.execution_is_latest is not None:
-        joins_needed.add("test_execution")
-        newer_execution = aliased(TestExecution)
-        newer_execution_exists = exists(
-            select(1)
-            .select_from(newer_execution)
-            .where(
-                TestExecution.test_plan_id == newer_execution.test_plan_id,
-                TestExecution.artefact_build_id == newer_execution.artefact_build_id,
-                TestExecution.environment_id == newer_execution.environment_id,
-                TestExecution.id < newer_execution.id,
-            )
-        )
-        query_filters.append(~newer_execution_exists if filters.execution_is_latest else newer_execution_exists)
-
-    return query_filters, joins_needed
 
 
 def _build_execution_filters(
@@ -275,6 +225,24 @@ def _build_execution_filters(
             )
         )
         query_filters.append(~newer_execution_exists if filters.execution_is_latest else newer_execution_exists)
+
+    if filters.event_names != []:
+        event_exists = exists(select(1).select_from(TestEvent).where(TestEvent.test_execution_id == TestExecution.id))
+        if filters.event_names == QueryValue.ANY:
+            query_filters.append(event_exists)
+        elif filters.event_names == QueryValue.NONE:
+            query_filters.append(~event_exists)
+        elif isinstance(filters.event_names, list) and filters.event_names:
+            query_filters.append(
+                exists(
+                    select(1)
+                    .select_from(TestEvent)
+                    .where(
+                        TestEvent.test_execution_id == TestExecution.id,
+                        TestEvent.event_name.in_(filters.event_names),
+                    )
+                )
+            )
 
     return query_filters, joins_needed
 
@@ -418,6 +386,15 @@ def search_test_executions(
             )
         ),
     ] = None,
+    event_names: Annotated[
+        list[str] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
+        Query(
+            description=(
+                "Filter by event log: 'any' (executions with any events), "
+                "'none' (executions without events), or specific event name(s)"
+            )
+        ),
+    ] = None,
     limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
@@ -444,6 +421,7 @@ def search_test_executions(
         assignee_ids=parse_list_or_query_value(assignee_ids),  # type: ignore[arg-type]
         rerun_is_requested=rerun_is_requested,
         execution_is_latest=execution_is_latest,
+        event_names=parse_list_or_query_value(event_names),  # type: ignore[arg-type]
         limit=limit,
         offset=offset,
     )
