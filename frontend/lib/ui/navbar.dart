@@ -300,7 +300,7 @@ class _NotificationBellIcon extends ConsumerWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(
+              const Icon(
                 YaruIcons.notification,
                 color: Colors.white,
                 size: 20,
@@ -324,8 +324,8 @@ class _NotificationBellIcon extends ConsumerWidget {
                       child: Center(
                         child: Text(
                           count > 99 ? '99+' : count.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onError,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
