@@ -174,6 +174,36 @@ class TestJiraClient:
                 issue_type="Task",
             )
 
+    @patch("test_observer.external_apis.jira.jira_client.requests.post")
+    def test_create_issue_with_assignee(self, mock_post: Mock) -> None:
+        """Test issue creation with assignee"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "id": "10002",
+            "key": "TEST-789",
+            "self": "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/10002",
+        }
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
+
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
+
+        # WHEN an issue is created with an assignee
+        issue_key = client.create_issue(
+            project_key="TEST",
+            summary="Test Issue with Assignee",
+            issue_type="Task",
+            assignee="5b10ac8d82e05b22cc7d4ef5",
+        )
+
+        # THEN
+        # the returned issue key should match the response
+        assert issue_key == "TEST-789"
+
+        # the payload should contain the assignee field
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["fields"]["assignee"]["id"] == "5b10ac8d82e05b22cc7d4ef5"
+
 
 class TestLaunchpadClient:
     """Tests for LaunchpadClient"""

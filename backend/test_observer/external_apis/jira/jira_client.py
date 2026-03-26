@@ -104,6 +104,7 @@ class JiraClient:
         issue_type: str = "Task",
         description: str | None = None,
         parent_issue_key: str | None = None,
+        assignee: str | None = None,
     ) -> str:
         """Create a new issue in Jira
 
@@ -113,6 +114,7 @@ class JiraClient:
             issue_type: Issue type (default: "Task")
             description: Issue description
             parent_issue_key: Parent issue key to link this issue to (e.g., "TO-123")
+            assignee: Jira account ID or email address of the assignee
 
         Returns:
             Created issue key (e.g., "TO-456")
@@ -137,6 +139,9 @@ class JiraClient:
 
         if parent_issue_key:
             fields["parent"] = {"key": parent_issue_key}
+
+        if assignee:
+            fields["assignee"] = {"id": assignee}
 
         payload = {"fields": fields}
 
