@@ -27,7 +27,7 @@ void showNotification(
   Color? textColor,
 }) {
   final theme = Theme.of(context);
-  
+
   // Determine text color based on background using Material Design's color scheme
   final effectiveTextColor = textColor ??
       (backgroundColor != null
@@ -62,10 +62,10 @@ Color _getOnColor(ColorScheme colorScheme, Color backgroundColor) {
   } else if (backgroundColor == colorScheme.surface) {
     return colorScheme.onSurface;
   }
-  
+
   // For custom colors, calculate based on luminance (WCAG 2.0)
   final luminance = backgroundColor.computeLuminance();
-  
+
   // Use theme's onSurface or onPrimary as base depending on luminance
   return luminance > 0.5 ? colorScheme.onSurface : colorScheme.onPrimary;
 }
