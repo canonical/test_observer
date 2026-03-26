@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from test_observer.common.constants import QueryValue
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
@@ -38,13 +38,29 @@ class TestResultSearchFilters(BaseModel):
     issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)
     test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
-    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
+    reviewer_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
+    assignee_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] | None = Field(
+        default=None,
+        deprecated=True,
+    )
     rerun_is_requested: bool | None = None
     execution_is_latest: bool | None = None
     from_date: datetime | None = None
     until_date: datetime | None = None
     offset: int | None = None
     limit: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_assignee_ids(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+
+        reviewer_ids = data.get("reviewer_ids")
+        assignee_ids = data.get("assignee_ids")
+        if (reviewer_ids is None or reviewer_ids == []) and assignee_ids is not None:
+            data["reviewer_ids"] = assignee_ids
+        return data
 
     def has_filters(self) -> bool:
         """
@@ -59,5 +75,5 @@ class TestResultSearchFilters(BaseModel):
                 or value is None
             )
             for key, value in self.model_dump().items()
-            if key not in ("from_date", "until_date", "offset", "limit")
+            if key not in ("from_date", "until_date", "offset", "limit", "assignee_ids")
         )

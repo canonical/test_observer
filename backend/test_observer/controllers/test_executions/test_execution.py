@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy import tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -33,8 +33,7 @@ from test_observer.data_access.models_enums import TestExecutionStatus, TestResu
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionsPatchRequest
-
-router = APIRouter()
+from .router import router
 
 TEST_EXECUTION_OPTIONS = [
     # Single-query Joins (Many-to-One)

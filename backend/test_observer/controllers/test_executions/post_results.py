@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy import delete
 from sqlalchemy.orm import Session, selectinload
 
@@ -35,7 +35,7 @@ from test_observer.data_access.models import (
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 
-router = APIRouter(tags=["test-results"])
+from .router import router
 
 
 @router.post(

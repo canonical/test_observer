@@ -115,6 +115,36 @@ def parse_list_or_query_value(
     return input  # type: ignore[return-value]
 
 
+def _search_with_result_details(
+    filters: TestResultSearchFilters,
+    db: Session,
+) -> tuple[list[TestResult], int]:
+    """Query test results with full details using shared filter machinery."""
+    query = select(TestResult).options(
+        selectinload(TestResult.test_case),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
+        selectinload(TestResult.test_execution)
+        .selectinload(TestExecution.artefact_build)
+        .selectinload(ArtefactBuild.artefact),
+        selectinload(TestResult.issue_attachments),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
+    )
+    query = filter_test_results(query, filters)
+    query = query.order_by(desc(TestResult.created_at), desc(TestResult.id))
+    if filters.offset is not None:
+        query = query.offset(filters.offset)
+    if filters.limit is not None:
+        query = query.limit(filters.limit)
+
+    count_filters = filters.model_copy(update={"limit": None, "offset": None})
+    count_query = select(func.count()).select_from(TestResult)
+    count_query = filter_test_results(count_query, count_filters)
+
+    rows = db.execute(query).scalars().all()
+    total = db.execute(count_query).scalar() or 0
+    return list(rows), total
+
+
 @router.get(
     "",
     response_model=TestResultSearchResponseWithContext,
@@ -155,9 +185,13 @@ def search_test_results(
         list[TestExecutionStatus] | None,
         Query(description="Filter by test execution statuses"),
     ] = None,
+    reviewer_ids: Annotated[
+        list[int] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
+        Query(description="Filter by reviewer user ids"),
+    ] = None,
     assignee_ids: Annotated[
         list[int] | list[Literal[QueryValue.ANY]] | list[Literal[QueryValue.NONE]] | None,
-        Query(description="Filter by assignee user ids"),
+        Query(description="DEPRECATED: Use reviewer_ids instead", deprecated=True),
     ] = None,
     rerun_is_requested: Annotated[
         bool | None,
@@ -180,10 +214,8 @@ def search_test_results(
     """
     Search test results across artefacts using flexible filters.
 
-    This endpoint uses a single optimized query with window functions to get both
-    the total count and paginated results in one database round trip.
+    Returns one item per matching test result with execution, artefact, and build context.
     """
-    # Build the filters
     filters = TestResultSearchFilters(
         families=families or [],
         artefacts=artefacts or [],
@@ -195,6 +227,7 @@ def search_test_results(
         issues=parse_list_or_query_value(issues),  # type: ignore[arg-type]
         test_result_statuses=test_result_statuses or [],
         test_execution_statuses=test_execution_statuses or [],
+        reviewer_ids=parse_list_or_query_value(reviewer_ids),  # type: ignore[arg-type]
         assignee_ids=parse_list_or_query_value(assignee_ids),  # type: ignore[arg-type]
         rerun_is_requested=rerun_is_requested,
         execution_is_latest=execution_is_latest,
@@ -204,38 +237,20 @@ def search_test_results(
         offset=offset,
     )
 
-    # Run paginated query
-    pagination_query = select(TestResult)
-    paginated_query = filter_test_results(pagination_query, filters)
-    paginated_query = paginated_query.order_by(desc(TestResult.created_at), desc(TestResult.id))
-    pagination_query = pagination_query.options(
-        selectinload(TestResult.test_case),
-        selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
-        selectinload(TestResult.test_execution)
-        .selectinload(TestExecution.artefact_build)
-        .selectinload(ArtefactBuild.artefact),
-        selectinload(TestResult.issue_attachments),
-        selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
-    )
-    test_results = db.execute(paginated_query).scalars().all()
+    test_results, total = _search_with_result_details(filters, db)
 
-    # Run count query
-    count_query = select(func.count()).select_from(TestResult)
-    count_filters = filters.model_copy(update={"limit": None, "offset": None})
-    count_query = filter_test_results(count_query, count_filters)
-    total_count = db.execute(count_query).scalar()
-
-    # Return results
     return TestResultSearchResponseWithContext(
-        count=total_count or 0,
+        count=total,
         limit=limit,
         offset=offset,
         test_results=[
-            TestResultResponseWithContext(
-                test_result=tr,
-                test_execution=tr.test_execution,
-                artefact=tr.test_execution.artefact_build.artefact,
-                artefact_build=tr.test_execution.artefact_build,
+            TestResultResponseWithContext.model_validate(
+                {
+                    "test_result": tr,
+                    "test_execution": tr.test_execution,
+                    "artefact": tr.test_execution.artefact_build.artefact,
+                    "artefact_build": tr.test_execution.artefact_build,
+                }
             )
             for tr in test_results
         ],

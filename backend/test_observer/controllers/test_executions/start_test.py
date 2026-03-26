@@ -16,7 +16,7 @@
 import random
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Body, Depends, Security
+from fastapi import Body, Depends, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -46,8 +46,7 @@ from .models import (
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
 )
-
-router = APIRouter()
+from .router import router
 
 ENVIRONMENTS_PER_REVIEWER = 50
 
@@ -83,18 +82,17 @@ class StartTestExecutionController:
         return {"id": self.test_execution.id}
 
     def assign_reviewer(self):
-        should_assign = self.request.needs_assignment and len(self.artefact.reviewers) == 0
-        if (
-            should_assign
-            and (rules := self.db.execute(match_artefact(self.artefact)).scalars().all())
-            and len(rules) > 0
-        ):
+        if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
+            return
+
+        rule_ids = self.db.execute(match_artefact(self.artefact)).scalars().all()
+        if len(rule_ids) > 0:
             users = (
                 self.db.execute(
                     select(User)
                     .join(User.teams)
                     .join(Team.artefact_matching_rules)
-                    .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
+                    .where(ArtefactMatchingRule.id.in_(rule_ids))
                     .distinct()
                 )
                 .scalars()
@@ -110,7 +108,6 @@ class StartTestExecutionController:
             if users:
                 self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
                 self.artefact.due_date = self.determine_due_date()
-                self.db.commit()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
