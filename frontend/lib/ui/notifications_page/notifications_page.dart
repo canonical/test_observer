@@ -116,6 +116,9 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
         setState(() => _isDismissing = false);
       }
     }
