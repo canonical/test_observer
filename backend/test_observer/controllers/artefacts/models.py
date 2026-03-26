@@ -76,6 +76,7 @@ class ArtefactResponse(BaseModel):
     due_date: date | None
     created_at: datetime
     bug_link: str
+    jira_issue: str | None
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
 
@@ -148,6 +149,7 @@ class ArtefactPatch(BaseModel):
     archived: bool | None = None
     stage: StageName | None = None
     comment: str | None = None
+    jira_issue: str | None = None
     assignee_id: int | None = Field(
         default=None,
         deprecated=True,
