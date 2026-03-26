@@ -16,7 +16,7 @@
 """Add name field to AMRs
 
 Revision ID: fa15d31d9a31
-Revises: 983168a63271
+Revises: 9bcdf697eaf9
 Create Date: 2026-03-25 12:20:36.268377+00:00
 
 """
@@ -26,7 +26,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "fa15d31d9a31"
-down_revision = "983168a63271"
+down_revision = "9bcdf697eaf9"
 branch_labels = None
 depends_on = None
 
