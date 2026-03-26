@@ -16,7 +16,9 @@
 import 'package:flutter/material.dart';
 
 /// Shows a notification SnackBar with the given [message].
-/// Optionally, you can provide a [duration] and [backgroundColor].
+/// Optionally, you can provide a [duration], [backgroundColor] and [textColor].
+/// When [backgroundColor] is provided without [textColor], the text color will
+/// be automatically determined for contrast.
 void showNotification(
   BuildContext context,
   String message, {
@@ -26,10 +28,13 @@ void showNotification(
 }) {
   final snackBar = SnackBar(
     behavior: SnackBarBehavior.floating,
-    content: Text(message, style: TextStyle(color: textColor)),
+    content: Text(
+      message,
+      style: textColor != null ? TextStyle(color: textColor) : null,
+    ),
     duration: duration,
     width: 400,
-    backgroundColor: backgroundColor ?? Colors.white,
+    backgroundColor: backgroundColor,
   );
   ScaffoldMessenger.of(context).showSnackBar(snackBar);
 }
