@@ -98,6 +98,10 @@ config:
       description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
       type: boolean
       default: false
+    override_ingress_url:
+      description: If set, ignore the URL provided by ingress and use the config values instead.
+      type: boolean
+      default: false
 
 resources:
   api-image:

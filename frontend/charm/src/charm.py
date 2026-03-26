@@ -105,7 +105,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         logger.info("Ingress is ready with url %s", event.url)
         self._update_backend_relation_data()
 
-    def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent) -> None:
+    def _on_ingress_revoked(self, _: IngressPerAppRevokedEvent) -> None:
         logger.info("Ingress revoked")
 
     def _setup_nginx(self):
@@ -198,7 +198,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
             if api_url:
                 self.container.push(
                     "/etc/nginx/sites-available/test-observer-frontend",
-                    nginx_config(base_uri=api_url, base_href=f"{self.model.name}-{self.app.name}"),
+                    nginx_config(base_uri=api_url),
                     make_dirs=True,
                 )
                 self.container.add_layer(
@@ -283,6 +283,10 @@ class TestObserverFrontendCharm(ops.CharmBase):
         url = f"https://{self.config['hostname']}"
         if int(self.config["port"]) not in (80, 443):
             url = f"{url}:{self.config['port']}"
+        # If override_ingress_url is set, we ignore the ingress relation data and use the config value instead.
+        # This is useful in cases where the ingress relation data is providing a local IP address instead of a hostname
+        if self.config["override_ingress_url"]:
+            return url
         if relation := self.model.get_relation(INGRESS_RELATION_NAME):
             # This should be a JSON string containing a "url" key and value
             ingress_data = relation.data[relation.app].get(INGRESS_RELATION_NAME)
