@@ -96,3 +96,80 @@ class JiraClient:
         except Exception as e:
             logger.error(f"Failed to fetch Jira issue {issue_key}: {e}")
             raise
+
+    def create_issue(
+        self,
+        project_key: str,
+        summary: str,
+        issue_type: str = "Task",
+        description: str | None = None,
+        parent_issue_key: str | None = None,
+        assignee: str | None = None,
+    ) -> str:
+        """Create a new issue in Jira
+
+        Args:
+            project_key: Jira project key (e.g., "TO")
+            summary: Issue title/summary
+            issue_type: Issue type (default: "Task")
+            description: Issue description
+            parent_issue_key: Parent issue key to link this issue to (e.g., "TO-123")
+            assignee: Jira account ID or email address of the assignee
+
+        Returns:
+            Created issue key (e.g., "TO-456")
+
+        Raises:
+            Exception: If issue creation fails
+        """
+        url = f"{self.base_url}/rest/api/3/issue"
+
+        fields = {
+            "project": {"key": project_key},
+            "summary": summary,
+            "issuetype": {"name": issue_type},
+        }
+
+        if description:
+            fields["description"] = {
+                "type": "doc",
+                "version": 1,
+                "content": [{"type": "paragraph", "content": [{"type": "text", "text": description}]}],
+            }
+
+        if parent_issue_key:
+            fields["parent"] = {"key": parent_issue_key}
+
+        if assignee:
+            fields["assignee"] = {"id": assignee}
+
+        payload = {"fields": fields}
+
+        try:
+            response = requests.post(
+                url,
+                auth=HTTPBasicAuth(self.email, self.api_token),
+                headers={"Accept": "application/json", "Content-Type": "application/json"},
+                json=payload,
+                timeout=self.timeout,
+            )
+
+            response.raise_for_status()
+            data = response.json()
+
+            issue_key = data.get("key")
+            if not issue_key:
+                raise ValueError("Jira API did not return an issue key")
+            logger.info(f"Created Jira issue {issue_key}")
+
+            return issue_key
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error creating Jira issue: {e}")
+            error_response = getattr(e, "response", None)
+            if error_response is not None and hasattr(error_response, "text"):
+                logger.error(f"Response body: {error_response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to create Jira issue: {e}")
+            raise

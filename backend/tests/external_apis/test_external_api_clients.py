@@ -115,6 +115,95 @@ class TestJiraClient:
         with pytest.raises(requests.exceptions.HTTPError):
             client.get_issue("TEST", "TEST-1")
 
+    @patch("test_observer.external_apis.jira.jira_client.requests.post")
+    def test_create_issue_success(self, mock_post: Mock) -> None:
+        """Test successful issue creation"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "id": "10001",
+            "key": "TEST-456",
+            "self": "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/10001",
+        }
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
+
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
+
+        # WHEN an issue is created with appropriate fields
+        issue_key = client.create_issue(
+            project_key="TEST",
+            summary="Test Issue Title",
+            issue_type="Task",
+            description="Test description",
+            parent_issue_key="TEST-123",
+        )
+
+        # THEN
+        # the returned issue key should match the response
+        assert issue_key == "TEST-456"
+
+        # the request should be made correctly
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        assert "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue" in str(call_args)
+
+        # the payload should contain the correct fields
+        payload = call_args.kwargs["json"]
+        assert payload["fields"]["project"]["key"] == "TEST"
+        assert payload["fields"]["summary"] == "Test Issue Title"
+        assert payload["fields"]["issuetype"]["name"] == "Task"
+        assert payload["fields"]["description"]["type"] == "doc"
+        assert payload["fields"]["description"]["content"][0]["content"][0]["text"] == "Test description"
+        assert payload["fields"]["parent"]["key"] == "TEST-123"
+
+    @patch("test_observer.external_apis.jira.jira_client.requests.post")
+    def test_create_issue_http_error(self, mock_post: Mock) -> None:
+        """Test issue creation with HTTP error"""
+        mock_response = Mock()
+        mock_response.text = '{"errorMessages":["Project does not exist"]}'
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("400 Bad Request")
+        mock_post.return_value = mock_response
+
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
+
+        # when there is a bad request error, the client should raise an HTTPError
+        with pytest.raises(requests.exceptions.HTTPError):
+            client.create_issue(
+                project_key="INVALID",
+                summary="Test Issue",
+                issue_type="Task",
+            )
+
+    @patch("test_observer.external_apis.jira.jira_client.requests.post")
+    def test_create_issue_with_assignee(self, mock_post: Mock) -> None:
+        """Test issue creation with assignee"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "id": "10002",
+            "key": "TEST-789",
+            "self": "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/10002",
+        }
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
+
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
+
+        # WHEN an issue is created with an assignee
+        issue_key = client.create_issue(
+            project_key="TEST",
+            summary="Test Issue with Assignee",
+            issue_type="Task",
+            assignee="5b10ac8d82e05b22cc7d4ef5",
+        )
+
+        # THEN
+        # the returned issue key should match the response
+        assert issue_key == "TEST-789"
+
+        # the payload should contain the assignee field
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["fields"]["assignee"]["id"] == "5b10ac8d82e05b22cc7d4ef5"
+
 
 class TestLaunchpadClient:
     """Tests for LaunchpadClient"""

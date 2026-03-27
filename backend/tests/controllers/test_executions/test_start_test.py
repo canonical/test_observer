@@ -839,3 +839,158 @@ def test_no_assignment_when_no_team_reviewers_available(
         else None
     )
     assert assignee is None
+
+
+class TestCreateArtefactReviewCards:
+    """Tests for create_artefact_review_cards function"""
+
+    @pytest.fixture(autouse=True)
+    def setup_env(self, monkeypatch: pytest.MonkeyPatch):
+        """Set up Jira environment variables"""
+        monkeypatch.setenv("JIRA_CLOUD_ID", "test-cloud-id")
+        monkeypatch.setenv("JIRA_EMAIL", "test@example.com")
+        monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
+        monkeypatch.setenv("JIRA_PROJECT_KEY", "TEST")
+
+    def test_create_review_cards_happy_path(self, generator: DataGenerator):
+        """Test successful creation of review cards for artefact with reviewer and epic"""
+        from unittest.mock import Mock, patch
+
+        from test_observer.controllers.test_executions.start_test import (
+            create_artefact_review_cards,
+        )
+
+        # Create artefact with a reviewer and jira issue
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[reviewer],
+        )
+        artefact.jira_issue = "TEST-123"
+
+        with patch("test_observer.controllers.test_executions.start_test.JiraClient") as mock_client_class:
+            mock_client = Mock()
+            mock_client_class.return_value = mock_client
+
+            create_artefact_review_cards(artefact, reviewer)
+
+            # Verify JiraClient was initialized with correct credentials
+            mock_client_class.assert_called_once_with(
+                cloud_id="test-cloud-id",
+                email="test@example.com",
+                api_token="test-token",
+            )
+
+            # Verify create_issue was called 2 times (artefact review + environment review)
+            assert mock_client.create_issue.call_count == 2
+
+            # Verify calls
+            calls = mock_client.create_issue.call_args_list
+
+            # Artefact review card
+            assert calls[0].kwargs["project_key"] == "TEST"
+            assert calls[0].kwargs["summary"] == "Review artefact test-snap version 1.0.0 - Alice"
+            assert calls[0].kwargs["issue_type"] == "Task"
+            assert "test-snap" in calls[0].kwargs["description"]
+            assert "1.0.0" in calls[0].kwargs["description"]
+            assert calls[0].kwargs["parent_issue_key"] == "TEST-123"
+
+            # Environment review card
+            assert calls[1].kwargs["project_key"] == "TEST"
+            assert "Review environments of Artefact test-snap version 1.0.0" in calls[1].kwargs["summary"]
+            assert "Alice" in calls[1].kwargs["summary"]
+            assert calls[1].kwargs["issue_type"] == "Task"
+            assert "test-snap" in calls[1].kwargs["description"]
+            assert calls[1].kwargs["parent_issue_key"] == "TEST-123"
+
+    def test_create_review_cards_no_jira_issue(self, generator: DataGenerator):
+        """Test that no cards are created when artefact has no jira issue"""
+        from unittest.mock import Mock, patch
+
+        from test_observer.controllers.test_executions.start_test import (
+            create_artefact_review_cards,
+        )
+
+        # Create artefact with reviewer but NO jira issue
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[reviewer],
+        )
+        # jira_issue is None by default
+
+        with patch("test_observer.controllers.test_executions.start_test.JiraClient") as mock_client_class:
+            mock_client = Mock()
+            mock_client_class.return_value = mock_client
+
+            create_artefact_review_cards(artefact, reviewer)
+
+            # JiraClient should not be instantiated
+            mock_client_class.assert_not_called()
+
+            # create_issue should not be called
+            mock_client.create_issue.assert_not_called()
+
+    def test_create_review_cards_no_reviewers(self, generator: DataGenerator):
+        """Test that no cards are created when artefact has no reviewers"""
+        from unittest.mock import Mock, patch
+
+        from test_observer.controllers.test_executions.start_test import (
+            create_artefact_review_cards,
+        )
+
+        # Create artefact with jira issue but NO reviewers
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[],
+        )
+        artefact.jira_issue = "TEST-123"
+
+        with patch("test_observer.controllers.test_executions.start_test.JiraClient") as mock_client_class:
+            mock_client = Mock()
+            mock_client_class.return_value = mock_client
+
+            create_artefact_review_cards(artefact, reviewer)
+
+            # JiraClient should not be instantiated
+            mock_client_class.assert_not_called()
+
+            # create_issue should not be called
+            mock_client.create_issue.assert_not_called()
+
+    def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator):
+        """Test that no cards are created when reviewer is not in artefact's reviewer list"""
+        from unittest.mock import Mock, patch
+
+        from test_observer.controllers.test_executions.start_test import (
+            create_artefact_review_cards,
+        )
+
+        # Create two different users
+        assigned_reviewer = generator.gen_user(name="Alice", email="alice@example.com")
+        unrelated_user = generator.gen_user(name="Bob", email="bob@example.com")
+
+        # Create artefact with Alice as reviewer
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[assigned_reviewer],
+        )
+        artefact.jira_issue = "TEST-123"
+
+        with patch("test_observer.controllers.test_executions.start_test.JiraClient") as mock_client_class:
+            mock_client = Mock()
+            mock_client_class.return_value = mock_client
+
+            # Try to create cards for Bob (not a reviewer)
+            create_artefact_review_cards(artefact, unrelated_user)
+
+            # JiraClient should not be instantiated
+            mock_client_class.assert_not_called()
+
+            # create_issue should not be called
+            mock_client.create_issue.assert_not_called()

@@ -13,8 +13,10 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 import random
 from datetime import date, timedelta
+from os import environ
 
 from fastapi import Body, Depends, Security
 from sqlalchemy import select
@@ -38,6 +40,7 @@ from test_observer.data_access.repository import (
     get_or_create,
 )
 from test_observer.data_access.setup import get_db
+from test_observer.external_apis.jira import JiraClient
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -46,6 +49,8 @@ from .models import (
     StartSnapTestExecutionRequest,
 )
 from .router import router
+
+logger = logging.getLogger(__name__)
 
 ENVIRONMENTS_PER_REVIEWER = 50
 
@@ -241,3 +246,81 @@ def start_test_execution(
     test_starter: StartTestExecutionController = Depends(StartTestExecutionController),
 ):
     return test_starter.execute()
+
+
+def create_artefact_review_cards(artefact: Artefact, reviewer: User) -> None:
+    """Create Jira review cards for an artefact and a reviewer
+
+    The cards are titled:
+        - "Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+        - "Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+    They are linked to the artefact's Jira issue (`artefact.jira_issue`)
+
+    Args:
+        artefact: The artefact to create review cards for
+        reviewer: The user to assign the review card to
+
+    Raises:
+        Exception: If Jira credentials are not configured or card creation fails
+    """
+    jira_cloud_id = environ.get("JIRA_CLOUD_ID")
+    jira_email = environ.get("JIRA_EMAIL")
+    jira_api_token = environ.get("JIRA_API_TOKEN")
+    jira_project_key = environ.get("JIRA_PROJECT_KEY")
+
+    if not all([jira_cloud_id, jira_email, jira_api_token, jira_project_key]):
+        logger.warning(
+            "Jira credentials not fully configured. Skipping review card creation. "
+            "Requires: JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN, JIRA_PROJECT_KEY"
+        )
+        return
+
+    if not artefact.jira_issue:
+        logger.warning(f"Artefact {artefact.id} has no linked Jira epic. Skipping review card creation.")
+        return
+
+    if not artefact.reviewers:
+        logger.info(f"Artefact {artefact.id} has no reviewers assigned. Skipping review card creation.")
+        return
+
+    if reviewer not in artefact.reviewers:
+        logger.warning(
+            f"User {reviewer.id} is not a reviewer for artefact {artefact.id}. Skipping review card creation."
+        )
+        return
+
+    try:
+        jira_client = JiraClient(
+            cloud_id=str(jira_cloud_id),
+            email=str(jira_email),
+            api_token=str(jira_api_token),
+        )
+
+        artefact_summary = f"Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+        logger.info(f"Creating Jira card: {artefact_summary}")
+
+        jira_client.create_issue(
+            project_key=str(jira_project_key),
+            summary=artefact_summary,
+            issue_type="Task",
+            description=f"Review artefact {artefact.name} version {artefact.version}",
+            parent_issue_key=artefact.jira_issue,
+        )
+
+        environment_summary = (
+            f"Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+        )
+        logger.info(f"Creating Jira card: {environment_summary}")
+
+        jira_client.create_issue(
+            project_key=str(jira_project_key),
+            summary=environment_summary,
+            issue_type="Task",
+            description=f"Review test environments for artefact {artefact.name} version {artefact.version}",
+            parent_issue_key=artefact.jira_issue,
+        )
+
+        logger.info(f"Successfully created review cards for artefact {artefact.id} and user {reviewer.id}")
+    except Exception as e:
+        logger.error(f"Failed to create Jira review cards for artefact {artefact.id} and user {reviewer.id}: {e}")
+        raise
