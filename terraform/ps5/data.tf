@@ -1,4 +1,4 @@
-# Copyright 2025 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-data "juju_secret" "lego_credentials" {
-  name       = "lego-credentials"
-  model_uuid = data.juju_model.model.uuid
+data "juju_model" "model" {
+  name  = local.juju_model.name
+  owner = local.juju_model.owner
 }

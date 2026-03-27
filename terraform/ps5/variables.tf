@@ -1,4 +1,4 @@
-# Copyright 2025 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,38 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
-
-variable "juju_model" {
-  description = "UUID of juju model"
-  type = object({
-    name  = string
-    owner = string
-  })
-}
 
 variable "environment" {
   description = "The environment to deploy to (development, stg, production)"
-  type        = string
 }
 
-variable "lego_email" {
-  description = "Email address for lego charm"
+variable "tls_secret_name" {
+  description = "Secret where the TLS certificate for ingress is stored"
   type        = string
-  default     = "is-admin@canonical.com"
-}
-
-variable "lego_plugin" {
-  description = "Plugin to use in the lego charm"
-  type        = string
-  default     = "httpreq"
-}
-
-variable "pg_storage_size" {
-  description = "Size of storage partition for postgres database"
-  type        = string
-  default     = "50G"
+  default     = ""
 }
 
 variable "nginx_ingress_integrator_charm_whitelist_source_range" {
@@ -83,36 +62,13 @@ variable "backups_s3_uri_style" {
 }
 
 variable "api_hostname" {
-  description = "test observer api hostname"
-  type        = string
-}
-
-variable "api_port" {
-  description = "test observer api port"
-  type        = number
-  default     = 443
-}
-
-variable "sentry_dsn" {
-  description = "sentry dsn url"
+  description = "Test Observer API hostname"
   type        = string
 }
 
 variable "frontend_hostname" {
-  description = "hostname for frontend"
+  description = "Test Observer front-end hostname"
   type        = string
-}
-
-variable "frontend_config" {
-  description = "config for frontend"
-  type        = string
-  default     = ""
-}
-
-variable "api_scheme" {
-  description = "Scheme for api, either http:// or https://"
-  type        = string
-  default     = "https://"
 }
 
 variable "saml_idp_metadata_url" {
