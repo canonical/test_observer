@@ -16,7 +16,9 @@
 import 'package:flutter/material.dart';
 
 /// Shows a notification SnackBar with the given [message].
-/// Optionally, you can provide a [duration] and [backgroundColor].
+/// Optionally, you can provide a [duration], [backgroundColor] and [textColor].
+/// When [backgroundColor] is provided without [textColor], the text color will
+/// be automatically determined using the theme's color scheme for proper contrast.
 void showNotification(
   BuildContext context,
   String message, {
@@ -24,12 +26,46 @@ void showNotification(
   Color? backgroundColor,
   Color? textColor,
 }) {
+  final theme = Theme.of(context);
+
+  // Determine text color based on background using Material Design's color scheme
+  final effectiveTextColor = textColor ??
+      (backgroundColor != null
+          ? _getOnColor(theme.colorScheme, backgroundColor)
+          : null);
+
   final snackBar = SnackBar(
     behavior: SnackBarBehavior.floating,
-    content: Text(message, style: TextStyle(color: textColor)),
+    content: Text(
+      message,
+      style: effectiveTextColor != null
+          ? TextStyle(color: effectiveTextColor)
+          : null,
+    ),
     duration: duration,
     width: 400,
-    backgroundColor: backgroundColor ?? Colors.green,
+    backgroundColor: backgroundColor,
   );
   ScaffoldMessenger.of(context).showSnackBar(snackBar);
+}
+
+/// Returns the appropriate "on" color from the color scheme for the given background,
+/// following Material Design principles for accessible contrast.
+Color _getOnColor(ColorScheme colorScheme, Color backgroundColor) {
+  // Check if background matches theme colors and return corresponding "on" color
+  if (backgroundColor == colorScheme.primary) {
+    return colorScheme.onPrimary;
+  } else if (backgroundColor == colorScheme.secondary) {
+    return colorScheme.onSecondary;
+  } else if (backgroundColor == colorScheme.error) {
+    return colorScheme.onError;
+  } else if (backgroundColor == colorScheme.surface) {
+    return colorScheme.onSurface;
+  }
+
+  // For custom colors, calculate based on luminance (WCAG 2.0)
+  final luminance = backgroundColor.computeLuminance();
+
+  // Use theme's onSurface or onPrimary as base depending on luminance
+  return luminance > 0.5 ? colorScheme.onSurface : colorScheme.onPrimary;
 }

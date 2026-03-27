@@ -21,10 +21,11 @@ import 'models/family_name.dart';
 import 'frontend_config.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
+import 'ui/issue_page/issue_page.dart';
 import 'ui/issues_page/issues_page.dart';
+import 'ui/notifications_page/notifications_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
-import 'ui/issue_page/issue_page.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -108,6 +109,12 @@ final appRouter = GoRouter(
             child: IssuePage(
               issueId: int.parse(state.pathParameters['issueId']!),
             ),
+          ),
+        ),
+        GoRoute(
+          path: '/notifications',
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: NotificationsPage(),
           ),
         ),
       ],
