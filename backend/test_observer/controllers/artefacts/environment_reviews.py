@@ -17,7 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,

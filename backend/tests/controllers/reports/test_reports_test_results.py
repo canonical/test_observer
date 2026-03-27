@@ -20,7 +20,7 @@ from io import StringIO
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.controllers.reports.test_results import (
     TESTRESULTS_REPORT_COLUMNS,
 )

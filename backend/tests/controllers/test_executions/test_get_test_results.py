@@ -18,7 +18,7 @@
 from fastapi.testclient import TestClient
 
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.data_access.models import TestExecution, TestExecutionMetadata
 from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request

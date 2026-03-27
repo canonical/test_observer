@@ -45,6 +45,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import ColumnElement, func
 
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -218,6 +219,8 @@ class ArtefactMatchingRule(Base):
         secondary="artefact_matching_rule_team_association",
         back_populates="artefact_matching_rules",
     )
+
+    grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
     __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
 

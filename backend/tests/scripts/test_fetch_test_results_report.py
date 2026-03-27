@@ -22,7 +22,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from scripts.fetch_test_results_report import fetch_test_results_report
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import StageName
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
