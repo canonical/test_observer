@@ -18,7 +18,7 @@ import random
 from datetime import date, timedelta
 
 from fastapi import Body, Depends, Security
-from sqlalchemy import and_, or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission, permission_checker
@@ -33,6 +33,7 @@ from test_observer.data_access.models import (
     TestPlan,
     User,
 )
+from test_observer.data_access.queries import match_artefact
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
@@ -51,6 +52,10 @@ from .router import router
 logger = logging.getLogger(__name__)
 
 ENVIRONMENTS_PER_REVIEWER = 50
+
+
+def _ceil_division(numerator: int, denominator: int) -> int:
+    return (numerator + denominator - 1) // denominator
 
 
 class StartTestExecutionController:
@@ -83,57 +88,60 @@ class StartTestExecutionController:
 
         return {"id": self.test_execution.id}
 
-    def assign_reviewer(self):
-        if self.request.needs_assignment and len(self.artefact.reviewers) == 0:
-            # Get reviewers whose teams can review this artefact family
-            family_str = self.artefact.family.value
+    def _assign_reviewers_to_environments(self) -> None:
+        env_reviews = [env_review for build in self.artefact.latest_builds for env_review in build.environment_reviews]
 
-            possible_rules = (
+        # sort reviewers based on how many environments are assigned to them, then assign the same quantity to every one
+        reviewers_to_assignment_count = {reviewer.id: 0 for reviewer in self.artefact.reviewers}
+        for env_review in env_reviews:
+            for reviewer in env_review.reviewers:
+                if reviewer.id in reviewers_to_assignment_count:
+                    reviewers_to_assignment_count[reviewer.id] += 1
+
+        reviewers_sorted = sorted(
+            self.artefact.reviewers,
+            key=lambda r: reviewers_to_assignment_count[r.id],
+        )
+
+        reviews_per_reviewer = _ceil_division(len(env_reviews), len(self.artefact.reviewers))
+
+        current_reviewer = 0
+        for env_review in env_reviews:
+            if env_review.reviewers and env_review.reviewers[0] in self.artefact.reviewers:
+                continue
+            if reviewers_to_assignment_count[reviewers_sorted[current_reviewer].id] >= reviews_per_reviewer:
+                current_reviewer += 1
+            env_review.reviewers = [reviewers_sorted[current_reviewer]]
+            reviewers_to_assignment_count[reviewers_sorted[current_reviewer].id] += 1
+
+        self.db.commit()
+
+    def assign_reviewer(self):
+        if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
+            return
+
+        rule_ids = self.db.execute(match_artefact(self.artefact)).scalars().all()
+        if len(rule_ids) > 0:
+            users = (
                 self.db.execute(
-                    select(ArtefactMatchingRule).where(
-                        and_(
-                            ArtefactMatchingRule.family == family_str,
-                            or_(ArtefactMatchingRule.stage == self.artefact.stage, ArtefactMatchingRule.stage == ""),
-                            or_(ArtefactMatchingRule.track == self.artefact.track, ArtefactMatchingRule.track == ""),
-                            or_(ArtefactMatchingRule.branch == self.artefact.branch, ArtefactMatchingRule.branch == ""),
-                        ),
-                    )
+                    select(User)
+                    .join(User.teams)
+                    .join(Team.artefact_matching_rules)
+                    .where(ArtefactMatchingRule.id.in_(rule_ids))
+                    .where(User.id.not_in([r.id for r in self.artefact.reviewers]))
+                    .distinct()
                 )
                 .scalars()
                 .all()
             )
 
-            # sort rules by number of non-empty fields to prioritize specificity
-            rules_with_score = [
-                [r, sum(1 for field in [r.stage, r.track, r.branch] if field != "")] for r in possible_rules
-            ]
-            sorted_rules = sorted(rules_with_score, key=lambda x: x[1], reverse=True)
-            highest_score = sorted_rules[0][1] if sorted_rules else 0
-            rules = [r[0] for r in sorted_rules if r[1] == highest_score]
-
-            if rules:
-                users = (
-                    self.db.execute(
-                        select(User)
-                        .join(User.teams)
-                        .join(Team.artefact_matching_rules)
-                        .where(ArtefactMatchingRule.id.in_([r.id for r in rules]))
-                        .distinct()
-                    )
-                    .scalars()
-                    .all()
-                )
-
-                # Get number of environments for the artefact, which is ceil(count/ENVIRONMENTS_PER_REVIEWER)
+            if users:
                 environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
-                expected_number_of_reviewers = (
-                    environment_count + ENVIRONMENTS_PER_REVIEWER - 1
-                ) // ENVIRONMENTS_PER_REVIEWER
-
-                if users:
-                    self.artefact.reviewers = random.sample(users, min(expected_number_of_reviewers, len(users)))
-                    self.artefact.due_date = self.determine_due_date()
-                    self.db.commit()
+                expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
+                number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
+                self.artefact.reviewers += random.sample(users, min(len(users), number_of_reviewers_to_assign))
+                self._assign_reviewers_to_environments()
+                self.artefact.due_date = self.determine_due_date()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
