@@ -77,6 +77,7 @@ class TestExecutionSearchFilters(BaseModel):
     )
     rerun_is_requested: bool | None = None
     execution_is_latest: bool | None = None
+    event_names: list[str] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     limit: int = 50
     offset: int = 0
 
