@@ -4,7 +4,7 @@
 """Add permissions to AMRs
 
 Revision ID: c29b4f545a9b
-Revises: 9bcdf697eaf9
+Revises: fa15d31d9a31
 Create Date: 2026-03-23 17:33:11.270550+00:00
 
 """
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "c29b4f545a9b"
-down_revision = "9bcdf697eaf9"
+down_revision = "fa15d31d9a31"
 branch_labels = None
 depends_on = None
 
@@ -51,6 +51,8 @@ def upgrade() -> None:
         "change_test_case_reported_issue",
         "view_environment_reported_issue",
         "change_environment_reported_issue",
+        "view_notification",
+        "change_notification",
         name="permission",
     )
     permission_enum.create(op.get_bind(), checkfirst=True)

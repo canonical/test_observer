@@ -129,7 +129,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
 
 def test_get_team(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
-    team = generator.gen_team(permissions=["create_artefact"], members=[user])
+    team = generator.gen_team(permissions=[Permission.change_artefact], members=[user])
 
     response = make_authenticated_request(lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team)
 
