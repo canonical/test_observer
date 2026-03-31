@@ -852,7 +852,7 @@ class TestCreateArtefactReviewCards:
         monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
         monkeypatch.setenv("JIRA_PROJECT_KEY", "TEST")
 
-    def test_create_review_cards_happy_path(self, generator: DataGenerator):
+    def test_create_review_cards_happy_path(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test successful creation of review cards for artefact with reviewer and epic"""
         from unittest.mock import Mock
 
@@ -869,10 +869,14 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        # Create mock JiraClient
+        # Create mock JiraClient and mock get_jira_client
         mock_client = Mock()
+        monkeypatch.setattr(
+            "test_observer.controllers.test_executions.start_test.get_jira_client",
+            lambda: mock_client,
+        )
 
-        create_artefact_review_cards(artefact, reviewer, mock_client)
+        create_artefact_review_cards(artefact, reviewer)
 
         # Verify create_issue was called 2 times (artefact review + environment review)
         assert mock_client.create_issue.call_count == 2
@@ -896,7 +900,7 @@ class TestCreateArtefactReviewCards:
         assert "test-snap" in calls[1].kwargs["description"]
         assert calls[1].kwargs["parent_issue_key"] == "TEST-123"
 
-    def test_create_review_cards_no_jira_issue(self, generator: DataGenerator):
+    def test_create_review_cards_no_jira_issue(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test that ValueError is raised when artefact has no jira issue"""
         from unittest.mock import Mock
 
@@ -913,17 +917,21 @@ class TestCreateArtefactReviewCards:
         )
         # jira_issue is None by default
 
-        # Create mock JiraClient
+        # Create mock JiraClient and mock get_jira_client
         mock_client = Mock()
+        monkeypatch.setattr(
+            "test_observer.controllers.test_executions.start_test.get_jira_client",
+            lambda: mock_client,
+        )
 
         # Should raise ValueError
         with pytest.raises(ValueError, match="has no linked Jira issue"):
-            create_artefact_review_cards(artefact, reviewer, mock_client)
+            create_artefact_review_cards(artefact, reviewer)
 
         # create_issue should not be called
         mock_client.create_issue.assert_not_called()
 
-    def test_create_review_cards_no_reviewers(self, generator: DataGenerator):
+    def test_create_review_cards_no_reviewers(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test that function raises ValueError when artefact has no reviewers"""
         from unittest.mock import Mock
 
@@ -940,14 +948,18 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        # Create mock JiraClient
+        # Create mock JiraClient and mock get_jira_client
         mock_client = Mock()
+        monkeypatch.setattr(
+            "test_observer.controllers.test_executions.start_test.get_jira_client",
+            lambda: mock_client,
+        )
 
         # Should raise ValueError
         with pytest.raises(ValueError, match="has no reviewers assigned"):
-            create_artefact_review_cards(artefact, reviewer, mock_client)
+            create_artefact_review_cards(artefact, reviewer)
 
-    def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator):
+    def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test that function raises ValueError when reviewer is not in artefact's reviewer list"""
         from unittest.mock import Mock
 
@@ -967,9 +979,13 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        # Create mock JiraClient
+        # Create mock JiraClient and mock get_jira_client
         mock_client = Mock()
+        monkeypatch.setattr(
+            "test_observer.controllers.test_executions.start_test.get_jira_client",
+            lambda: mock_client,
+        )
 
         # Try to create cards for Bob (not a reviewer)
         with pytest.raises(ValueError, match="reviewers do not include"):
-            create_artefact_review_cards(artefact, unrelated_user, mock_client)
+            create_artefact_review_cards(artefact, unrelated_user)

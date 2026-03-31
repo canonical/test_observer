@@ -16,7 +16,6 @@
 import logging
 import random
 from datetime import date, timedelta
-from os import environ
 
 from fastapi import Body, Depends, Security
 from sqlalchemy import and_, or_, select
@@ -39,7 +38,7 @@ from test_observer.data_access.repository import (
     get_or_create,
 )
 from test_observer.data_access.setup import get_db, get_jira_client
-from test_observer.external_apis.jira import JiraClient
+from test_observer.external_apis.issue_creator import IssueCreator
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -274,7 +273,6 @@ def start_test_execution(
 def create_artefact_review_cards(
     artefact: Artefact,
     reviewer: User,
-    jira_client: JiraClient = Depends(get_jira_client),
 ) -> None:
     """Create Jira review cards for an artefact and a reviewer
 
@@ -286,10 +284,9 @@ def create_artefact_review_cards(
     Args:
         artefact: The artefact to create review cards for
         reviewer: The user to assign the review card to
-        jira_client: Configured JiraClient instance (injected)
 
     Raises:
-        ValueError: If artefact has no jira_issue
+        ValueError: If artefact has no jira_issue, no reviewers, or reviewer not in reviewers list
         Exception: If card creation fails
     """
     if not artefact.jira_issue:
@@ -297,8 +294,6 @@ def create_artefact_review_cards(
             f"Artefact {artefact.id} has no linked Jira issue (artefact.jira_issue is None). "
             "Cannot create review cards without a parent issue."
         )
-    else:
-        jira_project_key = artefact.jira_issue.split("-")[0]
 
     if not artefact.reviewers:
         raise ValueError(
@@ -307,33 +302,16 @@ def create_artefact_review_cards(
 
     if reviewer not in artefact.reviewers:
         raise ValueError(
-            f"Artefact {artefact.id} reviewers do not include user {reviewer.id}. Cannot create review cards for non-reviewer."
+            f"Artefact {artefact.id} reviewers do not include user {reviewer.id}. "
+            "Cannot create review cards for non-reviewer."
         )
 
     try:
-        artefact_summary = f"Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
-        logger.info(f"Creating Jira card: {artefact_summary}")
-
-        jira_client.create_issue(
-            project_key=str(jira_project_key),
-            summary=artefact_summary,
-            issue_type="Task",
-            description=f"Review artefact {artefact.name} version {artefact.version}",
-            parent_issue_key=artefact.jira_issue,
+        issue_creator = IssueCreator(
+            jira_client=get_jira_client(),
+            jira_issue=artefact.jira_issue,
         )
-
-        environment_summary = (
-            f"Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
-        )
-        logger.info(f"Creating Jira card: {environment_summary}")
-
-        jira_client.create_issue(
-            project_key=str(jira_project_key),
-            summary=environment_summary,
-            issue_type="Task",
-            description=f"Review test environments for artefact {artefact.name} version {artefact.version}",
-            parent_issue_key=artefact.jira_issue,
-        )
+        issue_creator.create_review_issues(artefact, reviewer)
 
     except Exception as e:
         logger.error(f"Failed to create Jira review cards for artefact {artefact.id} and user {reviewer.id}: {e}")
