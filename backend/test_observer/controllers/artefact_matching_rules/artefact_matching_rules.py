@@ -47,10 +47,11 @@ def _rule_to_response(rule: ArtefactMatchingRule) -> ArtefactMatchingRuleRespons
     """Convert ArtefactMatchingRule model to response"""
     return ArtefactMatchingRuleResponse(
         id=rule.id,
+        name=rule.name if rule.name else None,
         family=rule.family,
-        stage=rule.stage,
-        track=rule.track,
-        branch=rule.branch,
+        stage=rule.stage if rule.stage else None,
+        track=rule.track if rule.track else None,
+        branch=rule.branch if rule.branch else None,
         teams=[TeamMinimal(id=team.id, name=team.name) for team in rule.teams],
     )
 
@@ -87,6 +88,7 @@ def create_artefact_matching_rule(
     # Check if rule already exists
     existing_rule = db.execute(
         select(ArtefactMatchingRule).where(
+            ArtefactMatchingRule.name == request.name,
             ArtefactMatchingRule.family == request.family,
             ArtefactMatchingRule.stage == request.stage,
             ArtefactMatchingRule.track == request.track,
@@ -101,6 +103,7 @@ def create_artefact_matching_rule(
         )
 
     rule = ArtefactMatchingRule(
+        name=request.name,
         family=request.family,
         stage=request.stage,
         track=request.track,
@@ -185,7 +188,8 @@ def update_artefact_matching_rule(
                 detail="At least one team is required for a matching rule",
             )
 
-    # Update fields
+    if request.name is not None:
+        rule.name = request.name
     if request.family is not None:
         rule.family = request.family
     if request.stage is not None:
@@ -198,12 +202,18 @@ def update_artefact_matching_rule(
         rule.teams = teams
 
     # Check if updated rule would conflict with existing rule
+    check_name = request.name if request.name is not None else rule.name
+    check_stage = request.stage if request.stage is not None else rule.stage
+    check_track = request.track if request.track is not None else rule.track
+    check_branch = request.branch if request.branch is not None else rule.branch
+
     existing_rule = db.execute(
         select(ArtefactMatchingRule).where(
+            ArtefactMatchingRule.name == check_name,
             ArtefactMatchingRule.family == (request.family if request.family is not None else rule.family),
-            ArtefactMatchingRule.stage == (request.stage if request.stage is not None else rule.stage),
-            ArtefactMatchingRule.track == (request.track if request.track is not None else rule.track),
-            ArtefactMatchingRule.branch == (request.branch if request.branch is not None else rule.branch),
+            ArtefactMatchingRule.stage == check_stage,
+            ArtefactMatchingRule.track == check_track,
+            ArtefactMatchingRule.branch == check_branch,
             ArtefactMatchingRule.id != rule_id,
         )
     ).scalar_one_or_none()
