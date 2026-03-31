@@ -77,9 +77,15 @@ class NotificationsPage extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: YaruCircularProgressIndicator()),
-            error: (error, stack) => Center(
-              child: Text('Error loading notifications: $error'),
-            ),
+            error: (error, stack) {
+              debugPrint('Error loading notifications: $error');
+              debugPrintStack(stackTrace: stack);
+              return const Center(
+                child: Text(
+                  "Couldn't load notifications. Please try again.",
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -108,12 +114,14 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
           .markNotificationAsRead(widget.notification.id);
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadNotificationCountProvider);
-    } catch (error) {
+    } catch (error, stack) {
+      debugPrint('Failed to dismiss notification: $error');
+      debugPrintStack(stackTrace: stack);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to dismiss notification: $error',
+              'Failed to dismiss notification. Please try again.',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onError,
               ),
