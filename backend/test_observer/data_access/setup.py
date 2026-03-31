@@ -18,11 +18,14 @@ import traceback
 from os import environ
 from typing import Any
 
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Connection, ExecutionContext
 from sqlalchemy.engine.interfaces import DBAPICursor
 from sqlalchemy.event import listens_for
 from sqlalchemy.orm import sessionmaker
+
+from test_observer.external_apis.jira import JiraClient
 
 DEFAULT_DB_URL = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
 DB_URL = environ.get("DB_URL", DEFAULT_DB_URL)
@@ -77,3 +80,30 @@ def tag_sql_with_origin(
 def get_db():
     with SessionLocal() as db:
         yield db
+
+
+# Dependency
+def get_jira_client() -> JiraClient:
+    """Get a configured JiraClient instance
+
+    Returns:
+        JiraClient: Configured Jira client
+
+    Raises:
+        HTTPException: If Jira credentials are not fully configured
+    """
+    jira_cloud_id = environ.get("JIRA_CLOUD_ID")
+    jira_email = environ.get("JIRA_EMAIL")
+    jira_api_token = environ.get("JIRA_API_TOKEN")
+
+    if not all([jira_cloud_id, jira_email, jira_api_token]):
+        raise HTTPException(
+            status_code=500,
+            detail="Jira credentials not fully configured. Requires: JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN",
+        )
+
+    return JiraClient(
+        cloud_id=str(jira_cloud_id),
+        email=str(jira_email),
+        api_token=str(jira_api_token),
+    )
