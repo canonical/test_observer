@@ -63,9 +63,10 @@ Color _getOnColor(ColorScheme colorScheme, Color backgroundColor) {
     return colorScheme.onSurface;
   }
 
-  // For custom colors, calculate based on luminance (WCAG 2.0)
+  // For custom colors, use white or black based on luminance for reliable contrast
   final luminance = backgroundColor.computeLuminance();
-
-  // Use theme's onSurface or onPrimary as base depending on luminance
-  return luminance > 0.5 ? colorScheme.onSurface : colorScheme.onPrimary;
+  
+  // Return white for dark backgrounds, black for light backgrounds
+  // Threshold of 0.5 is a common heuristic for accessibility
+  return luminance > 0.5 ? Colors.black : Colors.white;
 }

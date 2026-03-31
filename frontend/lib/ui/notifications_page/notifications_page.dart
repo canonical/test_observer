@@ -112,7 +112,12 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to dismiss notification: $error'),
+            content: Text(
+              'Failed to dismiss notification: $error',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onError,
+              ),
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -139,6 +144,9 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
                   SnackBar(
                     content: Text(
                       'Invalid notification link: ${widget.notification.targetUrl}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onError,
+                      ),
                     ),
                     backgroundColor: Theme.of(context).colorScheme.error,
                   ),
