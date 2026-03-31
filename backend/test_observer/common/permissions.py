@@ -37,6 +37,12 @@ class Permission(StrEnum):
     view_application = auto()
     view_permission = auto()
 
+    # Root (/ and /sentry-debug)
+    view_root = auto()
+
+    # Docs (Swagger and OpenAPI schema)
+    view_docs = auto()
+
     # Issues
     view_issue = auto()
     change_issue = auto()
