@@ -7605,7 +7605,7 @@
           },
           "permissions": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/Permission"
             },
             "type": "array",
             "title": "Permissions"
