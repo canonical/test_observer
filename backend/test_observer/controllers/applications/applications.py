@@ -96,7 +96,7 @@ def update_application(
         raise HTTPException(404, f"Application {application_id} doesn't exist")
 
     if request.permissions:
-        application.permissions = [p.value for p in request.permissions]
+        application.permissions = [Permission(p.value) for p in request.permissions]
         db.commit()
 
     return application

@@ -39,7 +39,7 @@ class UserMinimalResponse(BaseModel):
 class TeamResponse(BaseModel):
     id: int
     name: str
-    permissions: list[str]
+    permissions: list[Permission]
     members: list[UserMinimalResponse]
     artefact_matching_rules: list[ArtefactMatchingRuleInResponse]
 

@@ -203,7 +203,7 @@ def update_team(
     team = _get_team_or_raise_404(db, team_id)
 
     if request.permissions:
-        team.permissions = [p.value for p in request.permissions]
+        team.permissions = [Permission(p.value) for p in request.permissions]
 
     if request.artefact_matching_rules is not None:
         _sync_artefact_matching_rules(db, team, request.artefact_matching_rules)
