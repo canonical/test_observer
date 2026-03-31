@@ -64,9 +64,8 @@ Color _getOnColor(ColorScheme colorScheme, Color backgroundColor) {
   }
 
   // For custom colors, use white or black based on luminance for reliable contrast
-  final luminance = backgroundColor.computeLuminance();
-  
   // Return white for dark backgrounds, black for light backgrounds
   // Threshold of 0.5 is a common heuristic for accessibility
+  final luminance = backgroundColor.computeLuminance();
   return luminance > 0.5 ? Colors.black : Colors.white;
 }
