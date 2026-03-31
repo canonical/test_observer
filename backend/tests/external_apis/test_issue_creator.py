@@ -17,7 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from test_observer.external_apis.issue_creator import JiraIssueContext, IssueCreator
+from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from tests.data_generator import DataGenerator
 
 

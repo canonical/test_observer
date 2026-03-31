@@ -38,7 +38,7 @@ from test_observer.data_access.repository import (
     get_or_create,
 )
 from test_observer.data_access.setup import get_db, get_jira_client
-from test_observer.external_apis.issue_creator import IssueCreator
+from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -308,8 +308,10 @@ def create_artefact_review_cards(
 
     try:
         issue_creator = IssueCreator(
-            jira_client=get_jira_client(),
-            jira_issue=artefact.jira_issue,
+            JiraIssueContext(
+                client=get_jira_client(),
+                parent_issue=artefact.jira_issue,
+            )
         )
         issue_creator.create_review_issues(artefact, reviewer)
 
