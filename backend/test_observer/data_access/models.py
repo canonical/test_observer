@@ -210,6 +210,7 @@ class ArtefactMatchingRule(Base):
 
     __tablename__ = "artefact_matching_rule"
 
+    name: Mapped[str] = mapped_column(String(200), default="", server_default="")
     family: Mapped[FamilyName]
     stage: Mapped[str] = mapped_column(String(100), default="", server_default="")
     track: Mapped[str] = mapped_column(String(200), default="", server_default="")
@@ -222,10 +223,10 @@ class ArtefactMatchingRule(Base):
 
     grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
-    __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
+    __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch"),)
 
     def __repr__(self) -> str:
-        return data_model_repr(self, "family", "stage", "track", "branch")
+        return data_model_repr(self, "name", "family", "stage", "track", "branch")
 
 
 class UserSession(Base):

@@ -41,8 +41,8 @@ def test_create_artefact_matching_rule(test_client: TestClient, generator: DataG
     data = response.json()
     assert data["family"] == "snap"
     assert data["track"] == "22"
-    assert data["stage"] == ""
-    assert data["branch"] == ""
+    assert data["stage"] is None
+    assert data["branch"] is None
     assert len(data["teams"]) == 1
     assert data["teams"][0]["id"] == team.id
     assert "id" in data
@@ -90,9 +90,9 @@ def test_create_artefact_matching_rule_family_only(test_client: TestClient, gene
     assert response.status_code == 201
     data = response.json()
     assert data["family"] == "deb"
-    assert data["track"] == ""
-    assert data["stage"] == ""
-    assert data["branch"] == ""
+    assert data["track"] is None
+    assert data["stage"] is None
+    assert data["branch"] is None
     assert len(data["teams"]) == 1
 
 
@@ -283,7 +283,7 @@ def test_update_artefact_matching_rule(test_client: TestClient, generator: DataG
     assert data["family"] == "snap"
     assert data["track"] == "24"
     assert data["stage"] == "stable"
-    assert data["branch"] == ""
+    assert data["branch"] is None
     # Teams should be preserved
     assert len(data["teams"]) == 1
     assert data["teams"][0]["id"] == team.id
