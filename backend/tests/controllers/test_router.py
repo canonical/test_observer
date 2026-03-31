@@ -16,8 +16,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.conftest import make_authenticated_request
 from test_observer.common.permissions import Permission
+from tests.conftest import make_authenticated_request
+
 
 def test_root_with_permission(test_client: TestClient):
     response = make_authenticated_request(
@@ -27,6 +28,7 @@ def test_root_with_permission(test_client: TestClient):
     assert response.status_code == 200
     assert response.text == '"test observer api"'
 
+
 def test_root_without_permission(test_client: TestClient):
     response = make_authenticated_request(
         lambda: test_client.get("/"),
@@ -34,12 +36,14 @@ def test_root_without_permission(test_client: TestClient):
     assert response.status_code == 403
     assert response.json() == {"detail": "Insufficient permissions"}
 
+
 def test_sentry_debug_with_permission(test_client: TestClient):
     with pytest.raises(ZeroDivisionError):
         make_authenticated_request(
             lambda: test_client.get("/sentry-debug"),
             Permission.view_root,
         )
+
 
 def test_sentry_debug_without_permission(test_client: TestClient):
     response = make_authenticated_request(
