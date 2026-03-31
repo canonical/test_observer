@@ -15,29 +15,21 @@
 
 import logging
 
+from pydantic import BaseModel
+
 from test_observer.data_access.models import Artefact, User
 from test_observer.external_apis.jira import JiraClient
 
 logger = logging.getLogger(__name__)
 
 
-class JiraIssueContext:
+class JiraIssueContext(BaseModel):
     """Holds information needed to create Jira issues"""
 
-    def __init__(
-        self,
-        # TODO(raul): require both fields
-        client: JiraClient,
-        parent_issue: str,
-    ):
-        """Initialize JiraIssueContext with Jira client and parent issue key
+    client: JiraClient
+    parent_issue: str
 
-        Args:
-            client: JiraClient instance to use for creating issues
-            parent_issue: Parent issue key to link created Jira issues under (e.g., "TO-123")
-        """
-        self.client = client
-        self.parent_issue = parent_issue
+    model_config = {"arbitrary_types_allowed": True}
 
     @property
     def project_key(self) -> str:
