@@ -38,8 +38,9 @@ from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
 )
-from test_observer.data_access.setup import get_db, get_jira_client
+from test_observer.data_access.setup import get_db
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
+from test_observer.external_apis.jira.jira_client import JiraClient
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -281,6 +282,7 @@ def start_test_execution(
 def create_artefact_review_cards(
     artefact: Artefact,
     reviewer: User,
+    jira_client: JiraClient,
 ) -> None:
     """Create Jira review cards for an artefact and a reviewer
 
@@ -317,7 +319,7 @@ def create_artefact_review_cards(
     try:
         issue_creator = IssueCreator(
             JiraIssueContext(
-                client=get_jira_client(),
+                client=jira_client,
                 parent_issue=artefact.jira_issue,
             )
         )

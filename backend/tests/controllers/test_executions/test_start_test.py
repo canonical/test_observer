@@ -1077,22 +1077,31 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        # Create mock IssueCreator
+        # Create mock instances
         mock_issue_creator = Mock()
+        mock_jira_client = Mock()
+        mock_jira_context = Mock()
 
-        # Mock the IssueCreator class to return our mock instance
-        with patch("test_observer.controllers.test_executions.start_test.IssueCreator") as mock_issue_creator_class:
+        # Mock both IssueCreator and JiraIssueContext classes
+        with (
+            patch("test_observer.controllers.test_executions.start_test.IssueCreator") as mock_issue_creator_class,
+            patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
+        ):
             mock_issue_creator_class.return_value = mock_issue_creator
+            mock_context_class.return_value = mock_jira_context
 
-            create_artefact_review_cards(artefact, reviewer)
+            create_artefact_review_cards(artefact, reviewer, mock_jira_client)
 
-            # Verify IssueCreator was called with JiraIssueContext
-            mock_issue_creator_class.assert_called_once()
+            # Verify JiraIssueContext was instantiated with correct parameters
+            mock_context_class.assert_called_once_with(client=mock_jira_client, parent_issue="TEST-123")
+
+            # Verify IssueCreator was instantiated with the context
+            mock_issue_creator_class.assert_called_once_with(mock_jira_context)
 
             # Verify create_review_issues was called
             mock_issue_creator.create_review_issues.assert_called_once_with(artefact, reviewer)
 
-    def test_create_review_cards_no_jira_issue(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
+    def test_create_review_cards_no_jira_issue(self, generator: DataGenerator):
         """Test that ValueError is raised when artefact has no jira issue"""
         # Create artefact with reviewer but NO jira issue
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
@@ -1100,24 +1109,18 @@ class TestCreateArtefactReviewCards:
             name="test-snap",
             version="1.0.0",
             reviewers=[reviewer],
-        )
-        # jira_issue is None by default
+        )  # jira_issue is None by default
 
-        # Create mock JiraClient and mock get_jira_client
         mock_client = Mock()
-        monkeypatch.setattr(
-            "test_observer.controllers.test_executions.start_test.get_jira_client",
-            lambda: mock_client,
-        )
 
         # Should raise ValueError
         with pytest.raises(ValueError, match="has no linked Jira issue"):
-            create_artefact_review_cards(artefact, reviewer)
+            create_artefact_review_cards(artefact, reviewer, mock_client)
 
         # create_issue should not be called
         mock_client.create_issue.assert_not_called()
 
-    def test_create_review_cards_no_reviewers(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
+    def test_create_review_cards_no_reviewers(self, generator: DataGenerator):
         """Test that function raises ValueError when artefact has no reviewers"""
         # Create artefact with jira issue but NO reviewers
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
@@ -1128,18 +1131,13 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        # Create mock JiraClient and mock get_jira_client
         mock_client = Mock()
-        monkeypatch.setattr(
-            "test_observer.controllers.test_executions.start_test.get_jira_client",
-            lambda: mock_client,
-        )
 
         # Should raise ValueError
         with pytest.raises(ValueError, match="has no reviewers assigned"):
-            create_artefact_review_cards(artefact, reviewer)
+            create_artefact_review_cards(artefact, reviewer, mock_client)
 
-    def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
+    def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator):
         """Test that function raises ValueError when reviewer is not in artefact's reviewer list"""
         # Create two different users
         assigned_reviewer = generator.gen_user(name="Alice", email="alice@example.com")
@@ -1153,13 +1151,8 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        # Create mock JiraClient and mock get_jira_client
         mock_client = Mock()
-        monkeypatch.setattr(
-            "test_observer.controllers.test_executions.start_test.get_jira_client",
-            lambda: mock_client,
-        )
 
         # Try to create cards for Bob (not a reviewer)
         with pytest.raises(ValueError, match="reviewers do not include"):
-            create_artefact_review_cards(artefact, unrelated_user)
+            create_artefact_review_cards(artefact, unrelated_user, mock_client)
