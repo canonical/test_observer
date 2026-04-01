@@ -21,12 +21,12 @@ import 'api.dart';
 
 part 'notifications.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 Future<UserNotifications> notifications(Ref ref) async {
   return ref.watch(apiProvider).getNotifications();
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 Future<int> unreadNotificationCount(Ref ref) async {
   return ref.watch(apiProvider).getUnreadNotificationCount();
 }
