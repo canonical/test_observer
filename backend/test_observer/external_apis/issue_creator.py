@@ -70,15 +70,14 @@ class IssueCreator:
         if not self.jira_ctx:
             raise ValueError("No issue creation context configured")
 
-        if self.jira_ctx:
-            logger.info(f"Creating Jira issue: {summary}")
-            self.jira_ctx.client.create_issue(
-                project_key=self.jira_ctx.project_key,
-                summary=summary,
-                issue_type=issue_type,
-                description=description,
-                parent_issue_key=self.jira_ctx.parent_issue,
-            )
+        logger.info(f"Creating Jira issue: {summary}")
+        self.jira_ctx.client.create_issue(
+            project_key=self.jira_ctx.project_key,
+            summary=summary,
+            issue_type=issue_type,
+            description=description,
+            parent_issue_key=self.jira_ctx.parent_issue,
+        )
 
     def create_review_issues(
         self,
