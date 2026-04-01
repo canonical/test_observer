@@ -114,7 +114,7 @@ class JiraClient:
             issue_type: Issue type (default: "Task")
             description: Issue description
             parent_issue_key: Parent issue key to link this issue to (e.g., "TO-123")
-            assignee: Jira account ID or email address of the assignee
+            assignee: Jira account ID
 
         Returns:
             Created issue key (e.g., "TO-456")
