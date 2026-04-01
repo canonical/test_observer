@@ -16,6 +16,7 @@
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
+from unittest.mock import Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,6 +24,9 @@ from httpx import Response
 from sqlalchemy.orm import Session
 
 from test_observer.common.permissions import Permission
+from test_observer.controllers.test_executions.start_test import (
+    create_artefact_review_cards,
+)
 from test_observer.data_access.models import (
     Artefact,
     TestExecution,
@@ -1062,14 +1066,8 @@ class TestCreateArtefactReviewCards:
         monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
         monkeypatch.setenv("JIRA_PROJECT_KEY", "TEST")
 
-    def test_create_review_cards_happy_path(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
+    def test_create_review_cards_happy_path(self, generator: DataGenerator):
         """Test successful creation of review cards for artefact with reviewer and epic"""
-        from unittest.mock import Mock, patch
-
-        from test_observer.controllers.test_executions.start_test import (
-            create_artefact_review_cards,
-        )
-
         # Create artefact with a reviewer and jira issue
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
@@ -1081,27 +1079,21 @@ class TestCreateArtefactReviewCards:
 
         # Create mock IssueCreator
         mock_issue_creator = Mock()
-        
+
         # Mock the IssueCreator class to return our mock instance
-        with patch("test_observer.controllers.test_executions.start_test.IssueCreator") as MockIssueCreator:
-            MockIssueCreator.return_value = mock_issue_creator
-            
+        with patch("test_observer.controllers.test_executions.start_test.IssueCreator") as mock_issue_creator_class:
+            mock_issue_creator_class.return_value = mock_issue_creator
+
             create_artefact_review_cards(artefact, reviewer)
-            
+
             # Verify IssueCreator was called with JiraIssueContext
-            MockIssueCreator.assert_called_once()
-            
+            mock_issue_creator_class.assert_called_once()
+
             # Verify create_review_issues was called
             mock_issue_creator.create_review_issues.assert_called_once_with(artefact, reviewer)
 
     def test_create_review_cards_no_jira_issue(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test that ValueError is raised when artefact has no jira issue"""
-        from unittest.mock import Mock
-
-        from test_observer.controllers.test_executions.start_test import (
-            create_artefact_review_cards,
-        )
-
         # Create artefact with reviewer but NO jira issue
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
@@ -1127,12 +1119,6 @@ class TestCreateArtefactReviewCards:
 
     def test_create_review_cards_no_reviewers(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test that function raises ValueError when artefact has no reviewers"""
-        from unittest.mock import Mock
-
-        from test_observer.controllers.test_executions.start_test import (
-            create_artefact_review_cards,
-        )
-
         # Create artefact with jira issue but NO reviewers
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
@@ -1155,12 +1141,6 @@ class TestCreateArtefactReviewCards:
 
     def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test that function raises ValueError when reviewer is not in artefact's reviewer list"""
-        from unittest.mock import Mock
-
-        from test_observer.controllers.test_executions.start_test import (
-            create_artefact_review_cards,
-        )
-
         # Create two different users
         assigned_reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         unrelated_user = generator.gen_user(name="Bob", email="bob@example.com")
