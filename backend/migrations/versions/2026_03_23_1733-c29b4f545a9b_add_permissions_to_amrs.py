@@ -57,7 +57,8 @@ def upgrade() -> None:
     )
     permission_enum.create(op.get_bind(), checkfirst=True)
     op.add_column(
-        "artefact_matching_rule", sa.Column("grant_permissions", postgresql.ARRAY(permission_enum), nullable=False)
+        "artefact_matching_rule",
+        sa.Column("grant_permissions", postgresql.ARRAY(permission_enum), nullable=False, server_default="{}"),
     )
     # ### end Alembic commands ###
 
