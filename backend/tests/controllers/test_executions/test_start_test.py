@@ -1064,7 +1064,7 @@ class TestCreateArtefactReviewCards:
 
     def test_create_review_cards_happy_path(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test successful creation of review cards for artefact with reviewer and epic"""
-        from unittest.mock import Mock
+        from unittest.mock import Mock, patch
 
         from test_observer.controllers.test_executions.start_test import (
             create_artefact_review_cards,
@@ -1079,36 +1079,20 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        # Create mock JiraClient and mock get_jira_client
-        mock_client = Mock()
-        monkeypatch.setattr(
-            "test_observer.controllers.test_executions.start_test.get_jira_client",
-            lambda: mock_client,
-        )
-
-        create_artefact_review_cards(artefact, reviewer)
-
-        # Verify create_issue was called 2 times (artefact review + environment review)
-        assert mock_client.create_issue.call_count == 2
-
-        # Verify calls
-        calls = mock_client.create_issue.call_args_list
-
-        # Artefact review card
-        assert calls[0].kwargs["project_key"] == "TEST"
-        assert calls[0].kwargs["summary"] == "Review artefact test-snap version 1.0.0 - Alice"
-        assert calls[0].kwargs["issue_type"] == "Task"
-        assert "test-snap" in calls[0].kwargs["description"]
-        assert "1.0.0" in calls[0].kwargs["description"]
-        assert calls[0].kwargs["parent_issue_key"] == "TEST-123"
-
-        # Environment review card
-        assert calls[1].kwargs["project_key"] == "TEST"
-        assert "Review environments of Artefact test-snap version 1.0.0" in calls[1].kwargs["summary"]
-        assert "Alice" in calls[1].kwargs["summary"]
-        assert calls[1].kwargs["issue_type"] == "Task"
-        assert "test-snap" in calls[1].kwargs["description"]
-        assert calls[1].kwargs["parent_issue_key"] == "TEST-123"
+        # Create mock IssueCreator
+        mock_issue_creator = Mock()
+        
+        # Mock the IssueCreator class to return our mock instance
+        with patch("test_observer.controllers.test_executions.start_test.IssueCreator") as MockIssueCreator:
+            MockIssueCreator.return_value = mock_issue_creator
+            
+            create_artefact_review_cards(artefact, reviewer)
+            
+            # Verify IssueCreator was called with JiraIssueContext
+            MockIssueCreator.assert_called_once()
+            
+            # Verify create_review_issues was called
+            mock_issue_creator.create_review_issues.assert_called_once_with(artefact, reviewer)
 
     def test_create_review_cards_no_jira_issue(self, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch):
         """Test that ValueError is raised when artefact has no jira issue"""

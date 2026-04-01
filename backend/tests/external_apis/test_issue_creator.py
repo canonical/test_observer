@@ -27,7 +27,7 @@ class TestCreateIssue:
     def test_create_issue_with_jira_client(self):
         """Test creating issue with Jira client"""
         mock_jira = Mock()
-        jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
+        jira_ctx = JiraIssueContext.model_construct(client=mock_jira, parent_issue="TO-123")
         creator = IssueCreator(jira_ctx=jira_ctx)
 
         creator.create_issue(
@@ -71,7 +71,7 @@ class TestCreateReviewIssues:
     def test_create_review_issues_success(self, generator: DataGenerator):
         """Test successful creation of review issues"""
         mock_jira = Mock()
-        jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
+        jira_ctx = JiraIssueContext.model_construct(client=mock_jira, parent_issue="TO-123")
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
             name="test-snap",
@@ -104,7 +104,7 @@ class TestCreateReviewIssues:
     def test_create_review_issues_no_reviewers(self, generator: DataGenerator):
         """Test that ValueError is raised when artefact has no reviewers"""
         mock_jira = Mock()
-        jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
+        jira_ctx = JiraIssueContext.model_construct(client=mock_jira, parent_issue="TO-123")
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
             name="test-snap",
@@ -122,7 +122,7 @@ class TestCreateReviewIssues:
     def test_create_review_issues_invalid_reviewer(self, generator: DataGenerator):
         """Test that ValueError is raised when reviewer is not in artefact's reviewer list"""
         mock_jira = Mock()
-        jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
+        jira_ctx = JiraIssueContext.model_construct(client=mock_jira, parent_issue="TO-123")
         valid_reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         invalid_reviewer = generator.gen_user(name="Bob", email="bob@example.com")
         artefact = generator.gen_artefact(
