@@ -112,6 +112,9 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
       await ref
           .read(apiProvider)
           .markNotificationAsRead(widget.notification.id);
+      if (!mounted) {
+        return;
+      }
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadNotificationCountProvider);
     } catch (error, stack) {
