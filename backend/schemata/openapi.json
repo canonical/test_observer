@@ -5260,6 +5260,11 @@
       },
       "ArtefactMatchingRuleBase": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -5292,25 +5297,58 @@
             "type": "integer",
             "title": "Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Stage"
           },
           "track": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Track"
           },
           "branch": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Branch"
           }
         },
         "type": "object",
         "required": [
           "id",
+          "name",
           "family",
           "stage",
           "track",
@@ -5321,6 +5359,17 @@
       },
       "ArtefactMatchingRulePatch": {
         "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "anyOf": [
               {
@@ -5385,6 +5434,11 @@
       },
       "ArtefactMatchingRuleRequest": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -5425,19 +5479,51 @@
             "type": "integer",
             "title": "Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Stage"
           },
           "track": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Track"
           },
           "branch": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Branch"
           },
           "teams": {
@@ -5451,6 +5537,7 @@
         "type": "object",
         "required": [
           "id",
+          "name",
           "family",
           "stage",
           "track",
