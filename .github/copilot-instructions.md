@@ -21,6 +21,18 @@ SPDX-License-Identifier: Apache-2.0
 
 This file provides guidance for GitHub Copilot when reviewing pull requests in the Test Observer repository.
 
+## Core Design Principle
+
+**Test Observer is a generic test observation platform.** It must not contain logic that is specific to any artefact type, package format, or distribution system (snaps, debs, charms, images, etc.).
+
+This is a cornerstone of the project's architecture:
+- Test Observer's role is solely to receive, store, and surface test results in a format-agnostic way
+- Logic that branches on artefact family (e.g. `if family == "snap"`) is **prohibited in new code**
+- Integrations with artefact-specific external systems (Snapcraft API, Launchpad API, etc.) are **technical debt** — do not add new ones
+- Family-specific frontend routes and UI branches are **technical debt** — do not expand them
+
+When reviewing PRs, **flag any new artefact-specific logic as a blocking issue**. Reference this principle when doing so. Existing artefact-specific code should be tracked as technical debt and removed over time, not used as a precedent for new additions.
+
 ## Review Focus Areas
 
 ### General Code Quality
@@ -68,7 +80,13 @@ This file provides guidance for GitHub Copilot when reviewing pull requests in t
 
 ### Common Issues to Flag
 
-1. **Resource leaks**:
+1. **Artefact-specific logic** _(blocking)_:
+   - Any code that checks or branches on artefact family (`snap`, `deb`, `charm`, `image`, etc.)
+   - New integrations with artefact-specific external APIs (Snapcraft, Launchpad, etc.)
+   - New family-specific frontend routes, widgets, or UI branches
+   - These violate the core design principle and must not be introduced in new code
+
+2. **Resource leaks**:
    - Missing `finally` blocks for state cleanup
    - Unclosed streams, subscriptions, or database connections
    - Unmounted widget checks in Flutter async operations
@@ -104,7 +122,7 @@ This file provides guidance for GitHub Copilot when reviewing pull requests in t
 
 ### Detailed Review
 
-1. **Architecture alignment**: Does the code follow the patterns described in CLAUDE.md?
+1. **Architecture alignment**: Does the code follow the patterns described in CLAUDE.md? In particular, does it respect the **generic test observation** principle — no artefact-specific logic?
 2. **Code correctness**: Logic bugs, edge cases, error handling
 3. **Test coverage**: Are there tests for new functionality and bug fixes?
 4. **Documentation**: Are docs updated? Are complex sections commented?
@@ -113,6 +131,7 @@ This file provides guidance for GitHub Copilot when reviewing pull requests in t
 
 ### Checklist for PR Approval
 
+- [ ] No artefact-specific logic introduced (snaps, debs, charms, images — see Core Design Principle)
 - [ ] Code follows repository conventions (see CLAUDE.md)
 - [ ] Tests are included and pass (backend: pytest, frontend: flutter test --platform chrome)
 - [ ] Type checking passes (backend: mypy, frontend: flutter analyze)
