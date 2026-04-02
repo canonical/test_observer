@@ -25,7 +25,7 @@ EXCEPTIONS='[
   {"method": "get", "path": "/v1/auth/saml/logout"},
   {"method": "post", "path": "/v1/auth/saml/acs"},
   {"method": "get", "path": "/v1/auth/saml/sls"},
-  {"method": "post", "path": "/v1/auth/saml/sls"},
+  {"method": "post", "path": "/v1/auth/saml/sls"}
 ]'
 
 missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '[
