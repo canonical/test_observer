@@ -86,7 +86,7 @@ class TestCreateReviewIssues:
         # Should call create_issue twice via Jira client
         assert mock_jira.create_issue.call_count == 2
 
-        expected_artefact_url = f"http://localhost:30001/snaps/{artefact.id}"
+        expected_artefact_url = get_artefact_url(artefact)
 
         # First call: artefact review
         first_call = mock_jira.create_issue.call_args_list[0]

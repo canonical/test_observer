@@ -315,5 +315,5 @@ def create_artefact_review_cards(
         issue_creator.create_review_issues(artefact, reviewer)
 
     except Exception as e:
-        logger.error(f"Failed to create Jira review cards for artefact {artefact.id} and user {reviewer.id}: {e}")
+        logger.exception(f"Failed to create Jira review cards for artefact {artefact.id} and user {reviewer.id}: {e}")
         raise

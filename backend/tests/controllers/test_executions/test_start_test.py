@@ -1064,7 +1064,6 @@ class TestCreateArtefactReviewCards:
         monkeypatch.setenv("JIRA_CLOUD_ID", "test-cloud-id")
         monkeypatch.setenv("JIRA_EMAIL", "test@example.com")
         monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
-        monkeypatch.setenv("JIRA_PROJECT_KEY", "TEST")
 
     def test_create_review_cards_happy_path(self, generator: DataGenerator):
         """Test successful creation of review cards for artefact with reviewer and epic"""
