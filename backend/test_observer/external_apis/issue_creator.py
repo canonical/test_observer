@@ -17,7 +17,7 @@ import logging
 
 from pydantic import BaseModel
 
-from test_observer.common.config import FRONTEND_URL
+from test_observer.common.helpers import get_artefact_url
 from test_observer.data_access.models import Artefact, User
 from test_observer.external_apis.jira import JiraClient
 
@@ -51,19 +51,6 @@ class IssueCreator:
             jira_ctx: context for creating Jira issues
         """
         self.jira_ctx = jira_ctx
-
-    @staticmethod
-    def _get_artefact_url(artefact: Artefact) -> str:
-        """Generate the frontend URL for an artefact
-
-        Args:
-            artefact: The artefact to generate URL for
-
-        Returns:
-            Full URL to the artefact page
-        """
-        family_path = f"{artefact.family.value}s"  # snap -> snaps, deb -> debs, etc.
-        return f"{FRONTEND_URL}/{family_path}/{artefact.id}"
 
     def create_issue(
         self,
@@ -123,8 +110,10 @@ class IssueCreator:
             )
 
         artefact_summary = f"Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
-        artefact_url = self._get_artefact_url(artefact)
-        artefact_description = f"Review artefact {artefact.name} version {artefact.version}\n\nArtefact page: {artefact_url}"
+        artefact_url = get_artefact_url(artefact)
+        artefact_description = (
+            f"Review artefact {artefact.name} version {artefact.version}\n\nArtefact page: {artefact_url}"
+        )
 
         self.create_issue(
             summary=artefact_summary,
@@ -135,7 +124,10 @@ class IssueCreator:
         environment_summary = (
             f"Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
         )
-        environment_description = f"Review test environments for artefact {artefact.name} version {artefact.version}\n\nArtefact page: {artefact_url}"
+        environment_description = (
+            f"Review test environments for artefact {artefact.name} version {artefact.version}\n\n"
+            f"Artefact page: {artefact_url}"
+        )
 
         self.create_issue(
             summary=environment_summary,

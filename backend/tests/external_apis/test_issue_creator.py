@@ -17,6 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from test_observer.common.helpers import get_artefact_url
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from tests.data_generator import DataGenerator
 
@@ -102,9 +103,9 @@ class TestCreateReviewIssues:
         second_call = mock_jira.create_issue.call_args_list[1]
         assert second_call.kwargs["project_key"] == "TO"
         assert second_call.kwargs["summary"] == "Review environments of Artefact test-snap version 1.0.0 - Alice"
-        assert (
-            second_call.kwargs["description"]
-            == f"Review test environments for artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
+        assert second_call.kwargs["description"] == (
+            f"Review test environments for artefact test-snap version 1.0.0\n\n"
+            f"Artefact page: {expected_artefact_url}"
         )
         assert second_call.kwargs["issue_type"] == "Task"
         assert second_call.kwargs["parent_issue_key"] == "TO-123"
@@ -148,13 +149,13 @@ class TestCreateReviewIssues:
 
 
 class TestGetArtefactUrl:
-    """Test _get_artefact_url helper method"""
+    """Test get_artefact_url helper function"""
 
     def test_snap_url_generation(self, generator: DataGenerator):
         """Test URL generation for snap artefacts"""
         artefact = generator.gen_artefact(name="test-snap", version="1.0.0")
         # Default family for artefact is snap
-        url = IssueCreator._get_artefact_url(artefact)
+        url = get_artefact_url(artefact)
         assert url == f"http://localhost:30001/snaps/{artefact.id}"
 
     def test_deb_url_generation(self, generator: DataGenerator):
@@ -163,7 +164,7 @@ class TestGetArtefactUrl:
 
         artefact = generator.gen_artefact(name="test-deb", version="1.0.0")
         artefact.family = FamilyName.deb
-        url = IssueCreator._get_artefact_url(artefact)
+        url = get_artefact_url(artefact)
         assert url == f"http://localhost:30001/debs/{artefact.id}"
 
     def test_charm_url_generation(self, generator: DataGenerator):
@@ -172,7 +173,7 @@ class TestGetArtefactUrl:
 
         artefact = generator.gen_artefact(name="test-charm", version="1.0.0")
         artefact.family = FamilyName.charm
-        url = IssueCreator._get_artefact_url(artefact)
+        url = get_artefact_url(artefact)
         assert url == f"http://localhost:30001/charms/{artefact.id}"
 
     def test_image_url_generation(self, generator: DataGenerator):
@@ -181,5 +182,5 @@ class TestGetArtefactUrl:
 
         artefact = generator.gen_artefact(name="test-image", version="1.0.0")
         artefact.family = FamilyName.image
-        url = IssueCreator._get_artefact_url(artefact)
+        url = get_artefact_url(artefact)
         assert url == f"http://localhost:30001/images/{artefact.id}"
