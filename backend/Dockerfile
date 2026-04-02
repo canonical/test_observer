@@ -44,7 +44,11 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --all-groups
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD curl --fail http://localhost:30000/v1/version || exit 1
+# Since the application returns 403 for unauthenticated requests,
+# we check for that specifically to ensure the app is running and responding as expected.
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+    CMD curl --output /dev/null --silent --write-out "%{http_code}" http://localhost:30000 \
+        | grep --silent 403 || exit 1
 
 WORKDIR /home/app
 
