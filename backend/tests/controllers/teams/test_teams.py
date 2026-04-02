@@ -165,6 +165,32 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
     assert data["members"][0]["id"] == user.id
 
 
+def test_clear_team_permissions(test_client: TestClient, generator: DataGenerator):
+    """Test that sending an empty permissions list clears all permissions"""
+    user = generator.gen_user()
+    team = generator.gen_team(
+        members=[user],
+        permissions=[Permission.view_user, Permission.change_user],
+    )
+
+    # Verify team has permissions initially
+    assert len(team.permissions) == 2
+
+    # Clear permissions by sending empty list
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"permissions": []},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == team.id
+    assert data["permissions"] == []
+
+
 def test_set_invalid_permission(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
     team = generator.gen_team(members=[user])

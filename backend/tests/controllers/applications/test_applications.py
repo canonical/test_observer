@@ -119,3 +119,25 @@ def test_update_application_permissions(test_client: TestClient, generator: Data
         "permissions": [Permission.view_user],
         "api_key": application.api_key,
     }
+
+
+def test_clear_application_permissions(test_client: TestClient, generator: DataGenerator):
+    """Test that sending an empty permissions list clears all permissions"""
+    application = generator.gen_application(
+        permissions=[Permission.view_user, Permission.change_user],
+    )
+
+    # Verify application has permissions initially
+    assert len(application.permissions) == 2
+
+    # Clear permissions by sending empty list
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/applications/{application.id}",
+            json={"permissions": []},
+        ),
+        Permission.change_application,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["permissions"] == []
