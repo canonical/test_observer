@@ -21,6 +21,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/user_notification.dart';
 import '../../providers/api.dart';
 import '../../providers/notifications.dart';
+import '../notification.dart';
 import '../spacing.dart';
 
 class NotificationsPage extends ConsumerWidget {
@@ -121,16 +122,10 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
       debugPrint('Failed to dismiss notification: $error');
       debugPrintStack(stackTrace: stack);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to dismiss notification. Please try again.',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onError,
-              ),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showNotification(
+          context,
+          'Failed to dismiss notification. Please try again.',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
     } finally {
@@ -151,16 +146,10 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
               try {
                 context.go(widget.notification.targetUrl!);
               } catch (error) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Invalid notification link: ${widget.notification.targetUrl}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onError,
-                      ),
-                    ),
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
+                showNotification(
+                  context,
+                  'Invalid notification link: ${widget.notification.targetUrl}',
+                  backgroundColor: Theme.of(context).colorScheme.error,
                 );
               }
             }
