@@ -38,10 +38,11 @@ if [ "${SEED_DATA:-false}" = "true" ]; then
     timeout=60
     count=0
     while [ $count -lt $timeout ]; do
-        # Since the application returns 403 for unauthenticated requests,
-        # we check for that specifically to ensure the app is running and responding as expected.
+        # If the application is running without ignored permissions,
+        # we expect a 403 status.
+        # If it is running with view_docs ignored, we expect a 200 status.
         if curl --output /dev/null --silent --write-out "%{http_code}" http://localhost:30000 \
-            grep --silent 403 > /dev/null 2>&1; then
+            | grep --silent "200\|403" > /dev/null 2>&1; then
             echo "API server is ready. Starting database seeding..."
             break
         fi

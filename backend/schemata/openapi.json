@@ -23,7 +23,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_basic"
+        ]
       }
     },
     "/v1/test-executions/end-test": {
@@ -3812,7 +3815,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_self"
+        ]
       }
     },
     "/v1/users": {
@@ -4389,7 +4395,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_self"
+        ]
       }
     },
     "/v1/applications/{application_id}": {
@@ -4972,7 +4981,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_basic"
+        ]
       }
     },
     "/sentry-debug": {
@@ -4988,7 +5000,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_sentry_debug"
+        ]
       }
     }
   },
@@ -6789,6 +6804,10 @@
       "Permission": {
         "type": "string",
         "enum": [
+          "view_basic",
+          "view_sentry_debug",
+          "view_docs",
+          "view_self",
           "view_user",
           "change_user",
           "view_team",
