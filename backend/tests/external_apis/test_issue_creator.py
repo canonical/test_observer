@@ -104,8 +104,7 @@ class TestCreateReviewIssues:
         assert second_call.kwargs["project_key"] == "TO"
         assert second_call.kwargs["summary"] == "Review environments of Artefact test-snap version 1.0.0 - Alice"
         assert second_call.kwargs["description"] == (
-            f"Review test environments for artefact test-snap version 1.0.0\n\n"
-            f"Artefact page: {expected_artefact_url}"
+            f"Review test environments for artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
         )
         assert second_call.kwargs["issue_type"] == "Task"
         assert second_call.kwargs["parent_issue_key"] == "TO-123"
