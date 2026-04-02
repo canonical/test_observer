@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # If the application is running without ignored permissions,
 # we expect a 403 status.
-# If it is running with view_docs ignored, we expect a 200 status.
+# If it is running with the right permission ignored, we expect a 200 status.
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
     CMD curl --output /dev/null --silent --write-out "%{http_code}" http://localhost:30000 \
         | grep --silent "200\|403" || exit 1

@@ -40,7 +40,7 @@ if [ "${SEED_DATA:-false}" = "true" ]; then
     while [ $count -lt $timeout ]; do
         # If the application is running without ignored permissions,
         # we expect a 403 status.
-        # If it is running with view_docs ignored, we expect a 200 status.
+        # If it is running with the right permission ignored, we expect a 200 status.
         if curl --output /dev/null --silent --write-out "%{http_code}" http://localhost:30000 \
             | grep --silent "200\|403" > /dev/null 2>&1; then
             echo "API server is ready. Starting database seeding..."
