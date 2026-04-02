@@ -1131,11 +1131,16 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        mock_client = Mock()
+        mock_jira_client = Mock()
 
-        # Should raise ValueError
-        with pytest.raises(ValueError, match="has no reviewers assigned"):
-            create_artefact_review_cards(artefact, reviewer, mock_client)
+        # Should raise ValueError from IssueCreator.create_review_issues
+        # Need to patch JiraIssueContext to bypass Pydantic validation
+        with (
+            patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
+            pytest.raises(ValueError, match="has no reviewers assigned"),
+        ):
+            mock_context_class.return_value = Mock()
+            create_artefact_review_cards(artefact, reviewer, mock_jira_client)
 
     def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator):
         """Test that function raises ValueError when reviewer is not in artefact's reviewer list"""
@@ -1151,8 +1156,13 @@ class TestCreateArtefactReviewCards:
         )
         artefact.jira_issue = "TEST-123"
 
-        mock_client = Mock()
+        mock_jira_client = Mock()
 
-        # Try to create cards for Bob (not a reviewer)
-        with pytest.raises(ValueError, match="reviewers do not include"):
-            create_artefact_review_cards(artefact, unrelated_user, mock_client)
+        # Try to create cards for Bob (not a reviewer) - should raise ValueError from IssueCreator.create_review_issues
+        # Need to patch JiraIssueContext to bypass Pydantic validation
+        with (
+            patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
+            pytest.raises(ValueError, match="reviewers do not include"),
+        ):
+            mock_context_class.return_value = Mock()
+            create_artefact_review_cards(artefact, unrelated_user, mock_jira_client)

@@ -305,17 +305,6 @@ def create_artefact_review_cards(
             "Cannot create review cards without a parent issue."
         )
 
-    if not artefact.reviewers:
-        raise ValueError(
-            f"Artefact {artefact.id} has no reviewers assigned. Cannot create review cards without reviewers."
-        )
-
-    if reviewer not in artefact.reviewers:
-        raise ValueError(
-            f"Artefact {artefact.id} reviewers do not include user {reviewer.id}. "
-            "Cannot create review cards for non-reviewer."
-        )
-
     try:
         issue_creator = IssueCreator(
             JiraIssueContext(
