@@ -197,7 +197,7 @@ def test_get_notifications_with_pagination(
     # Create 5 notifications with different artefact families
     notifications = []
     families = ["snaps", "images", "debs", "charms", "snaps"]
-    for idx, family in enumerate(islice(cycle(families), 0, 5)):
+    for idx, family in enumerate(families)
         notification = generator.gen_notification(
             user=user,
             notification_type=NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
