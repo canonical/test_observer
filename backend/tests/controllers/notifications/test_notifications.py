@@ -15,7 +15,6 @@
 
 from collections.abc import Callable
 from datetime import datetime
-from itertools import cycle, islice
 
 from fastapi.testclient import TestClient
 
@@ -197,7 +196,7 @@ def test_get_notifications_with_pagination(
     # Create 5 notifications with different artefact families
     notifications = []
     families = ["snaps", "images", "debs", "charms", "snaps"]
-    for idx, family in enumerate(families)
+    for idx, family in enumerate(families):
         notification = generator.gen_notification(
             user=user,
             notification_type=NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
