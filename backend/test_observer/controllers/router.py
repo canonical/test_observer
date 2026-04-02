@@ -60,13 +60,13 @@ router.include_router(docs.router)
 router.include_router(artefact_matching_rules.router, prefix="/v1/artefact-matching-rules")
 
 
-@router.get("/", dependencies=[Security(permission_checker, scopes=[Permission.view_root])])
+@router.get("/", dependencies=[Security(permission_checker, scopes=[Permission.view_basic])])
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
     return "test observer api"
 
 
-@router.get("/sentry-debug", dependencies=[Security(permission_checker, scopes=[Permission.view_root])])
+@router.get("/sentry-debug", dependencies=[Security(permission_checker, scopes=[Permission.view_sentry_debug])])
 def trigger_error():
     division_by_zero = 1 / 0
     return division_by_zero

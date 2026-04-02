@@ -23,7 +23,7 @@ from tests.conftest import make_authenticated_request
 def test_root_with_permission(test_client: TestClient):
     response = make_authenticated_request(
         lambda: test_client.get("/"),
-        Permission.view_root,
+        Permission.view_basic,
     )
     assert response.status_code == 200
     assert response.text == '"test observer api"'
@@ -41,7 +41,7 @@ def test_sentry_debug_with_permission(test_client: TestClient):
     with pytest.raises(ZeroDivisionError):
         make_authenticated_request(
             lambda: test_client.get("/sentry-debug"),
-            Permission.view_root,
+            Permission.view_sentry_debug,
         )
 
 

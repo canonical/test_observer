@@ -58,7 +58,7 @@ def get_applications(
     return db.scalars(select(Application))
 
 
-@router.get("/me", response_model=ApplicationResponse | None)
+@router.get("/me", response_model=ApplicationResponse | None, dependencies=[Security(permission_checker, scopes=[Permission.view_self])])
 def get_authenticated_application(
     app: Application | None = Depends(get_current_application),
 ):

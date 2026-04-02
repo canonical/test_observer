@@ -32,7 +32,11 @@ from test_observer.users.user_injection import get_current_user
 router = APIRouter(tags=["users"])
 
 
-@router.get("/me", response_model=UserResponse | None)
+@router.get(
+    "/me",
+    response_model=UserResponse | None,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_self])],
+)
 def get_authenticated_user(user: User | None = Depends(get_current_user)):
     return user
 

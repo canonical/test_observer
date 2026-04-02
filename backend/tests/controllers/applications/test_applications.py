@@ -84,13 +84,19 @@ def test_get_application(test_client: TestClient, generator: DataGenerator):
     }
 
 
-def test_get_current_application(test_client: TestClient, generator: DataGenerator):
-    application = generator.gen_application()
+def test_get_current_application_without_permission(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application(permissions=[])
 
     response = test_client.get(
         "/v1/applications/me",
         headers={"Authorization": f"Bearer {application.api_key}"},
     )
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Insufficient permissions"}
+
+def test_get_current_application(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application(permissions=[Permission.view_self])
+    response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {application.api_key}"})
 
     assert response.status_code == 200
     assert response.json() == {

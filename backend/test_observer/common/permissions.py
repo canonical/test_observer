@@ -27,6 +27,16 @@ from test_observer.users.user_injection import get_current_user
 
 
 class Permission(StrEnum):
+    # /, /v1/version
+    view_basic = auto()
+    # /sentry-debug, which is intended to be used for testing Sentry integration
+    # and does nothing but raise an exception
+    view_sentry_debug = auto()
+    # Docs (Swagger and OpenAPI schema)
+    view_docs = auto()
+    # /v1/users/me and /v1/applications/me
+    view_self = auto()
+
     # Authentication
     view_user = auto()
     change_user = auto()
@@ -36,12 +46,6 @@ class Permission(StrEnum):
     change_application = auto()
     view_application = auto()
     view_permission = auto()
-
-    # Root (/ and /sentry-debug)
-    view_root = auto()
-
-    # Docs (Swagger and OpenAPI schema)
-    view_docs = auto()
 
     # Issues
     view_issue = auto()

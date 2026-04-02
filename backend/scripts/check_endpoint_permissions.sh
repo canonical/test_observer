@@ -21,11 +21,6 @@ OPENAPI_JSON="$1"
 
 # List exceptions as path/method pairs (method in lowercase)
 EXCEPTIONS='[
-  {"method": "get", "path": "/v1/version"},
-  {"method": "get", "path": "/"},
-  {"method": "get", "path": "/sentry-debug"},
-  {"method": "get", "path": "/openapi.json"},
-  {"method": "get", "path": "/docs"},
   {"method": "get", "path": "/v1/auth/saml/login"},
   {"method": "get", "path": "/v1/auth/saml/logout"},
   {"method": "post", "path": "/v1/auth/saml/acs"},
