@@ -141,7 +141,7 @@ class JiraClient:
             fields["parent"] = {"key": parent_issue_key}
 
         if assignee:
-            fields["assignee"] = {"id": assignee}
+            fields["assignee"] = {"accountId": assignee}
 
         payload = {"fields": fields}
 

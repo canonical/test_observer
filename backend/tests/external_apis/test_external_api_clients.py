@@ -202,7 +202,7 @@ class TestJiraClient:
 
         # the payload should contain the assignee field
         payload = mock_post.call_args.kwargs["json"]
-        assert payload["fields"]["assignee"]["id"] == "5b10ac8d82e05b22cc7d4ef5"
+        assert payload["fields"]["assignee"]["accountId"] == "5b10ac8d82e05b22cc7d4ef5"
 
 
 class TestLaunchpadClient:
