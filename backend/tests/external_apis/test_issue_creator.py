@@ -85,11 +85,16 @@ class TestCreateReviewIssues:
         # Should call create_issue twice via Jira client
         assert mock_jira.create_issue.call_count == 2
 
+        expected_artefact_url = f"http://localhost:30001/snaps/{artefact.id}"
+
         # First call: artefact review
         first_call = mock_jira.create_issue.call_args_list[0]
         assert first_call.kwargs["project_key"] == "TO"
         assert first_call.kwargs["summary"] == "Review artefact test-snap version 1.0.0 - Alice"
-        assert first_call.kwargs["description"] == "Review artefact test-snap version 1.0.0"
+        assert (
+            first_call.kwargs["description"]
+            == f"Review artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
+        )
         assert first_call.kwargs["issue_type"] == "Task"
         assert first_call.kwargs["parent_issue_key"] == "TO-123"
 
@@ -97,7 +102,10 @@ class TestCreateReviewIssues:
         second_call = mock_jira.create_issue.call_args_list[1]
         assert second_call.kwargs["project_key"] == "TO"
         assert second_call.kwargs["summary"] == "Review environments of Artefact test-snap version 1.0.0 - Alice"
-        assert second_call.kwargs["description"] == "Review test environments for artefact test-snap version 1.0.0"
+        assert (
+            second_call.kwargs["description"]
+            == f"Review test environments for artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
+        )
         assert second_call.kwargs["issue_type"] == "Task"
         assert second_call.kwargs["parent_issue_key"] == "TO-123"
 
@@ -137,3 +145,41 @@ class TestCreateReviewIssues:
             creator.create_review_issues(artefact, invalid_reviewer)
 
         mock_jira.create_issue.assert_not_called()
+
+
+class TestGetArtefactUrl:
+    """Test _get_artefact_url helper method"""
+
+    def test_snap_url_generation(self, generator: DataGenerator):
+        """Test URL generation for snap artefacts"""
+        artefact = generator.gen_artefact(name="test-snap", version="1.0.0")
+        # Default family for artefact is snap
+        url = IssueCreator._get_artefact_url(artefact)
+        assert url == f"http://localhost:30001/snaps/{artefact.id}"
+
+    def test_deb_url_generation(self, generator: DataGenerator):
+        """Test URL generation for deb artefacts"""
+        from test_observer.data_access.models_enums import FamilyName
+
+        artefact = generator.gen_artefact(name="test-deb", version="1.0.0")
+        artefact.family = FamilyName.deb
+        url = IssueCreator._get_artefact_url(artefact)
+        assert url == f"http://localhost:30001/debs/{artefact.id}"
+
+    def test_charm_url_generation(self, generator: DataGenerator):
+        """Test URL generation for charm artefacts"""
+        from test_observer.data_access.models_enums import FamilyName
+
+        artefact = generator.gen_artefact(name="test-charm", version="1.0.0")
+        artefact.family = FamilyName.charm
+        url = IssueCreator._get_artefact_url(artefact)
+        assert url == f"http://localhost:30001/charms/{artefact.id}"
+
+    def test_image_url_generation(self, generator: DataGenerator):
+        """Test URL generation for image artefacts"""
+        from test_observer.data_access.models_enums import FamilyName
+
+        artefact = generator.gen_artefact(name="test-image", version="1.0.0")
+        artefact.family = FamilyName.image
+        url = IssueCreator._get_artefact_url(artefact)
+        assert url == f"http://localhost:30001/images/{artefact.id}"
