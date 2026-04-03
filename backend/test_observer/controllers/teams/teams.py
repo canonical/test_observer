@@ -18,7 +18,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleInResponse,
 )
@@ -201,8 +202,8 @@ def update_team(
 ):
     team = _get_team_or_raise_404(db, team_id)
 
-    if request.permissions:
-        team.permissions = [p.value for p in request.permissions]
+    if request.permissions is not None:
+        team.permissions = request.permissions
 
     if request.artefact_matching_rules is not None:
         _sync_artefact_matching_rules(db, team, request.artefact_matching_rules)

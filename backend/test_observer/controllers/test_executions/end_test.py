@@ -17,7 +17,8 @@ from fastapi import Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.issues.attachment_rules_logic import (
     apply_test_result_attachment_rules,
 )

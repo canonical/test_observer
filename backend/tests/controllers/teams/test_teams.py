@@ -15,7 +15,7 @@
 
 from fastapi.testclient import TestClient
 
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -129,7 +129,7 @@ def test_get_teams(test_client: TestClient, generator: DataGenerator):
 
 def test_get_team(test_client: TestClient, generator: DataGenerator):
     user = generator.gen_user()
-    team = generator.gen_team(permissions=["create_artefact"], members=[user])
+    team = generator.gen_team(permissions=[Permission.change_artefact], members=[user])
 
     response = make_authenticated_request(lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team)
 
@@ -163,6 +163,32 @@ def test_update_team_permissions(test_client: TestClient, generator: DataGenerat
     assert data["artefact_matching_rules"] == []
     assert len(data["members"]) == 1
     assert data["members"][0]["id"] == user.id
+
+
+def test_clear_team_permissions(test_client: TestClient, generator: DataGenerator):
+    """Test that sending an empty permissions list clears all permissions"""
+    user = generator.gen_user()
+    team = generator.gen_team(
+        members=[user],
+        permissions=[Permission.view_user, Permission.change_user],
+    )
+
+    # Verify team has permissions initially
+    assert len(team.permissions) == 2
+
+    # Clear permissions by sending empty list
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"permissions": []},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == team.id
+    assert data["permissions"] == []
 
 
 def test_set_invalid_permission(test_client: TestClient, generator: DataGenerator):

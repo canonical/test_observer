@@ -17,7 +17,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.controllers.issues.attachment_rules_logic import (
     apply_test_result_attachment_rules,
 )
