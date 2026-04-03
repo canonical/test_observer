@@ -17,6 +17,7 @@ import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intersperse/intersperse.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
@@ -65,11 +66,23 @@ class ArtefactPageInfoSection extends ConsumerWidget {
         if (artefact.sha256.isNotEmpty)
           Text('sha256: ${artefact.sha256}', style: fontStyle),
         if (artefact.imageUrl.isNotEmpty)
-          InlineUrlText(
-            leadingText: 'image link: ',
-            url: artefact.imageUrl,
-            urlText: artefact.imageUrl,
-            fontStyle: fontStyle,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: SelectableText(
+                  'image link: ${artefact.imageUrl}',
+                  style: fontStyle,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.open_in_new, size: 16),
+                onPressed: () => launchUrlString(artefact.imageUrl),
+                tooltip: 'Open link',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
           ),
         if (bugLink.isNotBlank)
           InlineUrlText(
