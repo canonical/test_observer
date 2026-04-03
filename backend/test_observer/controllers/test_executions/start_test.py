@@ -310,7 +310,7 @@ def create_artefact_review_cards(
 
     try:
         issue_creator = IssueCreator(
-            JiraIssueContext(
+            jira_ctx=JiraIssueContext(
                 client=jira_client,
                 parent_issue=artefact.jira_issue,
             )
