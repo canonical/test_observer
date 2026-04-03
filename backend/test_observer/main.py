@@ -19,18 +19,16 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_client import start_http_server as start_metrics_server
+from prometheus_client import start_http_server
 from starlette.middleware.sessions import SessionMiddleware
 
 from test_observer.common.config import (
     FRONTEND_URL,
-    HEALTHCHECK_PORT,
     METRICS_PORT,
     SENTRY_DSN,
     SESSIONS_HTTPS_ONLY,
     SESSIONS_SECRET,
 )
-from test_observer.common.healthcheck import start_http_server as start_healthcheck_server
 from test_observer.common.metrics import instrumentator
 from test_observer.common.metrics_initializer import initialize_all_metrics
 from test_observer.controllers.router import router
@@ -49,20 +47,12 @@ async def lifespan(_app: FastAPI):
     Application lifespan manager.
 
     Handles startup and shutdown events for the FastAPI application.
-    On startup, starts the healthcheck server, metrics server, and initializes
-    Prometheus metrics from the database.
+    On startup, starts the metrics server and initializes Prometheus metrics
+    from the database.
     """
-    # Startup: Start healthcheck server on separate port
-    try:
-        start_healthcheck_server(HEALTHCHECK_PORT)
-        logger.info(f"Healthcheck server started on port {HEALTHCHECK_PORT}")
-    except Exception as e:
-        logger.exception(f"Failed to start healthcheck server: {e}")
-        # Continue startup even if healthcheck server fails
-
     # Startup: Start metrics HTTP server on separate port
     try:
-        start_metrics_server(METRICS_PORT)
+        start_http_server(METRICS_PORT)
         logger.info(f"Metrics server started on port {METRICS_PORT}")
     except Exception as e:
         logger.exception(f"Failed to start metrics server: {e}")

@@ -14,10 +14,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-from threading import Thread
 
-import uvicorn
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -25,41 +23,11 @@ from test_observer.data_access.setup import get_db
 
 logger = logging.getLogger("test-observer-backend")
 
-router = APIRouter(prefix="/healthcheck", tags=["health"])
-
-
-def create_app() -> FastAPI:
-    """Create a minimal FastAPI app for healthcheck endpoints."""
-    app = FastAPI(
-        title="Test Observer Healthcheck",
-        description="Healthcheck endpoints for container orchestration",
-        docs_url=None,
-        openapi_url=None,
-        redoc_url=None,
-    )
-    app.include_router(router)
-    return app
-
-
-def start_http_server(port: int) -> Thread:
-    """Start healthcheck server in a background thread."""
-    app = create_app()
-
-    config = uvicorn.Config(
-        app,
-        host="0.0.0.0",
-        port=port,
-        log_level="info",
-    )
-    server = uvicorn.Server(config)
-
-    thread = Thread(daemon=True, target=server.run)
-    thread.start()
-    return thread
+router = APIRouter()
 
 
 @router.get("/live")
-async def live() -> dict[str, str]:
+async def live(request: Request) -> dict[str, str]:
     """
     Liveness probe.
 
@@ -67,12 +35,15 @@ async def live() -> dict[str, str]:
     Does not check external dependencies like the database.
 
     Use this probe with container orchestration to determine if the process should be restarted.
+    Note that this should only be accessible internally (e.g. from the host container)
+    and not accessible over the public API.
     """
+    _ensure_local_client(request)
     return {"status": "live"}
 
 
 @router.get("/ready")
-async def ready(db: Session = Depends(get_db)) -> dict[str, str]:
+async def ready(request: Request, db: Session = Depends(get_db)) -> dict[str, str]:
     """
     Readiness probe.
 
@@ -80,11 +51,22 @@ async def ready(db: Session = Depends(get_db)) -> dict[str, str]:
     Performs a simple database query to verify the connection is valid.
 
     Use this probe with container orchestration to determine if traffic should be routed to this pod.
+    Note that this should only be accessible internally (e.g. from the host container)
+    and not accessible over the public API.
     Returns 503 if the database is unavailable.
     """
+    _ensure_local_client(request)
     try:
         db.execute(text("SELECT 1"))
         return {"status": "ready"}
     except Exception as e:
         logger.error(f"Readiness check failed: {e}")
-        raise
+        raise HTTPException(status_code=503, detail="Database connection failed") from e
+
+
+def _ensure_local_client(request: Request) -> None:
+    if not request.client or request.client.host != "127.0.0.1":
+        logger.warning(
+            f"Received readiness check from unexpected client: {request.client.host if request.client else 'unknown'}"
+        )
+        raise HTTPException(status_code=403, detail="Forbidden")
