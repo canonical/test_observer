@@ -14,8 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 from test_observer.common.helpers import get_artefact_url
 from test_observer.data_access.models import Artefact, User
@@ -24,13 +23,12 @@ from test_observer.external_apis.jira import JiraClient
 logger = logging.getLogger(__name__)
 
 
-class JiraIssueContext(BaseModel):
+@dataclass
+class JiraIssueContext:
     """Holds information needed to create Jira issues"""
 
     client: JiraClient
     parent_issue: str
-
-    model_config = {"arbitrary_types_allowed": True}
 
     @property
     def project_key(self) -> str:
