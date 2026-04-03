@@ -19,6 +19,7 @@
 
 from pydantic import BaseModel
 
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import FamilyName
 
 
@@ -41,6 +42,7 @@ class ArtefactMatchingRuleInResponse(BaseModel):
     stage: str | None
     track: str | None
     branch: str | None
+    grant_permissions: list[Permission]
 
 
 class TeamMinimal(BaseModel):
@@ -58,12 +60,14 @@ class ArtefactMatchingRuleResponse(BaseModel):
     track: str | None
     branch: str | None
     teams: list[TeamMinimal]
+    grant_permissions: list[Permission]
 
 
 class ArtefactMatchingRuleRequest(ArtefactMatchingRuleBase):
     """Request to create an artefact matching rule (extends base with team_ids)"""
 
     team_ids: list[int]  # At least one team required
+    grant_permissions: list[Permission] = []
 
 
 class ArtefactMatchingRulePatch(BaseModel):
@@ -75,3 +79,4 @@ class ArtefactMatchingRulePatch(BaseModel):
     track: str | None = None
     branch: str | None = None
     team_ids: list[int] | None = None  # Optional in patch, but must not be empty if provided
+    grant_permissions: list[Permission] | None = None
