@@ -96,3 +96,119 @@ class JiraClient:
         except Exception as e:
             logger.error(f"Failed to fetch Jira issue {issue_key}: {e}")
             raise
+
+    def get_account_id_by_username(self, username: str) -> str | None:
+        """Look up a Jira account ID by username
+
+        Args:
+            username: Username to search for (e.g. a Launchpad handle)
+
+        Returns:
+            Jira account ID string, or None if no user was found
+
+        Raises:
+            Exception: If the API request fails
+        """
+        url = f"{self.base_url}/rest/api/3/user/search"
+
+        try:
+            response = requests.get(
+                url,
+                auth=HTTPBasicAuth(self.email, self.api_token),
+                headers={"Accept": "application/json"},
+                params={"query": username},
+                timeout=self.timeout,
+            )
+
+            response.raise_for_status()
+            users = response.json()
+
+            if not users:
+                logger.warning(f"No Jira user found for username '{username}'")
+                return None
+
+            return str(users[0]["accountId"])
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error looking up Jira user '{username}': {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to look up Jira user '{username}': {e}")
+            raise
+
+    def create_issue(
+        self,
+        project_key: str,
+        summary: str,
+        issue_type: str = "Task",
+        description: str | None = None,
+        parent_issue_key: str | None = None,
+        assignee_id: str | None = None,
+    ) -> str:
+        """Create a new issue in Jira
+
+        Args:
+            project_key: Jira project key (e.g., "TO")
+            summary: Issue title/summary
+            issue_type: Issue type (default: "Task")
+            description: Issue description
+            parent_issue_key: Parent issue key to link this issue to (e.g., "TO-123")
+            assignee_id: Jira account ID
+
+        Returns:
+            Created issue key (e.g., "TO-456")
+
+        Raises:
+            Exception: If issue creation fails
+        """
+        url = f"{self.base_url}/rest/api/3/issue"
+
+        fields = {
+            "project": {"key": project_key},
+            "summary": summary,
+            "issuetype": {"name": issue_type},
+        }
+
+        if description:
+            fields["description"] = {
+                "type": "doc",
+                "version": 1,
+                "content": [{"type": "paragraph", "content": [{"type": "text", "text": description}]}],
+            }
+
+        if parent_issue_key:
+            fields["parent"] = {"key": parent_issue_key}
+
+        if assignee_id:
+            fields["assignee"] = {"accountId": assignee_id}
+
+        payload = {"fields": fields}
+
+        try:
+            response = requests.post(
+                url,
+                auth=HTTPBasicAuth(self.email, self.api_token),
+                headers={"Accept": "application/json", "Content-Type": "application/json"},
+                json=payload,
+                timeout=self.timeout,
+            )
+
+            response.raise_for_status()
+            data = response.json()
+
+            issue_key = data.get("key")
+            if not issue_key:
+                raise ValueError("Jira API did not return an issue key")
+            logger.info(f"Created Jira issue {issue_key}")
+
+            return issue_key
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error creating Jira issue: {e}")
+            error_response = getattr(e, "response", None)
+            if error_response is not None and hasattr(error_response, "text"):
+                logger.error(f"Response body: {error_response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to create Jira issue: {e}")
+            raise
