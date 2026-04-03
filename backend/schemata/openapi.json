@@ -5328,6 +5328,13 @@
               }
             ],
             "title": "Branch"
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
@@ -5337,7 +5344,8 @@
           "family",
           "stage",
           "track",
-          "branch"
+          "branch",
+          "grant_permissions"
         ],
         "title": "ArtefactMatchingRuleInResponse",
         "description": "Artefact matching rule fields when included in responses (no relationships)"
@@ -5411,6 +5419,20 @@
               }
             ],
             "title": "Team Ids"
+          },
+          "grant_permissions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Permission"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
@@ -5448,6 +5470,14 @@
             },
             "type": "array",
             "title": "Team Ids"
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions",
+            "default": []
           }
         },
         "type": "object",
@@ -5517,6 +5547,13 @@
             },
             "type": "array",
             "title": "Teams"
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
@@ -5527,7 +5564,8 @@
           "stage",
           "track",
           "branch",
-          "teams"
+          "teams",
+          "grant_permissions"
         ],
         "title": "ArtefactMatchingRuleResponse",
         "description": "Artefact matching rule with associated teams"
