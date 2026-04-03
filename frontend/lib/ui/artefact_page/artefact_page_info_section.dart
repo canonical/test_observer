@@ -21,6 +21,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
 import '../../models/artefact_version.dart';
+import '../../models/family_name.dart';
 import '../../models/stage_name.dart';
 import '../../providers/artefact.dart' hide Artefact;
 import '../../providers/artefact_versions.dart';
@@ -42,7 +43,14 @@ class ArtefactPageInfoSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!artefact.stage.isEmpty) _StagesRow(artefactStage: artefact.stage),
+        if (!artefact.stage.isEmpty)
+          _StagesRow(
+            artefactStage: artefact.stage,
+            family: FamilyName.values.firstWhere(
+              (f) => f.name == artefact.family,
+              orElse: () => FamilyName.values.first,
+            ),
+          ),
         _ArtefactVersionSelector(artefact: artefact, labelFontStyle: fontStyle),
         if (artefact.track.isNotEmpty)
           Text('track: ${artefact.track}', style: fontStyle),
@@ -128,13 +136,13 @@ class _ArtefactVersionSelector extends ConsumerWidget {
 }
 
 class _StagesRow extends ConsumerWidget {
-  const _StagesRow({required this.artefactStage});
+  const _StagesRow({required this.artefactStage, required this.family});
 
   final StageName artefactStage;
+  final FamilyName family;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
     final stages = familyStages(family);
 
     final stageNamesWidgets = <Widget>[];

@@ -23,12 +23,12 @@ Future<void> main(List<String> args) async {
 
   await runBenchmarkRunnerFile(
     'benchmarks/artefact_page_tapping.dart',
-    '#/snaps/0',
+    '#/artefacts/0',
     isHeadless,
   );
   await runBenchmarkRunnerFile(
     'benchmarks/artefact_page_scrolling.dart',
-    '#/snaps/0',
+    '#/artefacts/0',
     isHeadless,
   );
 }

@@ -19,7 +19,6 @@ import 'package:yaru/yaru.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/detailed_test_results.dart';
-import '../../models/family_name.dart';
 import '../../routing.dart';
 import '../execution_metadata.dart';
 import '../date_time.dart';
@@ -247,12 +246,7 @@ class _DialogFooter extends StatelessWidget {
         children: [
           InkWell(
             onTap: () {
-              final family = FamilyName.values.firstWhere(
-                (f) => f.name == result.artefact.family,
-                orElse: () => FamilyName.values.first,
-              );
               final fragment = getArtefactPagePathForFamily(
-                family,
                 result.artefact.id,
                 testExecutionId: result.testExecution.id,
                 testResultId: result.testResult.id,

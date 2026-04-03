@@ -23,7 +23,6 @@ import '../../models/test_result.dart';
 import '../../models/test_execution.dart';
 import '../../models/artefact.dart';
 import '../../models/environment.dart';
-import '../../models/family_name.dart';
 import '../../routing.dart';
 import 'test_results_details_dialog.dart';
 
@@ -453,12 +452,7 @@ class _ActionsCell extends StatelessWidget {
   }
 
   void _navigateToTestExecution(TestResultWithContext result) {
-    final family = FamilyName.values.firstWhere(
-      (f) => f.name == result.artefact.family,
-      orElse: () => FamilyName.values.first,
-    );
     final fragment = getArtefactPagePathForFamily(
-      family,
       result.artefact.id,
       testExecutionId: result.testExecution.id,
       testResultId: result.testResult.id,

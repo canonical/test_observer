@@ -43,11 +43,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '${AppRoutes.snaps}/:artefactId',
-          pageBuilder: (context, state) => NoTransitionPage(
-            child: ArtefactPage(
-              artefactId: int.parse(state.pathParameters['artefactId']!),
-            ),
-          ),
+          redirect: _redirectToArtefactPage,
         ),
         GoRoute(
           path: AppRoutes.debs,
@@ -57,11 +53,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '${AppRoutes.debs}/:artefactId',
-          pageBuilder: (context, state) => NoTransitionPage(
-            child: ArtefactPage(
-              artefactId: int.parse(state.pathParameters['artefactId']!),
-            ),
-          ),
+          redirect: _redirectToArtefactPage,
         ),
         GoRoute(
           path: AppRoutes.charms,
@@ -71,11 +63,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '${AppRoutes.charms}/:artefactId',
-          pageBuilder: (context, state) => NoTransitionPage(
-            child: ArtefactPage(
-              artefactId: int.parse(state.pathParameters['artefactId']!),
-            ),
-          ),
+          redirect: _redirectToArtefactPage,
         ),
         GoRoute(
           path: AppRoutes.images,
@@ -85,6 +73,10 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '${AppRoutes.images}/:artefactId',
+          redirect: _redirectToArtefactPage,
+        ),
+        GoRoute(
+          path: '${AppRoutes.artefacts}/:artefactId',
           pageBuilder: (context, state) => NoTransitionPage(
             child: ArtefactPage(
               artefactId: int.parse(state.pathParameters['artefactId']!),
@@ -139,6 +131,7 @@ class AppRoutes {
   static const debs = '/debs';
   static const charms = '/charms';
   static const images = '/images';
+  static const artefacts = '/artefacts';
   static const testResults = '/test-results';
 
   static Uri uriFromContext(BuildContext context) =>
@@ -167,10 +160,11 @@ class AppRoutes {
   static bool isTestResultsPage(Uri uri) => uri.path == testResults;
 
   static bool isArtefactPage(Uri uri) =>
-      (uri.path.contains(AppRoutes.snaps) ||
-          uri.path.contains(AppRoutes.debs) ||
-          uri.path.contains(AppRoutes.charms) ||
-          uri.path.contains(AppRoutes.images)) &&
+      (uri.path.startsWith(AppRoutes.artefacts) ||
+          uri.path.startsWith(AppRoutes.snaps) ||
+          uri.path.startsWith(AppRoutes.debs) ||
+          uri.path.startsWith(AppRoutes.charms) ||
+          uri.path.startsWith(AppRoutes.images)) &&
       uri.pathSegments.length == 2;
 
   static bool isIssuePage(Uri uri) =>
@@ -185,27 +179,11 @@ class AppRoutes {
 }
 
 String getArtefactPagePathForFamily(
-  FamilyName family,
   int artefactId, {
   int? testExecutionId,
   int? testResultId,
 }) {
-  String path = '/$artefactId';
-
-  switch (family) {
-    case FamilyName.deb:
-      path = AppRoutes.debs + path;
-      break;
-    case FamilyName.snap:
-      path = AppRoutes.snaps + path;
-      break;
-    case FamilyName.charm:
-      path = AppRoutes.charms + path;
-      break;
-    case FamilyName.image:
-      path = AppRoutes.images + path;
-      break;
-  }
+  String path = '${AppRoutes.artefacts}/$artefactId';
 
   if (testExecutionId != null || testResultId != null) {
     final queryParams = <String, String>{};
@@ -228,10 +206,7 @@ String getArtefactPagePath(
   int? testExecutionId,
   int? testResultId,
 }) {
-  final uri = AppRoutes.uriFromContext(context);
-  final family = AppRoutes.familyFromUri(uri);
   return getArtefactPagePathForFamily(
-    family,
     artefactId,
     testExecutionId: testExecutionId,
     testResultId: testResultId,
@@ -251,6 +226,18 @@ void navigateToArtefactPage(
     testResultId: testResultId,
   );
   context.go(path);
+}
+
+// Redirects legacy family-specific artefact URLs (e.g. /snaps/:id) to the
+// generic /artefacts/:id path, preserving any query parameters so that deep
+// links to specific test executions or results continue to work.
+String? _redirectToArtefactPage(BuildContext context, GoRouterState state) {
+  final newUri = Uri(
+    path: '${AppRoutes.artefacts}/${state.pathParameters['artefactId']}',
+    queryParameters:
+        state.uri.queryParameters.isEmpty ? null : state.uri.queryParameters,
+  );
+  return newUri.toString();
 }
 
 void navigateToIssuePage(

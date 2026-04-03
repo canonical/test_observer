@@ -30,7 +30,7 @@ final _testNotifications = UserNotifications(
       id: 1,
       userId: 1,
       notificationType: NotificationType.userAssignedArtefactReview,
-      targetUrl: '/snaps/1',
+      targetUrl: '/artefacts/1',
       createdAt: DateTime(2025, 1, 1),
       dismissedAt: null,
     ),
@@ -38,7 +38,7 @@ final _testNotifications = UserNotifications(
       id: 2,
       userId: 1,
       notificationType: NotificationType.userAssignedEnvironmentReview,
-      targetUrl: '/images/13',
+      targetUrl: '/artefacts/13',
       createdAt: DateTime(2025, 1, 2),
       dismissedAt: DateTime(2025, 1, 3),
     ),
@@ -63,7 +63,7 @@ void main() {
       notifications.notifications[0].notificationType,
       NotificationType.userAssignedArtefactReview,
     );
-    expect(notifications.notifications[0].targetUrl, '/snaps/1');
+    expect(notifications.notifications[0].targetUrl, '/artefacts/1');
     expect(notifications.notifications[0].dismissedAt, null);
     expect(notifications.notifications[1].id, 2);
     expect(

@@ -53,12 +53,12 @@ def test_get_notifications(
     notification1 = generator.gen_notification(
         user=user,
         notification_type=NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-        target_url="/snaps/1",
+        target_url="/artefacts/1",
     )
     notification2 = generator.gen_notification(
         user=user,
         notification_type=NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
-        target_url="/images/2",
+        target_url="/artefacts/2",
         dismissed_at=datetime.now(),
     )
 
@@ -193,14 +193,13 @@ def test_get_notifications_with_pagination(
     """Test getting notifications with limit and offset"""
     user = generator.gen_user(email="pagination@test.com")
 
-    # Create 5 notifications with different artefact families
+    # Create 5 notifications
     notifications = []
-    families = ["snaps", "images", "debs", "charms", "snaps"]
-    for idx, family in enumerate(families):
+    for idx in range(5):
         notification = generator.gen_notification(
             user=user,
             notification_type=NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-            target_url=f"/{family}/{idx}",
+            target_url=f"/artefacts/{idx}",
         )
         notifications.append(notification)
 
