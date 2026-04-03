@@ -175,6 +175,16 @@ class TestCreateReviewIssues:
         for call in mock_jira.create_issue.call_args_list:
             assert call.kwargs["assignee_id"] is None
 
+    def test_create_review_issues_no_jira_context(self, generator: DataGenerator):
+        """Test that ValueError is raised when no jira_ctx is configured"""
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
+        artefact = generator.gen_artefact(name="test-snap", version="1.0.0", reviewers=[reviewer])
+
+        creator = IssueCreator(jira_ctx=None)
+
+        with pytest.raises(ValueError, match="No issue creation context configured"):
+            creator.create_review_issues(artefact, reviewer)
+
     def test_create_review_issues_no_reviewers(self, generator: DataGenerator):
         """Test that ValueError is raised when artefact has no reviewers"""
         mock_jira = Mock()

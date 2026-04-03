@@ -97,8 +97,12 @@ class IssueCreator:
             reviewer: The user to assign the review issues to
 
         Raises:
-            ValueError: If artefact has no reviewers or reviewer is not in reviewers list
+            ValueError: If no issue creation context is configured, artefact has no
+                reviewers, or reviewer is not in the artefact's reviewers list
         """
+        if not self.jira_ctx:
+            raise ValueError("No issue creation context configured")
+
         if not artefact.reviewers:
             raise ValueError(
                 f"Artefact {artefact.id} has no reviewers assigned. Cannot create review cards without reviewers."
