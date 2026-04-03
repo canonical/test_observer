@@ -295,6 +295,8 @@ def create_artefact_review_cards(
     Args:
         artefact: The artefact to create review cards for
         reviewer: The user to assign the review card to
+        jira_client: A configured JiraClient instance (cloud ID, email, and API token
+            already set) used to create the issues in the artefact's Jira project
 
     Raises:
         ValueError: If artefact has no jira_issue, no reviewers, or reviewer not in reviewers list
