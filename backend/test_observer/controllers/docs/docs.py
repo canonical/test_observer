@@ -17,7 +17,8 @@ from fastapi import APIRouter, Request, Security
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 
 router: APIRouter = APIRouter()
 

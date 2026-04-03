@@ -16,6 +16,16 @@ from enum import StrEnum, auto
 
 
 class Permission(StrEnum):
+    # /, /v1/version
+    view_basic = auto()
+    # /sentry-debug, which is intended to be used for testing Sentry integration
+    # and does nothing but raise an exception
+    view_sentry_debug = auto()
+    # Docs (Swagger and OpenAPI schema)
+    view_docs = auto()
+    # /v1/users/me and /v1/applications/me
+    view_self = auto()
+
     # Authentication
     view_user = auto()
     change_user = auto()
