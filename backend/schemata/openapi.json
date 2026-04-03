@@ -4959,6 +4959,52 @@
         ]
       }
     },
+    "/health/live": {
+      "get": {
+        "summary": "Live",
+        "description": "Liveness probe.\n\nReturns 200 OK if the application process is running and responding to requests.\nDoes not check external dependencies like the database.\n\nUse this probe with container orchestration to determine if the process should be restarted.\nNote that this should only be accessible internally (e.g. from the host container)\nand not accessible over the public API.",
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Live Health Live Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Ready",
+        "description": "Readiness probe.\n\nReturns 200 OK if the application is ready to serve traffic, including database connectivity.\nPerforms a simple database query to verify the connection is valid.\n\nUse this probe with container orchestration to determine if traffic should be routed to this pod.\nNote that this should only be accessible internally (e.g. from the host container)\nand not accessible over the public API.\nReturns 503 if the database is unavailable.",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Ready Health Ready Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
