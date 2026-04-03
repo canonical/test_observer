@@ -57,6 +57,7 @@ class IssueCreator:
         summary: str,
         description: str,
         issue_type: str = "Task",
+        assignee: str | None = None,
     ) -> None:
         """Create one issue in all configured clients
 
@@ -64,6 +65,7 @@ class IssueCreator:
             summary: Issue title/summary
             description: Issue description
             issue_type: Issue type (default: "Task")
+            assignee: Jira account ID to assign the issue to
 
         Raises:
             ValueError: If no context is configured
@@ -78,6 +80,7 @@ class IssueCreator:
             issue_type=issue_type,
             description=description,
             parent_issue_key=self.jira_ctx.parent_issue,
+            assignee=assignee,
         )
 
     def create_review_issues(
@@ -119,6 +122,7 @@ class IssueCreator:
             summary=artefact_summary,
             description=artefact_description,
             issue_type="Task",
+            assignee=reviewer.launchpad_handle,
         )
 
         environment_summary = (
@@ -133,4 +137,5 @@ class IssueCreator:
             summary=environment_summary,
             description=environment_description,
             issue_type="Task",
+            assignee=reviewer.launchpad_handle,
         )

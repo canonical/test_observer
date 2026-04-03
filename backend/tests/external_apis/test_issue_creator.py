@@ -43,6 +43,28 @@ class TestCreateIssue:
             issue_type="Task",
             description="Test description",
             parent_issue_key="TO-123",
+            assignee=None,
+        )
+
+    def test_create_issue_forwards_assignee(self):
+        """Test that assignee is forwarded to Jira client"""
+        mock_jira = Mock()
+        jira_ctx = JiraIssueContext.model_construct(client=mock_jira, parent_issue="TO-123")
+        creator = IssueCreator(jira_ctx=jira_ctx)
+
+        creator.create_issue(
+            summary="Test Issue",
+            description="Test description",
+            assignee="alice-handle",
+        )
+
+        mock_jira.create_issue.assert_called_once_with(
+            project_key="TO",
+            summary="Test Issue",
+            issue_type="Task",
+            description="Test description",
+            parent_issue_key="TO-123",
+            assignee="alice-handle",
         )
 
     def test_create_issue_with_no_clients_raises_error(self):
@@ -73,7 +95,7 @@ class TestCreateReviewIssues:
         """Test successful creation of review issues"""
         mock_jira = Mock()
         jira_ctx = JiraIssueContext.model_construct(client=mock_jira, parent_issue="TO-123")
-        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com", launchpad_handle="alice-lp")
         artefact = generator.gen_artefact(
             name="test-snap",
             version="1.0.0",
@@ -98,6 +120,7 @@ class TestCreateReviewIssues:
         )
         assert first_call.kwargs["issue_type"] == "Task"
         assert first_call.kwargs["parent_issue_key"] == "TO-123"
+        assert first_call.kwargs["assignee"] == "alice-lp"
 
         # Second call: environment review
         second_call = mock_jira.create_issue.call_args_list[1]
@@ -108,6 +131,25 @@ class TestCreateReviewIssues:
         )
         assert second_call.kwargs["issue_type"] == "Task"
         assert second_call.kwargs["parent_issue_key"] == "TO-123"
+        assert second_call.kwargs["assignee"] == "alice-lp"
+
+    def test_create_review_issues_reviewer_without_launchpad_handle(self, generator: DataGenerator):
+        """Test that issues are created without assignee when reviewer has no launchpad handle"""
+        mock_jira = Mock()
+        jira_ctx = JiraIssueContext.model_construct(client=mock_jira, parent_issue="TO-123")
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com", launchpad_handle=None)
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[reviewer],
+        )
+
+        creator = IssueCreator(jira_ctx=jira_ctx)
+        creator.create_review_issues(artefact, reviewer)
+
+        assert mock_jira.create_issue.call_count == 2
+        for call in mock_jira.create_issue.call_args_list:
+            assert call.kwargs["assignee"] is None
 
     def test_create_review_issues_no_reviewers(self, generator: DataGenerator):
         """Test that ValueError is raised when artefact has no reviewers"""
