@@ -29,7 +29,10 @@ from test_observer.common.constants import QueryValue
 from test_observer.common.permissions import Permission, permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models import (
+    Artefact,
     ArtefactBuild,
+    IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
     TestExecution,
     TestExecutionMetadata,
     TestResult,
@@ -124,9 +127,17 @@ def _search_with_result_details(
         selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
         selectinload(TestResult.test_execution)
         .selectinload(TestExecution.artefact_build)
-        .selectinload(ArtefactBuild.artefact),
-        selectinload(TestResult.issue_attachments),
+        .selectinload(ArtefactBuild.artefact)
+        .selectinload(Artefact.reviewers),
         selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.test_plan),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.relevant_links),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.rerun_request),
+        selectinload(TestResult.issue_attachments)
+        .selectinload(IssueTestResultAttachment.issue),
+        selectinload(TestResult.issue_attachments)
+        .selectinload(IssueTestResultAttachment.attachment_rule)
+        .selectinload(IssueTestResultAttachmentRule.execution_metadata),
     )
     query = filter_test_results(query, filters)
     query = query.order_by(desc(TestResult.created_at), desc(TestResult.id))
