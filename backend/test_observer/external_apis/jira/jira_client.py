@@ -97,6 +97,45 @@ class JiraClient:
             logger.error(f"Failed to fetch Jira issue {issue_key}: {e}")
             raise
 
+    def get_account_id_by_username(self, username: str) -> str | None:
+        """Look up a Jira account ID by username
+
+        Args:
+            username: Username to search for (e.g. a Launchpad handle)
+
+        Returns:
+            Jira account ID string, or None if no user was found
+
+        Raises:
+            Exception: If the API request fails
+        """
+        url = f"{self.base_url}/rest/api/3/user/search"
+
+        try:
+            response = requests.get(
+                url,
+                auth=HTTPBasicAuth(self.email, self.api_token),
+                headers={"Accept": "application/json"},
+                params={"query": username},
+                timeout=self.timeout,
+            )
+
+            response.raise_for_status()
+            users = response.json()
+
+            if not users:
+                logger.warning(f"No Jira user found for username '{username}'")
+                return None
+
+            return str(users[0]["accountId"])
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error looking up Jira user '{username}': {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to look up Jira user '{username}': {e}")
+            raise
+
     def create_issue(
         self,
         project_key: str,
@@ -104,7 +143,7 @@ class JiraClient:
         issue_type: str = "Task",
         description: str | None = None,
         parent_issue_key: str | None = None,
-        assignee: str | None = None,
+        assignee_id: str | None = None,
     ) -> str:
         """Create a new issue in Jira
 
@@ -114,7 +153,7 @@ class JiraClient:
             issue_type: Issue type (default: "Task")
             description: Issue description
             parent_issue_key: Parent issue key to link this issue to (e.g., "TO-123")
-            assignee: Jira account ID
+            assignee_id: Jira account ID
 
         Returns:
             Created issue key (e.g., "TO-456")
@@ -140,8 +179,8 @@ class JiraClient:
         if parent_issue_key:
             fields["parent"] = {"key": parent_issue_key}
 
-        if assignee:
-            fields["assignee"] = {"accountId": assignee}
+        if assignee_id:
+            fields["assignee"] = {"accountId": assignee_id}
 
         payload = {"fields": fields}
 

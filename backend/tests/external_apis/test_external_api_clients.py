@@ -193,7 +193,7 @@ class TestJiraClient:
             project_key="TEST",
             summary="Test Issue with Assignee",
             issue_type="Task",
-            assignee="5b10ac8d82e05b22cc7d4ef5",
+            assignee_id="5b10ac8d82e05b22cc7d4ef5",
         )
 
         # THEN

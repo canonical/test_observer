@@ -31,9 +31,7 @@ def get_jira_client() -> JiraClient:
     jira_api_token = environ.get("JIRA_API_TOKEN")
 
     if not all([jira_cloud_id, jira_email, jira_api_token]):
-        raise ValueError(
-            "Jira credentials not fully configured. Requires: JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN"
-        )
+        raise ValueError("Jira credentials not fully configured. Requires: JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN")
 
     return JiraClient(
         cloud_id=str(jira_cloud_id),
