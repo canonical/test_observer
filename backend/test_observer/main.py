@@ -30,7 +30,7 @@ from test_observer.common.config import (
     SESSIONS_HTTPS_ONLY,
     SESSIONS_SECRET,
 )
-from test_observer.common.healthcheck import start_http_server as start_healthcheck_server 
+from test_observer.common.healthcheck import start_http_server as start_healthcheck_server
 from test_observer.common.metrics import instrumentator
 from test_observer.common.metrics_initializer import initialize_all_metrics
 from test_observer.controllers.router import router
@@ -49,7 +49,7 @@ async def lifespan(_app: FastAPI):
     Application lifespan manager.
 
     Handles startup and shutdown events for the FastAPI application.
-    On startup, starts the healthcheck server, metrics server, and initializes 
+    On startup, starts the healthcheck server, metrics server, and initializes
     Prometheus metrics from the database.
     """
     # Startup: Start healthcheck server on separate port

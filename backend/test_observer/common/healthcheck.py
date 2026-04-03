@@ -17,7 +17,7 @@ import logging
 from threading import Thread
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,7 @@ from test_observer.data_access.setup import get_db
 logger = logging.getLogger("test-observer-backend")
 
 router = APIRouter(prefix="/healthcheck", tags=["health"])
+
 
 def create_app() -> FastAPI:
     """Create a minimal FastAPI app for healthcheck endpoints."""
@@ -43,7 +44,7 @@ def create_app() -> FastAPI:
 def start_http_server(port: int) -> Thread:
     """Start healthcheck server in a background thread."""
     app = create_app()
-    
+
     config = uvicorn.Config(
         app,
         host="0.0.0.0",
@@ -51,7 +52,7 @@ def start_http_server(port: int) -> Thread:
         log_level="info",
     )
     server = uvicorn.Server(config)
-    
+
     thread = Thread(daemon=True, target=server.run)
     thread.start()
     return thread
@@ -61,10 +62,10 @@ def start_http_server(port: int) -> Thread:
 async def live() -> dict[str, str]:
     """
     Liveness probe.
-    
+
     Returns 200 OK if the application process is running and responding to requests.
     Does not check external dependencies like the database.
-    
+
     Use this probe with container orchestration to determine if the process should be restarted.
     """
     return {"status": "live"}
@@ -74,10 +75,10 @@ async def live() -> dict[str, str]:
 async def ready(db: Session = Depends(get_db)) -> dict[str, str]:
     """
     Readiness probe.
-    
+
     Returns 200 OK if the application is ready to serve traffic, including database connectivity.
     Performs a simple database query to verify the connection is valid.
-    
+
     Use this probe with container orchestration to determine if traffic should be routed to this pod.
     Returns 503 if the database is unavailable.
     """
