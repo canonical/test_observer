@@ -25,6 +25,7 @@ ENV VIRTUAL_ENV=/home/app/.venv
 ENV PATH=/home/app/.venv/bin:$PATH
 
 EXPOSE 30000
+EXPOSE 9001
 EXPOSE 9090
 
 WORKDIR /home/app
@@ -43,5 +44,5 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:30000/v1/version || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:9001/healthcheck/live || exit 1
 CMD [ "uv", "run", "uvicorn",  "test_observer.main:app", "--host", "0.0.0.0", "--port", "30000" ]

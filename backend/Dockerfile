@@ -25,6 +25,7 @@ ENV VIRTUAL_ENV=/home/app/.venv
 ENV PATH=/home/app/.venv/bin:$PATH
 
 EXPOSE 30000
+EXPOSE 9001
 EXPOSE 9090
 
 WORKDIR /home/app
@@ -44,7 +45,7 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --all-groups
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD curl --fail http://localhost:30000/v1/version || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD curl --fail http://localhost:9001/healthcheck/live || exit 1
 
 WORKDIR /home/app
 
