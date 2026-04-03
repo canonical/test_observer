@@ -31,3 +31,6 @@ IGNORE_PERMISSIONS = {
     permission.strip() for permission in os.getenv("IGNORE_PERMISSIONS", "").lower().split(",") if permission.strip()
 }
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9090"))
+# This port will be used for liveness and readiness probes in container orchestration.
+# These endpoints will be unauthenticated, so they should not be exposed on the main application port.
+HEALTHCHECK_PORT = int(os.getenv("HEALTHCHECK_PORT", "9001"))
