@@ -32,7 +32,7 @@ class TestGetAccountIdByUsername:
         mock_response.json.return_value = [{"accountId": "abc123", "displayName": "Alice"}]
         mock_response.raise_for_status = Mock()
 
-        with patch("requests.get", return_value=mock_response) as mock_get:
+        with patch("test_observer.external_apis.jira.jira_client.requests.get", return_value=mock_response) as mock_get:
             result = jira_client.get_account_id_by_username("alice-lp")
 
         assert result == "abc123"
@@ -45,7 +45,7 @@ class TestGetAccountIdByUsername:
         mock_response.json.return_value = []
         mock_response.raise_for_status = Mock()
 
-        with patch("requests.get", return_value=mock_response):
+        with patch("test_observer.external_apis.jira.jira_client.requests.get", return_value=mock_response):
             result = jira_client.get_account_id_by_username("unknown-handle")
 
         assert result is None
@@ -54,5 +54,5 @@ class TestGetAccountIdByUsername:
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("403 Forbidden")
 
-        with patch("requests.get", return_value=mock_response), pytest.raises(requests.exceptions.HTTPError):
+        with patch("test_observer.external_apis.jira.jira_client.requests.get", return_value=mock_response), pytest.raises(requests.exceptions.HTTPError):
             jira_client.get_account_id_by_username("alice-lp")
