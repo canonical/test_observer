@@ -1133,7 +1133,7 @@ class TestCreateArtefactReviewCards:
         mock_jira_client = Mock()
 
         # Should raise ValueError from IssueCreator.create_review_issues
-        # Need to patch JiraIssueContext to bypass Pydantic validation
+        # JiraIssueContext is patched so that the mock client passes through without network calls
         with (
             patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
             pytest.raises(ValueError, match="has no reviewers assigned"),
@@ -1158,7 +1158,7 @@ class TestCreateArtefactReviewCards:
         mock_jira_client = Mock()
 
         # Try to create cards for Bob (not a reviewer) - should raise ValueError from IssueCreator.create_review_issues
-        # Need to patch JiraIssueContext to bypass Pydantic validation
+        # JiraIssueContext is patched so that the mock client passes through without network calls
         with (
             patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
             pytest.raises(ValueError, match="reviewers do not include"),
