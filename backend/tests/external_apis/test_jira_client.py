@@ -54,5 +54,8 @@ class TestGetAccountIdByUsername:
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("403 Forbidden")
 
-        with patch("test_observer.external_apis.jira.jira_client.requests.get", return_value=mock_response), pytest.raises(requests.exceptions.HTTPError):
+        with (
+            patch("test_observer.external_apis.jira.jira_client.requests.get", return_value=mock_response),
+            pytest.raises(requests.exceptions.HTTPError),
+        ):
             jira_client.get_account_id_by_username("alice-lp")
