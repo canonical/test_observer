@@ -65,8 +65,8 @@ async def ready(request: Request, db: Session = Depends(get_db)) -> dict[str, st
 
 
 def _ensure_local_client(request: Request) -> None:
-    if not request.client or request.client.host != "127.0.0.1":
+    if not request.client or request.client.host not in {"127.0.0.1", "::1"}:
         logger.warning(
-            f"Received readiness check from unexpected client: {request.client.host if request.client else 'unknown'}"
+            f"Received health check from unexpected client: {request.client.host if request.client else 'unknown'}"
         )
         raise HTTPException(status_code=403, detail="Forbidden")

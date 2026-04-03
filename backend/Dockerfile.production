@@ -25,7 +25,6 @@ ENV VIRTUAL_ENV=/home/app/.venv
 ENV PATH=/home/app/.venv/bin:$PATH
 
 EXPOSE 30000
-EXPOSE 9001
 EXPOSE 9090
 
 WORKDIR /home/app

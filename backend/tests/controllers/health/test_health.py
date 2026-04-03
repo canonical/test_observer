@@ -13,7 +13,6 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import logging
 from collections.abc import Callable
 from unittest.mock import MagicMock
 
@@ -24,8 +23,6 @@ from sqlalchemy.orm import Session
 
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
-
-logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -45,6 +42,9 @@ def make_client():
 
     yield _make_client
 
+    # We always clear any dependency override that could be set by the test
+    app.dependency_overrides.pop(get_db, None)
+    # Then we restore the initial override if there was one
     if initial_get_db_override is not None:
         app.dependency_overrides[get_db] = initial_get_db_override
 
