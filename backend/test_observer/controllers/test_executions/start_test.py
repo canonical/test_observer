@@ -17,7 +17,7 @@ import logging
 import random
 from datetime import date, timedelta
 
-from fastapi import Body, Depends, Security
+from fastapi import Body, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -41,6 +41,7 @@ from test_observer.data_access.repository import (
 )
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
+from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.jira.jira_client import JiraClient
 
 from .models import (
@@ -54,6 +55,18 @@ from .router import router
 logger = logging.getLogger(__name__)
 
 ENVIRONMENTS_PER_REVIEWER = 50
+
+
+def require_jira_client() -> JiraClient:
+    """FastAPI dependency that returns a configured JiraClient.
+
+    Raises:
+        HTTPException: 500 if Jira credentials are not fully configured.
+    """
+    try:
+        return get_jira_client()
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 def _ceil_division(numerator: int, denominator: int) -> int:

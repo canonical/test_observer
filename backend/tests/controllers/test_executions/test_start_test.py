@@ -1095,7 +1095,7 @@ class TestCreateArtefactReviewCards:
             mock_context_class.assert_called_once_with(client=mock_jira_client, parent_issue="TEST-123")
 
             # Verify IssueCreator was instantiated with the context
-            mock_issue_creator_class.assert_called_once_with(mock_jira_context)
+            mock_issue_creator_class.assert_called_once_with(jira_ctx=mock_jira_context)
 
             # Verify create_review_issues was called
             mock_issue_creator.create_review_issues.assert_called_once_with(artefact, reviewer)

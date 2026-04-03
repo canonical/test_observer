@@ -15,8 +15,6 @@
 
 from os import environ
 
-from fastapi import HTTPException
-
 from .jira_client import JiraClient
 
 
@@ -40,16 +38,4 @@ def get_jira_client() -> JiraClient:
     )
 
 
-def require_jira_client() -> JiraClient:
-    """FastAPI dependency that returns a configured JiraClient.
-
-    Raises:
-        HTTPException: 500 if Jira credentials are not fully configured.
-    """
-    try:
-        return get_jira_client()
-    except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-__all__ = ["JiraClient", "get_jira_client", "require_jira_client"]
+__all__ = ["JiraClient", "get_jira_client"]
