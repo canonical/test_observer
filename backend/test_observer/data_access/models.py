@@ -45,6 +45,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import ColumnElement, func
 
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -167,7 +168,7 @@ class Application(Base):
     __tablename__ = "application"
 
     name: Mapped[str] = mapped_column(unique=True)
-    permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
     @staticmethod
     def gen_api_key() -> str:
@@ -189,7 +190,7 @@ class Team(Base):
     __tablename__ = "team"
 
     name: Mapped[str] = mapped_column(unique=True)
-    permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
     members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
     artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
@@ -219,6 +220,8 @@ class ArtefactMatchingRule(Base):
         secondary="artefact_matching_rule_team_association",
         back_populates="artefact_matching_rules",
     )
+
+    grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
     __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch"),)
 

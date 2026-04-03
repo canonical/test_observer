@@ -17,7 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -98,8 +99,8 @@ def update_application(
     if application is None:
         raise HTTPException(404, f"Application {application_id} doesn't exist")
 
-    if request.permissions:
-        application.permissions = [p.value for p in request.permissions]
+    if request.permissions is not None:
+        application.permissions = request.permissions
         db.commit()
 
     return application

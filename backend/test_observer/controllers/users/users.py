@@ -19,7 +19,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.users.models import (
     UserPatch,
     UserResponse,

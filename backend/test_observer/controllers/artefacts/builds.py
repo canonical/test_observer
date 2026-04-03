@@ -16,7 +16,8 @@
 from fastapi import APIRouter, Depends, Security
 from sqlalchemy.orm import selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.controllers.test_executions.test_execution import (
     TEST_EXECUTION_OPTIONS,

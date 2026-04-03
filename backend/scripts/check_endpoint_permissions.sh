@@ -20,7 +20,12 @@ set -e
 OPENAPI_JSON="$1"
 
 # List exceptions as path/method pairs (method in lowercase)
+# /health/live and /health/ready should remain exceptions,
+# because they enforce their own checks that restrict access to internal-only.
+# They are used by Docker for health checks that would be cumbersome to authenticate.
 EXCEPTIONS='[
+  {"method": "get", "path": "/health/live"},
+  {"method": "get", "path": "/health/ready"},
   {"method": "get", "path": "/v1/auth/saml/login"},
   {"method": "get", "path": "/v1/auth/saml/logout"},
   {"method": "post", "path": "/v1/auth/saml/acs"},
