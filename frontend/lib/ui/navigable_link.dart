@@ -106,7 +106,7 @@ class NavigableLink extends StatelessWidget {
         },
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
-          child: GestureDetector(
+          child: InkWell(
             onTap: () {
               // Check for Ctrl/Cmd at tap time
               if (openInNewTabCallback != null) {
