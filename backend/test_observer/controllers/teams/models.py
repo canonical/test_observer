@@ -15,7 +15,7 @@
 
 from pydantic import BaseModel
 
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleBase,
     ArtefactMatchingRuleInResponse,
@@ -39,7 +39,7 @@ class UserMinimalResponse(BaseModel):
 class TeamResponse(BaseModel):
     id: int
     name: str
-    permissions: list[str]
+    permissions: list[Permission]
     members: list[UserMinimalResponse]
     artefact_matching_rules: list[ArtefactMatchingRuleInResponse]
 

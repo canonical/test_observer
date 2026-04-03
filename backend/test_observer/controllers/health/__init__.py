@@ -1,4 +1,4 @@
-# Copyright 2025 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
@@ -10,17 +10,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Security
+from .health import router
 
-from test_observer.common.enums import Permission
-from test_observer.common.permissions import permission_checker
-
-router: APIRouter = APIRouter(tags=["permissions"])
-
-
-@router.get("", dependencies=[Security(permission_checker, scopes=[Permission.view_permission])])
-def get_permissions():
-    return [p.value for p in Permission]
+__all__ = ["router"]
