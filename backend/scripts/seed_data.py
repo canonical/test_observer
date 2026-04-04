@@ -23,7 +23,7 @@ from textwrap import dedent
 import requests
 from fastapi.testclient import TestClient
 from pydantic import HttpUrl
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.environments.models import (
@@ -43,8 +43,6 @@ from test_observer.controllers.issues.models import (
     IssuePutRequest,
     IssueTestResultAttachmentRulePostRequest,
 )
-from test_observer.common.enums import Permission
-
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
 from test_observer.data_access.models import Artefact, User, TestResult, Application
@@ -55,7 +53,6 @@ from test_observer.data_access.models_enums import (
     CharmStage,
     ImageStage,
     IssueStatus,
-    IssueSource,
 )
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
@@ -757,9 +754,15 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     certbot.is_admin = True
 
     # Create an application with all permissions
+    # Following the conversion of permissions to be a PostgreSQL enum,
+    # we need to pull the values from the database rather than the Python code.
+    # Otherwise, the code could contain values not present in the database,
+    # which would cause an error when trying to add the application.
     application = session.scalar(select(Application).where(Application.name == "seed_data_app"))
+    inspector = inspect(session.get_bind())
+    permissions = next(e["labels"] for e in inspector.get_enums() if e["name"] == "permission")
     if not application:
-        application = Application(name="seed_data_app", permissions=[p.value for p in Permission])
+        application = Application(name="seed_data_app", permissions=permissions)
         session.add(application)
         session.commit()
         session.refresh(application)

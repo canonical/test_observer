@@ -15,7 +15,21 @@
 from enum import StrEnum, auto
 
 
+# Following the conversion of permissions to be a PostgreSQL enum,
+# any change to the permissions defined here must be accompanied
+# by a new database migration to update the enum values in the database.
+# Alembic does not detect the changes in this case, so the migration must be created manually as well.
 class Permission(StrEnum):
+    # /, /v1/version
+    view_basic = auto()
+    # /sentry-debug, which is intended to be used for testing Sentry integration
+    # and does nothing but raise an exception
+    view_sentry_debug = auto()
+    # Docs (Swagger and OpenAPI schema)
+    view_docs = auto()
+    # /v1/users/me and /v1/applications/me
+    view_self = auto()
+
     # Authentication
     view_user = auto()
     change_user = auto()
