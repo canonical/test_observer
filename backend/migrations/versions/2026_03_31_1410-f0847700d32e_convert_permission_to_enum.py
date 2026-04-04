@@ -36,11 +36,6 @@ PERMISSION_TYPE = postgresql.ARRAY(postgresql.ENUM(name="permission"))
 
 def upgrade() -> None:
     # upgrade application table
-
-    # drop default to prevent casting errors from postgresql
-    op.execute("ALTER TABLE application ALTER COLUMN permissions DROP DEFAULT")
-
-    # change type
     op.alter_column(
         "application",
         "permissions",
@@ -49,9 +44,6 @@ def upgrade() -> None:
         existing_nullable=False,
         postgresql_using="permissions::permission[]",
     )
-
-    # apply new default
-    op.execute("ALTER TABLE application ALTER COLUMN permissions SET DEFAULT '{}'::permission[]")
 
     # upgrade team table
     # drop default to prevent casting errors from postgresql
@@ -89,9 +81,6 @@ def downgrade() -> None:
     # restore previous default
     op.execute("ALTER TABLE team ALTER COLUMN permissions SET DEFAULT '{}'::character varying[]")
 
-    # drop default
-    op.execute("ALTER TABLE application ALTER COLUMN permissions DROP DEFAULT")
-
     # upgrade application table
     op.alter_column(
         "application",
@@ -101,6 +90,3 @@ def downgrade() -> None:
         existing_nullable=False,
         postgresql_using="permissions::varchar[]",
     )
-
-    # restore previous default
-    op.execute("ALTER TABLE application ALTER COLUMN permissions SET DEFAULT '{}'::character varying[]")
