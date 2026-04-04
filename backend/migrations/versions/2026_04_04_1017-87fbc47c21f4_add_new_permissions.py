@@ -21,6 +21,7 @@ Create Date: 2026-04-04 10:17:58.679185+00:00
 
 """
 
+import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -94,9 +95,23 @@ def upgrade() -> None:
     ]
     # Update existing table columns to use the new enum type
     for table_name, column_name in columns_to_update:
-        # We have to drop the default before altering the column type,
-        # otherwise PostgreSQL will complain about being unable to cast the default value to the new enum type.
-        op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP DEFAULT")
+        # Check if a default currently exists
+        # This query returns the default expression string if it exists, or None
+        has_default = op.get_bind().execute(
+            sa.text(
+                f"""
+                SELECT column_default 
+                FROM information_schema.columns 
+                WHERE table_name = '{table_name}' 
+                AND column_name = '{column_name}'
+                """
+            )
+        ).scalar()
+
+        if has_default:
+            # We have to drop the default before altering the column type,
+            # otherwise PostgreSQL will complain about being unable to cast the default value to the new enum type.
+            op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP DEFAULT")
 
         op.execute(
             f"""
@@ -105,8 +120,9 @@ def upgrade() -> None:
             """
         )
 
-        # Reapply the default, which is an empty array of the new enum type.
-        op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]")
+        if has_default:
+            # Reapply the default, which is an empty array of the new enum type.
+            op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]")
 
     # Drop the old enum type
     # We need to use SQL here, because otherwise the SQLAlchemy Enum object will attempt to drop the new enum,
@@ -140,7 +156,19 @@ def downgrade() -> None:
     # However, on downgrading, we have to remove any values that are not in the old enum
     to_remove = ", ".join(f"'{p}'" for p in NEW_PERMISSIONS - OLD_PERMISSIONS)
     for table_name, column_name in columns_to_update:
-        op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP DEFAULT")
+        has_default = op.get_bind().execute(
+            sa.text(
+                f"""
+                SELECT column_default 
+                FROM information_schema.columns 
+                WHERE table_name = '{table_name}' 
+                AND column_name = '{column_name}'
+                """
+            )
+        ).scalar()
+
+        if has_default:
+            op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP DEFAULT")
 
         # We want to remove any values that are not in the old enum
         # That is, if a row has permissions = ["view_user", "change_user", "view_basic", "view_docs"],
@@ -165,6 +193,7 @@ def downgrade() -> None:
             """
         )
 
-        op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]")
+        if has_default:
+            op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]")
 
     op.execute(f"DROP TYPE {PERMISSION_ENUM_NAME}_new")
