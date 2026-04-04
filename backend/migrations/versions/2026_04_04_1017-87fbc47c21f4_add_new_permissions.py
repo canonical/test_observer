@@ -81,7 +81,7 @@ def upgrade() -> None:
     op.execute(f"ALTER TYPE {PERMISSION_ENUM_NAME} RENAME TO {PERMISSION_ENUM_NAME}_old")
 
     # Create the new enum with the same name as the old enum.
-    formatted_options = ", ".join(f"'{p}'" for p in NEW_PERMISSIONS)
+    formatted_options = ", ".join(f"'{p}'" for p in sorted(list(NEW_PERMISSIONS)))
     op.execute(f"CREATE TYPE {PERMISSION_ENUM_NAME} AS ENUM ({formatted_options})")
 
     # artefact_matching_rule comes from this migration:
@@ -149,7 +149,7 @@ def downgrade() -> None:
     op.execute(f"ALTER TYPE {PERMISSION_ENUM_NAME} RENAME TO {PERMISSION_ENUM_NAME}_new")
 
     # Create the old enum with the same name as the current enum.
-    formatted_options = ", ".join(f"'{p}'" for p in OLD_PERMISSIONS)
+    formatted_options = ", ".join(f"'{p}'" for p in sorted(list(OLD_PERMISSIONS)))
     op.execute(f"CREATE TYPE {PERMISSION_ENUM_NAME} AS ENUM ({formatted_options})")
 
     columns_to_update = [
@@ -160,7 +160,7 @@ def downgrade() -> None:
 
     # Update existing table columns to use the new enum type
     # However, on downgrading, we have to remove any values that are not in the old enum
-    to_remove = ", ".join(f"'{p}'" for p in NEW_PERMISSIONS - OLD_PERMISSIONS)
+    to_remove = ", ".join(f"'{p}'" for p in sorted(list(NEW_PERMISSIONS - OLD_PERMISSIONS)))
     for table_name, column_name in columns_to_update:
         has_default = (
             op.get_bind()

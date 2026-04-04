@@ -761,6 +761,8 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     application = session.scalar(select(Application).where(Application.name == "seed_data_app"))
     inspector = inspect(session.get_bind())
     permissions = next(e["labels"] for e in inspector.get_enums() if e["name"] == "permission")  # type: ignore
+    if permissions is None:
+        raise RuntimeError("Could not find permissions enum in database")
     if not application:
         application = Application(name="seed_data_app", permissions=permissions)
         session.add(application)
