@@ -81,6 +81,9 @@ def downgrade() -> None:
     # restore previous default
     op.execute("ALTER TABLE team ALTER COLUMN permissions SET DEFAULT '{}'::character varying[]")
 
+    # drop default
+    op.execute("ALTER TABLE application ALTER COLUMN permissions DROP DEFAULT")
+
     # upgrade application table
     op.alter_column(
         "application",
@@ -90,3 +93,6 @@ def downgrade() -> None:
         existing_nullable=False,
         postgresql_using="permissions::varchar[]",
     )
+
+    # restore previous default
+    op.execute("ALTER TABLE application ALTER COLUMN permissions SET DEFAULT '{}'::character varying[]")
