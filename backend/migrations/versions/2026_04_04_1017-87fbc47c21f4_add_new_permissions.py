@@ -97,16 +97,20 @@ def upgrade() -> None:
     for table_name, column_name in columns_to_update:
         # Check if a default currently exists
         # This query returns the default expression string if it exists, or None
-        has_default = op.get_bind().execute(
-            sa.text(
-                f"""
-                SELECT column_default 
-                FROM information_schema.columns 
-                WHERE table_name = '{table_name}' 
-                AND column_name = '{column_name}'
-                """
+        has_default = (
+            op.get_bind()
+            .execute(
+                sa.text(
+                    f"""
+                    SELECT column_default 
+                    FROM information_schema.columns 
+                    WHERE table_name = '{table_name}' 
+                    AND column_name = '{column_name}'
+                    """
+                )
             )
-        ).scalar()
+            .scalar()
+        )
 
         if has_default:
             # We have to drop the default before altering the column type,
@@ -122,7 +126,9 @@ def upgrade() -> None:
 
         if has_default:
             # Reapply the default, which is an empty array of the new enum type.
-            op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]")
+            op.execute(
+                f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]"
+            )
 
     # Drop the old enum type
     # We need to use SQL here, because otherwise the SQLAlchemy Enum object will attempt to drop the new enum,
@@ -156,16 +162,20 @@ def downgrade() -> None:
     # However, on downgrading, we have to remove any values that are not in the old enum
     to_remove = ", ".join(f"'{p}'" for p in NEW_PERMISSIONS - OLD_PERMISSIONS)
     for table_name, column_name in columns_to_update:
-        has_default = op.get_bind().execute(
-            sa.text(
-                f"""
-                SELECT column_default 
-                FROM information_schema.columns 
-                WHERE table_name = '{table_name}' 
-                AND column_name = '{column_name}'
-                """
+        has_default = (
+            op.get_bind()
+            .execute(
+                sa.text(
+                    f"""
+                    SELECT column_default 
+                    FROM information_schema.columns 
+                    WHERE table_name = '{table_name}' 
+                    AND column_name = '{column_name}'
+                    """
+                )
             )
-        ).scalar()
+            .scalar()
+        )
 
         if has_default:
             op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP DEFAULT")
@@ -194,6 +204,8 @@ def downgrade() -> None:
         )
 
         if has_default:
-            op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]")
+            op.execute(
+                f"ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT '{{}}'::{PERMISSION_ENUM_NAME}[]"
+            )
 
     op.execute(f"DROP TYPE {PERMISSION_ENUM_NAME}_new")
