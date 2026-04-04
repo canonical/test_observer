@@ -760,7 +760,7 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     # which would cause an error when trying to add the application.
     application = session.scalar(select(Application).where(Application.name == "seed_data_app"))
     inspector = inspect(session.get_bind())
-    permissions = next(e["labels"] for e in inspector.get_enums() if e["name"] == "permission")
+    permissions = next(e["labels"] for e in inspector.get_enums() if e["name"] == "permission")  # type: ignore
     if not application:
         application = Application(name="seed_data_app", permissions=permissions)
         session.add(application)
