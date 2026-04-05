@@ -13,7 +13,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-import 'package:mocktail/mocktail.dart';
+import 'package:dio/dio.dart';
 import 'package:test/test.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_version.dart';
@@ -26,9 +26,9 @@ import '../utilities.dart';
 
 void main() {
   test('it returns environment count from previous artefact version', () async {
-    final apiMock = ApiRepositoryMock();
+    final apiStub = ApiRepositoryStub();
     final container = createContainer(
-      overrides: [apiProvider.overrideWith((ref) => apiMock)],
+      overrides: [apiProvider.overrideWith((ref) => apiStub)],
     );
 
     final count = await container.read(
@@ -36,15 +36,14 @@ void main() {
     );
 
     expect(count, 90);
-    verify(() => apiMock.getArtefactVersions(3)).called(1);
-    verify(() => apiMock.getArtefact(2)).called(1);
-    verifyNever(() => apiMock.getArtefact(1));
+    expect(apiStub.getArtefactVersionsCalls, [3]);
+    expect(apiStub.getArtefactCalls, [2]);
   });
 
   test('it returns null when artefact is already the oldest version', () async {
-    final apiMock = ApiRepositoryMock();
+    final apiStub = ApiRepositoryStub();
     final container = createContainer(
-      overrides: [apiProvider.overrideWith((ref) => apiMock)],
+      overrides: [apiProvider.overrideWith((ref) => apiStub)],
     );
 
     final count = await container.read(
@@ -52,15 +51,15 @@ void main() {
     );
 
     expect(count, isNull);
-    verify(() => apiMock.getArtefactVersions(1)).called(1);
-    verifyNever(() => apiMock.getArtefact(any()));
+    expect(apiStub.getArtefactVersionsCalls, [1]);
+    expect(apiStub.getArtefactCalls, isEmpty);
   });
 
   test('it returns null when current artefact is absent in versions list',
       () async {
-    final apiMock = ApiRepositoryMock();
+    final apiStub = ApiRepositoryStub();
     final container = createContainer(
-      overrides: [apiProvider.overrideWith((ref) => apiMock)],
+      overrides: [apiProvider.overrideWith((ref) => apiStub)],
     );
 
     final count = await container.read(
@@ -68,14 +67,21 @@ void main() {
     );
 
     expect(count, isNull);
-    verify(() => apiMock.getArtefactVersions(42)).called(1);
-    verifyNever(() => apiMock.getArtefact(any()));
+    expect(apiStub.getArtefactVersionsCalls, [42]);
+    expect(apiStub.getArtefactCalls, isEmpty);
   });
 }
 
-class ApiRepositoryMock extends Mock implements ApiRepository {
+class ApiRepositoryStub extends ApiRepository {
+  ApiRepositoryStub() : super(dio: Dio());
+
+  final List<int> getArtefactVersionsCalls = [];
+  final List<int> getArtefactCalls = [];
+
   @override
   Future<List<ArtefactVersion>> getArtefactVersions(int artefactId) async {
+    getArtefactVersionsCalls.add(artefactId);
+
     if (artefactId == 42) {
       return const [
         ArtefactVersion(artefactId: 3, version: '2.73'),
@@ -92,6 +98,8 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
 
   @override
   Future<Artefact> getArtefact(int artefactId) async {
+    getArtefactCalls.add(artefactId);
+
     if (artefactId == 2) {
       return dummyArtefact.copyWith(
         id: artefactId,
