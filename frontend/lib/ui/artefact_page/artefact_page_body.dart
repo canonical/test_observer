@@ -195,8 +195,8 @@ class _FewerEnvironmentsWarning extends ConsumerWidget {
                     'previous version ($previousCount).',
                     softWrap: true,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSecondaryContainer,
-                    ),
+                          color: colorScheme.onSecondaryContainer,
+                        ),
                   ),
                 ),
               ],
