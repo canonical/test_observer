@@ -187,11 +187,14 @@ class _FewerEnvironmentsWarning extends ConsumerWidget {
                   color: Color(0xFFC7A030),
                 ),
                 const SizedBox(width: Spacing.level3),
-                Text(
-                  'This version has fewer environments '
-                  '(${artefact.allEnvironmentReviewsCount}) than the '
-                  'previous version ($previousCount).',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                Expanded(
+                  child: Text(
+                    'This version has fewer environments '
+                    '(${artefact.allEnvironmentReviewsCount}) than the '
+                    'previous version ($previousCount).',
+                    softWrap: true,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                 ),
               ],
             ),

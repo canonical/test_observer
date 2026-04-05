@@ -282,7 +282,7 @@ START_TEST_EXECUTION_REQUESTS = [
         ci_link="http://example7",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    # These are to include the case where
+    # These with the test-plan-environments-count test plan are to include the case where
     # a subsequent version has fewer environments than the previous version,
     # which should show a warning in the frontend
     StartSnapTestExecutionRequest(
