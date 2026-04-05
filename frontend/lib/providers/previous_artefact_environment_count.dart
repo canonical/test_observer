@@ -28,8 +28,7 @@ Future<int?> previousArtefactEnvironmentCount(
   Ref ref,
   int artefactId,
 ) async {
-  final versions =
-      await ref.watch(artefactVersionsProvider(artefactId).future);
+  final versions = await ref.watch(artefactVersionsProvider(artefactId).future);
   // Versions are sorted by artefact ID descending (newest first).
   final currentIndex = versions.indexWhere((v) => v.artefactId == artefactId);
   if (currentIndex == -1 || currentIndex >= versions.length - 1) return null;
