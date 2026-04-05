@@ -24,6 +24,7 @@ import '../../providers/environments_issues.dart';
 import '../../providers/filtered_artefact_environments.dart';
 import '../../providers/tests_issues.dart';
 import '../../routing.dart';
+import '../../providers/previous_artefact_environment_count.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'bulk_environment_selection_controls.dart';
@@ -70,6 +71,7 @@ class ArtefactPageBody extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: Spacing.level3),
+        _FewerEnvironmentsWarning(artefact: artefact),
         BulkEnvironmentSelectionControls(
           environments: environments,
           artefactId: artefact.id,
@@ -146,5 +148,58 @@ class _ArtefactEnvironmentsStatusSummary extends StatelessWidget {
     }
 
     return counts;
+  }
+}
+
+class _FewerEnvironmentsWarning extends ConsumerWidget {
+  const _FewerEnvironmentsWarning({required this.artefact});
+
+  final Artefact artefact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final previousCountAsync = ref.watch(
+      previousArtefactEnvironmentCountProvider(artefact.id),
+    );
+
+    return previousCountAsync.when(
+      data: (previousCount) {
+        if (previousCount == null ||
+            artefact.allEnvironmentReviewsCount >= previousCount) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: Spacing.level3),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.level4,
+              vertical: Spacing.level3,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F3E6),
+              border: Border.all(color: const Color(0xFFE8C46A)),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Color(0xFFC7A030),
+                ),
+                const SizedBox(width: Spacing.level3),
+                Text(
+                  'This version has fewer environments '
+                  '(${artefact.allEnvironmentReviewsCount}) than the '
+                  'previous version ($previousCount).',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
   }
 }
