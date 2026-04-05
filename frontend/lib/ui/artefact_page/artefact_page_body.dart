@@ -158,6 +158,7 @@ class _FewerEnvironmentsWarning extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final previousCountAsync = ref.watch(
       previousArtefactEnvironmentCountProvider(artefact.id),
     );
@@ -176,15 +177,15 @@ class _FewerEnvironmentsWarning extends ConsumerWidget {
               vertical: Spacing.level3,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F3E6),
-              border: Border.all(color: const Color(0xFFE8C46A)),
+              color: colorScheme.secondaryContainer,
+              border: Border.all(color: colorScheme.outlineVariant),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.warning_amber_rounded,
-                  color: Color(0xFFC7A030),
+                  color: colorScheme.onSecondaryContainer,
                 ),
                 const SizedBox(width: Spacing.level3),
                 Expanded(
@@ -193,7 +194,9 @@ class _FewerEnvironmentsWarning extends ConsumerWidget {
                     '(${artefact.allEnvironmentReviewsCount}) than the '
                     'previous version ($previousCount).',
                     softWrap: true,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSecondaryContainer,
+                    ),
                   ),
                 ),
               ],

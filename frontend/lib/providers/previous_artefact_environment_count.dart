@@ -22,7 +22,8 @@ import 'artefact_versions.dart';
 part 'previous_artefact_environment_count.g.dart';
 
 /// Returns the [allEnvironmentReviewsCount] of the version immediately preceding
-/// the given artefact, or `null` if the artefact is already the oldest version.
+/// the given artefact. If the artefact is already the oldest version or if the
+/// artefact is absent in the versions list, returns `null`.
 @riverpod
 Future<int?> previousArtefactEnvironmentCount(
   Ref ref,
