@@ -24,11 +24,9 @@ from httpx import Response
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.controllers.test_executions.start_test import (
-    create_artefact_review_cards,
-)
 from test_observer.data_access.models import (
     Artefact,
+    Notification,
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
@@ -36,9 +34,13 @@ from test_observer.data_access.models_enums import (
     DebStage,
     FamilyName,
     ImageStage,
+    NotificationType,
     SnapStage,
     StageName,
     TestExecutionStatus,
+)
+from test_observer.services.review_notification_service import (
+    notify_reviewer_assigned,
 )
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
@@ -1055,8 +1057,8 @@ def test_no_assignment_when_no_team_reviewers_available(
     assert assignee is None
 
 
-class TestCreateArtefactReviewCards:
-    """Tests for create_artefact_review_cards function"""
+class TestNotifyReviewerAssigned:
+    """Tests for notify_reviewer_assigned function - the public API for creating notifications and Jira cards"""
 
     @pytest.fixture(autouse=True)
     def setup_env(self, monkeypatch: pytest.MonkeyPatch):
@@ -1065,8 +1067,8 @@ class TestCreateArtefactReviewCards:
         monkeypatch.setenv("JIRA_EMAIL", "test@example.com")
         monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
 
-    def test_create_review_cards_happy_path(self, generator: DataGenerator):
-        """Test successful creation of review cards for artefact with reviewer and epic"""
+    def test_notify_reviewer_assigned_happy_path(self, generator: DataGenerator, db_session: Session):
+        """Test successful creation of notification and Jira cards via the public API"""
         # Create artefact with a reviewer and jira issue
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
@@ -1075,33 +1077,31 @@ class TestCreateArtefactReviewCards:
             reviewers=[reviewer],
         )
         artefact.jira_issue = "TEST-123"
+        db_session.commit()
 
-        # Create mock instances
-        mock_issue_creator = Mock()
-        mock_jira_client = Mock()
-        mock_jira_context = Mock()
-
-        # Mock both IssueCreator and JiraIssueContext classes
-        with (
-            patch("test_observer.controllers.test_executions.start_test.IssueCreator") as mock_issue_creator_class,
-            patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
-        ):
+        # Mock IssueCreator to avoid actual Jira calls
+        with patch("test_observer.services.review_notification_service.IssueCreator") as mock_issue_creator_class:
+            mock_issue_creator = Mock()
             mock_issue_creator_class.return_value = mock_issue_creator
-            mock_context_class.return_value = mock_jira_context
 
-            create_artefact_review_cards(artefact, reviewer, mock_jira_client)
+            notify_reviewer_assigned(
+                db_session,
+                reviewer,
+                artefact,
+                NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+            )
 
-            # Verify JiraIssueContext was instantiated with correct parameters
-            mock_context_class.assert_called_once_with(client=mock_jira_client, parent_issue="TEST-123")
+            # Verify notification was created
+            notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
+            assert notification is not None
+            assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
 
-            # Verify IssueCreator was instantiated with the context
-            mock_issue_creator_class.assert_called_once_with(jira_ctx=mock_jira_context)
-
-            # Verify create_review_issues was called
+            # Verify Jira card creation was attempted
+            mock_issue_creator_class.assert_called_once()
             mock_issue_creator.create_review_issues.assert_called_once_with(artefact, reviewer)
 
-    def test_create_review_cards_no_jira_issue(self, generator: DataGenerator):
-        """Test that ValueError is raised when artefact has no jira issue"""
+    def test_notify_reviewer_assigned_no_jira_issue(self, generator: DataGenerator, db_session: Session):
+        """Test that notification is created even without Jira issue (graceful degradation)"""
         # Create artefact with reviewer but NO jira issue
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
@@ -1109,59 +1109,48 @@ class TestCreateArtefactReviewCards:
             version="1.0.0",
             reviewers=[reviewer],
         )  # jira_issue is None by default
+        db_session.commit()
 
-        mock_client = Mock()
+        # Should NOT raise - notification should still be created
+        notify_reviewer_assigned(
+            db_session,
+            reviewer,
+            artefact,
+            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
 
-        # Should raise ValueError
-        with pytest.raises(ValueError, match="has no linked Jira issue"):
-            create_artefact_review_cards(artefact, reviewer, mock_client)
+        # Verify notification was created
+        notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
+        assert notification is not None
+        assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
 
-        # create_issue should not be called
-        mock_client.create_issue.assert_not_called()
-
-    def test_create_review_cards_no_reviewers(self, generator: DataGenerator):
-        """Test that function raises ValueError when artefact has no reviewers"""
-        # Create artefact with jira issue but NO reviewers
+    def test_notify_reviewer_assigned_jira_creation_fails_gracefully(
+        self, generator: DataGenerator, db_session: Session
+    ):
+        """Test that notification is created even if Jira card creation fails"""
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
             name="test-snap",
             version="1.0.0",
-            reviewers=[],
+            reviewers=[reviewer],
         )
         artefact.jira_issue = "TEST-123"
+        db_session.commit()
 
-        mock_jira_client = Mock()
+        # Mock IssueCreator to raise an exception
+        with patch("test_observer.services.review_notification_service.IssueCreator") as mock_issue_creator_class:
+            mock_issue_creator = Mock()
+            mock_issue_creator.create_review_issues.side_effect = Exception("Jira API error")
+            mock_issue_creator_class.return_value = mock_issue_creator
 
-        # Should raise ValueError from IssueCreator.create_review_issues
-        # JiraIssueContext is patched so that the mock client passes through without network calls
-        with (
-            patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
-            pytest.raises(ValueError, match="has no reviewers assigned"),
-        ):
-            mock_context_class.return_value = Mock()
-            create_artefact_review_cards(artefact, reviewer, mock_jira_client)
+            # Should NOT raise despite Jira failure
+            notify_reviewer_assigned(
+                db_session,
+                reviewer,
+                artefact,
+                NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+            )
 
-    def test_create_review_cards_reviewer_not_in_list(self, generator: DataGenerator):
-        """Test that function raises ValueError when reviewer is not in artefact's reviewer list"""
-        # Create two different users
-        assigned_reviewer = generator.gen_user(name="Alice", email="alice@example.com")
-        unrelated_user = generator.gen_user(name="Bob", email="bob@example.com")
-
-        # Create artefact with Alice as reviewer
-        artefact = generator.gen_artefact(
-            name="test-snap",
-            version="1.0.0",
-            reviewers=[assigned_reviewer],
-        )
-        artefact.jira_issue = "TEST-123"
-
-        mock_jira_client = Mock()
-
-        # Try to create cards for Bob (not a reviewer) - should raise ValueError from IssueCreator.create_review_issues
-        # JiraIssueContext is patched so that the mock client passes through without network calls
-        with (
-            patch("test_observer.controllers.test_executions.start_test.JiraIssueContext") as mock_context_class,
-            pytest.raises(ValueError, match="reviewers do not include"),
-        ):
-            mock_context_class.return_value = Mock()
-            create_artefact_review_cards(artefact, unrelated_user, mock_jira_client)
+            # Verify notification was still created
+            notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
+            assert notification is not None

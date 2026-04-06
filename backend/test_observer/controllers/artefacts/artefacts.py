@@ -13,7 +13,6 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
@@ -57,8 +56,6 @@ from .models import (
     ArtefactSearchResponse,
     ArtefactVersionResponse,
 )
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["artefacts"])
 
@@ -310,8 +307,6 @@ def patch_artefact(
                     newly_assigned_reviewers.append(user)
             artefact.reviewers = reviewers
 
-    db.commit()
-
     with db.begin_nested():
         batch_notify_reviewers_assigned(
             db,
@@ -319,6 +314,7 @@ def patch_artefact(
             artefact,
             NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
         )
+
     db.commit()
 
     return artefact

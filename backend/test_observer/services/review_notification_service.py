@@ -119,7 +119,6 @@ def batch_notify_reviewers_assigned(
         reviewers: List of users who were newly assigned as reviewers
         artefact: The artefact they were assigned to review
         notification_type: The type of notification to create
-                          (USER_ASSIGNED_ARTEFACT_REVIEW or USER_ASSIGNED_ENVIRONMENT_REVIEW)
     """
     for reviewer in reviewers:
         try:

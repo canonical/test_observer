@@ -41,7 +41,6 @@ from test_observer.data_access.repository import (
     get_or_create,
 )
 from test_observer.data_access.setup import get_db
-from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.services.review_notification_service import (
@@ -136,8 +135,6 @@ class StartTestExecutionController:
             newly_assigned_environment_reviewers[reviewer.id] = reviewer
             reviewers_to_assignment_count[reviewer.id] += 1
 
-        self.db.commit()
-
         with self.db.begin_nested():
             batch_notify_reviewers_assigned(
                 self.db,
@@ -145,8 +142,8 @@ class StartTestExecutionController:
                 self.artefact,
                 NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
             )
-        self.db.commit()
 
+        self.db.commit()
 
     def assign_reviewer(self):
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
@@ -176,8 +173,6 @@ class StartTestExecutionController:
                 self._assign_reviewers_to_environments()
                 self.artefact.due_date = self.determine_due_date()
 
-                self.db.commit()
-
                 with self.db.begin_nested():
                     batch_notify_reviewers_assigned(
                         self.db,
@@ -185,8 +180,8 @@ class StartTestExecutionController:
                         self.artefact,
                         NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
                     )
-                self.db.commit()
 
+                self.db.commit()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
@@ -321,45 +316,3 @@ def start_test_execution(
     test_starter: StartTestExecutionController = Depends(StartTestExecutionController),
 ):
     return test_starter.execute()
-
-
-def create_artefact_review_cards(
-    artefact: Artefact,
-    reviewer: User,
-    jira_client: JiraClient,
-) -> None:
-    """Create Jira review cards for an artefact and a reviewer
-
-    The cards are titled:
-        - "Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
-        - "Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
-    They are linked to the artefact's Jira issue (`artefact.jira_issue`)
-
-    Args:
-        artefact: The artefact to create review cards for
-        reviewer: The user to assign the review card to
-        jira_client: A configured JiraClient instance (cloud ID, email, and API token
-            already set) used to create the issues in the artefact's Jira project
-
-    Raises:
-        ValueError: If artefact has no jira_issue, no reviewers, or reviewer not in reviewers list
-        Exception: If card creation fails
-    """
-    if not artefact.jira_issue:
-        raise ValueError(
-            f"Artefact {artefact.id} has no linked Jira issue (artefact.jira_issue is None). "
-            "Cannot create review cards without a parent issue."
-        )
-
-    try:
-        issue_creator = IssueCreator(
-            jira_ctx=JiraIssueContext(
-                client=jira_client,
-                parent_issue=artefact.jira_issue,
-            )
-        )
-        issue_creator.create_review_issues(artefact, reviewer)
-
-    except Exception:
-        logger.exception(f"Failed to create Jira review cards for artefact {artefact.id} and user {reviewer.id}")
-        raise
