@@ -40,8 +40,12 @@ class InlineUrlText extends StatelessWidget {
               color: Colors.blue,
             );
 
+    final parsedUri = Uri.parse(url);
+    final resolvedUri =
+        parsedUri.isAbsolute ? parsedUri : Uri.base.resolveUri(parsedUri);
+
     final linkWidget = Link(
-      uri: Uri.parse(url),
+      uri: resolvedUri,
       target: LinkTarget.blank,
       builder: (context, followLink) => GestureDetector(
         onTap: followLink,
