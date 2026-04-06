@@ -47,9 +47,9 @@ def notify_reviewer_assigned(
         notification_type: The type of notification to create
         jira_client: Optional Jira client. If not provided, will attempt to get one.
     """
-    try:
-        target_url = get_artefact_url(artefact)
+    target_url = get_artefact_url(artefact)
 
+    with db.begin_nested():
         notification = Notification(
             user_id=reviewer.id,
             notification_type=notification_type,
@@ -58,14 +58,9 @@ def notify_reviewer_assigned(
         db.add(notification)
         db.flush()
 
-        logger.info(f"Created {notification_type} notification for user {reviewer.id} on artefact {artefact.id}")
+    logger.info(f"Created {notification_type} notification for user {reviewer.id} on artefact {artefact.id}")
 
-        # Attempt to create Jira cards
-        _create_jira_review_cards(artefact, reviewer, jira_client)
-
-    except Exception:
-        db.rollback()
-        logger.exception(f"Failed to create notification for reviewer {reviewer.id} on artefact {artefact.id}")
+    _create_jira_review_cards(artefact, reviewer, jira_client)
 
 
 def _create_jira_review_cards(

@@ -138,13 +138,15 @@ class StartTestExecutionController:
 
         self.db.commit()
 
-        # Create notifications for newly assigned environment reviewers
-        batch_notify_reviewers_assigned(
-            self.db,
-            list(newly_assigned_environment_reviewers.values()),
-            self.artefact,
-            NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
-        )
+        with self.db.begin_nested():
+            batch_notify_reviewers_assigned(
+                self.db,
+                list(newly_assigned_environment_reviewers.values()),
+                self.artefact,
+                NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+            )
+        self.db.commit()
+
 
     def assign_reviewer(self):
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
@@ -174,12 +176,17 @@ class StartTestExecutionController:
                 self._assign_reviewers_to_environments()
                 self.artefact.due_date = self.determine_due_date()
 
-                batch_notify_reviewers_assigned(
-                    self.db,
-                    newly_assigned_reviewers,
-                    self.artefact,
-                    NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-                )
+                self.db.commit()
+
+                with self.db.begin_nested():
+                    batch_notify_reviewers_assigned(
+                        self.db,
+                        newly_assigned_reviewers,
+                        self.artefact,
+                        NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+                    )
+                self.db.commit()
+
 
     def create_test_plan(self):
         self.test_plan = get_or_create(

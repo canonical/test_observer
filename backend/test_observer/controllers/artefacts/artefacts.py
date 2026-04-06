@@ -312,13 +312,14 @@ def patch_artefact(
 
     db.commit()
 
-    # Create notifications for newly assigned reviewers
-    batch_notify_reviewers_assigned(
-        db,
-        newly_assigned_reviewers,
-        artefact,
-        NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-    )
+    with db.begin_nested():
+        batch_notify_reviewers_assigned(
+            db,
+            newly_assigned_reviewers,
+            artefact,
+            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+    db.commit()
 
     return artefact
 
