@@ -108,10 +108,7 @@ def update_environment_review(
     review = db.scalar(
         select(ArtefactBuildEnvironmentReview)
         .where(ArtefactBuildEnvironmentReview.id == review_id)
-        .options(
-            selectinload(ArtefactBuildEnvironmentReview.artefact_build),
-            selectinload(ArtefactBuildEnvironmentReview.reviewers),
-        )
+        .options(selectinload(ArtefactBuildEnvironmentReview.artefact_build))
     )
 
     if not review:
@@ -128,3 +125,4 @@ def update_environment_review(
 
     db.commit()
     return review
+

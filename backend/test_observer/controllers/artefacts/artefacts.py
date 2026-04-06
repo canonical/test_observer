@@ -15,6 +15,7 @@
 
 from typing import Annotated
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
@@ -33,11 +34,16 @@ from test_observer.data_access.models_enums import (
     DebStage,
     FamilyName,
     ImageStage,
+    NotificationType,
     SnapStage,
     StageName,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
+from test_observer.services.review_notification_service import (
+    notify_reviewer_assigned,
+    batch_notify_reviewers_assigned,
+)
 
 from . import builds, environment_reviews
 from .logic import (
@@ -52,6 +58,8 @@ from .models import (
     ArtefactSearchResponse,
     ArtefactVersionResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["artefacts"])
 
@@ -244,8 +252,11 @@ def patch_artefact(
             detail="Cannot specify both reviewer_ids and reviewer_emails",
         )
 
+    newly_assigned_reviewers: list[User] = []
+
     # Handle reviewer_ids
     if reviewer_ids_set:
+        old_reviewer_ids = {r.id for r in artefact.reviewers}
         if request.reviewer_ids is None:
             artefact.reviewers = []
         elif len(request.reviewer_ids) != len(set(request.reviewer_ids)):
@@ -266,10 +277,14 @@ def patch_artefact(
                         detail=f"User with id {user_id} not found",
                     )
                 reviewers.append(user)
+                # Track newly assigned reviewers
+                if user_id not in old_reviewer_ids:
+                    newly_assigned_reviewers.append(user)
             artefact.reviewers = reviewers
 
     # Handle reviewer_emails
     if reviewer_emails_set:
+        old_reviewer_ids = {r.id for r in artefact.reviewers}
         if request.reviewer_emails is None:
             artefact.reviewers = []
         elif len(request.reviewer_emails) != len(set(request.reviewer_emails)):
@@ -291,9 +306,21 @@ def patch_artefact(
                         detail=f"User with email '{email}' not found",
                     )
                 reviewers.append(user)
+                # Track newly assigned reviewers
+                if user.id not in old_reviewer_ids:
+                    newly_assigned_reviewers.append(user)
             artefact.reviewers = reviewers
 
     db.commit()
+
+    # Create notifications for newly assigned reviewers
+    batch_notify_reviewers_assigned(
+        db,
+        newly_assigned_reviewers,
+        artefact,
+        NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+    )
+
     return artefact
 
 

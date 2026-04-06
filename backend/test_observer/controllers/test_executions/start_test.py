@@ -34,6 +34,7 @@ from test_observer.data_access.models import (
     TestPlan,
     User,
 )
+from test_observer.data_access.models_enums import NotificationType
 from test_observer.data_access.queries import match_artefact
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
@@ -43,6 +44,10 @@ from test_observer.data_access.setup import get_db
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.jira.jira_client import JiraClient
+from test_observer.services.review_notification_service import (
+    notify_reviewer_assigned,
+    batch_notify_reviewers_assigned,
+)
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -121,15 +126,26 @@ class StartTestExecutionController:
         reviews_per_reviewer = _ceil_division(len(env_reviews), len(self.artefact.reviewers))
 
         current_reviewer = 0
+        newly_assigned_environment_reviewers: dict[int, User] = {}
         for env_review in env_reviews:
             if env_review.reviewers and env_review.reviewers[0] in self.artefact.reviewers:
                 continue
             if reviewers_to_assignment_count[reviewers_sorted[current_reviewer].id] >= reviews_per_reviewer:
                 current_reviewer += 1
-            env_review.reviewers = [reviewers_sorted[current_reviewer]]
-            reviewers_to_assignment_count[reviewers_sorted[current_reviewer].id] += 1
+            reviewer = reviewers_sorted[current_reviewer]
+            env_review.reviewers = [reviewer]
+            newly_assigned_environment_reviewers[reviewer.id] = reviewer
+            reviewers_to_assignment_count[reviewer.id] += 1
 
         self.db.commit()
+
+        # Create notifications for newly assigned environment reviewers
+        batch_notify_reviewers_assigned(
+            self.db,
+            list(newly_assigned_environment_reviewers.values()),
+            self.artefact,
+            NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+        )
 
     def assign_reviewer(self):
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
@@ -154,9 +170,17 @@ class StartTestExecutionController:
                 environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
                 expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
                 number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
-                self.artefact.reviewers += random.sample(users, min(len(users), number_of_reviewers_to_assign))
+                newly_assigned_reviewers = random.sample(users, min(len(users), number_of_reviewers_to_assign))
+                self.artefact.reviewers += newly_assigned_reviewers
                 self._assign_reviewers_to_environments()
                 self.artefact.due_date = self.determine_due_date()
+
+                batch_notify_reviewers_assigned(
+                    self.db,
+                    newly_assigned_reviewers,
+                    self.artefact,
+                    NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+                )
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
