@@ -122,13 +122,15 @@ def _search_with_result_details(
     db: Session,
 ) -> tuple[list[TestResult], int]:
     """Query test results with full details using shared filter machinery."""
-    query = select(TestResult).options(
-        selectinload(TestResult.test_case),
-        selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
+    _artefact = (
         selectinload(TestResult.test_execution)
         .selectinload(TestExecution.artefact_build)
         .selectinload(ArtefactBuild.artefact)
-        .selectinload(Artefact.reviewers),
+    )
+    query = select(TestResult).options(
+        selectinload(TestResult.test_case),
+        selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
+        _artefact.selectinload(Artefact.reviewers),
         selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
         selectinload(TestResult.test_execution).selectinload(TestExecution.test_plan),
         selectinload(TestResult.test_execution).selectinload(TestExecution.relevant_links),
@@ -138,18 +140,10 @@ def _search_with_result_details(
         selectinload(TestResult.issue_attachments)
         .selectinload(IssueTestResultAttachment.attachment_rule)
         .selectinload(IssueTestResultAttachmentRule.execution_metadata),
-        # Pre-load all test results + their issue attachments for each test execution
-        # so that TestExecution.is_triaged can evaluate without additional queries
-        selectinload(TestResult.test_execution)
-        .selectinload(TestExecution.test_results)
-        .selectinload(TestResult.issue_attachments),
         # Pre-load all builds + environment reviews for each artefact
-        # so that Artefact.all/completed_environment_reviews_count can evaluate without additional queries
-        selectinload(TestResult.test_execution)
-        .selectinload(TestExecution.artefact_build)
-        .selectinload(ArtefactBuild.artefact)
-        .selectinload(Artefact.builds)
-        .selectinload(ArtefactBuild.environment_reviews),
+        # so that Artefact.all_environment_reviews_count and completed_environment_reviews_count
+        # can evaluate without additional queries
+        _artefact.selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
     )
     query = filter_test_results(query, filters)
     query = query.order_by(desc(TestResult.created_at), desc(TestResult.id))

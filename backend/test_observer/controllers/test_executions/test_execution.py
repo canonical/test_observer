@@ -25,7 +25,6 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 from test_observer.data_access.models import (
     TestExecution,
     TestExecutionMetadata,
-    TestResult,
     test_execution_metadata_association_table,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
@@ -42,8 +41,8 @@ TEST_EXECUTION_OPTIONS = [
     # Separate-query Collections (One-to-Many / Many-to-Many)
     selectinload(TestExecution.execution_metadata),
     selectinload(TestExecution.relevant_links),
-    # Used by `is_triaged` and `has_failures` methods
-    selectinload(TestExecution.test_results).selectinload(TestResult.issue_attachments),
+    # Needed by patch_test_execution to determine test execution status
+    selectinload(TestExecution.test_results),
 ]
 
 
