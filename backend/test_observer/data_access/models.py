@@ -170,7 +170,7 @@ class Application(Base):
     name: Mapped[str] = mapped_column(unique=True)
     # We use native_enum=False because adding permissions with native enums
     # requires a migration to update the possible values
-    # SQLAlchemy will still do Python-side validation
+    # SQLAlchemy will still do Python-side validation (though only through the ORM)
     permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
 
     @staticmethod
@@ -195,7 +195,7 @@ class Team(Base):
     name: Mapped[str] = mapped_column(unique=True)
     # We use native_enum=False because adding permissions with native enums
     # requires a migration to update the possible values
-    # SQLAlchemy will still do Python-side validation
+    # SQLAlchemy will still do Python-side validation (though only through the ORM)
     permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
 
     members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
@@ -229,7 +229,7 @@ class ArtefactMatchingRule(Base):
 
     # We use native_enum=False because adding permissions with native enums
     # requires a migration to update the possible values
-    # SQLAlchemy will still do Python-side validation
+    # SQLAlchemy will still do Python-side validation (though only through the ORM)
     grant_permissions: Mapped[list[Permission]] = mapped_column(
         ARRAY(Enum(Permission, native_enum=False)), default=list
     )
