@@ -961,3 +961,134 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
             for r in artefact.reviewers
         ]
     assert response == expected
+
+
+class TestArtefactPatchAMRPermissions:
+    """Test AMR-based permission checking for patch_artefact endpoint"""
+
+    def test_patch_artefact_with_amr_permission(
+        self, test_client: TestClient, generator: DataGenerator, db_session: Session
+    ):
+        """User with matching AMR permission should be able to patch artefact"""
+        from test_observer.users.user_injection import get_current_user
+        from test_observer.main import app
+
+        # Create team and AMR
+        team = generator.gen_team(name="snap-team")
+        rule = generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team
+        user = generator.gen_user(name="alice")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Mock the user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated comment"},
+            )
+            assert response.status_code == 200
+            assert response.json()["comment"] == "Updated comment"
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_without_amr_permission_denied(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """User without matching AMR should be denied"""
+        from test_observer.users.user_injection import get_current_user
+        from test_observer.main import app
+
+        # Create two teams
+        team_a = generator.gen_team(name="team-a")
+        team_b = generator.gen_team(name="team-b")
+
+        # Create AMR for team_a
+        rule = generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team_a],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team_b
+        user = generator.gen_user(name="bob")
+        user.teams = [team_b]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_with_no_matching_amr_denied(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """User whose team has AMR but for different artefact should be denied"""
+        from test_observer.users.user_injection import get_current_user
+        from test_observer.main import app
+
+        # Create team and AMR for stable stage
+        team = generator.gen_team(name="snap-team")
+        rule = generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team
+        user = generator.gen_user(name="charlie")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact that doesn't match (different stage)
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.beta,
+        )
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
