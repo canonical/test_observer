@@ -726,7 +726,7 @@ def test_teams_api_returns_empty_grant_permissions_by_default(test_client: TestC
 
 
 def test_create_invalid_grant_permissions_api(test_client: TestClient, generator: DataGenerator):
-    """Test creating a rule with grant_permissions set"""
+    """Test creating a rule with invalid grant_permissions set using the API"""
     team = generator.gen_team(name="test-team")
 
     response = make_authenticated_request(
@@ -746,7 +746,7 @@ def test_create_invalid_grant_permissions_api(test_client: TestClient, generator
 
 
 def test_update_invalid_grant_permissions_api(test_client: TestClient, generator: DataGenerator):
-    """Test patching grant_permissions on an existing rule"""
+    """Test patching grant_permissions on an existing rule with invalid permissions using the API"""
     team = generator.gen_team(name="test-team")
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
 
@@ -762,7 +762,7 @@ def test_update_invalid_grant_permissions_api(test_client: TestClient, generator
 
 
 def test_create_invalid_grant_permissions_orm(generator: DataGenerator):
-    """Test creating a rule with grant_permissions set"""
+    """Test creating a rule with invalid grant_permissions set using the ORM directly"""
     team = generator.gen_team(name="test-team")
     with pytest.raises(ValueError, match="Invalid permission: invalid_permission"):
         generator.gen_artefact_matching_rule(
@@ -774,7 +774,7 @@ def test_create_invalid_grant_permissions_orm(generator: DataGenerator):
 
 
 def test_update_invalid_grant_permissions_orm(generator: DataGenerator):
-    """Test patching grant_permissions on an existing rule"""
+    """Test patching grant_permissions on an existing rule using the ORM directly"""
     team = generator.gen_team(name="test-team")
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
 
