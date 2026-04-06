@@ -13,9 +13,9 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 from typing import Annotated
 
-import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
@@ -41,7 +41,6 @@ from test_observer.data_access.models_enums import (
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 from test_observer.services.review_notification_service import (
-    notify_reviewer_assigned,
     batch_notify_reviewers_assigned,
 )
 

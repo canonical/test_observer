@@ -14,7 +14,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -37,7 +36,7 @@ def notify_reviewer_assigned(
     reviewer: User,
     artefact: Artefact,
     notification_type: NotificationType,
-    jira_client: Optional[JiraClient] = None,
+    jira_client: JiraClient | None = None,
 ) -> None:
     """Create a notification and Jira card for a newly assigned reviewer.
 
@@ -59,26 +58,20 @@ def notify_reviewer_assigned(
         db.add(notification)
         db.flush()
 
-        logger.info(
-            f"Created {notification_type} notification for user {reviewer.id} "
-            f"on artefact {artefact.id}"
-        )
+        logger.info(f"Created {notification_type} notification for user {reviewer.id} on artefact {artefact.id}")
 
         # Attempt to create Jira cards
         _create_jira_review_cards(artefact, reviewer, jira_client)
 
     except Exception:
         db.rollback()
-        logger.exception(
-            f"Failed to create notification for reviewer {reviewer.id} "
-            f"on artefact {artefact.id}"
-        )
+        logger.exception(f"Failed to create notification for reviewer {reviewer.id} on artefact {artefact.id}")
 
 
 def _create_jira_review_cards(
     artefact: Artefact,
     reviewer: User,
-    jira_client: Optional[JiraClient] = None,
+    jira_client: JiraClient | None = None,
 ) -> None:
     """Attempt to create Jira review cards for a reviewer.
 
@@ -88,10 +81,7 @@ def _create_jira_review_cards(
         jira_client: Optional Jira client. If not provided, will attempt to get one.
     """
     if not artefact.jira_issue:
-        logger.info(
-            f"Artefact {artefact.id} has no jira_issue; "
-            "skipping Jira card creation"
-        )
+        logger.info(f"Artefact {artefact.id} has no jira_issue; skipping Jira card creation")
         return
 
     if jira_client is None:
@@ -109,10 +99,7 @@ def _create_jira_review_cards(
             )
         )
         issue_creator.create_review_issues(artefact, reviewer)
-        logger.info(
-            f"Created Jira review cards for reviewer {reviewer.id} "
-            f"on artefact {artefact.id}"
-        )
+        logger.info(f"Created Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}")
     except Exception as e:
         logger.warning(
             f"Failed to create Jira review cards for reviewer {reviewer.id} "
@@ -147,4 +134,3 @@ def batch_notify_reviewers_assigned(
                 f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
                 f"on artefact {artefact.id}: {e}"
             )
-

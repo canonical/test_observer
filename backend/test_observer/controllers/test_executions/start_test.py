@@ -45,7 +45,6 @@ from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueCon
 from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.services.review_notification_service import (
-    notify_reviewer_assigned,
     batch_notify_reviewers_assigned,
 )
 

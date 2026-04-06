@@ -125,4 +125,3 @@ def update_environment_review(
 
     db.commit()
     return review
-
