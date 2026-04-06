@@ -13,6 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
@@ -68,7 +69,7 @@ def test_create_team_with_permissions_and_matching_rules(test_client: TestClient
     assert data["members"] == []
 
 
-def test_create_team_invalid_permission(test_client: TestClient):
+def test_create_team_invalid_permission_api(test_client: TestClient):
     response = make_authenticated_request(
         lambda: test_client.post(
             "/v1/teams",
@@ -579,3 +580,17 @@ def test_remove_rule_from_team_without_making_it_an_orphan_does_not_remove_rule(
         Permission.view_team,
     )
     assert response.status_code == 200
+
+
+def test_create_team_invalid_permission_orm(generator: DataGenerator):
+    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+        generator.gen_team(
+            name="test-team",
+            permissions=["invalid_permission"],
+        )
+
+
+def test_update_team_invalid_permission_orm(generator: DataGenerator):
+    team = generator.gen_team(name="test-team")
+    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+        team.permissions = ["invalid_permission"]  # type: ignore

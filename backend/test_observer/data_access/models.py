@@ -42,6 +42,7 @@ from sqlalchemy.orm import (
     foreign,
     mapped_column,
     relationship,
+    validates,
 )
 from sqlalchemy.sql import ColumnElement, func
 
@@ -170,8 +171,18 @@ class Application(Base):
     name: Mapped[str] = mapped_column(unique=True)
     # We use native_enum=False because adding permissions with native enums
     # requires a migration to update the possible values
-    # SQLAlchemy will still do Python-side validation (though only through the ORM)
+    # As a result, we add our own validator as well
     permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
+
+    @validates("permissions")
+    def validate_permissions(self, _key: str, value: list[Permission | str]) -> list[Permission]:
+        invalid: list[Permission | str] = []
+        for permission in value:
+            if permission not in Permission:
+                invalid.append(permission)
+        if invalid:
+            raise ValueError(f"Invalid permissions: {', '.join(invalid)}")
+        return value  # type: ignore[return-value]
 
     @staticmethod
     def gen_api_key() -> str:
@@ -195,8 +206,18 @@ class Team(Base):
     name: Mapped[str] = mapped_column(unique=True)
     # We use native_enum=False because adding permissions with native enums
     # requires a migration to update the possible values
-    # SQLAlchemy will still do Python-side validation (though only through the ORM)
+    # As a result, we add our own validator as well
     permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
+
+    @validates("permissions")
+    def validate_permissions(self, _key: str, value: list[Permission | str]) -> list[Permission]:
+        invalid: list[Permission | str] = []
+        for permission in value:
+            if permission not in Permission:
+                invalid.append(permission)
+        if invalid:
+            raise ValueError(f"Invalid permissions: {', '.join(invalid)}")
+        return value  # type: ignore[return-value]
 
     members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
     artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
@@ -229,10 +250,20 @@ class ArtefactMatchingRule(Base):
 
     # We use native_enum=False because adding permissions with native enums
     # requires a migration to update the possible values
-    # SQLAlchemy will still do Python-side validation (though only through the ORM)
+    # As a result, we add our own validator as well
     grant_permissions: Mapped[list[Permission]] = mapped_column(
         ARRAY(Enum(Permission, native_enum=False)), default=list
     )
+
+    @validates("grant_permissions")
+    def validate_grant_permissions(self, _key: str, value: list[Permission | str]) -> list[Permission]:
+        invalid: list[Permission | str] = []
+        for permission in value:
+            if permission not in Permission:
+                invalid.append(permission)
+        if invalid:
+            raise ValueError(f"Invalid permissions: {', '.join(invalid)}")
+        return value  # type: ignore[return-value]
 
     __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch"),)
 

@@ -17,6 +17,7 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
@@ -722,3 +723,60 @@ def test_teams_api_returns_empty_grant_permissions_by_default(test_client: TestC
     rules = response.json()["artefact_matching_rules"]
     assert len(rules) == 1
     assert rules[0]["grant_permissions"] == []
+
+
+def test_create_invalid_grant_permissions_api(test_client: TestClient, generator: DataGenerator):
+    """Test creating a rule with grant_permissions set"""
+    team = generator.gen_team(name="test-team")
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/artefact-matching-rules",
+            json={
+                "family": "snap",
+                "track": "22",
+                "team_ids": [team.id],
+                "grant_permissions": ["invalid_permission"],
+            },
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_invalid_grant_permissions_api(test_client: TestClient, generator: DataGenerator):
+    """Test patching grant_permissions on an existing rule"""
+    team = generator.gen_team(name="test-team")
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefact-matching-rules/{rule.id}",
+            json={"grant_permissions": ["invalid_permission"]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_invalid_grant_permissions_orm(generator: DataGenerator):
+    """Test creating a rule with grant_permissions set"""
+    team = generator.gen_team(name="test-team")
+    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            track="22",
+            teams=[team],
+            grant_permissions=["invalid_permission"],  # type: ignore
+        )
+
+
+def test_update_invalid_grant_permissions_orm(generator: DataGenerator):
+    """Test patching grant_permissions on an existing rule"""
+    team = generator.gen_team(name="test-team")
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+
+    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+        rule.grant_permissions = ["invalid_permission"]  # type: ignore
