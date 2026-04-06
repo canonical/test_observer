@@ -20,9 +20,13 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import permission_checker
+from test_observer.common.permissions import check_amr_permission, permission_checker
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
+    Application,
     Artefact,
     ArtefactBuild,
     User,
@@ -38,6 +42,7 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
 from . import builds, environment_reviews
 from .logic import (
@@ -213,15 +218,24 @@ def get_artefact(
 @router.patch(
     "/{artefact_id}",
     response_model=ArtefactResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_artefact])],
 )
 def patch_artefact(
     request: ArtefactPatch,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
     artefact: Artefact = Depends(
         ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     ),
 ):
+    # Check AMR-based permission for change_artefact
+    # First check if app has permission (for testing)
+    if app and Permission.change_artefact in app.permissions:
+        pass  # App has permission, proceed
+    else:
+        # Check user's AMR-based permission
+        check_amr_permission(db, user, artefact, Permission.change_artefact)
+
     if request.status is not None:
         _validate_artefact_status(artefact, request)
         artefact.status = request.status
