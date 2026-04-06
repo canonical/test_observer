@@ -47,6 +47,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql import ColumnElement, func
 
 from test_observer.common.enums import Permission
+from test_observer.common.validation import validate_permissions
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -175,14 +176,8 @@ class Application(Base):
     permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
 
     @validates("permissions")
-    def validate_permissions(self, _key: str, value: list[Permission | str]) -> list[Permission]:
-        invalid: list[Permission | str] = []
-        for permission in value:
-            if permission not in Permission:
-                invalid.append(permission)
-        if invalid:
-            raise ValueError(f"Invalid permissions: {', '.join(invalid)}")
-        return value  # type: ignore[return-value]
+    def validate_permissions(self, _key: str, values: list[Permission | str]) -> list[Permission]:
+        return validate_permissions(values)
 
     @staticmethod
     def gen_api_key() -> str:
@@ -210,14 +205,8 @@ class Team(Base):
     permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
 
     @validates("permissions")
-    def validate_permissions(self, _key: str, value: list[Permission | str]) -> list[Permission]:
-        invalid: list[Permission | str] = []
-        for permission in value:
-            if permission not in Permission:
-                invalid.append(permission)
-        if invalid:
-            raise ValueError(f"Invalid permissions: {', '.join(invalid)}")
-        return value  # type: ignore[return-value]
+    def validate_permissions(self, _key: str, values: list[Permission | str]) -> list[Permission]:
+        return validate_permissions(values)
 
     members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
     artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
@@ -256,14 +245,8 @@ class ArtefactMatchingRule(Base):
     )
 
     @validates("grant_permissions")
-    def validate_grant_permissions(self, _key: str, value: list[Permission | str]) -> list[Permission]:
-        invalid: list[Permission | str] = []
-        for permission in value:
-            if permission not in Permission:
-                invalid.append(permission)
-        if invalid:
-            raise ValueError(f"Invalid permissions: {', '.join(invalid)}")
-        return value  # type: ignore[return-value]
+    def validate_grant_permissions(self, _key: str, values: list[Permission | str]) -> list[Permission]:
+        return validate_permissions(values)
 
     __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch"),)
 

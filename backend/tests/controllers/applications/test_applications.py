@@ -171,11 +171,11 @@ def test_update_invalid_permissions_api(test_client: TestClient, generator: Data
 
 
 def test_create_invalid_permissions_orm(generator: DataGenerator):
-    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+    with pytest.raises(ValueError, match="Invalid permission: invalid_permission"):
         generator.gen_application(permissions=["invalid_permission"])
 
 
 def test_update_invalid_permissions_orm(generator: DataGenerator):
     application = generator.gen_application()
-    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+    with pytest.raises(ValueError, match="Invalid permission: invalid_permission"):
         application.permissions = ["invalid_permission"]  # type: ignore

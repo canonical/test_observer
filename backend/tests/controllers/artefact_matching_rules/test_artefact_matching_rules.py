@@ -764,7 +764,7 @@ def test_update_invalid_grant_permissions_api(test_client: TestClient, generator
 def test_create_invalid_grant_permissions_orm(generator: DataGenerator):
     """Test creating a rule with grant_permissions set"""
     team = generator.gen_team(name="test-team")
-    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+    with pytest.raises(ValueError, match="Invalid permission: invalid_permission"):
         generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             track="22",
@@ -778,5 +778,5 @@ def test_update_invalid_grant_permissions_orm(generator: DataGenerator):
     team = generator.gen_team(name="test-team")
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
 
-    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+    with pytest.raises(ValueError, match="Invalid permission: invalid_permission"):
         rule.grant_permissions = ["invalid_permission"]  # type: ignore

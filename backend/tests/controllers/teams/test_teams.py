@@ -583,7 +583,7 @@ def test_remove_rule_from_team_without_making_it_an_orphan_does_not_remove_rule(
 
 
 def test_create_team_invalid_permission_orm(generator: DataGenerator):
-    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+    with pytest.raises(ValueError, match="Invalid permission: invalid_permission"):
         generator.gen_team(
             name="test-team",
             permissions=["invalid_permission"],
@@ -592,5 +592,5 @@ def test_create_team_invalid_permission_orm(generator: DataGenerator):
 
 def test_update_team_invalid_permission_orm(generator: DataGenerator):
     team = generator.gen_team(name="test-team")
-    with pytest.raises(ValueError, match="Invalid permissions: invalid_permission"):
+    with pytest.raises(ValueError, match="Invalid permission: invalid_permission"):
         team.permissions = ["invalid_permission"]  # type: ignore
