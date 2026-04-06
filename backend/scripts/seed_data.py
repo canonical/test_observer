@@ -43,7 +43,7 @@ from test_observer.controllers.issues.models import (
     IssuePutRequest,
     IssueTestResultAttachmentRulePostRequest,
 )
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 

@@ -20,7 +20,8 @@ from fastapi.security import SecurityScopes
 from sqlalchemy import String, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )

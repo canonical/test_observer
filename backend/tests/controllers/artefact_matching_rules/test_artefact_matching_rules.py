@@ -19,7 +19,7 @@
 
 from fastapi.testclient import TestClient
 
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -602,3 +602,123 @@ def test_create_rule_with_multiple_teams_association(test_client: TestClient, ge
         team_data = team_get.json()
         rule_ids = [r["id"] for r in team_data["artefact_matching_rules"]]
         assert rule_id in rule_ids
+
+
+def test_create_artefact_matching_rule_with_grant_permissions(test_client: TestClient, generator: DataGenerator):
+    """Test creating a rule with grant_permissions set"""
+    team = generator.gen_team(name="test-team")
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/artefact-matching-rules",
+            json={
+                "family": "snap",
+                "track": "22",
+                "team_ids": [team.id],
+                "grant_permissions": ["view_artefact", "change_artefact"],
+            },
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert set(data["grant_permissions"]) == {"view_artefact", "change_artefact"}
+
+
+def test_create_artefact_matching_rule_grant_permissions_default_empty(
+    test_client: TestClient, generator: DataGenerator
+):
+    """Test that grant_permissions defaults to empty list when not provided"""
+    team = generator.gen_team(name="test-team")
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/artefact-matching-rules",
+            json={"family": "snap", "team_ids": [team.id]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["grant_permissions"] == []
+
+
+def test_update_artefact_matching_rule_grant_permissions(test_client: TestClient, generator: DataGenerator):
+    """Test patching grant_permissions on an existing rule"""
+    team = generator.gen_team(name="test-team")
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefact-matching-rules/{rule.id}",
+            json={"grant_permissions": ["view_artefact"]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["grant_permissions"] == ["view_artefact"]
+
+
+def test_update_artefact_matching_rule_clear_grant_permissions(test_client: TestClient, generator: DataGenerator):
+    """Test clearing grant_permissions via patch"""
+    team = generator.gen_team(name="test-team")
+    rule = generator.gen_artefact_matching_rule(
+        family=FamilyName.snap,
+        track="22",
+        teams=[team],
+        grant_permissions=[Permission.view_artefact],
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefact-matching-rules/{rule.id}",
+            json={"grant_permissions": []},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["grant_permissions"] == []
+
+
+def test_teams_api_returns_grant_permissions(test_client: TestClient, generator: DataGenerator):
+    """Test that GET /v1/teams/{id} includes grant_permissions in artefact_matching_rules"""
+    team = generator.gen_team(name="test-team")
+    generator.gen_artefact_matching_rule(
+        family=FamilyName.snap,
+        track="22",
+        teams=[team],
+        grant_permissions=[Permission.view_artefact, Permission.change_artefact],
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/teams/{team.id}"),
+        Permission.view_team,
+    )
+
+    assert response.status_code == 200
+    rules = response.json()["artefact_matching_rules"]
+    assert len(rules) == 1
+    assert set(rules[0]["grant_permissions"]) == {"view_artefact", "change_artefact"}
+
+
+def test_teams_api_returns_empty_grant_permissions_by_default(test_client: TestClient, generator: DataGenerator):
+    """Test that GET /v1/teams/{id} returns grant_permissions as [] when not set"""
+    team = generator.gen_team(name="test-team")
+    generator.gen_artefact_matching_rule(
+        family=FamilyName.snap,
+        track="22",
+        teams=[team],
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/teams/{team.id}"),
+        Permission.view_team,
+    )
+
+    assert response.status_code == 200
+    rules = response.json()["artefact_matching_rules"]
+    assert len(rules) == 1
+    assert rules[0]["grant_permissions"] == []

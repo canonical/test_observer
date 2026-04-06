@@ -22,7 +22,8 @@ from fastapi.responses import FileResponse
 from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,

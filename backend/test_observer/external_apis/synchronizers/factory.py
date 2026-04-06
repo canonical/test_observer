@@ -17,7 +17,7 @@ import logging
 from os import environ
 
 from test_observer.external_apis.github.github_client import GitHubClient
-from test_observer.external_apis.jira.jira_client import JiraClient
+from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
 from test_observer.external_apis.synchronizers.github import GitHubIssueSynchronizer
@@ -60,27 +60,18 @@ def create_synchronization_service() -> IssueSynchronizationService:
     else:
         logger.warning("GitHub App credentials not configured, skipping GitHub synchronizer")
 
-    jira_cloud_id = environ.get("JIRA_CLOUD_ID")
-    jira_email = environ.get("JIRA_EMAIL")
-    jira_api_token = environ.get("JIRA_API_TOKEN")
-
-    if jira_cloud_id and jira_email and jira_api_token:
-        try:
-            jira_client = JiraClient(
-                cloud_id=jira_cloud_id,
-                email=jira_email,
-                api_token=jira_api_token,
-            )
-            synchronizers.append(JiraIssueSynchronizer(jira_client))
-            logger.info("Jira synchronizer initialized with scoped service account")
-        except Exception as e:
-            logger.error(f"Failed to initialize Jira synchronizer: {e}")
-    else:
+    try:
+        jira_client = get_jira_client()
+        synchronizers.append(JiraIssueSynchronizer(jira_client))
+        logger.info("Jira synchronizer initialized with scoped service account")
+    except ValueError:
         logger.warning(
             "Jira credentials not fully configured "
             "(need JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN), "
             "skipping Jira synchronizer"
         )
+    except Exception as e:
+        logger.error(f"Failed to initialize Jira synchronizer: {e}")
 
     try:
         launchpad_client = LaunchpadClient()

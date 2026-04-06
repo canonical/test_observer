@@ -13,14 +13,16 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 import random
 from datetime import date, timedelta
 
-from fastapi import Body, Depends, Security
+from fastapi import Body, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -38,6 +40,9 @@ from test_observer.data_access.repository import (
     get_or_create,
 )
 from test_observer.data_access.setup import get_db
+from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
+from test_observer.external_apis.jira import get_jira_client
+from test_observer.external_apis.jira.jira_client import JiraClient
 
 from .models import (
     StartCharmTestExecutionRequest,
@@ -47,7 +52,21 @@ from .models import (
 )
 from .router import router
 
+logger = logging.getLogger(__name__)
+
 ENVIRONMENTS_PER_REVIEWER = 50
+
+
+def require_jira_client() -> JiraClient:
+    """FastAPI dependency that returns a configured JiraClient.
+
+    Raises:
+        HTTPException: 500 if Jira credentials are not fully configured.
+    """
+    try:
+        return get_jira_client()
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 def _ceil_division(numerator: int, denominator: int) -> int:
@@ -272,3 +291,45 @@ def start_test_execution(
     test_starter: StartTestExecutionController = Depends(StartTestExecutionController),
 ):
     return test_starter.execute()
+
+
+def create_artefact_review_cards(
+    artefact: Artefact,
+    reviewer: User,
+    jira_client: JiraClient,
+) -> None:
+    """Create Jira review cards for an artefact and a reviewer
+
+    The cards are titled:
+        - "Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+        - "Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+    They are linked to the artefact's Jira issue (`artefact.jira_issue`)
+
+    Args:
+        artefact: The artefact to create review cards for
+        reviewer: The user to assign the review card to
+        jira_client: A configured JiraClient instance (cloud ID, email, and API token
+            already set) used to create the issues in the artefact's Jira project
+
+    Raises:
+        ValueError: If artefact has no jira_issue, no reviewers, or reviewer not in reviewers list
+        Exception: If card creation fails
+    """
+    if not artefact.jira_issue:
+        raise ValueError(
+            f"Artefact {artefact.id} has no linked Jira issue (artefact.jira_issue is None). "
+            "Cannot create review cards without a parent issue."
+        )
+
+    try:
+        issue_creator = IssueCreator(
+            jira_ctx=JiraIssueContext(
+                client=jira_client,
+                parent_issue=artefact.jira_issue,
+            )
+        )
+        issue_creator.create_review_issues(artefact, reviewer)
+
+    except Exception:
+        logger.exception(f"Failed to create Jira review cards for artefact {artefact.id} and user {reviewer.id}")
+        raise
