@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/link.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A widget that provides consistent navigation behavior with accessibility support.
@@ -79,7 +80,10 @@ class NavigableLink extends StatelessWidget {
                 )
             : null);
 
-    Widget result = Listener(
+    final uri =
+        path != null ? Uri.base.replace(fragment: path!) : null;
+
+    final Widget inner = Listener(
       onPointerDown: openInNewTabCallback != null
           ? (PointerDownEvent event) {
               // Middle mouse button opens in new tab
@@ -127,6 +131,13 @@ class NavigableLink extends StatelessWidget {
       ),
     );
 
+    Widget result = uri != null
+        ? Link(
+            uri: uri,
+            builder: (context, followLink) => inner,
+          )
+        : inner;
+
     // Add semantics for screen readers
     result = Semantics(
       link: true,
@@ -166,15 +177,19 @@ class UrlNavigableLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigableLink(
-      onNavigate: () => launchUrl(url),
-      onOpenInNewTab: () => launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
+    return Link(
+      uri: url,
+      target: LinkTarget.blank,
+      builder: (context, followLink) => NavigableLink(
+        onNavigate: () => launchUrl(url),
+        onOpenInNewTab: () => launchUrl(
+          url,
+          mode: LaunchMode.externalApplication,
+        ),
+        tooltip: tooltip,
+        semanticsLabel: semanticsLabel,
+        child: child,
       ),
-      tooltip: tooltip,
-      semanticsLabel: semanticsLabel,
-      child: child,
     );
   }
 }
