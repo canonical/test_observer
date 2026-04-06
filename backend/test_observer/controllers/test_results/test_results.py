@@ -136,8 +136,7 @@ def _search_with_result_details(
         selectinload(TestResult.test_execution).selectinload(TestExecution.test_plan),
         selectinload(TestResult.test_execution).selectinload(TestExecution.relevant_links),
         selectinload(TestResult.test_execution).selectinload(TestExecution.rerun_request),
-        selectinload(TestResult.issue_attachments)
-        .selectinload(IssueTestResultAttachment.issue),
+        selectinload(TestResult.issue_attachments).selectinload(IssueTestResultAttachment.issue),
         selectinload(TestResult.issue_attachments)
         .selectinload(IssueTestResultAttachment.attachment_rule)
         .selectinload(IssueTestResultAttachmentRule.execution_metadata),
