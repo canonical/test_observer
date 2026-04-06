@@ -80,7 +80,9 @@ class NavigableLink extends StatelessWidget {
                 )
             : null);
 
-    final uri = path != null ? Uri.base.replace(fragment: path!) : null;
+    final uri = path != null && onNavigate == null
+        ? Uri.base.replace(fragment: path!)
+        : null;
 
     final Widget inner = Listener(
       onPointerDown: openInNewTabCallback != null
@@ -133,7 +135,7 @@ class NavigableLink extends StatelessWidget {
     Widget result = uri != null
         ? Link(
             uri: uri,
-            builder: (context, followLink) => inner,
+            builder: (context, _) => inner,
           )
         : inner;
 
@@ -178,9 +180,8 @@ class UrlNavigableLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return Link(
       uri: url,
-      target: LinkTarget.blank,
       builder: (context, followLink) => NavigableLink(
-        onNavigate: () => launchUrl(url),
+        onNavigate: followLink,
         onOpenInNewTab: () => launchUrl(
           url,
           mode: LaunchMode.externalApplication,
