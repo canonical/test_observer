@@ -80,8 +80,7 @@ class NavigableLink extends StatelessWidget {
                 )
             : null);
 
-    final uri =
-        path != null ? Uri.base.replace(fragment: path!) : null;
+    final uri = path != null ? Uri.base.replace(fragment: path!) : null;
 
     final Widget inner = Listener(
       onPointerDown: openInNewTabCallback != null
