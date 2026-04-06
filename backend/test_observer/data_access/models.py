@@ -168,7 +168,10 @@ class Application(Base):
     __tablename__ = "application"
 
     name: Mapped[str] = mapped_column(unique=True)
-    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
+    # We use native_enum=False because adding permissions with native enums
+    # requires a migration to update the possible values
+    # SQLAlchemy will still do Python-side validation
+    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
 
     @staticmethod
     def gen_api_key() -> str:
@@ -190,7 +193,10 @@ class Team(Base):
     __tablename__ = "team"
 
     name: Mapped[str] = mapped_column(unique=True)
-    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
+    # We use native_enum=False because adding permissions with native enums
+    # requires a migration to update the possible values
+    # SQLAlchemy will still do Python-side validation
+    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission, native_enum=False)), default=list)
 
     members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
     artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
@@ -221,7 +227,12 @@ class ArtefactMatchingRule(Base):
         back_populates="artefact_matching_rules",
     )
 
-    grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
+    # We use native_enum=False because adding permissions with native enums
+    # requires a migration to update the possible values
+    # SQLAlchemy will still do Python-side validation
+    grant_permissions: Mapped[list[Permission]] = mapped_column(
+        ARRAY(Enum(Permission, native_enum=False)), default=list
+    )
 
     __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch"),)
 
