@@ -479,18 +479,12 @@ def test_artefact_promote_unknown_stage(
 ):
     artefact = generator.gen_artefact()
 
-    # Note: We use override_permissions directly here because Pydantic validates
-    # the request body before FastAPI reaches the endpoint's permission check.
-    # An invalid enum value (stage: "unknown") is rejected with 422 during
-    # request parsing, before the permission dependency runs. So we need
-    # permissions set from the start to test the actual business logic validation.
-    with override_permissions(Permission.change_artefact):
-        response = test_client.patch(
-            f"/v1/artefacts/{artefact.id}",
-            json={"stage": "unknown"},
-        )
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"stage": "unknown"},
+    )
 
-    assert response.status_code > 400
+    assert response.status_code == 422
 
 
 def test_update_artefact_comment(test_client: TestClient, generator: DataGenerator):
