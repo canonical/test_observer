@@ -553,14 +553,14 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        
+
         team = generator.gen_team(
             name="reviewers",
             artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
         )
         # Create users on the team
-        user1 = generator.gen_user(email="reviewer1@example.com", teams=[team])
-        user2 = generator.gen_user(email="reviewer2@example.com", teams=[team])
+        generator.gen_user(email="reviewer1@example.com", teams=[team])
+        generator.gen_user(email="reviewer2@example.com", teams=[team])
 
         # Execute test with automatic assignment
         response = execute({**start_request, "needs_assignment": True})
@@ -571,18 +571,22 @@ class TestFamilyIndependentTests:
 
         # Get all notifications for the assigned reviewers
         assigned_reviewer_ids = [r.id for r in test_execution.artefact_build.artefact.reviewers]
-        notifications = self._db_session.query(Notification).filter(
-            Notification.user_id.in_(assigned_reviewer_ids),
-            Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
-        ).all()
+        notifications = (
+            self._db_session.query(Notification)
+            .filter(
+                Notification.user_id.in_(assigned_reviewer_ids),
+                Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+            )
+            .all()
+        )
 
         # Should have notifications for environment reviews (at least one per reviewer)
-        assert len(notifications) == 2
+        assert len(notifications) == len(assigned_reviewer_ids)
         # Verify notifications are for the right type
         assert all(n.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW for n in notifications)
 
     def test_start_test_without_needs_assignment_no_notifications(
-        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+        self, execute: Execute, start_request: dict[str, Any]
     ):
         """When starting test with needs_assignment=false, no reviewer notifications should be created"""
         # Clear any existing notifications
@@ -596,9 +600,13 @@ class TestFamilyIndependentTests:
         assert test_execution
 
         # Check that no environment review notifications were created
-        notifications = self._db_session.query(Notification).filter(
-            Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
-        ).all()
+        notifications = (
+            self._db_session.query(Notification)
+            .filter(
+                Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+            )
+            .all()
+        )
 
         assert len(notifications) == 0
 

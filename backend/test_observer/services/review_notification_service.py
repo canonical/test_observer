@@ -96,10 +96,7 @@ def _create_jira_review_cards(
         issue_creator.create_review_issues(artefact, reviewer)
         logger.info(f"Created Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}")
     except Exception:
-        logger.exception(
-            f"Failed to create Jira review cards for reviewer {reviewer.id} "
-            f"on artefact {artefact.id}"
-        )
+        logger.exception(f"Failed to create Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}")
 
 
 def batch_notify_reviewers_assigned(
