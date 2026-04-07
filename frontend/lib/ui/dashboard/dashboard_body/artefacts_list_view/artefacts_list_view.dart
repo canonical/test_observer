@@ -79,17 +79,62 @@ class ArtefactsListView extends ConsumerWidget {
       alignment: Alignment.topLeft,
       child: SizedBox(
         width: 1300,
-        child: ListView.separated(
-          itemCount: artefacts.length + 1,
-          itemBuilder: (_, i) =>
-              i == 0 ? listHeader : listItemBuilder(artefacts[i - 1]),
-          separatorBuilder: (_, __) => Container(
-            height: 1,
-            width: double.infinity,
-            color: Colors.grey,
-          ),
+        child: CustomScrollView(
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyHeaderDelegate(child: listHeader),
+            ),
+            SliverToBoxAdapter(
+              child: Container(
+                height: 1,
+                width: double.infinity,
+                color: Colors.grey,
+              ),
+            ),
+            SliverList.separated(
+              itemCount: artefacts.length,
+              itemBuilder: (_, i) => listItemBuilder(artefacts[i]),
+              separatorBuilder: (_, __) => Container(
+                height: 1,
+                width: double.infinity,
+                color: Colors.grey,
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _StickyHeaderDelegate({required this.child});
+
+  final Widget child;
+
+  static const double _height = 56;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_StickyHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child;
   }
 }
