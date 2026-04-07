@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import check_amr_permission
-from test_observer.data_access.models import Artefact, User
 from test_observer.data_access.models_enums import FamilyName, StageName
 from tests.data_generator import DataGenerator
 
@@ -31,7 +30,7 @@ class TestCheckAMRPermission:
         """User in a team that matches the artefact's AMR should have the permission"""
         # Create a team and an artefact matching rule granting change_artefact
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -65,7 +64,7 @@ class TestCheckAMRPermission:
         team2 = generator.gen_team(name="team-b")
 
         # Create an AMR for team1
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team1],
@@ -98,7 +97,7 @@ class TestCheckAMRPermission:
         """User with no teams should be denied"""
         # Create a team and AMR
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -131,7 +130,7 @@ class TestCheckAMRPermission:
         """If no AMR matches the artefact, access should be denied"""
         # Create a team and AMR for snap on stable
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -164,7 +163,7 @@ class TestCheckAMRPermission:
         """If AMR doesn't grant the required permission, access should be denied"""
         # Create a team and AMR that grants view_artefact but not change_artefact
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -200,13 +199,13 @@ class TestCheckAMRPermission:
         team2 = generator.gen_team(name="team-b")
 
         # Create two AMRs at different specificities that match the artefact
-        rule1 = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             teams=[team1],
             grant_permissions=[Permission.change_artefact],
         )
 
-        rule2 = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team2],
@@ -240,14 +239,14 @@ class TestCheckAMRPermission:
         team_specific = generator.gen_team(name="specific-team")
 
         # Create a general AMR (matches all snaps)
-        rule_general = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             teams=[team_general],
             grant_permissions=[Permission.view_artefact],
         )
 
         # Create a specific AMR (matches snaps on stable track)
-        rule_specific = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             track="stable",
             teams=[team_specific],

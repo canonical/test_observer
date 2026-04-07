@@ -967,15 +967,17 @@ class TestArtefactPatchAMRPermissions:
     """Test AMR-based permission checking for patch_artefact endpoint"""
 
     def test_patch_artefact_with_amr_permission(
-        self, test_client: TestClient, generator: DataGenerator, db_session: Session
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
     ):
         """User with matching AMR permission should be able to patch artefact"""
-        from test_observer.users.user_injection import get_current_user
         from test_observer.main import app
+        from test_observer.users.user_injection import get_current_user
 
         # Create team and AMR
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1008,19 +1010,17 @@ class TestArtefactPatchAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_patch_artefact_without_amr_permission_denied(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_patch_artefact_without_amr_permission_denied(self, test_client: TestClient, generator: DataGenerator):
         """User without matching AMR should be denied"""
-        from test_observer.users.user_injection import get_current_user
         from test_observer.main import app
+        from test_observer.users.user_injection import get_current_user
 
         # Create two teams
         team_a = generator.gen_team(name="team-a")
         team_b = generator.gen_team(name="team-b")
 
         # Create AMR for team_a
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team_a],
@@ -1052,16 +1052,14 @@ class TestArtefactPatchAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_patch_artefact_with_no_matching_amr_denied(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_patch_artefact_with_no_matching_amr_denied(self, test_client: TestClient, generator: DataGenerator):
         """User whose team has AMR but for different artefact should be denied"""
-        from test_observer.users.user_injection import get_current_user
         from test_observer.main import app
+        from test_observer.users.user_injection import get_current_user
 
         # Create team and AMR for stable stage
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],

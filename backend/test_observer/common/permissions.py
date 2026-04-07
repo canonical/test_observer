@@ -22,7 +22,7 @@ from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.data_access.models import Artefact, Application, User
+from test_observer.data_access.models import Application, Artefact, User
 from test_observer.data_access.queries import match_artefact
 from test_observer.users.user_injection import get_current_user
 
@@ -98,11 +98,10 @@ def check_amr_permission(
     for rule in matching_rules:
         rule_team_ids = {team.id for team in rule.teams}
 
-        # Check if user is in one of this rule's teams
-        if user_team_ids & rule_team_ids:
-            # Check if this rule grants the required permission
-            if required_permission in rule.grant_permissions:
-                return None
+        user_in_rule_team = user_team_ids & rule_team_ids
+        rule_grants_permission = required_permission in rule.grant_permissions
+        if user_in_rule_team and rule_grants_permission:
+            return None
 
     # If we get here, user doesn't have permission
     raise HTTPException(status_code=403, detail="Insufficient permissions")
