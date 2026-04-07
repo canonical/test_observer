@@ -84,8 +84,12 @@ class NavigableLink extends StatelessWidget {
         ? Uri.base.replace(fragment: path!)
         : null;
 
+    // When a Link widget (HTML <a> tag) is used, the browser handles middle-click
+    // natively. Adding a Listener on top would open a second tab in Firefox.
+    final bool linkHandlesMiddleClick = uri != null;
+
     final Widget inner = Listener(
-      onPointerDown: openInNewTabCallback != null
+      onPointerDown: openInNewTabCallback != null && !linkHandlesMiddleClick
           ? (PointerDownEvent event) {
               // Middle mouse button opens in new tab
               if (event.buttons & kMiddleMouseButton != 0) {
