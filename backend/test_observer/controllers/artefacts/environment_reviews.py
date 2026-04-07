@@ -70,7 +70,10 @@ def bulk_update_environment_reviews(
             ArtefactBuildEnvironmentReview.id.in_(review_ids),
             ArtefactBuild.artefact_id == artefact_id,
         )
-        .options(selectinload(ArtefactBuildEnvironmentReview.artefact_build))
+        .options(
+            selectinload(ArtefactBuildEnvironmentReview.artefact_build),
+            selectinload(ArtefactBuildEnvironmentReview.reviewers),
+        )
     ).all()
 
     reviews_dict = {review.id: review for review in reviews}
@@ -108,7 +111,10 @@ def update_environment_review(
     review = db.scalar(
         select(ArtefactBuildEnvironmentReview)
         .where(ArtefactBuildEnvironmentReview.id == review_id)
-        .options(selectinload(ArtefactBuildEnvironmentReview.artefact_build))
+        .options(
+            selectinload(ArtefactBuildEnvironmentReview.artefact_build),
+            selectinload(ArtefactBuildEnvironmentReview.reviewers),
+        )
     )
 
     if not review:
