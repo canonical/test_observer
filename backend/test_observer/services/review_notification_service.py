@@ -110,7 +110,7 @@ def batch_notify_reviewers_assigned(
 ) -> None:
     """Create notifications for a batch of newly assigned reviewers.
 
-    Iterates through reviewers and creates notifications/Jira cards for each.
+    Iterates through reviewers and creates notifications and optionally Jira cards for each.
     Errors are logged but don't block processing of remaining reviewers.
 
     Args:
@@ -123,11 +123,14 @@ def batch_notify_reviewers_assigned(
         logger.info(f"No reviewers to notify for artefact {artefact.id}")
         return
 
-    if not artefact.jira_issue:
-        logger.info(f"Artefact {artefact.id} has no jira_issue; skipping Jira card creation for all reviewers")
-        return
+    # Get Jira client if credentials are configured, but don't block if they're not
+    jira_client = None
+    if artefact.jira_issue:
+        try:
+            jira_client = get_jira_client()
+        except ValueError as e:
+            logger.warning(f"Jira credentials not configured, skipping Jira card creation: {e}")
 
-    jira_client = get_jira_client()
     for reviewer in reviewers:
         try:
             notify_reviewer_assigned(db, reviewer, artefact, notification_type, jira_client)
