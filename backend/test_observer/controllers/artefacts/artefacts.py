@@ -307,15 +307,16 @@ def patch_artefact(
                     newly_assigned_reviewers.append(user)
             artefact.reviewers = reviewers
 
-    with db.begin_nested():
-        batch_notify_reviewers_assigned(
-            db,
-            newly_assigned_reviewers,
-            artefact,
-            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-        )
+    if len(newly_assigned_reviewers) > 0:
+        with db.begin_nested():
+            batch_notify_reviewers_assigned(
+                db,
+                newly_assigned_reviewers,
+                artefact,
+                NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+            )
 
-    db.commit()
+        db.commit()
 
     return artefact
 
