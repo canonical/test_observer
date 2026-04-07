@@ -29,7 +29,7 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
 )
-from tests.conftest import make_authenticated_request, override_permissions
+from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
