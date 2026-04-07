@@ -95,11 +95,10 @@ def _create_jira_review_cards(
         )
         issue_creator.create_review_issues(artefact, reviewer)
         logger.info(f"Created Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}")
-    except Exception as e:
-        logger.warning(
+    except Exception:
+        logger.exception(
             f"Failed to create Jira review cards for reviewer {reviewer.id} "
-            f"on artefact {artefact.id}: {e}. "
-            "Notification was still created."
+            f"on artefact {artefact.id}"
         )
 
 
@@ -123,8 +122,8 @@ def batch_notify_reviewers_assigned(
     for reviewer in reviewers:
         try:
             notify_reviewer_assigned(db, reviewer, artefact, notification_type)
-        except Exception as e:
-            logger.error(
+        except Exception:
+            logger.exception(
                 f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
-                f"on artefact {artefact.id}: {e}"
+                f"on artefact {artefact.id}"
             )
