@@ -18,24 +18,24 @@ import 'package:test/test.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_version.dart';
 import 'package:testcase_dashboard/providers/api.dart';
-import 'package:testcase_dashboard/providers/previous_artefact_environment_count.dart';
+import 'package:testcase_dashboard/providers/previous_artefact_environment_data.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 
 import '../dummy_data.dart';
 import '../utilities.dart';
 
 void main() {
-  test('it returns environment count from previous artefact version', () async {
+  test('it returns previous version and environment count', () async {
     final apiStub = ApiRepositoryStub();
     final container = createContainer(
       overrides: [apiProvider.overrideWith((ref) => apiStub)],
     );
 
-    final count = await container.read(
-      previousArtefactEnvironmentCountProvider(3).future,
+    final data = await container.read(
+      previousArtefactEnvironmentDataProvider(3).future,
     );
 
-    expect(count, 90);
+    expect(data, (version: '2.72', environmentCount: 90));
     expect(apiStub.getArtefactVersionsCalls, [3]);
     expect(apiStub.getArtefactCalls, [2]);
   });
@@ -46,11 +46,11 @@ void main() {
       overrides: [apiProvider.overrideWith((ref) => apiStub)],
     );
 
-    final count = await container.read(
-      previousArtefactEnvironmentCountProvider(1).future,
+    final data = await container.read(
+      previousArtefactEnvironmentDataProvider(1).future,
     );
 
-    expect(count, isNull);
+    expect(data, isNull);
     expect(apiStub.getArtefactVersionsCalls, [1]);
     expect(apiStub.getArtefactCalls, isEmpty);
   });
@@ -62,11 +62,11 @@ void main() {
       overrides: [apiProvider.overrideWith((ref) => apiStub)],
     );
 
-    final count = await container.read(
-      previousArtefactEnvironmentCountProvider(42).future,
+    final data = await container.read(
+      previousArtefactEnvironmentDataProvider(42).future,
     );
 
-    expect(count, isNull);
+    expect(data, isNull);
     expect(apiStub.getArtefactVersionsCalls, [42]);
     expect(apiStub.getArtefactCalls, isEmpty);
   });

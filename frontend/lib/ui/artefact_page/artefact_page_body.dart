@@ -20,11 +20,11 @@ import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../models/artefact_environment.dart';
 import '../../models/test_execution.dart';
+import '../../providers/previous_artefact_environment_data.dart';
 import '../../providers/environments_issues.dart';
 import '../../providers/filtered_artefact_environments.dart';
 import '../../providers/tests_issues.dart';
 import '../../routing.dart';
-import '../../providers/previous_artefact_environment_count.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'bulk_environment_selection_controls.dart';
@@ -151,22 +151,42 @@ class _ArtefactEnvironmentsStatusSummary extends StatelessWidget {
   }
 }
 
-class _FewerEnvironmentsWarning extends ConsumerWidget {
+class _FewerEnvironmentsWarning extends ConsumerStatefulWidget {
   const _FewerEnvironmentsWarning({required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FewerEnvironmentsWarning> createState() =>
+      _FewerEnvironmentsWarningState();
+}
+
+class _FewerEnvironmentsWarningState
+    extends ConsumerState<_FewerEnvironmentsWarning> {
+  bool _isDismissed = false;
+
+  @override
+  void didUpdateWidget(covariant _FewerEnvironmentsWarning oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artefact.id != widget.artefact.id) {
+      _isDismissed = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isDismissed) return const SizedBox.shrink();
+
     final colorScheme = Theme.of(context).colorScheme;
-    final previousCountAsync = ref.watch(
-      previousArtefactEnvironmentCountProvider(artefact.id),
+    final previousVersionDataAsync = ref.watch(
+      previousArtefactEnvironmentDataProvider(widget.artefact.id),
     );
 
-    return previousCountAsync.when(
-      data: (previousCount) {
-        if (previousCount == null ||
-            artefact.allEnvironmentReviewsCount >= previousCount) {
+    return previousVersionDataAsync.when(
+      data: (previousData) {
+        if (previousData == null ||
+            widget.artefact.allEnvironmentReviewsCount >=
+                previousData.environmentCount) {
           return const SizedBox.shrink();
         }
         return Padding(
@@ -190,13 +210,22 @@ class _FewerEnvironmentsWarning extends ConsumerWidget {
                 const SizedBox(width: Spacing.level3),
                 Expanded(
                   child: Text(
-                    'This version has fewer environments '
-                    '(${artefact.allEnvironmentReviewsCount}) than the '
-                    'previous version ($previousCount).',
+                    'This version has ${widget.artefact.allEnvironmentReviewsCount} '
+                    'environments, which is fewer than the '
+                    '${previousData.environmentCount} environments of the '
+                    'previously added version (${previousData.version}).',
                     softWrap: true,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSecondaryContainer,
                         ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Dismiss warning',
+                  onPressed: () => setState(() => _isDismissed = true),
+                  icon: Icon(
+                    Icons.close,
+                    color: colorScheme.onSecondaryContainer,
                   ),
                 ),
               ],
