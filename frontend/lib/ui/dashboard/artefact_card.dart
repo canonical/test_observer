@@ -21,6 +21,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../routing.dart';
 import '../spacing.dart';
+import '../navigable_link.dart';
 import '../reviewers_avatars.dart';
 import '../vanilla/vanilla_chip.dart';
 
@@ -35,8 +36,8 @@ class ArtefactCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dueDate = artefact.dueDateString;
 
-    return GestureDetector(
-      onTap: () => navigateToArtefactPage(context, artefact.id),
+    return NavigableLink(
+      path: getArtefactPagePath(context, artefact.id),
       child: Card(
         margin: const EdgeInsets.all(0),
         elevation: 0,

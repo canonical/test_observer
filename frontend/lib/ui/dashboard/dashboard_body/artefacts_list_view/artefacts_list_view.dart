@@ -21,6 +21,7 @@ import '../../../../models/artefact.dart';
 import '../../../../providers/filtered_family_artefacts.dart';
 import '../../../../routing.dart';
 import '../../../../utils/artefact_sorting.dart';
+import '../../../navigable_link.dart';
 
 part 'row.dart';
 part 'headers.dart';
