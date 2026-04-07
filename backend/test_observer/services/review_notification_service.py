@@ -45,7 +45,7 @@ def notify_reviewer_assigned(
         reviewer: The user who was assigned as a reviewer
         artefact: The artefact they were assigned to review
         notification_type: The type of notification to create
-        jira_client: Optional Jira client. If not provided, will attempt to get one.
+        jira_client: Optional Jira client.
     """
     target_url = get_artefact_url(artefact)
 
@@ -119,9 +119,18 @@ def batch_notify_reviewers_assigned(
         artefact: The artefact they were assigned to review
         notification_type: The type of notification to create
     """
+    if not reviewers:
+        logger.info(f"No reviewers to notify for artefact {artefact.id}")
+        return
+
+    if not artefact.jira_issue:
+        logger.info(f"Artefact {artefact.id} has no jira_issue; skipping Jira card creation for all reviewers")
+        return
+
+    jira_client = get_jira_client()
     for reviewer in reviewers:
         try:
-            notify_reviewer_assigned(db, reviewer, artefact, notification_type)
+            notify_reviewer_assigned(db, reviewer, artefact, notification_type, jira_client)
         except Exception:
             logger.exception(
                 f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
