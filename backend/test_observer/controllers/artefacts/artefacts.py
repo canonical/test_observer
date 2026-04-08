@@ -20,7 +20,11 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import check_amr_permission, permission_checker
+from test_observer.common.permissions import (
+    amr_permission_openapi_declaration,
+    check_amr_permission,
+    permission_checker,
+)
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -218,6 +222,11 @@ def get_artefact(
 @router.patch(
     "/{artefact_id}",
     response_model=ArtefactResponse,
+    dependencies=[
+        Security(
+            amr_permission_openapi_declaration(Permission.change_artefact), scopes=[Permission.change_artefact.value]
+        )
+    ],
 )
 def patch_artefact(
     request: ArtefactPatch,

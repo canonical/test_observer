@@ -105,3 +105,29 @@ def check_amr_permission(
 
     # If we get here, user doesn't have permission
     raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+
+def amr_permission_openapi_declaration(permission: Permission):
+    """
+    Factory function to create an OpenAPI permission declaration dependency.
+
+    This dependency does NOT perform actual permission checking - the real check
+    happens inside the endpoint using check_amr_permission(). This dependency
+    exists solely to declare permissions in the OpenAPI schema for documentation
+    and validation purposes.
+
+    Args:
+        permission: The permission to declare in OpenAPI
+
+    Returns:
+        A dependency function that declares the permission without checking it
+    """
+
+    def declare_permission(
+        security_scopes: SecurityScopes,
+    ) -> None:
+        # Just declare the scope for OpenAPI - actual checking happens in the endpoint
+        security_scopes.scopes.append(permission.value)
+        return None
+
+    return declare_permission
