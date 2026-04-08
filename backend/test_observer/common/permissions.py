@@ -107,6 +107,36 @@ def check_amr_permission(
     raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
+def check_artefact_permission(
+    db: Session,
+    user: User | None,
+    app: Application | None,
+    artefact: Artefact,
+    required_permission: Permission,
+) -> None:
+    """
+    Centralized permission check for artefact operations.
+    
+    Checks in order:
+    1. App has the permission (usually a testing codepath)
+    2. User matches AMR for the artefact with the permission
+    
+    Args:
+        db: Database session
+        user: Current user (can be None)
+        app: Current application (can be None)
+        artefact: Artefact being accessed
+        required_permission: Permission to check for
+        
+    Raises:
+        HTTPException(403): If user is not authorized
+    """
+    if app and required_permission in app.permissions:
+        return None
+    
+    check_amr_permission(db, user, artefact, required_permission)
+
+
 def amr_permission_openapi_declaration(permission: Permission):
     """
     Factory function to create an OpenAPI permission declaration dependency.

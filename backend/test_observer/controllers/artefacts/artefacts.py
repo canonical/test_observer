@@ -23,6 +23,7 @@ from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
     amr_permission_openapi_declaration,
     check_amr_permission,
+    check_artefact_permission,
     permission_checker,
 )
 from test_observer.controllers.applications.application_injection import (
@@ -237,13 +238,7 @@ def patch_artefact(
         ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     ),
 ):
-    # Check AMR-based permission for change_artefact
-    # First check if app has permission (for testing)
-    if app and Permission.change_artefact in app.permissions:
-        pass  # App has permission, proceed
-    else:
-        # Check user's AMR-based permission
-        check_amr_permission(db, user, artefact, Permission.change_artefact)
+    check_artefact_permission(db, user, app, artefact, Permission.change_artefact)
 
     if request.status is not None:
         _validate_artefact_status(artefact, request)
