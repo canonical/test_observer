@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
-    check_amr_permission,
     check_artefact_permission,
     openapi_scope_declaration,
     permission_checker,
@@ -223,9 +222,7 @@ def get_artefact(
 @router.patch(
     "/{artefact_id}",
     response_model=ArtefactResponse,
-    dependencies=[
-        Security(openapi_scope_declaration, scopes=[Permission.change_artefact.value])
-    ],
+    dependencies=[Security(openapi_scope_declaration, scopes=[Permission.change_artefact.value])],
 )
 def patch_artefact(
     request: ArtefactPatch,

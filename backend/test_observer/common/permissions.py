@@ -116,28 +116,28 @@ def check_artefact_permission(
 ) -> None:
     """
     Centralized permission check for artefact operations.
-    
+
     Respects IGNORE_PERMISSIONS config and checks in order:
     1. App has the permission (usually a testing codepath)
     2. User matches AMR for the artefact with the permission
-    
+
     Args:
         db: Database session
         user: Current user (can be None)
         app: Current application (can be None)
         artefact: Artefact being accessed
         required_permission: Permission to check for
-        
+
     Raises:
         HTTPException(403): If user is not authorized
     """
     # Honor IGNORE_PERMISSIONS config (aligned with permission_checker)
     if required_permission.value in IGNORE_PERMISSIONS:
         return None
-    
+
     if app and required_permission in app.permissions:
         return None
-    
+
     check_amr_permission(db, user, artefact, required_permission)
 
 

@@ -1081,9 +1081,7 @@ class TestArtefactPatchAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_patch_artefact_no_amr_no_permission_denied(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_patch_artefact_no_amr_no_permission_denied(self, test_client: TestClient, generator: DataGenerator):
         """User without matching AMR and no app permission should be denied"""
         # Create user with no teams
         user = generator.gen_user(name="david")
@@ -1109,9 +1107,7 @@ class TestArtefactPatchAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_patch_artefact_no_amr_with_app_permission_allowed(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_patch_artefact_no_amr_with_app_permission_allowed(self, test_client: TestClient, generator: DataGenerator):
         """User without matching AMR but with app permission should be allowed"""
         # Create artefact with no AMRs
         artefact = generator.gen_artefact(
@@ -1200,7 +1196,7 @@ class TestArtefactPatchAMRPermissions:
             del app.dependency_overrides[get_current_user]
 
     def test_patch_artefact_with_ignore_permissions_allowed(
-        self, test_client: TestClient, generator: DataGenerator, monkeypatch
+        self, test_client: TestClient, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch
     ):
         """User without permission but with IGNORE_PERMISSIONS set should be allowed"""
         # Create user with no special permissions
