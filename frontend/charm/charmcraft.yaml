@@ -73,6 +73,11 @@ config:
       default: ""
       type: string
 
+    override_ingress_url:
+      description: If set, ignore the URL provided by ingress and use the config values instead.
+      type: boolean
+      default: false
+
 resources:
   custom-header-image:
     type: file
@@ -90,8 +95,13 @@ containers:
 charm-libs:
   - lib: nginx_ingress_integrator.nginx_route
     version: "0"
+  - lib: traefik_k8s.ingress
+    version: "2"
 
 requires:
+  ingress:
+    interface: ingress
+    limit: 1
   test-observer-rest-api:
     interface: http
     limit: 1
