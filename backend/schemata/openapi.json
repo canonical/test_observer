@@ -1549,7 +1549,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "change_artefact"
+        ]
       }
     },
     "/v1/artefacts/{artefact_id}/versions": {
