@@ -192,42 +192,58 @@ class TestCheckAMRPermission:
             )
         assert exc_info.value.status_code == 403
 
-    def test_user_in_multiple_matching_amrs(self, generator: DataGenerator, db_session: Session):
-        """User in one team from multiple matching AMRs should have permission"""
+    def test_user_in_one_of_multiple_equally_specific_amrs(self, generator: DataGenerator, db_session: Session):
+        """User in one team of multiple equally-specific matching AMRs should have permission"""
         # Create two teams
         team1 = generator.gen_team(name="team-a")
         team2 = generator.gen_team(name="team-b")
 
-        # Create two AMRs at different specificities that match the artefact
+        # Create two AMRs with equal specificity (both family+stage) but different names
         generator.gen_artefact_matching_rule(
+            name="rule-1",
             family=FamilyName.snap,
+            stage="stable",
             teams=[team1],
             grant_permissions=[Permission.change_artefact],
         )
 
         generator.gen_artefact_matching_rule(
+            name="rule-2",
             family=FamilyName.snap,
             stage="stable",
             teams=[team2],
             grant_permissions=[Permission.change_artefact],
         )
 
-        # Create artefact matching both (stage="stable" matches both, but rule2 is more specific)
+        # Create artefact matching both AMRs
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
             stage=StageName.stable,
         )
 
-        # Create user in team2 (the more specific AMR's team)
-        user = generator.gen_user(name="frank")
-        user.teams = [team2]
+        # Create user in team1 (one of the two equally-specific AMRs)
+        user = generator.gen_user(name="grace", email="grace@example.com")
+        user.teams = [team1]
         generator._add_object(user)
 
-        # Should have permission through the best-matching AMR
+        # Should have permission through team1's AMR
         check_amr_permission(
             db_session,
             user,
+            artefact,
+            Permission.change_artefact,
+        )
+
+        # Also test user in team2
+        user2 = generator.gen_user(name="henry", email="henry@example.com")
+        user2.teams = [team2]
+        generator._add_object(user2)
+
+        # Should also have permission through team2's AMR
+        check_amr_permission(
+            db_session,
+            user2,
             artefact,
             Permission.change_artefact,
         )
