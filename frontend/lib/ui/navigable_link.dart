@@ -14,8 +14,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/link.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// A widget that provides consistent navigation behavior with accessibility support.
 ///
@@ -48,17 +50,24 @@ class NavigableLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final uri = Uri.base.replace(fragment: path);
 
-    final Widget inner = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: InkWell(
-        onTap: () => context.go(path),
-        child: child,
-      ),
-    );
-
     Widget result = Link(
       uri: uri,
-      builder: (context, _) => inner,
+      builder: (context, followLink) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: InkWell(
+          onTap: followLink == null
+              ? null
+              : () {
+                  if (HardwareKeyboard.instance.isControlPressed ||
+                      HardwareKeyboard.instance.isMetaPressed) {
+                    launchUrl(uri, mode: LaunchMode.externalApplication);
+                    return;
+                  }
+                  context.go(path);
+                },
+          child: child,
+        ),
+      ),
     );
 
     result = Semantics(
