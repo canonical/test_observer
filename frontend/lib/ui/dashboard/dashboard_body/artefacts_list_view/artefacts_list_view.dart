@@ -86,13 +86,13 @@ class ArtefactsListView extends ConsumerWidget {
               delegate: _StickyHeaderDelegate(child: listHeader),
             ),
             if (artefacts.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Container(
-                height: 1,
-                width: double.infinity,
-                color: Colors.grey,
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 1,
+                  width: double.infinity,
+                  color: Colors.grey,
+                ),
               ),
-            ),
             SliverList.separated(
               itemCount: artefacts.length,
               itemBuilder: (_, i) => listItemBuilder(artefacts[i]),
@@ -114,7 +114,7 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   final Widget child;
 
-  static const double _height = 56;
+  static const double _height = _Headers.height;
 
   @override
   double get minExtent => _height;
