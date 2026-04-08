@@ -137,27 +137,16 @@ def check_artefact_permission(
     check_amr_permission(db, user, artefact, required_permission)
 
 
-def amr_permission_openapi_declaration(permission: Permission):
+def openapi_scope_declaration() -> None:
     """
-    Factory function to create an OpenAPI permission declaration dependency.
+    No-op dependency for OpenAPI scope declaration via Security(..., scopes=[...]).
 
-    This dependency does NOT perform actual permission checking - the real check
-    happens inside the endpoint using check_amr_permission(). This dependency
-    exists solely to declare permissions in the OpenAPI schema for documentation
-    and validation purposes.
+    FastAPI captures scopes at dependency registration time (startup), so this
+    dependency just needs to exist. The actual scope values are provided via the
+    Security(..., scopes=[...]) parameter in the route decorator, which the OpenAPI
+    generator reads at startup time.
 
-    Args:
-        permission: The permission to declare in OpenAPI
-
-    Returns:
-        A dependency function that declares the permission without checking it
+    The actual permission checking happens inside the endpoint using
+    check_artefact_permission() or check_amr_permission().
     """
-
-    def declare_permission(
-        security_scopes: SecurityScopes,
-    ) -> None:
-        # Just declare the scope for OpenAPI - actual checking happens in the endpoint
-        security_scopes.scopes.append(permission.value)
-        return None
-
-    return declare_permission
+    pass
