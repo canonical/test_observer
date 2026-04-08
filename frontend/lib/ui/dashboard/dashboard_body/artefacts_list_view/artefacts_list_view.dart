@@ -85,6 +85,7 @@ class ArtefactsListView extends ConsumerWidget {
               pinned: true,
               delegate: _StickyHeaderDelegate(child: listHeader),
             ),
+            if (artefacts.isNotEmpty)
             SliverToBoxAdapter(
               child: Container(
                 height: 1,
