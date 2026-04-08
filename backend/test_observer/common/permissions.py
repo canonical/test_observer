@@ -117,7 +117,7 @@ def check_artefact_permission(
     """
     Centralized permission check for artefact operations.
     
-    Checks in order:
+    Respects IGNORE_PERMISSIONS config and checks in order:
     1. App has the permission (usually a testing codepath)
     2. User matches AMR for the artefact with the permission
     
@@ -131,6 +131,10 @@ def check_artefact_permission(
     Raises:
         HTTPException(403): If user is not authorized
     """
+    # Honor IGNORE_PERMISSIONS config (aligned with permission_checker)
+    if required_permission.value in IGNORE_PERMISSIONS:
+        return None
+    
     if app and required_permission in app.permissions:
         return None
     

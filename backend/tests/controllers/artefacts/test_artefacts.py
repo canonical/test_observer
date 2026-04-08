@@ -1198,3 +1198,37 @@ class TestArtefactPatchAMRPermissions:
             assert response.status_code == 403
         finally:
             del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_with_ignore_permissions_allowed(
+        self, test_client: TestClient, generator: DataGenerator, monkeypatch
+    ):
+        """User without permission but with IGNORE_PERMISSIONS set should be allowed"""
+        # Create user with no special permissions
+        user = generator.gen_user(name="grace")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact with no matching AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            # Mock IGNORE_PERMISSIONS to include change_artefact
+            import test_observer.common.permissions as permissions_module
+
+            monkeypatch.setattr(permissions_module, "IGNORE_PERMISSIONS", {"change_artefact"})
+
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated despite no permissions"},
+            )
+            assert response.status_code == 200
+            assert response.json()["comment"] == "Updated despite no permissions"
+        finally:
+            del app.dependency_overrides[get_current_user]
