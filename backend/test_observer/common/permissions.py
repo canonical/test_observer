@@ -56,7 +56,7 @@ def check_amr_permission(
     """
     Check if a user has the required permission for an artefact based on AMR matching.
 
-    Uses the match_artefact query to find the best-matching AMR(s) for the artefact,
+    Uses the match_artefact query to find the matching AMR(s) for the artefact,
     then checks if the user is in one of the teams associated with those AMRs and
     if the AMR grants the required permission.
 
