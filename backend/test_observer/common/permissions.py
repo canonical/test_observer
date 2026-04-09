@@ -23,7 +23,7 @@ from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, Artefact, User
-from test_observer.data_access.queries import match_artefact
+from test_observer.data_access.queries import match_artefact_considering_specificity
 from test_observer.users.user_injection import get_current_user
 
 
@@ -76,7 +76,7 @@ def check_amr_permission(
         return None
 
     # Query for matching AMR IDs using the centralized matching logic
-    matching_amr_ids = db.execute(match_artefact(artefact)).scalars().all()
+    matching_amr_ids = db.execute(match_artefact_considering_specificity(artefact)).scalars().all()
 
     if not matching_amr_ids:
         raise HTTPException(status_code=403, detail="Insufficient permissions")

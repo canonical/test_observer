@@ -34,7 +34,7 @@ from test_observer.data_access.models import (
     TestPlan,
     User,
 )
-from test_observer.data_access.queries import match_artefact
+from test_observer.data_access.queries import match_artefact_considering_specificity
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
@@ -135,7 +135,7 @@ class StartTestExecutionController:
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
             return
 
-        rule_ids = self.db.execute(match_artefact(self.artefact)).scalars().all()
+        rule_ids = self.db.execute(match_artefact_considering_specificity(self.artefact)).scalars().all()
         if len(rule_ids) > 0:
             users = (
                 self.db.execute(
