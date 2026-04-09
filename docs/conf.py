@@ -153,8 +153,6 @@ html_context = {
     'github_issues': 'enabled',
 }
 
-html_extra_path = []
-
 # TODO: To enable the edit button on pages, uncomment and change the link to a
 # public repository on GitHub or Launchpad. Any of the following link domains
 # are accepted:
@@ -212,6 +210,9 @@ sitemap_excludes = [
 # html_static_path = ["_static"]
 # templates_path = ["_templates"]
 
+# Extra files to copy to the root of the documentation
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_extra_path
+html_extra_path = ["../backend/schemata/openapi.json"]
 
 #############
 # Redirects #
