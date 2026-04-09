@@ -13,6 +13,7 @@ Additionally, TO provides a mechanism to assign reviewers that can look at resul
    :maxdepth: 2
 
    how-to/index
+   reference/index
    explanation/index
 
 
@@ -23,6 +24,7 @@ In this documentation
 
 * **Submitting tests**: :doc:`Authenticate <how-to/authenticate>` • :doc:`Submit a test <how-to/submit-a-test>`
 * **Reviewing tests**: :doc:`Triage test results <how-to/triage-test-results>`
+* **APIs**: :doc:`OpenAPI reference <reference/index>`
 * **Key concepts**: :doc:`explanation/glossary`
 
 ---------
