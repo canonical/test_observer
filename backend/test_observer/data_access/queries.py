@@ -29,7 +29,9 @@ latest_artefact_builds = (
 
 
 def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[int]]:
-    """Match an artefact to the most specific AMR(s) based on the number of non-empty fields (stage, track, branch, name)."""
+    """Match an artefact to the most specific AMR(s)
+
+    Based on the number of non-empty fields (stage, track, branch, name)."""
     # Calculate specificity score as the sum of non-empty fields
     specificity = (
         case((ArtefactMatchingRule.stage != "", 1), else_=0)
