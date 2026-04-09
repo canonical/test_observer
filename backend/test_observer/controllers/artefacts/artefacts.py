@@ -39,7 +39,7 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
-from test_observer.services.review_notification_service import (
+from test_observer.common.review_notification import (
     batch_notify_reviewers_assigned,
 )
 

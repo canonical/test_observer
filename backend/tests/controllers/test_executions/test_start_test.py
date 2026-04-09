@@ -39,7 +39,7 @@ from test_observer.data_access.models_enums import (
     StageName,
     TestExecutionStatus,
 )
-from test_observer.services.review_notification_service import (
+from test_observer.common.review_notification import (
     notify_reviewer_assigned,
 )
 from tests.asserts import assert_fails_validation
@@ -1146,7 +1146,7 @@ class TestNotifyReviewerAssigned:
         db_session.commit()
 
         # Mock IssueCreator to avoid actual Jira calls
-        with patch("test_observer.services.review_notification_service.IssueCreator") as mock_issue_creator_class:
+        with patch("test_observer.common.review_notification.IssueCreator") as mock_issue_creator_class:
             mock_issue_creator = Mock()
             mock_issue_creator_class.return_value = mock_issue_creator
 
@@ -1204,7 +1204,7 @@ class TestNotifyReviewerAssigned:
         db_session.commit()
 
         # Mock IssueCreator to raise an exception
-        with patch("test_observer.services.review_notification_service.IssueCreator") as mock_issue_creator_class:
+        with patch("test_observer.common.review_notification.IssueCreator") as mock_issue_creator_class:
             mock_issue_creator = Mock()
             mock_issue_creator.create_review_issues.side_effect = Exception("Jira API error")
             mock_issue_creator_class.return_value = mock_issue_creator

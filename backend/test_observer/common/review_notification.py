@@ -135,4 +135,3 @@ def batch_notify_reviewers_assigned(
                 f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
                 f"on artefact {artefact.id}"
             )
-
