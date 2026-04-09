@@ -54,6 +54,7 @@ def _rule_to_response(rule: ArtefactMatchingRule) -> ArtefactMatchingRuleRespons
         track=rule.track if rule.track else None,
         branch=rule.branch if rule.branch else None,
         teams=[TeamMinimal(id=team.id, name=team.name) for team in rule.teams],
+        grant_permissions=rule.grant_permissions,
     )
 
 
@@ -110,6 +111,7 @@ def create_artefact_matching_rule(
         track=request.track,
         branch=request.branch,
         teams=teams,
+        grant_permissions=request.grant_permissions,
     )
     db.add(rule)
     try:
@@ -201,6 +203,8 @@ def update_artefact_matching_rule(
         rule.branch = request.branch
     if request.team_ids is not None:
         rule.teams = teams
+    if request.grant_permissions is not None:
+        rule.grant_permissions = request.grant_permissions
 
     # Check if updated rule would conflict with existing rule
     check_name = request.name if request.name is not None else rule.name

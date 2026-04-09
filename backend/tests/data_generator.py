@@ -17,6 +17,7 @@ from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
+from test_observer.common.enums import Permission
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -80,6 +81,7 @@ class DataGenerator:
         track: str = "",
         branch: str = "",
         teams: list[Team] | None = None,
+        grant_permissions: list[Permission] | None = None,
     ) -> ArtefactMatchingRule:
         teams = teams or []
         rule = ArtefactMatchingRule(
@@ -88,6 +90,7 @@ class DataGenerator:
             track=track,
             branch=branch,
             teams=teams,
+            grant_permissions=grant_permissions or [],
         )
         self._add_object(rule)
         return rule

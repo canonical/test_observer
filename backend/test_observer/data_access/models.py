@@ -16,7 +16,7 @@
 import secrets
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from sqlalchemy import (
     Boolean,
@@ -33,12 +33,15 @@ from sqlalchemy import (
     case,
     column,
     desc,
+    exists,
+    select,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    column_property,
     foreign,
     mapped_column,
     relationship,
@@ -584,17 +587,14 @@ class TestExecution(Base):
         cascade="all, delete",
     )
 
+    if TYPE_CHECKING:
+        # Declared here for mypy; assigned as a column_property at module level below
+        # (after IssueTestResultAttachment is defined) to avoid a forward reference.
+        is_triaged: Mapped[bool]
+
     @property
     def has_failures(self) -> bool:
         return any(tr.status == TestResultStatus.FAILED for tr in self.test_results)
-
-    @property
-    def is_triaged(self) -> bool:
-        return all(
-            len(tr.issue_attachments) > 0
-            for tr in self.test_results
-            if tr.status in (TestResultStatus.FAILED, TestResultStatus.SKIPPED)
-        )
 
     def __repr__(self) -> str:
         return data_model_repr(
@@ -918,3 +918,17 @@ class TestExecutionRelevantLink(Base):
     url: Mapped[str]
 
     test_execution: Mapped["TestExecution"] = relationship(back_populates="relevant_links")
+
+
+# is_triaged is defined here (after IssueTestResultAttachment) to avoid forward references
+TestExecution.is_triaged = column_property(
+    ~exists(
+        select(TestResult.id).where(
+            TestResult.test_execution_id == TestExecution.id,
+            TestResult.status.in_([TestResultStatus.FAILED, TestResultStatus.SKIPPED]),
+            ~exists(
+                select(IssueTestResultAttachment.id).where(IssueTestResultAttachment.test_result_id == TestResult.id)
+            ),
+        )
+    )
+)
