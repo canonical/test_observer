@@ -13,9 +13,8 @@
 // SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import 'package:url_launcher/link.dart';
 
 class InlineUrlText extends StatelessWidget {
   const InlineUrlText({
@@ -35,23 +34,36 @@ class InlineUrlText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fontStyle = this.fontStyle ??
+    final resolvedFontStyle = fontStyle ??
         DefaultTextStyle.of(context).style.apply(
               decoration: TextDecoration.underline,
               color: Colors.blue,
             );
 
+    final parsedUri = Uri.tryParse(url);
+    final linkWidget = parsedUri == null
+        ? Text(urlText ?? url, style: resolvedFontStyle)
+        : Link(
+            uri: parsedUri.isAbsolute
+                ? parsedUri
+                : Uri.base.resolveUri(parsedUri),
+            target: LinkTarget.blank,
+            builder: (context, followLink) => GestureDetector(
+              onTap: followLink,
+              child: Text(urlText ?? url, style: resolvedFontStyle),
+            ),
+          );
+
+    if (leadingText == null && trailingText == null) {
+      return linkWidget;
+    }
+
     return RichText(
       text: TextSpan(
-        style: fontStyle,
+        style: resolvedFontStyle,
         children: [
           if (leadingText != null) TextSpan(text: leadingText),
-          TextSpan(
-            text: urlText ?? url,
-            style: fontStyle,
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => launchUrlString(url),
-          ),
+          WidgetSpan(child: linkWidget),
           if (trailingText != null) TextSpan(text: trailingText),
         ],
       ),
