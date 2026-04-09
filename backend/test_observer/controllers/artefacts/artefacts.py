@@ -316,8 +316,6 @@ def patch_artefact(
                 NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
             )
 
-        db.commit()
-
     return artefact
 
 

@@ -143,8 +143,6 @@ class StartTestExecutionController:
                 NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
             )
 
-        self.db.commit()
-
     def assign_reviewer(self):
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
             return
@@ -180,8 +178,6 @@ class StartTestExecutionController:
                         self.artefact,
                         NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
                     )
-
-                self.db.commit()
 
     def create_test_plan(self):
         self.test_plan = get_or_create(

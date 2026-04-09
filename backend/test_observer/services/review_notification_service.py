@@ -49,14 +49,13 @@ def notify_reviewer_assigned(
     """
     target_url = get_artefact_url(artefact)
 
-    with db.begin_nested():
-        notification = Notification(
-            user_id=reviewer.id,
-            notification_type=notification_type,
-            target_url=target_url,
-        )
-        db.add(notification)
-        db.flush()
+    notification = Notification(
+        user_id=reviewer.id,
+        notification_type=notification_type,
+        target_url=target_url,
+    )
+    db.add(notification)
+    db.flush()
 
     logger.info(f"Created {notification_type} notification for user {reviewer.id} on artefact {artefact.id}")
 
@@ -136,3 +135,4 @@ def batch_notify_reviewers_assigned(
                 f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
                 f"on artefact {artefact.id}"
             )
+
