@@ -24,6 +24,9 @@ from httpx import Response
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.common.review_notification import (
+    notify_reviewer_assigned,
+)
 from test_observer.data_access.models import (
     Artefact,
     Notification,
@@ -38,9 +41,6 @@ from test_observer.data_access.models_enums import (
     SnapStage,
     StageName,
     TestExecutionStatus,
-)
-from test_observer.common.review_notification import (
-    notify_reviewer_assigned,
 )
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request

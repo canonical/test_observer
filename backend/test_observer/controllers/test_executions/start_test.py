@@ -23,6 +23,9 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
+from test_observer.common.review_notification import (
+    batch_notify_reviewers_assigned,
+)
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -43,9 +46,6 @@ from test_observer.data_access.repository import (
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.jira.jira_client import JiraClient
-from test_observer.common.review_notification import (
-    batch_notify_reviewers_assigned,
-)
 
 from .models import (
     StartCharmTestExecutionRequest,
