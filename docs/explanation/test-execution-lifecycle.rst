@@ -13,6 +13,7 @@ A **test execution** represents a single run of a test plan against an artefact 
    :config: {"state": {"curve": "linear"}}
 
    stateDiagram-v2
+      direction LR
       [*] --> NOT_STARTED: Created
       NOT_STARTED --> IN_PROGRESS: Results submitted
       IN_PROGRESS --> PASSED: All tests pass
@@ -38,6 +39,7 @@ An **artefact** is a specific version of a software package that goes through te
    :config: {"state": {"curve": "linear"}}
 
    stateDiagram-v2
+      direction LR
       [*] --> UNDECIDED: Artefact created
       UNDECIDED --> APPROVED: All reviews approved
       UNDECIDED --> MARKED_AS_FAILED: Any review rejected
@@ -48,28 +50,4 @@ An **artefact** is a specific version of a software package that goes through te
 - `UNDECIDED`: Default state, awaiting review decisions
 - `APPROVED`: Ready for release to next stage
 - `MARKED_AS_FAILED`: Rejected, cannot proceed
-
-
-Test result triaging
---------------------
-
-Failed or skipped tests must be linked to issues (Jira, GitHub, Launchpad) before an artefact can be approved.
-
-.. mermaid::
-
-   flowchart TD
-      Failed[Test Result: FAILED/SKIPPED]
-
-      Failed --> Attached{Issue<br/>attached?}
-      Attached -->|Yes| Triaged[Triaged ✓]
-      Attached -->|No| Queue[Appears in triage queue]
-
-      Queue --> Link[Reviewer links to<br/>Jira/GitHub/Launchpad]
-      Link --> Triaged
-
-      Triaged --> Auto{Auto-rerun<br/>enabled?}
-      Auto -->|Yes| Rerun[Create rerun request]
-      Auto -->|No| Done[Done]
-
-A ``TestExecution`` has an ``is_triaged`` property that checks if all failed/skipped tests have attached issues.
 
