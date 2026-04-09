@@ -21,6 +21,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
+from test_observer.common.review_notification import (
+    batch_notify_reviewers_assigned,
+)
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
@@ -39,9 +42,6 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
-from test_observer.common.review_notification import (
-    batch_notify_reviewers_assigned,
-)
 
 from . import builds, environment_reviews
 from .logic import (
@@ -308,13 +308,14 @@ def patch_artefact(
             artefact.reviewers = reviewers
 
     if len(newly_assigned_reviewers) > 0:
-        with db.begin_nested():
-            batch_notify_reviewers_assigned(
-                db,
-                newly_assigned_reviewers,
-                artefact,
-                NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-            )
+        batch_notify_reviewers_assigned(
+            db,
+            newly_assigned_reviewers,
+            artefact,
+            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+
+    db.commit()
 
     return artefact
 
