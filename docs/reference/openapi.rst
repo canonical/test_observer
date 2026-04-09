@@ -29,8 +29,8 @@ OpenAPI
             });
         </script>
 
-.. vale on
-
 .. only:: not html
 
     The interactive Swagger UI is available in the HTML documentation only.
+
+.. vale on
