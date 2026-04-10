@@ -47,11 +47,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
+      - name: Create API Key
+        id: create-api-key
+        run: |
+          echo "SEED_DATA_APP_KEY=to_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')" >> $GITHUB_OUTPUT
+
       - name: Build and start services
         env:
           SEED_DATA: "true"  # Enable seeding to test full application setup
+          SEED_DATA_APP_KEY: ${{ steps.create-api-key.outputs.SEED_DATA_APP_KEY }} # Pass known API key for seed data
           DISABLE_PERIODIC_TASKS: "true"  # Disable external API calls in CI
-          IGNORE_PERMISSIONS: "view_basic"
         run: |
           docker compose build
           # Use --wait flag to wait for services to be healthy before returning
@@ -63,9 +68,11 @@ jobs:
           docker compose ps
 
       - name: Test API endpoint
+        env:
+          SEED_DATA_APP_KEY: ${{ steps.create-api-key.outputs.SEED_DATA_APP_KEY }}
         run: |
           echo "Testing API version endpoint..."
-          curl -f http://localhost:30000/v1/version || (echo "API test failed" && exit 1)
+          curl -f -H "Authorization: Bearer $SEED_DATA_APP_KEY" http://localhost:30000/v1/version || (echo "API test failed" && exit 1)
 
       - name: Test Frontend
         run: |
