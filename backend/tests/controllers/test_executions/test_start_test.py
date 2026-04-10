@@ -1124,7 +1124,7 @@ def test_no_assignment_when_no_team_reviewers_available(
 
 
 class TestNotifyReviewerAssigned:
-    """Tests for notify_reviewer_assigned function - the public API for creating notifications and Jira cards"""
+    """Tests for notifiying new reviewers"""
 
     @pytest.fixture(autouse=True)
     def setup_env(self, monkeypatch: pytest.MonkeyPatch):
