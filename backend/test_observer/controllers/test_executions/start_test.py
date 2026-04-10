@@ -189,21 +189,22 @@ class StartTestExecutionController:
                         NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
                     )
 
-                batch_create_jira_reviewer_cards(
-                    BatchReviewerAssignedMessage(
-                        artefact=self.artefact,
-                        assigned_reviews=(
-                            [
-                                (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
-                                for reviewer in newly_assigned_reviewers
-                            ]
-                            + [
-                                (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
-                                for reviewer in newly_assigned_environment_reviewers
-                            ]
-                        ),
+                if self.artefact.jira_issue is not None:
+                    batch_create_jira_reviewer_cards(
+                        BatchReviewerAssignedMessage(
+                            artefact=self.artefact,
+                            assigned_reviews=(
+                                [
+                                    (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
+                                    for reviewer in newly_assigned_reviewers
+                                ]
+                                + [
+                                    (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
+                                    for reviewer in newly_assigned_environment_reviewers
+                                ]
+                            ),
+                        )
                     )
-                )
 
     def create_test_plan(self):
         self.test_plan = get_or_create(

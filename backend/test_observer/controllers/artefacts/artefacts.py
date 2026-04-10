@@ -319,11 +319,12 @@ def patch_artefact(
 
     db.commit()
 
-    review_assigned_messages = BatchReviewerAssignedMessage(
-        artefact,
-        [(reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers],
-    )
-    batch_create_jira_reviewer_cards(review_assigned_messages)
+    if len(newly_assigned_reviewers) > 0 and artefact.jira_issue is not None:
+        review_assigned_messages = BatchReviewerAssignedMessage(
+            artefact,
+            [(reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers],
+        )
+        batch_create_jira_reviewer_cards(review_assigned_messages)
 
     return artefact
 
