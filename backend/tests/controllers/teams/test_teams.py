@@ -13,7 +13,9 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import ProgrammingError
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import FamilyName
@@ -68,7 +70,7 @@ def test_create_team_with_permissions_and_matching_rules(test_client: TestClient
     assert data["members"] == []
 
 
-def test_create_team_invalid_permission(test_client: TestClient):
+def test_create_team_invalid_permission_api(test_client: TestClient):
     response = make_authenticated_request(
         lambda: test_client.post(
             "/v1/teams",
@@ -81,6 +83,14 @@ def test_create_team_invalid_permission(test_client: TestClient):
     )
 
     assert response.status_code == 422
+
+
+def test_create_team_invalid_permission_orm(generator: DataGenerator):
+    with pytest.raises(ProgrammingError):
+        generator.gen_team(
+            name="test-team",
+            permissions=["invalid_permission"],
+        )
 
 
 def test_create_team_missing_name(test_client: TestClient):
