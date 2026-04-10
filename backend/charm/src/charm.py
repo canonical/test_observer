@@ -60,7 +60,7 @@ class TestObserverBackendCharm(CharmBase):
         )
         self.grafana_dashboard_provider = GrafanaDashboardProvider(self)
         self.metrics_endpoint = MetricsEndpointProvider(
-            self, jobs=[{"static_configs": [{"targets": ["*:9000"]}]}]
+            self, jobs=[{"static_configs": [{"targets": ["*:9090"]}]}]
         )
 
         self.framework.observe(self.database.on.database_created, self._on_database_changed)
