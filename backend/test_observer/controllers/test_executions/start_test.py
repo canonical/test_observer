@@ -24,7 +24,9 @@ from sqlalchemy.orm import Session
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.common.review_notification import (
-    batch_notify_reviewers_assigned,
+    BatchReviewerAssignedMessage,
+    batch_create_review_notifications,
+    batch_create_jira_reviewer_cards,
 )
 from test_observer.data_access.models import (
     Artefact,
@@ -106,7 +108,12 @@ class StartTestExecutionController:
 
         return {"id": self.test_execution.id}
 
-    def _assign_reviewers_to_environments(self) -> None:
+    def _assign_reviewers_to_environments(self) -> list[User]:
+        """Assigns reviewers to environment reviews
+        
+        Tries to balance the number of environment reviews assigned to each reviewer.
+        Returns the list of reviewers that were newly assigned to at least one environment review.
+        """
         env_reviews = [env_review for build in self.artefact.latest_builds for env_review in build.environment_reviews]
 
         # sort reviewers based on how many environments are assigned to them, then assign the same quantity to every one
@@ -135,13 +142,16 @@ class StartTestExecutionController:
             newly_assigned_environment_reviewers[reviewer.id] = reviewer
             reviewers_to_assignment_count[reviewer.id] += 1
 
+        newly_assigned_reviewers = list(newly_assigned_environment_reviewers.values())
         with self.db.begin_nested():
-            batch_notify_reviewers_assigned(
+            batch_create_review_notifications(
                 self.db,
-                list(newly_assigned_environment_reviewers.values()),
+                newly_assigned_reviewers,
                 self.artefact,
                 NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
             )
+
+        return newly_assigned_reviewers
 
     def assign_reviewer(self):
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
@@ -168,16 +178,24 @@ class StartTestExecutionController:
                 number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
                 newly_assigned_reviewers = random.sample(users, min(len(users), number_of_reviewers_to_assign))
                 self.artefact.reviewers += newly_assigned_reviewers
-                self._assign_reviewers_to_environments()
+                newly_assigned_environment_reviewers = self._assign_reviewers_to_environments()
                 self.artefact.due_date = self.determine_due_date()
 
                 with self.db.begin_nested():
-                    batch_notify_reviewers_assigned(
+                    batch_create_review_notifications(
                         self.db,
                         newly_assigned_reviewers,
                         self.artefact,
                         NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
                     )
+
+                batch_create_jira_reviewer_cards(BatchReviewerAssignedMessage(
+                    artefact=self.artefact,
+                    assigned_reviews=(
+                        [(reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers]
+                        + [(reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW]) for reviewer in newly_assigned_environment_reviewers]
+                    ),
+                ))
 
     def create_test_plan(self):
         self.test_plan = get_or_create(

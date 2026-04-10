@@ -22,7 +22,9 @@ from sqlalchemy.orm import Session, selectinload
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.common.review_notification import (
-    batch_notify_reviewers_assigned,
+    BatchReviewerAssignedMessage,
+    batch_create_jira_reviewer_cards,
+    batch_create_review_notifications,
 )
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
@@ -308,7 +310,7 @@ def patch_artefact(
             artefact.reviewers = reviewers
 
     if len(newly_assigned_reviewers) > 0:
-        batch_notify_reviewers_assigned(
+        batch_create_review_notifications(
             db,
             newly_assigned_reviewers,
             artefact,
@@ -316,6 +318,12 @@ def patch_artefact(
         )
 
     db.commit()
+
+    review_assigned_messages = BatchReviewerAssignedMessage(
+        artefact,
+        [(reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers],
+    )
+    batch_create_jira_reviewer_cards(review_assigned_messages)
 
     return artefact
 

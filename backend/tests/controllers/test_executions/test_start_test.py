@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.review_notification import (
-    notify_reviewer_assigned,
+    create_reviewer_notification,
 )
 from test_observer.data_access.models import (
     Artefact,
@@ -1150,7 +1150,7 @@ class TestNotifyReviewerAssigned:
             mock_issue_creator = Mock()
             mock_issue_creator_class.return_value = mock_issue_creator
 
-            notify_reviewer_assigned(
+            create_reviewer_notification(
                 db_session,
                 reviewer,
                 artefact,
@@ -1178,7 +1178,7 @@ class TestNotifyReviewerAssigned:
         db_session.commit()
 
         # Should NOT raise - notification should still be created
-        notify_reviewer_assigned(
+        create_reviewer_notification(
             db_session,
             reviewer,
             artefact,
@@ -1210,7 +1210,7 @@ class TestNotifyReviewerAssigned:
             mock_issue_creator_class.return_value = mock_issue_creator
 
             # Should NOT raise despite Jira failure
-            notify_reviewer_assigned(
+            create_reviewer_notification(
                 db_session,
                 reviewer,
                 artefact,

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from test_observer.common.helpers import get_artefact_url
 from test_observer.data_access.models import Artefact, User
 from test_observer.external_apis.jira import JiraClient
+from test_observer.data_access.models_enums import NotificationType
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +42,9 @@ class IssueCreator:
 
     def __init__(
         self,
-        jira_ctx: JiraIssueContext | None = None,
+        jira_ctx: JiraIssueContext,
     ):
-        """Initialize IssueCreator with optional contexts
+        """Initialize IssueCreator
 
         Args:
             jira_ctx: context for creating Jira issues
@@ -68,9 +69,6 @@ class IssueCreator:
         Raises:
             ValueError: If no context is configured
         """
-        if not self.jira_ctx:
-            raise ValueError("No issue creation context configured")
-
         logger.info(f"Creating Jira issue: {summary}")
         self.jira_ctx.client.create_issue(
             project_key=self.jira_ctx.project_key,
@@ -81,67 +79,50 @@ class IssueCreator:
             assignee_id=assignee_id,
         )
 
-    def create_review_issues(
+    def create_review_issue(
         self,
         artefact: Artefact,
         reviewer: User,
+        notification_type: NotificationType,
     ) -> None:
-        """Create two review issues for an artefact and reviewer
-
-        Creates:
-        1. Artefact review issue: "Review artefact {name} version {version} - {reviewer}"
-        2. Environment review issue: "Review environments of Artefact {name} version {version} - {reviewer}"
+        """Create review issue for an artefact and reviewer based on notification type
 
         Args:
-            artefact: The artefact to create review issues for
-            reviewer: The user to assign the review issues to
-
-        Raises:
-            ValueError: If no issue creation context is configured, artefact has no
-                reviewers, or reviewer is not in the artefact's reviewers list
+            artefact: The artefact to create a review issue for
+            reviewer: The user to assign the review issue to
+            notification_type: The type of notification that triggered the issue creation
         """
-        if not self.jira_ctx:
-            raise ValueError("No issue creation context configured")
-
-        if not artefact.reviewers:
+        if not reviewer.launchpad_handle:
             raise ValueError(
-                f"Artefact {artefact.id} has no reviewers assigned. Cannot create review cards without reviewers."
+                f"Reviewer {reviewer.id} does not have a launchpad handle. Cannot assign Jira issue to reviewer."
             )
-
         if reviewer.id not in [r.id for r in artefact.reviewers]:
             raise ValueError(
                 f"Artefact {artefact.id} reviewers do not include user {reviewer.id}. "
                 "Cannot create review cards for non-reviewer."
             )
 
-        artefact_summary = f"Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
         artefact_url = get_artefact_url(artefact)
-        artefact_description = (
-            f"Review artefact {artefact.name} version {artefact.version}\n\nArtefact page: {artefact_url}"
-        )
+        assignee_id = self.jira_ctx.client.get_account_id_by_username(reviewer.launchpad_handle)
 
-        assignee_id = None
-        if self.jira_ctx and reviewer.launchpad_handle:
-            assignee_id = self.jira_ctx.client.get_account_id_by_username(reviewer.launchpad_handle)
-
-        self.create_issue(
-            summary=artefact_summary,
-            description=artefact_description,
-            issue_type="Task",
-            assignee_id=assignee_id,
-        )
-
-        environment_summary = (
-            f"Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
-        )
-        environment_description = (
-            f"Review test environments for artefact {artefact.name} version {artefact.version}\n\n"
-            f"Artefact page: {artefact_url}"
-        )
+        match notification_type:
+            case NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW:
+                summary = f"Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+                description = (
+                    f"Review artefact {artefact.name} version {artefact.version}\n\nArtefact page: {artefact_url}"
+                )
+            case NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW:
+                summary = (
+                    f"Review environments of Artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+                )
+                description = (
+                    f"Review test environments for artefact {artefact.name} version {artefact.version}\n\n"
+                    f"Artefact page: {artefact_url}"
+                )
 
         self.create_issue(
-            summary=environment_summary,
-            description=environment_description,
+            summary=summary,
+            description=description,
             issue_type="Task",
             assignee_id=assignee_id,
         )

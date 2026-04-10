@@ -27,25 +27,33 @@ from test_observer.data_access.models_enums import NotificationType
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.jira.jira_client import JiraClient
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 
-def notify_reviewer_assigned(
+@dataclass
+class BatchReviewerAssignedMessage:
+    """Context of a batch of reviewers being assigned to an artefact
+
+    Used for notifications and issue creation"""
+    artefact: Artefact
+    assigned_reviews: list[tuple[User, list[NotificationType]]]
+
+
+def create_reviewer_notification(
     db: Session,
     reviewer: User,
     artefact: Artefact,
     notification_type: NotificationType,
-    jira_client: JiraClient | None = None,
 ) -> None:
-    """Create a notification and Jira card for a newly assigned reviewer.
+    """Create a notification for a newly assigned reviewer.
 
     Args:
         db: Database session
         reviewer: The user who was assigned as a reviewer
         artefact: The artefact they were assigned to review
         notification_type: The type of notification to create
-        jira_client: Optional Jira client.
     """
     target_url = get_artefact_url(artefact)
 
@@ -59,46 +67,8 @@ def notify_reviewer_assigned(
 
     logger.info(f"Created {notification_type} notification for user {reviewer.id} on artefact {artefact.id}")
 
-    _create_jira_review_cards(artefact, reviewer, jira_client)
 
-
-def _create_jira_review_cards(
-    artefact: Artefact,
-    reviewer: User,
-    jira_client: JiraClient | None = None,
-) -> None:
-    """Attempt to create Jira review cards for a reviewer.
-
-    Args:
-        artefact: The artefact to create review cards for
-        reviewer: The user to assign the review cards to
-        jira_client: Optional Jira client. If not provided, will attempt to get one.
-    """
-    if not artefact.jira_issue:
-        logger.info(f"Artefact {artefact.id} has no jira_issue; skipping Jira card creation")
-        return
-
-    if jira_client is None:
-        try:
-            jira_client = get_jira_client()
-        except ValueError:
-            logger.info("Jira is not configured; skipping card creation")
-            return
-
-    try:
-        issue_creator = IssueCreator(
-            jira_ctx=JiraIssueContext(
-                client=jira_client,
-                parent_issue=artefact.jira_issue,
-            )
-        )
-        issue_creator.create_review_issues(artefact, reviewer)
-        logger.info(f"Created Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}")
-    except Exception:
-        logger.exception(f"Failed to create Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}")
-
-
-def batch_notify_reviewers_assigned(
+def batch_create_review_notifications(
     db: Session,
     reviewers: list[User],
     artefact: Artefact,
@@ -106,32 +76,50 @@ def batch_notify_reviewers_assigned(
 ) -> None:
     """Create notifications for a batch of newly assigned reviewers.
 
-    Iterates through reviewers and creates notifications and optionally Jira cards for each.
-    Errors are logged but don't block processing of remaining reviewers.
-
     Args:
         db: Database session
         reviewers: List of users who were newly assigned as reviewers
         artefact: The artefact they were assigned to review
         notification_type: The type of notification to create
     """
-    if not reviewers:
-        logger.info(f"No reviewers to notify for artefact {artefact.id}")
-        return
-
-    # Get Jira client if credentials are configured, but don't block if they're not
-    jira_client = None
-    if artefact.jira_issue:
-        try:
-            jira_client = get_jira_client()
-        except ValueError as e:
-            logger.warning(f"Jira credentials not configured, skipping Jira card creation: {e}")
-
     for reviewer in reviewers:
         try:
-            notify_reviewer_assigned(db, reviewer, artefact, notification_type, jira_client)
+            create_reviewer_notification(db, reviewer, artefact, notification_type)
         except Exception:
             logger.exception(
                 f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
                 f"on artefact {artefact.id}"
+            )
+
+def batch_create_jira_reviewer_cards(
+    new_reviewers: BatchReviewerAssignedMessage,
+    jira_client: JiraClient | None = None,
+) -> None:
+    """Attempt to create Jira review cards for a batch of reviewers.
+
+    Args:
+        new_reviewers: Context of the batch of reviewers being assigned new reviews
+        jira_client: Optional Jira client. If not provided, will attempt to get one.
+    """
+    if not jira_client:
+        try:
+            jira_client = get_jira_client()
+        except Exception:
+            logger.exception("Failed to get Jira client; skipping Jira card creation")
+            return
+
+    issue_creator = IssueCreator(
+        jira_ctx=JiraIssueContext(
+            client=jira_client,
+            parent_issue=new_reviewers.artefact.jira_issue,
+        )
+    )
+
+    for (reviewer, notification_types) in new_reviewers.assigned_reviews:
+        try:
+            for notification_type in notification_types:
+                issue_creator.create_review_issue(new_reviewers.artefact, reviewer, notification_type)
+        except Exception:
+            logger.exception(
+                f"Failed to create Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}"
             )
