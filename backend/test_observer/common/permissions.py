@@ -21,7 +21,7 @@ from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, User
-from test_observer.users.user_injection import get_current_user
+from test_observer.users.user_injection import get_current_user, get_current_user_browser_safe
 
 
 def authentication_checker(
@@ -31,6 +31,21 @@ def authentication_checker(
     """
     A simple dependency to check if the request is authenticated with either a user or an application.
     This is used for endpoints that don't require specific permissions, but still require authentication.
+    """
+    if not user and not app:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return None
+
+
+def authentication_checker_browser_safe(
+    user: User | None = Depends(get_current_user_browser_safe),
+    app: Application | None = Depends(get_current_application),
+) -> None:
+    """
+    A browser-safe version of the authentication checker that allows GET requests without the CSRF token.
+    When accessing the docs URL directly from the browser, nothing sets the CSRF token,
+    so this uses a different dependency that only allows GET requests without the token,
+    while still requiring that there be an authenticated user or application.
     """
     if not user and not app:
         raise HTTPException(status_code=401, detail="Not authenticated")

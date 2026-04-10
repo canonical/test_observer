@@ -45,3 +45,29 @@ def get_current_user(
     if session:
         return session.user
     return None
+
+
+def get_user_session_browser_safe(request: Request, db: Session = Depends(get_db)) -> UserSession | None:
+    # Browser-safe session getter that allows GET requests without CSRF token.
+    # GET requests are idempotent and safe from CSRF attacks, so we only
+    # require CSRF token for state-changing methods (POST, PUT, PATCH, DELETE).
+    if request.method != "GET" and "X-CSRF-Token" not in request.headers:
+        return None
+
+    session_id = request.session.get("id")
+    if not session_id:
+        return None
+
+    session = db.get(UserSession, session_id, options=[selectinload(UserSession.user)])
+    if not session or session.expires_at < datetime.now():
+        return None
+
+    return session
+
+
+def get_current_user_browser_safe(
+    session: UserSession | None = Depends(get_user_session_browser_safe),
+) -> User | None:
+    if session:
+        return session.user
+    return None
