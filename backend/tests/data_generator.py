@@ -80,11 +80,13 @@ class DataGenerator:
         stage: str = "",
         track: str = "",
         branch: str = "",
+        name: str = "",
         teams: list[Team] | None = None,
         grant_permissions: list[Permission] | None = None,
     ) -> ArtefactMatchingRule:
         teams = teams or []
         rule = ArtefactMatchingRule(
+            name=name,
             family=family,
             stage=stage,
             track=track,

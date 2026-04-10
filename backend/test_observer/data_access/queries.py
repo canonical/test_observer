@@ -28,12 +28,16 @@ latest_artefact_builds = (
 )
 
 
-def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
+def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[int]]:
+    """Match an artefact to the most specific AMR(s)
+
+    Based on the number of non-empty fields (stage, track, branch, name)."""
     # Calculate specificity score as the sum of non-empty fields
     specificity = (
         case((ArtefactMatchingRule.stage != "", 1), else_=0)
         + case((ArtefactMatchingRule.track != "", 1), else_=0)
         + case((ArtefactMatchingRule.branch != "", 1), else_=0)
+        + case((ArtefactMatchingRule.name != "", 1), else_=0)
     )
 
     # Subquery to get the highest specificity score
@@ -45,6 +49,7 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
                 or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
                 or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
+                or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
             )
         )
         .scalar_subquery()
@@ -57,7 +62,23 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
             or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
             or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
+            or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
             specificity == max_specificity_subquery,
+        )
+    )
+
+    return select_rules
+
+
+def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
+    """Match an artefact to all valid AMR(s)"""
+    select_rules = select(ArtefactMatchingRule.id).where(
+        and_(
+            ArtefactMatchingRule.family == artefact.family,
+            or_(ArtefactMatchingRule.stage == artefact.stage, ArtefactMatchingRule.stage == ""),
+            or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
+            or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
+            or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
         )
     )
 
