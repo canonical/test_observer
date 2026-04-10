@@ -29,6 +29,8 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
 )
+from test_observer.main import app
+from test_observer.users.user_injection import get_current_user
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -479,15 +481,12 @@ def test_artefact_promote_unknown_stage(
 ):
     artefact = generator.gen_artefact()
 
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{artefact.id}",
-            json={"stage": "unknown"},
-        ),
-        Permission.change_artefact,
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"stage": "unknown"},
     )
 
-    assert response.status_code > 400
+    assert response.status_code == 422
 
 
 def test_update_artefact_comment(test_client: TestClient, generator: DataGenerator):
@@ -961,3 +960,271 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
             for r in artefact.reviewers
         ]
     assert response == expected
+
+
+class TestArtefactPatchAMRPermissions:
+    """Test AMR-based permission checking for patch_artefact endpoint"""
+
+    def test_patch_artefact_with_amr_permission(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+    ):
+        """User with matching AMR permission should be able to patch artefact"""
+        # Create team and AMR
+        team = generator.gen_team(name="snap-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team
+        user = generator.gen_user(name="alice")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Mock the user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated comment"},
+            )
+            assert response.status_code == 200
+            assert response.json()["comment"] == "Updated comment"
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_without_amr_permission_denied(self, test_client: TestClient, generator: DataGenerator):
+        """User without matching AMR should be denied"""
+        # Create two teams
+        team_a = generator.gen_team(name="team-a")
+        team_b = generator.gen_team(name="team-b")
+
+        # Create AMR for team_a
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team_a],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team_b
+        user = generator.gen_user(name="bob")
+        user.teams = [team_b]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_with_no_matching_amr_denied(self, test_client: TestClient, generator: DataGenerator):
+        """User whose team has AMR but for different artefact should be denied"""
+        # Create team and AMR for stable stage
+        team = generator.gen_team(name="snap-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team
+        user = generator.gen_user(name="charlie")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact that doesn't match (different stage)
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.beta,
+        )
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_no_amr_no_permission_denied(self, test_client: TestClient, generator: DataGenerator):
+        """User without matching AMR and no app permission should be denied"""
+        # Create user with no teams
+        user = generator.gen_user(name="david")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact with no AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Should be denied"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_no_amr_with_app_permission_allowed(self, test_client: TestClient, generator: DataGenerator):
+        """User without matching AMR but with app permission should be allowed"""
+        # Create artefact with no AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Test with app permission (using make_authenticated_request pattern)
+        response = make_authenticated_request(
+            lambda: test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated with app permission"},
+            ),
+            Permission.change_artefact,
+        )
+        assert response.status_code == 200
+        assert response.json()["comment"] == "Updated with app permission"
+
+    def test_patch_artefact_amr_not_matching_with_app_permission_allowed(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """User without matching AMR but with app permission should be allowed even if AMRs exist"""
+        # Create an AMR that doesn't match
+        team = generator.gen_team(name="restricted-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create artefact that matches the AMR (but user not in team)
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Test with app permission (using make_authenticated_request pattern)
+        response = make_authenticated_request(
+            lambda: test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated with app permission"},
+            ),
+            Permission.change_artefact,
+        )
+        assert response.status_code == 200
+        assert response.json()["comment"] == "Updated with app permission"
+
+    def test_patch_artefact_amr_not_matching_without_app_permission_denied(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """User without matching AMR and no app permission should be denied"""
+        # Create an AMR that doesn't match
+        team = generator.gen_team(name="restricted-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user NOT in that team
+        user = generator.gen_user(name="frank")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Should be denied"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_with_ignore_permissions_allowed(
+        self, test_client: TestClient, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch
+    ):
+        """User without permission but with IGNORE_PERMISSIONS set should be allowed"""
+        # Create user with no special permissions
+        user = generator.gen_user(name="grace")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact with no matching AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            # Mock IGNORE_PERMISSIONS to include change_artefact
+            import test_observer.common.permissions as permissions_module
+
+            monkeypatch.setattr(permissions_module, "IGNORE_PERMISSIONS", {"change_artefact"})
+
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated despite no permissions"},
+            )
+            assert response.status_code == 200
+            assert response.json()["comment"] == "Updated despite no permissions"
+        finally:
+            del app.dependency_overrides[get_current_user]
