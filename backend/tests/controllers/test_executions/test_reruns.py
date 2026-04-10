@@ -23,12 +23,17 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from test_observer.common.enums import Permission
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
     TestResultStatus,
 )
+from test_observer.main import app
+from test_observer.users.user_injection import get_current_user
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -37,6 +42,7 @@ reruns_url = "/v1/test-executions/reruns"
 # ==============================================================================
 # Fixtures and Helpers
 # ==============================================================================
+
 
 @pytest.fixture
 def post(test_client: TestClient):
@@ -54,6 +60,7 @@ def post(test_client: TestClient):
         )
 
     return post_helper
+
 
 @pytest.fixture
 def get(test_client: TestClient):
@@ -82,6 +89,7 @@ def get(test_client: TestClient):
 
     return get_helper
 
+
 @pytest.fixture
 def delete(test_client: TestClient):
     def delete_helper(data: Any) -> Response:  # noqa: ANN401
@@ -99,9 +107,11 @@ def delete(test_client: TestClient):
 
     return delete_helper
 
+
 type Post = Callable[[Any], Response]
 type Get = Callable[..., Response]
 type Delete = Callable[[Any], Response]
+
 
 def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
     return_data = {
@@ -170,17 +180,21 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
     }
     return jsonable_encoder(return_data)
 
+
 # ==============================================================================
 # Basic POST Operations - Single ID
 # ==============================================================================
 
+
 def test_post_no_data_returns_422(post: Post):
     assert post(None).status_code == 422
+
 
 def test_post_invalid_id_returns_404_with_message(post: Post):
     response = post({"test_execution_ids": [1]})
     assert response.status_code == 404
     assert response.json()["detail"] == "Didn't find test executions with provided ids"
+
 
 def test_valid_post(post: Post, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
@@ -189,19 +203,23 @@ def test_valid_post(post: Post, test_execution: TestExecution):
     assert response.status_code == 200
     assert response.json() == [test_execution_to_pending_rerun(test_execution)]
 
+
 def test_post_with_valid_and_invalid_ids(post: Post, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
     response = post({"test_execution_ids": [test_execution.id, test_execution.id + 1]})
     assert response.status_code == 207
 
+
 # ==============================================================================
 # Basic GET Operations
 # ==============================================================================
+
 
 def test_get_returns_200_with_empty_list(get: Get):
     response = get()
     assert response.status_code == 200
     assert response.json() == []
+
 
 def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
@@ -210,6 +228,7 @@ def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution)
 
     assert get().json() == [test_execution_to_pending_rerun(test_execution)]
 
+
 def test_get_after_two_identical_posts(get: Get, post: Post, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
 
@@ -217,6 +236,7 @@ def test_get_after_two_identical_posts(get: Get, post: Post, test_execution: Tes
     post({"test_execution_ids": [test_execution.id]})
 
     assert get().json() == [test_execution_to_pending_rerun(test_execution)]
+
 
 def test_get_after_two_different_posts(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
@@ -233,6 +253,7 @@ def test_get_after_two_different_posts(get: Get, post: Post, test_execution: Tes
         test_execution_to_pending_rerun(te2),
     ]
 
+
 def test_get_after_post_with_two_test_execution_ids(get: Get, post: Post, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
@@ -248,6 +269,7 @@ def test_get_after_post_with_two_test_execution_ids(get: Get, post: Post, genera
         test_execution_to_pending_rerun(te2),
     ]
 
+
 def test_get_with_limit(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
     te2 = generator.gen_test_execution(te1.artefact_build, te1.environment)
@@ -257,9 +279,11 @@ def test_get_with_limit(get: Get, post: Post, test_execution: TestExecution, gen
 
     assert get(limit=1).json() == [test_execution_to_pending_rerun(te1)]
 
+
 # ==============================================================================
 # Basic DELETE Operations
 # ==============================================================================
+
 
 def test_post_delete_get(get: Get, post: Post, delete: Delete, test_execution: TestExecution):
     test_execution.ci_link = "ci.link"
@@ -268,6 +292,7 @@ def test_post_delete_get(get: Get, post: Post, delete: Delete, test_execution: T
 
     assert response.status_code == 200
     assert get().json() == []
+
 
 def test_delete_with_multiple_test_executions_same_composite_key(
     get: Get, post: Post, delete: Delete, generator: DataGenerator
@@ -295,6 +320,7 @@ def test_delete_with_multiple_test_executions_same_composite_key(
     # Should delete the shared rerun request
     assert get().json() == []
 
+
 def test_delete_with_multiple_different_composite_keys(get: Get, post: Post, delete: Delete, generator: DataGenerator):
     """Test deleting multiple rerun requests with different composite keys"""
     a = generator.gen_artefact(StageName.beta)
@@ -320,6 +346,7 @@ def test_delete_with_multiple_different_composite_keys(get: Get, post: Post, del
     assert len(remaining) == 1
     assert remaining[0]["test_execution_id"] == te3.id
 
+
 def test_delete_partial_match(get: Get, post: Post, delete: Delete, generator: DataGenerator):
     """Test deleting when only some test_execution_ids match rerun requests"""
     a = generator.gen_artefact(StageName.beta)
@@ -338,6 +365,7 @@ def test_delete_partial_match(get: Get, post: Post, delete: Delete, generator: D
 
     # Should delete because te2 has the same composite key as te1
     assert get().json() == []
+
 
 def test_delete_non_matching_composite_keys(get: Get, post: Post, delete: Delete, generator: DataGenerator):
     """Test deleting with test_execution_ids that don't match any rerun requests"""
@@ -361,9 +389,11 @@ def test_delete_non_matching_composite_keys(get: Get, post: Post, delete: Delete
     assert len(remaining) == 1
     assert remaining[0]["test_execution_id"] == te1.id
 
+
 # ==============================================================================
 # GET with Filters
 # ==============================================================================
+
 
 def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
@@ -378,6 +408,7 @@ def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, ge
     assert get(family=FamilyName.snap).json() == [test_execution_to_pending_rerun(te1)]
     assert get(family=FamilyName.charm).json() == [test_execution_to_pending_rerun(te2)]
     assert get(family=FamilyName.image).json() == []
+
 
 def test_rerun_preserves_ci_and_relevant_links(get: Get, post: Post, generator: DataGenerator):
     environment = generator.gen_environment()
@@ -413,6 +444,7 @@ def test_rerun_preserves_ci_and_relevant_links(get: Get, post: Post, generator: 
     expected_links = expected_rerun_data["test_execution"]["relevant_links"]
     assert retrieved_links == expected_links
 
+
 def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
     te1.environment.name = "rpi2"
@@ -426,6 +458,7 @@ def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestE
     assert get(environment="rpi2").json() == [test_execution_to_pending_rerun(te1)]
     assert get(environment="dawson-i").json() == [test_execution_to_pending_rerun(te2)]
     assert get(environment="nonexistent").json() == []
+
 
 def test_get_with_build_architecture_filter(get: Get, post: Post, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
@@ -445,6 +478,7 @@ def test_get_with_build_architecture_filter(get: Get, post: Post, generator: Dat
     assert get(build_architecture="armhf").json() == [test_execution_to_pending_rerun(te3)]
     assert get(build_architecture="riscv64").json() == []
 
+
 def test_get_with_environment_architecture_filter(get: Get, post: Post, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
@@ -462,6 +496,7 @@ def test_get_with_environment_architecture_filter(get: Get, post: Post, generato
     assert get(environment_architecture="arm64").json() == [test_execution_to_pending_rerun(te1)]
     assert get(environment_architecture="amd64").json() == [test_execution_to_pending_rerun(te2)]
     assert get(environment_architecture="armhf").json() == [test_execution_to_pending_rerun(te3)]
+
 
 def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerator):
     # Create snap artefact with arm64 build
@@ -509,6 +544,7 @@ def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerato
         == []
     )
 
+
 def test_get_multiple_reruns_same_build_different_environments(get: Get, post: Post, generator: DataGenerator):
     """Test filtering when same build is tested on multiple environments"""
     a = generator.gen_artefact(StageName.beta)
@@ -535,9 +571,11 @@ def test_get_multiple_reruns_same_build_different_environments(get: Get, post: P
     result = get(environment_architecture="arm64").json()
     assert len(result) == 3
 
+
 # ==============================================================================
 # Bulk Rerun Features - Silent Mode POST
 # ==============================================================================
+
 
 def test_post_with_test_results_filters_requires_silent(test_client: TestClient, generator: DataGenerator):
     """Test that using test_results_filters without silent=true returns 422"""
@@ -563,6 +601,7 @@ def test_post_with_test_results_filters_requires_silent(test_client: TestClient,
 
     assert response.status_code == 422
     assert "must be done silently" in response.json()["detail"]
+
 
 def test_post_silent_with_test_results_filters(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns silently with test_results_filters"""
@@ -601,6 +640,7 @@ def test_post_silent_with_test_results_filters(test_client: TestClient, get: Get
     assert len(reruns) == 1
     assert reruns[0]["test_execution_id"] in [te1.id, te2.id]
 
+
 def test_post_silent_with_multiple_test_results_filters(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns with multiple filter criteria"""
     a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
@@ -636,6 +676,7 @@ def test_post_silent_with_multiple_test_results_filters(test_client: TestClient,
     assert len(reruns) == 1
     assert reruns[0]["test_execution_id"] == te1.id
 
+
 def test_post_silent_with_empty_test_results_filters_returns_422(
     test_client: TestClient,
 ):
@@ -652,6 +693,7 @@ def test_post_silent_with_empty_test_results_filters_returns_422(
 
     assert response.status_code == 422
     assert "At least one filter must be provided" in response.json()["detail"]
+
 
 def test_post_silent_with_test_execution_ids(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns silently with test_execution_ids"""
@@ -677,6 +719,7 @@ def test_post_silent_with_test_execution_ids(test_client: TestClient, get: Get, 
     reruns = get().json()
     assert len(reruns) == 1
     assert reruns[0]["test_execution_id"] == te.id
+
 
 def test_post_silent_with_both_filters_and_ids(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns with both test_execution_ids and test_results_filters"""
@@ -711,9 +754,11 @@ def test_post_silent_with_both_filters_and_ids(test_client: TestClient, get: Get
     reruns = get().json()
     assert len(reruns) == 1
 
+
 # ==============================================================================
 # Bulk Rerun Features - DELETE with Filters
 # ==============================================================================
+
 
 def test_delete_with_test_results_filters(test_client: TestClient, post: Post, get: Get, generator: DataGenerator):
     """Test deleting reruns with test_results_filters"""
@@ -756,6 +801,7 @@ def test_delete_with_test_results_filters(test_client: TestClient, post: Post, g
     assert len(reruns) == 1
     assert reruns[0]["test_execution_id"] == te2.id
 
+
 def test_delete_with_empty_test_results_filters_returns_422(
     test_client: TestClient,
 ):
@@ -773,9 +819,11 @@ def test_delete_with_empty_test_results_filters_returns_422(
     assert response.status_code == 422
     assert "At least one filter must be provided" in response.json()["detail"]
 
+
 # ==============================================================================
 # Permission Requirements
 # ==============================================================================
+
 
 def test_bulk_permission_required_for_multiple_test_execution_ids(test_client: TestClient, generator: DataGenerator):
     """Test that change_rerun_bulk permission is required for multiple IDs"""
@@ -796,6 +844,7 @@ def test_bulk_permission_required_for_multiple_test_execution_ids(test_client: T
 
     assert response.status_code == 403
 
+
 def test_bulk_permission_not_required_for_single_test_execution_id(test_client: TestClient, generator: DataGenerator):
     """Test that change_rerun_bulk permission is NOT required for single ID"""
     a = generator.gen_artefact(StageName.beta)
@@ -813,6 +862,7 @@ def test_bulk_permission_not_required_for_single_test_execution_id(test_client: 
     )
 
     assert response.status_code == 200
+
 
 def test_bulk_permission_required_for_test_results_filters(test_client: TestClient, generator: DataGenerator):
     """Test that change_rerun_bulk permission is required for test_results_filters"""
@@ -838,6 +888,7 @@ def test_bulk_permission_required_for_test_results_filters(test_client: TestClie
     )
 
     assert response.status_code == 403
+
 
 def test_delete_bulk_permission_required_for_multiple_ids(
     test_client: TestClient, post: Post, generator: DataGenerator
@@ -865,6 +916,7 @@ def test_delete_bulk_permission_required_for_multiple_ids(
 
     assert response.status_code == 403
 
+
 def test_delete_bulk_permission_not_required_for_single_id(
     test_client: TestClient, post: Post, get: Get, generator: DataGenerator
 ):
@@ -890,9 +942,11 @@ def test_delete_bulk_permission_not_required_for_single_id(
     assert response.status_code == 200
     assert len(get().json()) == 0
 
+
 # ==============================================================================
 # Edge Cases and Validation
 # ==============================================================================
+
 
 def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: Get):
     """Test that posting with empty test_execution_ids list returns 404"""
@@ -910,6 +964,7 @@ def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: G
     # No reruns should be created
     assert len(get().json()) == 0
 
+
 def test_post_silent_with_empty_ids_does_nothing(test_client: TestClient, get: Get):
     """Test that silent mode with empty IDs gracefully does nothing"""
     response = make_authenticated_request(
@@ -924,6 +979,7 @@ def test_post_silent_with_empty_ids_does_nothing(test_client: TestClient, get: G
     assert response.status_code == 200
     assert response.json() is None
     assert len(get().json()) == 0
+
 
 def test_post_with_filters_matching_no_results(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test that filters matching no test results does nothing"""
@@ -953,6 +1009,7 @@ def test_post_with_filters_matching_no_results(test_client: TestClient, get: Get
     assert response.status_code == 200
     # Should not create any reruns
     assert len(get().json()) == 0
+
 
 def test_post_filters_by_artefact_name(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test filtering reruns by artefact name"""
@@ -991,6 +1048,7 @@ def test_post_filters_by_artefact_name(test_client: TestClient, get: Get, genera
     assert len(reruns) == 1
     assert reruns[0]["artefact"]["name"] == "firefox"
 
+
 def test_post_filters_by_environment_name(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test filtering reruns by environment name"""
     a = generator.gen_artefact(StageName.beta)
@@ -1027,6 +1085,7 @@ def test_post_filters_by_environment_name(test_client: TestClient, get: Get, gen
     assert len(reruns) == 1
     assert reruns[0]["test_execution"]["environment"]["name"] == "rpi4"
 
+
 def test_delete_with_empty_ids_does_nothing(test_client: TestClient, post: Post, get: Get, generator: DataGenerator):
     """Test that deleting with empty IDs does nothing"""
     a = generator.gen_artefact(StageName.beta)
@@ -1051,6 +1110,7 @@ def test_delete_with_empty_ids_does_nothing(test_client: TestClient, post: Post,
     assert response.status_code == 200
     # Rerun should still exist
     assert len(get().json()) == 1
+
 
 def test_post_non_silent_with_single_id_and_filters_fails(test_client: TestClient, generator: DataGenerator):
     """Test that non-silent mode fails even with single ID if filters are provided"""
@@ -1079,50 +1139,24 @@ def test_post_non_silent_with_single_id_and_filters_fails(test_client: TestClien
 
     assert response.status_code == 422
     assert "must be done silently" in response.json()["detail"]
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License version 3, as
-# published by the Free Software Foundation.
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
-# SPDX-License-Identifier: AGPL-3.0-only
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
-from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import (
-    FamilyName,
-    StageName,
-    TestResultStatus,
-)
-from test_observer.controllers.applications.application_injection import (
-    get_current_application,
-)
-from test_observer.main import app
-from test_observer.users.user_injection import get_current_user
-from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
+
 
 class TestRerunAMRPermissions:
     """Test AMR-based permission checking for rerun operations"""
 
     def test_create_rerun_with_amr_permission(
-        self, test_client: TestClient, generator: DataGenerator, db_session: Session
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
     ):
         """User with matching AMR permission should be able to create rerun"""
 
         # Create team and AMR
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1157,9 +1191,7 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_create_rerun_without_amr_permission(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_create_rerun_without_amr_permission(self, test_client: TestClient, generator: DataGenerator):
         """User without matching AMR should be denied"""
 
         # Create two teams
@@ -1167,7 +1199,7 @@ class TestRerunAMRPermissions:
         team_b = generator.gen_team(name="team-b")
 
         # Create AMR for team_a
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team_a],
@@ -1202,14 +1234,12 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_create_rerun_no_matching_amr(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_create_rerun_no_matching_amr(self, test_client: TestClient, generator: DataGenerator):
         """User's team has AMR, but for different artefact should be denied"""
 
         # Create team and AMR for stable stage
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1244,14 +1274,12 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_delete_rerun_with_amr_permission(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_delete_rerun_with_amr_permission(self, test_client: TestClient, generator: DataGenerator):
         """User with matching AMR permission should be able to delete rerun"""
 
         # Create team and AMR
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1293,14 +1321,12 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_create_rerun_multiple_artefacts_all_authorized(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_create_rerun_multiple_artefacts_all_authorized(self, test_client: TestClient, generator: DataGenerator):
         """User authorized for all artefacts should succeed with multiple IDs"""
 
         # Create team and AMR for snap family
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1312,7 +1338,7 @@ class TestRerunAMRPermissions:
         user.teams = [team]
         user.is_admin = False
         generator._add_object(user)
-        
+
         # Create app with bulk permission for bulk operations
         application = generator.gen_application(
             name="test-app",
@@ -1353,7 +1379,7 @@ class TestRerunAMRPermissions:
 
         # Create team and AMR for snap family only (include bulk for multi-ID requirement)
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1397,14 +1423,12 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_create_rerun_bulk_filter_with_amr_permission(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_create_rerun_bulk_filter_with_amr_permission(self, test_client: TestClient, generator: DataGenerator):
         """User authorized for all filtered results should succeed"""
 
         # Create team and AMR for snap family
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1416,7 +1440,7 @@ class TestRerunAMRPermissions:
         user.teams = [team]
         user.is_admin = False
         generator._add_object(user)
-        
+
         # Create app with bulk permission
         application = generator.gen_application(
             name="test-app",
@@ -1455,14 +1479,12 @@ class TestRerunAMRPermissions:
             del app.dependency_overrides[get_current_user]
             del app.dependency_overrides[get_current_application]
 
-    def test_create_rerun_bulk_filter_without_amr_permission(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_create_rerun_bulk_filter_without_amr_permission(self, test_client: TestClient, generator: DataGenerator):
         """User without permission for filtered artefacts should be denied"""
 
         # Create team with AMR only for snap (include bulk for filter requirement)
         team = generator.gen_team(name="snap-team")
-        rule = generator.gen_artefact_matching_rule(
+        generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
             teams=[team],
@@ -1505,9 +1527,7 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_admin_user_bypasses_amr_checks(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_admin_user_bypasses_amr_checks(self, test_client: TestClient, generator: DataGenerator):
         """Admin user should bypass AMR checks"""
 
         # Create admin user with no teams or AMR
@@ -1539,9 +1559,7 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_app_permission_bypasses_amr_checks(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_app_permission_bypasses_amr_checks(self, test_client: TestClient, generator: DataGenerator):
         """App with change_rerun permission should bypass AMR checks"""
 
         # Create app with permission
@@ -1575,9 +1593,7 @@ class TestRerunAMRPermissions:
             del app.dependency_overrides[get_current_user]
             del app.dependency_overrides[get_current_application]
 
-    def test_empty_test_execution_ids_list(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_empty_test_execution_ids_list(self, test_client: TestClient, generator: DataGenerator):
         """Empty test_execution_ids should return 404"""
 
         # Create user with no teams or AMR
@@ -1599,9 +1615,7 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
 
-    def test_no_matching_test_executions_in_filter(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_no_matching_test_executions_in_filter(self, test_client: TestClient, generator: DataGenerator):
         """Filter that matches no test executions should succeed silently"""
 
         # Create user with no teams or AMR
@@ -1609,7 +1623,7 @@ class TestRerunAMRPermissions:
         user.teams = []
         user.is_admin = False
         generator._add_object(user)
-        
+
         # Create app with bulk permission (required for filter operations)
         application = generator.gen_application(
             name="test-app",

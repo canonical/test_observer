@@ -188,7 +188,8 @@ def _validate_amr_permissions_for_request(
     # The selectinload patterns in check_amr_permission() are sufficient
     # to handle the relationships it needs.
     affected_artefacts_query = (
-        select(Artefact).distinct()
+        select(Artefact)
+        .distinct()
         .join(ArtefactBuild, Artefact.id == ArtefactBuild.artefact_id)
         .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
         .where(or_(*conditions))
