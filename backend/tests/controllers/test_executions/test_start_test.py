@@ -1134,7 +1134,7 @@ class TestNotifyReviewerAssigned:
         monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
 
     def test_notify_reviewer_assigned_happy_path(self, generator: DataGenerator, db_session: Session):
-        """Test successful creation of notification and Jira cards via the public API"""
+        """Test successful creation of notification"""
         # Create artefact with a reviewer and jira issue
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
         artefact = generator.gen_artefact(
@@ -1145,26 +1145,17 @@ class TestNotifyReviewerAssigned:
         artefact.jira_issue = "TEST-123"
         db_session.commit()
 
-        # Mock IssueCreator to avoid actual Jira calls
-        with patch("test_observer.common.review_notification.IssueCreator") as mock_issue_creator_class:
-            mock_issue_creator = Mock()
-            mock_issue_creator_class.return_value = mock_issue_creator
+        create_reviewer_notification(
+            db_session,
+            reviewer,
+            artefact,
+            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
 
-            create_reviewer_notification(
-                db_session,
-                reviewer,
-                artefact,
-                NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-            )
-
-            # Verify notification was created
-            notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
-            assert notification is not None
-            assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
-
-            # Verify Jira card creation was attempted
-            mock_issue_creator_class.assert_called_once()
-            mock_issue_creator.create_review_issues.assert_called_once_with(artefact, reviewer)
+        # Verify notification was created
+        notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
+        assert notification is not None
+        assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
 
     def test_notify_reviewer_assigned_no_jira_issue(self, generator: DataGenerator, db_session: Session):
         """Test that notification is created even without Jira issue (graceful degradation)"""

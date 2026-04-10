@@ -105,6 +105,11 @@ class IssueCreator:
         artefact_url = get_artefact_url(artefact)
         assignee_id = self.jira_ctx.client.get_account_id_by_username(reviewer.launchpad_handle)
 
+        if not assignee_id:
+            raise ValueError(
+                f"Cannot assign Jira issue to reviewer {reviewer.id} because no Jira account ID was found for that user."
+            )
+
         match notification_type:
             case NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW:
                 summary = f"Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"

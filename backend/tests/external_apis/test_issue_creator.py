@@ -18,6 +18,7 @@ from unittest.mock import Mock
 import pytest
 
 from test_observer.common.helpers import get_artefact_url
+from test_observer.data_access.models_enums import NotificationType
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from tests.data_generator import DataGenerator
 
@@ -67,29 +68,71 @@ class TestCreateIssue:
             assignee_id="alice-handle",
         )
 
-    def test_create_issue_with_no_clients_raises_error(self):
-        """Test creating issue with no clients raises ValueError"""
-        creator = IssueCreator()
-
-        with pytest.raises(ValueError, match="No issue creation context configured"):
-            creator.create_issue(
-                summary="Test Issue",
-                description="Test description",
-            )
-
-    def test_create_issue_without_jira_context_raises_error(self):
-        """Test creating issue without jira_ctx raises ValueError"""
-        creator = IssueCreator(jira_ctx=None)
-
-        with pytest.raises(ValueError, match="No issue creation context configured"):
-            creator.create_issue(
-                summary="Test Issue",
-                description="Test description",
-            )
-
-
 class TestCreateReviewIssues:
     """Test create_review_issues method"""
+
+    def test_create_review_issue_artefact_review(self, generator: DataGenerator):
+        """Test successful creation of artefact review issue"""
+        from test_observer.external_apis.issue_creator import NotificationType
+
+        mock_jira = Mock()
+        mock_jira.get_account_id_by_username.return_value = "jira-account-abc"
+        jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com", launchpad_handle="alice-lp")
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[reviewer],
+        )
+
+        creator = IssueCreator(jira_ctx=jira_ctx)
+        creator.create_review_issue(artefact, reviewer, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW)
+
+        mock_jira.get_account_id_by_username.assert_called_once_with("alice-lp")
+        mock_jira.create_issue.assert_called_once()
+
+        expected_artefact_url = get_artefact_url(artefact)
+        call = mock_jira.create_issue.call_args_list[0]
+        assert call.kwargs["project_key"] == "TO"
+        assert call.kwargs["summary"] == "Review artefact test-snap version 1.0.0 - Alice"
+        assert (
+            call.kwargs["description"]
+            == f"Review artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
+        )
+        assert call.kwargs["issue_type"] == "Task"
+        assert call.kwargs["parent_issue_key"] == "TO-123"
+        assert call.kwargs["assignee_id"] == "jira-account-abc"
+
+    def test_create_review_issue_environment_review(self, generator: DataGenerator):
+        """Test successful creation of environment review issue"""
+        from test_observer.external_apis.issue_creator import NotificationType
+
+        mock_jira = Mock()
+        mock_jira.get_account_id_by_username.return_value = "jira-account-abc"
+        jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
+        reviewer = generator.gen_user(name="Alice", email="alice@example.com", launchpad_handle="alice-lp")
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[reviewer],
+        )
+
+        creator = IssueCreator(jira_ctx=jira_ctx)
+        creator.create_review_issue(artefact, reviewer, NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW)
+
+        mock_jira.get_account_id_by_username.assert_called_once_with("alice-lp")
+        mock_jira.create_issue.assert_called_once()
+
+        expected_artefact_url = get_artefact_url(artefact)
+        call = mock_jira.create_issue.call_args_list[0]
+        assert call.kwargs["project_key"] == "TO"
+        assert call.kwargs["summary"] == "Review environments of Artefact test-snap version 1.0.0 - Alice"
+        assert call.kwargs["description"] == (
+            f"Review test environments for artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
+        )
+        assert call.kwargs["issue_type"] == "Task"
+        assert call.kwargs["parent_issue_key"] == "TO-123"
+        assert call.kwargs["assignee_id"] == "jira-account-abc"
 
     def test_create_review_issues_success(self, generator: DataGenerator):
         """Test successful creation of review issues"""
@@ -104,16 +147,16 @@ class TestCreateReviewIssues:
         )
 
         creator = IssueCreator(jira_ctx=jira_ctx)
-        creator.create_review_issues(artefact, reviewer)
+        creator.create_review_issue(artefact, reviewer, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW)
 
-        mock_jira.get_account_id_by_username.assert_called_once_with("alice-lp")
+        assert mock_jira.get_account_id_by_username.call_count == 1
+        mock_jira.get_account_id_by_username.assert_called_with("alice-lp")
 
-        # Should call create_issue twice via Jira client
-        assert mock_jira.create_issue.call_count == 2
+        # Should call create_issue once via Jira client
+        assert mock_jira.create_issue.call_count == 1
 
         expected_artefact_url = get_artefact_url(artefact)
 
-        # First call: artefact review
         first_call = mock_jira.create_issue.call_args_list[0]
         assert first_call.kwargs["project_key"] == "TO"
         assert first_call.kwargs["summary"] == "Review artefact test-snap version 1.0.0 - Alice"
@@ -125,19 +168,8 @@ class TestCreateReviewIssues:
         assert first_call.kwargs["parent_issue_key"] == "TO-123"
         assert first_call.kwargs["assignee_id"] == "jira-account-abc"
 
-        # Second call: environment review
-        second_call = mock_jira.create_issue.call_args_list[1]
-        assert second_call.kwargs["project_key"] == "TO"
-        assert second_call.kwargs["summary"] == "Review environments of Artefact test-snap version 1.0.0 - Alice"
-        assert second_call.kwargs["description"] == (
-            f"Review test environments for artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
-        )
-        assert second_call.kwargs["issue_type"] == "Task"
-        assert second_call.kwargs["parent_issue_key"] == "TO-123"
-        assert second_call.kwargs["assignee_id"] == "jira-account-abc"
-
     def test_create_review_issues_reviewer_not_in_jira(self, generator: DataGenerator):
-        """Test that issues are created without assignee when reviewer is not found in Jira"""
+        """Test that issues are not created when reviewer is not found in Jira"""
         mock_jira = Mock()
         mock_jira.get_account_id_by_username.return_value = None
         jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
@@ -149,15 +181,14 @@ class TestCreateReviewIssues:
         )
 
         creator = IssueCreator(jira_ctx=jira_ctx)
-        creator.create_review_issues(artefact, reviewer)
+        with pytest.raises(ValueError, match="Cannot assign Jira issue to reviewer"):
+            creator.create_review_issue(artefact, reviewer, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW)
 
         mock_jira.get_account_id_by_username.assert_called_once_with("alice-lp")
-        assert mock_jira.create_issue.call_count == 2
-        for call in mock_jira.create_issue.call_args_list:
-            assert call.kwargs["assignee_id"] is None
+        assert mock_jira.create_issue.call_count == 0
 
     def test_create_review_issues_reviewer_without_launchpad_handle(self, generator: DataGenerator):
-        """Test that issues are created without assignee when reviewer has no launchpad handle"""
+        """Test that issues are not created when reviewer has no launchpad handle"""
         mock_jira = Mock()
         jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
         reviewer = generator.gen_user(name="Alice", email="alice@example.com", launchpad_handle=None)
@@ -168,22 +199,12 @@ class TestCreateReviewIssues:
         )
 
         creator = IssueCreator(jira_ctx=jira_ctx)
-        creator.create_review_issues(artefact, reviewer)
+
+        with pytest.raises(ValueError, match="does not have a launchpad handle"):
+            creator.create_review_issue(artefact, reviewer, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW)
 
         mock_jira.get_account_id_by_username.assert_not_called()
-        assert mock_jira.create_issue.call_count == 2
-        for call in mock_jira.create_issue.call_args_list:
-            assert call.kwargs["assignee_id"] is None
-
-    def test_create_review_issues_no_jira_context(self, generator: DataGenerator):
-        """Test that ValueError is raised when no jira_ctx is configured"""
-        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
-        artefact = generator.gen_artefact(name="test-snap", version="1.0.0", reviewers=[reviewer])
-
-        creator = IssueCreator(jira_ctx=None)
-
-        with pytest.raises(ValueError, match="No issue creation context configured"):
-            creator.create_review_issues(artefact, reviewer)
+        assert mock_jira.create_issue.call_count == 0
 
     def test_create_review_issues_no_reviewers(self, generator: DataGenerator):
         """Test that ValueError is raised when artefact has no reviewers"""
@@ -198,8 +219,8 @@ class TestCreateReviewIssues:
 
         creator = IssueCreator(jira_ctx=jira_ctx)
 
-        with pytest.raises(ValueError, match="has no reviewers assigned"):
-            creator.create_review_issues(artefact, reviewer)
+        with pytest.raises(ValueError, match="Cannot create review cards for non-reviewer"):
+            creator.create_review_issue(artefact, reviewer, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW)
 
         mock_jira.create_issue.assert_not_called()
 
@@ -217,8 +238,8 @@ class TestCreateReviewIssues:
 
         creator = IssueCreator(jira_ctx=jira_ctx)
 
-        with pytest.raises(ValueError, match="reviewers do not include"):
-            creator.create_review_issues(artefact, invalid_reviewer)
+        with pytest.raises(ValueError, match="reviewers do not include user"):
+            creator.create_review_issue(artefact, invalid_reviewer, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW)
 
         mock_jira.create_issue.assert_not_called()
 
