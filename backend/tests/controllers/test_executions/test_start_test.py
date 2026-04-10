@@ -1197,7 +1197,7 @@ class TestNotifyReviewerAssigned:
         # Mock IssueCreator to raise an exception
         with patch("test_observer.common.review_notification.IssueCreator") as mock_issue_creator_class:
             mock_issue_creator = Mock()
-            mock_issue_creator.create_review_issues.side_effect = Exception("Jira API error")
+            mock_issue_creator.create_review_issue.side_effect = Exception("Jira API error")
             mock_issue_creator_class.return_value = mock_issue_creator
 
             # Should NOT raise despite Jira failure
