@@ -22,7 +22,7 @@ from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.data_access.models import Application, Artefact, User
+from test_observer.data_access.models import Application, Artefact, ArtefactMatchingRule, User
 from test_observer.data_access.queries import match_artefact
 from test_observer.users.user_injection import get_current_user
 
@@ -33,7 +33,7 @@ def permission_checker(
     app: Application | None = Depends(get_current_application),
 ) -> None:
     if user and user.is_admin:
-        return None
+        return
 
     required_permissions: set[str] = set(security_scopes.scopes) - IGNORE_PERMISSIONS
 
@@ -73,16 +73,13 @@ def check_amr_permission(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
     if user.is_admin:
-        return None
+        return
 
     # Query for matching AMR IDs using the centralized matching logic
     matching_amr_ids = db.execute(match_artefact(artefact)).scalars().all()
 
     if not matching_amr_ids:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-    # Load the full AMR objects with their teams and permissions
-    from test_observer.data_access.models import ArtefactMatchingRule
 
     matching_rules = (
         db.query(ArtefactMatchingRule)
@@ -101,7 +98,7 @@ def check_amr_permission(
         user_in_rule_team = user_team_ids & rule_team_ids
         rule_grants_permission = required_permission in rule.grant_permissions
         if user_in_rule_team and rule_grants_permission:
-            return None
+            return
 
     # If we get here, user doesn't have permission
     raise HTTPException(status_code=403, detail="Insufficient permissions")
@@ -133,10 +130,10 @@ def check_artefact_permission(
     """
     # Honor IGNORE_PERMISSIONS config (aligned with permission_checker)
     if required_permission.value in IGNORE_PERMISSIONS:
-        return None
+        return
 
     if app and required_permission in app.permissions:
-        return None
+        return
 
     check_amr_permission(db, user, artefact, required_permission)
 
