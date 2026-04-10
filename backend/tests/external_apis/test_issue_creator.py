@@ -18,7 +18,7 @@ from unittest.mock import Mock
 import pytest
 
 from test_observer.common.helpers import get_artefact_url
-from test_observer.data_access.models_enums import NotificationType
+from test_observer.data_access.models_enums import FamilyName, NotificationType
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from tests.data_generator import DataGenerator
 
@@ -74,8 +74,6 @@ class TestCreateReviewIssue:
 
     def test_create_review_issue_artefact_review(self, generator: DataGenerator):
         """Test successful creation of artefact review issue"""
-        from test_observer.external_apis.issue_creator import NotificationType
-
         mock_jira = Mock()
         mock_jira.get_account_id_by_username.return_value = "jira-account-abc"
         jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
@@ -106,8 +104,6 @@ class TestCreateReviewIssue:
 
     def test_create_review_issue_environment_review(self, generator: DataGenerator):
         """Test successful creation of environment review issue"""
-        from test_observer.external_apis.issue_creator import NotificationType
-
         mock_jira = Mock()
         mock_jira.get_account_id_by_username.return_value = "jira-account-abc"
         jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
@@ -257,8 +253,6 @@ class TestGetArtefactUrl:
 
     def test_deb_url_generation(self, generator: DataGenerator):
         """Test URL generation for deb artefacts"""
-        from test_observer.data_access.models_enums import FamilyName
-
         artefact = generator.gen_artefact(name="test-deb", version="1.0.0")
         artefact.family = FamilyName.deb
         url = get_artefact_url(artefact)
@@ -266,8 +260,6 @@ class TestGetArtefactUrl:
 
     def test_charm_url_generation(self, generator: DataGenerator):
         """Test URL generation for charm artefacts"""
-        from test_observer.data_access.models_enums import FamilyName
-
         artefact = generator.gen_artefact(name="test-charm", version="1.0.0")
         artefact.family = FamilyName.charm
         url = get_artefact_url(artefact)
@@ -275,8 +267,6 @@ class TestGetArtefactUrl:
 
     def test_image_url_generation(self, generator: DataGenerator):
         """Test URL generation for image artefacts"""
-        from test_observer.data_access.models_enums import FamilyName
-
         artefact = generator.gen_artefact(name="test-image", version="1.0.0")
         artefact.family = FamilyName.image
         url = get_artefact_url(artefact)
