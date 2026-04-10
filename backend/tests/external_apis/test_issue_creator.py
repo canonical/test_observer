@@ -69,8 +69,8 @@ class TestCreateIssue:
         )
 
 
-class TestCreateReviewIssues:
-    """Test create_review_issues method"""
+class TestCreateReviewIssue:
+    """Test create_review_issue method"""
 
     def test_create_review_issue_artefact_review(self, generator: DataGenerator):
         """Test successful creation of artefact review issue"""
@@ -135,7 +135,7 @@ class TestCreateReviewIssues:
         assert call.kwargs["parent_issue_key"] == "TO-123"
         assert call.kwargs["assignee_id"] == "jira-account-abc"
 
-    def test_create_review_issues_success(self, generator: DataGenerator):
+    def test_create_review_issue_success(self, generator: DataGenerator):
         """Test successful creation of review issues"""
         mock_jira = Mock()
         mock_jira.get_account_id_by_username.return_value = "jira-account-abc"
@@ -169,7 +169,7 @@ class TestCreateReviewIssues:
         assert first_call.kwargs["parent_issue_key"] == "TO-123"
         assert first_call.kwargs["assignee_id"] == "jira-account-abc"
 
-    def test_create_review_issues_reviewer_not_in_jira(self, generator: DataGenerator):
+    def test_create_review_issue_reviewer_not_in_jira(self, generator: DataGenerator):
         """Test that issues are not created when reviewer is not found in Jira"""
         mock_jira = Mock()
         mock_jira.get_account_id_by_username.return_value = None
@@ -188,7 +188,7 @@ class TestCreateReviewIssues:
         mock_jira.get_account_id_by_username.assert_called_once_with("alice-lp")
         assert mock_jira.create_issue.call_count == 0
 
-    def test_create_review_issues_reviewer_without_launchpad_handle(self, generator: DataGenerator):
+    def test_create_review_issue_reviewer_without_launchpad_handle(self, generator: DataGenerator):
         """Test that issues are not created when reviewer has no launchpad handle"""
         mock_jira = Mock()
         jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
@@ -207,7 +207,7 @@ class TestCreateReviewIssues:
         mock_jira.get_account_id_by_username.assert_not_called()
         assert mock_jira.create_issue.call_count == 0
 
-    def test_create_review_issues_no_reviewers(self, generator: DataGenerator):
+    def test_create_review_issue_no_reviewers(self, generator: DataGenerator):
         """Test that ValueError is raised when artefact has no reviewers"""
         mock_jira = Mock()
         jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")
@@ -225,7 +225,7 @@ class TestCreateReviewIssues:
 
         mock_jira.create_issue.assert_not_called()
 
-    def test_create_review_issues_invalid_reviewer(self, generator: DataGenerator):
+    def test_create_review_issue_invalid_reviewer(self, generator: DataGenerator):
         """Test that ValueError is raised when reviewer is not in artefact's reviewer list"""
         mock_jira = Mock()
         jira_ctx = JiraIssueContext(client=mock_jira, parent_issue="TO-123")

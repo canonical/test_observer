@@ -65,9 +65,6 @@ class IssueCreator:
             description: Issue description
             issue_type: Issue type (default: "Task")
             assignee_id: Jira account ID to assign the issue to
-
-        Raises:
-            ValueError: If no context is configured
         """
         logger.info(f"Creating Jira issue: {summary}")
         self.jira_ctx.client.create_issue(
