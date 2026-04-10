@@ -210,3 +210,57 @@ class TestCheckAMRPermission:
                 Permission.change_artefact,
             )
         assert exc_info.value.status_code == 403
+
+    def test_admin_user_bypass_with_no_matching_amr(self, generator: DataGenerator, db_session: Session):
+        """Admin user should be allowed even when no AMR matches the artefact"""
+        # Create an artefact with no matching AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Create an admin user
+        admin_user = generator.gen_user(name="admin")
+        admin_user.is_admin = True
+        generator._add_object(admin_user)
+
+        # Should not raise even though no AMR matches
+        check_amr_permission(
+            db_session,
+            admin_user,
+            artefact,
+            Permission.change_artefact,
+        )
+
+    def test_admin_user_bypass_with_non_granting_amr(self, generator: DataGenerator, db_session: Session):
+        """Admin user should be allowed even when AMR doesn't grant the required permission"""
+        # Create a team and AMR that grants view_artefact but not change_artefact
+        team = generator.gen_team(name="snap-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.view_artefact],
+        )
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Create an admin user (not in the team)
+        admin_user = generator.gen_user(name="admin")
+        admin_user.is_admin = True
+        admin_user.teams = []
+        generator._add_object(admin_user)
+
+        # Should not raise even though AMR doesn't grant change_artefact
+        check_amr_permission(
+            db_session,
+            admin_user,
+            artefact,
+            Permission.change_artefact,
+        )
