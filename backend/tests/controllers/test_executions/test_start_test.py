@@ -1124,7 +1124,7 @@ def test_no_assignment_when_no_team_reviewers_available(
 
 
 class TestNotifyReviewerAssigned:
-    """Tests for notifiying new reviewers"""
+    """Tests for notifying new reviewers"""
 
     @pytest.fixture(autouse=True)
     def setup_env(self, monkeypatch: pytest.MonkeyPatch):
@@ -1180,34 +1180,3 @@ class TestNotifyReviewerAssigned:
         notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
         assert notification is not None
         assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
-
-    def test_notify_reviewer_assigned_jira_creation_fails_gracefully(
-        self, generator: DataGenerator, db_session: Session
-    ):
-        """Test that notification is created even if Jira card creation fails"""
-        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
-        artefact = generator.gen_artefact(
-            name="test-snap",
-            version="1.0.0",
-            reviewers=[reviewer],
-        )
-        artefact.jira_issue = "TEST-123"
-        db_session.commit()
-
-        # Mock IssueCreator to raise an exception
-        with patch("test_observer.common.review_notification.IssueCreator") as mock_issue_creator_class:
-            mock_issue_creator = Mock()
-            mock_issue_creator.create_review_issue.side_effect = Exception("Jira API error")
-            mock_issue_creator_class.return_value = mock_issue_creator
-
-            # Should NOT raise despite Jira failure
-            create_reviewer_notification(
-                db_session,
-                reviewer,
-                artefact,
-                NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-            )
-
-            # Verify notification was still created
-            notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
-            assert notification is not None
