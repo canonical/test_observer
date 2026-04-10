@@ -122,6 +122,8 @@ class IssueCreator:
                     f"Review test environments for artefact {artefact.name} version {artefact.version}\n\n"
                     f"Artefact page: {artefact_url}"
                 )
+            case _:
+                raise NotImplementedError(f"Unsupported notification type: {notification_type}")
 
         self.create_issue(
             summary=summary,

@@ -16,7 +16,6 @@
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
-from unittest.mock import Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
