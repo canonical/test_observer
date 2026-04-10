@@ -68,6 +68,7 @@ class TestCreateIssue:
             assignee_id="alice-handle",
         )
 
+
 class TestCreateReviewIssues:
     """Test create_review_issues method"""
 

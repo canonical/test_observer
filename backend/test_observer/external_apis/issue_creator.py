@@ -18,8 +18,8 @@ from dataclasses import dataclass
 
 from test_observer.common.helpers import get_artefact_url
 from test_observer.data_access.models import Artefact, User
-from test_observer.external_apis.jira import JiraClient
 from test_observer.data_access.models_enums import NotificationType
+from test_observer.external_apis.jira import JiraClient
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,8 @@ class IssueCreator:
 
         if not assignee_id:
             raise ValueError(
-                f"Cannot assign Jira issue to reviewer {reviewer.id} because no Jira account ID was found for that user."
+                f"Cannot assign Jira issue to reviewer {reviewer.id} "
+                "because no Jira account ID was found for that user."
             )
 
         match notification_type:

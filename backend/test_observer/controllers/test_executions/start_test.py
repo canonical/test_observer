@@ -25,8 +25,8 @@ from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.common.review_notification import (
     BatchReviewerAssignedMessage,
-    batch_create_review_notifications,
     batch_create_jira_reviewer_cards,
+    batch_create_review_notifications,
 )
 from test_observer.data_access.models import (
     Artefact,
@@ -110,7 +110,7 @@ class StartTestExecutionController:
 
     def _assign_reviewers_to_environments(self) -> list[User]:
         """Assigns reviewers to environment reviews
-        
+
         Tries to balance the number of environment reviews assigned to each reviewer.
         Returns the list of reviewers that were newly assigned to at least one environment review.
         """
@@ -189,13 +189,21 @@ class StartTestExecutionController:
                         NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
                     )
 
-                batch_create_jira_reviewer_cards(BatchReviewerAssignedMessage(
-                    artefact=self.artefact,
-                    assigned_reviews=(
-                        [(reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers]
-                        + [(reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW]) for reviewer in newly_assigned_environment_reviewers]
-                    ),
-                ))
+                batch_create_jira_reviewer_cards(
+                    BatchReviewerAssignedMessage(
+                        artefact=self.artefact,
+                        assigned_reviews=(
+                            [
+                                (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
+                                for reviewer in newly_assigned_reviewers
+                            ]
+                            + [
+                                (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
+                                for reviewer in newly_assigned_environment_reviewers
+                            ]
+                        ),
+                    )
+                )
 
     def create_test_plan(self):
         self.test_plan = get_or_create(

@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
+from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
@@ -27,7 +28,6 @@ from test_observer.data_access.models_enums import NotificationType
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.jira.jira_client import JiraClient
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class BatchReviewerAssignedMessage:
     """Context of a batch of reviewers being assigned to an artefact
 
     Used for notifications and issue creation"""
+
     artefact: Artefact
     assigned_reviews: list[tuple[User, list[NotificationType]]]
 
@@ -91,6 +92,7 @@ def batch_create_review_notifications(
                 f"on artefact {artefact.id}"
             )
 
+
 def batch_create_jira_reviewer_cards(
     new_reviewers: BatchReviewerAssignedMessage,
     jira_client: JiraClient | None = None,
@@ -101,6 +103,10 @@ def batch_create_jira_reviewer_cards(
         new_reviewers: Context of the batch of reviewers being assigned new reviews
         jira_client: Optional Jira client. If not provided, will attempt to get one.
     """
+    if new_reviewers.artefact.jira_issue is None:
+        raise ValueError(
+            f"Artefact {new_reviewers.artefact.id} does not have a Jira issue. Cannot create review cards."
+        )
     if not jira_client:
         try:
             jira_client = get_jira_client()
@@ -115,11 +121,11 @@ def batch_create_jira_reviewer_cards(
         )
     )
 
-    for (reviewer, notification_types) in new_reviewers.assigned_reviews:
+    for reviewer, notification_types in new_reviewers.assigned_reviews:
         try:
             for notification_type in notification_types:
                 issue_creator.create_review_issue(new_reviewers.artefact, reviewer, notification_type)
         except Exception:
             logger.exception(
-                f"Failed to create Jira review cards for reviewer {reviewer.id} on artefact {artefact.id}"
+                f"Failed to create Jira review cards for reviewer {reviewer.id} on artefact {new_reviewers.artefact.id}"
             )
