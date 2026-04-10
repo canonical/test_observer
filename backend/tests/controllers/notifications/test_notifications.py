@@ -36,9 +36,9 @@ def _authenticate_user(
 
 
 def test_get_notifications_without_auth(test_client: TestClient):
-    """Test that accessing notifications without auth returns 403"""
+    """Test that accessing notifications without auth returns 401"""
     response = test_client.get("/v1/users/me/notifications")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_get_notifications(
@@ -78,9 +78,9 @@ def test_get_notifications(
 
 
 def test_get_count_without_auth(test_client: TestClient):
-    """Test that accessing unread count without auth returns 403"""
+    """Test that accessing unread count without auth returns 401"""
     response = test_client.get("/v1/users/me/notifications/count")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_get_unread_count(
@@ -106,12 +106,12 @@ def test_get_unread_count(
 
 
 def test_mark_notification_as_read_without_auth(test_client: TestClient, generator: DataGenerator):
-    """Test that marking notification as read without auth returns 403"""
+    """Test that marking notification as read without auth returns 401"""
     user = generator.gen_user(email="mark-no-auth@test.com")
     notification = generator.gen_notification(user=user)
 
     response = test_client.post(f"/v1/users/me/notifications/{notification.id}/dismiss")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_mark_notification_as_read(

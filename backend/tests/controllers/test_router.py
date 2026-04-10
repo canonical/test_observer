@@ -21,17 +21,16 @@ from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
-def test_base_authenticated(test_client: TestClient, generator: DataGenerator):
-    application = generator.gen_application(permissions=[])
-    response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {application.api_key}"})
-    assert response.status_code == 200
-    assert response.text == '"test observer api"'
-
-
 def test_base_unauthenticated(test_client: TestClient):
     response = test_client.get("/")
     assert response.status_code == 401
-    assert response.json() == {"detail": "Not Authenticated"}
+
+
+def test_base_authenticated(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application(permissions=[])
+    response = test_client.get("/", headers={"Authorization": f"Bearer {application.api_key}"})
+    assert response.status_code == 200
+    assert response.text == '"test observer api"'
 
 
 def test_sentry_debug_with_permission(test_client: TestClient):

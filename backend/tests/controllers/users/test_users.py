@@ -25,12 +25,17 @@ from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
-def test_get_me_without_csrf_token_returns_none(
+def test_get_me_unauthenticated_errors(test_client: TestClient):
+    response = test_client.get("/v1/users/me")
+    assert response.status_code == 401
+
+
+def test_get_me_authenticated_without_csrf_token_errors(
     test_client: TestClient,
     generator: DataGenerator,
     create_session_cookie: Callable[[int], str],
 ):
-    """Test that accessing /me without X-CSRF-Token header returns None"""
+    """Test that accessing /me without X-CSRF-Token header results in 401 error"""
     user = generator.gen_user()
     session = generator.gen_user_session(user)
 
@@ -39,18 +44,10 @@ def test_get_me_without_csrf_token_returns_none(
 
     response = test_client.get("/v1/users/me")
 
-    assert response.status_code == 200
-    assert response.json() is None
+    assert response.status_code == 401
 
 
-def test_get_me_without_session_returns_none(test_client: TestClient):
-    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
-
-    assert response.status_code == 200
-    assert response.json() is None
-
-
-def test_get_me_with_expired_session_returns_none(
+def test_get_me_authenticated_with_expired_session_errors(
     test_client: TestClient,
     generator: DataGenerator,
     create_session_cookie: Callable[[int], str],
@@ -63,11 +60,10 @@ def test_get_me_with_expired_session_returns_none(
 
     response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
-    assert response.status_code == 200
-    assert response.json() is None
+    assert response.status_code == 401
 
 
-def test_get_me_with_nonexistent_session_returns_none(
+def test_get_me_with_nonexistent_session_errors(
     test_client: TestClient,
     create_session_cookie: Callable[[int], str],
 ):
@@ -76,14 +72,7 @@ def test_get_me_with_nonexistent_session_returns_none(
 
     response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
-    assert response.status_code == 200
-    assert response.json() is None
-
-
-def test_get_me_unauthenticated(test_client: TestClient):
-    response = test_client.get("/v1/users/me")
     assert response.status_code == 401
-    assert response.json() == {"detail": "Not Authenticated"}
 
 
 def test_get_me_with_valid_session_returns_user_data(

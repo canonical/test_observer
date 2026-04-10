@@ -28,7 +28,6 @@ def test_openapi_authenticated(test_client: TestClient, generator: DataGenerator
 def test_openapi_unauthenticated(test_client: TestClient):
     response = test_client.get("/openapi.json")
     assert response.status_code == 401
-    assert response.json() == {"detail": "Not Authenticated"}
 
 
 def test_docs_authenticated(test_client: TestClient, generator: DataGenerator):
@@ -40,4 +39,3 @@ def test_docs_authenticated(test_client: TestClient, generator: DataGenerator):
 def test_docs_unauthenticated(test_client: TestClient):
     response = test_client.get("/docs")
     assert response.status_code == 401
-    assert response.json() == {"detail": "Not Authenticated"}

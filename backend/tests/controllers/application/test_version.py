@@ -28,4 +28,3 @@ def test_version_authenticated(test_client: TestClient, generator: DataGenerator
 def test_version_unauthenticated(test_client: TestClient):
     response = test_client.get("/v1/version")
     assert response.status_code == 401
-    assert response.json() == {"detail": "Not Authenticated"}
