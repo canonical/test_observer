@@ -13,12 +13,11 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Request, Security
+from fastapi import APIRouter, Depends, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from test_observer.common.enums import Permission
-from test_observer.common.permissions import permission_checker
+from test_observer.common.permissions import authentication_checker
 
 router: APIRouter = APIRouter()
 
@@ -26,7 +25,7 @@ router: APIRouter = APIRouter()
 @router.get(
     "/openapi.json",
     include_in_schema=False,
-    dependencies=[Security(permission_checker, scopes=[Permission.view_docs])],
+    dependencies=[Depends(authentication_checker)],
 )
 async def custom_openapi(request: Request):
     app = request.app
@@ -56,7 +55,7 @@ async def custom_openapi(request: Request):
 @router.get(
     "/docs",
     include_in_schema=False,
-    dependencies=[Security(permission_checker, scopes=[Permission.view_docs])],
+    dependencies=[Depends(authentication_checker)],
 )
 async def custom_swagger_ui_html():
     html = get_swagger_ui_html(openapi_url="/openapi.json", title="API Documentation")

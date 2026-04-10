@@ -15,22 +15,17 @@
 
 from fastapi.testclient import TestClient
 
-from test_observer.common.enums import Permission
-from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
-def test_version_with_permission(test_client: TestClient):
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/version"),
-        Permission.view_basic,
-    )
+def test_version_authenticated(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application(permissions=[])
+    response = test_client.get("/v1/version", headers={"Authorization": f"Bearer {application.api_key}"})
     assert response.status_code == 200
     assert "version" in response.json()
 
 
-def test_version_without_permission(test_client: TestClient):
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/version"),
-    )
-    assert response.status_code == 403
-    assert response.json() == {"detail": "Insufficient permissions"}
+def test_version_unauthenticated(test_client: TestClient):
+    response = test_client.get("/v1/version")
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Not Authenticated"}

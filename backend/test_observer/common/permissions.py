@@ -24,6 +24,19 @@ from test_observer.data_access.models import Application, User
 from test_observer.users.user_injection import get_current_user
 
 
+def authentication_checker(
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+) -> None:
+    """
+    A simple dependency to check if the request is authenticated with either a user or an application.
+    This is used for endpoints that don't require specific permissions, but still require authentication.
+    """
+    if not user and not app:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return None
+
+
 def permission_checker(
     security_scopes: SecurityScopes,
     user: User | None = Depends(get_current_user),

@@ -25,14 +25,6 @@ from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
-def test_get_me_without_permission(test_client: TestClient):
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/users/me"),
-    )
-    assert response.status_code == 403
-    assert response.json() == {"detail": "Insufficient permissions"}
-
-
 def test_get_me_without_csrf_token_returns_none(
     test_client: TestClient,
     generator: DataGenerator,
@@ -45,20 +37,14 @@ def test_get_me_without_csrf_token_returns_none(
     session_cookie = create_session_cookie(session.id)
     test_client.cookies.set("session", session_cookie)
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/users/me"),
-        Permission.view_self,
-    )
+    response = test_client.get("/v1/users/me")
 
     assert response.status_code == 200
     assert response.json() is None
 
 
 def test_get_me_without_session_returns_none(test_client: TestClient):
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"}),
-        Permission.view_self,
-    )
+    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
     assert response.status_code == 200
     assert response.json() is None
@@ -75,10 +61,7 @@ def test_get_me_with_expired_session_returns_none(
     session_cookie = create_session_cookie(session.id)
     test_client.cookies.set("session", session_cookie)
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"}),
-        Permission.view_self,
-    )
+    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
     assert response.status_code == 200
     assert response.json() is None
@@ -91,13 +74,16 @@ def test_get_me_with_nonexistent_session_returns_none(
     session_cookie = create_session_cookie(999999)  # Non-existent session ID
     test_client.cookies.set("session", session_cookie)
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"}),
-        Permission.view_self,
-    )
+    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
     assert response.status_code == 200
     assert response.json() is None
+
+
+def test_get_me_unauthenticated(test_client: TestClient):
+    response = test_client.get("/v1/users/me")
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Not Authenticated"}
 
 
 def test_get_me_with_valid_session_returns_user_data(
@@ -111,10 +97,7 @@ def test_get_me_with_valid_session_returns_user_data(
     session_cookie = create_session_cookie(session.id)
     test_client.cookies.set("session", session_cookie)
 
-    response = make_authenticated_request(
-        lambda: test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"}),
-        Permission.view_self,
-    )
+    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
     assert response.status_code == 200
     user_data = response.json()

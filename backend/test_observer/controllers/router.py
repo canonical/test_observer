@@ -18,7 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import permission_checker
+from test_observer.common.permissions import authentication_checker, permission_checker
 from test_observer.controllers.applications import applications
 from test_observer.controllers.docs import docs
 from test_observer.controllers.permissions import permissions
@@ -63,7 +63,7 @@ router.include_router(artefact_matching_rules.router, prefix="/v1/artefact-match
 router.include_router(health.router, prefix="/health")
 
 
-@router.get("/", dependencies=[Security(permission_checker, scopes=[Permission.view_basic])])
+@router.get("/", dependencies=[Depends(authentication_checker)])
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
     return "test observer api"

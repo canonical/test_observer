@@ -60,7 +60,8 @@ def get_applications(
 
 
 @router.get("/me", response_model=ApplicationResponse | None)
-def get_authenticated_application(app: Application | None = Depends(get_current_application),
+def get_authenticated_application(
+    app: Application | None = Depends(get_current_application),
 ):
     if app is None:
         raise HTTPException(401, "Not Authenticated")
