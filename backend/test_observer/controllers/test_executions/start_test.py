@@ -159,7 +159,7 @@ class StartTestExecutionController:
 
     def assign_reviewer(self) -> BatchReviewerAssignedMessage | None:
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
-            return
+            return None
 
         rule_ids = self.db.execute(match_artefact(self.artefact)).scalars().all()
         if len(rule_ids) > 0:
@@ -200,14 +200,15 @@ class StartTestExecutionController:
                             [
                                 (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
                                 for reviewer in newly_assigned_reviewers
-                                ]
+                            ]
                             + [
                                 (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
                                 for reviewer in newly_assigned_environment_reviewers
-                                ]
-                            ),
+                            ]
+                        ),
                     )
 
+        return None
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
