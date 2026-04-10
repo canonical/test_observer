@@ -102,9 +102,13 @@ class StartTestExecutionController:
         self.create_relevant_links()
         self.delete_rerun_request()
 
-        self.assign_reviewer()
+        new_reviewers = self.assign_reviewer()
 
         self.db.commit()
+
+        # create jira cards for new reviewers after db commit
+        if new_reviewers is not None:
+            batch_create_jira_reviewer_cards(new_reviewers)
 
         return {"id": self.test_execution.id}
 
@@ -153,7 +157,7 @@ class StartTestExecutionController:
 
         return newly_assigned_reviewers
 
-    def assign_reviewer(self):
+    def assign_reviewer(self) -> BatchReviewerAssignedMessage | None:
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
             return
 
@@ -190,21 +194,20 @@ class StartTestExecutionController:
                     )
 
                 if self.artefact.jira_issue is not None:
-                    batch_create_jira_reviewer_cards(
-                        BatchReviewerAssignedMessage(
-                            artefact=self.artefact,
-                            assigned_reviews=(
-                                [
-                                    (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
-                                    for reviewer in newly_assigned_reviewers
+                    return BatchReviewerAssignedMessage(
+                        artefact=self.artefact,
+                        assigned_reviews=(
+                            [
+                                (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
+                                for reviewer in newly_assigned_reviewers
                                 ]
-                                + [
-                                    (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
-                                    for reviewer in newly_assigned_environment_reviewers
+                            + [
+                                (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
+                                for reviewer in newly_assigned_environment_reviewers
                                 ]
                             ),
-                        )
                     )
+
 
     def create_test_plan(self):
         self.test_plan = get_or_create(
