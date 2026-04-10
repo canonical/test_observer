@@ -129,7 +129,6 @@ def test_mark_notification_as_read(
     response = test_client.post(f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"})
     assert response.status_code == 200
 
-    assert response.status_code == 200
     data = response.json()
     assert data["id"] == notification.id
     assert data["dismissed_at"] is not None
@@ -149,6 +148,46 @@ def test_mark_notification_as_read_wrong_user(
     response = test_client.post(f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"})
 
     assert response.status_code == 404
+
+
+def test_application_cant_view_notifications(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    """Test that an application cannot view user notifications"""
+
+    user = generator.gen_user(email="no@applications.com")
+    _ = generator.gen_notification(user=user)
+    application = generator.gen_application()
+    response = test_client.get(
+        f"/v1/users/{user.id}/notifications",
+        headers={
+            "X-CSRF-Token": "1",
+            "Authorization": f"Bearer {application.api_key}",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_application_cant_mark_notification_as_read(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    """Test that an application cannot mark a notification as read"""
+
+    user = generator.gen_user(email="no@applications.com")
+    notification = generator.gen_notification(user=user)
+    application = generator.gen_application()
+    response = test_client.post(
+        f"/v1/users/{user.id}/notifications/{notification.id}/dismiss",
+        headers={
+            "X-CSRF-Token": "1",
+            "Authorization": f"Bearer {application.api_key}",
+        },
+    )
+
+    assert response.status_code == 401
 
 
 def test_mark_nonexistent_notification_as_read(

@@ -96,6 +96,11 @@ def get_notifications(
     db: Session = Depends(get_db),
 ):
     """Get all notifications for the specified user"""
+
+    # Notifications only make sense in the context of a user
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
     target_user = _resolve_user_id(id, user, db)
 
     # Get total count
@@ -133,6 +138,10 @@ def mark_notification_as_read(
     db: Session = Depends(get_db),
 ):
     """Mark a notification as read"""
+    # Notifications only make sense in the context of a user
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
     target_user = _resolve_user_id(id, user, db)
 
     notification = db.scalar(

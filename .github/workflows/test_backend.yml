@@ -65,7 +65,22 @@ jobs:
         env:
           SEED_DATA_APP_KEY: ${{ steps.create-api-key.outputs.SEED_DATA_APP_KEY }}
         run: |
-          diff <(curl -H "Authorization: Bearer $SEED_DATA_APP_KEY" -s http://localhost:30000/openapi.json | jq) schemata/openapi.json
+          # The seed data script may still be running, which means the application with the API key may not exist yet.
+          # We poll several times with a delay to give the seed data script time to complete
+          MAX_ATTEMPTS=3
+          RETRY_WAIT_SECONDS=10
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            if diff <(curl -H "Authorization: Bearer $SEED_DATA_APP_KEY" -s http://localhost:30000/openapi.json | jq) schemata/openapi.json; then
+              break
+            fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              echo "Retrying in $RETRY_WAIT_SECONDS seconds..."
+              sleep $RETRY_WAIT_SECONDS
+            else
+              echo "Max attempts reached. Exiting."
+              exit 1
+            fi
+          done
       - name: Ensure all endpoints are secured
         run: ./scripts/check_endpoint_permissions.sh schemata/openapi.json
       - name: Run test observer api tests

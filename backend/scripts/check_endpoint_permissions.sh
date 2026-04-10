@@ -23,9 +23,10 @@ OPENAPI_JSON="$1"
 # /health/live and /health/ready should remain exceptions,
 # because they enforce their own checks that restrict access to internal-only.
 # They are used by Docker for health checks that would be cumbersome to authenticate.
-# /, /v1/version, /v1/users/me, /v1/applications/me, and the notification endpoints
-# are also exceptions, because they only check that a user/application is authenticated,
-# which is taken as sufficient permission for those endpoints
+# /, /v1/version, /v1/users/me, /v1/applications/me are exceptions,
+# because they only check that a user/application is authenticated,
+# which is taken as sufficient permission for those endpoints.
+# The notification-related endpoints are similar, except they require a user.
 EXCEPTIONS='[
   {"method": "get", "path": "/health/live"},
   {"method": "get", "path": "/health/ready"},
