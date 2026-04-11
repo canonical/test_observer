@@ -24,8 +24,12 @@ from tests.data_generator import DataGenerator
 
 
 def test_base_unauthenticated(test_client: TestClient):
-    response = test_client.get("/")
-    assert response.status_code == 401
+    try:
+        app.dependency_overrides[authentication_required] = lambda: True
+        response = test_client.get("/")
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(authentication_required, None)
 
 
 def test_base_authentication_disabled(test_client: TestClient):

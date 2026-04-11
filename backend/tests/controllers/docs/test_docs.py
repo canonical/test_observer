@@ -28,8 +28,12 @@ def test_openapi_authenticated(test_client: TestClient, generator: DataGenerator
 
 
 def test_openapi_unauthenticated(test_client: TestClient):
-    response = test_client.get("/openapi.json")
-    assert response.status_code == 401
+    try:
+        app.dependency_overrides[authentication_required] = lambda: True
+        response = test_client.get("/openapi.json")
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(authentication_required, None)
 
 
 def test_openapi_authentication_disabled(test_client: TestClient):
@@ -49,8 +53,12 @@ def test_docs_authenticated(test_client: TestClient, generator: DataGenerator):
 
 
 def test_docs_unauthenticated(test_client: TestClient):
-    response = test_client.get("/docs")
-    assert response.status_code == 401
+    try:
+        app.dependency_overrides[authentication_required] = lambda: True
+        response = test_client.get("/docs")
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(authentication_required, None)
 
 
 def test_docs_authentication_disabled(test_client: TestClient):
