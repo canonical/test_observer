@@ -39,7 +39,7 @@ def get_authenticated_user(
     authentication_required: bool = Depends(require_authentication),
 ):
     if authentication_required and user is None:
-        raise HTTPException(401, "Not Authenticated")
+        raise HTTPException(401, "Not authenticated")
     return user
 
 

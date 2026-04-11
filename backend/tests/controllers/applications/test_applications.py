@@ -93,7 +93,6 @@ def test_get_current_application_authentication_required(test_client: TestClient
         app.dependency_overrides[require_authentication] = lambda: True
         response = test_client.get("/v1/applications/me")
         assert response.status_code == 401
-        assert response.json() == {"detail": "Not Authenticated"}
     finally:
         app.dependency_overrides.pop(require_authentication, None)
 

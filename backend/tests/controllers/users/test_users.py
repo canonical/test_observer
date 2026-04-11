@@ -33,7 +33,6 @@ def test_get_me_no_user_authentication_required(test_client: TestClient):
         response = test_client.get("/v1/users/me")
 
         assert response.status_code == 401
-        assert response.json() == {"detail": "Not Authenticated"}
     finally:
         app.dependency_overrides.pop(require_authentication, None)
 

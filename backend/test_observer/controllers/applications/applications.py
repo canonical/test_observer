@@ -65,7 +65,7 @@ def get_authenticated_application(
     authentication_required: bool = Depends(require_authentication),
 ):
     if authentication_required and app is None:
-        raise HTTPException(401, "Not Authenticated")
+        raise HTTPException(401, "Not authenticated")
     return app
 
 
