@@ -15,7 +15,7 @@
 
 from fastapi.testclient import TestClient
 
-from test_observer.common.permissions import authentication_required
+from test_observer.common.permissions import require_authentication
 from test_observer.main import app
 from tests.data_generator import DataGenerator
 
@@ -29,21 +29,21 @@ def test_openapi_authenticated(test_client: TestClient, generator: DataGenerator
 
 def test_openapi_unauthenticated(test_client: TestClient):
     try:
-        app.dependency_overrides[authentication_required] = lambda: True
+        app.dependency_overrides[require_authentication] = lambda: True
         response = test_client.get("/openapi.json")
         assert response.status_code == 401
     finally:
-        app.dependency_overrides.pop(authentication_required, None)
+        app.dependency_overrides.pop(require_authentication, None)
 
 
 def test_openapi_authentication_disabled(test_client: TestClient):
     try:
-        app.dependency_overrides[authentication_required] = lambda: False
+        app.dependency_overrides[require_authentication] = lambda: False
         response = test_client.get("/openapi.json")
         assert response.status_code == 200
         assert "openapi" in response.json()
     finally:
-        app.dependency_overrides.pop(authentication_required, None)
+        app.dependency_overrides.pop(require_authentication, None)
 
 
 def test_docs_authenticated(test_client: TestClient, generator: DataGenerator):
@@ -54,17 +54,17 @@ def test_docs_authenticated(test_client: TestClient, generator: DataGenerator):
 
 def test_docs_unauthenticated(test_client: TestClient):
     try:
-        app.dependency_overrides[authentication_required] = lambda: True
+        app.dependency_overrides[require_authentication] = lambda: True
         response = test_client.get("/docs")
         assert response.status_code == 401
     finally:
-        app.dependency_overrides.pop(authentication_required, None)
+        app.dependency_overrides.pop(require_authentication, None)
 
 
 def test_docs_authentication_disabled(test_client: TestClient):
     try:
-        app.dependency_overrides[authentication_required] = lambda: False
+        app.dependency_overrides[require_authentication] = lambda: False
         response = test_client.get("/docs")
         assert response.status_code == 200
     finally:
-        app.dependency_overrides.pop(authentication_required, None)
+        app.dependency_overrides.pop(require_authentication, None)
