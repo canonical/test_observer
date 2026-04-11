@@ -20,7 +20,7 @@ from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import permission_checker
+from test_observer.common.permissions import permission_checker, require_authentication
 from test_observer.controllers.users.models import (
     UserPatch,
     UserResponse,
@@ -34,7 +34,12 @@ router = APIRouter(tags=["users"])
 
 
 @router.get("/me", response_model=UserResponse | None)
-def get_authenticated_user(user: User | None = Depends(get_current_user)):
+def get_authenticated_user(
+    user: User | None = Depends(get_current_user),
+    authentication_required: bool = Depends(require_authentication),
+):
+    if authentication_required and user is None:
+        raise HTTPException(401, "Not authenticated")
     return user
 
 

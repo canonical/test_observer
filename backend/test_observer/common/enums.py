@@ -16,6 +16,10 @@ from enum import StrEnum, auto
 
 
 class Permission(StrEnum):
+    # /sentry-debug, which is intended to be used for testing Sentry integration
+    # and does nothing but raise an exception
+    view_sentry_debug = auto()
+
     # Authentication
     view_user = auto()
     change_user = auto()
@@ -59,7 +63,3 @@ class Permission(StrEnum):
     # Environments
     view_environment_reported_issue = auto()
     change_environment_reported_issue = auto()
-
-    # Notifications
-    view_notification = auto()
-    change_notification = auto()

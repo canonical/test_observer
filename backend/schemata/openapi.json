@@ -4572,10 +4572,7 @@
               }
             }
           }
-        },
-        "x-permissions": [
-          "view_notification"
-        ]
+        }
       }
     },
     "/v1/users/{id}/notifications": {
@@ -4659,10 +4656,7 @@
               }
             }
           }
-        },
-        "x-permissions": [
-          "view_notification"
-        ]
+        }
       }
     },
     "/v1/users/{id}/notifications/{notification_id}/dismiss": {
@@ -4716,10 +4710,7 @@
               }
             }
           }
-        },
-        "x-permissions": [
-          "change_notification"
-        ]
+        }
       }
     },
     "/v1/artefact-matching-rules": {
@@ -5034,7 +5025,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_sentry_debug"
+        ]
       }
     }
   },
@@ -6960,6 +6954,7 @@
       "Permission": {
         "type": "string",
         "enum": [
+          "view_sentry_debug",
           "view_user",
           "change_user",
           "view_team",
@@ -6987,9 +6982,7 @@
           "view_test_case_reported_issue",
           "change_test_case_reported_issue",
           "view_environment_reported_issue",
-          "change_environment_reported_issue",
-          "view_notification",
-          "change_notification"
+          "change_environment_reported_issue"
         ],
         "title": "Permission"
       },

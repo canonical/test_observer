@@ -23,21 +23,25 @@ OPENAPI_JSON="$1"
 # /health/live and /health/ready should remain exceptions,
 # because they enforce their own checks that restrict access to internal-only.
 # They are used by Docker for health checks that would be cumbersome to authenticate.
+# /, /v1/version, /v1/users/me, /v1/applications/me are exceptions,
+# because they only check that a user/application is authenticated,
+# which is taken as sufficient permission for those endpoints.
+# The notification-related endpoints are similar, except they require a user.
 EXCEPTIONS='[
-  {"method": "get", "path": "/v1/version"},
-  {"method": "get", "path": "/"},
-  {"method": "get", "path": "/sentry-debug"},
-  {"method": "get", "path": "/openapi.json"},
-  {"method": "get", "path": "/docs"},
+  {"method": "get", "path": "/health/live"},
+  {"method": "get", "path": "/health/ready"},
   {"method": "get", "path": "/v1/auth/saml/login"},
   {"method": "get", "path": "/v1/auth/saml/logout"},
   {"method": "post", "path": "/v1/auth/saml/acs"},
   {"method": "get", "path": "/v1/auth/saml/sls"},
   {"method": "post", "path": "/v1/auth/saml/sls"},
-  {"method": "get", "path": "/v1/users/me"},
+  {"method": "get", "path": "/"},
+  {"method": "get", "path": "/v1/version"},
   {"method": "get", "path": "/v1/applications/me"},
-  {"method": "get", "path": "/health/live"},
-  {"method": "get", "path": "/health/ready"}
+  {"method": "get", "path": "/v1/users/me"},
+  {"method": "get", "path": "/v1/users/{id}/notifications"},
+  {"method": "get", "path": "/v1/users/{id}/notifications/count"},
+  {"method": "post", "path": "/v1/users/{id}/notifications/{notification_id}/dismiss"}
 ]'
 
 missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '[

@@ -13,11 +13,15 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.common.permissions import require_authentication
 from test_observer.data_access.models import Application
+from test_observer.main import app
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -84,13 +88,28 @@ def test_get_application(test_client: TestClient, generator: DataGenerator):
     }
 
 
-def test_get_current_application(test_client: TestClient, generator: DataGenerator):
-    application = generator.gen_application()
+def test_get_current_application_authentication_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[require_authentication] = lambda: True
+        response = test_client.get("/v1/applications/me")
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(require_authentication, None)
 
-    response = test_client.get(
-        "/v1/applications/me",
-        headers={"Authorization": f"Bearer {application.api_key}"},
-    )
+
+def test_get_current_application_authentication_not_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[require_authentication] = lambda: False
+        response = test_client.get("/v1/applications/me")
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(require_authentication, None)
+
+
+def test_get_current_application(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application(permissions=[])
+    response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {application.api_key}"})
 
     assert response.status_code == 200
     assert response.json() == {
@@ -141,3 +160,34 @@ def test_clear_application_permissions(test_client: TestClient, generator: DataG
 
     assert response.status_code == 200
     assert response.json()["permissions"] == []
+
+
+def test_create_invalid_permissions_api(test_client: TestClient):
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/applications",
+            json={"name": "myscript", "permissions": ["invalid_permission"]},
+        ),
+        Permission.add_application,
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_invalid_permissions_api(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/applications/{application.id}",
+            json={"permissions": ["invalid_permission"]},
+        ),
+        Permission.change_application,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_invalid_permissions_orm(generator: DataGenerator):
+    with pytest.raises(ProgrammingError):
+        generator.gen_application(permissions=["invalid_permission"])

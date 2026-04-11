@@ -16,12 +16,11 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from test_observer.common.enums import Permission
-from test_observer.common.permissions import permission_checker
+from test_observer.common.permissions import authentication_checker
 from test_observer.controllers.notifications.models import (
     NotificationResponse,
     NotificationsResponse,
@@ -62,12 +61,12 @@ def _resolve_user_id(
 @router.get(
     "/{id}/notifications",
     response_model=NotificationsResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
+    dependencies=[Depends(authentication_checker)],
 )
 @router.get(
     "/{id}/notifications/count",
     response_model=int,
-    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
+    dependencies=[Depends(authentication_checker)],
 )
 def get_notifications(
     request: Request,
@@ -97,6 +96,11 @@ def get_notifications(
     db: Session = Depends(get_db),
 ):
     """Get all notifications for the specified user"""
+
+    # Notifications only make sense in the context of a user
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
     target_user = _resolve_user_id(id, user, db)
 
     # Get total count
@@ -125,7 +129,7 @@ def get_notifications(
 @router.post(
     "/{id}/notifications/{notification_id}/dismiss",
     response_model=NotificationResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_notification])],
+    dependencies=[Depends(authentication_checker)],
 )
 def mark_notification_as_read(
     id: Annotated[str, Path(description="User ID or 'me' for current user")],
@@ -134,6 +138,10 @@ def mark_notification_as_read(
     db: Session = Depends(get_db),
 ):
     """Mark a notification as read"""
+    # Notifications only make sense in the context of a user
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
     target_user = _resolve_user_id(id, user, db)
 
     notification = db.scalar(

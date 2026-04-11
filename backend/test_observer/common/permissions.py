@@ -17,14 +17,54 @@ from fastapi import Depends, HTTPException
 from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.config import IGNORE_PERMISSIONS
+from test_observer.common.config import IGNORE_PERMISSIONS, REQUIRE_AUTHENTICATION
 from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, Artefact, ArtefactMatchingRule, User
 from test_observer.data_access.queries import match_artefact
-from test_observer.users.user_injection import get_current_user
+from test_observer.users.user_injection import get_current_user, get_current_user_browser_safe
+
+
+def require_authentication() -> bool:
+    """
+    Simply returns the REQUIRE_AUTHENTICATION config value.
+    By making this a function, it can be used as a dependency,
+    which in turn makes it easier to override in tests if needed.
+    This can be used as a dependency for routes that require authentication
+    """
+    return REQUIRE_AUTHENTICATION
+
+
+def authentication_checker(
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(require_authentication),
+) -> None:
+    """
+    A simple dependency to check if the request is authenticated with either a user or an application.
+    This is used for endpoints that don't require specific permissions, but still require authentication.
+    """
+    if authentication_required and not user and not app:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return None
+
+
+def authentication_checker_browser_safe(
+    user: User | None = Depends(get_current_user_browser_safe),
+    app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(require_authentication),
+) -> None:
+    """
+    A browser-safe version of the authentication checker that allows GET requests without the CSRF token.
+    When accessing the docs URL directly from the browser, nothing sets the CSRF token,
+    so this uses a different dependency that only allows GET requests without the token,
+    while still requiring that there be an authenticated user or application.
+    """
+    if authentication_required and not user and not app:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return None
 
 
 def permission_checker(
