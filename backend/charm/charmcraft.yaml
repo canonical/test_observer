@@ -98,6 +98,10 @@ config:
       description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
       type: boolean
       default: false
+    require_authentication:
+      description: Whether to require authentication for all API requests
+      type: boolean
+      default: false
 
 resources:
   api-image:
