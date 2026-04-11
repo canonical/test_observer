@@ -31,7 +31,7 @@ services:
       saml-idp:
         condition: service_healthy
     environment:
-      AUTHENTICATION_REQUIRED: "${AUTHENTICATION_REQUIRED:-false}"
+      REQUIRE_AUTHENTICATION: "${REQUIRE_AUTHENTICATION:-false}"
       DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@localhost:5432/test_observer_db"
       SEED_DATA: "true"
       DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}" # Can be overridden for GitHub CI
