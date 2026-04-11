@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import permission_checker
+from test_observer.common.permissions import authentication_required, permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -59,11 +59,12 @@ def get_applications(
     return db.scalars(select(Application))
 
 
-@router.get("/me", response_model=ApplicationResponse)
+@router.get("/me", response_model=ApplicationResponse | None)
 def get_authenticated_application(
     app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(authentication_required),
 ):
-    if app is None:
+    if authentication_required and app is None:
         raise HTTPException(401, "Not Authenticated")
     return app
 

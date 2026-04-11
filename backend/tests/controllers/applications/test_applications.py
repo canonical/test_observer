@@ -19,7 +19,9 @@ from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.common.permissions import authentication_required
 from test_observer.data_access.models import Application
+from test_observer.main import app
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -86,10 +88,24 @@ def test_get_application(test_client: TestClient, generator: DataGenerator):
     }
 
 
-def test_get_current_application_unauthenticated(test_client: TestClient):
-    response = test_client.get("/v1/applications/me")
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Not Authenticated"}
+def test_get_current_application_authentication_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[authentication_required] = lambda: True
+        response = test_client.get("/v1/applications/me")
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Not Authenticated"}
+    finally:
+        app.dependency_overrides.pop(authentication_required, None)
+
+
+def test_get_current_application_authentication_not_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[authentication_required] = lambda: False
+        response = test_client.get("/v1/applications/me")
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(authentication_required, None)
 
 
 def test_get_current_application(test_client: TestClient, generator: DataGenerator):

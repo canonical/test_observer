@@ -3799,7 +3799,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/UserResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Authenticated User V1 Users Me Get"
                 }
               }
             }
@@ -4368,7 +4376,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ApplicationResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Authenticated Application V1 Applications Me Get"
                 }
               }
             }
