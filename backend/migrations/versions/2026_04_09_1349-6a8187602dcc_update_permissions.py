@@ -68,7 +68,7 @@ OLD_PERMISSIONS = {
 }
 
 # Removing explicit notification permissions
-# if a user/app is authenticated, it can view and clear (change) notifications
+# if a user is authenticated, they can view and clear (change) notifications
 NEW_PERMISSIONS = OLD_PERMISSIONS.union({"view_sentry_debug"}).difference({"view_notification", "change_notification"})
 
 
@@ -96,7 +96,10 @@ def upgrade() -> None:
         ("artefact_matching_rule", "grant_permissions"),
         ("team", "permissions"),
     ]
+
     # Update existing table columns to use the new enum type
+    # However, we have to remove any values that are not in the new enum
+    to_remove = ", ".join(f"'{p}'" for p in sorted(OLD_PERMISSIONS - NEW_PERMISSIONS))
     for table_name, column_name in columns_to_update:
         # Check if a default currently exists
         # This query returns the default expression string if it exists, or None
@@ -119,6 +122,21 @@ def upgrade() -> None:
             # We have to drop the default before altering the column type,
             # otherwise PostgreSQL will complain about being unable to cast the default value to the new enum type.
             op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP DEFAULT")
+
+        # Remove any values that are not in the new enum
+        op.execute(
+            f"""
+            UPDATE {table_name} SET {column_name} = COALESCE(
+                ARRAY(
+                    SELECT val
+                    FROM unnest({column_name}) AS val
+                    WHERE val::text NOT IN ({to_remove})
+                ),
+                '{{}}'
+            )
+            WHERE {column_name}::text[] && ARRAY[{to_remove}]::text[]
+            """
+        )
 
         op.execute(
             f"""
@@ -161,8 +179,8 @@ def downgrade() -> None:
         ("team", "permissions"),
     ]
 
-    # Update existing table columns to use the new enum type
-    # However, on downgrading, we have to remove any values that are not in the old enum
+    # Update existing table columns to use the old enum type
+    # However, we have to remove any values that are not in the old enum
     to_remove = ", ".join(f"'{p}'" for p in sorted(NEW_PERMISSIONS - OLD_PERMISSIONS))
     for table_name, column_name in columns_to_update:
         has_default = (
@@ -181,11 +199,11 @@ def downgrade() -> None:
         )
 
         if has_default:
+            # We have to drop the default before altering the column type,
+            # otherwise PostgreSQL will complain about being unable to cast the default value to the old enum type.
             op.execute(f"ALTER TABLE {table_name} ALTER COLUMN {column_name} DROP DEFAULT")
 
-        # We want to remove any values that are not in the old enum
-        # That is, if a row has permissions = ["view_user", "change_user", "view_basic", "view_docs"],
-        # we want that row to have its permissions set to ["view_user", "change_user"]
+        # Remove any values that are not in the old enum
         op.execute(
             f"""
             UPDATE {table_name} SET {column_name} = COALESCE(

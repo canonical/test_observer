@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from test_observer.common.permissions import authentication_checker, authentication_checker_browser_safe
+from test_observer.common.permissions import authentication_checker_browser_safe
 
 router: APIRouter = APIRouter()
 
@@ -25,7 +25,7 @@ router: APIRouter = APIRouter()
 @router.get(
     "/openapi.json",
     include_in_schema=False,
-    dependencies=[Depends(authentication_checker)],
+    dependencies=[Depends(authentication_checker_browser_safe)],
 )
 async def custom_openapi(request: Request):
     app = request.app

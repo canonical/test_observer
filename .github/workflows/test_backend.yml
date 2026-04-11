@@ -50,37 +50,10 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt install docker.io docker-compose-v2 -y
-      - name: Create API Key
-        id: create-api-key
-        run: |
-          echo "SEED_DATA_APP_KEY=to_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')" >> $GITHUB_OUTPUT
       - name: Start test observer api
-        # This is to ensure the container has the environment variable,
-        # so that the seed data script creates an application with a known key
-        env:
-          SEED_DATA_APP_KEY: ${{ steps.create-api-key.outputs.SEED_DATA_APP_KEY }}
         run: docker compose up --wait -d test-observer-api
       - name: Compare schema with repository
-        # This is so the runner can access the API using the known key
-        env:
-          SEED_DATA_APP_KEY: ${{ steps.create-api-key.outputs.SEED_DATA_APP_KEY }}
-        run: |
-          # The seed data script may still be running, which means the application with the API key may not exist yet.
-          # We poll several times with a delay to give the seed data script time to complete
-          MAX_ATTEMPTS=3
-          RETRY_WAIT_SECONDS=10
-          for attempt in $(seq 1 $MAX_ATTEMPTS); do
-            if diff <(curl -H "Authorization: Bearer $SEED_DATA_APP_KEY" -s http://localhost:30000/openapi.json | jq) schemata/openapi.json; then
-              break
-            fi
-            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
-              echo "Retrying in $RETRY_WAIT_SECONDS seconds..."
-              sleep $RETRY_WAIT_SECONDS
-            else
-              echo "Max attempts reached. Exiting."
-              exit 1
-            fi
-          done
+        run: diff <(curl -s http://localhost:30000/openapi.json | jq) schemata/openapi.json
       - name: Ensure all endpoints are secured
         run: ./scripts/check_endpoint_permissions.sh schemata/openapi.json
       - name: Run test observer api tests

@@ -31,9 +31,9 @@ services:
       saml-idp:
         condition: service_healthy
     environment:
+      AUTHENTICATION_REQUIRED: "${AUTHENTICATION_REQUIRED:-false}"
       DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@localhost:5432/test_observer_db"
       SEED_DATA: "true"
-      SEED_DATA_APP_KEY: "${SEED_DATA_APP_KEY:-}"  # Known API key for application in seed data
       DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}" # Can be overridden for GitHub CI
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
