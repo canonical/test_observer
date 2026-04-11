@@ -23,7 +23,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/.."
 
 tmpfile=$(mktemp)
-if curl --silent --fail -o "$tmpfile"; then
+if curl --silent --fail "http://localhost:30000/openapi.json" -o "$tmpfile"; then
     jq < "$tmpfile" > schemata/openapi.json
     echo "OpenAPI schema fetched and written to schemata/openapi.json"
 else
