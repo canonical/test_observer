@@ -52,11 +52,11 @@ jobs:
           sudo apt install docker.io docker-compose-v2 -y
       - name: Start test observer api
         run: docker compose up --wait -d test-observer-api
-      - name: Compare schema with repository
-        run: diff <(curl -s http://localhost:30000/openapi.json | jq) schemata/openapi.json
-      - name: Ensure all endpoints are secured
-        run: ./scripts/check_endpoint_permissions.sh schemata/openapi.json
       - name: Run test observer api tests
         run: docker compose exec test-observer-api pytest
       - name: Check if alembic migrations are up to date
         run: docker compose exec test-observer-api alembic check
+      - name: Compare schema with repository
+        run: diff <(curl -s http://localhost:30000/openapi.json | jq) schemata/openapi.json
+      - name: Ensure all endpoints are secured
+        run: ./scripts/check_endpoint_permissions.sh schemata/openapi.json

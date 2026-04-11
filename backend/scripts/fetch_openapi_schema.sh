@@ -23,9 +23,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/.."
 
 tmpfile=$(mktemp)
-# Be sure to check the local database for the seed_app_data API key to use with this request,
-# and export that as the SEED_DATA_APP_KEY environment variable
-if curl --silent --fail -H "Authorization: Bearer $SEED_DATA_APP_KEY" "http://localhost:30000/openapi.json" -o "$tmpfile"; then
+if curl --silent --fail -o "$tmpfile"; then
     jq < "$tmpfile" > schemata/openapi.json
     echo "OpenAPI schema fetched and written to schemata/openapi.json"
 else

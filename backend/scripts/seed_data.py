@@ -17,7 +17,6 @@
 
 # ruff: noqa
 
-import os
 from datetime import date, timedelta
 from textwrap import dedent
 
@@ -805,17 +804,7 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     inspector = inspect(session.get_bind())
     permissions = next(e["labels"] for e in inspector.get_enums() if e["name"] == "permission")  # type: ignore
     if not application:
-        # This is to allow CI to generate and provide an API key,
-        # which will allow for easy authentication in CI tests,
-        # such as comparing the live OpenAPI spec with the committed version.
-        if api_key := os.getenv("SEED_DATA_APP_KEY", ""):
-            application = Application(
-                name="seed_data_app",
-                permissions=permissions,
-                api_key=api_key,
-            )
-        else:
-            application = Application(name="seed_data_app", permissions=permissions)
+        application = Application(name="seed_data_app", permissions=permissions)
         session.add(application)
         session.commit()
         session.refresh(application)
