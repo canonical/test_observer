@@ -48,7 +48,6 @@ def authentication_checker(
     """
     if authentication_required and not user and not app:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return None
 
 
 def permission_checker(
