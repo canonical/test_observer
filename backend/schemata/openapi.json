@@ -339,7 +339,6 @@
           }
         },
         "x-permissions": [
-          "change_rerun",
           "change_rerun_bulk"
         ]
       },
@@ -498,7 +497,6 @@
           }
         },
         "x-permissions": [
-          "change_rerun",
           "change_rerun_bulk"
         ]
       }
