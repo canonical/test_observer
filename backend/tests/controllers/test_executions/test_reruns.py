@@ -1377,8 +1377,8 @@ class TestRerunAMRPermissions:
     ):
         """User authorized for some artefacts should fail entire operation"""
 
-        # Create team and AMR for snap family only (include bulk for multi-ID requirement)
-        team = generator.gen_team(name="snap-team")
+        # Create team with bulk permission globally, but AMR only for snap
+        team = generator.gen_team(name="snap-team", permissions=[Permission.change_rerun_bulk])
         generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
@@ -1482,8 +1482,9 @@ class TestRerunAMRPermissions:
     def test_create_rerun_bulk_filter_without_amr_permission(self, test_client: TestClient, generator: DataGenerator):
         """User without permission for filtered artefacts should be denied"""
 
-        # Create team with AMR only for snap (include bulk for filter requirement)
-        team = generator.gen_team(name="snap-team")
+        # Create team with bulk permission globally, but AMR only for snap
+        # This allows the bulk permission check to pass, validating that 403 is due to AMR mismatch
+        team = generator.gen_team(name="snap-team", permissions=[Permission.change_rerun_bulk])
         generator.gen_artefact_matching_rule(
             family=FamilyName.snap,
             stage="stable",
