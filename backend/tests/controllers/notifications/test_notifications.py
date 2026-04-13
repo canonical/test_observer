@@ -77,6 +77,21 @@ def test_get_notifications(
     assert data["offset"] == 0
 
 
+def test_get_notifications_wrong_user(
+    test_client: TestClient,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+):
+    """Test that a user cannot get another user's notifications"""
+    user = generator.gen_user(email="user@test.com")
+    wrong_user = generator.gen_user(email="wrong-user@test.com")
+    generator.gen_notification(user=user)
+
+    _authenticate_user(test_client, wrong_user, generator, create_session_cookie)
+    response = test_client.get(f"/v1/users/{user.id}/notifications", headers={"X-CSRF-Token": "1"})
+    assert response.status_code == 401
+
+
 def test_get_count_without_auth(test_client: TestClient):
     """Test that accessing unread count without auth returns 401"""
     response = test_client.get("/v1/users/me/notifications/count")
@@ -103,6 +118,23 @@ def test_get_unread_count(
 
     assert response.status_code == 200
     assert response.json() == 2
+
+
+def test_get_unread_count_wrong_user(
+    test_client: TestClient,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+):
+    """Test that a user cannot get another user's unread count"""
+    user = generator.gen_user(email="user@test.com")
+    wrong_user = generator.gen_user(email="wrong-user@test.com")
+    generator.gen_notification(user=user)
+    generator.gen_notification(user=user)
+    generator.gen_notification(user=user, dismissed_at=datetime.now())
+
+    _authenticate_user(test_client, wrong_user, generator, create_session_cookie)
+    response = test_client.get(f"/v1/users/{user.id}/notifications/count?unread_only=true", headers={"X-CSRF-Token": "1"})
+    assert response.status_code == 401
 
 
 def test_mark_notification_as_read_without_auth(test_client: TestClient, generator: DataGenerator):
@@ -146,8 +178,9 @@ def test_mark_notification_as_read_wrong_user(
 
     _authenticate_user(test_client, other_user, generator, create_session_cookie)
     response = test_client.post(f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"})
-
     assert response.status_code == 404
+    response = test_client.post(f"/v1/users/{user.id}/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"})
+    assert response.status_code == 401
 
 
 def test_application_cant_view_notifications(
