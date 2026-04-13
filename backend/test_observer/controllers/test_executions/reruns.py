@@ -34,6 +34,7 @@ from test_observer.data_access.models import (
     Application,
     Artefact,
     ArtefactBuild,
+    ArtefactMatchingRule,
     Environment,
     FamilyName,
     TestExecution,
@@ -41,6 +42,7 @@ from test_observer.data_access.models import (
     TestResult,
     User,
 )
+from test_observer.data_access.queries import batch_match_artefacts
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
@@ -182,11 +184,15 @@ def _validate_amr_permissions_for_request(
     if not conditions:
         return
 
+    # If no user, deny
+    if user is None:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    # If user is admin, allow
+    if user.is_admin:
+        return
+
     # Query for all unique artefacts affected by the request
-    # Note: We don't eagerly load Artefact relationships here because
-    # check_amr_permission() will do its own selectinload for AMR matching.
-    # The selectinload patterns in check_amr_permission() are sufficient
-    # to handle the relationships it needs.
     affected_artefacts_query = (
         select(Artefact)
         .distinct()
@@ -197,11 +203,57 @@ def _validate_amr_permissions_for_request(
 
     affected_artefacts = db.scalars(affected_artefacts_query).all()
 
-    # Check permission for each affected artefact
-    # TODO(raul): optimize (one query per artefact)
-    # Using all-or-nothing semantics: fail if ANY artefact is unauthorized
+    if not affected_artefacts:
+        return
+
+    # Batch match all artefacts to their AMRs in a single query
+    batch_match_result = db.execute(batch_match_artefacts(affected_artefacts)).all()
+    
+    # Build map: artefact_id → set of matching AMR IDs
+    artefact_to_amrs: dict[int, set[int]] = {}
+    matched_amr_ids = set()
+    for artefact_id, amr_id in batch_match_result:
+        artefact_to_amrs.setdefault(artefact_id, set()).add(amr_id)
+        matched_amr_ids.add(amr_id)
+
+    # Fetch all matching AMRs with teams in a single query
+    if matched_amr_ids:
+        matching_rules = (
+            db.query(ArtefactMatchingRule)
+            .filter(ArtefactMatchingRule.id.in_(matched_amr_ids))
+            .options(selectinload(ArtefactMatchingRule.teams))
+            .all()
+        )
+    else:
+        matching_rules = []
+
+    # Build map: AMR ID → rule with teams
+    amr_rules = {rule.id: rule for rule in matching_rules}
+
+    # Check permission for each affected artefact using all-or-nothing semantics
+    user_team_ids = {team.id for team in user.teams}
+    
     for artefact in affected_artefacts:
-        check_amr_permission(db, user, artefact, permission)
+        # Check if this artefact has any matching AMRs
+        matching_amr_ids = artefact_to_amrs.get(artefact.id, set())
+        
+        if not matching_amr_ids:
+            # No AMRs match this artefact
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        
+        # Check if user is in a team with a matching AMR that grants the permission
+        has_permission = False
+        for amr_id in matching_amr_ids:
+            rule = amr_rules.get(amr_id)
+            if rule and permission in rule.grant_permissions:
+                rule_team_ids = {team.id for team in rule.teams}
+                if user_team_ids & rule_team_ids:
+                    has_permission = True
+                    break
+        
+        if not has_permission:
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+
 
 
 @router.post(

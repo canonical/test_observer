@@ -186,8 +186,9 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
 # ==============================================================================
 
 
-def test_post_no_data_returns_422(post: Post):
-    assert post(None).status_code == 422
+def test_post_no_data_returns_422(test_client: TestClient):
+    response = test_client.post(reruns_url, json=None)
+    assert response.status_code == 422
 
 
 def test_post_invalid_id_returns_404_with_message(post: Post):
@@ -950,12 +951,9 @@ def test_delete_bulk_permission_not_required_for_single_id(
 
 def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: Get):
     """Test that posting with empty test_execution_ids list returns 404"""
-    response = make_authenticated_request(
-        lambda: test_client.post(
-            reruns_url,
-            json={"test_execution_ids": []},
-        ),
-        Permission.change_rerun,
+    response = test_client.post(
+        reruns_url,
+        json={"test_execution_ids": []},
     )
 
     # Empty list is treated as not finding any test executions
@@ -967,13 +965,10 @@ def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: G
 
 def test_post_silent_with_empty_ids_does_nothing(test_client: TestClient, get: Get):
     """Test that silent mode with empty IDs gracefully does nothing"""
-    response = make_authenticated_request(
-        lambda: test_client.post(
-            reruns_url,
-            params={"silent": True},
-            json={"test_execution_ids": []},
-        ),
-        Permission.change_rerun,
+    response = test_client.post(
+        reruns_url,
+        params={"silent": True},
+        json={"test_execution_ids": []},
     )
 
     assert response.status_code == 200
@@ -1098,13 +1093,10 @@ def test_delete_with_empty_ids_does_nothing(test_client: TestClient, post: Post,
     assert len(get().json()) == 1
 
     # Delete with empty list should do nothing
-    response = make_authenticated_request(
-        lambda: test_client.request(
-            "DELETE",
-            reruns_url,
-            json={"test_execution_ids": []},
-        ),
-        Permission.change_rerun,
+    response = test_client.request(
+        "DELETE",
+        reruns_url,
+        json={"test_execution_ids": []},
     )
 
     assert response.status_code == 200
