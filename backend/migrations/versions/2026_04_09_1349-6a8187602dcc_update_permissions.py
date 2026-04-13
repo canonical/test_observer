@@ -67,9 +67,7 @@ OLD_PERMISSIONS = {
     "change_notification",
 }
 
-# Removing explicit notification permissions
-# if a user is authenticated, they can view and clear (change) notifications
-NEW_PERMISSIONS = OLD_PERMISSIONS.union({"view_sentry_debug"}).difference({"view_notification", "change_notification"})
+NEW_PERMISSIONS = OLD_PERMISSIONS.union({"view_sentry_debug"})
 
 
 def upgrade() -> None:
@@ -99,6 +97,9 @@ def upgrade() -> None:
 
     # Update existing table columns to use the new enum type
     # However, we have to remove any values that are not in the new enum
+    # For this migration, this should be a no-op.
+    # However, I will leave it here as a reference for any future readers
+    # who need to create a similar migration
     to_remove = ", ".join(f"'{p}'" for p in sorted(OLD_PERMISSIONS - NEW_PERMISSIONS))
     for table_name, column_name in columns_to_update:
         # Check if a default currently exists

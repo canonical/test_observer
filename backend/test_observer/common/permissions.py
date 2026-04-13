@@ -67,6 +67,29 @@ def authentication_checker_browser_safe(
     return None
 
 
+def is_permissioned(user: User | None, app: Application | None, required_permissions: set[str]) -> bool:
+    """
+    Check if the user or application has all of the required permissions.
+
+    Args:
+        user: The current user (can be None)
+        app: The current application (can be None)
+        required_permissions: A set of permission strings that are required
+    """
+    if user and user.is_admin:
+        return True
+
+    client_permissions: set[str] = set()
+    if user:
+        client_permissions = {p for t in user.teams for p in t.permissions}
+    if app:
+        client_permissions = client_permissions.union(app.permissions)
+
+    if required_permissions <= client_permissions:
+        return True
+    return False
+
+
 def permission_checker(
     security_scopes: SecurityScopes,
     user: User | None = Depends(get_current_user),
@@ -76,14 +99,7 @@ def permission_checker(
         return
 
     required_permissions: set[str] = set(security_scopes.scopes) - IGNORE_PERMISSIONS
-
-    client_permissions: set[str] = set()
-    if user:
-        client_permissions = {p for t in user.teams for p in t.permissions}
-    if app:
-        client_permissions = client_permissions.union(app.permissions)
-
-    if not required_permissions <= client_permissions:
+    if not is_permissioned(user, app, required_permissions):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
