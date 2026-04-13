@@ -1141,9 +1141,6 @@ def test_post_non_silent_with_single_id_and_filters_fails(test_client: TestClien
     assert "must be done silently" in response.json()["detail"]
 
 
-reruns_url = "/v1/test-executions/reruns"
-
-
 class TestRerunAMRPermissions:
     """Test AMR-based permission checking for rerun operations"""
 
