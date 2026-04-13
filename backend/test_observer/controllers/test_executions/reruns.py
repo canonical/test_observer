@@ -23,7 +23,11 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import check_amr_permission, permission_checker
+from test_observer.common.permissions import (
+    check_amr_permission,
+    permission_checker,
+)
+from test_observer.common.config import IGNORE_PERMISSIONS
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -154,14 +158,15 @@ def _validate_amr_permissions_for_request(
     permission: Permission,
 ) -> None:
     """
-    Validate AMR permissions for rerun requests.
+    Validate AMR permissions for rerun requests with optimized batch querying.
 
     Handles two cases:
     1. Direct IDs: When request.test_execution_ids is provided
     2. Filters: When request.test_results_filters is provided
 
     Uses all-or-nothing semantics: raise HTTPException(403) if ANY artefact is unauthorized.
-    Bypasses AMR checking if app has the permission or user is admin.
+    Honors IGNORE_PERMISSIONS, app.permissions, and admin bypass through early exits.
+    Uses batch querying to reduce database load from O(n) to O(1) for AMR matching.
 
     Args:
         db: Database session
@@ -173,7 +178,11 @@ def _validate_amr_permissions_for_request(
     Raises:
         HTTPException(403): If any affected artefact is unauthorized
     """
-    # If app has permission, skip AMR checking
+    # Early exit: if permission is in IGNORE_PERMISSIONS, skip all checks
+    if permission.value in IGNORE_PERMISSIONS:
+        return
+
+    # Early exit: if app has the permission, skip AMR checking
     if app and permission in app.permissions:
         return
 
@@ -182,14 +191,6 @@ def _validate_amr_permissions_for_request(
 
     # If no conditions, nothing to check
     if not conditions:
-        return
-
-    # If no user, deny
-    if user is None:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-    # If user is admin, allow
-    if user.is_admin:
         return
 
     # Query for all unique artefacts affected by the request
@@ -203,12 +204,22 @@ def _validate_amr_permissions_for_request(
 
     affected_artefacts = db.scalars(affected_artefacts_query).all()
 
+    # If no affected artefacts, no permissions to check (e.g., invalid test_execution_ids)
     if not affected_artefacts:
+        return
+
+    # Now check user authorization (only if we have artefacts to check)
+    # Early exit: if no user, deny (unless app permission or IGNORE_PERMISSIONS already passed)
+    if user is None:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    # Early exit: if user is admin, allow
+    if user.is_admin:
         return
 
     # Batch match all artefacts to their AMRs in a single query
     batch_match_result = db.execute(batch_match_artefacts(affected_artefacts)).all()
-    
+
     # Build map: artefact_id → set of matching AMR IDs
     artefact_to_amrs: dict[int, set[int]] = {}
     matched_amr_ids = set()
@@ -232,15 +243,15 @@ def _validate_amr_permissions_for_request(
 
     # Check permission for each affected artefact using all-or-nothing semantics
     user_team_ids = {team.id for team in user.teams}
-    
+
     for artefact in affected_artefacts:
         # Check if this artefact has any matching AMRs
         matching_amr_ids = artefact_to_amrs.get(artefact.id, set())
-        
+
         if not matching_amr_ids:
             # No AMRs match this artefact
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Check if user is in a team with a matching AMR that grants the permission
         has_permission = False
         for amr_id in matching_amr_ids:
@@ -250,9 +261,10 @@ def _validate_amr_permissions_for_request(
                 if user_team_ids & rule_team_ids:
                     has_permission = True
                     break
-        
+
         if not has_permission:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
+
 
 
 
