@@ -31,3 +31,4 @@ IGNORE_PERMISSIONS = {
     permission.strip() for permission in os.getenv("IGNORE_PERMISSIONS", "").lower().split(",") if permission.strip()
 }
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9090"))
+PROMETHEUS_MULTIPROC_DIR = os.getenv("PROMETHEUS_MULTIPROC_DIR", "/tmp/prometheus_multiproc")

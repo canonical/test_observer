@@ -14,17 +14,22 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
+import threading
 from contextlib import asynccontextmanager
+from pathlib import Path
+from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_client import start_http_server
+from prometheus_client import CollectorRegistry, make_wsgi_app
+from prometheus_client.multiprocess import MultiProcessCollector
 from starlette.middleware.sessions import SessionMiddleware
 
 from test_observer.common.config import (
     FRONTEND_URL,
     METRICS_PORT,
+    PROMETHEUS_MULTIPROC_DIR,
     SENTRY_DSN,
     SESSIONS_HTTPS_ONLY,
     SESSIONS_SECRET,
@@ -50,13 +55,25 @@ async def lifespan(_app: FastAPI):
     On startup, starts the metrics server and initializes Prometheus metrics
     from the database.
     """
-    # Startup: Start metrics HTTP server on separate port
+    # Startup: Start metrics HTTP server on separate port.
+    # In multiprocess mode only one worker binds the port; others get OSError, which is expected.
+    Path(PROMETHEUS_MULTIPROC_DIR).mkdir(parents=True, exist_ok=True)
     try:
-        start_http_server(METRICS_PORT)
+        registry = CollectorRegistry()
+        MultiProcessCollector(registry)
+
+        class _SilentHandler(WSGIRequestHandler):
+            def log_message(self, *args: object) -> None:  # suppress per-request logs
+                pass
+
+        httpd = make_server("", METRICS_PORT, make_wsgi_app(registry), handler_class=_SilentHandler)
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
         logger.info(f"Metrics server started on port {METRICS_PORT}")
-    except Exception as e:
-        logger.exception(f"Failed to start metrics server: {e}")
-        # Continue startup even if metrics server fails
+    except OSError:
+        logger.info(f"Metrics port {METRICS_PORT} already bound by another worker — skipping")
+    except Exception:
+        logger.exception("Failed to start metrics server")
 
     # Initialize metrics from database
     db = SessionLocal()
@@ -69,9 +86,6 @@ async def lifespan(_app: FastAPI):
         db.close()
 
     yield  # Application runs
-
-    # Shutdown: cleanup if needed
-    pass
 
 
 app = FastAPI(

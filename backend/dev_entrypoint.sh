@@ -25,6 +25,8 @@ uv run alembic upgrade head
 
 # Start the application
 echo "Starting FastAPI application..."
+export PROMETHEUS_MULTIPROC_DIR="${PROMETHEUS_MULTIPROC_DIR:-/tmp/prometheus_multiproc}"
+mkdir -p "$PROMETHEUS_MULTIPROC_DIR"
 uv run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 --reload &
 
 # Get the PID of the uvicorn process

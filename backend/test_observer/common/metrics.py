@@ -70,6 +70,7 @@ test_results = Gauge(
         "test_name",
         "status",
     ],
+    multiprocess_mode="livesum",
 )
 
 # Triaged results with issue tracking
@@ -91,6 +92,7 @@ test_results_triaged = Gauge(
         "issue_project",
         "issue_key",
     ],
+    multiprocess_mode="livesum",
 )
 
 # Generic execution metadata metric
@@ -111,4 +113,5 @@ test_results_metadata = Gauge(
         "metadata_category",
         "metadata_value",
     ],
+    multiprocess_mode="livesum",
 )
