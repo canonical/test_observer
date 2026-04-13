@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from sqlalchemy import Integer, Select, and_, case, func, literal, or_, select, union_all
+from sqlalchemy import Integer, Select, and_, case, false, func, literal, or_, select, union_all
 
 from test_observer.data_access.models import Artefact, ArtefactBuild, ArtefactMatchingRule
 
@@ -87,21 +87,22 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
 
 def batch_match_artefacts(artefacts: list[Artefact]) -> Select[tuple[int, int]]:
     """Match multiple artefacts to their AMRs in a single query.
-    
+
     Returns a query that produces (artefact_id, amr_id) tuples for all matching pairs.
     This replaces calling match_artefact() N times with a single batched query.
-    
+
     Args:
         artefacts: List of Artefact objects to match
-        
+
     Returns:
         SQLAlchemy Select query returning (artefact_id, amr_id) tuples
     """
     if not artefacts:
         # Return empty result if no artefacts provided
-        return select(literal(0, type_=Integer).label("artefact_id"), 
-                      literal(0, type_=Integer).label("amr_id")).where(False)
-    
+        return select(literal(0, type_=Integer).label("artefact_id"), literal(0, type_=Integer).label("amr_id")).where(
+            false()
+        )
+
     # Build a SELECT for each artefact and UNION them
     queries = []
     for artefact in artefacts:
@@ -118,7 +119,6 @@ def batch_match_artefacts(artefacts: list[Artefact]) -> Select[tuple[int, int]]:
             )
         )
         queries.append(query)
-    
+
     # UNION all queries into one
     return select(union_all(*queries).subquery())
-

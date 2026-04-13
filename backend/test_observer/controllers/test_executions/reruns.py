@@ -22,12 +22,11 @@ from sqlalchemy import asc, delete, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.config import IGNORE_PERMISSIONS
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
-    check_amr_permission,
     permission_checker,
 )
-from test_observer.common.config import IGNORE_PERMISSIONS
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -218,7 +217,7 @@ def _validate_amr_permissions_for_request(
         return
 
     # Batch match all artefacts to their AMRs in a single query
-    batch_match_result = db.execute(batch_match_artefacts(affected_artefacts)).all()
+    batch_match_result = db.execute(batch_match_artefacts(list(affected_artefacts))).all()
 
     # Build map: artefact_id → set of matching AMR IDs
     artefact_to_amrs: dict[int, set[int]] = {}
@@ -264,8 +263,6 @@ def _validate_amr_permissions_for_request(
 
         if not has_permission:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-
 
 
 @router.post(
