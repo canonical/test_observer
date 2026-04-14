@@ -19,22 +19,10 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import User
+from test_observer.data_access.models import Notification
 from test_observer.data_access.models_enums import NotificationType
-from tests.conftest import make_authenticated_request
+from tests.conftest import authenticate_user, make_authenticated_request
 from tests.data_generator import DataGenerator
-
-
-def _authenticate_user(
-    test_client: TestClient,
-    user: User,
-    generator: DataGenerator,
-    create_session_cookie: Callable[[int], str],
-) -> None:
-    """Helper to authenticate a user in test client"""
-    session = generator.gen_user_session(user)
-    session_cookie = create_session_cookie(session.id)
-    test_client.cookies.set("session", session_cookie)
 
 
 def test_get_notifications_without_auth(test_client: TestClient):
@@ -66,7 +54,7 @@ def test_get_notifications(
     other_user = generator.gen_user(email="other@test.com")
     generator.gen_notification(user=other_user)
 
-    _authenticate_user(test_client, user, generator, create_session_cookie)
+    authenticate_user(test_client, user, generator, create_session_cookie)
     response = make_authenticated_request(
         lambda: test_client.get("/v1/users/me/notifications", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
@@ -103,7 +91,7 @@ def test_get_unread_count(
     other_user = generator.gen_user(email="other-unread@test.com")
     generator.gen_notification(user=other_user)
 
-    _authenticate_user(test_client, user, generator, create_session_cookie)
+    authenticate_user(test_client, user, generator, create_session_cookie)
     response = make_authenticated_request(
         lambda: test_client.get("/v1/users/me/notifications/count?unread_only=true", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
@@ -133,7 +121,7 @@ def test_mark_notification_as_read(
 
     assert notification.dismissed_at is None
 
-    _authenticate_user(test_client, user, generator, create_session_cookie)
+    authenticate_user(test_client, user, generator, create_session_cookie)
     response = make_authenticated_request(
         lambda: test_client.post(
             f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}
@@ -157,7 +145,7 @@ def test_mark_notification_as_read_wrong_user(
     other_user = generator.gen_user(email="wrong-user-other@test.com")
     notification = generator.gen_notification(user=user)
 
-    _authenticate_user(test_client, other_user, generator, create_session_cookie)
+    authenticate_user(test_client, other_user, generator, create_session_cookie)
     response = make_authenticated_request(
         lambda: test_client.post(
             f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"}
@@ -176,7 +164,7 @@ def test_mark_nonexistent_notification_as_read(
     """Test marking a non-existent notification as read returns 404"""
     user = generator.gen_user(email="nonexistent@test.com")
 
-    _authenticate_user(test_client, user, generator, create_session_cookie)
+    authenticate_user(test_client, user, generator, create_session_cookie)
     response = make_authenticated_request(
         lambda: test_client.post("/v1/users/me/notifications/99999/dismiss", headers={"X-CSRF-Token": "1"}),
         Permission.change_notification,
@@ -194,7 +182,7 @@ def test_get_notifications_with_pagination(
     user = generator.gen_user(email="pagination@test.com")
 
     # Create 5 notifications with different artefact families
-    notifications = []
+    notifications: list[Notification] = []
     families = ["snaps", "images", "debs", "charms", "snaps"]
     for idx, family in enumerate(families):
         notification = generator.gen_notification(
@@ -204,7 +192,7 @@ def test_get_notifications_with_pagination(
         )
         notifications.append(notification)
 
-    _authenticate_user(test_client, user, generator, create_session_cookie)
+    authenticate_user(test_client, user, generator, create_session_cookie)
 
     # Test limit
     response = make_authenticated_request(

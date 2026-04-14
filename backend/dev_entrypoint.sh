@@ -38,7 +38,7 @@ if [ "${SEED_DATA:-false}" = "true" ]; then
     timeout=60
     count=0
     while [ $count -lt $timeout ]; do
-        if curl -f http://localhost:30000/v1/version > /dev/null 2>&1; then
+        if curl -f http://localhost:30000/health/ready > /dev/null 2>&1; then
             echo "API server is ready. Starting database seeding..."
             break
         fi
