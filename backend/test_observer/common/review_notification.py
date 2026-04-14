@@ -42,16 +42,6 @@ class BatchReviewerAssignedMessage:
     assigned_reviews: list[tuple[User, list[NotificationType]]]
 
 
-def _create_notification_for_reviewer(
-    user_id: int, notification_type: NotificationType, target_url: str
-) -> Notification:
-    return Notification(
-        user_id=user_id,
-        notification_type=notification_type,
-        target_url=target_url,
-    )
-
-
 def batch_create_review_notifications(
     db: Session,
     reviewers: list[User],
@@ -68,7 +58,7 @@ def batch_create_review_notifications(
     """
     notifications = []
     for reviewer in reviewers:
-        notification = _create_notification_for_reviewer(
+        notification = Notification(
             user_id=reviewer.id, notification_type=notification_type, target_url=get_artefact_url(artefact)
         )
         notifications.append(notification)

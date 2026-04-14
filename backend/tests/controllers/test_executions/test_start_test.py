@@ -23,9 +23,6 @@ from httpx import Response
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.common.review_notification import (
-    _create_notification_for_reviewer,
-)
 from test_observer.controllers.test_executions.start_test import StartTestExecutionController
 from test_observer.data_access.models import (
     Artefact,
@@ -1132,54 +1129,6 @@ class TestNotifyReviewerAssigned:
         monkeypatch.setenv("JIRA_CLOUD_ID", "test-cloud-id")
         monkeypatch.setenv("JIRA_EMAIL", "test@example.com")
         monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
-
-    def test_notify_reviewer_assigned_happy_path(self, generator: DataGenerator, db_session: Session):
-        """Test successful creation of notification"""
-        # Create artefact with a reviewer and jira issue
-        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
-        artefact = generator.gen_artefact(
-            name="test-snap",
-            version="1.0.0",
-            reviewers=[reviewer],
-        )
-        artefact.jira_issue = "TEST-123"
-        db_session.commit()
-
-        db_session.add(
-            _create_notification_for_reviewer(
-                reviewer.id, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW, "http://test-url"
-            )
-        )
-        db_session.flush()
-
-        # Verify notification was created
-        notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
-        assert notification is not None
-        assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
-
-    def test_notify_reviewer_assigned_no_jira_issue(self, generator: DataGenerator, db_session: Session):
-        """Test that notification is created even without Jira issue (graceful degradation)"""
-        # Create artefact with reviewer but NO jira issue
-        reviewer = generator.gen_user(name="Alice", email="alice@example.com")
-        generator.gen_artefact(
-            name="test-snap",
-            version="1.0.0",
-            reviewers=[reviewer],
-        )  # jira_issue is None by default
-        db_session.commit()
-
-        # Should NOT raise - notification should still be created
-        db_session.add(
-            _create_notification_for_reviewer(
-                reviewer.id, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW, "http://test-url"
-            )
-        )
-        db_session.flush()
-
-        # Verify notification was created
-        notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
-        assert notification is not None
-        assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
 
 
 class TestAssignReviewersToEnvironments:
