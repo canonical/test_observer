@@ -58,6 +58,10 @@ def get_user_session_browser_friendly(request: Request, db: Session = Depends(ge
     Other endpoints can be used in the browser _from_ the Swagger docs.
     """
 
+    # Enforce that this dependency is only used for the /docs endpoint
+    if request.url.path != "/docs":
+        return None
+
     if request.method != "GET" and "X-CSRF-Token" not in request.headers:
         return None
 
