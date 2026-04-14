@@ -191,9 +191,9 @@ def test_post_no_data_returns_422(test_client: TestClient):
     assert response.status_code == 422
 
 
-def test_post_invalid_id_returns_403(test_client: TestClient):
-    response = test_client.post(reruns_url, json={"test_execution_ids": [1]})
-    assert response.status_code == 403
+def test_post_invalid_id_returns_404(post: Post):
+    response = post({"test_execution_ids": [99999]})
+    assert response.status_code == 404
 
 
 def test_valid_post(post: Post, test_execution: TestExecution):
