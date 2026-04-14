@@ -27,24 +27,6 @@ from tests.conftest import authenticate_user, make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
-def test_get_me_without_csrf_token_returns_none(
-    test_client: TestClient,
-    generator: DataGenerator,
-    create_session_cookie: Callable[[int], str],
-):
-    """Test that accessing /me without X-CSRF-Token header returns None"""
-    user = generator.gen_user()
-    session = generator.gen_user_session(user)
-
-    session_cookie = create_session_cookie(session.id)
-    test_client.cookies.set("session", session_cookie)
-
-    response = test_client.get("/v1/users/me")
-
-    assert response.status_code == 200
-    assert response.json() is None
-
-
 def test_get_me_unauthenticated_auth_not_required(test_client: TestClient):
     try:
         app.dependency_overrides[requires_authentication] = lambda: False

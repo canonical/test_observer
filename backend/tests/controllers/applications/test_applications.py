@@ -109,8 +109,7 @@ def test_get_me_unauthenticated_auth_required(test_client: TestClient):
 
 def test_get_me_authenticated_app_auth_not_required(test_client: TestClient, generator: DataGenerator):
     """
-    Test that an authenticated application still gets nothing from /me since it is user-specific,
-    even if authentication is not required
+    Test that an authenticated application gets its application data from /me when authentication is not required
     """
     try:
         app.dependency_overrides[requires_authentication] = lambda: False
@@ -132,7 +131,7 @@ def test_get_me_authenticated_user_auth_not_required(
     test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
 ):
     """
-    Test that an authenticated user gets their user data from /me when authentication is not required
+    Test that an authenticated user gets nothing from /me when authentication is not required
     """
     try:
         app.dependency_overrides[requires_authentication] = lambda: False
@@ -148,7 +147,7 @@ def test_get_me_authenticated_user_auth_not_required(
 
 def test_get_me_authenticated_app_auth_required(test_client: TestClient, generator: DataGenerator):
     """
-    Test that an authenticated application gets their application data from /me when authentication is required
+    Test that an authenticated application gets its application data from /me when authentication is required
     """
     try:
         app.dependency_overrides[requires_authentication] = lambda: True
