@@ -177,12 +177,14 @@ def _validate_amr_permissions_for_request(
     Raises:
         HTTPException(403): If any affected artefact is unauthorized
     """
-    # Early exit: if permission is in IGNORE_PERMISSIONS, skip all checks
-    if permission.value in IGNORE_PERMISSIONS:
+    # Early exits
+    ignored_permission = permission.value in IGNORE_PERMISSIONS
+    app_has_permission = app is not None and permission in app.permissions
+    if ignored_permission or app_has_permission:
         return
-
-    # Early exit: if app has the permission, skip AMR checking
-    if app and permission in app.permissions:
+    if user is None:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    elif user.is_admin:
         return
 
     # Collect conditions to find affected TestExecutions
@@ -192,6 +194,7 @@ def _validate_amr_permissions_for_request(
     if not conditions:
         return
 
+    # Check user authorization
     # Query for all unique artefacts affected by the request
     affected_artefacts_query = (
         select(Artefact)
@@ -207,16 +210,6 @@ def _validate_amr_permissions_for_request(
     if not affected_artefacts:
         return
 
-    # Now check user authorization (only if we have artefacts to check)
-    # Early exit: if no user, deny (unless app permission or IGNORE_PERMISSIONS already passed)
-    if user is None:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-    # Early exit: if user is admin, allow
-    if user.is_admin:
-        return
-
-    # Batch match all artefacts to their AMRs in a single query
     batch_match_result = db.execute(batch_match_artefacts(list(affected_artefacts))).all()
 
     # Build map: artefact_id → set of matching AMR IDs
@@ -244,7 +237,6 @@ def _validate_amr_permissions_for_request(
     user_team_ids = {team.id for team in user.teams}
 
     for artefact in affected_artefacts:
-        # Check if this artefact has any matching AMRs
         matching_amr_ids = artefact_to_amrs.get(artefact.id, set())
 
         if not matching_amr_ids:
@@ -255,7 +247,7 @@ def _validate_amr_permissions_for_request(
         has_permission = False
         for amr_id in matching_amr_ids:
             rule = amr_rules.get(amr_id)
-            if rule and permission in rule.grant_permissions:
+            if rule is not None and permission in rule.grant_permissions:
                 rule_team_ids = {team.id for team in rule.teams}
                 if user_team_ids & rule_team_ids:
                     has_permission = True

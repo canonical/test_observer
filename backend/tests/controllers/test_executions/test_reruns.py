@@ -191,10 +191,9 @@ def test_post_no_data_returns_422(test_client: TestClient):
     assert response.status_code == 422
 
 
-def test_post_invalid_id_returns_404_with_message(post: Post):
-    response = post({"test_execution_ids": [1]})
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Didn't find test executions with provided ids"
+def test_post_invalid_id_returns_403(test_client: TestClient):
+    response = test_client.post(reruns_url, json={"test_execution_ids": [1]})
+    assert response.status_code == 403
 
 
 def test_valid_post(post: Post, test_execution: TestExecution):
@@ -949,12 +948,9 @@ def test_delete_bulk_permission_not_required_for_single_id(
 # ==============================================================================
 
 
-def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: Get):
+def test_post_with_empty_test_execution_ids_list(post: Post, get: Get):
     """Test that posting with empty test_execution_ids list returns 404"""
-    response = test_client.post(
-        reruns_url,
-        json={"test_execution_ids": []},
-    )
+    response = post({"test_execution_ids": []})
 
     # Empty list is treated as not finding any test executions
     assert response.status_code == 404
@@ -965,10 +961,13 @@ def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: G
 
 def test_post_silent_with_empty_ids_does_nothing(test_client: TestClient, get: Get):
     """Test that silent mode with empty IDs gracefully does nothing"""
-    response = test_client.post(
-        reruns_url,
-        params={"silent": True},
-        json={"test_execution_ids": []},
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": []},
+        ),
+        Permission.change_rerun,
     )
 
     assert response.status_code == 200
@@ -1081,7 +1080,7 @@ def test_post_filters_by_environment_name(test_client: TestClient, get: Get, gen
     assert reruns[0]["test_execution"]["environment"]["name"] == "rpi4"
 
 
-def test_delete_with_empty_ids_does_nothing(test_client: TestClient, post: Post, get: Get, generator: DataGenerator):
+def test_delete_with_empty_ids_does_nothing(post: Post, get: Get, delete: Delete, generator: DataGenerator):
     """Test that deleting with empty IDs does nothing"""
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
@@ -1093,11 +1092,7 @@ def test_delete_with_empty_ids_does_nothing(test_client: TestClient, post: Post,
     assert len(get().json()) == 1
 
     # Delete with empty list should do nothing
-    response = test_client.request(
-        "DELETE",
-        reruns_url,
-        json={"test_execution_ids": []},
-    )
+    response = delete({"test_execution_ids": []})
 
     assert response.status_code == 200
     # Rerun should still exist
