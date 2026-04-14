@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.review_notification import (
-    create_reviewer_notification,
+    _create_notification_for_reviewer,
 )
 from test_observer.data_access.models import (
     Artefact,
@@ -1144,12 +1144,12 @@ class TestNotifyReviewerAssigned:
         artefact.jira_issue = "TEST-123"
         db_session.commit()
 
-        create_reviewer_notification(
-            db_session,
-            reviewer,
-            artefact,
-            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        db_session.add(
+            _create_notification_for_reviewer(
+                reviewer.id, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW, "http://test-url"
+            )
         )
+        db_session.flush()
 
         # Verify notification was created
         notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
@@ -1160,7 +1160,7 @@ class TestNotifyReviewerAssigned:
         """Test that notification is created even without Jira issue (graceful degradation)"""
         # Create artefact with reviewer but NO jira issue
         reviewer = generator.gen_user(name="Alice", email="alice@example.com")
-        artefact = generator.gen_artefact(
+        generator.gen_artefact(
             name="test-snap",
             version="1.0.0",
             reviewers=[reviewer],
@@ -1168,12 +1168,12 @@ class TestNotifyReviewerAssigned:
         db_session.commit()
 
         # Should NOT raise - notification should still be created
-        create_reviewer_notification(
-            db_session,
-            reviewer,
-            artefact,
-            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        db_session.add(
+            _create_notification_for_reviewer(
+                reviewer.id, NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW, "http://test-url"
+            )
         )
+        db_session.flush()
 
         # Verify notification was created
         notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()

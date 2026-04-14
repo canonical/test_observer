@@ -52,29 +52,6 @@ def _create_notification_for_reviewer(
     )
 
 
-def create_reviewer_notification(
-    db: Session,
-    reviewer: User,
-    artefact: Artefact,
-    notification_type: NotificationType,
-) -> None:
-    """Create a notification for a newly assigned reviewer.
-
-    Args:
-        db: Database session
-        reviewer: The user who was assigned as a reviewer
-        artefact: The artefact they were assigned to review
-        notification_type: The type of notification to create
-    """
-    target_url = get_artefact_url(artefact)
-
-    notification = _create_notification_for_reviewer(reviewer.id, notification_type, target_url)
-    db.add(notification)
-    db.flush()
-
-    logger.info(f"Created {notification_type} notification for user {reviewer.id} on artefact {artefact.id}")
-
-
 def batch_create_review_notifications(
     db: Session,
     reviewers: list[User],
