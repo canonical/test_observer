@@ -208,10 +208,11 @@ def test_only_docs_browser_friendly(
     test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
 ):
     """
-    Test that only the docs endpoint is browser-friendly and allows GET requests without a CSRF token
-    when authentication is required and a user is authenticated.
+    Test that only the docs endpoint is browser-friendly and allows GET requests without a CSRF token.
+    This only applies when authentication is required
     """
     try:
+        app.dependency_overrides[requires_authentication] = lambda: True
         user = generator.gen_user()
         authenticate_user(test_client, user, generator, create_session_cookie)
 
@@ -223,3 +224,4 @@ def test_only_docs_browser_friendly(
         assert response.status_code == 401
     finally:
         app.dependency_overrides.pop(authentication_checker, None)
+        app.dependency_overrides.pop(requires_authentication, None)
