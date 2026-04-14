@@ -17,7 +17,7 @@ from collections.abc import Callable
 
 from fastapi.testclient import TestClient
 
-from test_observer.common.permissions import require_authentication
+from test_observer.common.permissions import requires_authentication
 from test_observer.main import app
 from tests.conftest import authenticate_user
 from tests.data_generator import DataGenerator
@@ -26,33 +26,66 @@ from tests.data_generator import DataGenerator
 def test_version_unauthenticated_auth_not_required(test_client: TestClient):
     """Test that unauthenticated access to version endpoint works when authentication is not required"""
     try:
-        app.dependency_overrides[require_authentication] = lambda: False
+        app.dependency_overrides[requires_authentication] = lambda: False
         response = test_client.get("/v1/version")
         assert response.status_code == 200
         assert "version" in response.json()
     finally:
-        app.dependency_overrides.pop(require_authentication, None)
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
 def test_version_unauthenticated_auth_required(test_client: TestClient):
     """Test that unauthenticated access to version endpoint returns 401 when authentication is required"""
     try:
-        app.dependency_overrides[require_authentication] = lambda: True
+        app.dependency_overrides[requires_authentication] = lambda: True
         response = test_client.get("/v1/version")
         assert response.status_code == 401
     finally:
-        app.dependency_overrides.pop(require_authentication, None)
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
-def test_version_authenticated_auth_not_required(
+def test_version_authenticated_auth_not_required_app(test_client: TestClient, generator: DataGenerator):
+    """
+    Test that authenticated access to the version endpoint works and returns version
+    when authentication is not required and an application is authenticated
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        application = generator.gen_application(permissions=[])
+        response = test_client.get("/v1/version", headers={"Authorization": f"Bearer {application.api_key}"})
+        assert response.status_code == 200
+        assert "version" in response.json()
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_version_authenticated_auth_not_required_user(
     test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
 ):
     """
-    Test that authenticated access to version endpoint works and returns version
-    when authentication is not required
+    Test that authenticated access to the version endpoint works and returns version
+    when authentication is not required and a user is authenticated
     """
     try:
-        app.dependency_overrides[require_authentication] = lambda: False
+        app.dependency_overrides[requires_authentication] = lambda: False
+        user = generator.gen_user()
+        authenticate_user(test_client, user, generator, create_session_cookie)
+        response = test_client.get("/v1/version", headers={"X-CSRF-Token": "1"})
+        assert response.status_code == 200
+        assert "version" in response.json()
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_version_authenticated_auth_required_app(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """
+    Test that authenticated access to the version endpoint works and returns version
+    when authentication is required and an application is authenticated
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
 
         application = generator.gen_application(permissions=[])
         response = test_client.get("/v1/version", headers={"Authorization": f"Bearer {application.api_key}"})
@@ -65,28 +98,22 @@ def test_version_authenticated_auth_not_required(
         assert response.status_code == 200
         assert "version" in response.json()
     finally:
-        app.dependency_overrides.pop(require_authentication, None)
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
-def test_version_authenticated_auth_required(
+def test_version_authenticated_auth_required_user(
     test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
 ):
     """
-    Test that authenticated access to version endpoint works and returns version
-    when authentication is required
+    Test that authenticated access to the version endpoint works and returns version
+    when authentication is required and a user is authenticated
     """
     try:
-        app.dependency_overrides[require_authentication] = lambda: True
-
-        application = generator.gen_application(permissions=[])
-        response = test_client.get("/v1/version", headers={"Authorization": f"Bearer {application.api_key}"})
-        assert response.status_code == 200
-        assert "version" in response.json()
-
+        app.dependency_overrides[requires_authentication] = lambda: True
         user = generator.gen_user()
         authenticate_user(test_client, user, generator, create_session_cookie)
         response = test_client.get("/v1/version", headers={"X-CSRF-Token": "1"})
         assert response.status_code == 200
         assert "version" in response.json()
     finally:
-        app.dependency_overrides.pop(require_authentication, None)
+        app.dependency_overrides.pop(requires_authentication, None)

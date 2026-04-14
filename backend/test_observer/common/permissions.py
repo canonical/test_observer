@@ -27,7 +27,7 @@ from test_observer.data_access.queries import match_artefact
 from test_observer.users.user_injection import get_current_user
 
 
-def require_authentication() -> bool:
+def requires_authentication() -> bool:
     """
     Simply returns the REQUIRE_AUTHENTICATION config value.
     By making this a function, it can be used as a dependency
@@ -40,7 +40,7 @@ def require_authentication() -> bool:
 def authentication_checker(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
-    authentication_required: bool = Depends(require_authentication),
+    authentication_required: bool = Depends(requires_authentication),
 ) -> None:
     """
     A simple dependency to check if the request is authenticated with either a user or an application.
