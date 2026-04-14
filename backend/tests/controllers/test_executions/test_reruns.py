@@ -26,7 +26,7 @@ from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.data_access.models import TestExecution
+from test_observer.data_access.models import Artefact, ArtefactMatchingRule, Environment, Team, TestExecution, User
 from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
@@ -1131,6 +1131,36 @@ def test_post_non_silent_with_single_id_and_filters_fails(test_client: TestClien
 class TestRerunAMRPermissions:
     """Test AMR-based permission checking for rerun operations"""
 
+    def _create_user_in_team(self, generator: DataGenerator, team: Team, name: str = "alice") -> User:
+        user = generator.gen_user(name=name)
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+        return user
+
+    def _create_amr_with_defaults(
+        self,
+        generator: DataGenerator,
+        teams: list[Team],
+        grant_permissions: list[Permission],
+        family: FamilyName = FamilyName.snap,
+        stage: str = "stable",
+    ) -> ArtefactMatchingRule:
+        return generator.gen_artefact_matching_rule(
+            family=family,
+            stage=stage,
+            teams=teams,
+            grant_permissions=grant_permissions,
+        )
+
+    def _create_test_execution_for_artefact(
+        self, generator: DataGenerator, artefact: Artefact, environment: Environment | None = None
+    ) -> TestExecution:
+        build = generator.gen_artefact_build(artefact=artefact)
+        if environment is None:
+            environment = generator.gen_environment("test-env")
+        return generator.gen_test_execution(artefact_build=build, environment=environment)
+
     def test_create_rerun_with_amr_permission(
         self,
         test_client: TestClient,
@@ -1140,18 +1170,8 @@ class TestRerunAMRPermissions:
 
         # Create team and AMR
         team = generator.gen_team(name="snap-team")
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
-            teams=[team],
-            grant_permissions=[Permission.change_rerun],
-        )
-
-        # Create user in team
-        user = generator.gen_user(name="alice")
-        user.teams = [team]
-        user.is_admin = False
-        generator._add_object(user)
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
+        user = self._create_user_in_team(generator, team)
 
         # Create test execution with matching artefact
         artefact = generator.gen_artefact(
@@ -1159,9 +1179,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         # Mock user injection
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1182,19 +1200,9 @@ class TestRerunAMRPermissions:
         team_a = generator.gen_team(name="team-a")
         team_b = generator.gen_team(name="team-b")
 
-        # Create AMR for team_a
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
-            teams=[team_a],
-            grant_permissions=[Permission.change_rerun],
-        )
+        self._create_amr_with_defaults(generator, teams=[team_a], grant_permissions=[Permission.change_rerun])
 
-        # Create user in team_b
-        user = generator.gen_user(name="bob")
-        user.teams = [team_b]
-        user.is_admin = False
-        generator._add_object(user)
+        user = self._create_user_in_team(generator, team_b, name="bob")
 
         # Create matching artefact
         artefact = generator.gen_artefact(
@@ -1202,9 +1210,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         # Mock the user
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1220,21 +1226,14 @@ class TestRerunAMRPermissions:
 
     def test_create_rerun_no_matching_amr(self, test_client: TestClient, generator: DataGenerator):
         """User's team has AMR, but for different artefact should be denied"""
-
         # Create team and AMR for stable stage
         team = generator.gen_team(name="snap-team")
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
+        self._create_amr_with_defaults(
+            generator,
             teams=[team],
             grant_permissions=[Permission.change_rerun],
         )
-
-        # Create user in team
-        user = generator.gen_user(name="charlie")
-        user.teams = [team]
-        user.is_admin = False
-        generator._add_object(user)
+        user = self._create_user_in_team(generator, team, name="charlie")
 
         # Create artefact that doesn't match (different stage)
         artefact = generator.gen_artefact(
@@ -1242,9 +1241,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.beta,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         # Mock the user
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1263,18 +1260,9 @@ class TestRerunAMRPermissions:
 
         # Create team and AMR
         team = generator.gen_team(name="snap-team")
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
-            teams=[team],
-            grant_permissions=[Permission.change_rerun],
-        )
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
 
-        # Create user in team
-        user = generator.gen_user(name="alice")
-        user.teams = [team]
-        user.is_admin = False
-        generator._add_object(user)
+        user = self._create_user_in_team(generator, team)
 
         # Create test execution with matching artefact
         artefact = generator.gen_artefact(
@@ -1282,9 +1270,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         # First, create the rerun
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1310,18 +1296,9 @@ class TestRerunAMRPermissions:
 
         # Create team and AMR for snap family
         team = generator.gen_team(name="snap-team")
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
-            teams=[team],
-            grant_permissions=[Permission.change_rerun],
-        )
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
 
-        # Create user in team
-        user = generator.gen_user(name="alice")
-        user.teams = [team]
-        user.is_admin = False
-        generator._add_object(user)
+        user = self._create_user_in_team(generator, team)
 
         # Create app with bulk permission for bulk operations
         application = generator.gen_application(
@@ -1338,8 +1315,7 @@ class TestRerunAMRPermissions:
                 family=FamilyName.snap,
                 stage=StageName.stable,
             )
-            build = generator.gen_artefact_build(artefact=artefact)
-            test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+            test_execution = self._create_test_execution_for_artefact(generator, artefact, environment)
             test_execution_ids.append(test_execution.id)
 
         # Mock user and app injection
@@ -1363,18 +1339,11 @@ class TestRerunAMRPermissions:
 
         # Create team with bulk permission globally, but AMR only for snap
         team = generator.gen_team(name="snap-team", permissions=[Permission.change_rerun_bulk])
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
-            teams=[team],
-            grant_permissions=[Permission.change_rerun, Permission.change_rerun_bulk],
+        self._create_amr_with_defaults(
+            generator, teams=[team], grant_permissions=[Permission.change_rerun, Permission.change_rerun_bulk]
         )
 
-        # Create user in team
-        user = generator.gen_user(name="alice")
-        user.teams = [team]
-        user.is_admin = False
-        generator._add_object(user)
+        user = self._create_user_in_team(generator, team)
 
         # Create one snap (authorized) and one deb (unauthorized)
         environment = generator.gen_environment("test-env")
@@ -1383,16 +1352,14 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        snap_build = generator.gen_artefact_build(artefact=snap_artefact)
-        snap_te = generator.gen_test_execution(artefact_build=snap_build, environment=environment)
+        snap_te = self._create_test_execution_for_artefact(generator, snap_artefact, environment)
 
         deb_artefact = generator.gen_artefact(
             name="test-deb",
             family=FamilyName.deb,
             stage=StageName.proposed,
         )
-        deb_build = generator.gen_artefact_build(artefact=deb_artefact)
-        deb_te = generator.gen_test_execution(artefact_build=deb_build, environment=environment)
+        deb_te = self._create_test_execution_for_artefact(generator, deb_artefact, environment)
 
         # Mock user injection
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1412,18 +1379,9 @@ class TestRerunAMRPermissions:
 
         # Create team and AMR for snap family
         team = generator.gen_team(name="snap-team")
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
-            teams=[team],
-            grant_permissions=[Permission.change_rerun],
-        )
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
 
-        # Create user in team
-        user = generator.gen_user(name="alice")
-        user.teams = [team]
-        user.is_admin = False
-        generator._add_object(user)
+        user = self._create_user_in_team(generator, team)
 
         # Create app with bulk permission
         application = generator.gen_application(
@@ -1437,9 +1395,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         tc = generator.gen_test_case("test_case_1")
         generator.gen_test_result(tc, test_execution, status=TestResultStatus.FAILED)
@@ -1469,18 +1425,11 @@ class TestRerunAMRPermissions:
         # Create team with bulk permission globally, but AMR only for snap
         # This allows the bulk permission check to pass, validating that 403 is due to AMR mismatch
         team = generator.gen_team(name="snap-team", permissions=[Permission.change_rerun_bulk])
-        generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
-            stage="stable",
-            teams=[team],
-            grant_permissions=[Permission.change_rerun, Permission.change_rerun_bulk],
+        self._create_amr_with_defaults(
+            generator, teams=[team], grant_permissions=[Permission.change_rerun, Permission.change_rerun_bulk]
         )
 
-        # Create user in team
-        user = generator.gen_user(name="alice")
-        user.teams = [team]
-        user.is_admin = False
-        generator._add_object(user)
+        user = self._create_user_in_team(generator, team)
 
         # Create test execution with unmatched artefact (deb) and failed result
         artefact = generator.gen_artefact(
@@ -1488,9 +1437,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.deb,
             stage=StageName.proposed,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         tc = generator.gen_test_case("test_case_1")
         generator.gen_test_result(tc, test_execution, status=TestResultStatus.FAILED)
@@ -1527,9 +1474,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         # Mock user injection
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1559,9 +1504,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         # Mock app injection (no user)
         app.dependency_overrides[get_current_user] = lambda: None
@@ -1621,9 +1564,7 @@ class TestRerunAMRPermissions:
             family=FamilyName.snap,
             stage=StageName.stable,
         )
-        build = generator.gen_artefact_build(artefact=artefact)
-        environment = generator.gen_environment("test-env")
-        test_execution = generator.gen_test_execution(artefact_build=build, environment=environment)
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
         tc = generator.gen_test_case("test_case_1")
         generator.gen_test_result(tc, test_execution, status=TestResultStatus.PASSED)
