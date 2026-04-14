@@ -26,6 +26,7 @@ from test_observer.common.enums import Permission
 from test_observer.common.review_notification import (
     _create_notification_for_reviewer,
 )
+from test_observer.controllers.test_executions.start_test import StartTestExecutionController
 from test_observer.data_access.models import (
     Artefact,
     Notification,
@@ -1179,3 +1180,49 @@ class TestNotifyReviewerAssigned:
         notification = db_session.query(Notification).filter_by(user_id=reviewer.id).first()
         assert notification is not None
         assert notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW
+
+
+class TestAssignReviewersToEnvironments:
+    """Tests for _assign_reviewers_to_environments method"""
+
+    def test_assign_reviewers_to_environments_no_duplicates(self, generator: DataGenerator, db_session: Session):
+        """Test that _assign_reviewers_to_environments returns reviewers without duplicates"""
+        # GIVEN an artefact with multiple reviewers, builds and environment reviews
+        reviewer1 = generator.gen_user(name="Alice", email="alice@example.com")
+        reviewer2 = generator.gen_user(name="Bob", email="bob@example.com")
+        reviewer3 = generator.gen_user(name="Charlie", email="charlie@example.com")
+
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[reviewer1, reviewer2, reviewer3],
+        )
+
+        build1 = generator.gen_artefact_build(artefact=artefact, architecture="amd64")
+        build2 = generator.gen_artefact_build(artefact=artefact, architecture="arm64")
+
+        # GIVEN environment reviews without reviewers assigned
+        env1 = generator.gen_environment(name="env1")
+        env2 = generator.gen_environment(name="env2")
+        env3 = generator.gen_environment(name="env3")
+
+        generator.gen_artefact_build_environment_review(artefact_build=build1, environment=env1, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build1, environment=env2, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build2, environment=env1, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build2, environment=env2, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build2, environment=env3, reviewers=[])
+
+        db_session.commit()
+
+        # WHEN _assign_reviewers_to_environments is called
+        controller = StartTestExecutionController.__new__(StartTestExecutionController)
+        controller.db = db_session
+        controller.artefact = artefact
+
+        newly_assigned_reviewers = controller._assign_reviewers_to_environments()
+
+        # THEN the returned list has no duplicates
+        assert len(newly_assigned_reviewers) == len(set(newly_assigned_reviewers)), (
+            f"Duplicate reviewers found in result. "
+            f"Length: {len(newly_assigned_reviewers)}, Unique: {len(set(newly_assigned_reviewers))}"
+        )

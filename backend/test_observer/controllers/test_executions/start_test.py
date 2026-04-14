@@ -135,7 +135,7 @@ class StartTestExecutionController:
         reviews_per_reviewer = _ceil_division(len(env_reviews), len(self.artefact.reviewers))
 
         current_reviewer = 0
-        newly_assigned_environment_reviewers: list[User] = []
+        newly_assigned_environment_reviewers: set[User] = set()
         for env_review in env_reviews:
             if env_review.reviewers and env_review.reviewers[0] in self.artefact.reviewers:
                 continue
@@ -143,18 +143,18 @@ class StartTestExecutionController:
                 current_reviewer += 1
             reviewer = reviewers_sorted[current_reviewer]
             env_review.reviewers = [reviewer]
-            newly_assigned_environment_reviewers.append(reviewer)
+            newly_assigned_environment_reviewers.add(reviewer)
             reviewers_to_assignment_count[reviewer.id] += 1
 
         with self.db.begin_nested():
             batch_create_review_notifications(
                 self.db,
-                newly_assigned_environment_reviewers,
+                list(newly_assigned_environment_reviewers),
                 self.artefact,
                 NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
             )
 
-        return newly_assigned_environment_reviewers
+        return list(newly_assigned_environment_reviewers)
 
     def assign_reviewer(self) -> BatchReviewerAssignedMessage | None:
         if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
