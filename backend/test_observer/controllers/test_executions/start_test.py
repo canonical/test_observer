@@ -127,6 +127,7 @@ class StartTestExecutionController:
                 if reviewer.id in reviewers_to_assignment_count:
                     reviewers_to_assignment_count[reviewer.id] += 1
 
+        # reviewers sorted by how many environment reviews they are already assigned to, ascending
         reviewers_sorted = sorted(
             self.artefact.reviewers,
             key=lambda r: reviewers_to_assignment_count[r.id],
@@ -134,14 +135,21 @@ class StartTestExecutionController:
 
         reviews_per_reviewer = _ceil_division(len(env_reviews), len(self.artefact.reviewers))
 
-        current_reviewer = 0
+        # we pick the reviewer with the least amount of assignments
+        # and assign to them as many environments as possible
+        # until they reach the reviews_per_reviewer limit,
+        # then we move on to the next reviewer in the sorted list and
+        # repeat until all environment reviews have a reviewer assigned.
+        # since reviews_per_reviewer is ceil(len(env_reviews) / len(reviewers)),
+        # we are guaranteed to have enough reviewers to assign to all environment reviews
+        reviewers_sorted_idx = 0
         newly_assigned_environment_reviewers: set[User] = set()
         for env_review in env_reviews:
             if env_review.reviewers and env_review.reviewers[0] in self.artefact.reviewers:
                 continue
-            if reviewers_to_assignment_count[reviewers_sorted[current_reviewer].id] >= reviews_per_reviewer:
-                current_reviewer += 1
-            reviewer = reviewers_sorted[current_reviewer]
+            if reviewers_to_assignment_count[reviewers_sorted[reviewers_sorted_idx].id] >= reviews_per_reviewer:
+                reviewers_sorted_idx += 1
+            reviewer = reviewers_sorted[reviewers_sorted_idx]
             env_review.reviewers = [reviewer]
             newly_assigned_environment_reviewers.add(reviewer)
             reviewers_to_assignment_count[reviewer.id] += 1

@@ -76,9 +76,7 @@ def batch_create_jira_reviewer_cards(
         jira_client: Optional Jira client. If not provided, will attempt to get one.
     """
     if message.artefact.jira_issue is None:
-        raise ValueError(
-            f"Artefact {message.artefact.id} does not have a Jira issue. Cannot create review cards."
-        )
+        raise ValueError(f"Artefact {message.artefact.id} does not have a Jira issue. Cannot create review cards.")
     if not jira_client:
         try:
             jira_client = get_jira_client()
