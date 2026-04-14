@@ -16,12 +16,14 @@
 import importlib.metadata
 from importlib.metadata import PackageNotFoundError
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from test_observer.common.permissions import authentication_checker
 
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(authentication_checker)])
 async def get_version():
     try:
         version = importlib.metadata.version("test-observer")

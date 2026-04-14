@@ -39,7 +39,7 @@ from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.data_access.models import Application, TestExecution
+from test_observer.data_access.models import Application, TestExecution, User
 from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
@@ -196,3 +196,15 @@ def create_session_cookie() -> Callable[[int], str]:
         return signer.sign(b64encode(session_json.encode()).decode()).decode()
 
     return _create_session_cookie
+
+
+def authenticate_user(
+    test_client: TestClient,
+    user: User,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+) -> None:
+    """Helper to authenticate a user in test client"""
+    session = generator.gen_user_session(user)
+    session_cookie = create_session_cookie(session.id)
+    test_client.cookies.set("session", session_cookie)
