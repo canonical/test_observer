@@ -66,18 +66,18 @@ def batch_create_review_notifications(
 
 
 def batch_create_jira_reviewer_cards(
-    new_reviewers: BatchReviewerAssignedMessage,
+    message: BatchReviewerAssignedMessage,
     jira_client: JiraClient | None = None,
 ) -> None:
     """Attempt to create Jira review cards for a batch of reviewers.
 
     Args:
-        new_reviewers: Context of the batch of reviewers being assigned new reviews
+        message: Context of the batch of reviewers being assigned new reviews
         jira_client: Optional Jira client. If not provided, will attempt to get one.
     """
-    if new_reviewers.artefact.jira_issue is None:
+    if message.artefact.jira_issue is None:
         raise ValueError(
-            f"Artefact {new_reviewers.artefact.id} does not have a Jira issue. Cannot create review cards."
+            f"Artefact {message.artefact.id} does not have a Jira issue. Cannot create review cards."
         )
     if not jira_client:
         try:
@@ -89,15 +89,15 @@ def batch_create_jira_reviewer_cards(
     issue_creator = IssueCreator(
         jira_ctx=JiraIssueContext(
             client=jira_client,
-            parent_issue=new_reviewers.artefact.jira_issue,
+            parent_issue=message.artefact.jira_issue,
         )
     )
 
-    for reviewer, notification_types in new_reviewers.assigned_reviews:
+    for reviewer, notification_types in message.assigned_reviews:
         try:
             for notification_type in notification_types:
-                issue_creator.create_review_issue(new_reviewers.artefact, reviewer, notification_type)
+                issue_creator.create_review_issue(message.artefact, reviewer, notification_type)
         except Exception:
             logger.exception(
-                f"Failed to create Jira review cards for reviewer {reviewer.id} on artefact {new_reviewers.artefact.id}"
+                f"Failed to create Jira review cards for reviewer {reviewer.id} on artefact {message.artefact.id}"
             )
