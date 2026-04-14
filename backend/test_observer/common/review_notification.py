@@ -42,6 +42,16 @@ class BatchReviewerAssignedMessage:
     assigned_reviews: list[tuple[User, list[NotificationType]]]
 
 
+def _create_notification_for_reviewer(
+    user_id: int, notification_type: NotificationType, target_url: str
+) -> Notification:
+    return Notification(
+        user_id=user_id,
+        notification_type=notification_type,
+        target_url=target_url,
+    )
+
+
 def create_reviewer_notification(
     db: Session,
     reviewer: User,
@@ -58,11 +68,7 @@ def create_reviewer_notification(
     """
     target_url = get_artefact_url(artefact)
 
-    notification = Notification(
-        user_id=reviewer.id,
-        notification_type=notification_type,
-        target_url=target_url,
-    )
+    notification = _create_notification_for_reviewer(reviewer.id, notification_type, target_url)
     db.add(notification)
     db.flush()
 
@@ -83,14 +89,19 @@ def batch_create_review_notifications(
         artefact: The artefact they were assigned to review
         notification_type: The type of notification to create
     """
+    notifications = []
     for reviewer in reviewers:
         try:
-            create_reviewer_notification(db, reviewer, artefact, notification_type)
+            notification = _create_notification_for_reviewer(
+                user_id=reviewer.id, notification_type=notification_type, target_url=get_artefact_url(artefact)
+            )
+            notifications.append(notification)
         except Exception:
             logger.exception(
                 f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
                 f"on artefact {artefact.id}"
             )
+    db.add_all(notifications)
 
 
 def batch_create_jira_reviewer_cards(
