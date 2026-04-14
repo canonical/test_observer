@@ -68,16 +68,10 @@ def batch_create_review_notifications(
     """
     notifications = []
     for reviewer in reviewers:
-        try:
-            notification = _create_notification_for_reviewer(
-                user_id=reviewer.id, notification_type=notification_type, target_url=get_artefact_url(artefact)
-            )
-            notifications.append(notification)
-        except Exception:
-            logger.exception(
-                f"Failed to create {notification_type} notification for reviewer {reviewer.id} "
-                f"on artefact {artefact.id}"
-            )
+        notification = _create_notification_for_reviewer(
+            user_id=reviewer.id, notification_type=notification_type, target_url=get_artefact_url(artefact)
+        )
+        notifications.append(notification)
     db.add_all(notifications)
 
 
