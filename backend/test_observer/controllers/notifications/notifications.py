@@ -17,7 +17,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Security
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -52,9 +52,7 @@ def _get_user_notifications(
 
 
 @router.get("/me/notifications", response_model=NotificationsResponse)
-@router.get("/me/notifications/count", response_model=int)
 def get_own_notifications(
-    request: Request,
     limit: Annotated[
         int,
         Query(
@@ -91,14 +89,9 @@ def get_own_notifications(
 
     # If authentication is not required, we might not have a user
     if user is None:
-        if request.url.path.endswith("/count"):
-            return 0
         return NotificationsResponse(notifications=[], count=0, limit=limit, offset=offset)
 
     count = _get_user_notification_count(db, user.id, unread_only)
-    if request.url.path.endswith("/count"):
-        return count
-
     notifications = _get_user_notifications(db, user.id, limit, offset, unread_only)
     return NotificationsResponse(
         notifications=notifications,  # type: ignore[arg-type]
@@ -106,6 +99,34 @@ def get_own_notifications(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/me/notifications/count", response_model=int)
+def get_own_notification_count(
+    unread_only: Annotated[
+        bool,
+        Query(
+            description="Whether to return only unread notifications (default: false)",
+        ),
+    ] = False,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    application: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(requires_authentication),
+):
+    """Get the count of notifications for the authenticated user"""
+    # Even if an app is authenticated, it doesn't make sense for an app to access this endpoint,
+    # since notifications are inherently user-specific. Thus, we require a user.
+    if authentication_required and user is None and application is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if authentication_required and user is None and application is not None:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # If authentication is not required, we might not have a user
+    if user is None:
+        return 0
+
+    return _get_user_notification_count(db, user.id, unread_only)
 
 
 @router.post(
@@ -147,13 +168,7 @@ def mark_own_notification_as_read(
     response_model=NotificationsResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
 )
-@router.get(
-    "/{user_id}/notifications/count",
-    response_model=int,
-    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
-)
 def get_notifications(
-    request: Request,
     user_id: Annotated[int, Path(description="ID of the user whose notifications will be fetched")],
     limit: Annotated[
         int,
@@ -180,18 +195,42 @@ def get_notifications(
 ):
     """Get all notifications for the specified user"""
 
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     count = _get_user_notification_count(db, user_id, unread_only)
-    if request.url.path.endswith("/count"):
-        return count
-
     notifications = _get_user_notifications(db, user_id, limit, offset, unread_only)
-
     return NotificationsResponse(
         notifications=list(notifications),  # type: ignore[arg-type]
         count=count,
         limit=limit,
         offset=offset,
     )
+
+
+@router.get(
+    "/{user_id}/notifications/count",
+    response_model=int,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_notification])],
+)
+def get_notification_count(
+    user_id: Annotated[int, Path(description="ID of the user whose notification count will be fetched")],
+    unread_only: Annotated[
+        bool,
+        Query(
+            description="Whether to return only unread notifications (default: false)",
+        ),
+    ] = False,
+    db: Session = Depends(get_db),
+):
+    """Get the count of notifications for the specified user"""
+
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return _get_user_notification_count(db, user_id, unread_only)
 
 
 @router.post(
@@ -205,6 +244,10 @@ def mark_notification_as_read(
     db: Session = Depends(get_db),
 ):
     """Mark a notification as read"""
+
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
     notification = db.scalar(
         select(Notification).where(Notification.id == notification_id).where(Notification.user_id == user_id)

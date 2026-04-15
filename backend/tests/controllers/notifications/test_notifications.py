@@ -315,6 +315,19 @@ def test_get_multiple_notifications(
     assert data["offset"] == 0
 
 
+def test_get_notification_for_nonexistent_user(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """Test that getting notifications for a non-existent user returns 404"""
+    user = generator.gen_user(email="user@test.com")
+    authenticate_user(test_client, user, generator, create_session_cookie)
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/users/99999/notifications", headers={"X-CSRF-Token": "1"}),
+        Permission.view_notification,
+    )
+    assert response.status_code == 404
+
+
 def test_get_unread_count(
     test_client: TestClient,
     generator: DataGenerator,
@@ -370,6 +383,21 @@ def test_mark_notification_as_read(
     data = response.json()
     assert data["id"] == notification.id
     assert data["dismissed_at"] is not None
+
+
+def test_mark_notification_as_read_nonexistent_user(
+    test_client: TestClient,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+):
+    """Test that marking a notification as read for a non-existent user returns 404"""
+    user = generator.gen_user(email="user@test.com")
+    authenticate_user(test_client, user, generator, create_session_cookie)
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/users/99999/notifications/1/dismiss", headers={"X-CSRF-Token": "1"}),
+        Permission.change_notification,
+    )
+    assert response.status_code == 404
 
 
 def test_mark_nonexistent_notification_as_read(
