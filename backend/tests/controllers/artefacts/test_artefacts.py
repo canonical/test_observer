@@ -22,11 +22,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import Artefact, TestExecution
+from test_observer.data_access.models import Artefact, Notification, TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    NotificationType,
     StageName,
 )
 from test_observer.main import app
@@ -709,6 +710,27 @@ def test_update_artefact_reviewer_clear_by_email(test_client: TestClient, genera
     assert a.reviewers == []
 
 
+def test_update_artefact_clear_multiple_reviewers(test_client: TestClient, generator: DataGenerator):
+    """Test updating an artefact with multiple reviewers, removing some of them"""
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+    a = generator.gen_artefact(reviewers=users)
+
+    # Verify all 3 reviewers are set initially
+    assert a.reviewers == users
+
+    # Update to keep only users 0 and 2 (remove user 1)
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [users[0].id, users[2].id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == [users[0], users[2]]
+
+
 def test_update_artefact_reviewer_both_id_and_email_error(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
@@ -764,6 +786,180 @@ def test_update_artefact_multiple_reviewers_by_email(test_client: TestClient, ge
 
     assert response.status_code == 200
     assert a.reviewers == users
+
+
+def test_patch_artefact_new_reviewer_creates_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Patching an artefact with new reviewers should create notifications"""
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [u.id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify notification was created
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == u.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 1
+
+
+def test_patch_artefact_existing_reviewer_no_new_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Patching an artefact with existing reviewers should not create duplicate notifications"""
+    u = generator.gen_user()
+    a = generator.gen_artefact(reviewers=[u])
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [u.id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify NO notification was created (reviewer already existed)
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == u.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 0
+
+
+def test_patch_artefact_clear_reviewers_no_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Clearing artefact reviewers should not create notifications"""
+    u = generator.gen_user()
+    a = generator.gen_artefact(reviewers=[u])
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": []},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify NO notifications were created
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 0
+
+
+def test_update_artefact_add_multiple_reviewers(test_client: TestClient, generator: DataGenerator, db_session: Session):
+    """Test adding multiple new reviewers, verify notifications only for new ones"""
+    # Create 1 existing reviewer
+    u_existing = generator.gen_user(email="existing@email.com")
+
+    # Create 2 new reviewers
+    u_new1 = generator.gen_user(email="new1@email.com")
+    u_new2 = generator.gen_user(email="new2@email.com")
+
+    # Create artefact with only existing reviewer
+    a = generator.gen_artefact(reviewers=[u_existing])
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    # Add all 3 reviewers (1 existing + 2 new)
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [u_existing.id, u_new1.id, u_new2.id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert set(a.reviewers) == {u_existing, u_new1, u_new2}
+
+    # Verify notifications only for new reviewers
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+
+    assert len(notifications) == 2
+    notification_user_ids = {n.user_id for n in notifications}
+    assert notification_user_ids == {u_new1.id, u_new2.id}
+    assert u_existing.id not in notification_user_ids
+
+
+def test_patch_artefact_new_reviewer_by_email_creates_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Patching an artefact with new reviewers via email should create notifications"""
+    a = generator.gen_artefact()
+    u = generator.gen_user(email="reviewer@example.com")
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_emails": [u.email]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify notification was created
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == u.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 1
 
 
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
