@@ -1120,17 +1120,6 @@ def test_no_assignment_when_no_team_reviewers_available(
     assert assignee is None
 
 
-class TestNotifyReviewerAssigned:
-    """Tests for notifying new reviewers"""
-
-    @pytest.fixture(autouse=True)
-    def setup_env(self, monkeypatch: pytest.MonkeyPatch):
-        """Set up Jira environment variables"""
-        monkeypatch.setenv("JIRA_CLOUD_ID", "test-cloud-id")
-        monkeypatch.setenv("JIRA_EMAIL", "test@example.com")
-        monkeypatch.setenv("JIRA_API_TOKEN", "test-token")
-
-
 class TestAssignReviewersToEnvironments:
     """Tests for _assign_reviewers_to_environments method"""
 
