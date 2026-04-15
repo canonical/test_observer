@@ -242,7 +242,7 @@ class ArtefactMatchingRule(Base):
     __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch"),)
 
     def __repr__(self) -> str:
-        return data_model_repr(self, "name", "family", "stage", "track", "branch")
+        return data_model_repr(self, "name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner")
 
 
 class UserSession(Base):
