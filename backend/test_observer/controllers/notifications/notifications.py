@@ -23,11 +23,12 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker, requires_authentication
+from test_observer.controllers.applications.application_injection import get_current_application
 from test_observer.controllers.notifications.models import (
     NotificationResponse,
     NotificationsResponse,
 )
-from test_observer.data_access.models import Notification, User
+from test_observer.data_access.models import Application, Notification, User
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
@@ -77,14 +78,18 @@ def get_own_notifications(
     ] = False,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_current_user),
+    application: Application | None = Depends(get_current_application),
     authentication_required: bool = Depends(requires_authentication),
 ):
     """Get all notifications for the authenticated user"""
     # Even if an app is authenticated, it doesn't make sense for an app to access this endpoint,
     # since notifications are inherently user-specific. Thus, we require a user.
-    if authentication_required and user is None:
+    if authentication_required and user is None and application is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    if authentication_required and user is None and application is not None:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
+    # If authentication is not required, we might not have a user
     if user is None:
         if request.url.path.endswith("/count"):
             return 0
@@ -111,13 +116,17 @@ def mark_own_notification_as_read(
     notification_id: int,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_current_user),
+    application: Application | None = Depends(get_current_application),
 ):
     """Mark the authenticated user's own notification as read"""
 
     # In this case, regardless of whether authentication is required,
     # this endpoint only makes sense if a user is authenticated
     if user is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        if application is None:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        else:
+            raise HTTPException(status_code=403, detail="Forbidden")
 
     notification = db.scalar(
         select(Notification).where(Notification.id == notification_id).where(Notification.user_id == user.id)

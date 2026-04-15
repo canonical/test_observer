@@ -166,7 +166,7 @@ def test_get_own_notifications_authenticated_app_auth_required(test_client: Test
         response = test_client.get(
             "/v1/users/me/notifications", headers={"Authorization": f"Bearer {application.api_key}"}
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
     finally:
         app.dependency_overrides.pop(requires_authentication, None)
 
@@ -178,7 +178,7 @@ def test_get_own_notifications_count_authenticated_app_auth_required(test_client
         response = test_client.get(
             "/v1/users/me/notifications/count", headers={"Authorization": f"Bearer {application.api_key}"}
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
     finally:
         app.dependency_overrides.pop(requires_authentication, None)
 
@@ -236,6 +236,48 @@ def test_get_notifications_app_with_permissions(test_client: TestClient, generat
     assert json_.get("count") == 1
     assert len(json_.get("notifications", [])) == 1
     assert json_["notifications"][0]["id"] == notification.id
+
+
+### Begin NOTE:
+# The /v1/users/me/notifications/{notification.id}/dismiss endpoint doesn't change behavior
+# based on whether authentication is required or not.
+# It always requires a user to be authenticated and doesn't allow an application,
+# because posting to a /me-based endpoint just doesn't make sense outside of an authenticated user context
+
+
+def test_dismiss_own_notification_unauthenticated(test_client: TestClient, generator: DataGenerator):
+    """Test that dismissing a notification without authentication returns 401"""
+    user = generator.gen_user(email="unauth@test.com")
+    notification = generator.gen_notification(user=user)
+
+    response = test_client.post(f"/v1/users/me/notifications/{notification.id}/dismiss")
+    assert response.status_code == 401
+
+
+def test_dismiss_own_notification_authenticated_user(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """Test that an authenticated user can dismiss their own notification"""
+    user = generator.gen_user(email="user@test.com")
+    notification = generator.gen_notification(user=user)
+    authenticate_user(test_client, user, generator, create_session_cookie)
+    response = test_client.post(f"/v1/users/me/notifications/{notification.id}/dismiss", headers={"X-CSRF-Token": "1"})
+    assert response.status_code == 200
+    json_ = response.json()
+    assert json_["id"] == notification.id
+    assert json_["dismissed_at"] is not None
+
+
+def test_dismiss_own_notification_authenticated_app(test_client: TestClient, generator: DataGenerator):
+    """Test that an authenticated application is forbidden from /me-based notification endpoints"""
+    application = generator.gen_application(permissions=["change_notification"])
+    response = test_client.post(
+        "/v1/users/me/notifications/1/dismiss", headers={"Authorization": f"Bearer {application.api_key}"}
+    )
+    assert response.status_code == 403
+
+
+### End NOTE
 
 
 def test_get_multiple_notifications(
