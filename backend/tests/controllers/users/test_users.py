@@ -20,86 +20,188 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.common.permissions import requires_authentication
 from test_observer.data_access.models_enums import FamilyName
-from tests.conftest import make_authenticated_request
+from test_observer.main import app
+from tests.conftest import authenticate_user, make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
-def test_get_me_without_csrf_token_returns_none(
+def test_get_me_unauthenticated_auth_not_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        response = test_client.get("/v1/users/me")
+        assert response.status_code == 200
+        assert response.json() is None
+
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_unauthenticated_auth_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        response = test_client.get("/v1/users/me")
+        assert response.status_code == 401
+
+        # It takes more than just a token header to be authenticated.
+        # A session cookie is required as well
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_app_auth_not_required(test_client: TestClient, generator: DataGenerator):
+    """
+    Test that an authenticated application still gets nothing from /me since it is user-specific,
+    even if authentication is not required
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        application = generator.gen_application(permissions=["view_user"])
+        response = test_client.get("/v1/users/me", headers={"Authorization": f"Bearer {application.api_key}"})
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_user_auth_not_required(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """
+    Test that an authenticated user gets their user data from /me when authentication is not required
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        user = generator.gen_user()
+        authenticate_user(test_client, user, generator, create_session_cookie)
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
+
+        assert response.status_code == 200
+        user_data = response.json()
+        assert user_data is not None
+        assert user_data["id"] == user.id
+        assert user_data["name"] == user.name
+        assert user_data["email"] == user.email
+        assert user_data["launchpad_handle"] == user.launchpad_handle
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_app_auth_required(test_client: TestClient, generator: DataGenerator):
+    """
+    Test that an authenticated application gets a 401 from /me when auth is required,
+    since it is user-specific
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        application = generator.gen_application(permissions=["view_user"])
+        response = test_client.get("/v1/users/me", headers={"Authorization": f"Bearer {application.api_key}"})
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_user_auth_required(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """
+    Test that an authenticated user gets their user data from /me when authentication is required
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        user = generator.gen_user()
+        authenticate_user(test_client, user, generator, create_session_cookie)
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
+
+        assert response.status_code == 200
+        user_data = response.json()
+        assert user_data is not None
+        assert user_data["id"] == user.id
+        assert user_data["name"] == user.name
+        assert user_data["email"] == user.email
+        assert user_data["launchpad_handle"] == user.launchpad_handle
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_with_expired_session_returns_none_auth_not_required(
     test_client: TestClient,
     generator: DataGenerator,
     create_session_cookie: Callable[[int], str],
 ):
-    """Test that accessing /me without X-CSRF-Token header returns None"""
-    user = generator.gen_user()
-    session = generator.gen_user_session(user)
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        user = generator.gen_user()
+        session = generator.gen_user_session(user, expires_at=datetime.now() - timedelta(days=1))
 
-    session_cookie = create_session_cookie(session.id)
-    test_client.cookies.set("session", session_cookie)
+        session_cookie = create_session_cookie(session.id)
+        test_client.cookies.set("session", session_cookie)
 
-    response = test_client.get("/v1/users/me")
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
-    assert response.status_code == 200
-    assert response.json() is None
-
-
-def test_get_me_without_session_returns_none(test_client: TestClient):
-    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
-
-    assert response.status_code == 200
-    assert response.json() is None
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
-def test_get_me_with_expired_session_returns_none(
+def test_get_me_with_expired_session_errors_auth_required(
     test_client: TestClient,
     generator: DataGenerator,
     create_session_cookie: Callable[[int], str],
 ):
-    user = generator.gen_user()
-    session = generator.gen_user_session(user, expires_at=datetime.now() - timedelta(days=1))
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        user = generator.gen_user()
+        session = generator.gen_user_session(user, expires_at=datetime.now() - timedelta(days=1))
 
-    session_cookie = create_session_cookie(session.id)
-    test_client.cookies.set("session", session_cookie)
+        session_cookie = create_session_cookie(session.id)
+        test_client.cookies.set("session", session_cookie)
 
-    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
-    assert response.status_code == 200
-    assert response.json() is None
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
-def test_get_me_with_nonexistent_session_returns_none(
+def test_get_me_with_nonexistent_session_returns_none_auth_not_required(
     test_client: TestClient,
     create_session_cookie: Callable[[int], str],
 ):
-    session_cookie = create_session_cookie(999999)  # Non-existent session ID
-    test_client.cookies.set("session", session_cookie)
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        session_cookie = create_session_cookie(999999)  # Non-existent session ID
+        test_client.cookies.set("session", session_cookie)
 
-    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
-    assert response.status_code == 200
-    assert response.json() is None
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
-def test_get_me_with_valid_session_returns_user_data(
+def test_get_me_with_nonexistent_session_returns_none_auth_required(
     test_client: TestClient,
-    generator: DataGenerator,
     create_session_cookie: Callable[[int], str],
 ):
-    user = generator.gen_user()
-    session = generator.gen_user_session(user)
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        session_cookie = create_session_cookie(999999)  # Non-existent session ID
+        test_client.cookies.set("session", session_cookie)
 
-    session_cookie = create_session_cookie(session.id)
-    test_client.cookies.set("session", session_cookie)
+        response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
 
-    response = test_client.get("/v1/users/me", headers={"X-CSRF-Token": "1"})
-
-    assert response.status_code == 200
-    user_data = response.json()
-    assert user_data is not None
-    assert user_data["id"] == user.id
-    assert user_data["name"] == user.name
-    assert user_data["email"] == user.email
-    assert user_data["launchpad_handle"] == user.launchpad_handle
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
 def test_get_users_response_format(test_client: TestClient, generator: DataGenerator):
