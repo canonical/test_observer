@@ -239,10 +239,14 @@ class ArtefactMatchingRule(Base):
 
     grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
-    __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner"),)
+    __table_args__ = (
+        UniqueConstraint("name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner"),
+    )
 
     def __repr__(self) -> str:
-        return data_model_repr(self, "name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner")
+        return data_model_repr(
+            self, "name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner"
+        )
 
 
 class UserSession(Base):

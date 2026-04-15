@@ -55,11 +55,36 @@ def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[i
                 or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
                 or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
-                or_(ArtefactMatchingRule.store == artefact.store if hasattr(artefact, "store") else ArtefactMatchingRule.store == "", ArtefactMatchingRule.store == ""),
-                or_(ArtefactMatchingRule.series == artefact.series if hasattr(artefact, "series") else ArtefactMatchingRule.series == "", ArtefactMatchingRule.series == ""),
-                or_(ArtefactMatchingRule.os == artefact.os if hasattr(artefact, "os") else ArtefactMatchingRule.os == "", ArtefactMatchingRule.os == ""),
-                or_(ArtefactMatchingRule.release == artefact.release if hasattr(artefact, "release") else ArtefactMatchingRule.release == "", ArtefactMatchingRule.release == ""),
-                or_(ArtefactMatchingRule.owner == artefact.owner if hasattr(artefact, "owner") else ArtefactMatchingRule.owner == "", ArtefactMatchingRule.owner == ""),
+                or_(
+                    ArtefactMatchingRule.store == artefact.store
+                    if hasattr(artefact, "store")
+                    else ArtefactMatchingRule.store == "",
+                    ArtefactMatchingRule.store == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.series == artefact.series
+                    if hasattr(artefact, "series")
+                    else ArtefactMatchingRule.series == "",
+                    ArtefactMatchingRule.series == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.os == artefact.os
+                    if hasattr(artefact, "os")
+                    else ArtefactMatchingRule.os == "",
+                    ArtefactMatchingRule.os == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.release == artefact.release
+                    if hasattr(artefact, "release")
+                    else ArtefactMatchingRule.release == "",
+                    ArtefactMatchingRule.release == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.owner == artefact.owner
+                    if hasattr(artefact, "owner")
+                    else ArtefactMatchingRule.owner == "",
+                    ArtefactMatchingRule.owner == "",
+                ),
             )
         )
         .scalar_subquery()
@@ -73,11 +98,34 @@ def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[i
             or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
             or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
-            or_(ArtefactMatchingRule.store == artefact.store if hasattr(artefact, "store") else ArtefactMatchingRule.store == "", ArtefactMatchingRule.store == ""),
-            or_(ArtefactMatchingRule.series == artefact.series if hasattr(artefact, "series") else ArtefactMatchingRule.series == "", ArtefactMatchingRule.series == ""),
-            or_(ArtefactMatchingRule.os == artefact.os if hasattr(artefact, "os") else ArtefactMatchingRule.os == "", ArtefactMatchingRule.os == ""),
-            or_(ArtefactMatchingRule.release == artefact.release if hasattr(artefact, "release") else ArtefactMatchingRule.release == "", ArtefactMatchingRule.release == ""),
-            or_(ArtefactMatchingRule.owner == artefact.owner if hasattr(artefact, "owner") else ArtefactMatchingRule.owner == "", ArtefactMatchingRule.owner == ""),
+            or_(
+                ArtefactMatchingRule.store == artefact.store
+                if hasattr(artefact, "store")
+                else ArtefactMatchingRule.store == "",
+                ArtefactMatchingRule.store == "",
+            ),
+            or_(
+                ArtefactMatchingRule.series == artefact.series
+                if hasattr(artefact, "series")
+                else ArtefactMatchingRule.series == "",
+                ArtefactMatchingRule.series == "",
+            ),
+            or_(
+                ArtefactMatchingRule.os == artefact.os if hasattr(artefact, "os") else ArtefactMatchingRule.os == "",
+                ArtefactMatchingRule.os == "",
+            ),
+            or_(
+                ArtefactMatchingRule.release == artefact.release
+                if hasattr(artefact, "release")
+                else ArtefactMatchingRule.release == "",
+                ArtefactMatchingRule.release == "",
+            ),
+            or_(
+                ArtefactMatchingRule.owner == artefact.owner
+                if hasattr(artefact, "owner")
+                else ArtefactMatchingRule.owner == "",
+                ArtefactMatchingRule.owner == "",
+            ),
             specificity == max_specificity_subquery,
         )
     )
@@ -94,11 +142,34 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
             or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
             or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
-            or_(ArtefactMatchingRule.store == artefact.store if hasattr(artefact, "store") else ArtefactMatchingRule.store == "", ArtefactMatchingRule.store == ""),
-            or_(ArtefactMatchingRule.series == artefact.series if hasattr(artefact, "series") else ArtefactMatchingRule.series == "", ArtefactMatchingRule.series == ""),
-            or_(ArtefactMatchingRule.os == artefact.os if hasattr(artefact, "os") else ArtefactMatchingRule.os == "", ArtefactMatchingRule.os == ""),
-            or_(ArtefactMatchingRule.release == artefact.release if hasattr(artefact, "release") else ArtefactMatchingRule.release == "", ArtefactMatchingRule.release == ""),
-            or_(ArtefactMatchingRule.owner == artefact.owner if hasattr(artefact, "owner") else ArtefactMatchingRule.owner == "", ArtefactMatchingRule.owner == ""),
+            or_(
+                ArtefactMatchingRule.store == artefact.store
+                if hasattr(artefact, "store")
+                else ArtefactMatchingRule.store == "",
+                ArtefactMatchingRule.store == "",
+            ),
+            or_(
+                ArtefactMatchingRule.series == artefact.series
+                if hasattr(artefact, "series")
+                else ArtefactMatchingRule.series == "",
+                ArtefactMatchingRule.series == "",
+            ),
+            or_(
+                ArtefactMatchingRule.os == artefact.os if hasattr(artefact, "os") else ArtefactMatchingRule.os == "",
+                ArtefactMatchingRule.os == "",
+            ),
+            or_(
+                ArtefactMatchingRule.release == artefact.release
+                if hasattr(artefact, "release")
+                else ArtefactMatchingRule.release == "",
+                ArtefactMatchingRule.release == "",
+            ),
+            or_(
+                ArtefactMatchingRule.owner == artefact.owner
+                if hasattr(artefact, "owner")
+                else ArtefactMatchingRule.owner == "",
+                ArtefactMatchingRule.owner == "",
+            ),
         )
     )
 
