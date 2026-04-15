@@ -328,6 +328,19 @@ def test_get_notification_for_nonexistent_user(
     assert response.status_code == 404
 
 
+def test_get_count_for_nonexistent_user(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """Test that getting notification count for a non-existent user returns 404"""
+    user = generator.gen_user(email="user@test.com")
+    authenticate_user(test_client, user, generator, create_session_cookie)
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/users/99999/notifications/count", headers={"X-CSRF-Token": "1"}),
+        Permission.view_notification,
+    )
+    assert response.status_code == 404
+
+
 def test_get_unread_count(
     test_client: TestClient,
     generator: DataGenerator,
