@@ -226,10 +226,12 @@ def test_update_team_artefact_matching_rules(test_client: TestClient, generator:
     assert response.status_code == 200
     data = response.json()
     assert len(data["artefact_matching_rules"]) == 2
-    assert data["artefact_matching_rules"][0]["family"] == "snap"
-    assert data["artefact_matching_rules"][0]["stage"] is None
-    assert data["artefact_matching_rules"][1]["family"] == "deb"
-    assert data["artefact_matching_rules"][1]["stage"] == "proposed"
+    snap_rule = next(r for r in data["artefact_matching_rules"] if r["family"] == "snap")
+    assert snap_rule is not None
+    assert snap_rule["stage"] is None
+    deb_rule = next(r for r in data["artefact_matching_rules"] if r["family"] == "deb")
+    assert deb_rule is not None
+    assert deb_rule["stage"] == "proposed"
 
 
 def test_add_team_member(test_client: TestClient, generator: DataGenerator):
