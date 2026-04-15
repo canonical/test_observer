@@ -13,12 +13,16 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Callable
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.common.permissions import requires_authentication
 from test_observer.data_access.models import Application
-from tests.conftest import make_authenticated_request
+from test_observer.main import app
+from tests.conftest import authenticate_user, make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
@@ -44,11 +48,11 @@ def test_create_application(test_client: TestClient, db_session: Session):
     assert data["api_key"][0:3] == "to_"
 
     app_id = data["id"]
-    app = db_session.get(Application, app_id)
-    assert app is not None
-    assert app.name == "myscript"
-    assert app.permissions == [Permission.view_user]
-    assert app.api_key == data["api_key"]
+    application = db_session.get(Application, app_id)
+    assert application is not None
+    assert application.name == "myscript"
+    assert application.permissions == [Permission.view_user]
+    assert application.api_key == data["api_key"]
 
 
 def test_get_applications(test_client: TestClient, generator: DataGenerator):
@@ -84,21 +88,98 @@ def test_get_application(test_client: TestClient, generator: DataGenerator):
     }
 
 
-def test_get_current_application(test_client: TestClient, generator: DataGenerator):
-    application = generator.gen_application()
+def test_get_me_unauthenticated_auth_not_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        response = test_client.get("/v1/applications/me")
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
 
-    response = test_client.get(
-        "/v1/applications/me",
-        headers={"Authorization": f"Bearer {application.api_key}"},
-    )
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "id": application.id,
-        "name": application.name,
-        "permissions": application.permissions,
-        "api_key": application.api_key,
-    }
+def test_get_me_unauthenticated_auth_required(test_client: TestClient):
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        response = test_client.get("/v1/applications/me")
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_app_auth_not_required(test_client: TestClient, generator: DataGenerator):
+    """
+    Test that an authenticated application gets its application data from /me when authentication is not required
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        application = generator.gen_application(permissions=["view_user"])
+        response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {application.api_key}"})
+        assert response.status_code == 200
+
+        json_ = response.json()
+        assert json_ is not None
+        assert json_.get("id") == application.id
+        assert json_.get("name") == application.name
+        assert json_.get("permissions") == application.permissions
+        assert json_.get("api_key") == application.api_key
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_user_auth_not_required(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """
+    Test that an authenticated user gets nothing from /me when authentication is not required
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: False
+        user = generator.gen_user()
+        authenticate_user(test_client, user, generator, create_session_cookie)
+        response = test_client.get("/v1/applications/me", headers={"X-CSRF-Token": "1"})
+
+        assert response.status_code == 200
+        assert response.json() is None
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_app_auth_required(test_client: TestClient, generator: DataGenerator):
+    """
+    Test that an authenticated application gets its application data from /me when authentication is required
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        application = generator.gen_application(permissions=["view_user"])
+        response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {application.api_key}"})
+        assert response.status_code == 200
+
+        json_ = response.json()
+        assert json_ is not None
+        assert json_.get("id") == application.id
+        assert json_.get("name") == application.name
+        assert json_.get("permissions") == application.permissions
+        assert json_.get("api_key") == application.api_key
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_get_me_authenticated_user_auth_required(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """
+    Test that an authenticated user gets 401 from /me when authentication is required
+    """
+    try:
+        app.dependency_overrides[requires_authentication] = lambda: True
+        user = generator.gen_user()
+        authenticate_user(test_client, user, generator, create_session_cookie)
+        response = test_client.get("/v1/applications/me", headers={"X-CSRF-Token": "1"})
+
+        assert response.status_code == 401
+    finally:
+        app.dependency_overrides.pop(requires_authentication, None)
 
 
 def test_update_application_permissions(test_client: TestClient, generator: DataGenerator):
