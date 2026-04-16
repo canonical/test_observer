@@ -34,6 +34,7 @@ def delete_previous_results(
     test_execution: TestExecution,
 ):
     db.execute(delete(TestResult).where(TestResult.test_execution_id == test_execution.id))
+    db.expire(test_execution, ["test_results"])
 
 
 def delete_previous_test_events(
@@ -41,6 +42,7 @@ def delete_previous_test_events(
     test_execution: TestExecution,
 ):
     db.execute(delete(TestEvent).where(TestEvent.test_execution_id == test_execution.id))
+    db.expire(test_execution, ["test_events"])
 
 
 def get_previous_test_results(
