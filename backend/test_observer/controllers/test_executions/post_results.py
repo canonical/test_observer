@@ -47,6 +47,9 @@ def post_results(
     request: list[TestResultRequest],
     db: Session = Depends(get_db),
 ):
+    # Serialise concurrent requests for the same execution. Without this lock,
+    # a retry can miss uncommitted inserts from the first request (READ COMMITTED)
+    # and produce duplicate rows.
     test_execution = db.get(
         TestExecution,
         id,
@@ -55,6 +58,7 @@ def post_results(
             selectinload(TestExecution.environment),
             selectinload(TestExecution.execution_metadata),
         ],
+        with_for_update=True,
     )
 
     if test_execution is None:
