@@ -32,7 +32,7 @@ depends_on = None
 
 
 PREVIOUS_CONSTRAINT_NAME = "artefact_matching_rule_name_family_stage_track_branch_key"
-NEW_CONSTRAINT_NAME = "artefact_matching_rule_name_family_stage_track_branch_store_series_os_release_owner_key"
+NEW_CONSTRAINT_NAME = "artefact_matching_rule_fields_from_artefact"
 
 
 def upgrade() -> None:
