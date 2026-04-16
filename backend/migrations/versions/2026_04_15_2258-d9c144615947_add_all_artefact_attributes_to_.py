@@ -59,7 +59,19 @@ def upgrade() -> None:
     op.create_unique_constraint(
         op.f(NEW_CONSTRAINT_NAME),
         "artefact_matching_rule",
-        ["name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner", "grant_permissions"],
+        [
+            "name",
+            "family",
+            "stage",
+            "track",
+            "branch",
+            "store",
+            "series",
+            "os",
+            "release",
+            "owner",
+            "grant_permissions",
+        ],
     )
 
 
@@ -93,32 +105,40 @@ def downgrade() -> None:
 
     if duplicates:
         for doomed_id, survivor_id in duplicates:
-            
             # Merge team associations (ON CONFLICT DO NOTHING handles overlap)
-            conn.execute(sa.text(f"""
+            conn.execute(
+                sa.text(f"""
                 INSERT INTO {ASSOCIATION_TABLE_NAME} (artefact_matching_rule_id, team_id)
                 SELECT :survivor_id, team_id 
                 FROM {ASSOCIATION_TABLE_NAME} 
                 WHERE artefact_matching_rule_id = :doomed_id
                 ON CONFLICT DO NOTHING;
-            """), {"survivor_id": survivor_id, "doomed_id": doomed_id})
-            
+            """),
+                {"survivor_id": survivor_id, "doomed_id": doomed_id},
+            )
+
             # Remove old references in the association table
-            conn.execute(sa.text(f"""
+            conn.execute(
+                sa.text(f"""
                 DELETE FROM {ASSOCIATION_TABLE_NAME} 
                 WHERE artefact_matching_rule_id = :doomed_id;
-            """), {"doomed_id": doomed_id})
-            
+            """),
+                {"doomed_id": doomed_id},
+            )
+
             # Delete the duplicate rule
-            conn.execute(sa.text("""
+            conn.execute(
+                sa.text("""
                 DELETE FROM artefact_matching_rule 
                 WHERE id = :doomed_id;
-            """), {"doomed_id": doomed_id})
+            """),
+                {"doomed_id": doomed_id},
+            )
 
     # now we can proceed with the downgrade
     # drop new unique constraint
     op.drop_constraint(op.f(NEW_CONSTRAINT_NAME), "artefact_matching_rule", type_="unique")
-    
+
     # drop added columns
     op.drop_column("artefact_matching_rule", "owner")
     op.drop_column("artefact_matching_rule", "release")

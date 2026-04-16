@@ -148,11 +148,15 @@ def test_downgrade_merges_duplicates_correctly(migration_context: tuple[Engine, 
         conn.execute(
             text("""
             INSERT INTO artefact_matching_rule 
-            (name, family, stage, track, branch, store, series, os, release, owner, created_at, updated_at)
+            (name, family, stage, track, branch, store, series, os, release, owner,
+             created_at, updated_at)
             VALUES 
-                ('rule_1', 'snap', 'candidate', 'stable', 'main', 'snapcraft', 'focal', 'x86_64', '20.04', 'owner1', NOW(), NOW()),
-                ('rule_1', 'snap', 'candidate', 'stable', 'main', 'snapcraft2', 'jammy', 'arm64', '22.04', 'owner2', NOW(), NOW()),
-                ('rule_1', 'snap', 'candidate', 'stable', 'main', 'snapcraft3', 'noble', 'ppc64el', '24.04', 'owner3', NOW(), NOW())
+                ('rule_1', 'snap', 'candidate', 'stable', 'main', 'snapcraft',
+                 'focal', 'x86_64', '20.04', 'owner1', NOW(), NOW()),
+                ('rule_1', 'snap', 'candidate', 'stable', 'main', 'snapcraft2',
+                 'jammy', 'arm64', '22.04', 'owner2', NOW(), NOW()),
+                ('rule_1', 'snap', 'candidate', 'stable', 'main', 'snapcraft3',
+                 'noble', 'ppc64el', '24.04', 'owner3', NOW(), NOW())
         """)
         )
 
@@ -165,10 +169,10 @@ def test_downgrade_merges_duplicates_correctly(migration_context: tuple[Engine, 
         """)
         ).fetchall()
 
-        rule_ids = [(row[0], row[1]) for row in rules]
+        rule_ids = [row[0] for row in rules]
 
         # Assign teams to all rules
-        for rule_id, store in rule_ids:
+        for rule_id in rule_ids:
             # Assign team_1 to all rules (will need deduplication)
             conn.execute(
                 text("""
