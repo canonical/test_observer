@@ -62,7 +62,17 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
     seen_rules = set()
     unique_rules_data = []
     for rule_data in rules_data:
-        rule_key = (rule_data.family, rule_data.stage, rule_data.track, rule_data.branch)
+        rule_key = (
+            rule_data.family,
+            rule_data.stage,
+            rule_data.track,
+            rule_data.branch,
+            rule_data.store,
+            rule_data.series,
+            rule_data.os,
+            rule_data.release,
+            rule_data.owner,
+        )
         if rule_key not in seen_rules:
             seen_rules.add(rule_key)
             unique_rules_data.append(rule_data)
@@ -76,6 +86,11 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
                 ArtefactMatchingRule.stage == rule_data.stage,
                 ArtefactMatchingRule.track == rule_data.track,
                 ArtefactMatchingRule.branch == rule_data.branch,
+                ArtefactMatchingRule.store == rule_data.store,
+                ArtefactMatchingRule.series == rule_data.series,
+                ArtefactMatchingRule.os == rule_data.os,
+                ArtefactMatchingRule.release == rule_data.release,
+                ArtefactMatchingRule.owner == rule_data.owner,
             )
         ).scalar_one_or_none()
 
@@ -89,6 +104,11 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
                 stage=rule_data.stage,
                 track=rule_data.track,
                 branch=rule_data.branch,
+                store=rule_data.store,
+                series=rule_data.series,
+                os=rule_data.os,
+                release=rule_data.release,
+                owner=rule_data.owner,
                 teams=[team],
             )
             db.add(new_rule)

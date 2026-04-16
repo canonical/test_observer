@@ -357,24 +357,28 @@ def test_create_team_with_complex_matching_rules(test_client: TestClient):
 
     # Check snap with track only
     snap_track = next((r for r in data["artefact_matching_rules"] if r["track"] == "22"), None)
+    assert snap_track is not None
     assert snap_track["family"] == "snap"
     assert snap_track["stage"] is None
     assert snap_track["branch"] is None
 
     # Check snap with track and stage
     snap_track_stage = next((r for r in data["artefact_matching_rules"] if r["track"] == "24"), None)
+    assert snap_track_stage is not None
     assert snap_track_stage["family"] == "snap"
     assert snap_track_stage["stage"] == "beta"
     assert snap_track_stage["branch"] is None
 
     # Check deb with branch
     deb_branch = next((r for r in data["artefact_matching_rules"] if r["family"] == "deb"), None)
+    assert deb_branch is not None
     assert deb_branch["branch"] == "jammy"
     assert deb_branch["stage"] is None
     assert deb_branch["track"] is None
 
     # Check charm with all fields
     charm_full = next((r for r in data["artefact_matching_rules"] if r["family"] == "charm"), None)
+    assert charm_full is not None
     assert charm_full["track"] == "1.0"
     assert charm_full["stage"] == "edge"
     assert charm_full["branch"] == "feature-x"
@@ -416,6 +420,7 @@ def test_update_team_replaces_matching_rules(test_client: TestClient, generator:
 
     # Verify charm rule has track
     charm_rule = next((r for r in data["artefact_matching_rules"] if r["family"] == "charm"), None)
+    assert charm_rule is not None
     assert charm_rule["track"] == "stable"
 
 
@@ -509,11 +514,13 @@ def test_get_team_returns_matching_rules(test_client: TestClient, generator: Dat
     assert len(data["artefact_matching_rules"]) == 2
 
     snap = next((r for r in data["artefact_matching_rules"] if r["family"] == "snap"), None)
+    assert snap is not None
     assert snap["track"] == "22"
     assert snap["stage"] == "stable"
     assert snap["branch"] is None
 
     deb = next((r for r in data["artefact_matching_rules"] if r["family"] == "deb"), None)
+    assert deb is not None
     assert deb["branch"] == "jammy"
     assert deb["track"] is None
     assert deb["stage"] is None
