@@ -56,23 +56,23 @@ def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[i
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
                 or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
                 or_(
-                    ArtefactMatchingRule.store == artefact.store
+                    ArtefactMatchingRule.store == artefact.store,
                     ArtefactMatchingRule.store == "",
                 ),
                 or_(
-                    ArtefactMatchingRule.series == artefact.series
+                    ArtefactMatchingRule.series == artefact.series,
                     ArtefactMatchingRule.series == "",
                 ),
                 or_(
-                    ArtefactMatchingRule.os == artefact.os
+                    ArtefactMatchingRule.os == artefact.os,
                     ArtefactMatchingRule.os == "",
                 ),
                 or_(
-                    ArtefactMatchingRule.release == artefact.release
+                    ArtefactMatchingRule.release == artefact.release,
                     ArtefactMatchingRule.release == "",
                 ),
                 or_(
-                    ArtefactMatchingRule.owner == artefact.owner
+                    ArtefactMatchingRule.owner == artefact.owner,
                     ArtefactMatchingRule.owner == "",
                 ),
             )
@@ -89,11 +89,11 @@ def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[i
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
             or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
             or_(
-                ArtefactMatchingRule.store == artefact.store
+                ArtefactMatchingRule.store == artefact.store,
                 ArtefactMatchingRule.store == "",
             ),
             or_(
-                ArtefactMatchingRule.series == artefact.series
+                ArtefactMatchingRule.series == artefact.series,
                 ArtefactMatchingRule.series == "",
             ),
             or_(
@@ -101,11 +101,11 @@ def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[i
                 ArtefactMatchingRule.os == "",
             ),
             or_(
-                ArtefactMatchingRule.release == artefact.release
+                ArtefactMatchingRule.release == artefact.release,
                 ArtefactMatchingRule.release == "",
             ),
             or_(
-                ArtefactMatchingRule.owner == artefact.owner
+                ArtefactMatchingRule.owner == artefact.owner,
                 ArtefactMatchingRule.owner == "",
             ),
             specificity == max_specificity_subquery,
@@ -125,11 +125,11 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
             or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
             or_(
-                ArtefactMatchingRule.store == artefact.store
+                ArtefactMatchingRule.store == artefact.store,
                 ArtefactMatchingRule.store == "",
             ),
             or_(
-                ArtefactMatchingRule.series == artefact.series
+                ArtefactMatchingRule.series == artefact.series,
                 ArtefactMatchingRule.series == "",
             ),
             or_(
@@ -137,11 +137,11 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
                 ArtefactMatchingRule.os == "",
             ),
             or_(
-                ArtefactMatchingRule.release == artefact.release
+                ArtefactMatchingRule.release == artefact.release,
                 ArtefactMatchingRule.release == "",
             ),
             or_(
-                ArtefactMatchingRule.owner == artefact.owner
+                ArtefactMatchingRule.owner == artefact.owner,
                 ArtefactMatchingRule.owner == "",
             ),
         )
