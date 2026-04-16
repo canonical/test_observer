@@ -36,8 +36,12 @@ NEW_CONSTRAINT_NAME = "artefact_matching_rule_fields_from_artefact"
 
 
 def upgrade() -> None:
-    op.add_column("artefact_matching_rule", sa.Column("store", sa.String(), server_default="", nullable=False))
-    op.add_column("artefact_matching_rule", sa.Column("series", sa.String(), server_default="", nullable=False))
+    op.add_column(
+        "artefact_matching_rule", sa.Column("store", sa.String(length=200), server_default="", nullable=False)
+    )
+    op.add_column(
+        "artefact_matching_rule", sa.Column("series", sa.String(length=200), server_default="", nullable=False)
+    )
     op.add_column("artefact_matching_rule", sa.Column("os", sa.String(length=200), server_default="", nullable=False))
     op.add_column(
         "artefact_matching_rule", sa.Column("release", sa.String(length=200), server_default="", nullable=False)

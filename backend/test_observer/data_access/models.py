@@ -218,14 +218,14 @@ class ArtefactMatchingRule(Base):
     family: Mapped[FamilyName]
 
     # Snap-specific field
-    store: Mapped[str] = mapped_column(default="", server_default="")
+    store: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     # Snap- and Charm-specific fields
     track: Mapped[str] = mapped_column(String(200), default="", server_default="")
     branch: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     # Deb-specific fields
-    series: Mapped[str] = mapped_column(default="", server_default="")
+    series: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     # Image-specific fields
     os: Mapped[str] = mapped_column(String(200), default="", server_default="")
