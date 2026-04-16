@@ -60,11 +60,13 @@ def test_create_team_with_permissions_and_matching_rules(test_client: TestClient
     assert data["name"] == "test-team"
     assert data["permissions"] == [Permission.view_user, Permission.change_team]
     assert len(data["artefact_matching_rules"]) == 2
-    assert data["artefact_matching_rules"][0]["family"] == "snap"
-    assert data["artefact_matching_rules"][0]["stage"] is None
-    assert data["artefact_matching_rules"][0]["track"] is None
-    assert data["artefact_matching_rules"][0]["branch"] is None
-    assert data["artefact_matching_rules"][1]["family"] == "deb"
+    snap_rule = next(r for r in data["artefact_matching_rules"] if r["family"] == "snap")
+    assert snap_rule is not None
+    assert snap_rule["stage"] is None
+    assert snap_rule["track"] is None
+    assert snap_rule["branch"] is None
+    deb_rule = next(r for r in data["artefact_matching_rules"] if r["family"] == "deb")
+    assert deb_rule is not None
     assert data["members"] == []
 
 
