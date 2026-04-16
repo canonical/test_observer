@@ -184,7 +184,7 @@ def test_downgrade_merges_duplicates_correctly(migration_context: tuple[Engine, 
             )
 
         # Assign team_2 only to rule 1 and 2
-        for rule_id, _ in rule_ids[:2]:
+        for rule_id in rule_ids[:2]:
             conn.execute(
                 text("""
                 INSERT INTO artefact_matching_rule_team_association 
