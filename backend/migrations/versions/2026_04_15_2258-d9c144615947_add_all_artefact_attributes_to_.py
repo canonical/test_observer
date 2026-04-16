@@ -34,6 +34,9 @@ depends_on = None
 PREVIOUS_CONSTRAINT_NAME = "artefact_matching_rule_name_family_stage_track_branch_key"
 NEW_CONSTRAINT_NAME = "artefact_matching_rule_fields_from_artefact"
 
+# Update this if your association table has a different name
+ASSOCIATION_TABLE_NAME = "artefact_matching_rule_team_association"
+
 
 def upgrade() -> None:
     op.add_column(
@@ -56,19 +59,74 @@ def upgrade() -> None:
     op.create_unique_constraint(
         op.f(NEW_CONSTRAINT_NAME),
         "artefact_matching_rule",
-        ["name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner"],
+        ["name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner", "grant_permissions"],
     )
 
 
 def downgrade() -> None:
+    # for the downgrade, to ensure that we don't have duplicate AMRs,
+    # we first merge the ones that will become duplicates
+    # e.g. same family and different release, both AMRs will be the same
+    conn = op.get_bind()
+
+    # partition by the old 5 constraint columns to find duplicates
+    find_duplicates_query = sa.text("""
+        WITH RankedRules AS (
+            SELECT 
+                id,
+                ROW_NUMBER() OVER(
+                    PARTITION BY name, family, stage, track, branch 
+                    ORDER BY id ASC
+                ) as rn,
+                FIRST_VALUE(id) OVER(
+                    PARTITION BY name, family, stage, track, branch 
+                    ORDER BY id ASC
+                ) as survivor_id
+            FROM artefact_matching_rule
+        )
+        SELECT id AS doomed_id, survivor_id 
+        FROM RankedRules 
+        WHERE rn > 1;
+    """)
+
+    duplicates = conn.execute(find_duplicates_query).fetchall()
+
+    if duplicates:
+        for doomed_id, survivor_id in duplicates:
+            
+            # Merge team associations (ON CONFLICT DO NOTHING handles overlap)
+            conn.execute(sa.text(f"""
+                INSERT INTO {ASSOCIATION_TABLE_NAME} (artefact_matching_rule_id, team_id)
+                SELECT :survivor_id, team_id 
+                FROM {ASSOCIATION_TABLE_NAME} 
+                WHERE artefact_matching_rule_id = :doomed_id
+                ON CONFLICT DO NOTHING;
+            """), {"survivor_id": survivor_id, "doomed_id": doomed_id})
+            
+            # Remove old references in the association table
+            conn.execute(sa.text(f"""
+                DELETE FROM {ASSOCIATION_TABLE_NAME} 
+                WHERE artefact_matching_rule_id = :doomed_id;
+            """), {"doomed_id": doomed_id})
+            
+            # Delete the duplicate rule
+            conn.execute(sa.text("""
+                DELETE FROM artefact_matching_rule 
+                WHERE id = :doomed_id;
+            """), {"doomed_id": doomed_id})
+
+    # now we can proceed with the downgrade
     # drop new unique constraint
     op.drop_constraint(op.f(NEW_CONSTRAINT_NAME), "artefact_matching_rule", type_="unique")
-    # recreate old one
-    op.create_unique_constraint(
-        op.f(PREVIOUS_CONSTRAINT_NAME), "artefact_matching_rule", ["name", "family", "stage", "track", "branch"]
-    )
+    
+    # drop added columns
     op.drop_column("artefact_matching_rule", "owner")
     op.drop_column("artefact_matching_rule", "release")
     op.drop_column("artefact_matching_rule", "os")
     op.drop_column("artefact_matching_rule", "series")
     op.drop_column("artefact_matching_rule", "store")
+
+    # recreate old, more restrictive unique constraint
+    op.create_unique_constraint(
+        op.f(PREVIOUS_CONSTRAINT_NAME), "artefact_matching_rule", ["name", "family", "stage", "track", "branch"]
+    )
