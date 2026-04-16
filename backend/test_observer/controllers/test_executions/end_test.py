@@ -112,8 +112,6 @@ def _store_c3_test_results(
         db.flush()
         apply_test_result_attachment_rules(db, test_result)
 
-    db.commit()
-
 
 def _parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:
     match status:
