@@ -28,9 +28,9 @@ from tests.data_generator import DataGenerator
 
 def _assert_null_attributes_in_response_amr(response_data: dict, expected_fields: dict) -> None:
     """Helper function to assert that all fields in the response are null except for the expected ones"""
-    all_fields = {"family", "track", "stage", "branch", "series", "os", "release", "owner"}
+    all_fields = {"family", "track", "stage", "branch", "series", "os", "release", "owner", "store", "name",}
     for field in all_fields:
-        assert response_data.get(field) == (expected_fields.get(field) if field in expected_fields else None)
+        assert response_data[field] == (expected_fields.get(field) if field in expected_fields else None)
 
 
 @pytest.mark.parametrize(
