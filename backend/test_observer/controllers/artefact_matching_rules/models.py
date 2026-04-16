@@ -31,6 +31,11 @@ class ArtefactMatchingRuleBase(BaseModel):
     stage: str = ""
     track: str = ""
     branch: str = ""
+    store: str = ""
+    series: str = ""
+    os: str = ""
+    release: str = ""
+    owner: str = ""
 
 
 class ArtefactMatchingRuleInResponse(BaseModel):
@@ -42,6 +47,11 @@ class ArtefactMatchingRuleInResponse(BaseModel):
     stage: str | None
     track: str | None
     branch: str | None
+    store: str | None
+    series: str | None
+    os: str | None
+    release: str | None
+    owner: str | None
     grant_permissions: list[Permission]
 
 
@@ -59,6 +69,11 @@ class ArtefactMatchingRuleResponse(BaseModel):
     stage: str | None
     track: str | None
     branch: str | None
+    store: str | None
+    series: str | None
+    os: str | None
+    release: str | None
+    owner: str | None
     teams: list[TeamMinimal]
     grant_permissions: list[Permission]
 
@@ -78,5 +93,10 @@ class ArtefactMatchingRulePatch(BaseModel):
     stage: str | None = None
     track: str | None = None
     branch: str | None = None
+    store: str | None = None
+    series: str | None = None
+    os: str | None = None
+    release: str | None = None
+    owner: str | None = None
     team_ids: list[int] | None = None  # Optional in patch, but must not be empty if provided
     grant_permissions: list[Permission] | None = None

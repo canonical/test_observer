@@ -126,6 +126,11 @@ def _team_to_response(team: Team) -> TeamResponse:
                 stage=rule.stage if rule.stage else None,
                 track=rule.track if rule.track else None,
                 branch=rule.branch if rule.branch else None,
+                store=rule.store if rule.store else None,
+                series=rule.series if rule.series else None,
+                os=rule.os if rule.os else None,
+                release=rule.release if rule.release else None,
+                owner=rule.owner if rule.owner else None,
                 grant_permissions=rule.grant_permissions,
             )
             for rule in team.artefact_matching_rules
