@@ -63,6 +63,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
     unique_rules_data = []
     for rule_data in rules_data:
         rule_key = (
+            rule_data.name,
             rule_data.family,
             rule_data.stage,
             rule_data.track,
@@ -72,6 +73,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
             rule_data.os,
             rule_data.release,
             rule_data.owner,
+            tuple(rule_data.grant_permissions),
         )
         if rule_key not in seen_rules:
             seen_rules.add(rule_key)
@@ -82,6 +84,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
         # Check if an identical rule already exists
         existing_rule = db.execute(
             select(ArtefactMatchingRule).where(
+                ArtefactMatchingRule.name == rule_data.name,
                 ArtefactMatchingRule.family == rule_data.family,
                 ArtefactMatchingRule.stage == rule_data.stage,
                 ArtefactMatchingRule.track == rule_data.track,
@@ -91,6 +94,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
                 ArtefactMatchingRule.os == rule_data.os,
                 ArtefactMatchingRule.release == rule_data.release,
                 ArtefactMatchingRule.owner == rule_data.owner,
+                ArtefactMatchingRule.grant_permissions == rule_data.grant_permissions,
             )
         ).scalar_one_or_none()
 
@@ -100,6 +104,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
         else:
             # Create new rule
             new_rule = ArtefactMatchingRule(
+                name=rule_data.name,
                 family=rule_data.family,
                 stage=rule_data.stage,
                 track=rule_data.track,
@@ -109,6 +114,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
                 os=rule_data.os,
                 release=rule_data.release,
                 owner=rule_data.owner,
+                grant_permissions=rule_data.grant_permissions,
                 teams=[team],
             )
             db.add(new_rule)
