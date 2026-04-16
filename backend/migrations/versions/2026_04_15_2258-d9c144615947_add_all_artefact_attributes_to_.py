@@ -37,10 +37,14 @@ NEW_CONSTRAINT_NAME = "artefact_matching_rule_name_family_stage_track_branch_sto
 
 def upgrade() -> None:
     op.add_column("artefact_matching_rule", sa.Column("store", sa.String(), server_default="", nullable=False))
-    op.add_column("artefact_matching_rule", sa.Column("series", sa.String(), nullable=False))
-    op.add_column("artefact_matching_rule", sa.Column("os", sa.String(length=200), nullable=False))
-    op.add_column("artefact_matching_rule", sa.Column("release", sa.String(length=200), nullable=False))
-    op.add_column("artefact_matching_rule", sa.Column("owner", sa.String(length=200), nullable=False))
+    op.add_column("artefact_matching_rule", sa.Column("series", sa.String(), server_default="", nullable=False))
+    op.add_column("artefact_matching_rule", sa.Column("os", sa.String(length=200), server_default="", nullable=False))
+    op.add_column(
+        "artefact_matching_rule", sa.Column("release", sa.String(length=200), server_default="", nullable=False)
+    )
+    op.add_column(
+        "artefact_matching_rule", sa.Column("owner", sa.String(length=200), server_default="", nullable=False)
+    )
 
     # drop old unique constraint
     op.drop_constraint(op.f(PREVIOUS_CONSTRAINT_NAME), "artefact_matching_rule", type_="unique")
