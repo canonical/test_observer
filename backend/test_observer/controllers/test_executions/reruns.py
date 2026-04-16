@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session, selectinload
 from test_observer.common.config import IGNORE_PERMISSIONS
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
+    openapi_scope_declaration,
     permission_checker,
 )
 from test_observer.controllers.applications.application_injection import (
@@ -261,6 +262,7 @@ def _validate_amr_permissions_for_request(
     "/reruns",
     response_model=list[PendingRerun] | None,
     dependencies=[
+        Security(openapi_scope_declaration, scopes=[Permission.change_rerun]),
         Security(require_bulk_permission, scopes=[Permission.change_rerun_bulk]),
     ],
 )
@@ -380,6 +382,7 @@ def get_rerun_requests(
 @router.delete(
     "/reruns",
     dependencies=[
+        Security(openapi_scope_declaration, scopes=[Permission.change_rerun]),
         Security(require_bulk_permission, scopes=[Permission.change_rerun_bulk]),
     ],
 )
