@@ -225,12 +225,12 @@ class ArtefactMatchingRule(Base):
     branch: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     # Deb-specific fields
-    series: Mapped[str] = mapped_column(default="")
+    series: Mapped[str] = mapped_column(default="", server_default="")
 
     # Image-specific fields
-    os: Mapped[str] = mapped_column(String(200), default="")
-    release: Mapped[str] = mapped_column(String(200), default="")
-    owner: Mapped[str] = mapped_column(String(200), default="")
+    os: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    release: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    owner: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     teams: Mapped[list[Team]] = relationship(
         secondary="artefact_matching_rule_team_association",
