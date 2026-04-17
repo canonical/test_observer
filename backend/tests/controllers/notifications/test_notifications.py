@@ -208,12 +208,13 @@ def test_get_notifications_app_no_permissions(test_client: TestClient, generator
 def test_get_notifications_user_with_permissions(
     test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
 ):
-    """Test that a user with view_notification permission can get notifications"""
-    user = generator.gen_user(email="user@test.com")
-    notification = generator.gen_notification(user=user)
-    authenticate_user(test_client, user, generator, create_session_cookie)
+    """Test that a user with view_notification permission can view notifications of another user"""
+    user_1 = generator.gen_user(email="user1@test.com")
+    user_2 = generator.gen_user(email="user2@test.com")
+    notification = generator.gen_notification(user=user_1)
+    authenticate_user(test_client, user_2, generator, create_session_cookie)
     response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/users/{user.id}/notifications", headers={"X-CSRF-Token": "1"}),
+        lambda: test_client.get(f"/v1/users/{user_1.id}/notifications", headers={"X-CSRF-Token": "1"}),
         Permission.view_notification,
     )
     assert response.status_code == 200

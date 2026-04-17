@@ -39,6 +39,7 @@ def _get_user_notification_count(db: Session, user_id: int, unread_only: bool) -
     query = select(func.count(Notification.id)).where(Notification.user_id == user_id)
     if unread_only:
         query = query.where(Notification.dismissed_at.is_(None))
+    # The or 0 is just to satisfy the type checker
     return db.scalar(query) or 0
 
 
