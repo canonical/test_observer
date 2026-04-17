@@ -36,6 +36,7 @@ class ArtefactMatchingRuleBase(BaseModel):
     os: str = ""
     release: str = ""
     owner: str = ""
+    grant_permissions: list[Permission] = []
 
 
 class ArtefactMatchingRuleInResponse(BaseModel):
