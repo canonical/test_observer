@@ -175,8 +175,9 @@ def override_permissions(*permissions: Permission):
 
 
 def make_authenticated_request(request_func: Callable[[], Response], *permissions: Permission):
-    # First, make sure the endpoint returns 403 without permissions
-    assert request_func().status_code == 403
+    # Verify the endpoint denies unauthenticated access
+    unauthenticated_response = request_func()
+    assert unauthenticated_response.status_code == 403
     with override_permissions(*permissions):
         return request_func()
 
