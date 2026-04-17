@@ -244,7 +244,7 @@ def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Con
     # Step 1: Upgrade to target migration
     command.upgrade(alembic_config, TARGET_REV)
 
-    # Step 2: Insert duplicate rules with different grant_permissions
+    # Step 2: Insert duplicate rules with different store and permissions
     with engine.begin() as conn:
         conn.execute(
             text("""

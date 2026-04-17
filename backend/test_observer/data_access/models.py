@@ -251,7 +251,6 @@ class ArtefactMatchingRule(Base):
             "os",
             "release",
             "owner",
-            "grant_permissions",
             name="artefact_matching_rule_fields_from_artefact",
         ),
     )

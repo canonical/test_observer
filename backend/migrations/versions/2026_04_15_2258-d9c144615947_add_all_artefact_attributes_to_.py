@@ -34,7 +34,6 @@ depends_on = None
 PREVIOUS_CONSTRAINT_NAME = "artefact_matching_rule_name_family_stage_track_branch_key"
 NEW_CONSTRAINT_NAME = "artefact_matching_rule_fields_from_artefact"
 
-# Update this if your association table has a different name
 ASSOCIATION_TABLE_NAME = "artefact_matching_rule_team_association"
 
 
@@ -70,7 +69,6 @@ def upgrade() -> None:
             "os",
             "release",
             "owner",
-            "grant_permissions",
         ],
     )
 
