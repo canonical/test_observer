@@ -17,7 +17,7 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import FamilyName
@@ -36,7 +36,7 @@ class ArtefactMatchingRuleBase(BaseModel):
     os: str = ""
     release: str = ""
     owner: str = ""
-    grant_permissions: list[Permission] = []
+    grant_permissions: list[Permission] = Field(default_factory=list)
 
 
 class ArtefactMatchingRuleInResponse(BaseModel):
@@ -83,7 +83,7 @@ class ArtefactMatchingRuleRequest(ArtefactMatchingRuleBase):
     """Request to create an artefact matching rule (extends base with team_ids)"""
 
     team_ids: list[int]  # At least one team required
-    grant_permissions: list[Permission] = []
+    grant_permissions: list[Permission] = Field(default_factory=list)
 
 
 class ArtefactMatchingRulePatch(BaseModel):
