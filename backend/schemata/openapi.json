@@ -5313,6 +5313,31 @@
             "type": "string",
             "title": "Branch",
             "default": ""
+          },
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "title": "Release",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "default": ""
           }
         },
         "type": "object",
@@ -5375,6 +5400,61 @@
             ],
             "title": "Branch"
           },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
           "grant_permissions": {
             "items": {
               "$ref": "#/components/schemas/Permission"
@@ -5391,6 +5471,11 @@
           "stage",
           "track",
           "branch",
+          "store",
+          "series",
+          "os",
+          "release",
+          "owner",
           "grant_permissions"
         ],
         "title": "ArtefactMatchingRuleInResponse",
@@ -5452,6 +5537,61 @@
             ],
             "title": "Branch"
           },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
           "team_ids": {
             "anyOf": [
               {
@@ -5508,6 +5648,31 @@
           "branch": {
             "type": "string",
             "title": "Branch",
+            "default": ""
+          },
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "title": "Release",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
             "default": ""
           },
           "team_ids": {
@@ -5587,6 +5752,61 @@
             ],
             "title": "Branch"
           },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
           "teams": {
             "items": {
               "$ref": "#/components/schemas/TeamMinimal"
@@ -5610,6 +5830,11 @@
           "stage",
           "track",
           "branch",
+          "store",
+          "series",
+          "os",
+          "release",
+          "owner",
           "teams",
           "grant_permissions"
         ],
