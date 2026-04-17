@@ -5338,6 +5338,13 @@
             "type": "string",
             "title": "Owner",
             "default": ""
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
@@ -5675,20 +5682,19 @@
             "title": "Owner",
             "default": ""
           },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
+          },
           "team_ids": {
             "items": {
               "type": "integer"
             },
             "type": "array",
             "title": "Team Ids"
-          },
-          "grant_permissions": {
-            "items": {
-              "$ref": "#/components/schemas/Permission"
-            },
-            "type": "array",
-            "title": "Grant Permissions",
-            "default": []
           }
         },
         "type": "object",
