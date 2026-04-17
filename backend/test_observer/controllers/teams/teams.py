@@ -62,7 +62,18 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
     seen_rules = set()
     unique_rules_data = []
     for rule_data in rules_data:
-        rule_key = (rule_data.family, rule_data.stage, rule_data.track, rule_data.branch)
+        rule_key = (
+            rule_data.name,
+            rule_data.family,
+            rule_data.stage,
+            rule_data.track,
+            rule_data.branch,
+            rule_data.store,
+            rule_data.series,
+            rule_data.os,
+            rule_data.release,
+            rule_data.owner,
+        )
         if rule_key not in seen_rules:
             seen_rules.add(rule_key)
             unique_rules_data.append(rule_data)
@@ -72,23 +83,41 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
         # Check if an identical rule already exists
         existing_rule = db.execute(
             select(ArtefactMatchingRule).where(
+                ArtefactMatchingRule.name == rule_data.name,
                 ArtefactMatchingRule.family == rule_data.family,
                 ArtefactMatchingRule.stage == rule_data.stage,
                 ArtefactMatchingRule.track == rule_data.track,
                 ArtefactMatchingRule.branch == rule_data.branch,
+                ArtefactMatchingRule.store == rule_data.store,
+                ArtefactMatchingRule.series == rule_data.series,
+                ArtefactMatchingRule.os == rule_data.os,
+                ArtefactMatchingRule.release == rule_data.release,
+                ArtefactMatchingRule.owner == rule_data.owner,
             )
         ).scalar_one_or_none()
 
         if existing_rule:
+            existing_perms = set(existing_rule.grant_permissions)
+            requested_perms = set(rule_data.grant_permissions)
+            if len(existing_perms | requested_perms) > len(existing_perms):
+                existing_rule.grant_permissions = list(existing_perms | requested_perms)
+
             # Use existing rule
             team.artefact_matching_rules.append(existing_rule)
         else:
             # Create new rule
             new_rule = ArtefactMatchingRule(
+                name=rule_data.name,
                 family=rule_data.family,
                 stage=rule_data.stage,
                 track=rule_data.track,
                 branch=rule_data.branch,
+                store=rule_data.store,
+                series=rule_data.series,
+                os=rule_data.os,
+                release=rule_data.release,
+                owner=rule_data.owner,
+                grant_permissions=rule_data.grant_permissions,
                 teams=[team],
             )
             db.add(new_rule)
@@ -126,6 +155,11 @@ def _team_to_response(team: Team) -> TeamResponse:
                 stage=rule.stage if rule.stage else None,
                 track=rule.track if rule.track else None,
                 branch=rule.branch if rule.branch else None,
+                store=rule.store if rule.store else None,
+                series=rule.series if rule.series else None,
+                os=rule.os if rule.os else None,
+                release=rule.release if rule.release else None,
+                owner=rule.owner if rule.owner else None,
                 grant_permissions=rule.grant_permissions,
             )
             for rule in team.artefact_matching_rules

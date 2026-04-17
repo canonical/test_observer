@@ -31,13 +31,18 @@ latest_artefact_builds = (
 def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[int]]:
     """Match an artefact to the most specific AMR(s)
 
-    Based on the number of non-empty fields (stage, track, branch, name)."""
+    Based on the number of non-empty fields (stage, track, branch, name, store, series, os, release, owner)."""
     # Calculate specificity score as the sum of non-empty fields
     specificity = (
         case((ArtefactMatchingRule.stage != "", 1), else_=0)
         + case((ArtefactMatchingRule.track != "", 1), else_=0)
         + case((ArtefactMatchingRule.branch != "", 1), else_=0)
         + case((ArtefactMatchingRule.name != "", 1), else_=0)
+        + case((ArtefactMatchingRule.store != "", 1), else_=0)
+        + case((ArtefactMatchingRule.series != "", 1), else_=0)
+        + case((ArtefactMatchingRule.os != "", 1), else_=0)
+        + case((ArtefactMatchingRule.release != "", 1), else_=0)
+        + case((ArtefactMatchingRule.owner != "", 1), else_=0)
     )
 
     # Subquery to get the highest specificity score
@@ -50,6 +55,26 @@ def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[i
                 or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
                 or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
+                or_(
+                    ArtefactMatchingRule.store == artefact.store,
+                    ArtefactMatchingRule.store == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.series == artefact.series,
+                    ArtefactMatchingRule.series == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.os == artefact.os,
+                    ArtefactMatchingRule.os == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.release == artefact.release,
+                    ArtefactMatchingRule.release == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.owner == artefact.owner,
+                    ArtefactMatchingRule.owner == "",
+                ),
             )
         )
         .scalar_subquery()
@@ -63,6 +88,26 @@ def match_artefact_considering_specificity(artefact: Artefact) -> Select[tuple[i
             or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
             or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
+            or_(
+                ArtefactMatchingRule.store == artefact.store,
+                ArtefactMatchingRule.store == "",
+            ),
+            or_(
+                ArtefactMatchingRule.series == artefact.series,
+                ArtefactMatchingRule.series == "",
+            ),
+            or_(
+                ArtefactMatchingRule.os == artefact.os,
+                ArtefactMatchingRule.os == "",
+            ),
+            or_(
+                ArtefactMatchingRule.release == artefact.release,
+                ArtefactMatchingRule.release == "",
+            ),
+            or_(
+                ArtefactMatchingRule.owner == artefact.owner,
+                ArtefactMatchingRule.owner == "",
+            ),
             specificity == max_specificity_subquery,
         )
     )
@@ -79,6 +124,26 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
             or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
             or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
             or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
+            or_(
+                ArtefactMatchingRule.store == artefact.store,
+                ArtefactMatchingRule.store == "",
+            ),
+            or_(
+                ArtefactMatchingRule.series == artefact.series,
+                ArtefactMatchingRule.series == "",
+            ),
+            or_(
+                ArtefactMatchingRule.os == artefact.os,
+                ArtefactMatchingRule.os == "",
+            ),
+            or_(
+                ArtefactMatchingRule.release == artefact.release,
+                ArtefactMatchingRule.release == "",
+            ),
+            or_(
+                ArtefactMatchingRule.owner == artefact.owner,
+                ArtefactMatchingRule.owner == "",
+            ),
         )
     )
 
@@ -116,6 +181,26 @@ def batch_match_artefacts(artefacts: list[Artefact]) -> Select[tuple[int, int]]:
                 or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
                 or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
+                or_(
+                    ArtefactMatchingRule.store == artefact.store,
+                    ArtefactMatchingRule.store == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.series == artefact.series,
+                    ArtefactMatchingRule.series == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.os == artefact.os,
+                    ArtefactMatchingRule.os == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.release == artefact.release,
+                    ArtefactMatchingRule.release == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.owner == artefact.owner,
+                    ArtefactMatchingRule.owner == "",
+                ),
             )
         )
         queries.append(query)

@@ -214,10 +214,23 @@ class ArtefactMatchingRule(Base):
     __tablename__ = "artefact_matching_rule"
 
     name: Mapped[str] = mapped_column(String(200), default="", server_default="")
-    family: Mapped[FamilyName]
     stage: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    family: Mapped[FamilyName]
+
+    # Snap-specific field
+    store: Mapped[str] = mapped_column(String(200), default="", server_default="")
+
+    # Snap- and Charm-specific fields
     track: Mapped[str] = mapped_column(String(200), default="", server_default="")
     branch: Mapped[str] = mapped_column(String(200), default="", server_default="")
+
+    # Deb-specific fields
+    series: Mapped[str] = mapped_column(String(200), default="", server_default="")
+
+    # Image-specific fields
+    os: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    release: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    owner: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     teams: Mapped[list[Team]] = relationship(
         secondary="artefact_matching_rule_team_association",
@@ -226,10 +239,26 @@ class ArtefactMatchingRule(Base):
 
     grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
-    __table_args__ = (UniqueConstraint("name", "family", "stage", "track", "branch"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "name",
+            "family",
+            "stage",
+            "track",
+            "branch",
+            "store",
+            "series",
+            "os",
+            "release",
+            "owner",
+            name="artefact_matching_rule_fields_from_artefact",
+        ),
+    )
 
     def __repr__(self) -> str:
-        return data_model_repr(self, "name", "family", "stage", "track", "branch")
+        return data_model_repr(
+            self, "name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner"
+        )
 
 
 class UserSession(Base):
