@@ -24,6 +24,9 @@ SAML_IDP_METADATA_URL = os.getenv(
 )
 SAML_SP_X509_CERT = os.getenv("SAML_SP_X509_CERT", "")
 SAML_SP_KEY = os.getenv("SAML_SP_KEY", "")
+ADDITIONAL_CORS_ORIGINS = [
+    origin.strip() for origin in os.getenv("ADDITIONAL_CORS_ORIGINS", "").split(",") if origin.strip()
+]
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
 SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")
 SESSIONS_HTTPS_ONLY = os.getenv("SESSIONS_HTTPS_ONLY", "true").lower() == "true"

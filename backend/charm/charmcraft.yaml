@@ -80,6 +80,10 @@ config:
       default: test-observer-api
       description: Public hostname for the service.
       type: string
+    additional_cors_origins:
+      default: ""
+      description: Additional origins for CORS headers as comma-separated full origins, including scheme and optional port (for example, https://example.com or http://localhost:3000)
+      type: string
     frontend_hostname:
       default: test-observer
       description: Public hostname for the frontend connected to this API

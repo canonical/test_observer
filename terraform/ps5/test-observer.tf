@@ -77,6 +77,12 @@ variable "api_hostname" {
   type        = string
 }
 
+variable "additional_cors_origins" {
+  description = "Additional origins for CORS headers (comma separated)"
+  type        = string
+  default     = ""
+}
+
 variable "frontend_hostname" {
   description = "Test Observer front-end hostname"
   type        = string
@@ -216,16 +222,17 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname              = var.api_hostname
-    frontend_hostname     = var.frontend_hostname
-    port                  = var.environment == "development" ? 80 : 443
-    sentry_dsn            = "${local.sentry_dsn_map[var.environment]}"
-    saml_idp_metadata_url = var.saml_idp_metadata_url
-    saml_sp_cert          = var.saml_sp_cert
-    saml_sp_key           = var.saml_sp_key
-    sessions_secret       = var.sessions_secret
-    ignore_permissions    = join(",", var.ignore_permissions)
-    enable_issue_sync     = var.enable_issue_sync
+    hostname                = var.api_hostname
+    additional_cors_origins = var.additional_cors_origins
+    frontend_hostname       = var.frontend_hostname
+    port                    = var.environment == "development" ? 80 : 443
+    sentry_dsn              = "${local.sentry_dsn_map[var.environment]}"
+    saml_idp_metadata_url   = var.saml_idp_metadata_url
+    saml_sp_cert            = var.saml_sp_cert
+    saml_sp_key             = var.saml_sp_key
+    sessions_secret         = var.sessions_secret
+    ignore_permissions      = join(",", var.ignore_permissions)
+    enable_issue_sync       = var.enable_issue_sync
   }
 
   units = 3
