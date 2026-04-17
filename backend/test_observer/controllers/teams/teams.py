@@ -99,7 +99,8 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
         if existing_rule:
             existing_perms = set(existing_rule.grant_permissions)
             requested_perms = set(rule_data.grant_permissions)
-            existing_rule.grant_permissions = list(existing_perms | requested_perms)
+            if len(existing_perms | requested_perms) > len(existing_perms):
+                existing_rule.grant_permissions = list(existing_perms | requested_perms)
 
             # Use existing rule
             team.artefact_matching_rules.append(existing_rule)
