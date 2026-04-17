@@ -262,6 +262,7 @@ class TestObserverBackendCharm(CharmBase):
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
             "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
+            "ADDITIONAL_CORS_ORIGINS": self.config["additional_cors_origins"],
             "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
             "SESSIONS_SECRET": self.config["sessions_secret"],
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
