@@ -116,6 +116,74 @@ def test_upgrade_adds_new_columns_and_constraint(migration_context: tuple[Engine
         assert "artefact_matching_rule_fields_from_artefact" in constraint_names
 
 
+def test_upgrade_preserves_different_rows(migration_context: tuple[Engine, Config]) -> None:
+    """
+    Test that upgrade preserves rows that are legitimately different.
+
+    This test:
+    1. Migrates to PREVIOUS_REV
+    2. Creates two unique rows (differ in the old constraint fields)
+    3. Upgrades to TARGET_REV
+    4. Verifies both rows still exist as separate rows
+    5. Downgrades to PREVIOUS_REV
+    6. Verifies both rows still exist as separate rows
+    """
+    engine, alembic_config = migration_context
+
+    # Step 1: Migrate to revision before the target migration
+    command.upgrade(alembic_config, PREVIOUS_REV)
+
+    # Step 2: Create two unique rows (different by stage)
+    with engine.begin() as conn:
+        conn.execute(
+            text("""
+            INSERT INTO artefact_matching_rule 
+            (name, family, stage, track, branch, created_at, updated_at)
+            VALUES 
+                ('snap1', 'snap', 'stable', 'latest', 'main', NOW(), NOW()),
+                ('snap1', 'snap', 'edge', 'latest', 'main', NOW(), NOW())
+        """)
+        )
+
+    # Step 3: Upgrade to the target migration
+    command.upgrade(alembic_config, TARGET_REV)
+
+    # Step 4: Verify both rows still exist as separate rows
+    with engine.connect() as conn:
+        rules = conn.execute(
+            text("""
+            SELECT id, name, stage FROM artefact_matching_rule 
+            WHERE name IN ('snap1', 'snap1')
+            ORDER BY name
+        """)
+        ).fetchall()
+
+        assert len(rules) == 2, f"Expected 2 rows after upgrade, got {len(rules)}"
+        assert rules[0][1] == "snap1"  # name
+        assert rules[0][2] == "stable"  # stage
+        assert rules[1][1] == "snap1"  # name
+        assert rules[1][2] == "edge"  # stage
+
+    # Step 5: Downgrade to previous revision
+    command.downgrade(alembic_config, PREVIOUS_REV)
+
+    # Step 6: Verify both rows still exist as separate rows
+    with engine.connect() as conn:
+        rules = conn.execute(
+            text("""
+            SELECT id, name, stage FROM artefact_matching_rule 
+            WHERE name IN ('snap1', 'snap1')
+            ORDER BY name
+        """)
+        ).fetchall()
+
+        assert len(rules) == 2, f"Expected 2 rows after downgrade, got {len(rules)}"
+        assert rules[0][1] == "snap1"  # name
+        assert rules[0][2] == "stable"  # stage
+        assert rules[1][1] == "snap1"  # name
+        assert rules[1][2] == "edge"  # stage
+
+
 def test_downgrade_merges_duplicates_correctly(migration_context: tuple[Engine, Config]) -> None:
     """
     Test that downgrade correctly merges duplicate rules.
@@ -235,16 +303,16 @@ def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Con
 
     This test:
     1. Migrates to TARGET_REV
-    2. Inserts duplicate rules with different grant_permissions
+    2. Inserts 3 duplicate rules with different grant_permissions
     3. Downgrades to PREVIOUS_REV
-    4. Verifies duplicates are merged and grant_permissions are combined
+    4. Verifies duplicates are merged and all grant_permissions are combined
     """
     engine, alembic_config = migration_context
 
     # Step 1: Upgrade to target migration
     command.upgrade(alembic_config, TARGET_REV)
 
-    # Step 2: Insert duplicate rules with different store and permissions
+    # Step 2: Insert 3 duplicate rules with different store, series and permissions
     with engine.begin() as conn:
         conn.execute(
             text("""
@@ -255,7 +323,9 @@ def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Con
                 ('rule_perms', 'snap', 'edge', 'latest', 'main', 'snapcraft',
                  'focal', 'x86_64', '20.04', 'owner1', ARRAY['view_artefact'::permission], NOW(), NOW()),
                 ('rule_perms', 'snap', 'edge', 'latest', 'main', 'snapcraft2',
-                 'jammy', 'arm64', '22.04', 'owner2', ARRAY['change_artefact'::permission], NOW(), NOW())
+                 'jammy', 'arm64', '22.04', 'owner2', ARRAY['change_artefact'::permission], NOW(), NOW()),
+                ('rule_perms', 'snap', 'edge', 'latest', 'main', 'snapcraft3',
+                 'noble', 'ppc64el', '24.04', 'owner3', ARRAY['view_test'::permission], NOW(), NOW())
         """)
         )
 
@@ -276,7 +346,7 @@ def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Con
         assert len(rules) == 1, "Expected only one merged rule after downgrade"
         survivor_id = rules[0][0]
 
-        # Verify survivor has both permissions merged
+        # Verify survivor has all permissions merged
         result = conn.execute(
             text("""
             SELECT grant_permissions FROM artefact_matching_rule 
@@ -295,6 +365,8 @@ def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Con
         else:
             permission_set = set()
 
-        expected_permissions = {"view_artefact", "change_artefact"}
+        expected_permissions = {"view_artefact", "change_artefact", "view_test"}
 
-        assert permission_set == expected_permissions, f"Expected {expected_permissions}, got {permission_set}"
+        assert (
+            permission_set == expected_permissions
+        ), f"Expected {expected_permissions}, got {permission_set}"
