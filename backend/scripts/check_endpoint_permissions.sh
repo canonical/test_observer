@@ -28,7 +28,6 @@ OPENAPI_JSON="$1"
 EXCEPTIONS='[
   {"method": "get", "path": "/v1/version"},
   {"method": "get", "path": "/"},
-  {"method": "get", "path": "/sentry-debug"},
   {"method": "get", "path": "/openapi.json"},
   {"method": "get", "path": "/docs"},
   {"method": "get", "path": "/v1/auth/saml/login"},

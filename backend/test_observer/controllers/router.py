@@ -13,10 +13,12 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Security
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import authentication_checker, permission_checker
 from test_observer.controllers.applications import applications
 from test_observer.controllers.docs import docs
 from test_observer.controllers.permissions import permissions
@@ -61,13 +63,13 @@ router.include_router(artefact_matching_rules.router, prefix="/v1/artefact-match
 router.include_router(health.router, prefix="/health")
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(authentication_checker)])
 def root(db: Session = Depends(get_db)):
     db.execute(text("select 'test db connection'"))
     return "test observer api"
 
 
-@router.get("/sentry-debug")
+@router.get("/sentry-debug", dependencies=[Security(permission_checker, scopes=[Permission.view_sentry_debug])])
 def trigger_error():
     division_by_zero = 1 / 0
     return division_by_zero
