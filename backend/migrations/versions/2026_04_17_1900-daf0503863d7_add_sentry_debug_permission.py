@@ -1,23 +1,8 @@
-# Copyright 2026 Canonical Ltd.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License version 3, as
-# published by the Free Software Foundation.
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
-# SPDX-License-Identifier: AGPL-3.0-only
-
 """add_sentry_debug_permission
 
-Revision ID: 6f522a3527ca
-Revises: f0847700d32e
-Create Date: 2026-04-17 15:24:42.713382+00:00
+Revision ID: daf0503863d7
+Revises: d9c144615947
+Create Date: 2026-04-17 19:00:17.056259+00:00
 
 """
 
@@ -25,8 +10,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "6f522a3527ca"
-down_revision = "f0847700d32e"
+revision = "daf0503863d7"
+down_revision = "d9c144615947"
 branch_labels = None
 depends_on = None
 
