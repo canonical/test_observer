@@ -5170,7 +5170,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_sentry_debug"
+        ]
       }
     }
   },
@@ -7356,7 +7359,8 @@
           "view_environment_reported_issue",
           "change_environment_reported_issue",
           "view_notification",
-          "change_notification"
+          "change_notification",
+          "view_sentry_debug"
         ],
         "title": "Permission"
       },
