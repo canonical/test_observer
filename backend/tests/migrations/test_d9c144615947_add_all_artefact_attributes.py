@@ -297,6 +297,4 @@ def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Con
 
         expected_permissions = {"view_artefact", "change_artefact"}
 
-        assert (
-            permission_set == expected_permissions
-        ), f"Expected {expected_permissions}, got {permission_set}"
+        assert permission_set == expected_permissions, f"Expected {expected_permissions}, got {permission_set}"

@@ -97,6 +97,10 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
         ).scalar_one_or_none()
 
         if existing_rule:
+            existing_perms = set(existing_rule.grant_permissions)
+            requested_perms = set(rule_data.grant_permissions)
+            existing_rule.grant_permissions = list(existing_perms | requested_perms)
+
             # Use existing rule
             team.artefact_matching_rules.append(existing_rule)
         else:
