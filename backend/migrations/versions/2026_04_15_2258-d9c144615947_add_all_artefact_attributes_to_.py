@@ -105,6 +105,21 @@ def downgrade() -> None:
 
     if duplicates:
         for doomed_id, survivor_id in duplicates:
+            # Merge grant_permissions (union of both sets)
+            conn.execute(
+                sa.text("""
+                UPDATE artefact_matching_rule 
+                SET grant_permissions = (
+                    SELECT ARRAY(SELECT DISTINCT unnest(array_cat(
+                        (SELECT grant_permissions FROM artefact_matching_rule WHERE id = :survivor_id),
+                        (SELECT grant_permissions FROM artefact_matching_rule WHERE id = :doomed_id)
+                    )))
+                )
+                WHERE id = :survivor_id;
+            """),
+                {"survivor_id": survivor_id, "doomed_id": doomed_id},
+            )
+
             # Merge team associations (ON CONFLICT DO NOTHING handles overlap)
             conn.execute(
                 sa.text(f"""

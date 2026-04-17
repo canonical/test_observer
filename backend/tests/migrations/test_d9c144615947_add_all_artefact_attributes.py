@@ -227,3 +227,69 @@ def test_downgrade_merges_duplicates_correctly(migration_context: tuple[Engine, 
         assert "team_1" in team_names
         assert "team_2" in team_names
         assert len(team_names) == 2, f"Expected 2 teams, got {len(team_names)}"
+
+
+def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Config]) -> None:
+    """
+    Test that downgrade correctly merges grant_permissions from duplicate rules.
+
+    This test:
+    1. Migrates to TARGET_REV
+    2. Inserts duplicate rules with different grant_permissions
+    3. Downgrades to PREVIOUS_REV
+    4. Verifies duplicates are merged and grant_permissions are combined
+    """
+    engine, alembic_config = migration_context
+
+    # Step 1: Upgrade to target migration
+    command.upgrade(alembic_config, TARGET_REV)
+
+    # Step 2: Insert duplicate rules with different grant_permissions
+    with engine.begin() as conn:
+        conn.execute(
+            text("""
+            INSERT INTO artefact_matching_rule 
+            (name, family, stage, track, branch, store, series, os, release, owner, grant_permissions,
+             created_at, updated_at)
+            VALUES 
+                ('rule_perms', 'snap', 'edge', 'latest', 'main', 'snapcraft',
+                 'focal', 'x86_64', '20.04', 'owner1', ARRAY['view_artefact'::permission], NOW(), NOW()),
+                ('rule_perms', 'snap', 'edge', 'latest', 'main', 'snapcraft2',
+                 'jammy', 'arm64', '22.04', 'owner2', ARRAY['change_artefact'::permission], NOW(), NOW())
+        """)
+        )
+
+    # Step 3: Downgrade to previous revision
+    command.downgrade(alembic_config, PREVIOUS_REV)
+
+    # Step 4: Verify duplicates are merged and grant_permissions are combined
+    with engine.connect() as conn:
+        # Verify only one rule remains
+        rules = conn.execute(
+            text("""
+            SELECT id FROM artefact_matching_rule 
+            WHERE name = 'rule_perms' AND family = 'snap' AND stage = 'edge'
+            AND track = 'latest' AND branch = 'main'
+        """)
+        ).fetchall()
+
+        assert len(rules) == 1, "Expected only one merged rule after downgrade"
+        survivor_id = rules[0][0]
+
+        # Verify survivor has both permissions merged
+        result = conn.execute(
+            text("""
+            SELECT grant_permissions FROM artefact_matching_rule 
+            WHERE id = :survivor_id
+        """),
+            {"survivor_id": survivor_id},
+        ).fetchone()
+
+        permissions = result[0] if result else []
+        # Convert to set for comparison (order doesn't matter)
+        permission_set = set(permissions) if permissions else set()
+        expected_permissions = {"view_artefact", "change_artefact"}
+        
+        assert (
+            permission_set == expected_permissions
+        ), f"Expected {expected_permissions}, got {permission_set}"
