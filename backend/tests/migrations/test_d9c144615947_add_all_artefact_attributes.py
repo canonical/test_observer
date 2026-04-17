@@ -153,16 +153,17 @@ def test_upgrade_preserves_different_rows(migration_context: tuple[Engine, Confi
         rules = conn.execute(
             text("""
             SELECT id, name, stage FROM artefact_matching_rule 
-            WHERE name IN ('snap1', 'snap1')
-            ORDER BY name
+            WHERE name = 'snap1'
         """)
         ).fetchall()
 
         assert len(rules) == 2, f"Expected 2 rows after upgrade, got {len(rules)}"
-        assert rules[0][1] == "snap1"  # name
-        assert rules[0][2] == "stable"  # stage
-        assert rules[1][1] == "snap1"  # name
-        assert rules[1][2] == "edge"  # stage
+        stable_rule = next((r for r in rules if r[2] == "stable"), None)
+        edge_rule = next((r for r in rules if r[2] == "edge"), None)
+        assert stable_rule is not None
+        assert stable_rule[1] == "snap1"  # name
+        assert edge_rule is not None
+        assert edge_rule[1] == "snap1"  # name
 
     # Step 5: Downgrade to previous revision
     command.downgrade(alembic_config, PREVIOUS_REV)
@@ -172,16 +173,17 @@ def test_upgrade_preserves_different_rows(migration_context: tuple[Engine, Confi
         rules = conn.execute(
             text("""
             SELECT id, name, stage FROM artefact_matching_rule 
-            WHERE name IN ('snap1', 'snap1')
-            ORDER BY name
+            WHERE name = 'snap1'
         """)
         ).fetchall()
 
         assert len(rules) == 2, f"Expected 2 rows after downgrade, got {len(rules)}"
-        assert rules[0][1] == "snap1"  # name
-        assert rules[0][2] == "stable"  # stage
-        assert rules[1][1] == "snap1"  # name
-        assert rules[1][2] == "edge"  # stage
+        stable_rule = next((r for r in rules if r[2] == "stable"), None)
+        edge_rule = next((r for r in rules if r[2] == "edge"), None)
+        assert stable_rule is not None
+        assert stable_rule[1] == "snap1"  # name
+        assert edge_rule is not None
+        assert edge_rule[1] == "snap1"  # name
 
 
 def test_downgrade_merges_duplicates_correctly(migration_context: tuple[Engine, Config]) -> None:
