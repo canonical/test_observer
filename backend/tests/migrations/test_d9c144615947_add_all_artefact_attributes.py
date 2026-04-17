@@ -285,9 +285,18 @@ def test_downgrade_merges_grant_permissions(migration_context: tuple[Engine, Con
             {"survivor_id": survivor_id},
         ).fetchone()
 
-        permissions = result[0] if result else []
-        # Convert to set for comparison (order doesn't matter)
-        permission_set = set(permissions) if permissions else set()
+        permissions = result[0] if result else None
+        # Parse PostgreSQL array format: "{elem1,elem2,...}"
+        if isinstance(permissions, str):
+            # Remove curly braces and split by comma
+            permission_set = set(permissions.strip("{}").split(","))
+        elif isinstance(permissions, list):
+            permission_set = set(permissions)
+        else:
+            permission_set = set()
+
         expected_permissions = {"view_artefact", "change_artefact"}
 
-        assert permission_set == expected_permissions, f"Expected {expected_permissions}, got {permission_set}"
+        assert (
+            permission_set == expected_permissions
+        ), f"Expected {expected_permissions}, got {permission_set}"
