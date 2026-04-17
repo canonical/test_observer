@@ -23,6 +23,7 @@ from prometheus_client import start_http_server
 from starlette.middleware.sessions import SessionMiddleware
 
 from test_observer.common.config import (
+    ADDITIONAL_CORS_ORIGINS,
     FRONTEND_URL,
     METRICS_PORT,
     SENTRY_DSN,
@@ -97,7 +98,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
+    allow_origins=[FRONTEND_URL] + ADDITIONAL_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
