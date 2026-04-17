@@ -181,6 +181,26 @@ def batch_match_artefacts(artefacts: list[Artefact]) -> Select[tuple[int, int]]:
                 or_(ArtefactMatchingRule.track == artefact.track, ArtefactMatchingRule.track == ""),
                 or_(ArtefactMatchingRule.branch == artefact.branch, ArtefactMatchingRule.branch == ""),
                 or_(ArtefactMatchingRule.name == artefact.name, ArtefactMatchingRule.name == ""),
+                or_(
+                    ArtefactMatchingRule.store == artefact.store,
+                    ArtefactMatchingRule.store == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.series == artefact.series,
+                    ArtefactMatchingRule.series == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.os == artefact.os,
+                    ArtefactMatchingRule.os == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.release == artefact.release,
+                    ArtefactMatchingRule.release == "",
+                ),
+                or_(
+                    ArtefactMatchingRule.owner == artefact.owner,
+                    ArtefactMatchingRule.owner == "",
+                ),
             )
         )
         queries.append(query)
