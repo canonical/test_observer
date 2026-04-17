@@ -83,7 +83,6 @@ class ArtefactMatchingRuleRequest(ArtefactMatchingRuleBase):
     """Request to create an artefact matching rule (extends base with team_ids)"""
 
     team_ids: list[int]  # At least one team required
-    grant_permissions: list[Permission] = Field(default_factory=list)
 
 
 class ArtefactMatchingRulePatch(BaseModel):
