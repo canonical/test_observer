@@ -15,7 +15,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import DBAPIError
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import FamilyName
@@ -88,7 +88,7 @@ def test_create_team_invalid_permission_api(test_client: TestClient):
 
 
 def test_create_team_invalid_permission_orm(generator: DataGenerator):
-    with pytest.raises(ProgrammingError):
+    with pytest.raises(DBAPIError):
         generator.gen_team(
             name="test-team",
             permissions=["invalid_permission"],

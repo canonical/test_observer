@@ -17,7 +17,7 @@ from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
@@ -253,5 +253,5 @@ def test_update_invalid_permissions_api(test_client: TestClient, generator: Data
 
 
 def test_create_invalid_permissions_orm(generator: DataGenerator):
-    with pytest.raises(ProgrammingError):
+    with pytest.raises(DBAPIError):
         generator.gen_application(permissions=["invalid_permission"])
