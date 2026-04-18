@@ -15,7 +15,9 @@
 
 from collections.abc import Callable
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
@@ -222,3 +224,34 @@ def test_clear_application_permissions(test_client: TestClient, generator: DataG
 
     assert response.status_code == 200
     assert response.json()["permissions"] == []
+
+
+def test_create_invalid_permissions_api(test_client: TestClient):
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/applications",
+            json={"name": "myscript", "permissions": ["invalid_permission"]},
+        ),
+        Permission.add_application,
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_invalid_permissions_api(test_client: TestClient, generator: DataGenerator):
+    application = generator.gen_application()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/applications/{application.id}",
+            json={"permissions": ["invalid_permission"]},
+        ),
+        Permission.change_application,
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_invalid_permissions_orm(generator: DataGenerator):
+    with pytest.raises(ProgrammingError):
+        generator.gen_application(permissions=["invalid_permission"])
