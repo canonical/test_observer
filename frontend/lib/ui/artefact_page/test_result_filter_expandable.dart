@@ -22,7 +22,7 @@ import '../../../ui/test_results_page/test_results_helpers.dart';
 import '../expandable.dart';
 import 'test_result_expandable.dart';
 
-class TestResultsFilterExpandable extends ConsumerWidget {
+class TestResultsFilterExpandable extends ConsumerStatefulWidget {
   const TestResultsFilterExpandable({
     super.key,
     required this.statusToFilterBy,
@@ -37,42 +37,76 @@ class TestResultsFilterExpandable extends ConsumerWidget {
   final int? testResultIdToExpand;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final testResultsAsync = ref.watch(testResultsProvider(testExecutionId));
+  ConsumerState<TestResultsFilterExpandable> createState() =>
+      _TestResultsFilterExpandableState();
+}
+
+class _TestResultsFilterExpandableState
+    extends ConsumerState<TestResultsFilterExpandable> {
+  int _limit = 20;
+
+  @override
+  Widget build(BuildContext context) {
+    final testResultsAsync = ref.watch(testResultsProvider(widget.testExecutionId));
 
     return testResultsAsync.when(
       loading: () => const CircularProgressIndicator(),
       error: (error, stackTrace) => Text('Error: $error'),
       data: (testResults) {
         final filteredResults = testResults
-            .where((result) => result.status == statusToFilterBy)
+            .where((result) => result.status == widget.statusToFilterBy)
             .toList();
 
-        final shouldExpandStatus = testResultIdToExpand != null &&
-            filteredResults.any((result) => result.id == testResultIdToExpand);
+        final shouldExpandStatus = widget.testResultIdToExpand != null &&
+            filteredResults.any((result) => result.id == widget.testResultIdToExpand);
 
-        return Expandable(
-          initiallyExpanded: shouldExpandStatus,
-          title: Row(
+        if (shouldExpandStatus && widget.testResultIdToExpand != null) {
+          final targetIndex = filteredResults
+              .indexWhere((r) => r.id == widget.testResultIdToExpand);
+          if (targetIndex != -1 && targetIndex >= _limit) {
+            _limit = targetIndex + 10;
+          }
+        }
+
+        final visibleResults = filteredResults.take(_limit).toList();
+
+        return RepaintBoundary(
+          child: Expandable(
+            initiallyExpanded: shouldExpandStatus,
+            title: Row(
+              children: [
+                TestResultHelpers.getStatusIcon(widget.statusToFilterBy),
+                const SizedBox(width: 8),
+                Text(widget.statusToFilterBy.name),
+                Text(' ${filteredResults.length}'),
+              ],
+            ),
             children: [
-              TestResultHelpers.getStatusIcon(statusToFilterBy),
-              const SizedBox(width: 8),
-              Text(statusToFilterBy.name),
-              Text(' ${filteredResults.length}'),
+              ...visibleResults.map(
+                (result) => TestResultExpandable(
+                  testExecutionId: widget.testExecutionId,
+                  testResult: result,
+                  artefactId: widget.artefactId,
+                  testResultIdToExpand: widget.testResultIdToExpand,
+                ),
+              ),
+              if (filteredResults.length > _limit)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _limit += 20;
+                      });
+                    },
+                    child: Text('Load more (${filteredResults.length - _limit} remaining)'),
+                  ),
+                ),
             ],
           ),
-          children: filteredResults
-              .map(
-                (result) => TestResultExpandable(
-                  testExecutionId: testExecutionId,
-                  testResult: result,
-                  artefactId: artefactId,
-                  testResultIdToExpand: testResultIdToExpand,
-                ),
-              )
-              .toList(),
         );
       },
     );
   }
 }
+

@@ -18,21 +18,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/test_issue.dart';
-import '../models/test_result.dart';
 import 'tests_issues.dart';
 
 part 'test_result_issues.g.dart';
 
 @riverpod
-Future<List<TestIssue>> testResultIssues(Ref ref, TestResult testResult) {
+Future<List<TestIssue>> testResultIssues(
+  Ref ref, {
+  required String testResultName,
+  required String templateId,
+}) {
   return ref.watch(
     testsIssuesProvider.selectAsync(
       (issues) => issues
           .filter(
             (issue) =>
-                issue.caseName == testResult.name ||
-                (issue.templateId == testResult.templateId &&
-                    issue.templateId.isNotEmpty),
+                issue.caseName == testResultName ||
+                (issue.templateId == templateId && templateId.isNotEmpty),
           )
           .toList(),
     ),
