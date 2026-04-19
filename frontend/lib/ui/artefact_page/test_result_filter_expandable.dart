@@ -19,10 +19,10 @@ import 'package:flutter/material.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/test_results.dart';
 import '../../../ui/test_results_page/test_results_helpers.dart';
-import '../expandable.dart';
+import '../sliver_expandable.dart';
 import 'test_result_expandable.dart';
 
-class TestResultsFilterExpandable extends ConsumerStatefulWidget {
+class TestResultsFilterExpandable extends ConsumerWidget {
   const TestResultsFilterExpandable({
     super.key,
     required this.statusToFilterBy,
@@ -37,76 +37,49 @@ class TestResultsFilterExpandable extends ConsumerStatefulWidget {
   final int? testResultIdToExpand;
 
   @override
-  ConsumerState<TestResultsFilterExpandable> createState() =>
-      _TestResultsFilterExpandableState();
-}
-
-class _TestResultsFilterExpandableState
-    extends ConsumerState<TestResultsFilterExpandable> {
-  int _limit = 20;
-
-  @override
-  Widget build(BuildContext context) {
-    final testResultsAsync = ref.watch(testResultsProvider(widget.testExecutionId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final testResultsAsync = ref.watch(testResultsProvider(testExecutionId));
 
     return testResultsAsync.when(
-      loading: () => const CircularProgressIndicator(),
-      error: (error, stackTrace) => Text('Error: $error'),
+      loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+      error: (error, stackTrace) => SliverToBoxAdapter(child: Text('Error: $error')),
       data: (testResults) {
         final filteredResults = testResults
-            .where((result) => result.status == widget.statusToFilterBy)
+            .where((result) => result.status == statusToFilterBy)
             .toList();
 
-        final shouldExpandStatus = widget.testResultIdToExpand != null &&
-            filteredResults.any((result) => result.id == widget.testResultIdToExpand);
+        final shouldExpandStatus = testResultIdToExpand != null &&
+            filteredResults.any((result) => result.id == testResultIdToExpand);
 
-        if (shouldExpandStatus && widget.testResultIdToExpand != null) {
-          final targetIndex = filteredResults
-              .indexWhere((r) => r.id == widget.testResultIdToExpand);
-          if (targetIndex != -1 && targetIndex >= _limit) {
-            _limit = targetIndex + 10;
-          }
-        }
-
-        final visibleResults = filteredResults.take(_limit).toList();
-
-        return RepaintBoundary(
-          child: Expandable(
-            initiallyExpanded: shouldExpandStatus,
-            title: Row(
-              children: [
-                TestResultHelpers.getStatusIcon(widget.statusToFilterBy),
-                const SizedBox(width: 8),
-                Text(widget.statusToFilterBy.name),
-                Text(' ${filteredResults.length}'),
-              ],
-            ),
+        return SliverExpandable(
+          initiallyExpanded: shouldExpandStatus,
+          title: Row(
             children: [
-              ...visibleResults.map(
-                (result) => TestResultExpandable(
-                  testExecutionId: widget.testExecutionId,
-                  testResult: result,
-                  artefactId: widget.artefactId,
-                  testResultIdToExpand: widget.testResultIdToExpand,
-                ),
-              ),
-              if (filteredResults.length > _limit)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _limit += 20;
-                      });
-                    },
-                    child: Text('Load more (${filteredResults.length - _limit} remaining)'),
-                  ),
-                ),
+              TestResultHelpers.getStatusIcon(statusToFilterBy),
+              const SizedBox(width: 8),
+              Text(statusToFilterBy.name),
+              Text(' ${filteredResults.length}'),
             ],
           ),
+          sliverChildren: [
+            SliverList.builder(
+              itemCount: filteredResults.length,
+              itemBuilder: (context, index) {
+                final result = filteredResults[index];
+                return TestResultExpandable(
+                  key: ValueKey(result.id),
+                  testExecutionId: testExecutionId,
+                  testResult: result,
+                  artefactId: artefactId,
+                  testResultIdToExpand: testResultIdToExpand,
+                );
+              },
+            ),
+          ],
         );
       },
     );
   }
 }
+
 

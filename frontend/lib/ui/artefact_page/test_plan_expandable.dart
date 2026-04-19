@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/test_execution.dart';
 import '../../routing.dart';
-import '../expandable.dart';
+import '../sliver_expandable.dart';
 import 'test_execution_expandable/test_execution_expandable.dart';
 import 'test_execution_expandable/test_execution_rerun_button.dart';
 
@@ -48,7 +48,7 @@ class TestPlanExpandable extends StatelessWidget {
         (targetId != null &&
             testExecutionsDescending.any((te) => te.id == targetId));
 
-    return Expandable(
+    return SliverExpandable(
       initiallyExpanded: shouldExpand,
       title: Row(
         children: [
@@ -57,7 +57,7 @@ class TestPlanExpandable extends StatelessWidget {
           RerunButton(testExecution: testExecutionsDescending.first),
         ],
       ),
-      children: testExecutionsDescending
+      sliverChildren: testExecutionsDescending
           .mapIndexed(
             (i, te) => TestExecutionExpandable(
               artefactId: artefactId,
