@@ -19,7 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/test_execution.dart';
 import '../../../models/test_result.dart';
 import '../../../routing.dart';
-import '../../expandable.dart';
+import '../../sliver_expandable.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
 import '../test_result_filter_expandable.dart';
@@ -50,30 +50,34 @@ class TestExecutionExpandable extends ConsumerWidget {
     final testResultIdToExpand =
         testResultIdString != null ? int.tryParse(testResultIdString) : null;
 
-    return Expandable(
+    return SliverExpandable(
       initiallyExpanded: initiallyExpanded,
       title: _TestExecutionTileTitle(
         testExecution: testExecution,
         runNumber: runNumber,
         artefactId: artefactId,
       ),
-      children: <Widget>[
+      sliverChildren: <Widget>[
         if (testExecution.testPlan != kManualTestPlanName)
-          TestEventLogExpandable(
-            testExecutionId: testExecution.id,
-            initiallyExpanded: !testExecution.status.isCompleted,
+          SliverToBoxAdapter(
+            child: TestEventLogExpandable(
+              testExecutionId: testExecution.id,
+              initiallyExpanded: !testExecution.status.isCompleted,
+            ),
           ),
         if (testExecution.testPlan != kManualTestPlanName)
-          ExecutionMetadataExpandable(
-            executionMetadata: testExecution.executionMetadata,
-            initiallyExpanded: false,
+          SliverToBoxAdapter(
+            child: ExecutionMetadataExpandable(
+              executionMetadata: testExecution.executionMetadata,
+              initiallyExpanded: false,
+            ),
           ),
         if (testExecution.status.isCompleted ||
             testExecution.testPlan == kManualTestPlanName)
-          Expandable(
+          SliverExpandable(
             title: const Text('Test Results'),
             initiallyExpanded: true,
-            children: TestResultStatus.values
+            sliverChildren: TestResultStatus.values
                 .map(
                   (status) => TestResultsFilterExpandable(
                     statusToFilterBy: status,

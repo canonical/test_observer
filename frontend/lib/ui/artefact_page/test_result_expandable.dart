@@ -45,7 +45,15 @@ class TestResultExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final issues = ref.watch(testResultIssuesProvider(testResult)).value ?? [];
+    final issues = ref
+            .watch(
+              testResultIssuesProvider(
+                testResultName: testResult.name,
+                templateId: testResult.templateId,
+              ),
+            )
+            .value ??
+        [];
 
     String title = testResult.name;
     if (issues.length == 1) {
@@ -64,6 +72,7 @@ class TestResultExpandable extends ConsumerWidget {
           Text(title),
           const Spacer(),
           _PreviousTestResultsWidget(
+            artefactId: artefactId,
             testExecutionId: testExecutionId,
             currentResult: testResult,
             previousResults: testResult.previousResults,
@@ -77,22 +86,29 @@ class TestResultExpandable extends ConsumerWidget {
           testResultId: testResult.id,
           artefactId: artefactId,
         ),
-        _TestResultOutputExpandable(testResult: testResult),
+        _TestResultOutputExpandable(
+          testResult: testResult,
+          initiallyExpanded: initiallyExpanded,
+        ),
       ],
     );
   }
 }
 
 class _TestResultOutputExpandable extends StatelessWidget {
-  const _TestResultOutputExpandable({required this.testResult});
+  const _TestResultOutputExpandable({
+    required this.testResult,
+    this.initiallyExpanded = false,
+  });
 
   final TestResult testResult;
+  final bool initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
     return Expandable(
       title: const Text('Details'),
-      initiallyExpanded: true,
+      initiallyExpanded: initiallyExpanded,
       children: [
         if (testResult.category != '')
           YaruTile(
@@ -122,19 +138,19 @@ class _TestResultOutputExpandable extends StatelessWidget {
 
 class _PreviousTestResultsWidget extends ConsumerWidget {
   const _PreviousTestResultsWidget({
+    required this.artefactId,
     required this.testExecutionId,
     required this.currentResult,
     required this.previousResults,
   });
 
+  final int artefactId;
   final int testExecutionId;
   final TestResult currentResult;
   final List<PreviousTestResult> previousResults;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactId =
-        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
     final currentVersion = ref
             .watch(
               artefactProvider(artefactId)

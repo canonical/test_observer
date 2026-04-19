@@ -20,7 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/artefact_environment.dart';
 import '../../providers/selected_environments.dart';
 import '../../routing.dart';
-import '../expandable.dart';
+import '../sliver_expandable.dart';
 import '../spacing.dart';
 import 'environment_issues/environment_issues_expandable.dart';
 import 'environment_review_button.dart';
@@ -48,19 +48,21 @@ class EnvironmentExpandable extends ConsumerWidget {
         artefactEnvironment.runsDescending
             .any((te) => te.id == int.tryParse(targetTestExecutionId));
 
-    return Expandable(
+    return SliverExpandable(
       initiallyExpanded: shouldExpand,
       title: _EnvironmentExpandableTitle(
         artefactEnvironment: artefactEnvironment,
       ),
-      children: [
-        EnvironmentIssuesExpandable(
-          environment: artefactEnvironment.environment,
+      sliverChildren: [
+        SliverToBoxAdapter(
+          child: EnvironmentIssuesExpandable(
+            environment: artefactEnvironment.environment,
+          ),
         ),
-        Expandable(
+        SliverExpandable(
           title: const Text('Test Plans'),
           initiallyExpanded: true,
-          children: groupedTestExecutions.values
+          sliverChildren: groupedTestExecutions.values
               .map(
                 (testExecutions) => TestPlanExpandable(
                   artefactId: artefactId,
