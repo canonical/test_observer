@@ -41,8 +41,10 @@ class TestResultsFilterExpandable extends ConsumerWidget {
     final testResultsAsync = ref.watch(testResultsProvider(testExecutionId));
 
     return testResultsAsync.when(
-      loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
-      error: (error, stackTrace) => SliverToBoxAdapter(child: Text('Error: $error')),
+      loading: () => const SliverToBoxAdapter(
+          child: Center(child: CircularProgressIndicator())),
+      error: (error, stackTrace) =>
+          SliverToBoxAdapter(child: Text('Error: $error')),
       data: (testResults) {
         final filteredResults = testResults
             .where((result) => result.status == statusToFilterBy)
@@ -81,5 +83,3 @@ class TestResultsFilterExpandable extends ConsumerWidget {
     );
   }
 }
-
-

@@ -83,14 +83,18 @@ class ArtefactPageBody extends ConsumerWidget {
             provider: testsIssuesProvider,
             child: Expanded(
               child: CustomScrollView(
-                slivers: environments.map((env) => SliverPadding(
-                  // Padding is to avoid scroll bar covering trailing buttons
-                  padding: const EdgeInsets.only(right: Spacing.level3),
-                  sliver: EnvironmentExpandable(
-                    artefactId: artefact.id,
-                    artefactEnvironment: env,
-                  ),
-                ),).toList(),
+                slivers: environments
+                    .map(
+                      (env) => SliverPadding(
+                        // Padding is to avoid scroll bar covering trailing buttons
+                        padding: const EdgeInsets.only(right: Spacing.level3),
+                        sliver: EnvironmentExpandable(
+                          artefactId: artefact.id,
+                          artefactEnvironment: env,
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ),
