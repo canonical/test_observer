@@ -70,6 +70,22 @@ RUN npm install
 COPY vue_poc .
 RUN npm run generate
 
+# ---------------------------------------------------------------------------
+# Stage 3: Build the SvelteKit (Svelte) front-end with Node 20
+# ---------------------------------------------------------------------------
+FROM node:20-alpine as svelte-builder
+
+ENV TAR_OPTIONS="--no-same-owner"
+
+ARG APT_PROXY
+RUN if [ -n "$APT_PROXY" ]; then npm config set proxy "$APT_PROXY"; fi
+
+WORKDIR /app/svelte_poc
+COPY svelte_poc/package.json ./
+RUN npm install
+COPY svelte_poc .
+RUN npm run build
+
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -84,6 +100,7 @@ RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
 COPY --from=nuxt-builder /app/vue_poc/.output/public /usr/share/nginx/html/vue_poc
+COPY --from=svelte-builder /app/svelte_poc/build /usr/share/nginx/html/svelte_poc
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
 RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/
 

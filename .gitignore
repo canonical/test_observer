@@ -2,3 +2,5 @@
 build
 
 backend/scripts/test-results-reports/
+
+/.ignore

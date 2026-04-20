@@ -1,0 +1,23 @@
+{
+	"/": [
+		"src/routes/+page.ts",
+		"src/routes/+layout.ts",
+		"src/routes/+layout.ts"
+	],
+	"/issues": [
+		"src/routes/+layout.ts"
+	],
+	"/issues/[issueId]": [
+		"src/routes/+layout.ts"
+	],
+	"/test-results": [
+		"src/routes/+layout.ts"
+	],
+	"/[family]": [
+		"src/routes/[family]/+page.ts",
+		"src/routes/+layout.ts"
+	],
+	"/[family]/[artefactId]": [
+		"src/routes/+layout.ts"
+	]
+}
