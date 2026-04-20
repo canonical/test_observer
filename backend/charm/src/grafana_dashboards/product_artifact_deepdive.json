@@ -380,10 +380,10 @@
           "expr": "topk(10, sum by (test_name) (test_observer_test_results{status=\"FAILED\", artefact_name=~\"$artefact\", track=~\"$track\", family=~\"$family\"}))",
           "legendFormat": "{{test_name}}",
           "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${prometheusds}"
-          }
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      }
         }
       ],
       "title": "Top Failing Individual Tests",
@@ -473,10 +473,10 @@
           "format": "table",
           "instant": true,
           "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${prometheusds}"
-          }
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      }
         }
       ],
       "title": "Top 25 failing Interfaces",
@@ -565,10 +565,10 @@
           "format": "table",
           "instant": true,
           "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${prometheusds}"
-          }
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      }
         }
       ],
       "title": "Top Failing Artefacts",
