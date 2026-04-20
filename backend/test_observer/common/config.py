@@ -34,4 +34,6 @@ IGNORE_PERMISSIONS = {
     permission.strip() for permission in os.getenv("IGNORE_PERMISSIONS", "").lower().split(",") if permission.strip()
 }
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9090"))
+METRICS_INIT_DAYS = int(os.getenv("METRICS_INIT_DAYS", "30"))
+METRICS_INIT_ENABLED = os.getenv("METRICS_INIT_ENABLED", "true").lower() == "true"
 REQUIRE_AUTHENTICATION = os.getenv("REQUIRE_AUTHENTICATION", "false").lower() == "true"
