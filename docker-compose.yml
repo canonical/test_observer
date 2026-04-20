@@ -44,7 +44,7 @@ services:
         condition: service_healthy
 
   test-observer-db:
-    image: docker.io/postgres:15
+    image: docker.io/postgres:14
     environment:
       POSTGRES_USER: test_observer_user
       POSTGRES_PASSWORD: test_observer_password

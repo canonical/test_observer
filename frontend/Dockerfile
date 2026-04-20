@@ -15,6 +15,9 @@ RUN apt-get update && \
     curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
     python3
 
+# Works around issues building via Docker related to tarball embedded uids/gids
+ENV TAR_OPTIONS="--no-same-owner"
+
 RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
     cd /opt/flutter && git checkout '3.29.3' && \
     /opt/flutter/bin/flutter config --enable-web --no-enable-android
