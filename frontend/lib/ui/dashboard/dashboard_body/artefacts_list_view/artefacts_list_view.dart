@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +21,7 @@ import '../../../../models/artefact.dart';
 import '../../../../providers/filtered_family_artefacts.dart';
 import '../../../../routing.dart';
 import '../../../../utils/artefact_sorting.dart';
+import '../../../navigable_link.dart';
 
 part 'row.dart';
 part 'headers.dart';
@@ -79,17 +79,63 @@ class ArtefactsListView extends ConsumerWidget {
       alignment: Alignment.topLeft,
       child: SizedBox(
         width: 1300,
-        child: ListView.separated(
-          itemCount: artefacts.length + 1,
-          itemBuilder: (_, i) =>
-              i == 0 ? listHeader : listItemBuilder(artefacts[i - 1]),
-          separatorBuilder: (_, __) => Container(
-            height: 1,
-            width: double.infinity,
-            color: Colors.grey,
-          ),
+        child: CustomScrollView(
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyHeaderDelegate(child: listHeader),
+            ),
+            if (artefacts.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 1,
+                  width: double.infinity,
+                  color: Colors.grey,
+                ),
+              ),
+            SliverList.separated(
+              itemCount: artefacts.length,
+              itemBuilder: (_, i) => listItemBuilder(artefacts[i]),
+              separatorBuilder: (_, __) => Container(
+                height: 1,
+                width: double.infinity,
+                color: Colors.grey,
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _StickyHeaderDelegate({required this.child});
+
+  final Widget child;
+
+  static const double _height = _Headers.height;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_StickyHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child;
   }
 }

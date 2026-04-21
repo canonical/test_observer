@@ -1,42 +1,38 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy import tuple_
-from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session, joinedload, selectinload
 
+from test_observer.common.enums import Permission
 from test_observer.common.metric_collectors import update_execution_metadata_metric
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models import (
     TestExecution,
     TestExecutionMetadata,
-    TestResult,
     test_execution_metadata_association_table,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionsPatchRequest
-
-
-router = APIRouter()
+from .router import router
 
 TEST_EXECUTION_OPTIONS = [
     # Single-query Joins (Many-to-One)
@@ -46,8 +42,8 @@ TEST_EXECUTION_OPTIONS = [
     # Separate-query Collections (One-to-Many / Many-to-Many)
     selectinload(TestExecution.execution_metadata),
     selectinload(TestExecution.relevant_links),
-    # Used by `is_triaged` and `has_failures` methods
-    selectinload(TestExecution.test_results).selectinload(TestResult.issue_attachments),
+    # Needed by patch_test_execution to determine test execution status
+    selectinload(TestExecution.test_results),
 ]
 
 
@@ -119,17 +115,13 @@ def patch_test_execution(
     return test_execution
 
 
-def _set_test_execution_status(
-    request: TestExecutionsPatchRequest, test_execution: TestExecution
-) -> None:
+def _set_test_execution_status(request: TestExecutionsPatchRequest, test_execution: TestExecution) -> None:
     match (request.status, test_execution.test_results):
         case (TestExecutionStatus(), _):
             test_execution.status = request.status
         case ("COMPLETED", []):
             test_execution.status = TestExecutionStatus.ENDED_PREMATURELY
-        case ("COMPLETED", results) if any(
-            r.status == TestResultStatus.FAILED for r in results
-        ):
+        case ("COMPLETED", results) if any(r.status == TestResultStatus.FAILED for r in results):
             test_execution.status = TestExecutionStatus.FAILED
         case ("COMPLETED", _):
             test_execution.status = TestExecutionStatus.PASSED

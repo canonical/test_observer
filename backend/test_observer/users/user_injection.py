@@ -1,21 +1,20 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import datetime
+
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session, selectinload
 
@@ -23,9 +22,7 @@ from test_observer.data_access.models import User, UserSession
 from test_observer.data_access.setup import get_db
 
 
-def get_user_session(
-    request: Request, db: Session = Depends(get_db)
-) -> UserSession | None:
+def get_user_session(request: Request, db: Session = Depends(get_db)) -> UserSession | None:
     # This is a protection against CSRF see "Disallowing simple requests" under
     # https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
     if "X-CSRF-Token" not in request.headers:
@@ -44,6 +41,43 @@ def get_user_session(
 
 def get_current_user(
     session: UserSession | None = Depends(get_user_session),
+) -> User | None:
+    if session:
+        return session.user
+    return None
+
+
+def get_user_session_browser_friendly(request: Request, db: Session = Depends(get_db)) -> UserSession | None:
+    """
+    Browser-friendly session getter that allows GET requests without a CSRF token.
+    This must only be used for endpoints that are safe to trigger cross-site
+    and have no side effects.
+
+    At the time of writing, this should only be used for the /docs endpoint,
+    as that is the only endpoint intended to be used directly in the browser.
+    Other endpoints can be used in the browser _from_ the Swagger docs.
+    """
+
+    # Enforce that this dependency is only used for the /docs endpoint
+    if request.url.path != "/docs":
+        return None
+
+    if request.method != "GET" and "X-CSRF-Token" not in request.headers:
+        return None
+
+    session_id = request.session.get("id")
+    if not session_id:
+        return None
+
+    session = db.get(UserSession, session_id, options=[selectinload(UserSession.user)])
+    if not session or session.expires_at < datetime.now():
+        return None
+
+    return session
+
+
+def get_current_user_browser_friendly(
+    session: UserSession | None = Depends(get_user_session_browser_friendly),
 ) -> User | None:
     if session:
         return session.user

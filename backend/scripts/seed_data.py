@@ -1,20 +1,19 @@
 #!/usr/bin/env python
-# Copyright (C) 2023 Canonical Ltd.
+
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 # ruff: noqa
 
@@ -24,7 +23,7 @@ from textwrap import dedent
 import requests
 from fastapi.testclient import TestClient
 from pydantic import HttpUrl
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.environments.models import (
@@ -44,8 +43,6 @@ from test_observer.controllers.issues.models import (
     IssuePutRequest,
     IssueTestResultAttachmentRulePostRequest,
 )
-from test_observer.common.permissions import Permission
-
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
 from test_observer.data_access.models import Artefact, User, TestResult, Application
@@ -56,7 +53,6 @@ from test_observer.data_access.models_enums import (
     CharmStage,
     ImageStage,
     IssueStatus,
-    IssueSource,
 )
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
@@ -283,6 +279,48 @@ START_TEST_EXECUTION_REQUESTS = [
         ci_link="http://example7",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
+    # These with the test-plan-environments-count test plan are to include the case where
+    # a subsequent version has fewer environments than the previous version,
+    # which should show a warning in the frontend
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="snapd",
+        version="2.72",
+        revision=1,
+        track="latest",
+        store="ubuntu",
+        arch="arm64",
+        execution_stage=SnapStage.stable,
+        environment="environment-1",
+        ci_link="http://example-more-environments-1",
+        test_plan="test-plan-environments-count",
+    ),
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="snapd",
+        version="2.72",
+        revision=1,
+        track="latest",
+        store="ubuntu",
+        arch="arm64",
+        execution_stage=SnapStage.stable,
+        environment="environment-2",
+        ci_link="http://example-more-environments-2",
+        test_plan="test-plan-environments-count",
+    ),
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="snapd",
+        version="2.73",
+        revision=1,
+        track="latest",
+        store="ubuntu",
+        arch="arm64",
+        execution_stage=SnapStage.stable,
+        environment="environment-1",
+        ci_link="http://example-fewer-environments-1",
+        test_plan="test-plan-environments-count",
+    ),
     StartDebTestExecutionRequest(
         family=FamilyName.deb,
         name="linux-raspi",
@@ -364,11 +402,7 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage=CharmStage.candidate,
         environment="juju=3.5 ubuntu=22.04 cloud=k8s",
         ci_link="http://example13",
-        relevant_links=[
-            TestExecutionRelevantLinkCreate(
-                label="Doc", url=HttpUrl("https://example.com/1")
-            )
-        ],
+        relevant_links=[TestExecutionRelevantLinkCreate(label="Doc", url=HttpUrl("https://example.com/1"))],
         test_plan="com.canonical.solutions-qa::tbd",
     ),
     StartImageTestExecutionRequest(
@@ -379,9 +413,7 @@ START_TEST_EXECUTION_REQUESTS = [
         version="20240827",
         sha256="e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
         owner="foundations",
-        image_url=HttpUrl(
-            "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
-        ),
+        image_url=HttpUrl("https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"),
         execution_stage=ImageStage.pending,
         test_plan="image test plan",
         environment="xps",
@@ -394,9 +426,7 @@ START_TEST_EXECUTION_REQUESTS = [
         version="20240827",
         sha256="e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
         owner="foundations",
-        image_url=HttpUrl(
-            "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"
-        ),
+        image_url=HttpUrl("https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso"),
         execution_stage=ImageStage.pending,
         test_plan="desktop image test plan",
         environment="xps",
@@ -762,19 +792,19 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
 
     add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
-    certbot = add_user(
-        "certbot@canonical.com", session, launchpad_api=FakeLaunchpadAPI()
-    )
+    certbot = add_user("certbot@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
     certbot.is_admin = True
 
     # Create an application with all permissions
-    application = session.scalar(
-        select(Application).where(Application.name == "seed_data_app")
-    )
+    # Following the conversion of permissions to be a PostgreSQL enum,
+    # we need to pull the values from the database rather than the Python code.
+    # Otherwise, the code could contain values not present in the database,
+    # which would cause an error when trying to add the application.
+    application = session.scalar(select(Application).where(Application.name == "seed_data_app"))
+    inspector = inspect(session.get_bind())
+    permissions = next(e["labels"] for e in inspector.get_enums() if e["name"] == "permission")  # type: ignore
     if not application:
-        application = Application(
-            name="seed_data_app", permissions=[p.value for p in Permission]
-        )
+        application = Application(name="seed_data_app", permissions=permissions)
         session.add(application)
         session.commit()
         session.refresh(application)
@@ -871,11 +901,7 @@ def _add_some_execution_metadata(
     for idx, te_id in enumerate(te_ids):
         client.patch(
             PATCH_TEST_EXECUTION_URL.format(id=te_id),
-            json={
-                "execution_metadata": SAMPLE_EXECUTION_METADATA[
-                    idx % len(SAMPLE_EXECUTION_METADATA)
-                ]
-            },
+            json={"execution_metadata": SAMPLE_EXECUTION_METADATA[idx % len(SAMPLE_EXECUTION_METADATA)]},
             headers=auth_headers,
         ).raise_for_status()
 
@@ -884,9 +910,7 @@ def _add_bugurl_and_duedate(session: Session) -> None:
     artefact = session.scalar(select(Artefact).limit(1))
 
     if artefact:
-        artefact.bug_link = (
-            "https://bugs.launchpad.net/kernel-sru-workflow/+bug/2052031"
-        )
+        artefact.bug_link = "https://bugs.launchpad.net/kernel-sru-workflow/+bug/2052031"
         artefact.due_date = date.today() + timedelta(days=7)
         session.commit()
 
@@ -898,9 +922,7 @@ def _add_issue_attachments(
     auth_headers: dict,
 ) -> None:
     for idx, test_result in enumerate(session.scalars(select(TestResult)).all()):
-        idxs_to_attach = SAMPLE_ISSUE_ATTACHMENT_SEQUENCE[
-            idx % len(SAMPLE_ISSUE_ATTACHMENT_SEQUENCE)
-        ]
+        idxs_to_attach = SAMPLE_ISSUE_ATTACHMENT_SEQUENCE[idx % len(SAMPLE_ISSUE_ATTACHMENT_SEQUENCE)]
         for issue_idx, issue in enumerate(issues):
             if issue_idx not in idxs_to_attach:
                 continue

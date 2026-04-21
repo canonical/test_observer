@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_build.dart';
@@ -29,6 +28,20 @@ const dummyUser = User(
   launchpadHandle: 'omar-selo',
 );
 
+const dummyUser2 = User(
+  id: 2,
+  name: 'John Doe',
+  email: 'john.doe@canonical.com',
+  launchpadHandle: 'john-doe',
+);
+
+const dummyUser3 = User(
+  id: 3,
+  name: 'Jane Smith',
+  email: 'jane.smith@canonical.com',
+  launchpadHandle: 'jane-smith',
+);
+
 const dummyArtefact = Artefact(
   id: 1,
   name: 'core',
@@ -40,7 +53,7 @@ const dummyArtefact = Artefact(
   repo: '',
   status: ArtefactStatus.undecided,
   stage: StageName.beta,
-  assignee: dummyUser,
+  reviewers: [dummyUser, dummyUser2, dummyUser3],
   bugLink: '',
   allEnvironmentReviewsCount: 1,
   completedEnvironmentReviewsCount: 0,

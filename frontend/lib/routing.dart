@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2023 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
@@ -22,10 +21,11 @@ import 'models/family_name.dart';
 import 'frontend_config.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
+import 'ui/issue_page/issue_page.dart';
 import 'ui/issues_page/issues_page.dart';
+import 'ui/notifications_page/notifications_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
-import 'ui/issue_page/issue_page.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -109,6 +109,12 @@ final appRouter = GoRouter(
             child: IssuePage(
               issueId: int.parse(state.pathParameters['issueId']!),
             ),
+          ),
+        ),
+        GoRoute(
+          path: '/notifications',
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: NotificationsPage(),
           ),
         ),
       ],

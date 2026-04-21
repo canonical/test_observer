@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2023 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +21,7 @@ import 'package:yaru/yaru.dart';
 
 import '../providers/api.dart';
 import '../providers/current_user.dart';
+import '../providers/notifications.dart';
 import '../routing.dart';
 import '../frontend_config.dart';
 import 'spacing.dart';
@@ -150,6 +150,7 @@ class Navbar extends ConsumerWidget {
                             ),
                           ],
                         ),
+                  if (user != null) const _NotificationBellIcon(),
                 ],
               ),
             ),
@@ -274,6 +275,70 @@ class _NavbarButton extends StatelessWidget {
         child: Text(
           title,
           style: _navbarTextStyle(context),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationBellIcon extends ConsumerWidget {
+  const _NotificationBellIcon();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
+
+    return Tooltip(
+      message: 'Notifications',
+      child: InkWell(
+        onTap: () => context.go('/notifications'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.level4,
+            vertical: Spacing.level3,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(
+                YaruIcons.notification,
+                color: Colors.white,
+                size: 20,
+              ),
+              unreadCountAsync.when(
+                data: (count) {
+                  if (count == 0) return const SizedBox.shrink();
+                  return Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          count > 99 ? '99+' : count.toString(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onError,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          ),
         ),
       ),
     );

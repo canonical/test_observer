@@ -1,24 +1,23 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-from os import environ
 import logging
+from os import environ
 
 from test_observer.external_apis.github.github_client import GitHubClient
-from test_observer.external_apis.jira.jira_client import JiraClient
+from test_observer.external_apis.jira import get_jira_client
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.synchronizers.base import BaseIssueSynchronizer
 from test_observer.external_apis.synchronizers.github import GitHubIssueSynchronizer
@@ -53,39 +52,26 @@ def create_synchronization_service() -> IssueSynchronizationService:
 
     if github_app_id and github_private_key:
         try:
-            github_client = GitHubClient(
-                app_id=github_app_id, private_key=github_private_key
-            )
+            github_client = GitHubClient(app_id=github_app_id, private_key=github_private_key)
             synchronizers.append(GitHubIssueSynchronizer(github_client))
             logger.info("GitHub synchronizer initialized")
         except Exception as e:
             logger.error(f"Failed to initialize GitHub synchronizer: {e}")
     else:
-        logger.warning(
-            "GitHub App credentials not configured, skipping GitHub synchronizer"
-        )
+        logger.warning("GitHub App credentials not configured, skipping GitHub synchronizer")
 
-    jira_cloud_id = environ.get("JIRA_CLOUD_ID")
-    jira_email = environ.get("JIRA_EMAIL")
-    jira_api_token = environ.get("JIRA_API_TOKEN")
-
-    if jira_cloud_id and jira_email and jira_api_token:
-        try:
-            jira_client = JiraClient(
-                cloud_id=jira_cloud_id,
-                email=jira_email,
-                api_token=jira_api_token,
-            )
-            synchronizers.append(JiraIssueSynchronizer(jira_client))
-            logger.info("Jira synchronizer initialized with scoped service account")
-        except Exception as e:
-            logger.error(f"Failed to initialize Jira synchronizer: {e}")
-    else:
+    try:
+        jira_client = get_jira_client()
+        synchronizers.append(JiraIssueSynchronizer(jira_client))
+        logger.info("Jira synchronizer initialized with scoped service account")
+    except ValueError:
         logger.warning(
             "Jira credentials not fully configured "
             "(need JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN), "
             "skipping Jira synchronizer"
         )
+    except Exception as e:
+        logger.error(f"Failed to initialize Jira synchronizer: {e}")
 
     try:
         launchpad_client = LaunchpadClient()
@@ -96,8 +82,7 @@ def create_synchronization_service() -> IssueSynchronizationService:
 
     if not synchronizers:
         raise ValueError(
-            "No synchronizers configured. At least one of GitHub, Jira, or Launchpad "
-            "credentials must be provided."
+            "No synchronizers configured. At least one of GitHub, Jira, or Launchpad credentials must be provided."
         )
 
     return IssueSynchronizationService(synchronizers)

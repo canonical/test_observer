@@ -1,25 +1,27 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
+from test_observer.controllers.issues.attachment_rules_logic import (
+    apply_test_result_attachment_rules,
+)
 from test_observer.data_access.models import (
     ArtefactBuild,
     TestCase,
@@ -32,14 +34,10 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
-from test_observer.controllers.issues.attachment_rules_logic import (
-    apply_test_result_attachment_rules,
-)
 
 from .logic import delete_previous_results
 from .models import C3TestResult, C3TestResultStatus, EndTestExecutionRequest
-
-router = APIRouter()
+from .router import router
 
 
 @router.put(
@@ -57,9 +55,7 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
 
     has_failures = test_execution.has_failures
 
-    test_execution.status = (
-        TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
-    )
+    test_execution.status = TestExecutionStatus.FAILED if has_failures else TestExecutionStatus.PASSED
 
     if request.c3_link is not None:
         test_execution.c3_link = request.c3_link
@@ -69,9 +65,12 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
     db.commit()
 
 
-def _find_related_test_execution(
-    request: EndTestExecutionRequest, db: Session
-) -> TestExecution | None:
+def _find_related_test_execution(request: EndTestExecutionRequest, db: Session) -> TestExecution | None:
+    # Serialise concurrent requests for the same execution. Without this lock,
+    # a retry can race through when there are no pre-existing rows to lock on,
+    # and both requests insert a full duplicate set.
+    # with_for_update(of=TestExecution) locks only the test_execution row,
+    # not the joined rows.
     stmt = (
         select(TestExecution)
         .where(TestExecution.ci_link == request.ci_link)
@@ -79,6 +78,7 @@ def _find_related_test_execution(
             joinedload(TestExecution.artefact_build).joinedload(ArtefactBuild.artefact),
             joinedload(TestExecution.test_results).joinedload(TestResult.test_case),
         )
+        .with_for_update(of=TestExecution)
     )
 
     return db.execute(stmt).unique().scalar_one_or_none()
@@ -111,8 +111,6 @@ def _store_c3_test_results(
         db.add(test_result)
         db.flush()
         apply_test_result_attachment_rules(db, test_result)
-
-    db.commit()
 
 
 def _parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:

@@ -1,18 +1,17 @@
-# Copyright (C) 2026 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """
 Initialize Prometheus metrics from database on application startup.
@@ -23,11 +22,11 @@ immediately reflects the current state rather than starting from zero.
 
 import logging
 from datetime import datetime, timedelta
-from os import environ
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from test_observer.common.config import METRICS_INIT_DAYS, METRICS_INIT_ENABLED
 from test_observer.common.metrics import (
     test_results,
     test_results_metadata,
@@ -49,10 +48,6 @@ from test_observer.data_access.models import (
 
 logger = logging.getLogger(__name__)
 
-# Configuration from environment
-METRICS_INIT_ENABLED = environ.get("METRICS_INIT_ENABLED", "true").lower() == "true"
-METRICS_INIT_DAYS = int(environ.get("METRICS_INIT_DAYS", "30"))
-
 
 def initialize_all_metrics(db: Session) -> None:
     """
@@ -68,10 +63,7 @@ def initialize_all_metrics(db: Session) -> None:
         logger.info("Metrics initialization disabled (METRICS_INIT_ENABLED=false)")
         return
 
-    logger.info(
-        f"Initializing Prometheus metrics from database "
-        f"(last {METRICS_INIT_DAYS} days)..."
-    )
+    logger.info(f"Initializing Prometheus metrics from database (last {METRICS_INIT_DAYS} days)...")
 
     try:
         count_basic = _initialize_test_results_metric(db)
@@ -90,7 +82,7 @@ def initialize_all_metrics(db: Session) -> None:
 
 def _get_cutoff_date() -> datetime | None:
     """Get the cutoff date for metrics initialization based on config."""
-    if METRICS_INIT_DAYS == 0:
+    if METRICS_INIT_DAYS <= 0:
         return None  # No time limit
     return datetime.utcnow() - timedelta(days=METRICS_INIT_DAYS)
 
@@ -274,13 +266,11 @@ def _initialize_metadata_metrics(db: Session) -> int:
         .select_from(TestExecution)
         .join(
             test_execution_metadata_association_table,
-            TestExecution.id
-            == test_execution_metadata_association_table.c.test_execution_id,
+            TestExecution.id == test_execution_metadata_association_table.c.test_execution_id,
         )
         .join(
             TestExecutionMetadata,
-            test_execution_metadata_association_table.c.test_execution_metadata_id
-            == TestExecutionMetadata.id,
+            test_execution_metadata_association_table.c.test_execution_metadata_id == TestExecutionMetadata.id,
         )
         .join(TestResult, TestResult.test_execution_id == TestExecution.id)
         .join(TestCase, TestResult.test_case_id == TestCase.id)

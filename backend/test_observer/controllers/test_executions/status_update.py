@@ -1,24 +1,23 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy.orm import Session, joinedload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import (
     TestEvent,
     TestExecution,
@@ -28,18 +27,15 @@ from test_observer.data_access.setup import get_db
 
 from .logic import delete_previous_test_events
 from .models import StatusUpdateRequest, TestEventResponse
+from .router import router
 from .testflinger_event_parser import TestflingerEventParser
-
-router = APIRouter()
 
 
 @router.put(
     "/{id}/status_update",
     dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
 )
-def put_status_update(
-    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
-):
+def put_status_update(id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
         id,
@@ -93,9 +89,7 @@ def get_status_update(id: int, db: Session = Depends(get_db)):
     "/{id}/status_update",
     dependencies=[Security(permission_checker, scopes=[Permission.change_test])],
 )
-def post_status_update(
-    id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
-):
+def post_status_update(id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)):
     test_execution = db.get(
         TestExecution,
         id,

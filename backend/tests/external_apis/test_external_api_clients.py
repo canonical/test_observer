@@ -1,26 +1,27 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
+
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
-from unittest.mock import patch, Mock
+
+from test_observer.external_apis.exceptions import APIError
 from test_observer.external_apis.jira.jira_client import JiraClient
 from test_observer.external_apis.launchpad.launchpad_client import LaunchpadClient
 from test_observer.external_apis.models import IssueData
-from test_observer.external_apis.exceptions import APIError
 
 
 class TestJiraClient:
@@ -53,9 +54,7 @@ class TestJiraClient:
     def test_base_url_construction(self) -> None:
         """Test base URL construction with cloud ID"""
         cloud_id = "my-custom-cloud-id-123"
-        client = JiraClient(
-            cloud_id=cloud_id, email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id=cloud_id, email="test@example.com", api_token="test-token")
 
         expected_url = f"https://api.atlassian.com/ex/jira/{cloud_id}"
         assert client.base_url == expected_url
@@ -75,9 +74,7 @@ class TestJiraClient:
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        client = JiraClient(
-            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
 
         result = client.get_issue("TEST", "TEST-123")
 
@@ -89,9 +86,7 @@ class TestJiraClient:
 
         # Verify the request was made correctly
         mock_get.assert_called_once()
-        request = (
-            "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/TEST-123"
-        )
+        request = "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/TEST-123"
         assert request in str(mock_get.call_args)
 
     @patch("test_observer.external_apis.jira.jira_client.requests.get")
@@ -99,14 +94,10 @@ class TestJiraClient:
         """Test 404 error handling"""
         # Setup mock to raise HTTPError
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-            "404 Not Found"
-        )
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
         mock_get.return_value = mock_response
 
-        client = JiraClient(
-            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
 
         with pytest.raises(requests.exceptions.HTTPError):
             client.get_issue("TEST", "NOTFOUND-1")
@@ -116,17 +107,102 @@ class TestJiraClient:
         """Test rate limit error handling"""
         # Setup mock to raise HTTPError for rate limit
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-            "429 Too Many Requests"
-        )
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("429 Too Many Requests")
         mock_get.return_value = mock_response
 
-        client = JiraClient(
-            cloud_id="test-cloud", email="test@example.com", api_token="test-token"
-        )
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
 
         with pytest.raises(requests.exceptions.HTTPError):
             client.get_issue("TEST", "TEST-1")
+
+    @patch("test_observer.external_apis.jira.jira_client.requests.post")
+    def test_create_issue_success(self, mock_post: Mock) -> None:
+        """Test successful issue creation"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "id": "10001",
+            "key": "TEST-456",
+            "self": "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/10001",
+        }
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
+
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
+
+        # WHEN an issue is created with appropriate fields
+        issue_key = client.create_issue(
+            project_key="TEST",
+            summary="Test Issue Title",
+            issue_type="Task",
+            description="Test description",
+            parent_issue_key="TEST-123",
+        )
+
+        # THEN
+        # the returned issue key should match the response
+        assert issue_key == "TEST-456"
+
+        # the request should be made correctly
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        assert "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue" in str(call_args)
+
+        # the payload should contain the correct fields
+        payload = call_args.kwargs["json"]
+        assert payload["fields"]["project"]["key"] == "TEST"
+        assert payload["fields"]["summary"] == "Test Issue Title"
+        assert payload["fields"]["issuetype"]["name"] == "Task"
+        assert payload["fields"]["description"]["type"] == "doc"
+        assert payload["fields"]["description"]["content"][0]["content"][0]["text"] == "Test description"
+        assert payload["fields"]["parent"]["key"] == "TEST-123"
+
+    @patch("test_observer.external_apis.jira.jira_client.requests.post")
+    def test_create_issue_http_error(self, mock_post: Mock) -> None:
+        """Test issue creation with HTTP error"""
+        mock_response = Mock()
+        mock_response.text = '{"errorMessages":["Project does not exist"]}'
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("400 Bad Request")
+        mock_post.return_value = mock_response
+
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
+
+        # when there is a bad request error, the client should raise an HTTPError
+        with pytest.raises(requests.exceptions.HTTPError):
+            client.create_issue(
+                project_key="INVALID",
+                summary="Test Issue",
+                issue_type="Task",
+            )
+
+    @patch("test_observer.external_apis.jira.jira_client.requests.post")
+    def test_create_issue_with_assignee(self, mock_post: Mock) -> None:
+        """Test issue creation with assignee"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "id": "10002",
+            "key": "TEST-789",
+            "self": "https://api.atlassian.com/ex/jira/test-cloud/rest/api/3/issue/10002",
+        }
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
+
+        client = JiraClient(cloud_id="test-cloud", email="test@example.com", api_token="test-token")
+
+        # WHEN an issue is created with an assignee
+        issue_key = client.create_issue(
+            project_key="TEST",
+            summary="Test Issue with Assignee",
+            issue_type="Task",
+            assignee_id="5b10ac8d82e05b22cc7d4ef5",
+        )
+
+        # THEN
+        # the returned issue key should match the response
+        assert issue_key == "TEST-789"
+
+        # the payload should contain the assignee field
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["fields"]["assignee"]["accountId"] == "5b10ac8d82e05b22cc7d4ef5"
 
 
 class TestLaunchpadClient:
@@ -215,9 +291,7 @@ class TestLaunchpadClient:
         mock_launchpad = Mock()
         mock_launchpad.bugs = {1234567: mock_bug}
 
-        with patch(
-            "test_observer.external_apis.launchpad.launchpad_client.Launchpad"
-        ) as mock_lp_class:
+        with patch("test_observer.external_apis.launchpad.launchpad_client.Launchpad") as mock_lp_class:
             mock_lp_class.login_anonymously.return_value = mock_launchpad
 
             client = LaunchpadClient(anonymous=True)

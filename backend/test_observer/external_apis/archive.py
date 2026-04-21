@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Functions for managing data from archive"""
 
@@ -97,15 +95,12 @@ class ArchiveManager:
         # Creating a temporary directory
         temp_dir = tempfile.gettempdir()
 
-        filepath = self.url.split("/")[-1] + "".join(
-            random.choice(string.ascii_lowercase) for i in range(10)
-        )
+        filepath = self.url.split("/")[-1] + "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.gz_filepath = os.path.join(temp_dir, filepath)
         # Remove .gz extension
         self.decompressed_filepath = os.path.join(
             temp_dir,
-            filepath[:-3]
-            + "".join(random.choice(string.ascii_lowercase) for i in range(10)),
+            filepath[:-3] + "".join(random.choice(string.ascii_lowercase) for i in range(10)),
         )
         logger.debug("Compressed filepath: %s", self.gz_filepath)
         logger.debug("Decompressed filepath: %s", self.decompressed_filepath)

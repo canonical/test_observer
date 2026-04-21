@@ -1,28 +1,33 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Depends, Request
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse
 
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import authentication_checker, authentication_checker_browser_friendly
 
 router: APIRouter = APIRouter()
 
 
-@router.get("/openapi.json", include_in_schema=False)
+@router.get(
+    "/openapi.json",
+    include_in_schema=False,
+    dependencies=[Depends(authentication_checker)],
+)
 async def custom_openapi(request: Request):
     app = request.app
     openapi_schema = app.openapi()
@@ -33,7 +38,7 @@ async def custom_openapi(request: Request):
             continue
 
         # Get security scopes for all dependencies
-        security_scopes = []
+        security_scopes: list[Permission] = []
         for dep in route.dependant.dependencies:
             security_scopes.extend(dep.security_scopes)
         if len(security_scopes) == 0:
@@ -42,18 +47,17 @@ async def custom_openapi(request: Request):
         # Add security scopes to OpenAPI schema
         for method in route.methods:
             method_lower = method.lower()
-            if (
-                route.path in openapi_schema["paths"]
-                and method_lower in openapi_schema["paths"][route.path]
-            ):
-                openapi_schema["paths"][route.path][method_lower]["x-permissions"] = (
-                    security_scopes
-                )
+            if route.path in openapi_schema["paths"] and method_lower in openapi_schema["paths"][route.path]:
+                openapi_schema["paths"][route.path][method_lower]["x-permissions"] = security_scopes
 
     return JSONResponse(openapi_schema)
 
 
-@router.get("/docs", include_in_schema=False)
+@router.get(
+    "/docs",
+    include_in_schema=False,
+    dependencies=[Depends(authentication_checker_browser_friendly)],
+)
 async def custom_swagger_ui_html():
     html = get_swagger_ui_html(openapi_url="/openapi.json", title="API Documentation")
 

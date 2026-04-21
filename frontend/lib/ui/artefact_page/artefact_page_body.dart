@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,12 +20,14 @@ import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../models/artefact_environment.dart';
 import '../../models/test_execution.dart';
+import '../../providers/previous_artefact_environment_data.dart';
 import '../../providers/environments_issues.dart';
 import '../../providers/filtered_artefact_environments.dart';
 import '../../providers/tests_issues.dart';
 import '../../routing.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
+import 'bulk_environment_selection_controls.dart';
 import 'environment_expandable.dart';
 import 'manual_testing_button.dart';
 import 'rerun_filtered_plans_button.dart';
@@ -69,6 +70,13 @@ class ArtefactPageBody extends ConsumerWidget {
             const RerunFilteredPlansButton(),
           ],
         ),
+        const SizedBox(height: Spacing.level3),
+        _FewerEnvironmentsWarning(artefact: artefact),
+        BulkEnvironmentSelectionControls(
+          environments: environments,
+          artefactId: artefact.id,
+        ),
+        const SizedBox(height: Spacing.level2),
         NonBlockingProviderPreloader(
           provider: environmentsIssuesProvider,
           child: NonBlockingProviderPreloader(
@@ -140,5 +148,93 @@ class _ArtefactEnvironmentsStatusSummary extends StatelessWidget {
     }
 
     return counts;
+  }
+}
+
+class _FewerEnvironmentsWarning extends ConsumerStatefulWidget {
+  const _FewerEnvironmentsWarning({required this.artefact});
+
+  final Artefact artefact;
+
+  @override
+  ConsumerState<_FewerEnvironmentsWarning> createState() =>
+      _FewerEnvironmentsWarningState();
+}
+
+class _FewerEnvironmentsWarningState
+    extends ConsumerState<_FewerEnvironmentsWarning> {
+  bool _isDismissed = false;
+
+  @override
+  void didUpdateWidget(covariant _FewerEnvironmentsWarning oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artefact.id != widget.artefact.id) {
+      _isDismissed = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isDismissed) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final previousVersionDataAsync = ref.watch(
+      previousArtefactEnvironmentDataProvider(widget.artefact.id),
+    );
+
+    return previousVersionDataAsync.when(
+      data: (previousData) {
+        if (previousData == null ||
+            widget.artefact.allEnvironmentReviewsCount >=
+                previousData.environmentCount) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: Spacing.level3),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.level4,
+              vertical: Spacing.level3,
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.secondaryContainer,
+              border: Border.all(color: colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: colorScheme.onSecondaryContainer,
+                ),
+                const SizedBox(width: Spacing.level3),
+                Expanded(
+                  child: Text(
+                    'This version has ${widget.artefact.allEnvironmentReviewsCount} '
+                    'environments, which is fewer than the '
+                    '${previousData.environmentCount} environments of the '
+                    'previously added version (${previousData.version}).',
+                    softWrap: true,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSecondaryContainer,
+                        ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Dismiss warning',
+                  onPressed: () => setState(() => _isDismissed = true),
+                  icon: Icon(
+                    Icons.close,
+                    color: colorScheme.onSecondaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
   }
 }

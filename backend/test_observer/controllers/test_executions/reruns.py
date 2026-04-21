@@ -1,30 +1,33 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import contextlib
-
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Security, Query
-from fastapi.security import SecurityScopes
-from sqlalchemy import delete, select, asc, tuple_, or_
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import Annotated
 
-from test_observer.common.permissions import Permission, permission_checker
+from fastapi import Depends, HTTPException, Query, Response, Security, status
+from fastapi.security import SecurityScopes
+from sqlalchemy import asc, delete, or_, select, tuple_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import Session, selectinload
+
+from test_observer.common.config import IGNORE_PERMISSIONS
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import (
+    openapi_scope_declaration,
+    permission_checker,
+)
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -33,28 +36,40 @@ from test_observer.controllers.test_results.filter_test_results import (
 )
 from test_observer.data_access.models import (
     Application,
+    Artefact,
     ArtefactBuild,
+    ArtefactMatchingRule,
     Environment,
+    FamilyName,
     TestExecution,
     TestExecutionRerunRequest,
     TestResult,
-    Artefact,
-    FamilyName,
     User,
 )
+from test_observer.data_access.queries import batch_match_artefacts
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
 from .models import DeleteReruns, PendingRerun, RerunRequest
+from .router import router
 
-router = APIRouter()
 
+def _build_rerun_conditions(request: RerunRequest | DeleteReruns) -> list:
+    """Build conditions for finding affected TestExecutions.
 
-def modify_reruns(
-    db: Session,
-    request: RerunRequest | DeleteReruns,
-):
+    Constructs a list of SQLAlchemy conditions for either direct test execution IDs
+    or filtered test results.
+
+    Args:
+        request: RerunRequest or DeleteReruns with either test_execution_ids or test_results_filters
+
+    Returns:
+        List of SQLAlchemy conditions (may be empty if neither criterion is provided)
+
+    Raises:
+        HTTPException(422): If test_results_filters is provided but has no filters
+    """
     conditions = []
 
     # Add condition for direct test execution IDs
@@ -69,10 +84,17 @@ def modify_reruns(
                 status_code=422,
                 detail="At least one filter must be provided in test_results_filters",
             )
-        filtered_ids_query = filter_test_results(
-            select(TestResult.test_execution_id).distinct(), filters
-        )
+        filtered_ids_query = filter_test_results(select(TestResult.test_execution_id).distinct(), filters)
         conditions.append(TestExecution.id.in_(filtered_ids_query))
+
+    return conditions
+
+
+def modify_reruns(
+    db: Session,
+    request: RerunRequest | DeleteReruns,
+):
+    conditions = _build_rerun_conditions(request)
 
     # Do nothing if no conditions were added
     if not conditions:
@@ -122,17 +144,125 @@ def require_bulk_permission(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ):
-    if (
-        request.test_execution_ids is not None and len(request.test_execution_ids) > 1
-    ) or (request.test_results_filters is not None):
+    if (request.test_execution_ids is not None and len(request.test_execution_ids) > 1) or (
+        request.test_results_filters is not None
+    ):
         permission_checker(security_scopes, user, app)
+
+
+def _validate_amr_permissions_for_request(
+    db: Session,
+    user: User | None,
+    app: Application | None,
+    request: RerunRequest | DeleteReruns,
+    permission: Permission,
+) -> None:
+    """
+    Validate AMR permissions for rerun requests with optimized batch querying.
+
+    Handles two cases:
+    1. Direct IDs: When request.test_execution_ids is provided
+    2. Filters: When request.test_results_filters is provided
+
+    Uses all-or-nothing semantics: raise HTTPException(403) if ANY artefact is unauthorized.
+    Honors IGNORE_PERMISSIONS, app.permissions, and admin bypass through early exits.
+    Uses batch querying to reduce database load from O(n) to O(1) for AMR matching.
+
+    Args:
+        db: Database session
+        user: Current user (can be None)
+        app: Current application (can be None)
+        request: RerunRequest or DeleteReruns with either test_execution_ids or test_results_filters
+        permission: Permission to check (e.g., Permission.change_rerun)
+
+    Raises:
+        HTTPException(403): If any affected artefact is unauthorized
+    """
+    # Early exits
+    ignored_permission = permission.value in IGNORE_PERMISSIONS
+    app_has_permission = app is not None and permission in app.permissions
+    if ignored_permission or app_has_permission:
+        return
+    if user is None:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    elif user.is_admin:
+        return
+
+    # Collect conditions to find affected TestExecutions
+    conditions = _build_rerun_conditions(request)
+
+    # If no conditions, nothing to check
+    if not conditions:
+        return
+
+    # Check user authorization
+    # Query for all unique artefacts affected by the request
+    affected_artefacts_query = (
+        select(Artefact)
+        .distinct()
+        .join(ArtefactBuild, Artefact.id == ArtefactBuild.artefact_id)
+        .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
+        .where(or_(*conditions))
+    )
+
+    affected_artefacts = db.scalars(affected_artefacts_query).all()
+
+    # If no affected artefacts, no permissions to check (e.g., invalid test_execution_ids)
+    if not affected_artefacts:
+        return
+
+    batch_match_result = db.execute(batch_match_artefacts(list(affected_artefacts))).all()
+
+    # Build map: artefact_id → set of matching AMR IDs
+    artefact_to_amrs: dict[int, set[int]] = {}
+    matched_amr_ids = set()
+    for artefact_id, amr_id in batch_match_result:
+        artefact_to_amrs.setdefault(artefact_id, set()).add(amr_id)
+        matched_amr_ids.add(amr_id)
+
+    # Fetch all matching AMRs with teams in a single query
+    if matched_amr_ids:
+        matching_rules = (
+            db.query(ArtefactMatchingRule)
+            .filter(ArtefactMatchingRule.id.in_(matched_amr_ids))
+            .options(selectinload(ArtefactMatchingRule.teams))
+            .all()
+        )
+    else:
+        matching_rules = []
+
+    # Build map: AMR ID → rule with teams
+    amr_rules = {rule.id: rule for rule in matching_rules}
+
+    # Check permission for each affected artefact using all-or-nothing semantics
+    user_team_ids = {team.id for team in user.teams}
+
+    for artefact in affected_artefacts:
+        matching_amr_ids = artefact_to_amrs.get(artefact.id, set())
+
+        if not matching_amr_ids:
+            # No AMRs match this artefact
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+        # Check if user is in a team with a matching AMR that grants the permission
+        has_permission = False
+        for amr_id in matching_amr_ids:
+            rule = amr_rules.get(amr_id)
+            if rule is not None and permission in rule.grant_permissions:
+                rule_team_ids = {team.id for team in rule.teams}
+                if user_team_ids & rule_team_ids:
+                    has_permission = True
+                    break
+
+        if not has_permission:
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
 @router.post(
     "/reruns",
     response_model=list[PendingRerun] | None,
     dependencies=[
-        Security(permission_checker, scopes=[Permission.change_rerun]),
+        Security(openapi_scope_declaration, scopes=[Permission.change_rerun]),
         Security(require_bulk_permission, scopes=[Permission.change_rerun_bulk]),
     ],
 )
@@ -151,7 +281,12 @@ def create_rerun_requests(
         ),
     ] = False,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
 ):
+    # Validate AMR permissions in addition to basic app/user permissions
+    _validate_amr_permissions_for_request(db, user, app, request, Permission.change_rerun)
+
     if silent:
         modify_reruns(db, request)
         return
@@ -181,9 +316,7 @@ def create_rerun_requests(
     return rerun_requests
 
 
-def _create_rerun_request(
-    test_execution_id: int, db: Session
-) -> TestExecutionRerunRequest:
+def _create_rerun_request(test_execution_id: int, db: Session) -> TestExecutionRerunRequest:
     te = db.get(TestExecution, test_execution_id)
     if not te:
         raise _TestExecutionNotFound
@@ -220,7 +353,7 @@ def get_rerun_requests(
         .options(
             selectinload(TestExecutionRerunRequest.artefact_build)
             .selectinload(ArtefactBuild.artefact)
-            .selectinload(Artefact.assignee),
+            .selectinload(Artefact.reviewers),
             selectinload(TestExecutionRerunRequest.environment),
             selectinload(TestExecutionRerunRequest.test_plan),
             selectinload(TestExecutionRerunRequest.test_executions),
@@ -249,11 +382,19 @@ def get_rerun_requests(
 @router.delete(
     "/reruns",
     dependencies=[
-        Security(permission_checker, scopes=[Permission.change_rerun]),
+        Security(openapi_scope_declaration, scopes=[Permission.change_rerun]),
         Security(require_bulk_permission, scopes=[Permission.change_rerun_bulk]),
     ],
 )
-def delete_rerun_requests(request: DeleteReruns, db: Session = Depends(get_db)):
+def delete_rerun_requests(
+    request: DeleteReruns,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+):
+    # Validate AMR permissions in addition to basic app/user permissions
+    _validate_amr_permissions_for_request(db, user, app, request, Permission.change_rerun)
+
     modify_reruns(db, request)
 
 
