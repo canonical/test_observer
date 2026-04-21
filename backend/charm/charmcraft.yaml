@@ -102,6 +102,14 @@ config:
       description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
       type: boolean
       default: false
+    metrics_init_days:
+      description: Number of days of historical data to load when initializing metrics on startup. Use 0 to load all historical data.
+      type: int
+      default: 30
+    metrics_init_enabled:
+      description: Whether to initialize Prometheus metrics from the database on startup.
+      type: boolean
+      default: true
 
 resources:
   api-image:

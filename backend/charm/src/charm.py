@@ -267,6 +267,8 @@ class TestObserverBackendCharm(CharmBase):
             "SESSIONS_SECRET": self.config["sessions_secret"],
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
             "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
+            "METRICS_INIT_DAYS": str(self.config.get("metrics_init_days", 30)),
+            "METRICS_INIT_ENABLED": str(self.config.get("metrics_init_enabled", True)).lower(),
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):
