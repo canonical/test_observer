@@ -1,0 +1,10 @@
+# Svelte PoC Sync Point
+#
+# This file tracks the last Flutter commit that the Svelte PoC was synced against.
+# The orchestrator agent reads this to determine what Flutter changes need to be
+# ported since the last session. After completing a sync session, the orchestrator
+# updates this file to the current HEAD.
+#
+# Format: <commit-hash> <ISO-date> <short-description>
+
+7b5fad33673f989637923141778f3feed31a08d4 2026-04-21 Cross-page consistency pass complete; all 5 pages ported
