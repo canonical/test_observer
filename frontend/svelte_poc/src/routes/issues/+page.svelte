@@ -95,36 +95,42 @@
         </label>
       </div>
 
-      <div class="sidebar-section">
-        <h4>Source</h4>
-        {#each ISSUE_SOURCES as src (src)}
-          <label class="checkbox-option">
-            <input type="checkbox" checked={store.filters.source.includes(src)} onchange={() => toggleSource(src)} />
-            {src.charAt(0).toUpperCase() + src.slice(1)}
-          </label>
-        {/each}
-      </div>
+      <details open class="filter-section">
+        <summary>Source</summary>
+        <div class="filter-body">
+          {#each ISSUE_SOURCES as src (src)}
+            <label class="checkbox-option">
+              <input type="checkbox" checked={store.filters.source.includes(src)} onchange={() => toggleSource(src)} />
+              {src.charAt(0).toUpperCase() + src.slice(1)}
+            </label>
+          {/each}
+        </div>
+      </details>
 
-      <div class="sidebar-section">
-        <h4>Status</h4>
-        {#each ISSUE_STATUSES as st (st)}
-          <label class="checkbox-option">
-            <input type="checkbox" checked={store.filters.status.includes(st)} onchange={() => toggleStatus(st)} />
-            {st.charAt(0).toUpperCase() + st.slice(1)}
-          </label>
-        {/each}
-      </div>
+      <details open class="filter-section">
+        <summary>Status</summary>
+        <div class="filter-body">
+          {#each ISSUE_STATUSES as st (st)}
+            <label class="checkbox-option">
+              <input type="checkbox" checked={store.filters.status.includes(st)} onchange={() => toggleStatus(st)} />
+              {st.charAt(0).toUpperCase() + st.slice(1)}
+            </label>
+          {/each}
+        </div>
+      </details>
 
       {#if store.projectOptions.length > 0}
-        <div class="sidebar-section">
-          <h4>Project</h4>
-          <select class="project-select" value={store.filters.project} onchange={(e) => setProject((e.target as HTMLSelectElement).value)}>
-            <option value="">All projects</option>
-            {#each store.projectOptions as proj (proj)}
-              <option value={proj}>{proj}</option>
-            {/each}
-          </select>
-        </div>
+        <details open class="filter-section">
+          <summary>Project</summary>
+          <div class="filter-body">
+            <select class="project-select" value={store.filters.project} onchange={(e) => setProject((e.target as HTMLSelectElement).value)}>
+              <option value="">All projects</option>
+              {#each store.projectOptions as proj (proj)}
+                <option value={proj}>{proj}</option>
+              {/each}
+            </select>
+          </div>
+        </details>
       {/if}
 
       {#if store.hasFilters}
@@ -231,11 +237,32 @@
     margin-bottom: 16px;
   }
 
-  .sidebar-section h4 {
-    margin: 0 0 6px;
+  .filter-section {
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  .filter-section summary {
+    padding: 8px 0;
+    cursor: pointer;
+    font-weight: 500;
     font-size: 13px;
-    font-weight: 600;
     color: #333;
+    user-select: none;
+    list-style: none;
+  }
+
+  .filter-section summary::before {
+    content: '▸ ';
+    font-size: 11px;
+    color: #999;
+  }
+
+  .filter-section[open] > summary::before {
+    content: '▾ ';
+  }
+
+  .filter-body {
+    padding: 0 0 10px 0;
   }
 
   .search-label {

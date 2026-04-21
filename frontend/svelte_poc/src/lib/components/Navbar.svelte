@@ -20,7 +20,7 @@
 <nav class="navbar" aria-label="Main navigation">
   <div class="navbar-inner">
     <a href="{base}/" class="logo">
-      <img src="{base}/logo.png" alt="Test Observer" height="28" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+      <img src="{base}/logo.png" alt="Test Observer" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
     </a>
 
     {#each configuredTabs as tab}
@@ -75,7 +75,7 @@
   }
 
   .logo img {
-    height: 28px;
+    height: 42px;
     width: auto;
   }
 

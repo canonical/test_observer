@@ -213,13 +213,14 @@
                     {/if}
                   </span>
                   <span class="cell" role="cell">{row.test_execution.id}</span>
-                  <span class="cell" role="cell">
+                  <span class="cell cell-status" role="cell">
                     <span
-                      class="status-badge"
+                      class="status-indicator"
                       class:passed={row.test_result.status === 'PASSED'}
                       class:failed={row.test_result.status === 'FAILED'}
                       class:skipped={row.test_result.status === 'SKIPPED'}
                     >
+                      <span class="status-dot"></span>
                       {row.test_result.status}
                     </span>
                   </span>
@@ -572,29 +573,49 @@
     text-decoration: underline;
   }
 
-  .status-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
+  .cell-status {
+    overflow: visible;
+  }
+
+  .status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
 
-  .status-badge.passed {
-    background: #e8f5e9;
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-indicator.passed {
     color: #0e8420;
   }
 
-  .status-badge.failed {
-    background: #fce4ec;
+  .status-indicator.passed .status-dot {
+    background: #0e8420;
+  }
+
+  .status-indicator.failed {
     color: #c7162b;
   }
 
-  .status-badge.skipped {
-    background: #f5f5f5;
+  .status-indicator.failed .status-dot {
+    background: #c7162b;
+  }
+
+  .status-indicator.skipped {
     color: #888;
+  }
+
+  .status-indicator.skipped .status-dot {
+    background: #888;
   }
 
   /* Load more */

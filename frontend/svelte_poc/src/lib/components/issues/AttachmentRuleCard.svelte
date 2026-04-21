@@ -41,15 +41,15 @@
 <div class="rule-card" class:disabled={!rule.enabled}>
   <details bind:open={isOpen}>
     <summary class="rule-summary">
-      <span class="rule-id">Rule #{rule.id}</span>
+      <span class="rule-id">Attachment Rule #{rule.id}</span>
       <span class="badge" class:badge-enabled={rule.enabled} class:badge-disabled={!rule.enabled}>
-        {rule.enabled ? 'Enabled' : 'Disabled'}
+        {rule.enabled ? 'enabled' : 'disabled'}
       </span>
       <span class="rule-actions">
         <button class="btn-toggle" onclick={handleToggleEnabled}>
-          {rule.enabled ? 'Disable' : 'Enable'}
+          {rule.enabled ? 'disable' : 'enable'}
         </button>
-        <button class="btn-delete" onclick={handleDelete}>Delete</button>
+        <button class="btn-delete" onclick={handleDelete}>delete</button>
       </span>
     </summary>
     <div class="rule-body">
@@ -151,37 +151,37 @@
   .rule-actions {
     margin-left: auto;
     display: flex;
-    gap: 6px;
+    gap: 12px;
   }
 
   .btn-toggle {
     background: none;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 3px 10px;
+    border: none;
+    padding: 0;
     font-size: 12px;
     cursor: pointer;
-    color: #555;
+    color: #E95420;
+    text-decoration: none;
+    font-weight: 500;
   }
 
   .btn-toggle:hover {
-    border-color: #E95420;
-    color: #E95420;
+    text-decoration: underline;
   }
 
   .btn-delete {
     background: none;
-    border: 1px solid #e0c0c0;
-    border-radius: 4px;
-    padding: 3px 10px;
+    border: none;
+    padding: 0;
     font-size: 12px;
     cursor: pointer;
     color: #c7162b;
+    text-decoration: none;
+    font-weight: 500;
   }
 
   .btn-delete:hover {
-    border-color: #c7162b;
-    background: #fce4ec;
+    text-decoration: underline;
   }
 
   .rule-body {
