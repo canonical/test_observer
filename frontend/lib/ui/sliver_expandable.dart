@@ -57,12 +57,18 @@ class _SliverExpandableState extends State<SliverExpandable> {
     return SliverMainAxisGroup(
       slivers: [
         SliverToBoxAdapter(
-          child: ListTile(
+          child: Semantics(
+            button: true,
+            expanded: _isExpanded,
             onTap: _handleTap,
-            contentPadding: widget.tilePadding,
-            leading:
-                Icon(_isExpanded ? Icons.expand_more : Icons.chevron_right),
-            title: widget.title,
+            hint: _isExpanded ? 'Collapse section' : 'Expand section',
+            child: ListTile(
+              onTap: _handleTap,
+              contentPadding: widget.tilePadding,
+              leading:
+                  Icon(_isExpanded ? Icons.expand_more : Icons.chevron_right),
+              title: widget.title,
+            ),
           ),
         ),
         if (_isExpanded)
