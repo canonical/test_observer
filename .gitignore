@@ -4,3 +4,4 @@ build
 backend/scripts/test-results-reports/
 
 /.ignore
+/frontend/svelte_poc/.svelte-kit/
