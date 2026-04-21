@@ -1,10 +1,10 @@
 import "clsx";
-import { a as attr, b as attr_class, e as ensure_array_like, d as derived, s as stringify } from "../../chunks/root.js";
+import { a as attr, b as attr_class, e as escape_html, c as ensure_array_like, d as derived, s as stringify } from "../../chunks/root.js";
 import { p as page } from "../../chunks/index.js";
 import { b as base } from "../../chunks/server.js";
 import "../../chunks/url.js";
 import "@sveltejs/kit/internal/server";
-import { e as escape_html } from "../../chunks/escaping.js";
+import { configuredTabs, helpLinks } from "../../chunks/config.js";
 function NavbarEntry($$renderer, $$props) {
   let { href, title, isActive } = $$props;
   let isHovered = false;
@@ -19,17 +19,6 @@ function NavbarDropdown($$renderer, $$props) {
   }
   $$renderer.push(`<!--]--></div>`);
 }
-const configuredTabs = [
-  { href: `${base}/snaps`, label: "Snap Testing" },
-  { href: `${base}/debs`, label: "Deb Testing" },
-  { href: `${base}/charms`, label: "Charm Testing" },
-  { href: `${base}/images`, label: "Image Testing" }
-];
-const helpLinks = [
-  { label: "Docs", href: "https://canonical-test-observer.readthedocs-hosted.com/en/latest/" },
-  { label: "Feedback", href: "https://github.com/canonical/test_observer/issues" },
-  { label: "Source Code", href: "https://github.com/canonical/test_observer" }
-];
 class UserStore {
   current = null;
   get isLoggedIn() {

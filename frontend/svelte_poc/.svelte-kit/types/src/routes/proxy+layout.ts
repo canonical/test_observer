@@ -7,7 +7,8 @@ export const prerender = false;
 
 export const load = async ({ fetch }: Parameters<LayoutLoad>[0]) => {
   try {
-    const res = await fetch('/v1/users/me', {
+    const { API_BASE } = await import('$lib/config');
+    const res = await fetch(`${API_BASE}/v1/users/me`, {
       credentials: 'include',
       headers: { 'X-CSRF-Token': '1' },
     });

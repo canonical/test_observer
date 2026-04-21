@@ -1,8 +1,9 @@
 import { errorStore } from '$lib/stores/error.svelte';
+import { API_BASE } from '$lib/config';
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T | null> {
   try {
-    const res = await fetch(`/v1${path}`, {
+    const res = await fetch(`${API_BASE}/v1${path}`, {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',

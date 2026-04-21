@@ -1,5 +1,4 @@
-import { l as lifecycle_outside_component, B as BROWSER, i as invalid_csp, a as await_invalid, g as get_render_context, b as invalid_id_prefix } from "./render-context.js";
-import { e as escape_html } from "./escaping.js";
+import { l as lifecycle_outside_component, D as DEV, i as invalid_csp, a as await_invalid, g as get_render_context, b as invalid_id_prefix } from "./render-context.js";
 import { clsx as clsx$1 } from "clsx";
 import * as devalue from "devalue";
 var ssr_context = null;
@@ -123,6 +122,22 @@ function unresolved_hydratable(key, stack) {
 }
 const BLOCK_OPEN = `<!--${HYDRATION_START}-->`;
 const BLOCK_CLOSE = `<!--${HYDRATION_END}-->`;
+const ATTR_REGEX = /[&"<]/g;
+const CONTENT_REGEX = /[&<]/g;
+function escape_html(value, is_attr) {
+  const str = String(value ?? "");
+  const pattern = is_attr ? ATTR_REGEX : CONTENT_REGEX;
+  pattern.lastIndex = 0;
+  let escaped = "";
+  let last = 0;
+  while (pattern.test(str)) {
+    const i = pattern.lastIndex - 1;
+    const ch = str[i];
+    escaped += str.substring(last, i) + (ch === "&" ? "&amp;" : ch === '"' ? "&quot;" : "&lt;");
+    last = i + 1;
+  }
+  return escaped + str.substring(last);
+}
 const replacements = {
   translate: /* @__PURE__ */ new Map([
     [true, "yes"],
@@ -2539,7 +2554,7 @@ function update_effect(effect) {
     effect.teardown = typeof teardown === "function" ? teardown : null;
     effect.wv = write_version;
     var dep;
-    if (BROWSER && tracing_mode_flag && (effect.f & DIRTY) !== 0 && effect.deps !== null) ;
+    if (DEV && tracing_mode_flag && (effect.f & DIRTY) !== 0 && effect.deps !== null) ;
   } finally {
     is_updating_effect = was_updating_effect;
     active_effect = previous_effect;
@@ -2740,6 +2755,10 @@ function stringify(value) {
 function attr_class(value, hash, directives) {
   var result = to_class(value, hash, directives);
   return result ? ` class="${escape_html(result, true)}"` : "";
+}
+function attr_style(value, directives) {
+  var result = to_style(value, directives);
+  return result ? ` style="${escape_html(result, true)}"` : "";
 }
 function ensure_array_like(array_like_or_iterator) {
   if (array_like_or_iterator) {
@@ -4002,10 +4021,12 @@ const root = asClassComponent(Root);
 export {
   attr as a,
   attr_class as b,
-  safe_not_equal as c,
+  ensure_array_like as c,
   derived as d,
-  ensure_array_like as e,
+  escape_html as e,
+  attr_style as f,
   getContext as g,
+  safe_not_equal as h,
   noop as n,
   root as r,
   stringify as s

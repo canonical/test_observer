@@ -18,6 +18,12 @@ export const helpLinks = [
   { label: 'Source Code', href: 'https://github.com/canonical/test_observer' },
 ] as const;
 
+/**
+ * Backend API base URL. The Flutter app reads this from window.testObserverAPIBaseURI.
+ * In development, the backend runs on port 30000 (host network).
+ */
+export const API_BASE = 'http://localhost:30000';
+
 export const spacing = {
   level1: '2px',
   level2: '4px',

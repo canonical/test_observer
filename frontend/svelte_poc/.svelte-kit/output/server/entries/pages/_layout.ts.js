@@ -2,7 +2,8 @@ const ssr = false;
 const prerender = false;
 const load = async ({ fetch }) => {
   try {
-    const res = await fetch("/v1/users/me", {
+    const { API_BASE } = await import("../../chunks/config.js");
+    const res = await fetch(`${API_BASE}/v1/users/me`, {
       credentials: "include",
       headers: { "X-CSRF-Token": "1" }
     });

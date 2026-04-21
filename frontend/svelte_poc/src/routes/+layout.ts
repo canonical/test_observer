@@ -6,7 +6,8 @@ export const prerender = false;
 
 export const load: LayoutLoad = async ({ fetch }) => {
   try {
-    const res = await fetch('/v1/users/me', {
+    const { API_BASE } = await import('$lib/config');
+    const res = await fetch(`${API_BASE}/v1/users/me`, {
       credentials: 'include',
       headers: { 'X-CSRF-Token': '1' },
     });

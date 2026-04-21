@@ -1,4 +1,4 @@
-import { e as escape_html } from "../../chunks/escaping.js";
+import { e as escape_html } from "../../chunks/root.js";
 import "clsx";
 import { p as page } from "../../chunks/index.js";
 function Error($$renderer, $$props) {
