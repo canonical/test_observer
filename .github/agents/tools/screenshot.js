@@ -14,7 +14,10 @@
  *   1. Hit the backend SAML initiation URL with the target URL as return_to.
  *   2. Fill credentials on the SimpleSAML HTML form and submit.
  *   3. The IdP redirects back through the backend to the target UI.
- *   4. Wait for render, then take the screenshot.
+ *   4. If the target URL has a hash fragment (e.g. /#/snaps/1), navigate there
+ *      in a second step — hash fragments are stripped during the SAML redirect
+ *      because the server never sees them.
+ *   5. Wait for render, then take the screenshot.
  *
  * Prerequisites:
  *   sudo apt-get install node-playwright
@@ -124,8 +127,18 @@ async function main() {
 
   try {
     if (login) {
-      // ── 1. Initiate SAML login with the target URL as return_to ─────────
-      const loginUrl = `${apiUrl}/v1/auth/saml/login?return_to=${encodeURIComponent(url)}`;
+      // ── Determine login return target ───────────────────────────────────
+      // Hash fragments (#/snaps/1) are never sent to the server, so the SAML
+      // redirect will lose them. We handle this by:
+      //   a) Using the origin (no hash) as the return_to for SSO.
+      //   b) After login succeeds, navigating to the full target URL (with hash).
+      const parsed = new URL(url);
+      const returnTo = parsed.hash
+        ? `${parsed.origin}${parsed.pathname}${parsed.search}`  // strip hash
+        : url;
+
+      // ── 1. Initiate SAML login ─────────────────────────────────────────
+      const loginUrl = `${apiUrl}/v1/auth/saml/login?return_to=${encodeURIComponent(returnTo)}`;
       console.log(`SSO login: ${loginUrl}`);
       await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 15_000 });
 
@@ -138,20 +151,27 @@ async function main() {
       console.log('  Submitted, waiting for redirect...');
 
       // ── 3. Wait for redirect back to the target UI ──────────────────────
-      // The SAML flow involves multiple redirects. Wait for any navigation to
-      // settle, then check if we ended up at the target URL.
       try {
         await page.waitForURL(`**localhost:30001**`, { timeout: 30_000 });
       } catch {
-        // Fallback: just wait for navigation to finish
         await page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {});
       }
-      console.log(`  Current URL: ${page.url()}`);
+      console.log(`  Landed at: ${page.url()}`);
 
       try {
         await page.waitForLoadState('networkidle', { timeout: 30_000 });
       } catch {
         // networkidle may not fire for long-polling apps — continue anyway
+      }
+
+      // ── 4. If the target URL had a hash, navigate there now ─────────────
+      // The session cookie is set, so this second navigation is authenticated.
+      if (parsed.hash) {
+        console.log(`  Navigating to hash target: ${url}`);
+        await page.goto(url, { waitUntil: 'load', timeout: 15_000 });
+        try {
+          await page.waitForLoadState('networkidle', { timeout: 15_000 });
+        } catch { /* continue */ }
       }
     } else {
       try {
