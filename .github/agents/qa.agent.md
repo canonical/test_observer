@@ -35,8 +35,15 @@ node .github/agents/tools/screenshot.js <URL> <OUTPUT.png>
 # Unauthenticated screenshot:
 node .github/agents/tools/screenshot.js <URL> <OUTPUT.png> --no-login
 
-# Common options: --width 1280 --height 900 --wait 3000 --full-page
+# Common options: --width 1900 --height 1000 --wait 3000 --full-page
 ```
+
+**Hash-based routing**: The Flutter app uses hash URLs (e.g. `http://localhost:30001/#/snaps/1`).
+`screenshot.js` handles these automatically — it detects the `#` fragment, logs in with the origin only,
+then navigates to the full hash URL after the session cookie is set. Just pass the full hash URL directly.
+
+**Standard viewport**: Use `--width 1900 --height 1000` for all comparison screenshots to match the
+project's standard viewport size.
 
 ### compare.py — Quick Reference
 
@@ -52,19 +59,22 @@ python3 .github/agents/tools/compare.py <REFERENCE.png> <CANDIDATE.png> <OUTPUT.
 
 ### Visual Comparison Workflow
 
-When asked to compare two UI implementations (e.g. the Flutter reference at `/` vs. a rewrite at `/vue_poc/`):
+When asked to compare two UI implementations (e.g. the Flutter reference vs. the Svelte PoC at `/svelte_poc/`):
 
-1.  **Capture screenshots** of both UIs using `screenshot.js`:
+1.  **Capture screenshots** of both UIs using `screenshot.js` at **1900×1000** viewport:
     ```bash
-    node .github/agents/tools/screenshot.js http://localhost:30001/      /tmp/reference.png
-    node .github/agents/tools/screenshot.js http://localhost:30001/vue_poc/snaps /tmp/candidate.png --no-login
+    # Flutter reference (hash-based routing):
+    node .github/agents/tools/screenshot.js "http://localhost:30001/#/snaps" /tmp/reference.png --width 1900 --height 1000 --wait 4000
+
+    # Svelte PoC (path-based routing, no login needed — shares session cookie):
+    node .github/agents/tools/screenshot.js http://localhost:30001/svelte_poc/snaps /tmp/candidate.png --width 1900 --height 1000 --wait 4000 --no-login
     ```
     Repeat for each route that exists in both UIs.
 
 2.  **Build composite images** using `compare.py`:
     ```bash
     python3 .github/agents/tools/compare.py /tmp/reference.png /tmp/candidate.png /tmp/compare.png \
-        --ref-label "Flutter (Reference)" --cand-label "Candidate" --page-name "Dashboard"
+        --ref-label "Flutter (Reference)" --cand-label "Svelte PoC" --page-name "Dashboard"
     ```
 
 3.  **Examine the composite image** and describe every meaningful visual delta:
@@ -96,6 +106,12 @@ Provide a **Testing Report**:
 *   [PASS] Overall layout structure matches reference.
 *   [FAIL] Navbar background is aubergine (#772953) — reference uses cool-grey (#333333).
 *   [FAIL] Artefact cards are missing status badge and assignee avatar.
+
+#### Deployment
+After fixes are applied and built, deploy using:
+```bash
+bash .github/agents/tools/deploy-svelte.sh
+```
 
 #### 2. Functional Test
 *   [PASS] Clicking search navigates to /results.
