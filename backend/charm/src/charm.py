@@ -70,7 +70,7 @@ class TestObserverBackendCharm(CharmBase):
         )
         self.grafana_dashboard_provider = GrafanaDashboardProvider(self)
         self.metrics_endpoint = MetricsEndpointProvider(
-            self, jobs=[{"static_configs": [{"targets": ["*:9000"]}]}]
+            self, jobs=[{"static_configs": [{"targets": ["*:9090"]}]}]
         )
 
         self.framework.observe(self.database.on.database_created, self._on_database_changed)
@@ -317,9 +317,12 @@ class TestObserverBackendCharm(CharmBase):
             "CELERY_BROKER_URL": self._celery_broker_url,
             "SAML_SP_BASE_URL": self._get_url(),
             "FRONTEND_URL": self._get_frontend_url(strip_path=True),
+            "ADDITIONAL_CORS_ORIGINS": self.config["additional_cors_origins"],
             "SESSIONS_SECRET": self.config["sessions_secret"],
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
             "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
+            "METRICS_INIT_DAYS": str(self.config.get("metrics_init_days", 30)),
+            "METRICS_INIT_ENABLED": str(self.config.get("metrics_init_enabled", True)).lower(),
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):

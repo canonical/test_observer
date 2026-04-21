@@ -13,10 +13,11 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy.orm import Session, joinedload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import (
     TestEvent,
     TestExecution,
@@ -26,9 +27,8 @@ from test_observer.data_access.setup import get_db
 
 from .logic import delete_previous_test_events
 from .models import StatusUpdateRequest, TestEventResponse
+from .router import router
 from .testflinger_event_parser import TestflingerEventParser
-
-router = APIRouter()
 
 
 @router.put(

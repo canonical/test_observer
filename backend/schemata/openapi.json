@@ -26,41 +26,18 @@
         }
       }
     },
-    "/v1/test-executions/start-test": {
+    "/v1/test-executions/end-test": {
       "put": {
         "tags": [
           "test-executions"
         ],
-        "summary": "Start Test Execution",
-        "operationId": "start_test_execution_v1_test_executions_start_test_put",
+        "summary": "End Test Execution",
+        "operationId": "end_test_execution_v1_test_executions_end_test_put",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/StartSnapTestExecutionRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/StartDebTestExecutionRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/StartCharmTestExecutionRequest"
-                  },
-                  {
-                    "$ref": "#/components/schemas/StartImageTestExecutionRequest"
-                  }
-                ],
-                "title": "Request",
-                "discriminator": {
-                  "propertyName": "family",
-                  "mapping": {
-                    "snap": "#/components/schemas/StartSnapTestExecutionRequest",
-                    "deb": "#/components/schemas/StartDebTestExecutionRequest",
-                    "charm": "#/components/schemas/StartCharmTestExecutionRequest",
-                    "image": "#/components/schemas/StartImageTestExecutionRequest"
-                  }
-                }
+                "$ref": "#/components/schemas/EndTestExecutionRequest"
               }
             }
           },
@@ -94,8 +71,7 @@
     "/v1/test-executions/{id}/test-results": {
       "get": {
         "tags": [
-          "test-executions",
-          "test-results"
+          "test-executions"
         ],
         "summary": "Get Test Results",
         "operationId": "get_test_results_v1_test_executions__id__test_results_get",
@@ -142,8 +118,7 @@
       },
       "post": {
         "tags": [
-          "test-executions",
-          "test-results"
+          "test-executions"
         ],
         "summary": "Post Results",
         "operationId": "post_results_v1_test_executions__id__test_results_post",
@@ -197,31 +172,91 @@
         ]
       }
     },
-    "/v1/test-executions/end-test": {
-      "put": {
+    "/v1/test-executions/{id}/links": {
+      "post": {
         "tags": [
           "test-executions"
         ],
-        "summary": "End Test Execution",
-        "operationId": "end_test_execution_v1_test_executions_end_test_put",
+        "summary": "Post Link",
+        "operationId": "post_link_v1_test_executions__id__links_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EndTestExecutionRequest"
+                "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+                }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
+      }
+    },
+    "/v1/test-executions/{id}/links/{link_id}": {
+      "delete": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Delete Link",
+        "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Link Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -468,6 +503,534 @@
         ]
       }
     },
+    "/v1/test-executions/{id}": {
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Get Test Execution",
+        "operationId": "get_test_execution_v1_test_executions__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      },
+      "patch": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Patch Test Execution",
+        "operationId": "patch_test_execution_v1_test_executions__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionsPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
+      }
+    },
+    "/v1/test-executions": {
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Search Test Executions",
+        "description": "Search test executions with optional test result context.\n\nReturns one item per matching test execution with paginated results.\nThe test_results field contains all filtered test results for that execution.\n\nUse test_result=none to find executions without results,\ntest_result=any to find executions with results,\nor test_result={id} to filter by specific test result IDs.",
+        "operationId": "search_test_executions_v1_test_executions_get",
+        "parameters": [
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families (e.g., charm,snap)",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families (e.g., charm,snap)"
+          },
+          {
+            "name": "artefacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact names",
+              "title": "Artefacts"
+            },
+            "description": "Filter by artefact names"
+          },
+          {
+            "name": "artefact_is_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the artefact is archived",
+              "title": "Artefact Is Archived"
+            },
+            "description": "Filter by whether the artefact is archived"
+          },
+          {
+            "name": "environments",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environment names",
+              "title": "Environments"
+            },
+            "description": "Filter by environment names"
+          },
+          {
+            "name": "test_execution_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestExecutionStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test execution statuses",
+              "title": "Test Execution Statuses"
+            },
+            "description": "Filter by test execution statuses"
+          },
+          {
+            "name": "reviewer_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by reviewer user ids",
+              "title": "Reviewer Ids"
+            },
+            "description": "Filter by reviewer user ids"
+          },
+          {
+            "name": "assignee_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "DEPRECATED: Use reviewer_ids instead",
+              "deprecated": true,
+              "title": "Assignee Ids"
+            },
+            "description": "DEPRECATED: Use reviewer_ids instead",
+            "deprecated": true
+          },
+          {
+            "name": "rerun_is_requested",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether a rerun has been requested for the test execution",
+              "title": "Rerun Is Requested"
+            },
+            "description": "Filter by whether a rerun has been requested for the test execution"
+          },
+          {
+            "name": "execution_is_latest",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the test execution is the latest in its environment/artefact/test plan combination",
+              "title": "Execution Is Latest"
+            },
+            "description": "Filter by whether the test execution is the latest in its environment/artefact/test plan combination"
+          },
+          {
+            "name": "test_result",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)",
+              "title": "Test Result"
+            },
+            "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)"
+          },
+          {
+            "name": "event_names",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by event log: 'any' (executions with any events), 'none' (executions without events), or specific event name(s)",
+              "title": "Event Names"
+            },
+            "description": "Filter by event log: 'any' (executions with any events), 'none' (executions without events), or specific event name(s)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 0,
+              "description": "Maximum number of results to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          },
+          {
+            "name": "execution_metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by execution metadata (base64 encoded category:value pairs).",
+              "title": "Execution Metadata"
+            },
+            "description": "Filter by execution metadata (base64 encoded category:value pairs)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExecutionSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
+    "/v1/test-executions/start-test": {
+      "put": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Start Test Execution",
+        "operationId": "start_test_execution_v1_test_executions_start_test_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/StartSnapTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartDebTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartCharmTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartImageTestExecutionRequest"
+                  }
+                ],
+                "title": "Request",
+                "discriminator": {
+                  "propertyName": "family",
+                  "mapping": {
+                    "snap": "#/components/schemas/StartSnapTestExecutionRequest",
+                    "deb": "#/components/schemas/StartDebTestExecutionRequest",
+                    "charm": "#/components/schemas/StartCharmTestExecutionRequest",
+                    "image": "#/components/schemas/StartImageTestExecutionRequest"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_test"
+        ]
+      }
+    },
     "/v1/test-executions/{id}/status_update": {
       "put": {
         "tags": [
@@ -600,206 +1163,6 @@
             "content": {
               "application/json": {
                 "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-permissions": [
-          "change_test"
-        ]
-      }
-    },
-    "/v1/test-executions/{id}/links": {
-      "post": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Post Link",
-        "operationId": "post_link_v1_test_executions__id__links_post",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-permissions": [
-          "change_test"
-        ]
-      }
-    },
-    "/v1/test-executions/{id}/links/{link_id}": {
-      "delete": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Delete Link",
-        "operationId": "delete_link_v1_test_executions__id__links__link_id__delete",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Id"
-            }
-          },
-          {
-            "name": "link_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Link Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-permissions": [
-          "change_test"
-        ]
-      }
-    },
-    "/v1/test-executions/{id}": {
-      "get": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Get Test Execution",
-        "operationId": "get_test_execution_v1_test_executions__id__get",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestExecutionResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-permissions": [
-          "view_test"
-        ]
-      },
-      "patch": {
-        "tags": [
-          "test-executions"
-        ],
-        "summary": "Patch Test Execution",
-        "operationId": "patch_test_execution_v1_test_executions__id__patch",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestExecutionsPatchRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestExecutionResponse"
-                }
               }
             }
           },
@@ -2825,7 +3188,7 @@
           "test-results"
         ],
         "summary": "Search Test Results",
-        "description": "Search test results across artefacts using flexible filters.\n\nThis endpoint uses a single optimized query with window functions to get both\nthe total count and paginated results in one database round trip.",
+        "description": "Search test results across artefacts using flexible filters.\n\nReturns one item per matching test result with execution, artefact, and build context.",
         "operationId": "search_test_results_v1_test_results_get",
         "parameters": [
           {
@@ -3029,6 +3392,41 @@
             "description": "Filter by test execution statuses"
           },
           {
+            "name": "reviewer_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by reviewer user ids",
+              "title": "Reviewer Ids"
+            },
+            "description": "Filter by reviewer user ids"
+          },
+          {
             "name": "assignee_ids",
             "in": "query",
             "required": false,
@@ -3058,10 +3456,12 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by assignee user ids",
+              "description": "DEPRECATED: Use reviewer_ids instead",
+              "deprecated": true,
               "title": "Assignee Ids"
             },
-            "description": "Filter by assignee user ids"
+            "description": "DEPRECATED: Use reviewer_ids instead",
+            "deprecated": true
           },
           {
             "name": "rerun_is_requested",
@@ -4090,6 +4490,374 @@
         ]
       }
     },
+    "/v1/users/me/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Own Notifications",
+        "description": "Get all notifications for the authenticated user",
+        "operationId": "get_own_notifications_v1_users_me_notifications_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/me/notifications/count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Own Notification Count",
+        "description": "Get the count of notifications for the authenticated user",
+        "operationId": "get_own_notification_count_v1_users_me_notifications_count_get",
+        "parameters": [
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "title": "Response Get Own Notification Count V1 Users Me Notifications Count Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/me/notifications/{notification_id}/dismiss": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark Own Notification As Read",
+        "description": "Mark the authenticated user's own notification as read",
+        "operationId": "mark_own_notification_as_read_v1_users_me_notifications__notification_id__dismiss_post",
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{user_id}/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Notifications",
+        "description": "Get all notifications for the specified user",
+        "operationId": "get_notifications_v1_users__user_id__notifications_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "ID of the user whose notifications will be fetched",
+              "title": "User Id"
+            },
+            "description": "ID of the user whose notifications will be fetched"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return (default: 50)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return (default: 50)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination (default: 0)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination (default: 0)"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
+      }
+    },
+    "/v1/users/{user_id}/notifications/count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Notification Count",
+        "description": "Get the count of notifications for the specified user",
+        "operationId": "get_notification_count_v1_users__user_id__notifications_count_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "ID of the user whose notification count will be fetched",
+              "title": "User Id"
+            },
+            "description": "ID of the user whose notification count will be fetched"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "title": "Response Get Notification Count V1 Users  User Id  Notifications Count Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
+      }
+    },
+    "/v1/users/{user_id}/notifications/{notification_id}/dismiss": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark Notification As Read",
+        "description": "Mark a notification as read",
+        "operationId": "mark_notification_as_read_v1_users__user_id__notifications__notification_id__dismiss_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "ID of the user whose notification will be dismissed",
+              "title": "User Id"
+            },
+            "description": "ID of the user whose notification will be dismissed"
+          },
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_notification"
+        ]
+      }
+    },
     "/v1/artefact-matching-rules": {
       "post": {
         "tags": [
@@ -4327,6 +5095,52 @@
         ]
       }
     },
+    "/health/live": {
+      "get": {
+        "summary": "Live",
+        "description": "Liveness probe.\n\nReturns 200 OK if the application process is running and responding to requests.\nDoes not check external dependencies like the database.\n\nUse this probe with container orchestration to determine if the process should be restarted.\nNote that this should only be accessible internally (e.g. from the host container)\nand not accessible over the public API.",
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Live Health Live Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Ready",
+        "description": "Readiness probe.\n\nReturns 200 OK if the application is ready to serve traffic, including database connectivity.\nPerforms a simple database query to verify the connection is valid.\n\nUse this probe with container orchestration to determine if traffic should be routed to this pod.\nNote that this should only be accessible internally (e.g. from the host container)\nand not accessible over the public API.\nReturns 503 if the database is unavailable.",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Ready Health Ready Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",
@@ -4356,7 +5170,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_sentry_debug"
+        ]
       }
     }
   },
@@ -4613,6 +5430,11 @@
       },
       "ArtefactMatchingRuleBase": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -4630,6 +5452,38 @@
             "type": "string",
             "title": "Branch",
             "default": ""
+          },
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "title": "Release",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "default": ""
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
@@ -4645,35 +5499,147 @@
             "type": "integer",
             "title": "Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Stage"
           },
           "track": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Track"
           },
           "branch": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Branch"
+          },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
         "required": [
           "id",
+          "name",
           "family",
           "stage",
           "track",
-          "branch"
+          "branch",
+          "store",
+          "series",
+          "os",
+          "release",
+          "owner",
+          "grant_permissions"
         ],
         "title": "ArtefactMatchingRuleInResponse",
         "description": "Artefact matching rule fields when included in responses (no relationships)"
       },
       "ArtefactMatchingRulePatch": {
         "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "anyOf": [
               {
@@ -4717,6 +5683,61 @@
             ],
             "title": "Branch"
           },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
           "team_ids": {
             "anyOf": [
               {
@@ -4730,6 +5751,20 @@
               }
             ],
             "title": "Team Ids"
+          },
+          "grant_permissions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Permission"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
@@ -4738,6 +5773,11 @@
       },
       "ArtefactMatchingRuleRequest": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
@@ -4755,6 +5795,38 @@
             "type": "string",
             "title": "Branch",
             "default": ""
+          },
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "title": "Release",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "default": ""
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           },
           "team_ids": {
             "items": {
@@ -4778,20 +5850,107 @@
             "type": "integer",
             "title": "Id"
           },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
           },
           "stage": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Stage"
           },
           "track": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Track"
           },
           "branch": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Branch"
+          },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
           },
           "teams": {
             "items": {
@@ -4799,16 +5958,30 @@
             },
             "type": "array",
             "title": "Teams"
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
         "required": [
           "id",
+          "name",
           "family",
           "stage",
           "track",
           "branch",
-          "teams"
+          "store",
+          "series",
+          "os",
+          "release",
+          "owner",
+          "teams",
+          "grant_permissions"
         ],
         "title": "ArtefactMatchingRuleResponse",
         "description": "Artefact matching rule with associated teams"
@@ -4857,6 +6030,43 @@
             ],
             "title": "Comment"
           },
+          "jira_issue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Issue"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id",
+            "description": "Legacy field. Mapped to reviewer_ids as a single-element list when reviewer_ids/reviewer_emails are not provided.",
+            "deprecated": true
+          },
+          "assignee_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Email",
+            "description": "Legacy field. Mapped to reviewer_emails as a single-element list when reviewer_ids/reviewer_emails are not provided.",
+            "deprecated": true
+          },
           "reviewer_ids": {
             "anyOf": [
               {
@@ -4869,7 +6079,8 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewer Ids"
+            "title": "Reviewer Ids",
+            "description": "Reviewer user IDs. Preferred over legacy assignee_id/assignee_email for setting assignees."
           },
           "reviewer_emails": {
             "anyOf": [
@@ -4883,7 +6094,8 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewer Emails"
+            "title": "Reviewer Emails",
+            "description": "Reviewer emails. Preferred over legacy assignee_id/assignee_email for setting assignees."
           }
         },
         "type": "object",
@@ -4994,6 +6206,17 @@
             "type": "string",
             "title": "Bug Link"
           },
+          "jira_issue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jira Issue"
+          },
           "all_environment_reviews_count": {
             "type": "integer",
             "title": "All Environment Reviews Count"
@@ -5001,6 +6224,18 @@
           "completed_environment_reviews_count": {
             "type": "integer",
             "title": "Completed Environment Reviews Count"
+          },
+          "assignee": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewerResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Backward-compatible assignee field. Populated from the first entry in reviewers when present.",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -5028,8 +6263,10 @@
           "due_date",
           "created_at",
           "bug_link",
+          "jira_issue",
           "all_environment_reviews_count",
-          "completed_environment_reviews_count"
+          "completed_environment_reviews_count",
+          "assignee"
         ],
         "title": "ArtefactResponse"
       },
@@ -5957,6 +7194,98 @@
         ],
         "title": "MinimalIssueTestResultAttachmentRuleResponse"
       },
+      "NotificationResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "notification_type": {
+            "$ref": "#/components/schemas/NotificationType"
+          },
+          "target_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Url"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "dismissed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dismissed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "notification_type",
+          "target_url",
+          "created_at",
+          "dismissed_at"
+        ],
+        "title": "NotificationResponse"
+      },
+      "NotificationType": {
+        "type": "string",
+        "enum": [
+          "USER_ASSIGNED_ARTEFACT_REVIEW",
+          "USER_ASSIGNED_ENVIRONMENT_REVIEW"
+        ],
+        "title": "NotificationType"
+      },
+      "NotificationsResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponse"
+            },
+            "type": "array",
+            "title": "Notifications"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "notifications",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "title": "NotificationsResponse"
+      },
       "PendingRerun": {
         "properties": {
           "test_execution_id": {
@@ -6028,7 +7357,10 @@
           "view_test_case_reported_issue",
           "change_test_case_reported_issue",
           "view_environment_reported_issue",
-          "change_environment_reported_issue"
+          "change_environment_reported_issue",
+          "view_notification",
+          "change_notification",
+          "view_sentry_debug"
         ],
         "title": "Permission"
       },
@@ -6728,7 +8060,7 @@
           },
           "permissions": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/Permission"
             },
             "type": "array",
             "title": "Permissions"
@@ -6947,6 +8279,130 @@
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponse"
+      },
+      "TestExecutionResponseWithContext": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link"
+          },
+          "c3_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "C3 Link"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkResponse"
+            },
+            "type": "array",
+            "title": "Relevant Links"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentResponse"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestExecutionStatus"
+          },
+          "test_plan": {
+            "type": "string",
+            "title": "Test Plan"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
+          "is_triaged": {
+            "type": "boolean",
+            "title": "Is Triaged"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/ArtefactResponse"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          },
+          "test_results": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultResponse"
+            },
+            "type": "array",
+            "title": "Test Results"
+          },
+          "is_rerun_requested": {
+            "type": "boolean",
+            "title": "Is Rerun Requested",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ci_link",
+          "c3_link",
+          "environment",
+          "status",
+          "test_plan",
+          "created_at",
+          "execution_metadata",
+          "is_triaged",
+          "artefact",
+          "artefact_build",
+          "is_rerun_requested"
+        ],
+        "title": "TestExecutionResponseWithContext"
+      },
+      "TestExecutionSearchResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "test_executions": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionResponseWithContext"
+            },
+            "type": "array",
+            "title": "Test Executions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "limit",
+          "offset",
+          "test_executions"
+        ],
+        "title": "TestExecutionSearchResponse"
       },
       "TestExecutionStatus": {
         "type": "string",
@@ -7308,7 +8764,7 @@
             "type": "array",
             "title": "Test Execution Statuses"
           },
-          "assignee_ids": {
+          "reviewer_ids": {
             "anyOf": [
               {
                 "items": {
@@ -7324,7 +8780,29 @@
                 ]
               }
             ],
-            "title": "Assignee Ids"
+            "title": "Reviewer Ids"
+          },
+          "assignee_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Ids",
+            "deprecated": true
           },
           "rerun_is_requested": {
             "anyOf": [

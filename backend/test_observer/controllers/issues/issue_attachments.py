@@ -19,8 +19,9 @@ from sqlalchemy import delete, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.enums import Permission
 from test_observer.common.metric_collectors import update_triaged_results_metric
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )

@@ -13,25 +13,17 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter
-
-from . import (
+from . import (  # noqa: F401
     end_test,
     get_test_results,
     post_results,
     relevant_links,
     reruns,
+    search,
     start_test,
     status_update,
     test_execution,
 )
+from .router import router
 
-router = APIRouter(tags=["test-executions"])
-router.include_router(start_test.router)
-router.include_router(get_test_results.router)
-router.include_router(end_test.router)
-router.include_router(reruns.router)
-router.include_router(status_update.router)
-router.include_router(post_results.router)
-router.include_router(relevant_links.router)
-router.include_router(test_execution.router)
+__all__ = ["router"]

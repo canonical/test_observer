@@ -17,7 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker, requires_authentication
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -61,7 +62,10 @@ def get_applications(
 @router.get("/me", response_model=ApplicationResponse | None)
 def get_authenticated_application(
     app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(requires_authentication),
 ):
+    if authentication_required and app is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     return app
 
 
@@ -94,8 +98,8 @@ def update_application(
     if application is None:
         raise HTTPException(404, f"Application {application_id} doesn't exist")
 
-    if request.permissions:
-        application.permissions = [p.value for p in request.permissions]
+    if request.permissions is not None:
+        application.permissions = request.permissions
         db.commit()
 
     return application

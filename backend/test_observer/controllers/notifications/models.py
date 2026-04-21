@@ -33,3 +33,6 @@ class NotificationResponse(BaseModel):
 
 class NotificationsResponse(BaseModel):
     notifications: list[NotificationResponse]
+    count: int
+    limit: int
+    offset: int

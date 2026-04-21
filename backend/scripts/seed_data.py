@@ -23,7 +23,7 @@ from textwrap import dedent
 import requests
 from fastapi.testclient import TestClient
 from pydantic import HttpUrl
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
 from test_observer.controllers.environments.models import (
@@ -43,8 +43,6 @@ from test_observer.controllers.issues.models import (
     IssuePutRequest,
     IssueTestResultAttachmentRulePostRequest,
 )
-from test_observer.common.permissions import Permission
-
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
 from test_observer.data_access.models import Artefact, User, TestResult, Application
@@ -55,7 +53,6 @@ from test_observer.data_access.models_enums import (
     CharmStage,
     ImageStage,
     IssueStatus,
-    IssueSource,
 )
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
@@ -281,6 +278,48 @@ START_TEST_EXECUTION_REQUESTS = [
         environment="dragonboard",
         ci_link="http://example7",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
+    ),
+    # These with the test-plan-environments-count test plan are to include the case where
+    # a subsequent version has fewer environments than the previous version,
+    # which should show a warning in the frontend
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="snapd",
+        version="2.72",
+        revision=1,
+        track="latest",
+        store="ubuntu",
+        arch="arm64",
+        execution_stage=SnapStage.stable,
+        environment="environment-1",
+        ci_link="http://example-more-environments-1",
+        test_plan="test-plan-environments-count",
+    ),
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="snapd",
+        version="2.72",
+        revision=1,
+        track="latest",
+        store="ubuntu",
+        arch="arm64",
+        execution_stage=SnapStage.stable,
+        environment="environment-2",
+        ci_link="http://example-more-environments-2",
+        test_plan="test-plan-environments-count",
+    ),
+    StartSnapTestExecutionRequest(
+        family=FamilyName.snap,
+        name="snapd",
+        version="2.73",
+        revision=1,
+        track="latest",
+        store="ubuntu",
+        arch="arm64",
+        execution_stage=SnapStage.stable,
+        environment="environment-1",
+        ci_link="http://example-fewer-environments-1",
+        test_plan="test-plan-environments-count",
     ),
     StartDebTestExecutionRequest(
         family=FamilyName.deb,
@@ -757,9 +796,15 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     certbot.is_admin = True
 
     # Create an application with all permissions
+    # Following the conversion of permissions to be a PostgreSQL enum,
+    # we need to pull the values from the database rather than the Python code.
+    # Otherwise, the code could contain values not present in the database,
+    # which would cause an error when trying to add the application.
     application = session.scalar(select(Application).where(Application.name == "seed_data_app"))
+    inspector = inspect(session.get_bind())
+    permissions = next(e["labels"] for e in inspector.get_enums() if e["name"] == "permission")  # type: ignore
     if not application:
-        application = Application(name="seed_data_app", permissions=[p.value for p in Permission])
+        application = Application(name="seed_data_app", permissions=permissions)
         session.add(application)
         session.commit()
         session.refresh(application)

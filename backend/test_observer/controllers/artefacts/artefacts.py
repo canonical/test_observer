@@ -19,9 +19,23 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import (
+    check_artefact_permission,
+    openapi_scope_declaration,
+    permission_checker,
+)
+from test_observer.common.review_notification import (
+    BatchReviewerAssignedMessage,
+    batch_create_jira_reviewer_cards,
+    batch_create_review_notifications,
+)
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
+    Application,
     Artefact,
     ArtefactBuild,
     User,
@@ -32,11 +46,13 @@ from test_observer.data_access.models_enums import (
     DebStage,
     FamilyName,
     ImageStage,
+    NotificationType,
     SnapStage,
     StageName,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
 from . import builds, environment_reviews
 from .logic import (
@@ -212,15 +228,19 @@ def get_artefact(
 @router.patch(
     "/{artefact_id}",
     response_model=ArtefactResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_artefact])],
+    dependencies=[Security(openapi_scope_declaration, scopes=[Permission.change_artefact.value])],
 )
 def patch_artefact(
     request: ArtefactPatch,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
     artefact: Artefact = Depends(
         ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     ),
 ):
+    check_artefact_permission(db, user, app, artefact, Permission.change_artefact)
+
     if request.status is not None:
         _validate_artefact_status(artefact, request)
         artefact.status = request.status
@@ -231,6 +251,8 @@ def patch_artefact(
         artefact.stage = request.stage
     if request.comment is not None:
         artefact.comment = request.comment
+    if "jira_issue" in request.model_fields_set:
+        artefact.jira_issue = request.jira_issue
 
     reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
     reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set
@@ -241,8 +263,11 @@ def patch_artefact(
             detail="Cannot specify both reviewer_ids and reviewer_emails",
         )
 
+    newly_assigned_reviewers: list[User] = []
+
     # Handle reviewer_ids
     if reviewer_ids_set:
+        old_reviewer_ids = {r.id for r in artefact.reviewers}
         if request.reviewer_ids is None:
             artefact.reviewers = []
         elif len(request.reviewer_ids) != len(set(request.reviewer_ids)):
@@ -263,10 +288,14 @@ def patch_artefact(
                         detail=f"User with id {user_id} not found",
                     )
                 reviewers.append(user)
+                # Track newly assigned reviewers
+                if user_id not in old_reviewer_ids:
+                    newly_assigned_reviewers.append(user)
             artefact.reviewers = reviewers
 
     # Handle reviewer_emails
     if reviewer_emails_set:
+        old_reviewer_ids = {r.id for r in artefact.reviewers}
         if request.reviewer_emails is None:
             artefact.reviewers = []
         elif len(request.reviewer_emails) != len(set(request.reviewer_emails)):
@@ -288,9 +317,28 @@ def patch_artefact(
                         detail=f"User with email '{email}' not found",
                     )
                 reviewers.append(user)
+                # Track newly assigned reviewers
+                if user.id not in old_reviewer_ids:
+                    newly_assigned_reviewers.append(user)
             artefact.reviewers = reviewers
 
+    if len(newly_assigned_reviewers) > 0:
+        batch_create_review_notifications(
+            db,
+            newly_assigned_reviewers,
+            artefact,
+            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+
     db.commit()
+
+    if len(newly_assigned_reviewers) > 0 and artefact.jira_issue is not None:
+        review_assigned_messages = BatchReviewerAssignedMessage(
+            artefact,
+            [(reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers],
+        )
+        batch_create_jira_reviewer_cards(review_assigned_messages)
+
     return artefact
 
 

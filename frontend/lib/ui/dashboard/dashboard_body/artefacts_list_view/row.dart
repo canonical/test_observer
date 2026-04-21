@@ -38,11 +38,8 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        final currentRoute = GoRouterState.of(context).fullPath;
-        context.go('$currentRoute/${artefact.id}');
-      },
+    return NavigableLink(
+      path: getArtefactPagePath(context, artefact.id),
       child: SizedBox(
         height: 48,
         child: DefaultTextStyle.merge(

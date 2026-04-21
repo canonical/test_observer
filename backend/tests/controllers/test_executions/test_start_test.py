@@ -22,9 +22,11 @@ from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission
+from test_observer.common.enums import Permission
+from test_observer.controllers.test_executions.start_test import StartTestExecutionController
 from test_observer.data_access.models import (
     Artefact,
+    Notification,
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
@@ -32,6 +34,7 @@ from test_observer.data_access.models_enums import (
     DebStage,
     FamilyName,
     ImageStage,
+    NotificationType,
     SnapStage,
     StageName,
     TestExecutionStatus,
@@ -286,6 +289,216 @@ class TestFamilyIndependentTests:
 
         assert len(artefact.reviewers) == 2
 
+    def test_multiple_reviewers_assigned_to_environment_reviews(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """
+        When multiple reviewers are assigned to an artefact,
+        each environment review should get exactly one reviewer assigned,
+        with reviewers from an artefact distributed across environment
+        reviews based on current assignment counts.
+        """
+        # Create a team that can review all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+        )
+        # Create 3 users who can review
+        generator.gen_user(email="user1@example.com", teams=[team])
+        generator.gen_user(email="user2@example.com", teams=[team])
+        generator.gen_user(email="user3@example.com", teams=[])
+
+        # Execute the first test to create the artefact
+        response = execute({**start_request, "needs_assignment": True})
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        artefact = test_execution.artefact_build.artefact
+
+        # Create 50+ more environments to trigger multiple reviewer assignment
+        for i in range(51):
+            env_request = {
+                **start_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": False,
+            }
+            execute(env_request)
+
+        # Clear reviewers to allow reassignment
+        artefact.reviewers = []
+        self._db_session.commit()
+
+        # Trigger assignment again now that we have 52 environments
+        execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
+
+        # Refresh the artefact to get updated relationships
+        self._db_session.refresh(artefact)
+
+        # Verify multiple reviewers were assigned
+        assert len(artefact.reviewers) == 2
+
+        # Verify each environment review has exactly one reviewer
+        for build in artefact.builds:
+            for env_review in build.environment_reviews:
+                assert len(env_review.reviewers) == 1, (
+                    f"Environment review {env_review.id} should have exactly 1 reviewer"
+                )
+                # Verify the assigned reviewer is from the artefact's reviewers
+                assert env_review.reviewers[0] in artefact.reviewers, (
+                    f"Reviewer {env_review.reviewers[0].email} not in artefact reviewers"
+                )
+
+    def test_environment_reviewers_distributed_across_multiple_builds(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """
+        When an artefact has multiple builds and multiple reviewers,
+        each build's environment reviews should get reviewer assignments
+        """
+        # Create a team that can review all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+        )
+        generator.gen_user(email="user1@example.com", teams=[team])
+        generator.gen_user(email="user2@example.com", teams=[team])
+
+        # Execute test for first architecture
+        response = execute({**start_request, "needs_assignment": True})
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        artefact = test_execution.artefact_build.artefact
+
+        # Create 50+ more environments with different architectures
+        for i in range(26):
+            env_request = {
+                **start_request,
+                "arch": "amd64",
+                "environment": f"env-amd64-{i}",
+                "ci_link": f"http://localhost/amd64/{i}",
+                "needs_assignment": False,
+            }
+            execute(env_request)
+
+        for i in range(26):
+            env_request = {
+                **start_request,
+                "arch": "arm64",
+                "environment": f"env-arm64-{i}",
+                "ci_link": f"http://localhost/arm64/{i}",
+                "needs_assignment": False,
+            }
+            execute(env_request)
+
+        # Clear reviewers to allow reassignment
+        artefact.reviewers = []
+        self._db_session.commit()
+
+        # Trigger assignment again
+        execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
+
+        # Refresh the artefact
+        self._db_session.refresh(artefact)
+
+        # Verify multiple reviewers assigned
+        assert len(artefact.reviewers) >= 2
+
+        # Verify we have multiple builds
+        assert len(artefact.builds) >= 2
+
+        # Verify each build's environment reviews have reviewers assigned
+        for build in artefact.builds:
+            if len(build.environment_reviews) > 0:
+                for env_review in build.environment_reviews:
+                    assert len(env_review.reviewers) == 1, (
+                        f"Environment review {env_review.id} in build {build.id} should have exactly 1 reviewer"
+                    )
+
+    def test_reviewers_equally_distributed(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """
+        When multiple reviewers are assigned to an artefact,
+        environment reviews should be distributed equally among reviewers
+        based on ceiling division of total reviews by number of reviewers
+        """
+        # Create a team that can review all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+        )
+        # Create 3 users who can review
+        _ = generator.gen_user(email="user1@example.com", teams=[team])
+        _ = generator.gen_user(email="user2@example.com", teams=[team])
+        _ = generator.gen_user(email="user3@example.com", teams=[team])
+
+        # Execute the first test to create the artefact
+        response = execute({**start_request, "needs_assignment": True})
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        artefact = test_execution.artefact_build.artefact
+
+        # Create 50+ more environments to trigger multiple reviewer assignment
+        for i in range(51):
+            env_request = {
+                **start_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": False,
+            }
+            execute(env_request)
+
+        # Clear reviewers to allow reassignment
+        artefact.reviewers = []
+        self._db_session.commit()
+
+        # Trigger assignment again now that we have 52 environments
+        execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
+
+        # Refresh the artefact to get updated relationships
+        self._db_session.refresh(artefact)
+
+        # Verify multiple reviewers were assigned
+        assert len(artefact.reviewers) == 2
+
+        # Count assignments per reviewer
+        reviewer_assignment_counts = {reviewer.id: 0 for reviewer in artefact.reviewers}
+        total_env_reviews = 0
+
+        for build in artefact.builds:
+            for env_review in build.environment_reviews:
+                total_env_reviews += 1
+                assert len(env_review.reviewers) == 1
+                reviewer_id = env_review.reviewers[0].id
+                if reviewer_id in reviewer_assignment_counts:
+                    reviewer_assignment_counts[reviewer_id] += 1
+
+        # Verify equal distribution: each reviewer should get ceil(total / num_reviewers)
+        # With 53 environments and 2 reviewers: ceil(53/2) = 27
+        expected_max_per_reviewer = (total_env_reviews + len(artefact.reviewers) - 1) // len(artefact.reviewers)
+        expected_min_per_reviewer = total_env_reviews // len(artefact.reviewers)
+
+        for reviewer_id, count in reviewer_assignment_counts.items():
+            assert expected_min_per_reviewer <= count <= expected_max_per_reviewer, (
+                f"Reviewer {reviewer_id} has {count} assignments, "
+                f"expected between {expected_min_per_reviewer} and {expected_max_per_reviewer}"
+            )
+
+        # Verify all reviews were assigned
+        assert sum(reviewer_assignment_counts.values()) == total_env_reviews
+
     def test_deletes_rerun_requests(self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]):
         response = execute(start_request)
 
@@ -327,6 +540,72 @@ class TestFamilyIndependentTests:
         te = self._db_session.get(TestExecution, response.json()["id"])
         assert te is not None
         assert te.status == TestExecutionStatus.NOT_STARTED
+
+    def test_start_test_with_needs_assignment_creates_notifications(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """When starting test with needs_assignment=true, notifications should be created for environment reviewers"""
+        # Create a team with matching rules for all families
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+        )
+        # Create users on the team
+        generator.gen_user(email="reviewer1@example.com", teams=[team])
+        generator.gen_user(email="reviewer2@example.com", teams=[team])
+
+        # Execute test with automatic assignment
+        response = execute({**start_request, "needs_assignment": True})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assert len(test_execution.artefact_build.artefact.reviewers) > 0
+
+        # Get all notifications for the assigned reviewers
+        assigned_reviewer_ids = [r.id for r in test_execution.artefact_build.artefact.reviewers]
+        notifications = (
+            self._db_session.query(Notification)
+            .filter(
+                Notification.user_id.in_(assigned_reviewer_ids),
+                Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+            )
+            .all()
+        )
+
+        # Should have notifications for environment reviews (at least one per reviewer)
+        assert len(notifications) == len(assigned_reviewer_ids)
+        # Verify notifications are for the right type
+        assert all(n.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW for n in notifications)
+
+    def test_start_test_without_needs_assignment_no_notifications(
+        self, execute: Execute, start_request: dict[str, Any]
+    ):
+        """When starting test with needs_assignment=false, no reviewer notifications should be created"""
+        # Clear any existing notifications
+        self._db_session.query(Notification).delete()
+        self._db_session.commit()
+
+        # Execute test WITHOUT automatic assignment
+        response = execute({**start_request, "needs_assignment": False})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+
+        # Check that no environment review notifications were created
+        notifications = (
+            self._db_session.query(Notification)
+            .filter(
+                Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+            )
+            .all()
+        )
+
+        assert len(notifications) == 0
 
     @pytest.fixture(autouse=True)
     def _set_db_session(self, db_session: Session) -> None:
@@ -839,3 +1118,49 @@ def test_no_assignment_when_no_team_reviewers_available(
         else None
     )
     assert assignee is None
+
+
+class TestAssignReviewersToEnvironments:
+    """Tests for _assign_reviewers_to_environments method"""
+
+    def test_assign_reviewers_to_environments_no_duplicates(self, generator: DataGenerator, db_session: Session):
+        """Test that _assign_reviewers_to_environments returns reviewers without duplicates"""
+        # GIVEN an artefact with multiple reviewers, builds and environment reviews
+        reviewer1 = generator.gen_user(name="Alice", email="alice@example.com")
+        reviewer2 = generator.gen_user(name="Bob", email="bob@example.com")
+        reviewer3 = generator.gen_user(name="Charlie", email="charlie@example.com")
+
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            version="1.0.0",
+            reviewers=[reviewer1, reviewer2, reviewer3],
+        )
+
+        build1 = generator.gen_artefact_build(artefact=artefact, architecture="amd64")
+        build2 = generator.gen_artefact_build(artefact=artefact, architecture="arm64")
+
+        # GIVEN environment reviews without reviewers assigned
+        env1 = generator.gen_environment(name="env1")
+        env2 = generator.gen_environment(name="env2")
+        env3 = generator.gen_environment(name="env3")
+
+        generator.gen_artefact_build_environment_review(artefact_build=build1, environment=env1, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build1, environment=env2, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build2, environment=env1, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build2, environment=env2, reviewers=[])
+        generator.gen_artefact_build_environment_review(artefact_build=build2, environment=env3, reviewers=[])
+
+        db_session.commit()
+
+        # WHEN _assign_reviewers_to_environments is called
+        controller = StartTestExecutionController.__new__(StartTestExecutionController)
+        controller.db = db_session
+        controller.artefact = artefact
+
+        newly_assigned_reviewers = controller._assign_reviewers_to_environments()
+
+        # THEN the returned list has no duplicates
+        assert len(newly_assigned_reviewers) == len(set(newly_assigned_reviewers)), (
+            f"Duplicate reviewers found in result. "
+            f"Length: {len(newly_assigned_reviewers)}, Unique: {len(set(newly_assigned_reviewers))}"
+        )

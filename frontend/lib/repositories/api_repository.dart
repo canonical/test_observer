@@ -32,6 +32,7 @@ import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_results_filters.dart';
 import '../models/user.dart';
+import '../models/user_notification.dart';
 
 class ApiRepository {
   final Dio dio;
@@ -582,5 +583,24 @@ class ApiRepository {
       },
     );
     return IssueWithContext.fromJson(response.data);
+  }
+
+  Future<UserNotifications> getNotifications() async {
+    final response = await dio.get('/v1/users/me/notifications');
+    return UserNotifications.fromJson(response.data);
+  }
+
+  Future<int> getUnreadNotificationCount() async {
+    final response = await dio.get(
+      '/v1/users/me/notifications/count',
+      queryParameters: {'unread_only': true},
+    );
+    return response.data as int;
+  }
+
+  Future<UserNotification> markNotificationAsRead(int notificationId) async {
+    final response =
+        await dio.post('/v1/users/me/notifications/$notificationId/dismiss');
+    return UserNotification.fromJson(response.data);
   }
 }

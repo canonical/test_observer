@@ -13,27 +13,26 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from sqlalchemy import tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from test_observer.common.enums import Permission
 from test_observer.common.metric_collectors import update_execution_metadata_metric
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefacts.models import TestExecutionResponse
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.data_access.models import (
     TestExecution,
     TestExecutionMetadata,
-    TestResult,
     test_execution_metadata_association_table,
 )
 from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionsPatchRequest
-
-router = APIRouter()
+from .router import router
 
 TEST_EXECUTION_OPTIONS = [
     # Single-query Joins (Many-to-One)
@@ -43,8 +42,8 @@ TEST_EXECUTION_OPTIONS = [
     # Separate-query Collections (One-to-Many / Many-to-Many)
     selectinload(TestExecution.execution_metadata),
     selectinload(TestExecution.relevant_links),
-    # Used by `is_triaged` and `has_failures` methods
-    selectinload(TestExecution.test_results).selectinload(TestResult.issue_attachments),
+    # Needed by patch_test_execution to determine test execution status
+    selectinload(TestExecution.test_results),
 ]
 
 

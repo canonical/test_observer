@@ -16,7 +16,7 @@
 import secrets
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from sqlalchemy import (
     Boolean,
@@ -33,18 +33,22 @@ from sqlalchemy import (
     case,
     column,
     desc,
+    exists,
+    select,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    column_property,
     foreign,
     mapped_column,
     relationship,
 )
 from sqlalchemy.sql import ColumnElement, func
 
+from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -167,7 +171,7 @@ class Application(Base):
     __tablename__ = "application"
 
     name: Mapped[str] = mapped_column(unique=True)
-    permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
     @staticmethod
     def gen_api_key() -> str:
@@ -189,7 +193,7 @@ class Team(Base):
     __tablename__ = "team"
 
     name: Mapped[str] = mapped_column(unique=True)
-    permissions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
 
     members: Mapped[list[User]] = relationship(secondary=team_users_association, back_populates="teams")
     artefact_matching_rules: Mapped[list["ArtefactMatchingRule"]] = relationship(
@@ -209,20 +213,52 @@ class ArtefactMatchingRule(Base):
 
     __tablename__ = "artefact_matching_rule"
 
-    family: Mapped[FamilyName]
+    name: Mapped[str] = mapped_column(String(200), default="", server_default="")
     stage: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    family: Mapped[FamilyName]
+
+    # Snap-specific field
+    store: Mapped[str] = mapped_column(String(200), default="", server_default="")
+
+    # Snap- and Charm-specific fields
     track: Mapped[str] = mapped_column(String(200), default="", server_default="")
     branch: Mapped[str] = mapped_column(String(200), default="", server_default="")
+
+    # Deb-specific fields
+    series: Mapped[str] = mapped_column(String(200), default="", server_default="")
+
+    # Image-specific fields
+    os: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    release: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    owner: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     teams: Mapped[list[Team]] = relationship(
         secondary="artefact_matching_rule_team_association",
         back_populates="artefact_matching_rules",
     )
 
-    __table_args__ = (UniqueConstraint("family", "stage", "track", "branch"),)
+    grant_permissions: Mapped[list[Permission]] = mapped_column(ARRAY(Enum(Permission)), default=list)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "name",
+            "family",
+            "stage",
+            "track",
+            "branch",
+            "store",
+            "series",
+            "os",
+            "release",
+            "owner",
+            name="artefact_matching_rule_fields_from_artefact",
+        ),
+    )
 
     def __repr__(self) -> str:
-        return data_model_repr(self, "family", "stage", "track", "branch")
+        return data_model_repr(
+            self, "name", "family", "stage", "track", "branch", "store", "series", "os", "release", "owner"
+        )
 
 
 class UserSession(Base):
@@ -288,6 +324,8 @@ class Artefact(Base):
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
+
+    jira_issue: Mapped[str | None] = mapped_column(default=None)
 
     @property
     def architectures(self) -> set[str]:
@@ -578,17 +616,14 @@ class TestExecution(Base):
         cascade="all, delete",
     )
 
+    if TYPE_CHECKING:
+        # Declared here for mypy; assigned as a column_property at module level below
+        # (after IssueTestResultAttachment is defined) to avoid a forward reference.
+        is_triaged: Mapped[bool]
+
     @property
     def has_failures(self) -> bool:
         return any(tr.status == TestResultStatus.FAILED for tr in self.test_results)
-
-    @property
-    def is_triaged(self) -> bool:
-        return all(
-            len(tr.issue_attachments) > 0
-            for tr in self.test_results
-            if tr.status in (TestResultStatus.FAILED, TestResultStatus.SKIPPED)
-        )
 
     def __repr__(self) -> str:
         return data_model_repr(
@@ -912,3 +947,17 @@ class TestExecutionRelevantLink(Base):
     url: Mapped[str]
 
     test_execution: Mapped["TestExecution"] = relationship(back_populates="relevant_links")
+
+
+# is_triaged is defined here (after IssueTestResultAttachment) to avoid forward references
+TestExecution.is_triaged = column_property(
+    ~exists(
+        select(TestResult.id).where(
+            TestResult.test_execution_id == TestExecution.id,
+            TestResult.status.in_([TestResultStatus.FAILED, TestResultStatus.SKIPPED]),
+            ~exists(
+                select(IssueTestResultAttachment.id).where(IssueTestResultAttachment.test_result_id == TestResult.id)
+            ),
+        )
+    )
+)

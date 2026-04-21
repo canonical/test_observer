@@ -135,16 +135,17 @@ resource "juju_application" "test-observer-api" {
   }
 
   config = {
-    hostname              = var.api_hostname
-    frontend_hostname     = var.frontend_hostname
-    port                  = var.api_port
-    sentry_dsn            = var.sentry_dsn
-    saml_idp_metadata_url = var.saml_idp_metadata_url
-    saml_sp_cert          = var.saml_sp_cert
-    saml_sp_key           = var.saml_sp_key
-    sessions_secret       = var.sessions_secret
-    ignore_permissions    = join(",", var.ignore_permissions)
-    enable_issue_sync     = var.enable_issue_sync
+    hostname                = var.api_hostname
+    additional_cors_origins = var.additional_cors_origins
+    frontend_hostname       = var.frontend_hostname
+    port                    = var.api_port
+    sentry_dsn              = var.sentry_dsn
+    saml_idp_metadata_url   = var.saml_idp_metadata_url
+    saml_sp_cert            = var.saml_sp_cert
+    saml_sp_key             = var.saml_sp_key
+    sessions_secret         = var.sessions_secret
+    ignore_permissions      = join(",", var.ignore_permissions)
+    enable_issue_sync       = var.enable_issue_sync
   }
 
   units = 3

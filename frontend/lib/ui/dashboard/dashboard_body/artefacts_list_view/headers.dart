@@ -20,6 +20,8 @@ class _Headers extends StatelessWidget {
 
   final List<ColumnMetadata> columnsMetaData;
 
+  static const double height = 56;
+
   const _Headers.debs({super.key}) : columnsMetaData = _debColumnsMetadata;
 
   const _Headers.snaps({super.key}) : columnsMetaData = _snapColumnsMetadata;
@@ -36,7 +38,7 @@ class _Headers extends StatelessWidget {
         uri.queryParameters[CommonQueryParameters.sortDirection];
 
     return SizedBox(
-      height: 56,
+      height: _Headers.height,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: columnsMetaData
