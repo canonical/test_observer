@@ -421,18 +421,19 @@
 
   .btn-bulk {
     background: #E95420;
-    border: 1px solid #E95420;
-    border-radius: 4px;
-    padding: 5px 12px;
-    font-size: 12px;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
     cursor: pointer;
     color: white;
     font-weight: 500;
+    white-space: nowrap;
+    transition: opacity 0.15s;
   }
 
   .btn-bulk:hover {
-    background: #d4471a;
-    border-color: #d4471a;
+    opacity: 0.85;
     color: white;
   }
 
