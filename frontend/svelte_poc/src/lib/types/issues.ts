@@ -2,6 +2,7 @@ export type IssueSource = 'github' | 'jira' | 'launchpad';
 export type IssueStatus = 'open' | 'closed' | 'unknown';
 export const ISSUE_SOURCES: IssueSource[] = ['github', 'jira', 'launchpad'];
 export const ISSUE_STATUSES: IssueStatus[] = ['open', 'closed', 'unknown'];
+export const DEFAULT_STATUSES: IssueStatus[] = ['open', 'unknown'];
 
 export interface AttachmentRule {
   id: number;
@@ -24,17 +25,20 @@ export interface IssueDetail {
   url: string;
   labels: string[] | null;
   attachment_rules: AttachmentRule[];
+  auto_rerun_enabled: boolean;
+  test_executions_count: number;
 }
 
 export interface IssueListFilters {
   source: string[];
   status: string[];
+  family: string[];
   project: string;
   q: string;
 }
 
 export function emptyIssueFilters(): IssueListFilters {
-  return { source: [], status: [], project: '', q: '' };
+  return { source: [], status: [...DEFAULT_STATUSES], family: [], project: '', q: '' };
 }
 
 export function issueDisplayKey(issue: { source: string; project: string; key: string }): string {

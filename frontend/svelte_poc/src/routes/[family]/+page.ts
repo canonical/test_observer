@@ -29,7 +29,8 @@ export const load: PageLoad = async ({ params, fetch }) => {
     error(res.status, 'Failed to load artefacts');
   }
 
-  const artefacts: Artefact[] = await res.json();
+  const raw: Artefact[] = await res.json();
+  const artefacts = raw.map((a) => ({ ...a, reviewers: a.reviewers ?? [] }));
 
   return {
     family: family as Family,

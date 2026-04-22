@@ -89,7 +89,7 @@
       case 'reviewsRemaining':
         return a.all_environment_reviews_count - a.completed_environment_reviews_count;
       case 'status': return a.status;
-      case 'assignee': return a.assignee?.name ?? null;
+      case 'reviewers': return (a.reviewers?.length ?? 0) > 0 ? a.reviewers[0].name : null;
       default: return (a as any)[field] ?? '';
     }
   }

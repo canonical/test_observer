@@ -140,7 +140,7 @@
     padding: 6px 16px;
     font-size: 13px;
     cursor: pointer;
-    color: #555;
+    color: #000;
   }
 
   .btn-cancel:hover {

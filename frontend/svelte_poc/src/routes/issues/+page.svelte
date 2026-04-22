@@ -3,7 +3,7 @@
   import { base } from '$app/paths';
   import { page } from '$app/state';
   import { IssuesListStore } from '$lib/stores/issues-list.svelte';
-  import { ISSUE_SOURCES, ISSUE_STATUSES } from '$lib/types/issues';
+  import { ISSUE_SOURCES, ISSUE_STATUSES, DEFAULT_STATUSES } from '$lib/types/issues';
   import type { IssueSource, IssueStatus } from '$lib/types/issues';
   import IssueGroupHeader from '$lib/components/issues/IssueGroupHeader.svelte';
   import IssueRow from '$lib/components/issues/IssueRow.svelte';
@@ -11,6 +11,8 @@
 
   const store = new IssuesListStore();
   let addDialogOpen = $state(false);
+
+  const FAMILY_OPTIONS = ['snap', 'deb', 'charm', 'image'];
 
   $effect(() => {
     store.initFromUrl(page.url.searchParams);
@@ -48,6 +50,14 @@
     applyFilters();
   }
 
+  function toggleFamily(family: string) {
+    const current = store.filters.family;
+    const idx = current.indexOf(family);
+    const next = idx >= 0 ? current.filter((f) => f !== family) : [...current, family];
+    store.filters = { ...store.filters, family: next };
+    applyFilters();
+  }
+
   function setProject(project: string) {
     store.filters = { ...store.filters, project };
     applyFilters();
@@ -67,7 +77,7 @@
   }
 
   function clearFilters() {
-    store.filters = { source: [], status: [], project: '', q: '' };
+    store.filters = { source: [], status: [...DEFAULT_STATUSES], family: [], project: '', q: '' };
     applyFilters();
   }
 </script>
@@ -114,6 +124,18 @@
             <label class="checkbox-option">
               <input type="checkbox" checked={store.filters.status.includes(st)} onchange={() => toggleStatus(st)} />
               {st.charAt(0).toUpperCase() + st.slice(1)}
+            </label>
+          {/each}
+        </div>
+      </details>
+
+      <details open class="filter-section">
+        <summary>Family</summary>
+        <div class="filter-body">
+          {#each FAMILY_OPTIONS as fam (fam)}
+            <label class="checkbox-option">
+              <input type="checkbox" checked={store.filters.family.includes(fam)} onchange={() => toggleFamily(fam)} />
+              {fam.charAt(0).toUpperCase() + fam.slice(1)}
             </label>
           {/each}
         </div>

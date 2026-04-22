@@ -32,13 +32,6 @@ export const FAMILY_TITLES: Record<Family, string> = {
 export type ArtefactStatus = 'APPROVED' | 'MARKED_AS_FAILED' | 'UNDECIDED';
 export type ViewMode = 'dashboard' | 'list';
 
-export interface Assignee {
-  id: number;
-  name: string;
-  email: string;
-  launchpad_handle: string | null;
-}
-
 export interface Artefact {
   id: number;
   name: string;
@@ -59,7 +52,7 @@ export interface Artefact {
   status: ArtefactStatus;
   comment: string;
   archived: boolean;
-  assignee: Assignee | null;
+  reviewers: User[];
   due_date: string | null;
   created_at: string;
   bug_link: string;

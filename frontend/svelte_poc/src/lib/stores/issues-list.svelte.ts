@@ -1,9 +1,15 @@
 import { api } from '$lib/api/client';
 import type { MinimalIssue, IssuesGetResponse } from '$lib/types/test-results';
 import type { IssueListFilters } from '$lib/types/issues';
-import { emptyIssueFilters } from '$lib/types/issues';
+import { emptyIssueFilters, DEFAULT_STATUSES } from '$lib/types/issues';
 
 const PAGE_SIZE = 50;
+
+function setsEqual(a: string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = new Set(a);
+  return b.every((v) => sa.has(v));
+}
 
 interface IssueGroup {
   source: string;
@@ -46,7 +52,8 @@ export class IssuesListStore {
 
   hasFilters = $derived(
     this.filters.source.length > 0 ||
-      this.filters.status.length > 0 ||
+      !setsEqual(this.filters.status, DEFAULT_STATUSES) ||
+      this.filters.family.length > 0 ||
       this.filters.project !== '' ||
       this.filters.q !== '',
   );
@@ -54,10 +61,17 @@ export class IssuesListStore {
   initFromUrl(params: URLSearchParams) {
     const source = params.getAll('source');
     const status = params.getAll('status');
+    const family = params.getAll('family');
     const project = params.get('project') ?? '';
     const q = params.get('q') ?? '';
 
-    const newFilters: IssueListFilters = { source, status, project, q };
+    const newFilters: IssueListFilters = {
+      source,
+      status: status.length > 0 ? status : [...DEFAULT_STATUSES],
+      family,
+      project,
+      q,
+    };
     if (JSON.stringify(newFilters) !== JSON.stringify(this.filters)) {
       this.filters = newFilters;
       this.fetchIssues();
@@ -68,6 +82,7 @@ export class IssuesListStore {
     const params = new URLSearchParams();
     for (const s of this.filters.source) params.append('source', s);
     for (const s of this.filters.status) params.append('status', s);
+    for (const f of this.filters.family) params.append('family', f);
     if (this.filters.project) params.set('project', this.filters.project);
     if (this.filters.q) params.set('q', this.filters.q);
     return params;
@@ -76,7 +91,11 @@ export class IssuesListStore {
   private buildQuery(limit: number, offset: number): string {
     const params = new URLSearchParams();
     for (const s of this.filters.source) params.append('source', s);
-    for (const s of this.filters.status) params.append('status', s);
+    // Only send status params when they differ from defaults (otherwise show all)
+    if (!setsEqual(this.filters.status, DEFAULT_STATUSES)) {
+      for (const s of this.filters.status) params.append('status', s);
+    }
+    for (const f of this.filters.family) params.append('families', f);
     if (this.filters.project) params.set('project', this.filters.project);
     if (this.filters.q) params.set('q', this.filters.q);
     params.set('limit', String(limit));

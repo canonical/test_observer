@@ -25,7 +25,12 @@
       { label: 'Due date', key: 'dueDate', flex: 1, getValue: a => a.due_date ? new Date(a.due_date).toLocaleDateString() : '' },
       { label: 'Reviews', key: 'reviewsRemaining', flex: 1, getValue: a => String(a.all_environment_reviews_count - a.completed_environment_reviews_count) },
       { label: 'Status', key: 'status', flex: 1, getValue: a => STATUS_LABELS[a.status], color: a => STATUS_COLORS[a.status] },
-      { label: 'Assignee', key: 'assignee', flex: 1, getValue: a => a.assignee?.name ?? '' },
+      { label: 'Reviewers', key: 'reviewers', flex: 1, getValue: (a) => {
+          const r = a.reviewers ?? [];
+          if (r.length === 0) return 'N/A';
+          if (r.length === 1) return r[0].name;
+          return `${r.length} reviewers`;
+      }},
     ],
     debs: [
       { label: 'Name', key: 'name', flex: 2, getValue: a => a.name },
@@ -37,7 +42,12 @@
       { label: 'Due date', key: 'dueDate', flex: 1, getValue: a => a.due_date ? new Date(a.due_date).toLocaleDateString() : '' },
       { label: 'Reviews', key: 'reviewsRemaining', flex: 1, getValue: a => String(a.all_environment_reviews_count - a.completed_environment_reviews_count) },
       { label: 'Status', key: 'status', flex: 1, getValue: a => STATUS_LABELS[a.status], color: a => STATUS_COLORS[a.status] },
-      { label: 'Assignee', key: 'assignee', flex: 1, getValue: a => a.assignee?.name ?? '' },
+      { label: 'Reviewers', key: 'reviewers', flex: 1, getValue: (a) => {
+          const r = a.reviewers ?? [];
+          if (r.length === 0) return 'N/A';
+          if (r.length === 1) return r[0].name;
+          return `${r.length} reviewers`;
+      }},
     ],
     charms: [
       { label: 'Name', key: 'name', flex: 2, getValue: a => a.name },
@@ -48,7 +58,12 @@
       { label: 'Due date', key: 'dueDate', flex: 1, getValue: a => a.due_date ? new Date(a.due_date).toLocaleDateString() : '' },
       { label: 'Reviews', key: 'reviewsRemaining', flex: 1, getValue: a => String(a.all_environment_reviews_count - a.completed_environment_reviews_count) },
       { label: 'Status', key: 'status', flex: 1, getValue: a => STATUS_LABELS[a.status], color: a => STATUS_COLORS[a.status] },
-      { label: 'Assignee', key: 'assignee', flex: 1, getValue: a => a.assignee?.name ?? '' },
+      { label: 'Reviewers', key: 'reviewers', flex: 1, getValue: (a) => {
+          const r = a.reviewers ?? [];
+          if (r.length === 0) return 'N/A';
+          if (r.length === 1) return r[0].name;
+          return `${r.length} reviewers`;
+      }},
     ],
     images: [
       { label: 'Name', key: 'name', flex: 2, getValue: a => a.name },
@@ -59,7 +74,12 @@
       { label: 'Due date', key: 'dueDate', flex: 1, getValue: a => a.due_date ? new Date(a.due_date).toLocaleDateString() : '' },
       { label: 'Reviews', key: 'reviewsRemaining', flex: 1, getValue: a => String(a.all_environment_reviews_count - a.completed_environment_reviews_count) },
       { label: 'Status', key: 'status', flex: 1, getValue: a => STATUS_LABELS[a.status], color: a => STATUS_COLORS[a.status] },
-      { label: 'Assignee', key: 'assignee', flex: 1, getValue: a => a.assignee?.name ?? '' },
+      { label: 'Reviewers', key: 'reviewers', flex: 1, getValue: (a) => {
+          const r = a.reviewers ?? [];
+          if (r.length === 0) return 'N/A';
+          if (r.length === 1) return r[0].name;
+          return `${r.length} reviewers`;
+      }},
     ],
   };
 
@@ -76,10 +96,6 @@
       url.searchParams.set('direction', 'asc');
     }
     goto(url.toString(), { replaceState: true, noScroll: true });
-  }
-
-  function navigateToArtefact(id: number) {
-    goto(`${base}/${family}/${id}`);
   }
 </script>
 
@@ -102,7 +118,7 @@
   <div class="separator"></div>
 
   {#each artefacts as artefact (artefact.id)}
-    <button class="data-row" onclick={() => navigateToArtefact(artefact.id)}>
+    <a class="data-row" href="{base}/{family}/{artefact.id}">
       {#each columns as col}
         <span
           class="data-cell"
@@ -111,7 +127,7 @@
           {col.getValue(artefact)}
         </span>
       {/each}
-    </button>
+    </a>
     <div class="separator"></div>
   {/each}
 </div>
@@ -120,12 +136,18 @@
   .table-wrapper {
     max-width: 1300px;
     width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
   }
 
   .header-row {
     display: flex;
     height: 56px;
     align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fafafa;
   }
 
   .header-cell {
@@ -166,6 +188,8 @@
     text-align: left;
     font-family: inherit;
     padding: 0;
+    text-decoration: none;
+    color: inherit;
   }
 
   .data-row:hover {

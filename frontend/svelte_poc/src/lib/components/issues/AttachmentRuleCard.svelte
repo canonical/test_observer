@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import type { AttachmentRule } from '$lib/types/issues';
 
   interface Props {
@@ -36,6 +37,15 @@
       rule.template_ids.length > 0 ||
       metadataEntries.length > 0,
   );
+
+  const viewFiltersUrl = $derived.by(() => {
+    const params = new URLSearchParams();
+    for (const f of rule.families) params.append('families', f);
+    for (const e of rule.environment_names) params.append('environments', e);
+    for (const t of rule.test_case_names) params.append('testCases', t);
+    for (const s of rule.test_result_statuses) params.append('statuses', s);
+    return `${base}/test-results?${params}`;
+  });
 </script>
 
 <div class="rule-card" class:disabled={!rule.enabled}>
@@ -46,6 +56,9 @@
         {rule.enabled ? 'enabled' : 'disabled'}
       </span>
       <span class="rule-actions">
+        {#if hasCriteria}
+          <a class="btn-view-filters" href={viewFiltersUrl}>view filters</a>
+        {/if}
         <button class="btn-toggle" onclick={handleToggleEnabled}>
           {rule.enabled ? 'disable' : 'enable'}
         </button>
@@ -181,6 +194,17 @@
   }
 
   .btn-delete:hover {
+    text-decoration: underline;
+  }
+
+  .btn-view-filters {
+    font-size: 12px;
+    color: #0645ad;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .btn-view-filters:hover {
     text-decoration: underline;
   }
 

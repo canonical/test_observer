@@ -4,6 +4,7 @@
   import StatusIcon from '$lib/components/ui/StatusIcon.svelte';
   import EnvironmentReviewButton from './EnvironmentReviewButton.svelte';
   import EnvironmentIssuesExpandable from './EnvironmentIssuesExpandable.svelte';
+  import EnvironmentReviewersAvatars from './EnvironmentReviewersAvatars.svelte';
   import TestPlanExpandable from './TestPlanExpandable.svelte';
   import type { ArtefactEnvironment } from '$lib/types/artefact-page';
   import type { ArtefactPageStore } from '$lib/stores/artefact-page.svelte';
@@ -16,6 +17,13 @@
   }
 
   let { env, store, artefactId, family }: Props = $props();
+
+  const selected = $derived(store.isSelected(env.review.id));
+
+  function handleCheckbox(e: Event) {
+    e.stopPropagation();
+    store.toggleSelection(env.review.id);
+  }
 
   const targetExecutionId = $derived(
     page.url.searchParams.get('testExecutionId'),
@@ -50,11 +58,19 @@
 <Expandable bind:open>
   {#snippet title()}
     <span class="env-title">
+      <input
+        type="checkbox"
+        checked={selected}
+        onchange={handleCheckbox}
+        onclick={(e: MouseEvent) => e.stopPropagation()}
+        class="env-checkbox"
+      />
       {#if latestRun}
         <StatusIcon status={latestRun.status} size="20px" />
       {/if}
       <span class="arch-text">{env.architecture}</span>
       <span class="env-name">{env.name}</span>
+      <EnvironmentReviewersAvatars reviewers={env.review.reviewers} />
       <span class="spacer"></span>
       <EnvironmentReviewButton review={env.review} {store} {artefactId} />
     </span>
@@ -83,6 +99,11 @@
     gap: 8px;
     flex: 1;
     min-width: 0;
+  }
+
+  .env-checkbox {
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   .arch-text {

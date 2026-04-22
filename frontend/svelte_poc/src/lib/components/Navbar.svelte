@@ -5,8 +5,19 @@
   import NavbarDropdown from './navbar/NavbarDropdown.svelte';
   import { configuredTabs, helpLinks } from '$lib/config';
   import { userStore } from '$lib/stores/user.svelte';
+  import { notificationsStore } from '$lib/stores/notifications.svelte';
 
   const pathname = $derived(page.url.pathname);
+
+  $effect(() => {
+    if (userStore.isLoggedIn) {
+      notificationsStore.loadUnreadCount();
+    }
+  });
+
+  const badgeText = $derived(
+    notificationsStore.unreadCount > 99 ? '99+' : String(notificationsStore.unreadCount),
+  );
 
   function loginUrl(): string {
     return `/v1/auth/saml/login?return_to=${encodeURIComponent(window.location.href)}`;
@@ -37,6 +48,15 @@
         <a href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>
       {/each}
     </NavbarDropdown>
+
+    {#if userStore.isLoggedIn}
+      <a href="{base}/notifications" class="bell-link" aria-label="Notifications">
+        <span class="bell-icon">🔔</span>
+        {#if notificationsStore.unreadCount > 0}
+          <span class="bell-badge">{badgeText}</span>
+        {/if}
+      </a>
+    {/if}
 
     {#if userStore.isLoggedIn}
       <NavbarDropdown label={userStore.current?.name ?? ''}>
@@ -95,5 +115,41 @@
 
   .nav-button:hover {
     background: hsl(0 0% 28%);
+  }
+
+  .bell-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 12px;
+    text-decoration: none;
+  }
+
+  .bell-link:hover {
+    background: hsl(0 0% 28%);
+  }
+
+  .bell-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .bell-badge {
+    position: absolute;
+    top: 10px;
+    right: 4px;
+    background: #c7162b;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: 8px;
+    padding: 0 4px;
+    pointer-events: none;
   }
 </style>

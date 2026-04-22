@@ -40,12 +40,15 @@ export interface Environment {
   architecture: string;
 }
 
+import type { User } from './index';
+
 export interface EnvironmentReview {
   id: number;
   artefact_build: { id: number; architecture: string; revision: number | null };
   environment: Environment;
   review_comment: string;
   review_decision: string[];
+  reviewers: User[];
 }
 
 export interface TestResult {

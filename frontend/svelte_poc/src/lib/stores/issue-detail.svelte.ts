@@ -122,6 +122,18 @@ export class IssueDetailStore {
     await this.loadIssue(this._issueId);
   }
 
+  async setAutoRerun(issueId: number, enabled: boolean): Promise<void> {
+    const result = await api<IssueDetail>(`/issues/${issueId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ auto_rerun_enabled: enabled }),
+    });
+    if (result) {
+      this.issue = result;
+    } else {
+      throw new Error('Failed to update auto-rerun setting');
+    }
+  }
+
   async createReruns(filters: TestResultFilters) {
     const params = serializeFilters(filters);
     params.set('issues', String(this._issueId));

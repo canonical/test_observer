@@ -3,7 +3,7 @@
   import type { Artefact, Family } from '$lib/types';
   import StatusChip from './StatusChip.svelte';
   import DueDateChip from './DueDateChip.svelte';
-  import UserAvatar from './UserAvatar.svelte';
+  import ReviewersAvatars from './ReviewersAvatars.svelte';
 
   let { artefact, family }: { artefact: Artefact; family: Family } = $props();
 
@@ -34,10 +34,10 @@
     <StatusChip status={artefact.status} />
     <DueDateChip dueDate={artefact.due_date} />
     <div class="spacer"></div>
-    <UserAvatar
-      assignee={artefact.assignee}
-      completed={artefact.completed_environment_reviews_count}
-      total={artefact.all_environment_reviews_count}
+    <ReviewersAvatars
+      reviewers={artefact.reviewers}
+      allEnvironmentReviewsCount={artefact.all_environment_reviews_count}
+      completedEnvironmentReviewsCount={artefact.completed_environment_reviews_count}
     />
   </div>
 </a>

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { userInitials } from '$lib/types';
-  import type { Assignee } from '$lib/types';
+  import type { User } from '$lib/types';
 
-  let { assignee, completed, total }: {
-    assignee: Assignee | null;
+  let { user, completed, total }: {
+    user: User | null;
     completed: number;
     total: number;
   } = $props();
 
-  const initials = $derived(assignee ? userInitials(assignee.name) : '');
+  const initials = $derived(user ? userInitials(user.name) : '');
   const progress = $derived(total > 0 ? completed / total : 0);
   const circumference = 2 * Math.PI * 18;
   const dashOffset = $derived(circumference * (1 - progress));
@@ -16,8 +16,8 @@
   // Flutter accent colors: redAccent, yellowAccent, blueAccent, orangeAccent, greenAccent, purpleAccent
   const COLORS = ['#FF5252', '#FFFF00', '#448AFF', '#FFAB40', '#69F0AE', '#E040FB'];
   const avatarColor = $derived(
-    assignee
-      ? COLORS[Math.abs(assignee.id) % COLORS.length]
+    user
+      ? COLORS[Math.abs(user.id) % COLORS.length]
       : COLORS[5] // purpleAccent for unassigned (matches Flutter: id=-1 % 6 = 5)
   );
 
@@ -53,7 +53,7 @@
   const progressColor = $derived(darkenColor(avatarColor));
 </script>
 
-<div class="avatar-wrapper" title="{assignee?.name ?? 'Unassigned'} ({completed}/{total} reviews)">
+<div class="avatar-wrapper" title="{user?.name ?? 'Unassigned'} ({completed}/{total} reviews)">
   <svg width="44" height="44" viewBox="0 0 44 44">
     <circle cx="22" cy="22" r="18" fill="none" stroke={avatarColor} stroke-width="2.5" />
     <circle
@@ -67,7 +67,7 @@
       transform="rotate(-90 22 22)"
     />
   </svg>
-  {#if assignee}
+  {#if user}
     <div class="initials" style="background-color: {avatarColor};">{initials}</div>
   {/if}
 </div>

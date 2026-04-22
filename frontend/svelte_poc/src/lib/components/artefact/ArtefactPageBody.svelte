@@ -2,6 +2,8 @@
   import StatusSummary from './StatusSummary.svelte';
   import EnvironmentExpandable from './EnvironmentExpandable.svelte';
   import StartManualTestingDialog from './StartManualTestingDialog.svelte';
+  import FewerEnvironmentsWarning from './FewerEnvironmentsWarning.svelte';
+  import BulkEnvironmentSelectionControls from './BulkEnvironmentSelectionControls.svelte';
   import type { ArtefactEnvironment } from '$lib/types/artefact-page';
   import type { ArtefactPageStore } from '$lib/stores/artefact-page.svelte';
   import { userStore } from '$lib/stores/user.svelte';
@@ -81,6 +83,10 @@
   </div>
 
   <div class="environment-list">
+    {#if store.artefact}
+      <FewerEnvironmentsWarning artefact={store.artefact} versions={store.versions} />
+    {/if}
+    <BulkEnvironmentSelectionControls {environments} {artefactId} {store} />
     {#each environments as env (env.review.id)}
       <EnvironmentExpandable {env} {store} {artefactId} {family} />
     {/each}

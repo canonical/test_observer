@@ -22,6 +22,28 @@ export class ArtefactPageStore {
   testIssues = $state<TestIssue[]>([]);
   loading = $state(true);
 
+  // Bulk selection state
+  selectedEnvironmentIds = $state<Set<number>>(new Set());
+
+  toggleSelection(envId: number) {
+    const next = new Set(this.selectedEnvironmentIds);
+    if (next.has(envId)) next.delete(envId);
+    else next.add(envId);
+    this.selectedEnvironmentIds = next;
+  }
+
+  selectAll(envIds: number[]) {
+    this.selectedEnvironmentIds = new Set(envIds);
+  }
+
+  deselectAll() {
+    this.selectedEnvironmentIds = new Set();
+  }
+
+  isSelected(envId: number): boolean {
+    return this.selectedEnvironmentIds.has(envId);
+  }
+
   // Lazy caches keyed by testExecutionId
   private _testResults = $state<Record<number, TestResult[] | 'loading'>>({});
   private _testEvents = $state<Record<number, TestEvent[] | 'loading'>>({});
@@ -71,6 +93,7 @@ export class ArtefactPageStore {
     this.loading = true;
     // Blocking: fetch artefact
     const artefact = await api<Artefact>(`/artefacts/${artefactId}`);
+    if (artefact) artefact.reviewers = artefact.reviewers ?? [];
     this.artefact = artefact;
 
     // Non-blocking: fire everything in parallel
@@ -82,7 +105,7 @@ export class ArtefactPageStore {
       api<TestIssue[]>('/test-cases/reported-issues'),
     ]);
     this.builds = builds ?? [];
-    this.reviews = reviews ?? [];
+    this.reviews = (reviews ?? []).map((r) => ({ ...r, reviewers: r.reviewers ?? [] }));
     this.versions = versions ?? [];
     this.environmentIssues = envIssues ?? [];
     this.testIssues = testIssues ?? [];
@@ -140,6 +163,24 @@ export class ArtefactPageStore {
     );
     if (updated) {
       this.reviews = this.reviews.map((r) => (r.id === reviewId ? updated : r));
+      if (this.artefact) {
+        const completed = this.reviews.filter((r) => r.review_decision.length > 0).length;
+        this.artefact = { ...this.artefact, completed_environment_reviews_count: completed };
+      }
+    }
+  }
+
+  async bulkUpdateEnvironmentReviews(
+    artefactId: number,
+    reviews: Array<{ id: number; review_decision: string[]; review_comment: string }>,
+  ) {
+    const updated = await api<EnvironmentReview[]>(
+      `/artefacts/${artefactId}/environment-reviews`,
+      { method: 'PATCH', body: JSON.stringify(reviews) },
+    );
+    if (updated) {
+      const updatedMap = new Map(updated.map((r) => [r.id, r]));
+      this.reviews = this.reviews.map((r) => updatedMap.get(r.id) ?? r);
       if (this.artefact) {
         const completed = this.reviews.filter((r) => r.review_decision.length > 0).length;
         this.artefact = { ...this.artefact, completed_environment_reviews_count: completed };

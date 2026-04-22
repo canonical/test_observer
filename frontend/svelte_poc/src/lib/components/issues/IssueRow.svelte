@@ -1,6 +1,5 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { goto } from '$app/navigation';
   import type { MinimalIssue } from '$lib/types/test-results';
   import { issueDisplayKey } from '$lib/types/issues';
 
@@ -16,12 +15,13 @@
     issue.status === 'open' ? 'status-open' : issue.status === 'closed' ? 'status-closed' : 'status-unknown',
   );
 
-  function handleRowClick() {
-    goto(`${base}/issues/${issue.id}`);
-  }
+  const execCount = $derived(issue.test_executions_count ?? 0);
+  const execLabel = $derived(
+    execCount === 1 ? '1 test execution' : `${execCount} test executions`,
+  );
 </script>
 
-<div class="issue-row" role="link" tabindex="0" onclick={handleRowClick} onkeydown={(e) => { if (e.key === 'Enter') handleRowClick(); }}>
+<a class="issue-row" href="{base}/issues/{issue.id}">
   <div class="row-line1">
     <span class="issue-key">{displayKey}</span>
     <span class="issue-status {statusClass}">
@@ -36,21 +36,24 @@
         Unknown
       {/if}
     </span>
-    <a
-      href={issue.url}
-      target="_blank"
-      rel="noopener noreferrer"
+    {#if execCount > 0}
+      <span class="exec-count">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        {execLabel}
+      </span>
+    {/if}
+    <button
       class="external-link"
       title="Open in {issue.source}"
-      onclick={(e) => e.stopPropagation()}
+      onclick={(e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); window.open(issue.url, '_blank', 'noopener,noreferrer'); }}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-    </a>
+    </button>
   </div>
   <div class="row-line2">
     <span class="issue-title">{issue.title || '[No title]'}</span>
   </div>
-</div>
+</a>
 
 <style>
   .issue-row {
@@ -122,9 +125,21 @@
     display: flex;
     align-items: center;
     padding: 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
   .external-link:hover {
     color: #E95420;
+  }
+
+  .exec-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
   }
 </style>

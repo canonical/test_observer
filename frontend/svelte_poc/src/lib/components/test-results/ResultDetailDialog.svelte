@@ -113,6 +113,27 @@
           <pre class="io-log">{row.test_result.io_log}</pre>
         </section>
       {/if}
+
+      {#if row.test_result.issues && row.test_result.issues.length > 0}
+        <section class="detail-section">
+          <h3>Issues</h3>
+          <div class="issues-list">
+            {#each row.test_result.issues as attachment}
+              <a
+                class="issue-card"
+                href="{base}/issues/{attachment.issue.id}"
+                onclick={handleClose}
+              >
+                <span class="issue-key">{attachment.issue.key}</span>
+                <span class="issue-title">{attachment.issue.title || '[No title]'}</span>
+                <span class="issue-status" class:open={attachment.issue.status === 'open'} class:closed={attachment.issue.status === 'closed'}>
+                  {attachment.issue.status}
+                </span>
+              </a>
+            {/each}
+          </div>
+        </section>
+      {/if}
     </div>
 
     <div class="dialog-footer">
@@ -290,5 +311,59 @@
 
   .btn-close:hover {
     background: #e0e0e0;
+  }
+
+  .issues-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .issue-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+  }
+
+  .issue-card:hover {
+    background: #f5f5f5;
+  }
+
+  .issue-card .issue-key {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0645ad;
+    white-space: nowrap;
+  }
+
+  .issue-card .issue-title {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .issue-card .issue-status {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #888;
+  }
+
+  .issue-card .issue-status.open {
+    color: #0e8420;
+  }
+
+  .issue-card .issue-status.closed {
+    color: #7c355d;
   }
 </style>

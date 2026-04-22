@@ -14,6 +14,7 @@ export interface MinimalIssue {
   status: string;
   url: string;
   labels: string[] | null;
+  test_executions_count?: number;
 }
 
 export interface IssueAttachment {

@@ -6,7 +6,7 @@
   import { base } from '$app/paths';
   import { goto } from '$app/navigation';
   import StagesBreadcrumb from './StagesBreadcrumb.svelte';
-  import UserAvatar from '$lib/components/dashboard/UserAvatar.svelte';
+  import ReviewersAvatars from '$lib/components/dashboard/ReviewersAvatars.svelte';
   import ArtefactSignoffButton from './ArtefactSignoffButton.svelte';
 
   interface Props {
@@ -37,10 +37,10 @@
   <div class="header-top">
     <h1 class="artefact-name">{artefact.name}</h1>
     <ArtefactSignoffButton {artefact} onstatuschange={handleStatusChange} />
-    <UserAvatar
-      assignee={artefact.assignee}
-      completed={artefact.completed_environment_reviews_count}
-      total={artefact.all_environment_reviews_count}
+    <ReviewersAvatars
+      reviewers={artefact.reviewers}
+      allEnvironmentReviewsCount={artefact.all_environment_reviews_count}
+      completedEnvironmentReviewsCount={artefact.completed_environment_reviews_count}
     />
     {#if dueDate}
       <span class="due-date">Due {dueDate}</span>

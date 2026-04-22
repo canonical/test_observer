@@ -20,6 +20,10 @@
   let deleteRerunsDialog = $state<HTMLDialogElement | null>(null);
   let rerunBusy = $state(false);
 
+  // Auto-rerun toggle state
+  let autoRerunBusy = $state(false);
+  let autoRerunError = $state<string | null>(null);
+
   $effect(() => {
     const id = Number(page.params.issueId);
     if (!isNaN(id)) {
@@ -50,6 +54,25 @@
       ? '1 result'
       : `${store.totalCount.toLocaleString()} results`,
   );
+
+  async function handleAutoRerunToggle(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const newValue = target.checked;
+    const issueId = store.issue?.id;
+    if (issueId == null) return;
+    autoRerunBusy = true;
+    autoRerunError = null;
+    try {
+      await store.setAutoRerun(issueId, newValue);
+    } catch {
+      autoRerunError = 'Failed to update auto-rerun setting';
+      // Revert the checkbox
+      target.checked = !newValue;
+      setTimeout(() => (autoRerunError = null), 4000);
+    } finally {
+      autoRerunBusy = false;
+    }
+  }
 
   function openDialog(dialog: HTMLDialogElement | null) {
     rerunBusy = false;
@@ -124,6 +147,25 @@
           {/each}
         </div>
       {/if}
+
+      <div class="auto-rerun-row">
+        <label class="auto-rerun-label">
+          Auto-rerun on new matches
+          <span class="help-icon" title="When enabled, new test results matching this issue's attachment rules will automatically trigger reruns">?</span>
+        </label>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            checked={issue.auto_rerun_enabled}
+            onchange={handleAutoRerunToggle}
+            disabled={autoRerunBusy}
+          />
+          <span class="toggle-slider"></span>
+        </label>
+        {#if autoRerunError}
+          <span class="auto-rerun-error">{autoRerunError}</span>
+        {/if}
+      </div>
     </div>
 
     <!-- Attachment Rules -->
@@ -381,6 +423,91 @@
     background: #f0f0f0;
     border: 1px solid #ddd;
     color: #555;
+  }
+
+  /* Auto-rerun */
+  .auto-rerun-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .auto-rerun-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #555;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: help;
+  }
+
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 20px;
+    transition: background 0.2s;
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    bottom: 2px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background: #0e8420;
+  }
+
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(16px);
+  }
+
+  .toggle-switch input:disabled + .toggle-slider {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .auto-rerun-error {
+    font-size: 12px;
+    color: #c7162b;
   }
 
   /* Sections */
