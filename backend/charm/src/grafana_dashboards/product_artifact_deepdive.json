@@ -1,14 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1",
-      "label": "juju_k8s-stg-sqa-cos-default_7890c240-ba69-4086-8b7a-f74a7b750d45_mimir_1",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
   "__elements": {},
   "__requires": [
     {
@@ -64,7 +54,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+        "uid": "${prometheusds}"
       },
       "fieldConfig": {
         "defaults": {
@@ -147,7 +137,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+            "uid": "${prometheusds}"
           }
         }
       ],
@@ -157,7 +147,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+        "uid": "${prometheusds}"
       },
       "fieldConfig": {
         "defaults": {
@@ -235,7 +225,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+            "uid": "${prometheusds}"
           }
         }
       ],
@@ -245,7 +235,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+        "uid": "${prometheusds}"
       },
       "fieldConfig": {
         "defaults": {
@@ -301,7 +291,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+            "uid": "${prometheusds}"
           }
         }
       ],
@@ -311,7 +301,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+        "uid": "${prometheusds}"
       },
       "fieldConfig": {
         "defaults": {
@@ -392,7 +382,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+            "uid": "${prometheusds}"
           }
         }
       ],
@@ -402,7 +392,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+        "uid": "${prometheusds}"
       },
       "description": "Note: Only works with the Charm family",
       "fieldConfig": {
@@ -485,7 +475,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+            "uid": "${prometheusds}"
           }
         }
       ],
@@ -495,7 +485,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+        "uid": "${prometheusds}"
       },
       "fieldConfig": {
         "defaults": {
@@ -577,7 +567,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+            "uid": "${prometheusds}"
           }
         }
       ],
@@ -594,7 +584,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+          "uid": "${prometheusds}"
         },
         "definition": "label_values(test_observer_test_results, family)",
         "includeAll": true,
@@ -611,7 +601,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+          "uid": "${prometheusds}"
         },
         "definition": "label_values(test_observer_test_results{family=~\"$family\"}, artefact_name)",
         "includeAll": true,
@@ -628,7 +618,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+          "uid": "${prometheusds}"
         },
         "definition": "label_values(test_observer_test_results{artefact_name=~\"$artefact\"}, artefact_stage)",
         "includeAll": true,
@@ -645,7 +635,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_JUJU_K8S-STG-SQA-COS-DEFAULT_7890C240-BA69-4086-8B7A-F74A7B750D45_MIMIR_1}"
+          "uid": "${prometheusds}"
         },
         "definition": "label_values(test_observer_test_results{artefact_name=~\"$artefact\"}, track)",
         "includeAll": true,
@@ -678,7 +668,6 @@
   "timepicker": {},
   "timezone": "",
   "title": "Product & Artifact Deep Dive",
-  "uid": "04373d0d-2c85-467f-a2e5-71b0505b99eb",
   "version": 2,
   "weekStart": ""
 }
