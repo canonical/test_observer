@@ -68,25 +68,7 @@ RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
     find build/web/ -type f -exec sed -i -e 's/main.dart.js/main.dart.'$RANDOMVALUE'.js/g' {} \;
 
 # ---------------------------------------------------------------------------
-# Stage 2: Build the Nuxt (Vue) front-end with Node 20
-# ---------------------------------------------------------------------------
-FROM node:20-alpine as nuxt-builder
-
-# Prevent npm's tar from failing on fchown inside rootless containers.
-ENV TAR_OPTIONS="--no-same-owner"
-
-# Forward an optional HTTP proxy to npm (mirrors APT_PROXY usage in other stages).
-ARG APT_PROXY
-RUN if [ -n "$APT_PROXY" ]; then npm config set proxy "$APT_PROXY"; fi
-
-WORKDIR /app/vue_poc
-COPY vue_poc/package.json ./
-RUN npm install
-COPY vue_poc .
-RUN npm run generate
-
-# ---------------------------------------------------------------------------
-# Stage 3: Build the SvelteKit (Svelte) front-end with Node 20
+# Stage 2: Build the SvelteKit (Svelte) front-end with Node 20
 # ---------------------------------------------------------------------------
 FROM node:20-alpine as svelte-builder
 
@@ -114,7 +96,6 @@ RUN apt-get update && apt-get install -y nginx
 RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
-COPY --from=nuxt-builder /app/vue_poc/.output/public /usr/share/nginx/html/vue_poc
 COPY --from=svelte-builder /app/svelte_poc/build /usr/share/nginx/html/svelte_poc
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
 RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/

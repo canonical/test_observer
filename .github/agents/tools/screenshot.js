@@ -29,7 +29,7 @@
  * Examples:
  *   node screenshot.mjs http://localhost:30001/ /tmp/flutter-home.png
  *   node screenshot.mjs http://localhost:30001/ /tmp/flutter-home.png --no-login
- *   node screenshot.mjs http://localhost:30001/vue_poc/ /tmp/vue-home.png --width 1440 --height 900
+ *   node screenshot.mjs http://localhost:30001/svelte_poc/snaps /tmp/svelte-home.png --width 1440 --height 900
  *
  * Options:
  *   --no-login    Skip SSO login; screenshot the unauthenticated page
@@ -181,7 +181,7 @@ async function main() {
       }
     }
 
-    // Extra wait for JS frameworks (Flutter/Vue/Svelte) that animate on load
+    // Extra wait for JS frameworks (Flutter/Svelte) that animate on load
     if (waitMs > 0) {
       await page.waitForTimeout(waitMs);
     }

@@ -10,22 +10,22 @@ Usage:
 
 Arguments:
     REFERENCE       Path to the reference screenshot (e.g. Flutter).
-    CANDIDATE       Path to the candidate screenshot (e.g. Vue).
+    CANDIDATE       Path to the candidate screenshot (e.g. Svelte).
     OUTPUT          Output composite PNG (default: /tmp/compare-output.png).
     --page-name     Human-readable name for the page being compared (default: "page").
     --ref-label     Label for the left image (default: "Flutter (Reference)").
-    --cand-label    Label for the right image (default: "Vue (Candidate)").
+    --cand-label    Label for the right image (default: "Svelte (Candidate)").
     --call-gemini   Send the composite to Gemini and print its review.
                     Requires GEMINI_API_KEY environment variable.
     --model         Gemini model to use (default: gemini-2.0-flash).
 
 Examples:
     # Just produce the composite image:
-    python3 compare.py /tmp/flutter-home.png /tmp/vue-home.png /tmp/compare-home.png
+    python3 compare.py /tmp/flutter-home.png /tmp/svelte-home.png /tmp/compare-home.png
 
     # Produce composite AND get Gemini review:
     GEMINI_API_KEY=your_key python3 compare.py \\
-        /tmp/flutter-home.png /tmp/vue-home.png /tmp/compare-home.png \\
+        /tmp/flutter-home.png /tmp/svelte-home.png /tmp/compare-home.png \\
         --page-name "Snaps Dashboard" --call-gemini
 """
 
@@ -147,14 +147,14 @@ def parse_args():
         description="Compare two UI screenshots and optionally get a Gemini review."
     )
     parser.add_argument("reference", help="Path to the reference screenshot (Flutter).")
-    parser.add_argument("candidate", help="Path to the candidate screenshot (Vue).")
+    parser.add_argument("candidate", help="Path to the candidate screenshot (Svelte).")
     parser.add_argument(
         "output", nargs="?", default="/tmp/compare-output.png",
         help="Output composite PNG path (default: /tmp/compare-output.png).",
     )
     parser.add_argument("--page-name", default="page", help="Page name for the review prompt.")
     parser.add_argument("--ref-label", default="Flutter (Reference)", help="Label for the left image.")
-    parser.add_argument("--cand-label", default="Vue (Candidate)", help="Label for the right image.")
+    parser.add_argument("--cand-label", default="Svelte (Candidate)", help="Label for the right image.")
     parser.add_argument("--call-gemini", action="store_true", help="Send to Gemini for review.")
     parser.add_argument("--model", default="gemini-2.0-flash", help="Gemini model (default: gemini-2.0-flash).")
     return parser.parse_args()
