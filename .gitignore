@@ -26,3 +26,4 @@ artifacts/
 # Used during AI-driven Svelte UI rewrite
 /.ignore
 /frontend/svelte_poc/.svelte-kit/
+/frontend/svelte_poc/node_modules/
