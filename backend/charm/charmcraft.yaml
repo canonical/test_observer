@@ -110,6 +110,10 @@ config:
       description: Whether to initialize Prometheus metrics from the database on startup.
       type: boolean
       default: true
+    require_authentication:
+      description: Whether to require authentication for all API endpoints.
+      type: boolean
+      default: false
 
 resources:
   api-image:
