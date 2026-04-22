@@ -22,11 +22,11 @@ immediately reflects the current state rather than starting from zero.
 
 import logging
 from datetime import datetime, timedelta
-from os import environ
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from test_observer.common.config import METRICS_INIT_DAYS, METRICS_INIT_ENABLED
 from test_observer.common.metrics import (
     test_results,
     test_results_metadata,
@@ -47,10 +47,6 @@ from test_observer.data_access.models import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Configuration from environment
-METRICS_INIT_ENABLED = environ.get("METRICS_INIT_ENABLED", "true").lower() == "true"
-METRICS_INIT_DAYS = int(environ.get("METRICS_INIT_DAYS", "30"))
 
 
 def initialize_all_metrics(db: Session) -> None:
@@ -86,7 +82,7 @@ def initialize_all_metrics(db: Session) -> None:
 
 def _get_cutoff_date() -> datetime | None:
     """Get the cutoff date for metrics initialization based on config."""
-    if METRICS_INIT_DAYS == 0:
+    if METRICS_INIT_DAYS <= 0:
         return None  # No time limit
     return datetime.utcnow() - timedelta(days=METRICS_INIT_DAYS)
 
