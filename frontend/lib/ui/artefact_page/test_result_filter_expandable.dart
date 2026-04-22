@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/test_results.dart';
 import '../../../ui/test_results_page/test_results_helpers.dart';
-import '../expandable.dart';
+import '../sliver_expandable.dart';
 import 'test_result_expandable.dart';
 
 class TestResultsFilterExpandable extends ConsumerWidget {
@@ -41,8 +41,11 @@ class TestResultsFilterExpandable extends ConsumerWidget {
     final testResultsAsync = ref.watch(testResultsProvider(testExecutionId));
 
     return testResultsAsync.when(
-      loading: () => const CircularProgressIndicator(),
-      error: (error, stackTrace) => Text('Error: $error'),
+      loading: () => const SliverToBoxAdapter(
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stackTrace) =>
+          SliverToBoxAdapter(child: Text('Error: $error')),
       data: (testResults) {
         final filteredResults = testResults
             .where((result) => result.status == statusToFilterBy)
@@ -51,7 +54,7 @@ class TestResultsFilterExpandable extends ConsumerWidget {
         final shouldExpandStatus = testResultIdToExpand != null &&
             filteredResults.any((result) => result.id == testResultIdToExpand);
 
-        return Expandable(
+        return SliverExpandable(
           initiallyExpanded: shouldExpandStatus,
           title: Row(
             children: [
@@ -61,16 +64,21 @@ class TestResultsFilterExpandable extends ConsumerWidget {
               Text(' ${filteredResults.length}'),
             ],
           ),
-          children: filteredResults
-              .map(
-                (result) => TestResultExpandable(
+          sliverChildren: [
+            SliverList.builder(
+              itemCount: filteredResults.length,
+              itemBuilder: (context, index) {
+                final result = filteredResults[index];
+                return TestResultExpandable(
+                  key: ValueKey(result.id),
                   testExecutionId: testExecutionId,
                   testResult: result,
                   artefactId: artefactId,
                   testResultIdToExpand: testResultIdToExpand,
-                ),
-              )
-              .toList(),
+                );
+              },
+            ),
+          ],
         );
       },
     );
