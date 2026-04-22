@@ -95,6 +95,12 @@ variable "sentry_dsn" {
   type        = string
 }
 
+variable "additional_cors_origins" {
+  description = "Additional origins for CORS headers (comma separated)"
+  type        = string
+  default     = ""
+}
+
 variable "frontend_hostname" {
   description = "hostname for frontend"
   type        = string

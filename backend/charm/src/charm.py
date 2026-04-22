@@ -262,10 +262,13 @@ class TestObserverBackendCharm(CharmBase):
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
             "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
+            "ADDITIONAL_CORS_ORIGINS": self.config["additional_cors_origins"],
             "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
             "SESSIONS_SECRET": self.config["sessions_secret"],
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
             "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
+            "METRICS_INIT_DAYS": str(self.config.get("metrics_init_days", 30)),
+            "METRICS_INIT_ENABLED": str(self.config.get("metrics_init_enabled", True)).lower(),
             "REQUIRE_AUTHENTICATION": str(self.config.get("require_authentication", "false")),
         }
         # Only set SAML environment variables if IDP metadata URL is provided

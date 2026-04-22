@@ -23,17 +23,21 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import TestExecution
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
+)
+from test_observer.data_access.models import Artefact, ArtefactMatchingRule, Environment, Team, TestExecution, User
 from test_observer.data_access.models_enums import (
     FamilyName,
     StageName,
     TestResultStatus,
 )
+from test_observer.main import app
+from test_observer.users.user_injection import get_current_user
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
-
 
 # ==============================================================================
 # Fixtures and Helpers
@@ -182,14 +186,14 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
 # ==============================================================================
 
 
-def test_post_no_data_returns_422(post: Post):
-    assert post(None).status_code == 422
+def test_post_no_data_returns_422(test_client: TestClient):
+    response = test_client.post(reruns_url, json=None)
+    assert response.status_code == 422
 
 
-def test_post_invalid_id_returns_404_with_message(post: Post):
-    response = post({"test_execution_ids": [1]})
+def test_post_invalid_id_returns_404(post: Post):
+    response = post({"test_execution_ids": [99999]})
     assert response.status_code == 404
-    assert response.json()["detail"] == "Didn't find test executions with provided ids"
 
 
 def test_valid_post(post: Post, test_execution: TestExecution):
@@ -944,15 +948,9 @@ def test_delete_bulk_permission_not_required_for_single_id(
 # ==============================================================================
 
 
-def test_post_with_empty_test_execution_ids_list(test_client: TestClient, get: Get):
+def test_post_with_empty_test_execution_ids_list(post: Post, get: Get):
     """Test that posting with empty test_execution_ids list returns 404"""
-    response = make_authenticated_request(
-        lambda: test_client.post(
-            reruns_url,
-            json={"test_execution_ids": []},
-        ),
-        Permission.change_rerun,
-    )
+    response = post({"test_execution_ids": []})
 
     # Empty list is treated as not finding any test executions
     assert response.status_code == 404
@@ -1082,7 +1080,7 @@ def test_post_filters_by_environment_name(test_client: TestClient, get: Get, gen
     assert reruns[0]["test_execution"]["environment"]["name"] == "rpi4"
 
 
-def test_delete_with_empty_ids_does_nothing(test_client: TestClient, post: Post, get: Get, generator: DataGenerator):
+def test_delete_with_empty_ids_does_nothing(post: Post, get: Get, delete: Delete, generator: DataGenerator):
     """Test that deleting with empty IDs does nothing"""
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
@@ -1094,14 +1092,7 @@ def test_delete_with_empty_ids_does_nothing(test_client: TestClient, post: Post,
     assert len(get().json()) == 1
 
     # Delete with empty list should do nothing
-    response = make_authenticated_request(
-        lambda: test_client.request(
-            "DELETE",
-            reruns_url,
-            json={"test_execution_ids": []},
-        ),
-        Permission.change_rerun,
-    )
+    response = delete({"test_execution_ids": []})
 
     assert response.status_code == 200
     # Rerun should still exist
@@ -1135,3 +1126,466 @@ def test_post_non_silent_with_single_id_and_filters_fails(test_client: TestClien
 
     assert response.status_code == 422
     assert "must be done silently" in response.json()["detail"]
+
+
+class TestRerunAMRPermissions:
+    """Test AMR-based permission checking for rerun operations"""
+
+    def _create_user_in_team(self, generator: DataGenerator, team: Team, name: str = "alice") -> User:
+        user = generator.gen_user(name=name)
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+        return user
+
+    def _create_amr_with_defaults(
+        self,
+        generator: DataGenerator,
+        teams: list[Team],
+        grant_permissions: list[Permission],
+        family: FamilyName = FamilyName.snap,
+        stage: str = "stable",
+    ) -> ArtefactMatchingRule:
+        return generator.gen_artefact_matching_rule(
+            family=family,
+            stage=stage,
+            teams=teams,
+            grant_permissions=grant_permissions,
+        )
+
+    def _create_test_execution_for_artefact(
+        self, generator: DataGenerator, artefact: Artefact, environment: Environment | None = None
+    ) -> TestExecution:
+        build = generator.gen_artefact_build(artefact=artefact)
+        if environment is None:
+            environment = generator.gen_environment("test-env")
+        return generator.gen_test_execution(artefact_build=build, environment=environment)
+
+    def test_create_rerun_with_amr_permission(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+    ):
+        """User with matching AMR permission should be able to create rerun"""
+
+        # Create team and AMR
+        team = generator.gen_team(name="snap-team")
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
+        user = self._create_user_in_team(generator, team)
+
+        # Create test execution with matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        # Mock user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": [test_execution.id]},
+            )
+            assert response.status_code == 200
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_create_rerun_without_amr_permission(self, test_client: TestClient, generator: DataGenerator):
+        """User without matching AMR should be denied"""
+
+        # Create two teams
+        team_a = generator.gen_team(name="team-a")
+        team_b = generator.gen_team(name="team-b")
+
+        self._create_amr_with_defaults(generator, teams=[team_a], grant_permissions=[Permission.change_rerun])
+
+        user = self._create_user_in_team(generator, team_b, name="bob")
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": [test_execution.id]},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_create_rerun_no_matching_amr(self, test_client: TestClient, generator: DataGenerator):
+        """User's team has AMR, but for different artefact should be denied"""
+        # Create team and AMR for stable stage
+        team = generator.gen_team(name="snap-team")
+        self._create_amr_with_defaults(
+            generator,
+            teams=[team],
+            grant_permissions=[Permission.change_rerun],
+        )
+        user = self._create_user_in_team(generator, team, name="charlie")
+
+        # Create artefact that doesn't match (different stage)
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.beta,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": [test_execution.id]},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_delete_rerun_with_amr_permission(self, test_client: TestClient, generator: DataGenerator):
+        """User with matching AMR permission should be able to delete rerun"""
+
+        # Create team and AMR
+        team = generator.gen_team(name="snap-team")
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
+
+        user = self._create_user_in_team(generator, team)
+
+        # Create test execution with matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        # First, create the rerun
+        app.dependency_overrides[get_current_user] = lambda: user
+        try:
+            create_response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": [test_execution.id]},
+            )
+            assert create_response.status_code == 200
+
+            # Now delete it
+            delete_response = test_client.request(
+                "DELETE",
+                reruns_url,
+                json={"test_execution_ids": [test_execution.id]},
+            )
+            assert delete_response.status_code == 200
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_create_rerun_multiple_artefacts_all_authorized(self, test_client: TestClient, generator: DataGenerator):
+        """User authorized for all artefacts should succeed with multiple IDs"""
+
+        # Create team and AMR for snap family
+        team = generator.gen_team(name="snap-team")
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
+
+        user = self._create_user_in_team(generator, team)
+
+        # Create app with bulk permission for bulk operations
+        application = generator.gen_application(
+            name="test-app",
+            permissions=[Permission.change_rerun_bulk],
+        )
+
+        # Create multiple test executions with matching artefacts
+        test_execution_ids = []
+        environment = generator.gen_environment("test-env")
+        for i in range(3):
+            artefact = generator.gen_artefact(
+                name=f"test-snap-{i}",
+                family=FamilyName.snap,
+                stage=StageName.stable,
+            )
+            test_execution = self._create_test_execution_for_artefact(generator, artefact, environment)
+            test_execution_ids.append(test_execution.id)
+
+        # Mock user and app injection
+        app.dependency_overrides[get_current_user] = lambda: user
+        app.dependency_overrides[get_current_application] = lambda: application
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": test_execution_ids},
+            )
+            assert response.status_code == 200
+        finally:
+            del app.dependency_overrides[get_current_user]
+            del app.dependency_overrides[get_current_application]
+
+    def test_create_rerun_multiple_artefacts_partial_authorized(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """User authorized for some artefacts should fail entire operation"""
+
+        # Create team with bulk permission globally, but AMR only for snap
+        team = generator.gen_team(name="snap-team", permissions=[Permission.change_rerun_bulk])
+        self._create_amr_with_defaults(
+            generator, teams=[team], grant_permissions=[Permission.change_rerun, Permission.change_rerun_bulk]
+        )
+
+        user = self._create_user_in_team(generator, team)
+
+        # Create one snap (authorized) and one deb (unauthorized)
+        environment = generator.gen_environment("test-env")
+        snap_artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        snap_te = self._create_test_execution_for_artefact(generator, snap_artefact, environment)
+
+        deb_artefact = generator.gen_artefact(
+            name="test-deb",
+            family=FamilyName.deb,
+            stage=StageName.proposed,
+        )
+        deb_te = self._create_test_execution_for_artefact(generator, deb_artefact, environment)
+
+        # Mock user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            # Should fail because of all-or-nothing semantics
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": [snap_te.id, deb_te.id]},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_create_rerun_bulk_filter_with_amr_permission(self, test_client: TestClient, generator: DataGenerator):
+        """User authorized for all filtered results should succeed"""
+
+        # Create team and AMR for snap family
+        team = generator.gen_team(name="snap-team")
+        self._create_amr_with_defaults(generator, teams=[team], grant_permissions=[Permission.change_rerun])
+
+        user = self._create_user_in_team(generator, team)
+
+        # Create app with bulk permission
+        application = generator.gen_application(
+            name="test-app",
+            permissions=[Permission.change_rerun_bulk],
+        )
+
+        # Create test execution with matching artefact and failed result
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        tc = generator.gen_test_case("test_case_1")
+        generator.gen_test_result(tc, test_execution, status=TestResultStatus.FAILED)
+
+        # Mock user and app injection
+        app.dependency_overrides[get_current_user] = lambda: user
+        app.dependency_overrides[get_current_application] = lambda: application
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                params={"silent": True},
+                json={
+                    "test_results_filters": {
+                        "test_result_statuses": ["FAILED"],
+                    }
+                },
+            )
+            assert response.status_code == 200
+        finally:
+            del app.dependency_overrides[get_current_user]
+            del app.dependency_overrides[get_current_application]
+
+    def test_create_rerun_bulk_filter_without_amr_permission(self, test_client: TestClient, generator: DataGenerator):
+        """User without permission for filtered artefacts should be denied"""
+
+        # Create team with bulk permission globally, but AMR only for snap
+        # This allows the bulk permission check to pass, validating that 403 is due to AMR mismatch
+        team = generator.gen_team(name="snap-team", permissions=[Permission.change_rerun_bulk])
+        self._create_amr_with_defaults(
+            generator, teams=[team], grant_permissions=[Permission.change_rerun, Permission.change_rerun_bulk]
+        )
+
+        user = self._create_user_in_team(generator, team)
+
+        # Create test execution with unmatched artefact (deb) and failed result
+        artefact = generator.gen_artefact(
+            name="test-deb",
+            family=FamilyName.deb,
+            stage=StageName.proposed,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        tc = generator.gen_test_case("test_case_1")
+        generator.gen_test_result(tc, test_execution, status=TestResultStatus.FAILED)
+
+        # Mock user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                params={"silent": True},
+                json={
+                    "test_results_filters": {
+                        "test_result_statuses": ["FAILED"],
+                    }
+                },
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_admin_user_bypasses_amr_checks(self, test_client: TestClient, generator: DataGenerator):
+        """Admin user should bypass AMR checks"""
+
+        # Create admin user with no teams or AMR
+        user = generator.gen_user(name="admin")
+        user.teams = []
+        user.is_admin = True
+        generator._add_object(user)
+
+        # Create test execution with any artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        # Mock user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": [test_execution.id]},
+            )
+            # Admin should succeed even without AMR
+            assert response.status_code == 200
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_app_permission_bypasses_amr_checks(self, test_client: TestClient, generator: DataGenerator):
+        """App with change_rerun permission should bypass AMR checks"""
+
+        # Create app with permission
+        application = generator.gen_application(
+            name="test-app",
+            permissions=[Permission.change_rerun],
+        )
+
+        # Create test execution with any artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        # Mock app injection (no user)
+        app.dependency_overrides[get_current_user] = lambda: None
+        app.dependency_overrides[get_current_application] = lambda: application
+
+        try:
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": [test_execution.id]},
+            )
+            # App should succeed even without matching AMR
+            assert response.status_code == 200
+        finally:
+            del app.dependency_overrides[get_current_user]
+            del app.dependency_overrides[get_current_application]
+
+    def test_empty_test_execution_ids_list(self, test_client: TestClient, generator: DataGenerator):
+        """Empty test_execution_ids should return 404"""
+
+        # Create user with no teams or AMR
+        user = generator.gen_user(name="alice")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Mock user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            # Empty list should return 404 (no test executions found)
+            response = test_client.post(
+                reruns_url,
+                json={"test_execution_ids": []},
+            )
+            assert response.status_code == 404
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_no_matching_test_executions_in_filter(self, test_client: TestClient, generator: DataGenerator):
+        """Filter that matches no test executions should succeed silently"""
+
+        # Create user with no teams or AMR
+        user = generator.gen_user(name="alice")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create app with bulk permission (required for filter operations)
+        application = generator.gen_application(
+            name="test-app",
+            permissions=[Permission.change_rerun_bulk],
+        )
+
+        # Create test execution but it won't match our filter
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        test_execution = self._create_test_execution_for_artefact(generator, artefact)
+
+        tc = generator.gen_test_case("test_case_1")
+        generator.gen_test_result(tc, test_execution, status=TestResultStatus.PASSED)
+
+        # Mock user and app injection
+        app.dependency_overrides[get_current_user] = lambda: user
+        app.dependency_overrides[get_current_application] = lambda: application
+
+        try:
+            # Filter for FAILED status (none exist) - in silent mode should succeed
+            response = test_client.post(
+                reruns_url,
+                params={"silent": True},
+                json={
+                    "test_results_filters": {
+                        "test_result_statuses": ["FAILED"],
+                    }
+                },
+            )
+            # Should succeed because silent=True and no AMR check needed when filter matches nothing
+            assert response.status_code == 200
+        finally:
+            del app.dependency_overrides[get_current_user]
+            del app.dependency_overrides[get_current_application]

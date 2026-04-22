@@ -23,10 +23,11 @@ OPENAPI_JSON="$1"
 # /health/live and /health/ready should remain exceptions,
 # because they enforce their own checks that restrict access to internal-only.
 # They are used by Docker for health checks that would be cumbersome to authenticate.
+# The endpoints that include a /me are exceptions because they have their own
+# checks that just require authentication without specific permissions
 EXCEPTIONS='[
   {"method": "get", "path": "/v1/version"},
   {"method": "get", "path": "/"},
-  {"method": "get", "path": "/sentry-debug"},
   {"method": "get", "path": "/openapi.json"},
   {"method": "get", "path": "/docs"},
   {"method": "get", "path": "/v1/auth/saml/login"},
@@ -35,6 +36,9 @@ EXCEPTIONS='[
   {"method": "get", "path": "/v1/auth/saml/sls"},
   {"method": "post", "path": "/v1/auth/saml/sls"},
   {"method": "get", "path": "/v1/users/me"},
+  {"method": "get", "path": "/v1/users/me/notifications"},
+  {"method": "get", "path": "/v1/users/me/notifications/count"},
+  {"method": "post", "path": "/v1/users/me/notifications/{notification_id}/dismiss"},
   {"method": "get", "path": "/v1/applications/me"},
   {"method": "get", "path": "/health/live"},
   {"method": "get", "path": "/health/ready"}

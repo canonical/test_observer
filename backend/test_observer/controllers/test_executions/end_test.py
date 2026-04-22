@@ -66,6 +66,11 @@ def end_test_execution(request: EndTestExecutionRequest, db: Session = Depends(g
 
 
 def _find_related_test_execution(request: EndTestExecutionRequest, db: Session) -> TestExecution | None:
+    # Serialise concurrent requests for the same execution. Without this lock,
+    # a retry can race through when there are no pre-existing rows to lock on,
+    # and both requests insert a full duplicate set.
+    # with_for_update(of=TestExecution) locks only the test_execution row,
+    # not the joined rows.
     stmt = (
         select(TestExecution)
         .where(TestExecution.ci_link == request.ci_link)
@@ -73,6 +78,7 @@ def _find_related_test_execution(request: EndTestExecutionRequest, db: Session) 
             joinedload(TestExecution.artefact_build).joinedload(ArtefactBuild.artefact),
             joinedload(TestExecution.test_results).joinedload(TestResult.test_case),
         )
+        .with_for_update(of=TestExecution)
     )
 
     return db.execute(stmt).unique().scalar_one_or_none()
@@ -105,8 +111,6 @@ def _store_c3_test_results(
         db.add(test_result)
         db.flush()
         apply_test_result_attachment_rules(db, test_result)
-
-    db.commit()
 
 
 def _parse_c3_test_result_status(status: C3TestResultStatus) -> TestResultStatus:

@@ -63,3 +63,8 @@ class Permission(StrEnum):
     # Notifications
     view_notification = auto()
     change_notification = auto()
+
+    # Miscellaneous
+    # /sentry-debug, which is intended to be used for testing Sentry integration
+    # and does nothing but raise an exception
+    view_sentry_debug = auto()

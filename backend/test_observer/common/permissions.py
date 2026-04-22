@@ -17,14 +17,54 @@ from fastapi import Depends, HTTPException
 from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.config import IGNORE_PERMISSIONS
+from test_observer.common.config import IGNORE_PERMISSIONS, REQUIRE_AUTHENTICATION
 from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, Artefact, ArtefactMatchingRule, User
 from test_observer.data_access.queries import match_artefact
-from test_observer.users.user_injection import get_current_user
+from test_observer.users.user_injection import get_current_user, get_current_user_browser_friendly
+
+
+def requires_authentication() -> bool:
+    """
+    Simply returns the REQUIRE_AUTHENTICATION config value.
+    By making this a function, it can be used as a dependency
+    for routes that require authentication, and being a dependency
+    in turn makes it easier to override in tests if needed.
+    """
+    return REQUIRE_AUTHENTICATION
+
+
+def authentication_checker(
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(requires_authentication),
+) -> None:
+    """
+    A simple dependency to check if the request is authenticated with either a user or an application.
+    This is used for endpoints that don't require specific permissions, but still require authentication.
+    """
+    if authentication_required and not user and not app:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+
+def authentication_checker_browser_friendly(
+    user: User | None = Depends(get_current_user_browser_friendly),
+    app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(requires_authentication),
+) -> None:
+    """
+    A browser-friendly version of the authentication checker that allows GET requests without a CSRF token
+    through the underlying `get_current_user_browser_friendly` dependency.
+    This must only be used for endpoints that are safe to trigger cross-site and have no side effects.
+
+    At the time of writing, this should only be used for the /docs endpoint, as that is the only endpoint
+    intended to be used directly in the browser. Other endpoints can be used in the browser _from_ the Swagger docs.
+    """
+    if authentication_required and not user and not app:
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
 
 def permission_checker(

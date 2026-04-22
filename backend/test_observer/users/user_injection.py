@@ -45,3 +45,40 @@ def get_current_user(
     if session:
         return session.user
     return None
+
+
+def get_user_session_browser_friendly(request: Request, db: Session = Depends(get_db)) -> UserSession | None:
+    """
+    Browser-friendly session getter that allows GET requests without a CSRF token.
+    This must only be used for endpoints that are safe to trigger cross-site
+    and have no side effects.
+
+    At the time of writing, this should only be used for the /docs endpoint,
+    as that is the only endpoint intended to be used directly in the browser.
+    Other endpoints can be used in the browser _from_ the Swagger docs.
+    """
+
+    # Enforce that this dependency is only used for the /docs endpoint
+    if request.url.path != "/docs":
+        return None
+
+    if request.method != "GET" and "X-CSRF-Token" not in request.headers:
+        return None
+
+    session_id = request.session.get("id")
+    if not session_id:
+        return None
+
+    session = db.get(UserSession, session_id, options=[selectinload(UserSession.user)])
+    if not session or session.expires_at < datetime.now():
+        return None
+
+    return session
+
+
+def get_current_user_browser_friendly(
+    session: UserSession | None = Depends(get_user_session_browser_friendly),
+) -> User | None:
+    if session:
+        return session.user
+    return None

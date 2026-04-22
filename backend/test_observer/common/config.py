@@ -24,6 +24,9 @@ SAML_IDP_METADATA_URL = os.getenv(
 )
 SAML_SP_X509_CERT = os.getenv("SAML_SP_X509_CERT", "")
 SAML_SP_KEY = os.getenv("SAML_SP_KEY", "")
+ADDITIONAL_CORS_ORIGINS = [
+    origin.strip() for origin in os.getenv("ADDITIONAL_CORS_ORIGINS", "").split(",") if origin.strip()
+]
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
 SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")
 SESSIONS_HTTPS_ONLY = os.getenv("SESSIONS_HTTPS_ONLY", "true").lower() == "true"
@@ -31,3 +34,7 @@ IGNORE_PERMISSIONS = {
     permission.strip() for permission in os.getenv("IGNORE_PERMISSIONS", "").lower().split(",") if permission.strip()
 }
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9090"))
+__METRICS_INIT_DAYS__ = int(os.getenv("METRICS_INIT_DAYS", "30"))
+METRICS_INIT_DAYS = __METRICS_INIT_DAYS__ if __METRICS_INIT_DAYS__ > 0 else 0
+METRICS_INIT_ENABLED = os.getenv("METRICS_INIT_ENABLED", "true").lower() == "true"
+REQUIRE_AUTHENTICATION = os.getenv("REQUIRE_AUTHENTICATION", "false").lower() == "true"

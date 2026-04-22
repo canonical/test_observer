@@ -4490,26 +4490,15 @@
         ]
       }
     },
-    "/v1/users/{id}/notifications/count": {
+    "/v1/users/me/notifications": {
       "get": {
         "tags": [
           "notifications"
         ],
-        "summary": "Get Notifications",
-        "description": "Get all notifications for the specified user",
-        "operationId": "get_notifications_v1_users__id__notifications_count_get",
+        "summary": "Get Own Notifications",
+        "description": "Get all notifications for the authenticated user",
+        "operationId": "get_own_notifications_v1_users_me_notifications_get",
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "User ID or 'me' for current user",
-              "title": "Id"
-            },
-            "description": "User ID or 'me' for current user"
-          },
           {
             "name": "limit",
             "in": "query",
@@ -4556,8 +4545,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "title": "Response Get Notifications V1 Users  Id  Notifications Count Get"
+                  "$ref": "#/components/schemas/NotificationsResponse"
                 }
               }
             }
@@ -4572,31 +4560,118 @@
               }
             }
           }
-        },
-        "x-permissions": [
-          "view_notification"
-        ]
+        }
       }
     },
-    "/v1/users/{id}/notifications": {
+    "/v1/users/me/notifications/count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Own Notification Count",
+        "description": "Get the count of notifications for the authenticated user",
+        "operationId": "get_own_notification_count_v1_users_me_notifications_count_get",
+        "parameters": [
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "title": "Response Get Own Notification Count V1 Users Me Notifications Count Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/me/notifications/{notification_id}/dismiss": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark Own Notification As Read",
+        "description": "Mark the authenticated user's own notification as read",
+        "operationId": "mark_own_notification_as_read_v1_users_me_notifications__notification_id__dismiss_post",
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{user_id}/notifications": {
       "get": {
         "tags": [
           "notifications"
         ],
         "summary": "Get Notifications",
         "description": "Get all notifications for the specified user",
-        "operationId": "get_notifications_v1_users__id__notifications_get",
+        "operationId": "get_notifications_v1_users__user_id__notifications_get",
         "parameters": [
           {
-            "name": "id",
+            "name": "user_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "description": "User ID or 'me' for current user",
-              "title": "Id"
+              "type": "integer",
+              "description": "ID of the user whose notifications will be fetched",
+              "title": "User Id"
             },
-            "description": "User ID or 'me' for current user"
+            "description": "ID of the user whose notifications will be fetched"
           },
           {
             "name": "limit",
@@ -4665,25 +4740,86 @@
         ]
       }
     },
-    "/v1/users/{id}/notifications/{notification_id}/dismiss": {
+    "/v1/users/{user_id}/notifications/count": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get Notification Count",
+        "description": "Get the count of notifications for the specified user",
+        "operationId": "get_notification_count_v1_users__user_id__notifications_count_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "ID of the user whose notification count will be fetched",
+              "title": "User Id"
+            },
+            "description": "ID of the user whose notification count will be fetched"
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to return only unread notifications (default: false)",
+              "default": false,
+              "title": "Unread Only"
+            },
+            "description": "Whether to return only unread notifications (default: false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "title": "Response Get Notification Count V1 Users  User Id  Notifications Count Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_notification"
+        ]
+      }
+    },
+    "/v1/users/{user_id}/notifications/{notification_id}/dismiss": {
       "post": {
         "tags": [
           "notifications"
         ],
         "summary": "Mark Notification As Read",
         "description": "Mark a notification as read",
-        "operationId": "mark_notification_as_read_v1_users__id__notifications__notification_id__dismiss_post",
+        "operationId": "mark_notification_as_read_v1_users__user_id__notifications__notification_id__dismiss_post",
         "parameters": [
           {
-            "name": "id",
+            "name": "user_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "description": "User ID or 'me' for current user",
-              "title": "Id"
+              "type": "integer",
+              "description": "ID of the user whose notification will be dismissed",
+              "title": "User Id"
             },
-            "description": "User ID or 'me' for current user"
+            "description": "ID of the user whose notification will be dismissed"
           },
           {
             "name": "notification_id",
@@ -5034,7 +5170,10 @@
               }
             }
           }
-        }
+        },
+        "x-permissions": [
+          "view_sentry_debug"
+        ]
       }
     }
   },
@@ -5313,6 +5452,38 @@
             "type": "string",
             "title": "Branch",
             "default": ""
+          },
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "title": "Release",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "default": ""
+          },
+          "grant_permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array",
+            "title": "Grant Permissions"
           }
         },
         "type": "object",
@@ -5375,6 +5546,61 @@
             ],
             "title": "Branch"
           },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
           "grant_permissions": {
             "items": {
               "$ref": "#/components/schemas/Permission"
@@ -5391,6 +5617,11 @@
           "stage",
           "track",
           "branch",
+          "store",
+          "series",
+          "os",
+          "release",
+          "owner",
           "grant_permissions"
         ],
         "title": "ArtefactMatchingRuleInResponse",
@@ -5452,6 +5683,61 @@
             ],
             "title": "Branch"
           },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
           "team_ids": {
             "anyOf": [
               {
@@ -5510,20 +5796,44 @@
             "title": "Branch",
             "default": ""
           },
-          "team_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
-            "title": "Team Ids"
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "title": "Release",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "default": ""
           },
           "grant_permissions": {
             "items": {
               "$ref": "#/components/schemas/Permission"
             },
             "type": "array",
-            "title": "Grant Permissions",
-            "default": []
+            "title": "Grant Permissions"
+          },
+          "team_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Team Ids"
           }
         },
         "type": "object",
@@ -5587,6 +5897,61 @@
             ],
             "title": "Branch"
           },
+          "store": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store"
+          },
+          "series": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
           "teams": {
             "items": {
               "$ref": "#/components/schemas/TeamMinimal"
@@ -5610,6 +5975,11 @@
           "stage",
           "track",
           "branch",
+          "store",
+          "series",
+          "os",
+          "release",
+          "owner",
           "teams",
           "grant_permissions"
         ],
@@ -6989,7 +7359,8 @@
           "view_environment_reported_issue",
           "change_environment_reported_issue",
           "view_notification",
-          "change_notification"
+          "change_notification",
+          "view_sentry_debug"
         ],
         "title": "Permission"
       },

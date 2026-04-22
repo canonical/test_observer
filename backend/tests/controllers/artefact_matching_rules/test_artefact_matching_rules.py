@@ -17,6 +17,7 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
@@ -25,7 +26,56 @@ from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
-def test_create_artefact_matching_rule(test_client: TestClient, generator: DataGenerator):
+def _assert_null_attributes_in_response_amr(response_data: dict, expected_fields: dict) -> None:
+    """Helper function to assert that all fields in the response are null except for the expected ones"""
+    all_fields = {
+        "family",
+        "track",
+        "stage",
+        "branch",
+        "series",
+        "os",
+        "release",
+        "owner",
+        "store",
+        "name",
+    }
+    for field in all_fields:
+        assert response_data[field] == (expected_fields.get(field) if field in expected_fields else None)
+
+
+@pytest.mark.parametrize(
+    "populated_fields, description",
+    [
+        ({"family": "snap"}, "family only"),
+        ({"family": "deb", "stage": "proposed"}, "family and stage"),
+        ({"family": "snap", "store": "snaps", "track": "22", "branch": "main"}, "snap-specific fields"),
+        ({"family": "charm", "track": "22", "branch": "main"}, "charm-specific fields"),
+        ({"family": "deb", "series": "focal"}, "deb-specific fields"),
+        ({"family": "image", "os": "ubuntu", "release": "focal", "owner": "you"}, "image-specific fields"),
+        ({"family": "charm", "name": "postgresql-k8s"}, "charm with name field"),
+    ],
+)
+def test_create_artefact_matching_rule_with_subset_of_fields(
+    test_client: TestClient, generator: DataGenerator, populated_fields: dict, description: str
+):
+    """Test creating a new artefact matching rule with a subset of fields populated"""
+    team = generator.gen_team(name="test-team")
+
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefact-matching-rules", json={**populated_fields, "team_ids": [team.id]}),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    try:
+        _assert_null_attributes_in_response_amr(data, expected_fields=populated_fields)
+    except AssertionError as e:
+        raise AssertionError(f"Failed for case: {description}") from e
+
+
+def test_create_artefact_matching_rule_with_team(test_client: TestClient, generator: DataGenerator):
     """Test creating a new artefact matching rule with a team"""
     team = generator.gen_team(name="test-team")
 
@@ -39,61 +89,10 @@ def test_create_artefact_matching_rule(test_client: TestClient, generator: DataG
 
     assert response.status_code == 201
     data = response.json()
-    assert data["family"] == "snap"
-    assert data["track"] == "22"
-    assert data["stage"] is None
-    assert data["branch"] is None
+    _assert_null_attributes_in_response_amr(data, expected_fields={"family": "snap", "track": "22"})
     assert len(data["teams"]) == 1
     assert data["teams"][0]["id"] == team.id
     assert "id" in data
-
-
-def test_create_artefact_matching_rule_all_fields(test_client: TestClient, generator: DataGenerator):
-    """Test creating a rule with all fields populated"""
-    team = generator.gen_team(name="test-team")
-
-    response = make_authenticated_request(
-        lambda: test_client.post(
-            "/v1/artefact-matching-rules",
-            json={
-                "family": "snap",
-                "track": "22",
-                "stage": "beta",
-                "branch": "hotfix",
-                "team_ids": [team.id],
-            },
-        ),
-        Permission.change_team,
-    )
-
-    assert response.status_code == 201
-    data = response.json()
-    assert data["family"] == "snap"
-    assert data["track"] == "22"
-    assert data["stage"] == "beta"
-    assert data["branch"] == "hotfix"
-    assert len(data["teams"]) == 1
-
-
-def test_create_artefact_matching_rule_family_only(test_client: TestClient, generator: DataGenerator):
-    """Test creating a rule with only family"""
-    team = generator.gen_team(name="test-team")
-
-    response = make_authenticated_request(
-        lambda: test_client.post(
-            "/v1/artefact-matching-rules",
-            json={"family": "deb", "team_ids": [team.id]},
-        ),
-        Permission.change_team,
-    )
-
-    assert response.status_code == 201
-    data = response.json()
-    assert data["family"] == "deb"
-    assert data["track"] is None
-    assert data["stage"] is None
-    assert data["branch"] is None
-    assert len(data["teams"]) == 1
 
 
 def test_create_artefact_matching_rule_without_teams(test_client: TestClient):
@@ -245,9 +244,7 @@ def test_get_artefact_matching_rule_by_id(test_client: TestClient, generator: Da
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == rule.id
-    assert data["family"] == "snap"
-    assert data["track"] == "22"
-    assert data["stage"] == "stable"
+    _assert_null_attributes_in_response_amr(data, expected_fields={"family": "snap", "track": "22", "stage": "stable"})
 
 
 def test_get_artefact_matching_rule_not_found(test_client: TestClient):
@@ -280,10 +277,7 @@ def test_update_artefact_matching_rule(test_client: TestClient, generator: DataG
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == rule.id
-    assert data["family"] == "snap"
-    assert data["track"] == "24"
-    assert data["stage"] == "stable"
-    assert data["branch"] is None
+    _assert_null_attributes_in_response_amr(data, expected_fields={"family": "snap", "track": "24", "stage": "stable"})
     # Teams should be preserved
     assert len(data["teams"]) == 1
     assert data["teams"][0]["id"] == team.id
@@ -307,8 +301,7 @@ def test_update_artefact_matching_rule_change_family(test_client: TestClient, ge
 
     assert response.status_code == 200
     data = response.json()
-    assert data["family"] == "deb"
-    assert data["track"] == "22"
+    _assert_null_attributes_in_response_amr(data, expected_fields={"family": "deb", "track": "22"})
 
 
 def test_update_artefact_matching_rule_change_teams(test_client: TestClient, generator: DataGenerator):

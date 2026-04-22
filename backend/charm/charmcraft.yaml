@@ -80,6 +80,10 @@ config:
       default: test-observer-api
       description: Public hostname for the service.
       type: string
+    additional_cors_origins:
+      default: ""
+      description: Additional origins for CORS headers as comma-separated full origins, including scheme and optional port (for example, https://example.com or http://localhost:3000)
+      type: string
     frontend_hostname:
       default: test-observer
       description: Public hostname for the frontend connected to this API
@@ -98,8 +102,16 @@ config:
       description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
       type: boolean
       default: false
+    metrics_init_days:
+      description: Number of days of historical data to load when initializing metrics on startup. Use 0 to load all historical data.
+      type: int
+      default: 30
+    metrics_init_enabled:
+      description: Whether to initialize Prometheus metrics from the database on startup.
+      type: boolean
+      default: true
     require_authentication:
-      description: Whether to require authentication for all API requests
+      description: Whether to require authentication for all API endpoints.
       type: boolean
       default: false
 
