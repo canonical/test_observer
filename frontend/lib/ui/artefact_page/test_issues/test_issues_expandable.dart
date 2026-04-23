@@ -29,7 +29,15 @@ class TestIssuesExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final issues = ref.watch(testResultIssuesProvider(testResult)).value ?? [];
+    final issues = ref
+            .watch(
+              testResultIssuesProvider(
+                testResultName: testResult.name,
+                templateId: testResult.templateId,
+              ),
+            )
+            .value ??
+        [];
 
     return Expandable(
       initiallyExpanded: issues.isNotEmpty,
