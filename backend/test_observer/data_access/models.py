@@ -303,13 +303,17 @@ class Artefact(Base):
     # Snap specific fields
     store: Mapped[str] = mapped_column(default="")
 
-    # Snap and Charm specific fields
-    track: Mapped[str] = mapped_column(default="")
+    # Snap and Charm specific field
     branch: Mapped[str] = mapped_column(String(200), default="")
+
+    # Snap, Charm and Solution specific field
+    track: Mapped[str] = mapped_column(default="")
 
     # Deb specific fields
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
+
+    # Deb and Solution specific field
     source: Mapped[str] = mapped_column(String(200), default="")
 
     # Image specific fields
@@ -318,6 +322,9 @@ class Artefact(Base):
     sha256: Mapped[str] = mapped_column(String(200), default="")
     owner: Mapped[str] = mapped_column(String(200), default="")
     image_url: Mapped[str] = mapped_column(String(200), default="")
+
+    # Solution specific field
+    risk: Mapped[str] = mapped_column(String(200), default="")
 
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
