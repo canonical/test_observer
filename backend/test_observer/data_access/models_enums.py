@@ -21,6 +21,7 @@ class FamilyName(StrEnum):
     deb = "deb"
     charm = "charm"
     image = "image"
+    solution = "solution"
 
 
 class StageName(StrEnum):
