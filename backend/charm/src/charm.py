@@ -132,7 +132,11 @@ class TestObserverBackendCharm(CharmBase):
             return
 
         if self.model.get_relation("ingress") and self.model.get_relation("nginx-route"):
-            event.add_status(BlockedStatus("Cannot have both ingress and nginx-route relations at the same time"))
+            event.add_status(
+                BlockedStatus(
+                    "Cannot have both ingress and nginx-route relations at the same time"
+                )
+            )
             return
 
         event.add_status(ActiveStatus())
@@ -251,7 +255,7 @@ class TestObserverBackendCharm(CharmBase):
         self._update_api_layer()
         self._update_celery_layer()
 
-    def _update_api_layer(self, _ = None):
+    def _update_api_layer(self, _=None):
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
@@ -273,7 +277,7 @@ class TestObserverBackendCharm(CharmBase):
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
 
-    def _update_celery_layer(self, _ = None):
+    def _update_celery_layer(self, _=None):
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
@@ -504,7 +508,9 @@ class TestObserverBackendCharm(CharmBase):
                     json_ = json.loads(ingress_data)
                     url = json_.get("url", url)
                 except json.JSONDecodeError:
-                    logger.error("Failed to decode ingress relation data as JSON: %s", ingress_data)
+                    logger.error(
+                        "Failed to decode ingress relation data as JSON: %s", ingress_data
+                    )
                 except Exception as e:
                     logger.error("Unexpected error while parsing ingress relation data: %s", e)
         return url
