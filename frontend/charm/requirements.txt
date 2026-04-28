@@ -16,3 +16,4 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ops >= 2.8.0
+pydantic==2.13.3
