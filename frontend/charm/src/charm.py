@@ -21,14 +21,16 @@
 
 import json
 import logging
-import re
 from typing import Optional, Tuple
 
 import ops
 import yaml
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
-from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer, IngressPerAppReadyEvent, IngressPerAppRevokedEvent
-
+from charms.traefik_k8s.v2.ingress import (
+    IngressPerAppReadyEvent,
+    IngressPerAppRequirer,
+    IngressPerAppRevokedEvent,
+)
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
@@ -86,8 +88,8 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
 
     def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
-        """
-        Set the unit status based on the current state.
+        """Set the unit status based on the current state.
+
         For example, this can be used to block the charm if config values are missing or invalid,
         or if there are conflicting relations.
         The ops framework triggers a CollectStatusEvent at the end of each hook.
@@ -103,9 +105,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         event.add_status(ActiveStatus())
 
     def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
-        """
-        Process the ingress URL and provide the hostname where needed.
-        """
+        """Process the ingress URL and provide the hostname where needed."""
         logger.info("Ingress is ready with url %s", event.url)
         self._update_backend_relation_data()
 
@@ -274,8 +274,8 @@ class TestObserverFrontendCharm(ops.CharmBase):
         )
 
     def _get_url(self) -> str:
-        """
-        Get the URL to use for the API/backend service.
+        """Get the URL to use for the API/backend service.
+
         For backwards compatibility with legacy deployments
         using old versions of the nginx-ingress-integrator charm,
         we default to the charm config value.
@@ -301,9 +301,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         return url
 
     def _get_backend_url(self) -> str:
-        """
-        Get the backend URL from the relation data.
-        """
+        """Get the backend URL from the relation data."""
         url = ""
         if relation := self.model.get_relation("test-observer-rest-api"):
             url = relation.data[relation.app].get("url", url)
@@ -311,8 +309,8 @@ class TestObserverFrontendCharm(ops.CharmBase):
         return url
 
     def _update_backend_relation_data(self) -> None:
-        """
-        Update the relation data for the backend relation with the current hostname and port.
+        """Update the relation data for the backend relation with the current hostname and port.
+
         This provides the API/backend data so it's available to the frontend.
         """
         data = {"url": self._get_url()}

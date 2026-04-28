@@ -28,8 +28,11 @@ from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
-from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer, IngressPerAppReadyEvent, IngressPerAppRevokedEvent
-
+from charms.traefik_k8s.v2.ingress import (
+    IngressPerAppReadyEvent,
+    IngressPerAppRequirer,
+    IngressPerAppRevokedEvent,
+)
 from ops import CollectStatusEvent, StoredState
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
@@ -114,17 +117,16 @@ class TestObserverBackendCharm(CharmBase):
         )
 
     def _on_collect_unit_status(self, event: CollectStatusEvent) -> None:
-        """
-        Set the unit status based on the current state.
+        """Set the unit status based on the current state.
+
         For example, this can be used to block the charm if config values are missing or invalid,
         or if there are conflicting relations.
         The ops framework triggers a CollectStatusEvent at the end of each hook.
         """
-
         if not self.model.get_relation("database"):
             event.add_status(BlockedStatus("Missing database relation"))
             return
-        
+
         if not self.model.get_relation("redis"):
             event.add_status(BlockedStatus("Missing redis relation"))
             return
@@ -136,9 +138,7 @@ class TestObserverBackendCharm(CharmBase):
         event.add_status(ActiveStatus())
 
     def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
-        """
-        Process the ingress URL and provide the hostname where needed.
-        """
+        """Process the ingress URL and provide the hostname where needed."""
         logger.info("Ingress is ready with url %s", event.url)
         # The API and Celery updates use the `_app_environment` property,
         # which in turn pulls the hostname from the ingress relation data if available
@@ -480,8 +480,8 @@ class TestObserverBackendCharm(CharmBase):
             event.fail(e.stderr)
 
     def _get_url(self) -> str:
-        """
-        Get the URL to use for the API/backend service.
+        """Get the URL to use for the API/backend service.
+
         For backwards compatibility with legacy deployments
         using old versions of the nginx-ingress-integrator charm,
         we default to the charm config value.
@@ -510,10 +510,7 @@ class TestObserverBackendCharm(CharmBase):
         return url
 
     def _get_frontend_url(self, strip_path: bool = False) -> str:
-        """
-        Get the frontend URL from the relation data.
-        """
-
+        """Get the frontend URL from the relation data."""
         url = f"https://{self.config['frontend_hostname']}"
         if relation := self.model.get_relation("test-observer-rest-api"):
             url = relation.data[relation.app].get("url", url)
@@ -524,8 +521,8 @@ class TestObserverBackendCharm(CharmBase):
         return url
 
     def _update_frontend_relation_data(self) -> None:
-        """
-        Update the relation data for the frontend relation with the current hostname and port.
+        """Update the relation data for the frontend relation with the current hostname and port.
+
         This provides the API/backend data so it's available to the frontend.
         """
         data = {"url": self._get_url()}
