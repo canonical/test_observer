@@ -31,7 +31,9 @@ SPDX-License-Identifier = "Apache-2.0"
 [[annotations]]
 path = [
     "backend/charm/lib/charms/nginx_ingress_integrator/v0/nginx_route.py",
-    "frontend/charm/lib/charms/nginx_ingress_integrator/v0/nginx_route.py"
+    "frontend/charm/lib/charms/nginx_ingress_integrator/v0/nginx_route.py",
+    "backend/charm/lib/charms/traefik_k8s/v2/ingress.py",
+    "frontend/charm/lib/charms/traefik_k8s/v2/ingress.py"
 ]
 SPDX-FileCopyrightText = "2024 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
