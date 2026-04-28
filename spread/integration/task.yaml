@@ -21,6 +21,14 @@ execute: |
   backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
   frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
 
+  function crashdump() {
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+  }
+
+  trap crashdump ERR
+
   juju deploy --trust postgresql-k8s --channel=14/stable --revision=281 db
   juju deploy redis-k8s --channel=latest/edge --revision=27 redis
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
@@ -32,30 +40,14 @@ execute: |
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
 
-  if ! juju wait-for application db --timeout=5m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
+  juju wait-for application db --timeout=5m
 
   juju relate backend redis
   juju relate backend db
   juju relate backend frontend
 
-  if ! juju wait-for application backend --timeout=5m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
-
-  if ! juju wait-for application frontend --timeout=5m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
+  juju wait-for application backend --timeout=5m
+  juju wait-for application frontend --timeout=5m
 
   juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
