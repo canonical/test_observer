@@ -34,6 +34,7 @@ execute: |
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
     --config hostname=test-observer-api.test \
     --config sessions_secret="$(openssl rand -base64 32)" \
+    --config metrics_init_enabled=false \
     --resource api-image="${backend_oci_image}"
   juju deploy "${SPREAD_PATH}"/frontend/charm/*.charm frontend \
     --config hostname=test-observer-frontend.test \
