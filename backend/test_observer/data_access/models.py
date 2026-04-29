@@ -375,7 +375,12 @@ class Artefact(Base):
             unique=True,
         ),
         Index(
-            "unique_solution_builds",
+            "unique_solution",
+            "name",
+            "source",
+            "version",
+            "track",
+            "risk",
             "builds_hash",
             postgresql_where=column("family") == FamilyName.solution.name,
             unique=True,
