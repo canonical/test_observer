@@ -1426,12 +1426,8 @@ class TestArtefactPatchAMRPermissions:
             del app.dependency_overrides[get_current_user]
 
 
-def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator, db: Session):
+def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator):
     """Test that two solution artefacts with identical builds cannot be created."""
-    from sqlalchemy.exc import IntegrityError
-
-    from test_observer.data_access.models import ArtefactBuild
-
     # GIVEN a solution was created
     solution1 = generator.gen_artefact(
         name="my-solution",
@@ -1443,10 +1439,9 @@ def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator
         risk="stable",
     )
     build1 = generator.gen_artefact_build(solution1, architecture="amd64")
-    db.commit()
 
     # WHEN we attempt to create another identical solution
-    solution2 = Artefact(
+    solution2 = generator.gen_artefact(
         name="my-solution",
         family=FamilyName.solution,
         stage=StageName.stable,
@@ -1455,17 +1450,8 @@ def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator
         source="my-source",
         risk="stable",
     )
-    db.add(solution2)
-    db.flush()
 
-    build2 = ArtefactBuild(
-        artefact_id=solution2.id,
-        architecture="amd64",
-    )
-    db.add(build2)
-
-    assert build1.id == build2.id
+    # TODO(raul) change this to instead add an association between build1 and solution2 after the build <-> artefact relation is many to many
+    assert False
 
     # THEN then unique constraint prevents the second solution from being created
-    with pytest.raises(IntegrityError):
-        db.commit()
