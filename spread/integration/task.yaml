@@ -18,7 +18,7 @@
 summary: Run the charm integration test
 
 execute: |
-  set -e
+  set -o pipefail
 
   function crashdump() {
     trap - ERR
@@ -44,13 +44,13 @@ execute: |
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
 
-  # These two waits are temporary until the charm
+  # We seem to need to relate redis before the database until the charm
   # is updated to handle the relations and app environment variables more gracefully
+  juju relate backend redis
+
   juju wait-for application db --timeout=10m
-  juju wait-for application redis --timeout=10m
 
   juju relate backend db
-  juju relate backend redis
   juju relate backend frontend
 
   juju wait-for application backend --timeout=5m
