@@ -146,7 +146,7 @@ prepare: |
     systemctl mask unattended-upgrades.service
   fi
 
-  apt update
+  apt update -o DPkg::Lock::Timeout=300
   apt install -y pipx
   snap install --classic concierge
   concierge prepare --trace --preset microk8s

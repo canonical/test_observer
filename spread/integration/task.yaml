@@ -55,9 +55,20 @@ execute: |
   PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
   PGUSER=operator
   PGDATABASE=test_observer_db
-  juju ssh --container postgresql db/leader \
-    "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
-    | grep oil-ci-bot
+  # For some reason, it's possible that the relation data isn't fully propagated by the time we run this command,
+  # even though the application is active. So we retry it a few times with a delay.
+  for i in {1..3}; do
+    if juju ssh --container postgresql db/leader \
+      "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
+      | grep oil-ci-bot; then
+      break
+    fi
+    if [ "$i" -eq 3 ]; then
+      echo "Failed to find oil-ci-bot after 3 attempts"
+      exit 1
+    fi
+    sleep 30
+  done
 
 artifacts:
   - juju-k8s-crashdump.tar.gz
