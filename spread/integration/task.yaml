@@ -18,19 +18,16 @@
 summary: Run the charm integration test
 
 execute: |
-  function crashdump() {
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-  }
-
-  trap crashdump ERR
-
   backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
   frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
 
   juju deploy --trust postgresql-k8s --channel=14/stable --revision=774 db
   juju deploy redis-k8s --channel=latest/edge --revision=27 redis
+
+  # metrics_init_enabled=false is apparently necessary for the database to initialize correctly
+  # It seems like the metrics server is trying to query while the migrations are still applying,
+  # which causes some silent failure that leaves charms active and idle but the database empty.
+  # As a result, the add-user action fails in this scenario.
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
     --config hostname=test-observer-api.test \
     --config sessions_secret="$(openssl rand -base64 32)" \
@@ -41,14 +38,30 @@ execute: |
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
 
-  juju wait-for application db --timeout=10m
+  if ! juju wait-for application db --timeout=10m; then
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+    exit 1
+  fi
 
   juju relate backend redis
   juju relate backend db
   juju relate backend frontend
 
-  juju wait-for application backend --timeout=5m
-  juju wait-for application frontend --timeout=5m
+  if ! juju wait-for application backend --timeout=5m; then
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+    exit 1
+  fi
+
+  if ! juju wait-for application frontend --timeout=5m; then
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+    exit 1
+  fi
 
   juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
@@ -56,20 +69,9 @@ execute: |
   PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
   PGUSER=operator
   PGDATABASE=test_observer_db
-  # For some reason, it's possible that the relation data isn't fully propagated by the time we run this command,
-  # even though the application is active. So we retry it a few times with a delay.
-  for i in {1..3}; do
-    if juju ssh --container postgresql db/leader \
-      "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
-      | grep oil-ci-bot; then
-      break
-    fi
-    if [ "$i" -eq 3 ]; then
-      echo "Failed to find oil-ci-bot after 3 attempts"
-      exit 1
-    fi
-    sleep 30
-  done
+  juju ssh --container postgresql db/leader \
+    "PGPASSWORD=$PGPASSWORD PGHOST=$PGHOST PGUSER=$PGUSER PGDATABASE=$PGDATABASE psql -c \"select launchpad_handle from app_user where email='solutions-qa@lists.canonical.com'\"" \
+    | grep oil-ci-bot
 
 artifacts:
   - juju-k8s-crashdump.tar.gz
