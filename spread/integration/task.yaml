@@ -18,50 +18,43 @@
 summary: Run the charm integration test
 
 execute: |
+  set -o pipefail
+
+  function crashdump() {
+    trap - ERR
+
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+  }
+
+  trap crashdump ERR
+
   backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
   frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
 
   juju deploy --trust postgresql-k8s --channel=14/stable --revision=774 db
   juju deploy redis-k8s --channel=latest/edge --revision=27 redis
-
-  # metrics_init_enabled=false is apparently necessary for the database to initialize correctly
-  # It seems like the metrics server is trying to query while the migrations are still applying,
-  # which causes some silent failure that leaves charms active and idle but the database empty.
-  # As a result, the add-user action fails in this scenario.
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
     --config hostname=test-observer-api.test \
     --config sessions_secret="$(openssl rand -base64 32)" \
-    --config metrics_init_enabled=false \
     --resource api-image="${backend_oci_image}"
   juju deploy "${SPREAD_PATH}"/frontend/charm/*.charm frontend \
     --config hostname=test-observer-frontend.test \
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
 
-  if ! juju wait-for application db --timeout=10m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
-
+  # We seem to need to relate redis before the database until the charm
+  # is updated to handle the relations and app environment variables more gracefully
   juju relate backend redis
+
+  juju wait-for application db --timeout=10m
+
   juju relate backend db
   juju relate backend frontend
 
-  if ! juju wait-for application backend --timeout=5m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
-
-  if ! juju wait-for application frontend --timeout=5m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
+  juju wait-for application backend --timeout=5m
+  juju wait-for application frontend --timeout=5m
 
   juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
