@@ -33,6 +33,16 @@ TextStyle? _navbarTextStyle(BuildContext context) {
   return Theme.of(context).textTheme.titleMedium?.apply(color: Colors.white);
 }
 
+String tabDisplayName(String tab) {
+  return switch (tab) {
+    'snaps' => 'Snap Testing',
+    'debs' => 'Deb Testing',
+    'charms' => 'Charm Testing',
+    'images' => 'Image Testing',
+    _ => tab,
+  };
+}
+
 class Navbar extends ConsumerWidget {
   const Navbar({super.key});
 
@@ -74,10 +84,10 @@ class Navbar extends ConsumerWidget {
             Expanded(
               child: Row(
                 children: [
-                  ...configuredTabs.map(
-                    (route) => _NavbarEntry(
-                      title: familyDisplayName(route),
-                      route: route,
+                  ...frontendConfig.tabs.map(
+                    (tab) => _NavbarEntry(
+                      title: tabDisplayName(tab),
+                      route: '/$tab',
                     ),
                   ),
                   const Spacer(),
