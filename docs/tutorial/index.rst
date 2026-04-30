@@ -1,22 +1,14 @@
 Tutorials
 =========
 
-Get started with Test Observer by following a hands-on learning path.
+Learn Test Observer through hands-on exercises. These tutorials guide you step-by-step through core workflows, from submitting test results to managing system integrations.
 
-.. list-table::
-   :widths: 30 70
-   :header-rows: 1
+Getting started
+---------------
 
-   * - Tutorial
-     - Use case
-   * - :doc:`first-test-execution`
-     - **CI Engineers** who need to send test data to the dashboard for the first time.
-   * - ``review-workflow``
-     - **Reviewers** who need to learn how to triage failures and approve artefacts.
-   * - ``local-setup``
-     - **Developers** contributing to the Test Observer codebase itself.
-
+Learn the core testing workflow by integrating a testing system that reports test results to Test Observer. You'll start a test execution, submit test results, and see them appear in the dashboard.
+ 
 .. toctree::
-   :hidden:
+   :titlesonly:
 
    first-test-execution
