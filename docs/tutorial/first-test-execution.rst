@@ -44,7 +44,7 @@ Before starting, ensure you have the following prerequisites:
 
 .. note::
 
-    We will use the Canonical staging instance in this tutorial as an example. The staging API server is available at: `https://test-observer-api-staging.canonical.com/`. If you need to use other instances, replace the base URL accordingly.
+    We will use the Canonical staging instance in this tutorial as an example. The staging API server is available at: `https://test-observer-api-staging.canonical.com/ <https://test-observer-api-staging.canonical.com/>`_. If you need to use other instances, replace the base URL accordingly.
 
 
 Create a project directory and install the ``requests`` library to communicate with the Test Observer API:
@@ -60,7 +60,7 @@ Configure authentication
 -------------------------
 
 Test Observer requires an API key to accept test results from automation tools. 
-In this tutorial, we will create Python script that uses an environment variable to securely store the API key.
+In this tutorial, we will create a Python script that uses an environment variable to securely store the API key.
 
 For example, store your API key in an environment variable as follows:
 
@@ -193,7 +193,7 @@ The following code example simulates submitting four test results: two passes, o
 
     print(f"Submitting {len(test_results)} test results...")
 
-To submit the list of test results, send a POST request to the ``/v1/test-executions/`` endpoint. Add the following code to your ``submit_test.py`` file:
+To submit the list of test results, send a POST request to the ``/v1/test-executions/{execution_id}/test-results`` endpoint. Add the following code to your ``submit_test.py`` file:
 
 .. code-block:: python
 

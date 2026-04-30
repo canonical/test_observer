@@ -23,9 +23,9 @@ Additionally, TO provides a mechanism to assign reviewers that can look at resul
 In this documentation
 ---------------------
 
-* **Submitting tests**: :doc:`Authenticate <how-to/authenticate>` • :doc:`Submit test results </tutorial/first-test-execution>`
+* **Submitting tests**: :doc:`Submit test results <tutorial/first-test-execution>`
 * **Reviewing tests**: :doc:`Triage test results <how-to/triage-test-results>`
-* **APIs**: :doc:`OpenAPI reference <reference/index>`
+* **APIs**: :doc:`Authenticate <how-to/authenticate>` • :doc:`OpenAPI reference <reference/index>`
 * **Key concepts**: :doc:`explanation/glossary`
 
 ---------
