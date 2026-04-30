@@ -66,8 +66,9 @@ class FrontendConfig {
   }
 }
 
-// This gets loaded at runtime in main.dart
-late FrontendConfig frontendConfig;
+// The actual YAML will get loaded at runtime in main.dart,
+// but we initialize with the default
+FrontendConfig frontendConfig = FrontendConfig();
 
 FrontendConfig parseFrontendConfig(String yamlString) {
   try {

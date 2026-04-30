@@ -31,7 +31,7 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(
         path: '/',
-        redirect: (context, state) => '/${frontendConfig.tabs.first}'),
+        redirect: (context, state) => '/${frontendConfig.tabs.first}',),
     ShellRoute(
       builder: (_, __, dashboard) => Skeleton(
         body: dashboard,
