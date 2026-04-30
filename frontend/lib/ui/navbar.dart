@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2023 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,10 +21,17 @@ import 'package:yaru/yaru.dart';
 
 import '../providers/api.dart';
 import '../providers/current_user.dart';
+import '../providers/notifications.dart';
 import '../routing.dart';
+import '../frontend_config.dart';
 import 'spacing.dart';
 
 const _navbarHeight = 57.0;
+final _navbarSelectedColor = YaruColors.titleBarDark.scale(lightness: 0.07);
+
+TextStyle? _navbarTextStyle(BuildContext context) {
+  return Theme.of(context).textTheme.titleMedium?.apply(color: Colors.white);
+}
 
 class Navbar extends ConsumerWidget {
   const Navbar({super.key});
@@ -48,26 +54,31 @@ class Navbar extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset('assets/canonical.png'),
-            const SizedBox(width: Spacing.level4),
+            Image.asset(
+              'assets/logo.png',
+              filterQuality: FilterQuality.high,
+              errorBuilder: (context, error, stackTrace) =>
+                  const SizedBox.shrink(),
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                if (wasSynchronouslyLoaded || frame != null) {
+                  return Row(
+                    children: [
+                      child,
+                      const SizedBox(width: Spacing.level4),
+                    ],
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             Expanded(
               child: Row(
                 children: [
-                  const _NavbarEntry(
-                    title: 'Snap Testing',
-                    route: AppRoutes.snaps,
-                  ),
-                  const _NavbarEntry(
-                    title: 'Deb Testing',
-                    route: AppRoutes.debs,
-                  ),
-                  const _NavbarEntry(
-                    title: 'Charm Testing',
-                    route: AppRoutes.charms,
-                  ),
-                  const _NavbarEntry(
-                    title: 'Image Testing',
-                    route: AppRoutes.images,
+                  ...configuredTabs.map(
+                    (route) => _NavbarEntry(
+                      title: familyDisplayName(route),
+                      route: route,
+                    ),
                   ),
                   const Spacer(),
                   const _NavbarEntry(
@@ -139,6 +150,7 @@ class Navbar extends ConsumerWidget {
                             ),
                           ],
                         ),
+                  if (user != null) const _NotificationBellIcon(),
                 ],
               ),
             ),
@@ -173,10 +185,7 @@ class _NavbarDropdownEntry extends StatelessWidget {
             padding: const EdgeInsets.all(Spacing.level4),
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.apply(color: Colors.white),
+              style: _navbarTextStyle(context),
             ),
           ),
         ),
@@ -199,37 +208,52 @@ class _NavbarDropdownItem extends StatelessWidget {
         onPressed: onPressed,
         child: Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
+          style: _navbarTextStyle(context),
         ),
       ),
     );
   }
 }
 
-class _NavbarEntry extends StatelessWidget {
+class _NavbarEntry extends StatefulWidget {
   const _NavbarEntry({required this.route, required this.title});
 
   final String route;
   final String title;
 
   @override
+  State<_NavbarEntry> createState() => _NavbarEntryState();
+}
+
+class _NavbarEntryState extends State<_NavbarEntry> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => context.go(route),
-      child: Container(
-        color: GoRouterState.of(context).fullPath!.startsWith(route)
-            ? YaruColors.orange
-            : null,
-        padding: const EdgeInsets.all(Spacing.level4),
-        child: Text(
-          title,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
+    final isSelected =
+        GoRouterState.of(context).fullPath!.startsWith(widget.route);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: InkWell(
+        onTap: () => context.go(widget.route),
+        child: Container(
+          decoration: (isSelected || _isHovered)
+              ? BoxDecoration(
+                  color: _navbarSelectedColor,
+                  border: isSelected
+                      ? const Border(
+                          bottom: BorderSide(color: Colors.white, width: 2),
+                        )
+                      : null,
+                )
+              : null,
+          padding: const EdgeInsets.all(Spacing.level4),
+          child: Text(
+            widget.title,
+            style: _navbarTextStyle(context),
+          ),
         ),
       ),
     );
@@ -250,10 +274,71 @@ class _NavbarButton extends StatelessWidget {
         padding: const EdgeInsets.all(Spacing.level4),
         child: Text(
           title,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.apply(color: Colors.white),
+          style: _navbarTextStyle(context),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationBellIcon extends ConsumerWidget {
+  const _NotificationBellIcon();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
+
+    return Tooltip(
+      message: 'Notifications',
+      child: InkWell(
+        onTap: () => context.go('/notifications'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.level4,
+            vertical: Spacing.level3,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(
+                YaruIcons.notification,
+                color: Colors.white,
+                size: 20,
+              ),
+              unreadCountAsync.when(
+                data: (count) {
+                  if (count == 0) return const SizedBox.shrink();
+                  return Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          count > 99 ? '99+' : count.toString(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onError,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          ),
         ),
       ),
     );

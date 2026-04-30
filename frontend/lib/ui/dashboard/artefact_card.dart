@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2023 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,7 +21,8 @@ import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
 import '../../routing.dart';
 import '../spacing.dart';
-import '../user_avatar.dart';
+import '../navigable_link.dart';
+import '../reviewers_avatars.dart';
 import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
@@ -34,11 +34,10 @@ class ArtefactCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final assignee = artefact.assignee;
     final dueDate = artefact.dueDateString;
 
-    return GestureDetector(
-      onTap: () => navigateToArtefactPage(context, artefact.id),
+    return NavigableLink(
+      path: getArtefactPagePath(context, artefact.id),
       child: Card(
         margin: const EdgeInsets.all(0),
         elevation: 0,
@@ -84,8 +83,8 @@ class ArtefactCard extends ConsumerWidget {
                       fontColor: YaruColors.red,
                     ),
                   const Spacer(),
-                  UserAvatar(
-                    user: assignee,
+                  ReviewersAvatars(
+                    reviewers: artefact.reviewers,
                     allEnvironmentReviewsCount:
                         artefact.allEnvironmentReviewsCount,
                     completedEnvironmentReviewsCount:

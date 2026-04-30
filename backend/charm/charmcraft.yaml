@@ -1,3 +1,20 @@
+# Copyright 2023 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
 type: charm
 name: test-observer-api
 title: Test Observer API
@@ -29,6 +46,16 @@ parts:
     charm-entrypoint: src/charm.py
     charm-requirements:
       - requirements.txt
+    build-packages: [pkg-config, libffi-dev, libssl-dev, build-essential]
+    build-snaps: [rustup]
+    override-build: |
+      # pydantic requires a higher version of rustc than what is in the archive
+      # for 22.04
+      # Install rustc and cargo using rustup instead of the Ubuntu archive
+      rustup set profile minimal
+      rustup default 1.93.0  # renovate: charmcraft-rust-latest
+
+      craftctl default
 
 assumes:
   - juju >= 2.9
@@ -53,6 +80,10 @@ config:
       default: test-observer-api
       description: Public hostname for the service.
       type: string
+    additional_cors_origins:
+      default: ""
+      description: Additional origins for CORS headers as comma-separated full origins, including scheme and optional port (for example, https://example.com or http://localhost:3000)
+      type: string
     frontend_hostname:
       default: test-observer
       description: Public hostname for the frontend connected to this API
@@ -67,6 +98,22 @@ config:
     ignore_permissions:
       description: Comma separated list of API permissions to ignore for all requests
       type: string
+    enable_issue_sync:
+      description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
+      type: boolean
+      default: false
+    metrics_init_days:
+      description: Number of days of historical data to load when initializing metrics on startup. Use 0 to load all historical data.
+      type: int
+      default: 30
+    metrics_init_enabled:
+      description: Whether to initialize Prometheus metrics from the database on startup.
+      type: boolean
+      default: true
+    require_authentication:
+      description: Whether to require authentication for all API endpoints.
+      type: boolean
+      default: false
 
 resources:
   api-image:
@@ -87,6 +134,10 @@ charm-libs:
     version: "0"
   - lib: redis_k8s.redis
     version: "0"
+  - lib: grafana_k8s.grafana_dashboard
+    version: "0"
+  - lib: prometheus_k8s.prometheus_scrape
+    version: "0"
 
 requires:
   database:
@@ -99,6 +150,12 @@ requires:
 provides:
   test-observer-rest-api:
     interface: http
+    scope: global
+  metrics-endpoint:
+    interface: prometheus_scrape
+    scope: global
+  grafana-dashboard:
+    interface: grafana_dashboard
     scope: global
 
 actions:

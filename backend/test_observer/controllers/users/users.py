@@ -1,26 +1,26 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Security, Query
-from sqlalchemy import select, func, or_, and_, ColumnElement
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker, requires_authentication
 from test_observer.controllers.users.models import (
     UserPatch,
     UserResponse,
@@ -30,12 +30,16 @@ from test_observer.data_access.models import User
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
-
 router = APIRouter(tags=["users"])
 
 
 @router.get("/me", response_model=UserResponse | None)
-def get_authenticated_user(user: User | None = Depends(get_current_user)):
+def get_authenticated_user(
+    user: User | None = Depends(get_current_user),
+    authentication_required: bool = Depends(requires_authentication),
+):
+    if authentication_required and user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     return user
 
 
@@ -104,7 +108,7 @@ def get_users(
     # Execute query
     users = db.scalars(query).all()
 
-    return UsersResponse(users=users, count=total_count)  # type: ignore[arg-type]
+    return UsersResponse(users=users, count=total_count, limit=limit, offset=offset)  # type: ignore[arg-type]
 
 
 @router.get(

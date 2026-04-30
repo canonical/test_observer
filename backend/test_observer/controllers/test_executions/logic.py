@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from collections import defaultdict
 
@@ -35,20 +33,16 @@ def delete_previous_results(
     db: Session,
     test_execution: TestExecution,
 ):
-    db.execute(
-        delete(TestResult).where(TestResult.test_execution_id == test_execution.id)
-    )
-    db.commit()
+    db.execute(delete(TestResult).where(TestResult.test_execution_id == test_execution.id))
+    db.expire(test_execution, ["test_results"])
 
 
 def delete_previous_test_events(
     db: Session,
     test_execution: TestExecution,
 ):
-    db.execute(
-        delete(TestEvent).where(TestEvent.test_execution_id == test_execution.id)
-    )
-    db.commit()
+    db.execute(delete(TestEvent).where(TestEvent.test_execution_id == test_execution.id))
+    db.expire(test_execution, ["test_events"])
 
 
 def get_previous_test_results(
@@ -73,6 +67,7 @@ def get_previous_test_results(
             TestResult.id.label("result_id"),
             TestResult.status.label("result_status"),
             TestResult.test_case_id.label("case_id"),
+            TestExecution.id.label("test_execution_id"),
             Artefact.id.label("artefact_id"),
             Artefact.version.label("artefact_version"),
             over(
@@ -107,6 +102,8 @@ def get_previous_test_results(
             subq.c.result_status,
             subq.c.artefact_id,
             subq.c.artefact_version,
+            subq.c.test_execution_id,
+            subq.c.result_id,
         )
         .where(subq.c.row_number <= PREVIOUS_TEST_RESULT_COUNT)
         .order_by(
@@ -117,12 +114,21 @@ def get_previous_test_results(
     )
 
     previous_results = defaultdict(list)
-    for case_id, result_status, artefact_id, artefact_version in session.execute(stmt):
+    for (
+        case_id,
+        result_status,
+        artefact_id,
+        artefact_version,
+        test_execution_id,
+        result_id,
+    ) in session.execute(stmt):
         previous_results[case_id].append(
             PreviousTestResult(
                 status=result_status,
                 version=artefact_version,
                 artefact_id=artefact_id,
+                test_execution_id=test_execution_id,
+                test_result_id=result_id,
             )
         )
 

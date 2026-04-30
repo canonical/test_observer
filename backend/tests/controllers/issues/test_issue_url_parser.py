@@ -1,19 +1,17 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
 from pydantic import HttpUrl
@@ -71,6 +69,10 @@ from test_observer.data_access.models_enums import IssueSource
         (
             "https://bugs.launchpad.net/abc/+bug/123",
             (IssueSource.LAUNCHPAD, "abc", "123"),
+        ),
+        (
+            "https://bugs.launchpad.net/ubuntu/+source/linux-meta/+bug/2137746",
+            (IssueSource.LAUNCHPAD, "ubuntu", "2137746"),
         ),
         # Lowercase launchpad project
         (

@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +24,7 @@ import '../../providers/artefact.dart';
 import '../../providers/test_result_issues.dart';
 import '../../routing.dart';
 import '../expandable.dart';
+import '../navigable_link.dart';
 import '../spacing.dart';
 import 'test_issues/test_issues_expandable.dart';
 import 'issue_attachments/issue_attachments_expandable.dart';
@@ -45,7 +45,15 @@ class TestResultExpandable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final issues = ref.watch(testResultIssuesProvider(testResult)).value ?? [];
+    final issues = ref
+            .watch(
+              testResultIssuesProvider(
+                testResultName: testResult.name,
+                templateId: testResult.templateId,
+              ),
+            )
+            .value ??
+        [];
 
     String title = testResult.name;
     if (issues.length == 1) {
@@ -64,6 +72,8 @@ class TestResultExpandable extends ConsumerWidget {
           Text(title),
           const Spacer(),
           _PreviousTestResultsWidget(
+            artefactId: artefactId,
+            testExecutionId: testExecutionId,
             currentResult: testResult,
             previousResults: testResult.previousResults,
           ),
@@ -76,22 +86,29 @@ class TestResultExpandable extends ConsumerWidget {
           testResultId: testResult.id,
           artefactId: artefactId,
         ),
-        _TestResultOutputExpandable(testResult: testResult),
+        _TestResultOutputExpandable(
+          testResult: testResult,
+          initiallyExpanded: initiallyExpanded,
+        ),
       ],
     );
   }
 }
 
 class _TestResultOutputExpandable extends StatelessWidget {
-  const _TestResultOutputExpandable({required this.testResult});
+  const _TestResultOutputExpandable({
+    required this.testResult,
+    this.initiallyExpanded = false,
+  });
 
   final TestResult testResult;
+  final bool initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
     return Expandable(
       title: const Text('Details'),
-      initiallyExpanded: true,
+      initiallyExpanded: initiallyExpanded,
       children: [
         if (testResult.category != '')
           YaruTile(
@@ -121,17 +138,19 @@ class _TestResultOutputExpandable extends StatelessWidget {
 
 class _PreviousTestResultsWidget extends ConsumerWidget {
   const _PreviousTestResultsWidget({
+    required this.artefactId,
+    required this.testExecutionId,
     required this.currentResult,
     required this.previousResults,
   });
 
+  final int artefactId;
+  final int testExecutionId;
   final TestResult currentResult;
   final List<PreviousTestResult> previousResults;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artefactId =
-        AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
     final currentVersion = ref
             .watch(
               artefactProvider(artefactId)
@@ -144,6 +163,8 @@ class _PreviousTestResultsWidget extends ConsumerWidget {
       currentVersion: [
         PreviousTestResult(
           artefactId: artefactId,
+          testExecutionId: testExecutionId,
+          testResultId: currentResult.id,
           status: currentResult.status,
           version: currentVersion,
         ),
@@ -187,34 +208,48 @@ class _TestResultsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: (groupIndex > 0)
-          ? () => navigateToArtefactPage(
-                context,
-                results.first.artefactId,
-              )
-          : null,
-      child: Tooltip(
-        message: 'Version: $version',
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: -5,
-          children: results
-              .mapIndexed(
-                (index, result) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: result.status.getIcon(
-                    scale: (groupIndex == index && index == 0) ? 1.5 : 1,
-                  ),
-                ),
-              )
-              .reversed
-              .toList(),
-        ),
-      ),
+    final hasNavigation = groupIndex > 0;
+    final result = hasNavigation ? results.first : null;
+    final path = hasNavigation
+        ? getArtefactPagePath(
+            context,
+            result!.artefactId,
+            testExecutionId: result.testExecutionId,
+            testResultId: result.testResultId,
+          )
+        : null;
+
+    final content = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: -5,
+      children: results
+          .mapIndexed(
+            (index, result) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: result.status.getIcon(
+                scale: (groupIndex == index && index == 0) ? 1.5 : 1,
+              ),
+            ),
+          )
+          .reversed
+          .toList(),
+    );
+
+    if (hasNavigation) {
+      return NavigableLink(
+        path: path!,
+        tooltip: 'Version: $version',
+        semanticsLabel: 'View test results for version $version',
+        child: content,
+      );
+    }
+
+    return Tooltip(
+      message: 'Version: $version',
+      child: content,
     );
   }
 }

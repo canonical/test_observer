@@ -1,4 +1,20 @@
 #!/bin/bash
+
+# Copyright 2025 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
+
 set -e
 
 echo "Starting Test Observer Backend..."
@@ -22,7 +38,7 @@ if [ "${SEED_DATA:-false}" = "true" ]; then
     timeout=60
     count=0
     while [ $count -lt $timeout ]; do
-        if curl -f http://localhost:30000/v1/version > /dev/null 2>&1; then
+        if curl -f http://localhost:30000/health/ready > /dev/null 2>&1; then
             echo "API server is ready. Starting database seeding..."
             break
         fi

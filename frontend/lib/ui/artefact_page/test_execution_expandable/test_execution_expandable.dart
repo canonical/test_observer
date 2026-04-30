@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,12 +19,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/test_execution.dart';
 import '../../../models/test_result.dart';
 import '../../../routing.dart';
-import '../../expandable.dart';
+import '../../sliver_expandable.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
 import '../test_result_filter_expandable.dart';
 import '../test_event_log_expandable.dart';
 import '../execution_metadata_expandable.dart';
+import '../test_result_dialog.dart';
+import '../../../providers/current_user.dart';
+import '../manual_testing_dialog.dart';
 
 class TestExecutionExpandable extends ConsumerWidget {
   const TestExecutionExpandable({
@@ -48,26 +50,34 @@ class TestExecutionExpandable extends ConsumerWidget {
     final testResultIdToExpand =
         testResultIdString != null ? int.tryParse(testResultIdString) : null;
 
-    return Expandable(
+    return SliverExpandable(
       initiallyExpanded: initiallyExpanded,
       title: _TestExecutionTileTitle(
         testExecution: testExecution,
         runNumber: runNumber,
+        artefactId: artefactId,
       ),
-      children: <Widget>[
-        TestEventLogExpandable(
-          testExecutionId: testExecution.id,
-          initiallyExpanded: !testExecution.status.isCompleted,
-        ),
-        ExecutionMetadataExpandable(
-          executionMetadata: testExecution.executionMetadata,
-          initiallyExpanded: false,
-        ),
-        if (testExecution.status.isCompleted)
-          Expandable(
+      sliverChildren: <Widget>[
+        if (testExecution.testPlan != kManualTestPlanName)
+          SliverToBoxAdapter(
+            child: TestEventLogExpandable(
+              testExecutionId: testExecution.id,
+              initiallyExpanded: !testExecution.status.isCompleted,
+            ),
+          ),
+        if (testExecution.testPlan != kManualTestPlanName)
+          SliverToBoxAdapter(
+            child: ExecutionMetadataExpandable(
+              executionMetadata: testExecution.executionMetadata,
+              initiallyExpanded: false,
+            ),
+          ),
+        if (testExecution.status.isCompleted ||
+            testExecution.testPlan == kManualTestPlanName)
+          SliverExpandable(
             title: const Text('Test Results'),
             initiallyExpanded: true,
-            children: TestResultStatus.values
+            sliverChildren: TestResultStatus.values
                 .map(
                   (status) => TestResultsFilterExpandable(
                     statusToFilterBy: status,
@@ -83,20 +93,23 @@ class TestExecutionExpandable extends ConsumerWidget {
   }
 }
 
-class _TestExecutionTileTitle extends StatelessWidget {
+class _TestExecutionTileTitle extends ConsumerWidget {
   const _TestExecutionTileTitle({
     required this.testExecution,
     required this.runNumber,
+    required this.artefactId,
   });
 
   final TestExecution testExecution;
   final int runNumber;
+  final int artefactId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ciLink = testExecution.ciLink;
     final c3Link = testExecution.c3Link;
     final relevantLinks = testExecution.relevantLinks;
+    final user = ref.watch(currentUserProvider).value;
 
     return Row(
       children: [
@@ -126,6 +139,25 @@ class _TestExecutionTileTitle extends StatelessWidget {
               urlText: link.label,
             ),
           ),
+        if (user != null && testExecution.testPlan == kManualTestPlanName) ...[
+          const SizedBox(width: Spacing.level3),
+          TextButton.icon(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => AddTestResultDialog(
+                testExecutionId: testExecution.id,
+                artefactId: artefactId,
+              ),
+            ),
+            label: const Text('Add Test Result'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

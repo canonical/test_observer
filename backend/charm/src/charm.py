@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Copyright 2023 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,20 +13,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
 
 import logging
 import sys
 from collections import ChainMap
 
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
 from ops import StoredState
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import ExecError, Layer
+from ops.pebble import APIError, ExecError, Layer
 from requests import get
 
 # Log messages can be retrieved using juju debug-log
@@ -53,6 +58,11 @@ class TestObserverBackendCharm(CharmBase):
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
         )
+        self.grafana_dashboard_provider = GrafanaDashboardProvider(self)
+        self.metrics_endpoint = MetricsEndpointProvider(
+            self, jobs=[{"static_configs": [{"targets": ["*:9090"]}]}]
+        )
+
         self.framework.observe(self.database.on.database_created, self._on_database_changed)
         self.framework.observe(self.database.on.endpoints_changed, self._on_database_changed)
         self.framework.observe(
@@ -112,11 +122,16 @@ class TestObserverBackendCharm(CharmBase):
 
         self.unit.status = MaintenanceStatus("Migrating database")
 
-        process = self.api_container.exec(
-            ["alembic", "upgrade", "head"],
-            working_dir="/home/app",
-            environment=self._app_environment,
-        )
+        try:
+            process = self.api_container.exec(
+                ["alembic", "upgrade", "head"],
+                working_dir="/home/app",
+                environment=self._app_environment,
+            )
+        except APIError as e:
+            logger.error(f"Failed to execute database migration command: {e}")
+            self.unit.status = BlockedStatus("Database migration failed")
+            raise SystemExit(0)
 
         try:
             stdout, _ = process.wait_output()
@@ -240,13 +255,23 @@ class TestObserverBackendCharm(CharmBase):
     @property
     def _app_environment(self):
         """This creates a dictionary of environment variables needed by the application."""
+        # All environment variables must be strings, since they are passed to Pebble,
+        # and the Pebble environment struct requires strings.
+        # Otherwise, we will trigger an ops.pebble.APIError
         env = {
             "SENTRY_DSN": self.config["sentry_dsn"],
             "CELERY_BROKER_URL": self._celery_broker_url,
             "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
+            "ADDITIONAL_CORS_ORIGINS": self.config["additional_cors_origins"],
             "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
             "SESSIONS_SECRET": self.config["sessions_secret"],
             "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
+            "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
+            "METRICS_INIT_DAYS": str(self.config.get("metrics_init_days", 30)),
+            "METRICS_INIT_ENABLED": str(self.config.get("metrics_init_enabled", True)).lower(),
+            "REQUIRE_AUTHENTICATION": str(
+                self.config.get("require_authentication", False)
+            ).lower(),
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):

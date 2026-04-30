@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2023 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -51,13 +50,15 @@ abstract class Artefact with _$Artefact {
     required int allEnvironmentReviewsCount,
     @JsonKey(name: 'completed_environment_reviews_count')
     required int completedEnvironmentReviewsCount,
-    @Default(emptyUser) User assignee,
+    @Default([]) List<User> reviewers,
     @JsonKey(name: 'bug_link') required String bugLink,
     @JsonKey(name: 'due_date') DateTime? dueDate,
   }) = _Artefact;
 
   factory Artefact.fromJson(Map<String, Object?> json) =>
       _$ArtefactFromJson(json);
+
+  User get assignee => reviewers.isNotEmpty ? reviewers.first : emptyUser;
 
   String? get dueDateString {
     final month = dueDate?.month;

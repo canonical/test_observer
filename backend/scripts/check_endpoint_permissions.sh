@@ -1,13 +1,33 @@
 #!/bin/bash
+
+# Copyright 2025 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
+
 set -e
 
 OPENAPI_JSON="$1"
 
 # List exceptions as path/method pairs (method in lowercase)
+# /health/live and /health/ready should remain exceptions,
+# because they enforce their own checks that restrict access to internal-only.
+# They are used by Docker for health checks that would be cumbersome to authenticate.
+# The endpoints that include a /me are exceptions because they have their own
+# checks that just require authentication without specific permissions
 EXCEPTIONS='[
   {"method": "get", "path": "/v1/version"},
   {"method": "get", "path": "/"},
-  {"method": "get", "path": "/sentry-debug"},
   {"method": "get", "path": "/openapi.json"},
   {"method": "get", "path": "/docs"},
   {"method": "get", "path": "/v1/auth/saml/login"},
@@ -16,7 +36,12 @@ EXCEPTIONS='[
   {"method": "get", "path": "/v1/auth/saml/sls"},
   {"method": "post", "path": "/v1/auth/saml/sls"},
   {"method": "get", "path": "/v1/users/me"},
-  {"method": "get", "path": "/v1/applications/me"}
+  {"method": "get", "path": "/v1/users/me/notifications"},
+  {"method": "get", "path": "/v1/users/me/notifications/count"},
+  {"method": "post", "path": "/v1/users/me/notifications/{notification_id}/dismiss"},
+  {"method": "get", "path": "/v1/applications/me"},
+  {"method": "get", "path": "/health/live"},
+  {"method": "get", "path": "/health/ready"}
 ]'
 
 missing_permissions=$(jq -e --argjson exceptions "$EXCEPTIONS" '[

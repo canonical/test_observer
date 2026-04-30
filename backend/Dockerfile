@@ -1,3 +1,18 @@
+# Copyright 2023 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License version 3, as
+# published by the Free Software Foundation.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
+
 FROM ubuntu:24.04
 
 ARG UV_DYNAMIC_VERSIONING_BYPASS=0.0.0
@@ -29,7 +44,7 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --all-groups
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD curl --fail http://localhost:30000/v1/version || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s CMD curl --fail http://localhost:30000/health/live || exit 1
 
 WORKDIR /home/app
 

@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2023 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -31,6 +30,8 @@ abstract class PreviousTestResult with _$PreviousTestResult {
     required TestResultStatus status,
     required String version,
     @JsonKey(name: 'artefact_id') required int artefactId,
+    @JsonKey(name: 'test_execution_id') required int testExecutionId,
+    @JsonKey(name: 'test_result_id') required int testResultId,
   }) = _PreviousTestResult;
 
   factory PreviousTestResult.fromJson(Map<String, Object?> json) =>
@@ -85,6 +86,17 @@ enum TestResultStatus {
         return 'Passed';
       case skipped:
         return 'Skipped';
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case passed:
+        return 'PASSED';
+      case failed:
+        return 'FAILED';
+      case skipped:
+        return 'SKIPPED';
     }
   }
 

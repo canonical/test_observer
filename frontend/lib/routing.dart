@@ -1,37 +1,35 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2023 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'models/family_name.dart';
+import 'frontend_config.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
+import 'ui/issue_page/issue_page.dart';
 import 'ui/issues_page/issues_page.dart';
+import 'ui/notifications_page/notifications_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
-import 'ui/issue_page/issue_page.dart';
 
 final appRouter = GoRouter(
   routes: [
-    GoRoute(
-      path: '/',
-      redirect: (context, state) => AppRoutes.snaps,
-    ),
+    GoRoute(path: '/', redirect: (context, state) => configuredTabs.first),
     ShellRoute(
       builder: (_, __, dashboard) => Skeleton(
         body: dashboard,
@@ -113,6 +111,12 @@ final appRouter = GoRouter(
             ),
           ),
         ),
+        GoRoute(
+          path: '/notifications',
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: NotificationsPage(),
+          ),
+        ),
       ],
     ),
   ],
@@ -180,9 +184,12 @@ class AppRoutes {
   static bool isIssuesPage(Uri uri) => uri.path == '/issues';
 }
 
-void navigateToArtefactPage(BuildContext context, int artefactId) {
-  final uri = AppRoutes.uriFromContext(context);
-  final family = AppRoutes.familyFromUri(uri);
+String getArtefactPagePathForFamily(
+  FamilyName family,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
   String path = '/$artefactId';
 
   switch (family) {
@@ -200,6 +207,49 @@ void navigateToArtefactPage(BuildContext context, int artefactId) {
       break;
   }
 
+  if (testExecutionId != null || testResultId != null) {
+    final queryParams = <String, String>{};
+    if (testExecutionId != null) {
+      queryParams['testExecutionId'] = testExecutionId.toString();
+    }
+    if (testResultId != null) {
+      queryParams['testResultId'] = testResultId.toString();
+    }
+    final uri = Uri(path: path, queryParameters: queryParams);
+    path = uri.toString();
+  }
+
+  return path;
+}
+
+String getArtefactPagePath(
+  BuildContext context,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  final uri = AppRoutes.uriFromContext(context);
+  final family = AppRoutes.familyFromUri(uri);
+  return getArtefactPagePathForFamily(
+    family,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
+}
+
+void navigateToArtefactPage(
+  BuildContext context,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  final path = getArtefactPagePath(
+    context,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
   context.go(path);
 }
 
@@ -208,9 +258,13 @@ void navigateToIssuePage(
   int issueId, {
   int? attachmentRuleId,
 }) {
-  var path = '/issues/$issueId';
-  if (attachmentRuleId != null) {
-    path += '?${CommonQueryParameters.attachmentRule}=$attachmentRuleId';
-  }
+  final path = attachmentRuleId != null
+      ? Uri(
+          path: '/issues/$issueId',
+          queryParameters: {
+            CommonQueryParameters.attachmentRule: attachmentRuleId.toString(),
+          },
+        ).toString()
+      : '/issues/$issueId';
   context.go(path);
 }

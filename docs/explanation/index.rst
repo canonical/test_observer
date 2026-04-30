@@ -22,3 +22,13 @@ Test Observer handles human users and automated applications differently. This g
     :maxdepth: 1
 
     authentication-and-authorization
+
+Reviewer assignment
+-------------------
+
+Learn how Test Observer automatically assigns reviewers to artefacts and distributes them across environments based on configurable matching rules.
+
+.. toctree::
+    :maxdepth: 1
+
+    reviewer-assignment

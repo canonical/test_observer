@@ -1,22 +1,22 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import re
+
 from pydantic import HttpUrl
+
 from test_observer.data_access.models_enums import IssueSource
 
 
@@ -40,7 +40,7 @@ def issue_source_project_key_from_url(url: HttpUrl) -> tuple[IssueSource, str, s
             return IssueSource.JIRA, match.group(1).upper(), match.group(2)
 
     elif host == "bugs.launchpad.net":
-        match = re.match(r"^/([^/]+)/\+bug/(\d+)$", path)
+        match = re.match(r"^/([^/]+)(?:/\+source/[^/]+)?/\+bug/(\d+)$", path)
         if match:
             return IssueSource.LAUNCHPAD, match.group(1).lower(), match.group(2)
 

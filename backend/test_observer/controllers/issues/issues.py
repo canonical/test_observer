@@ -1,35 +1,47 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Security
-from fastapi import HTTPException
-from sqlalchemy import select, String
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from fastapi.security import SecurityScopes
+from sqlalchemy import String, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.permissions import Permission, permission_checker
-from test_observer.data_access.models import (
-    Issue,
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker
+from test_observer.controllers.applications.application_injection import (
+    get_current_application,
 )
-from test_observer.data_access.setup import get_db
-from test_observer.data_access.models_enums import IssueSource, IssueStatus
+from test_observer.data_access.models import (
+    Application,
+    Artefact,
+    ArtefactBuild,
+    Issue,
+    IssueTestResultAttachment,
+    TestExecution,
+    TestResult,
+    User,
+)
+from test_observer.data_access.models_enums import FamilyName, IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.setup import get_db
+from test_observer.users.user_injection import get_current_user
 
+from . import attachment_rules, issue_attachments
+from .issue_url_parser import issue_source_project_key_from_url
 from .models import (
     IssuePatchRequest,
     IssuePutRequest,
@@ -37,9 +49,6 @@ from .models import (
     IssuesGetResponse,
     MinimalIssueResponse,
 )
-from .issue_url_parser import issue_source_project_key_from_url
-
-from . import issue_attachments, attachment_rules
 
 router = APIRouter(tags=["issues"])
 router.include_router(issue_attachments.router)
@@ -61,8 +70,14 @@ def get_issues(
         Query(description="Filter by project name"),
     ] = None,
     status: Annotated[
-        IssueStatus | None,
-        Query(description="Filter by issue status (e.g., open, closed, unknown)"),
+        list[IssueStatus] | None,
+        Query(
+            description="Filter by issue status. Accepts multiple values",
+        ),
+    ] = None,
+    families: Annotated[
+        list[FamilyName] | None,
+        Query(description="Filter by artefact family (e.g., snap, deb, charm, image)"),
     ] = None,
     limit: Annotated[
         int,
@@ -81,9 +96,7 @@ def get_issues(
     ] = 0,
     q: Annotated[
         str | None,
-        Query(
-            description="Search term for issue source, project, keys, title, and status"
-        ),
+        Query(description="Search term for issue source, project, keys, title, and status"),
     ] = None,
     db: Session = Depends(get_db),
 ):
@@ -93,7 +106,18 @@ def get_issues(
     if project:
         stmt = stmt.where(Issue.project == project)
     if status:
-        stmt = stmt.where(Issue.status == status)
+        stmt = stmt.where(Issue.status.in_(status))
+    if families:
+        stmt = stmt.where(
+            Issue.id.in_(
+                select(IssueTestResultAttachment.issue_id)
+                .join(IssueTestResultAttachment.test_result)
+                .join(TestResult.test_execution)
+                .join(TestExecution.artefact_build)
+                .join(ArtefactBuild.artefact)
+                .where(Artefact.family.in_(families))
+            )
+        )
 
     # Apply search filter if query string provided
     if q:
@@ -116,12 +140,30 @@ def get_issues(
     # Order by source, project, then key for consistent pagination
     stmt = stmt.order_by(Issue.source, Issue.project, Issue.key)
 
+    # Count total before pagination
+    count_query = select(func.count()).select_from(stmt.subquery())
+    total_count = db.execute(count_query).scalar() or 0
+
     # Apply limit and offset
     stmt = stmt.limit(limit).offset(offset)
 
-    issues = db.execute(stmt).scalars().all()
+    rows = db.execute(
+        stmt.outerjoin(IssueTestResultAttachment, IssueTestResultAttachment.issue_id == Issue.id)
+        .outerjoin(TestResult, TestResult.id == IssueTestResultAttachment.test_result_id)
+        .outerjoin(TestExecution, TestExecution.id == TestResult.test_execution_id)
+        .add_columns(func.count(func.distinct(TestExecution.id)))
+        .group_by(Issue.id)
+    ).all()
     return IssuesGetResponse(
-        issues=[MinimalIssueResponse.model_validate(issue) for issue in issues]
+        issues=[
+            MinimalIssueResponse.model_validate(issue).model_copy(
+                update={"test_executions_count": test_executions_count}
+            )
+            for issue, test_executions_count in rows
+        ],
+        count=total_count,
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -149,15 +191,30 @@ def update_issue(db: Session, issue: Issue, request: IssuePatchRequest):
         issue.title = request.title
     if request.status is not None:
         issue.status = request.status
+    if request.auto_rerun_enabled is not None:
+        issue.auto_rerun_enabled = request.auto_rerun_enabled
     db.commit()
     db.refresh(issue)
     return issue
 
 
+def require_auto_rerun_permission(
+    security_scopes: SecurityScopes,
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    request: IssuePatchRequest = Depends(),
+):
+    if request.auto_rerun_enabled is not None:
+        permission_checker(security_scopes, user, app)
+
+
 @router.patch(
     "/{issue_id}",
     response_model=IssueResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.change_issue])],
+    dependencies=[
+        Security(permission_checker, scopes=[Permission.change_issue]),
+        Security(require_auto_rerun_permission, scopes=[Permission.change_auto_rerun]),
+    ],
 )
 def patch_issue(
     issue_id: int,

@@ -1,43 +1,42 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import date, timedelta
 from operator import itemgetter
 from typing import Any
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Artefact, TestExecution
+from test_observer.common.enums import Permission
+from test_observer.data_access.models import Artefact, Notification, TestExecution
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    NotificationType,
     StageName,
 )
-from test_observer.common.permissions import Permission
-from tests.data_generator import DataGenerator
+from test_observer.main import app
+from test_observer.users.user_injection import get_current_user
 from tests.conftest import make_authenticated_request
+from tests.data_generator import DataGenerator
 
 
-def test_get_artefacts_ignores_archived(
-    generator: DataGenerator, test_client: TestClient
-):
+def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: TestClient):
     a1 = generator.gen_artefact(
         stage=StageName.proposed,
         family=FamilyName.deb,
@@ -113,9 +112,7 @@ def test_get_artefacts_ignores_archived(
         },
     ],
 )
-def test_get_artefacts_returns_latest_on_each_stage(
-    generator: DataGenerator, test_client: TestClient, artefact: dict
-):
+def test_get_artefacts_returns_latest_on_each_stage(generator: DataGenerator, test_client: TestClient, artefact: dict):
     """If multiple versions of an artefact exist on the same stage, return the latest"""
     generator.gen_artefact(**artefact, version="1")
     new = generator.gen_artefact(**artefact, version="2")
@@ -128,9 +125,7 @@ def test_get_artefacts_returns_latest_on_each_stage(
     _assert_get_artefacts_response(response.json(), [new])
 
 
-def test_get_relevant_image_artefacts(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_relevant_image_artefacts(test_client: TestClient, generator: DataGenerator):
     old_image = generator.gen_image()
     new_image = generator.gen_image(
         sha256="someothersha256",
@@ -220,7 +215,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
         status=ArtefactStatus.APPROVED,
         bug_link="localhost/bug",
         due_date=date(2024, 12, 24),
-        assignee_id=u.id,
+        reviewers=[u],
     )
 
     response = make_authenticated_request(
@@ -232,9 +227,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     _assert_get_artefact_response(response.json(), a)
 
 
-def test_get_artefact_environment_reviews_counts_only_latest_build(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_get_artefact_environment_reviews_counts_only_latest_build(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(artefact=a, revision=1)
     e = generator.gen_environment()
@@ -246,9 +239,7 @@ def test_get_artefact_environment_reviews_counts_only_latest_build(
     generator.gen_artefact_build_environment_review(
         ab_second,
         e,
-        review_decision=[
-            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-        ],
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS],
     )
 
     response = make_authenticated_request(
@@ -280,9 +271,7 @@ def test_get_artefact_environment_reviews_counts(
     assert response.json()["all_environment_reviews_count"] == 1
     assert response.json()["completed_environment_reviews_count"] == 0
 
-    er.review_decision = [
-        ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-    ]
+    er.review_decision = [ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS]
     db_session.commit()
     db_session.refresh(er)
 
@@ -311,9 +300,7 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
     assert artefact.status == ArtefactStatus.APPROVED
 
 
-def test_artefact_signoff_disallow_approve(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_artefact_signoff_disallow_approve(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
@@ -329,9 +316,7 @@ def test_artefact_signoff_disallow_approve(
     assert response.status_code == 400
 
 
-def test_artefact_signoff_disallow_reject(
-    test_client: TestClient, test_execution: TestExecution
-):
+def test_artefact_signoff_disallow_reject(test_client: TestClient, test_execution: TestExecution):
     artefact_id = test_execution.artefact_build.artefact_id
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -344,9 +329,7 @@ def test_artefact_signoff_disallow_reject(
     assert response.status_code == 400
 
 
-def test_artefact_signoff_ignore_old_build_on_approve(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
     build1 = generator.gen_artefact_build(artefact, revision=1)
     build2 = generator.gen_artefact_build(artefact, revision=1, architecture="arm64")
@@ -356,16 +339,12 @@ def test_artefact_signoff_ignore_old_build_on_approve(
     generator.gen_artefact_build_environment_review(
         build2,
         environment,
-        review_decision=[
-            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-        ],
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS],
     )
     generator.gen_artefact_build_environment_review(
         build3,
         environment,
-        review_decision=[
-            ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS
-        ],
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS],
     )
 
     response = make_authenticated_request(
@@ -380,9 +359,7 @@ def test_artefact_signoff_ignore_old_build_on_approve(
     assert artefact.status == ArtefactStatus.APPROVED
 
 
-def test_artefact_signoff_ignore_old_build_on_reject(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_artefact_signoff_ignore_old_build_on_reject(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
     build_1 = generator.gen_artefact_build(artefact, revision=1)
     build_2 = generator.gen_artefact_build(artefact, revision=2)
@@ -407,9 +384,7 @@ def test_artefact_signoff_ignore_old_build_on_reject(
     assert response.status_code == 400
 
 
-def test_artefact_rejection_requires_comment(
-    test_client: TestClient, test_execution: TestExecution
-):
+def test_artefact_rejection_requires_comment(test_client: TestClient, test_execution: TestExecution):
     # Reject an environment as that's required to reject an artefact
     test_execution.artefact_build.environment_reviews[0].review_decision = [
         ArtefactBuildEnvironmentReviewDecision.REJECTED
@@ -436,9 +411,7 @@ def test_artefact_rejection_requires_comment(
     )
 
     assert response.status_code == 200
-    assert (
-        test_execution.artefact_build.artefact.status == ArtefactStatus.MARKED_AS_FAILED
-    )
+    assert test_execution.artefact_build.artefact.status == ArtefactStatus.MARKED_AS_FAILED
 
 
 def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
@@ -509,15 +482,12 @@ def test_artefact_promote_unknown_stage(
 ):
     artefact = generator.gen_artefact()
 
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{artefact.id}",
-            json={"stage": "unknown"},
-        ),
-        Permission.change_artefact,
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"stage": "unknown"},
     )
 
-    assert response.status_code > 400
+    assert response.status_code == 422
 
 
 def test_update_artefact_comment(test_client: TestClient, generator: DataGenerator):
@@ -536,7 +506,74 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
     assert a.comment == comment
 
 
-def test_update_artefact_assignee(test_client: TestClient, generator: DataGenerator):
+def test_update_artefact_jira_issue(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    jira_issue = "TEST-123"
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"jira_issue": jira_issue},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["jira_issue"] == jira_issue
+    assert a.jira_issue == jira_issue
+
+
+def test_clear_artefact_jira_issue(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    a.jira_issue = "TEST-123"
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"jira_issue": None},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["jira_issue"] is None
+    assert a.jira_issue is None
+
+
+def test_omit_jira_issue_preserves_value(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    a.jira_issue = "TEST-123"
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"comment": "Updated comment"},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["jira_issue"] == "TEST-123"
+    assert a.jira_issue == "TEST-123"
+
+
+def test_update_artefact_reviewer(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [u.id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == [u]
+
+
+def test_update_artefact_reviewer_legacy_assignee_id(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -549,19 +586,17 @@ def test_update_artefact_assignee(test_client: TestClient, generator: DataGenera
     )
 
     assert response.status_code == 200
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
 
-def test_update_artefact_assignee_nonexistent_user(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_nonexistent_user(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_user_id = 99999
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_id": nonexistent_user_id},
+            json={"reviewer_ids": [nonexistent_user_id]},
         ),
         Permission.change_artefact,
     )
@@ -570,16 +605,30 @@ def test_update_artefact_assignee_nonexistent_user(
     assert "User with id 99999 not found" in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_clear(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
-    a = generator.gen_artefact(assignee_id=u.id)
+    a = generator.gen_artefact(reviewers=[u])
 
-    # Verify assignee is set initially
-    assert a.assignee_id == u.id
+    # Verify reviewer is set initially
+    assert a.reviewers == [u]
 
-    # Clear the assignee
+    # Clear the reviewer
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": None},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == []
+
+
+def test_update_artefact_reviewer_clear_legacy_assignee_id(test_client: TestClient, generator: DataGenerator):
+    u = generator.gen_user()
+    a = generator.gen_artefact(reviewers=[u])
+
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
@@ -589,12 +638,26 @@ def test_update_artefact_assignee_clear(
     )
 
     assert response.status_code == 200
-    assert a.assignee_id is None
+    assert a.reviewers == []
 
 
-def test_update_artefact_assignee_by_email(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_by_email(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_emails": [u.email]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == [u]
+
+
+def test_update_artefact_reviewer_legacy_assignee_email(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -607,19 +670,17 @@ def test_update_artefact_assignee_by_email(
     )
 
     assert response.status_code == 200
-    assert a.assignee_id == u.id
+    assert a.reviewers == [u]
 
 
-def test_update_artefact_assignee_by_email_nonexistent(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_by_email_nonexistent(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     nonexistent_email = "nonexistent@example.com"
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": nonexistent_email},
+            json={"reviewer_emails": [nonexistent_email]},
         ),
         Permission.change_artefact,
     )
@@ -629,31 +690,48 @@ def test_update_artefact_assignee_by_email_nonexistent(
     assert expected_msg in response.json()["detail"]
 
 
-def test_update_artefact_assignee_clear_by_email(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_reviewer_clear_by_email(test_client: TestClient, generator: DataGenerator):
     u = generator.gen_user()
-    a = generator.gen_artefact(assignee_id=u.id)
+    a = generator.gen_artefact(reviewers=[u])
 
-    # Verify assignee is set initially
-    assert a.assignee_id == u.id
+    # Verify reviewer is set initially
+    assert a.reviewers == [u]
 
-    # Clear the assignee using email
+    # Clear the reviewer using email
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
-            json={"assignee_email": None},
+            json={"reviewer_emails": None},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert a.assignee_id is None
+    assert a.reviewers == []
 
 
-def test_update_artefact_assignee_both_id_and_email_error(
-    test_client: TestClient, generator: DataGenerator
-):
+def test_update_artefact_clear_multiple_reviewers(test_client: TestClient, generator: DataGenerator):
+    """Test updating an artefact with multiple reviewers, removing some of them"""
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+    a = generator.gen_artefact(reviewers=users)
+
+    # Verify all 3 reviewers are set initially
+    assert a.reviewers == users
+
+    # Update to keep only users 0 and 2 (remove user 1)
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [users[0].id, users[2].id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == [users[0], users[2]]
+
+
+def test_update_artefact_reviewer_both_id_and_email_error(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact()
     u = generator.gen_user()
 
@@ -661,16 +739,227 @@ def test_update_artefact_assignee_both_id_and_email_error(
         lambda: test_client.patch(
             f"/v1/artefacts/{a.id}",
             json={
-                "assignee_id": u.id,
-                "assignee_email": u.email,
+                "reviewer_ids": [u.id],
+                "reviewer_emails": [u.email],
             },
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 422
-    expected_msg = "Cannot specify both assignee_id and assignee_email"
+    expected_msg = "Cannot specify both reviewer_ids and reviewer_emails"
     assert expected_msg in response.json()["detail"]
+
+
+def test_update_artefact_multiple_reviewers_by_id(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={
+                "reviewer_ids": [u.id for u in users],
+            },
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == users
+
+
+def test_update_artefact_multiple_reviewers_by_email(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact()
+
+    users = [generator.gen_user(email=f"user{i}@email.com") for i in range(3)]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={
+                "reviewer_emails": [u.email for u in users],
+            },
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert a.reviewers == users
+
+
+def test_patch_artefact_new_reviewer_creates_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Patching an artefact with new reviewers should create notifications"""
+    a = generator.gen_artefact()
+    u = generator.gen_user()
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [u.id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify notification was created
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == u.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 1
+
+
+def test_patch_artefact_existing_reviewer_no_new_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Patching an artefact with existing reviewers should not create duplicate notifications"""
+    u = generator.gen_user()
+    a = generator.gen_artefact(reviewers=[u])
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [u.id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify NO notification was created (reviewer already existed)
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == u.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 0
+
+
+def test_patch_artefact_clear_reviewers_no_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Clearing artefact reviewers should not create notifications"""
+    u = generator.gen_user()
+    a = generator.gen_artefact(reviewers=[u])
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": []},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify NO notifications were created
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 0
+
+
+def test_update_artefact_add_multiple_reviewers(test_client: TestClient, generator: DataGenerator, db_session: Session):
+    """Test adding multiple new reviewers, verify notifications only for new ones"""
+    # Create 1 existing reviewer
+    u_existing = generator.gen_user(email="existing@email.com")
+
+    # Create 2 new reviewers
+    u_new1 = generator.gen_user(email="new1@email.com")
+    u_new2 = generator.gen_user(email="new2@email.com")
+
+    # Create artefact with only existing reviewer
+    a = generator.gen_artefact(reviewers=[u_existing])
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    # Add all 3 reviewers (1 existing + 2 new)
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_ids": [u_existing.id, u_new1.id, u_new2.id]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert set(a.reviewers) == {u_existing, u_new1, u_new2}
+
+    # Verify notifications only for new reviewers
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+
+    assert len(notifications) == 2
+    notification_user_ids = {n.user_id for n in notifications}
+    assert notification_user_ids == {u_new1.id, u_new2.id}
+    assert u_existing.id not in notification_user_ids
+
+
+def test_patch_artefact_new_reviewer_by_email_creates_notification(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    """Patching an artefact with new reviewers via email should create notifications"""
+    a = generator.gen_artefact()
+    u = generator.gen_user(email="reviewer@example.com")
+
+    # Clear existing notifications
+    db_session.query(Notification).delete()
+    db_session.commit()
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{a.id}",
+            json={"reviewer_emails": [u.email]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+
+    # Verify notification was created
+    notifications = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == u.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+        )
+        .all()
+    )
+    assert len(notifications) == 1
 
 
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
@@ -705,16 +994,127 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 
 
-def _assert_get_artefacts_response(
-    response_json: list[dict[str, Any]], artefacts: list[Artefact]
-) -> None:
-    for r, a in zip(
-        sorted(response_json, key=itemgetter("id")), artefacts, strict=True
-    ):
+def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
+    charm_latest_1 = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="499",
+        track="latest",
+        stage=StageName.edge,
+    )
+    charm_latest_2 = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="498",
+        track="latest",
+        stage=StageName.beta,
+    )
+
+    # Different family should be excluded by default family=charm
+    generator.gen_artefact(
+        family=FamilyName.snap,
+        name="postgresql-k8s",
+        version="999",
+        track="latest",
+        stage=StageName.edge,
+    )
+    # Different track should be excluded by default track=latest
+    generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql-k8s",
+        version="497",
+        track="2.0",
+        stage=StageName.stable,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "postgresql-k8s", "family": FamilyName.charm, "offset": 0},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 2
+    assert [item["artefact_id"] for item in body["items"]] == [charm_latest_2.id, charm_latest_1.id]
+    assert [item["version"] for item in body["items"]] == ["498", "499"]
+
+
+def test_get_artefact_history_limit(test_client: TestClient, generator: DataGenerator):
+    for i in range(20):
+        generator.gen_artefact(
+            family=FamilyName.charm,
+            name="postgresql-k8s",
+            version=str(i),
+            track="latest",
+            stage=StageName.edge,
+        )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "postgresql-k8s", "family": FamilyName.charm, "limit": 5, "offset": 0},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 5
+    assert len(body["items"]) == 5
+    assert [item["version"] for item in body["items"]] == ["19", "18", "17", "16", "15"]
+
+
+def test_get_artefact_history_filters_by_stage(test_client: TestClient, generator: DataGenerator):
+    generator.gen_artefact(
+        family=FamilyName.charm,
+        name="mysql-k8s",
+        version="2",
+        track="latest",
+        stage=StageName.edge,
+    )
+    beta = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="mysql-k8s",
+        version="1",
+        track="latest",
+        stage=StageName.beta,
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/artefacts/history",
+            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": StageName.beta, "offset": 0},
+        ),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+    assert body["items"][0]["artefact_id"] == beta.id
+    assert body["items"][0]["stage"] == StageName.beta
+
+
+def _assert_get_artefacts_response(response_json: list[dict[str, Any]], artefacts: list[Artefact]) -> None:
+    for r, a in zip(sorted(response_json, key=itemgetter("id")), artefacts, strict=True):
         _assert_get_artefact_response(r, a)
 
 
 def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) -> None:
+    assignee = None
+    if artefact.reviewers:
+        first_reviewer = artefact.reviewers[0]
+        assignee = {
+            "id": first_reviewer.id,
+            "email": first_reviewer.email,
+            "launchpad_email": first_reviewer.email,
+            "launchpad_handle": first_reviewer.launchpad_handle,
+            "name": first_reviewer.name,
+        }
+
     expected = {
         "id": artefact.id,
         "name": artefact.name,
@@ -735,21 +1135,292 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
-        "assignee": None,
-        "due_date": (
-            artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None
-        ),
+        "assignee": assignee,
+        "reviewers": [],
+        "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
+        "jira_issue": artefact.jira_issue,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
     }
-    if artefact.assignee:
-        expected["assignee"] = {
-            "id": artefact.assignee.id,
-            "email": artefact.assignee.email,
-            "launchpad_email": artefact.assignee.email,
-            "launchpad_handle": artefact.assignee.launchpad_handle,
-            "name": artefact.assignee.name,
-        }
+    if artefact.reviewers:
+        expected["reviewers"] = [
+            {
+                "id": r.id,
+                "email": r.email,
+                "launchpad_email": r.email,
+                "launchpad_handle": r.launchpad_handle,
+                "name": r.name,
+            }
+            for r in artefact.reviewers
+        ]
     assert response == expected
+
+
+class TestArtefactPatchAMRPermissions:
+    """Test AMR-based permission checking for patch_artefact endpoint"""
+
+    def test_patch_artefact_with_amr_permission(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+    ):
+        """User with matching AMR permission should be able to patch artefact"""
+        # Create team and AMR
+        team = generator.gen_team(name="snap-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team
+        user = generator.gen_user(name="alice")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Mock the user injection
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated comment"},
+            )
+            assert response.status_code == 200
+            assert response.json()["comment"] == "Updated comment"
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_without_amr_permission_denied(self, test_client: TestClient, generator: DataGenerator):
+        """User without matching AMR should be denied"""
+        # Create two teams
+        team_a = generator.gen_team(name="team-a")
+        team_b = generator.gen_team(name="team-b")
+
+        # Create AMR for team_a
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team_a],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team_b
+        user = generator.gen_user(name="bob")
+        user.teams = [team_b]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_with_no_matching_amr_denied(self, test_client: TestClient, generator: DataGenerator):
+        """User whose team has AMR but for different artefact should be denied"""
+        # Create team and AMR for stable stage
+        team = generator.gen_team(name="snap-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user in team
+        user = generator.gen_user(name="charlie")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact that doesn't match (different stage)
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.beta,
+        )
+
+        # Mock the user
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_no_amr_no_permission_denied(self, test_client: TestClient, generator: DataGenerator):
+        """User without matching AMR and no app permission should be denied"""
+        # Create user with no teams
+        user = generator.gen_user(name="david")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact with no AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Should be denied"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_no_amr_with_app_permission_allowed(self, test_client: TestClient, generator: DataGenerator):
+        """User without matching AMR but with app permission should be allowed"""
+        # Create artefact with no AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Test with app permission (using make_authenticated_request pattern)
+        response = make_authenticated_request(
+            lambda: test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated with app permission"},
+            ),
+            Permission.change_artefact,
+        )
+        assert response.status_code == 200
+        assert response.json()["comment"] == "Updated with app permission"
+
+    def test_patch_artefact_amr_not_matching_with_app_permission_allowed(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """User without matching AMR but with app permission should be allowed even if AMRs exist"""
+        # Create an AMR that doesn't match
+        team = generator.gen_team(name="restricted-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create artefact that matches the AMR (but user not in team)
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        # Test with app permission (using make_authenticated_request pattern)
+        response = make_authenticated_request(
+            lambda: test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated with app permission"},
+            ),
+            Permission.change_artefact,
+        )
+        assert response.status_code == 200
+        assert response.json()["comment"] == "Updated with app permission"
+
+    def test_patch_artefact_amr_not_matching_without_app_permission_denied(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """User without matching AMR and no app permission should be denied"""
+        # Create an AMR that doesn't match
+        team = generator.gen_team(name="restricted-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+
+        # Create user NOT in that team
+        user = generator.gen_user(name="frank")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create matching artefact
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Should be denied"},
+            )
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_patch_artefact_with_ignore_permissions_allowed(
+        self, test_client: TestClient, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch
+    ):
+        """User without permission but with IGNORE_PERMISSIONS set should be allowed"""
+        # Create user with no special permissions
+        user = generator.gen_user(name="grace")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+
+        # Create artefact with no matching AMRs
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            # Mock IGNORE_PERMISSIONS to include change_artefact
+            import test_observer.common.permissions as permissions_module
+
+            monkeypatch.setattr(permissions_module, "IGNORE_PERMISSIONS", {"change_artefact"})
+
+            response = test_client.patch(
+                f"/v1/artefacts/{artefact.id}",
+                json={"comment": "Updated despite no permissions"},
+            )
+            assert response.status_code == 200
+            assert response.json()["comment"] == "Updated despite no permissions"
+        finally:
+            del app.dependency_overrides[get_current_user]

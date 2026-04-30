@@ -1,24 +1,24 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.common.permissions import Permission, permission_checker
+from test_observer.common.enums import Permission
+from test_observer.common.permissions import permission_checker, requires_authentication
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
@@ -29,7 +29,6 @@ from test_observer.controllers.applications.models import (
 )
 from test_observer.data_access.models import Application
 from test_observer.data_access.setup import get_db
-
 
 router: APIRouter = APIRouter(tags=["applications"])
 
@@ -63,7 +62,10 @@ def get_applications(
 @router.get("/me", response_model=ApplicationResponse | None)
 def get_authenticated_application(
     app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(requires_authentication),
 ):
+    if authentication_required and app is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     return app
 
 
@@ -96,8 +98,8 @@ def update_application(
     if application is None:
         raise HTTPException(404, f"Application {application_id} doesn't exist")
 
-    if request.permissions:
-        application.permissions = [p.value for p in request.permissions]
+    if request.permissions is not None:
+        application.permissions = request.permissions
         db.commit()
 
     return application

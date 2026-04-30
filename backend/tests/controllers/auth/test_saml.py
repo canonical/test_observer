@@ -1,23 +1,22 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
+import json
 from base64 import b64decode
 from datetime import datetime, timedelta
 from html.parser import HTMLParser
-import json
 
 import itsdangerous
 import pytest
@@ -25,7 +24,7 @@ import requests
 from sqlalchemy.orm import Session
 
 from test_observer.common.config import SESSIONS_SECRET
-from test_observer.data_access.models import UserSession, User, Team
+from test_observer.data_access.models import Team, User, UserSession
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import SessionLocal
 
@@ -93,9 +92,7 @@ class TestSAMLAuthentication:
         self._logout_and_verify_session_cleared()
 
     def _initiate_saml_login(self) -> str:
-        response = self.session.get(
-            f"{self.api_url}/v1/auth/saml/login", allow_redirects=False
-        )
+        response = self.session.get(f"{self.api_url}/v1/auth/saml/login", allow_redirects=False)
         # Test our SP: should redirect to IdP for authentication
         assert response.status_code == 307
         assert "location" in response.headers
@@ -109,15 +106,11 @@ class TestSAMLAuthentication:
 
         return parser.inputs["AuthState"], idp_response.url
 
-    def _submit_credentials(
-        self, auth_state: str, login_form_url: str
-    ) -> requests.Response:
+    def _submit_credentials(self, auth_state: str, login_form_url: str) -> requests.Response:
         login_data = {**self.CREDENTIALS, "AuthState": auth_state}
         return self.session.post(login_form_url, data=login_data, allow_redirects=False)
 
-    def _process_saml_response(
-        self, auth_response: requests.Response
-    ) -> requests.Response:
+    def _process_saml_response(self, auth_response: requests.Response) -> requests.Response:
         parser = SimpleFormParser()
         parser.feed(auth_response.text)
 
@@ -147,8 +140,6 @@ class TestSAMLAuthentication:
         assert user.name == "Mark"
         assert user.email == "mark@electricdemon.com"
         assert user.launchpad_handle == self.CREDENTIALS["username"]
-        assert len(user.teams) >= 1
-        assert user.teams[0].name == "canonical"
 
     def _logout_and_verify_session_cleared(self) -> None:
         logout_response = self.session.get(
@@ -201,7 +192,7 @@ class TestSAMLAuthentication:
             db_session,
             Team,
             {"name": "test-team"},
-            {"permissions": [], "reviewer_families": []},
+            {"permissions": [], "artefact_matching_rules": []},
         )
         db_session.commit()
 

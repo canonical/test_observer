@@ -1,34 +1,32 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from __future__ import annotations
 
 from launchpadlib.launchpad import Launchpad  # type: ignore[import-untyped]
 from lazr.restfulclient.errors import (  # type: ignore[import-untyped]
-    NotFound,
-    Unauthorized,
     HTTPError,
+    NotFound,
     ServerError,
+    Unauthorized,
 )
 
 from test_observer.external_apis.exceptions import (
-    IssueNotFoundError,
     APIError,
+    IssueNotFoundError,
 )
-
 from test_observer.external_apis.models import IssueData
 
 
@@ -116,20 +114,20 @@ class LaunchpadClient:
             status = getattr(chosen_task, "status", None) if chosen_task else None
             state = self._normalize_state(status=status, bug=bug)
 
+            labels = list(bug.tags) if hasattr(bug, "tags") else []
+
             return IssueData(
                 title=bug.title,
                 state=state,
                 state_reason=status,
+                labels=labels,
                 raw={
                     "id": bug_id,
                     "title": bug.title,
                     "status": status,
-                    "importance": (
-                        getattr(chosen_task, "importance", None)
-                        if chosen_task
-                        else None
-                    ),
+                    "importance": (getattr(chosen_task, "importance", None) if chosen_task else None),
                     "url": bug.web_link,
+                    "labels": labels,
                 },
             )
         except (NotFound, KeyError) as e:

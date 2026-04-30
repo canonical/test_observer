@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +19,7 @@ import 'package:flutter/material.dart';
 import '../../../models/test_result.dart';
 import '../../../providers/test_results.dart';
 import '../../../ui/test_results_page/test_results_helpers.dart';
-import '../expandable.dart';
+import '../sliver_expandable.dart';
 import 'test_result_expandable.dart';
 
 class TestResultsFilterExpandable extends ConsumerWidget {
@@ -42,8 +41,11 @@ class TestResultsFilterExpandable extends ConsumerWidget {
     final testResultsAsync = ref.watch(testResultsProvider(testExecutionId));
 
     return testResultsAsync.when(
-      loading: () => const CircularProgressIndicator(),
-      error: (error, stackTrace) => Text('Error: $error'),
+      loading: () => const SliverToBoxAdapter(
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stackTrace) =>
+          SliverToBoxAdapter(child: Text('Error: $error')),
       data: (testResults) {
         final filteredResults = testResults
             .where((result) => result.status == statusToFilterBy)
@@ -52,7 +54,7 @@ class TestResultsFilterExpandable extends ConsumerWidget {
         final shouldExpandStatus = testResultIdToExpand != null &&
             filteredResults.any((result) => result.id == testResultIdToExpand);
 
-        return Expandable(
+        return SliverExpandable(
           initiallyExpanded: shouldExpandStatus,
           title: Row(
             children: [
@@ -62,16 +64,21 @@ class TestResultsFilterExpandable extends ConsumerWidget {
               Text(' ${filteredResults.length}'),
             ],
           ),
-          children: filteredResults
-              .map(
-                (result) => TestResultExpandable(
+          sliverChildren: [
+            SliverList.builder(
+              itemCount: filteredResults.length,
+              itemBuilder: (context, index) {
+                final result = filteredResults[index];
+                return TestResultExpandable(
+                  key: ValueKey(result.id),
                   testExecutionId: testExecutionId,
                   testResult: result,
                   artefactId: artefactId,
                   testResultIdToExpand: testResultIdToExpand,
-                ),
-              )
-              .toList(),
+                );
+              },
+            ),
+          ],
         );
       },
     );

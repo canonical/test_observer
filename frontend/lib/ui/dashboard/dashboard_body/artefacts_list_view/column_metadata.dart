@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 part of 'artefacts_list_view.dart';
 
@@ -73,7 +72,7 @@ const _snapColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -136,7 +135,7 @@ const _debColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -193,7 +192,7 @@ const _charmColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -250,7 +249,7 @@ const _imageColumnsMetadata = <ColumnMetadata>[
     cellBuilder: _buildStatusCell,
   ),
   (
-    name: 'Assignee',
+    name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
     cellBuilder: _buildAssigneeCell,
@@ -295,8 +294,16 @@ Widget _buildStatusCell(BuildContext context, Artefact artefact) {
   );
 }
 
-Widget _buildAssigneeCell(BuildContext context, Artefact artefact) =>
-    Text(artefact.assignee.name);
+Widget _buildAssigneeCell(BuildContext context, Artefact artefact) {
+  if (artefact.reviewers.isEmpty) {
+    return const Text('N/A');
+  }
+  if (artefact.reviewers.length == 1) {
+    return Text(artefact.reviewers.first.name);
+  }
+  // Show count for multiple reviewers
+  return Text('${artefact.reviewers.length} reviewers');
+}
 
 Widget _buildOSCell(BuildContext context, Artefact artefact) =>
     Text(artefact.os);

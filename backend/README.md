@@ -1,3 +1,20 @@
+<!--
+Copyright 2023 Canonical Ltd.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License version 3, as
+published by the Free Software Foundation.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Test Observer Backend
 
 ## Development Setup
@@ -97,6 +114,15 @@ The version "0.0.0" stated in the `pyproject.toml` is a "fallback version" which
 
 1. ... directly from source, i.e. not built and launched as wheel.
 2. ... using a wheel built with `uv build` when dynamic versioning is not configured.
+
+## Charm Observability
+
+The Test Observer charm includes built-in observability features for production deployments:
+
+- **Prometheus Metrics**: Metrics are exposed on port 9000 and integrated via the `metrics-endpoint` relation (uses `prometheus_scrape` library v0)
+- **Grafana Dashboard**: Pre-configured dashboards at charm/src/grafana_dashboards will be automatically provided via the `grafana-dashboard` relation (uses `grafana_dashboard` library v0)
+
+These relations are defined in `backend/charm/charmcraft.yaml` and can be integrated with Prometheus and Grafana charms in a Juju deployment.
 
 ## Building Docker images
 

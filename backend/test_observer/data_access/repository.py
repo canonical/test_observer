@@ -1,26 +1,24 @@
-# Copyright (C) 2023 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 #
-# This file is part of Test Observer Backend.
-#
-# Test Observer Backend is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License version 3, as
 # published by the Free Software Foundation.
-#
-# Test Observer Backend is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
+# SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+# SPDX-License-Identifier: AGPL-3.0-only
 
 """Services for working with objects from DB"""
 
 from collections.abc import Iterable
 from typing import Any
-from pydantic import HttpUrl
 
+from pydantic import HttpUrl
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
@@ -33,6 +31,7 @@ def get_artefacts_by_family(
     session: Session,
     family: FamilyName,
     load_environment_reviews: bool = False,
+    load_builds: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
@@ -45,9 +44,7 @@ def get_artefacts_by_family(
     """
     if family == FamilyName.charm:
         # For charm family, only filter by archived status
-        query = session.query(Artefact).filter(
-            Artefact.family == family, Artefact.archived.is_(False)
-        )
+        query = session.query(Artefact).filter(Artefact.family == family, Artefact.archived.is_(False))
     else:
         base_query = (
             session.query(
@@ -80,9 +77,7 @@ def get_artefacts_by_family(
 
             case FamilyName.deb:
                 subquery = (
-                    base_query.add_columns(
-                        Artefact.repo, Artefact.series, Artefact.source
-                    )
+                    base_query.add_columns(Artefact.repo, Artefact.series, Artefact.source)
                     .group_by(Artefact.repo, Artefact.series, Artefact.source)
                     .subquery()
                 )
@@ -118,9 +113,9 @@ def get_artefacts_by_family(
                 )
 
     if load_environment_reviews:
-        query = query.options(
-            joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews)
-        )
+        query = query.options(joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews))
+    elif load_builds:
+        query = query.options(joinedload(Artefact.builds))
 
     if order_by_columns:
         query = query.order_by(*order_by_columns)
@@ -135,34 +130,64 @@ def get_or_create(
     creation_kwargs: dict | None = None,
 ) -> DataModel:
     """
-    Creates an object if it doesn't exist, otherwise returns the existing one
+    Creates an object if it doesn't exist, otherwise returns the existing one.
+
+    To ensure atomicity, this function does NOT commit the transaction.
+    The caller is responsible for committing the session when appropriate.
+
+    WARNING: Be cautious when filtering by nullable fields that have unique constraints,
+    as PostgreSQL allows multiple NULL values in unique constraints. This can cause
+    queries like filter_by(field=None) to match multiple records and return an
+    arbitrary one. If you need to create records with NULL unique fields, create
+    them directly instead of using get_or_create.
 
     :db: DB session
     :model: model to create e.g. Stage, Family, Artefact
     :filter_kwargs: arguments to pass to the model when querying and creating
     :creation_kwargs: extra arguments to pass to the model when creating only
     """
+
+    # A previous version of this function would always try to create a new instance
+    # and only query for the existing one if there was an IntegrityError.
+    # This filled the PostgreSQL logs with errors on nearly every call,
+    # which made the logs very noisy.
+    # Example log message:
+
+    # <timestamp> STATEMENT:  INSERT INTO <table> (<fields>) VALUES (<values>) RETURNING <outputs> # noqa: E501
+    # <timestamp> ERROR:  duplicate key value violates unique constraint "<key>"
+    # <timestamp> DETAIL:  Key (<key>)=(<value>) already exists.
+
+    # We now check for the instance first to avoid this
+    instance = db.query(model).filter_by(**filter_kwargs).first()
+    if instance:
+        return instance
+
     creation_kwargs = creation_kwargs or {}
     instance = model(**filter_kwargs, **creation_kwargs)
 
+    # The instance did not exist when we queried,
+    # but it might have been created by another process before we try to add it.
+    # Thus, we still need to catch the IntegrityError
+    # and query for the instance in that case, but this should be much rarer
     try:
         # Attempt to add and commit the new instance
         # Use a nested transaction to avoid rolling back the entire session
         with db.begin_nested():
             db.add(instance)
+            # Ensure the INSERT is executed immediately
+            # to catch IntegrityError here if it occurs
+            db.flush()
     except IntegrityError:
         # Query and return the existing instance
         instance = db.query(model).filter_by(**filter_kwargs).one()
-    db.commit()
+
     return instance
 
 
 def create_test_execution_relevant_link(
     session: Session, test_execution_id: int, label: str, url: HttpUrl
 ) -> TestExecutionRelevantLink:
-    new_link = TestExecutionRelevantLink(
-        test_execution_id=test_execution_id, label=label, url=url
-    )
+    new_link = TestExecutionRelevantLink(test_execution_id=test_execution_id, label=label, url=url)
     session.add(new_link)
     session.commit()
     session.refresh(new_link)

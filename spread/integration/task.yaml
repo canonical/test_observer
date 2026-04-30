@@ -1,40 +1,60 @@
+# Copyright 2025 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
 summary: Run the charm integration test
 
 execute: |
+  set -o pipefail
+
+  function crashdump() {
+    trap - ERR
+
+    microk8s config > kube-config
+    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
+      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
+  }
+
+  trap crashdump ERR
+
   backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
   frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
 
+  juju deploy --trust postgresql-k8s --channel=14/stable --revision=774 db
+  juju deploy redis-k8s --channel=latest/edge --revision=27 redis
   juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
     --config hostname=test-observer-api.test \
     --config sessions_secret="$(openssl rand -base64 32)" \
     --resource api-image="${backend_oci_image}"
-
-  juju deploy redis-k8s --channel=latest/edge --revision=27 redis
-  juju relate backend redis
-
-  juju deploy postgresql-k8s --channel=14/stable --revision=281 db
-  juju trust db --scope=cluster
-  juju relate backend db
-
   juju deploy "${SPREAD_PATH}"/frontend/charm/*.charm frontend \
     --config hostname=test-observer-frontend.test \
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
+
+  # We seem to need to relate redis before the database until the charm
+  # is updated to handle the relations and app environment variables more gracefully
+  juju relate backend redis
+
+  juju wait-for application db --timeout=10m
+
+  juju relate backend db
   juju relate backend frontend
 
-  if ! juju wait-for application backend --timeout=5m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
-
-  if ! juju wait-for application frontend --timeout=5m; then
-    microk8s config > kube-config
-    pipx run --spec git+https://github.com/canonical/juju-k8s-crashdump.git juju-k8s-crashdump \
-      ./kube-config concierge-microk8s -o juju-k8s-crashdump.tar.gz
-    exit 1
-  fi
+  juju wait-for application backend --timeout=5m
+  juju wait-for application frontend --timeout=5m
 
   juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 

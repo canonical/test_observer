@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2024 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:dio/dio.dart';
 
@@ -33,6 +32,7 @@ import '../models/test_issue.dart';
 import '../models/test_result.dart';
 import '../models/test_results_filters.dart';
 import '../models/user.dart';
+import '../models/user_notification.dart';
 
 class ApiRepository {
   final Dio dio;
@@ -75,6 +75,38 @@ class ApiRepository {
     final artefactBuilds =
         artefactBuildsJson.map((json) => ArtefactBuild.fromJson(json)).toList();
     return artefactBuilds;
+  }
+
+  Future<void> startManualTestExecution({
+    required String family,
+    required String name,
+    required String version,
+    required String arch,
+    required String environment,
+    required String testPlan,
+    required String initialStatus,
+    required Map<String, dynamic> familySpecificFields,
+    List<Map<String, String>>? relevantLinks,
+  }) async {
+    final data = {
+      'family': family,
+      'name': name,
+      'version': version,
+      'arch': arch,
+      'environment': environment,
+      'test_plan': testPlan,
+      'initial_status': initialStatus,
+      ...familySpecificFields,
+    };
+
+    if (relevantLinks != null && relevantLinks.isNotEmpty) {
+      data['relevant_links'] = relevantLinks;
+    }
+
+    await dio.put(
+      '/v1/test-executions/start-test',
+      data: data,
+    );
   }
 
   Future<List<TestResult>> getTestExecutionResults(int testExecutionId) async {
@@ -254,6 +286,20 @@ class ApiRepository {
     return EnvironmentReview.fromJson(response.data);
   }
 
+  Future<List<EnvironmentReview>> bulkUpdateEnvironmentReviews(
+    int artefactId,
+    List<EnvironmentReview> reviews,
+  ) async {
+    final response = await dio.patch(
+      '/v1/artefacts/$artefactId/environment-reviews',
+      data: reviews.map((review) => review.toJson()).toList(),
+    );
+    final List environmentReviewsJson = response.data;
+    return environmentReviewsJson
+        .map((json) => EnvironmentReview.fromJson(json))
+        .toList();
+  }
+
   Future<List<String>> searchArtefacts({
     String? query,
     List<String>? families,
@@ -342,6 +388,37 @@ class ApiRepository {
     return TestResultsSearchResult.fromJson(response.data);
   }
 
+  Future<void> submitTestResult({
+    required int testExecutionId,
+    required String testName,
+    required TestResultStatus status,
+    String? category,
+    String? comment,
+    String? ioLog,
+  }) async {
+    final data = {
+      'name': testName,
+      'status': status.apiValue,
+    };
+
+    if (category != null && category.isNotEmpty) {
+      data['category'] = category;
+    }
+
+    if (comment != null && comment.isNotEmpty) {
+      data['comment'] = comment;
+    }
+
+    if (ioLog != null && ioLog.isNotEmpty) {
+      data['io_log'] = ioLog;
+    }
+
+    await dio.post(
+      '/v1/test-executions/$testExecutionId/test-results',
+      data: [data],
+    );
+  }
+
   Future<Issue> attachIssue({
     required int issueId,
     List<int>? testResultIds,
@@ -377,7 +454,8 @@ class ApiRepository {
   Future<List<Issue>> getIssues({
     String? source,
     String? project,
-    String? status,
+    List<IssueStatus>? statuses,
+    List<String>? families,
     int? limit,
     int? offset,
     String? q,
@@ -387,7 +465,9 @@ class ApiRepository {
       queryParameters: {
         if (source != null) 'source': source,
         if (project != null) 'project': project,
-        if (status != null) 'status': status,
+        if (statuses != null && statuses.isNotEmpty)
+          'status': statuses.map((s) => s.name).toList(),
+        if (families != null && families.isNotEmpty) 'families': families,
         if (limit != null) 'limit': limit,
         if (offset != null) 'offset': offset,
         if (q != null) 'q': q,
@@ -490,5 +570,37 @@ class ApiRepository {
         if (enabled != null) 'enabled': enabled,
       },
     );
+  }
+
+  Future<IssueWithContext> patchIssueAutoRerun({
+    required int issueId,
+    required bool autoRerunEnabled,
+  }) async {
+    final response = await dio.patch(
+      '/v1/issues/$issueId',
+      data: {
+        'auto_rerun_enabled': autoRerunEnabled,
+      },
+    );
+    return IssueWithContext.fromJson(response.data);
+  }
+
+  Future<UserNotifications> getNotifications() async {
+    final response = await dio.get('/v1/users/me/notifications');
+    return UserNotifications.fromJson(response.data);
+  }
+
+  Future<int> getUnreadNotificationCount() async {
+    final response = await dio.get(
+      '/v1/users/me/notifications/count',
+      queryParameters: {'unread_only': true},
+    );
+    return response.data as int;
+  }
+
+  Future<UserNotification> markNotificationAsRead(int notificationId) async {
+    final response =
+        await dio.post('/v1/users/me/notifications/$notificationId/dismiss');
+    return UserNotification.fromJson(response.data);
   }
 }

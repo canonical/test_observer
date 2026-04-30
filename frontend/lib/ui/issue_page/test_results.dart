@@ -1,18 +1,17 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2025 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +20,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/issue.dart';
 import '../../models/test_results_filters.dart';
 import '../../providers/issue_test_results.dart';
+import '../../providers/issue.dart' as issue_provider;
 import '../spacing.dart';
 import '../test_results_page/test_results_table.dart';
 import '../test_results_page/test_results_filters_view.dart';
@@ -57,6 +57,15 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
     });
   }
 
+  // Check if any filters beyond the mandatory issue ID filter are active
+  bool get _hasExtraFilters =>
+      _currentFilters.families.isNotEmpty ||
+      _currentFilters.artefacts.isNotEmpty ||
+      _currentFilters.environments.isNotEmpty ||
+      _currentFilters.testCases.isNotEmpty ||
+      _currentFilters.fromDate != null ||
+      _currentFilters.untilDate != null;
+
   @override
   Widget build(BuildContext context) {
     final testResultsAsync = ref.watch(
@@ -78,13 +87,18 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const Spacer(),
-            YaruOptionButton(
-              child: const Icon(Icons.filter_alt),
-              onPressed: () {
-                setState(() {
-                  showFilters = !showFilters;
-                });
-              },
+            Badge(
+              isLabelVisible: _hasExtraFilters,
+              smallSize: 8,
+              backgroundColor: YaruColors.orange,
+              child: YaruOptionButton(
+                child: const Icon(Icons.filter_alt),
+                onPressed: () {
+                  setState(() {
+                    showFilters = !showFilters;
+                  });
+                },
+              ),
             ),
           ],
         ),
@@ -109,6 +123,51 @@ class _TestResultsSectionState extends ConsumerState<TestResultsSection> {
             BulkOperationType.createRerunRequests,
             BulkOperationType.deleteRerunRequests,
           },
+        ),
+
+        // Auto-rerun toggle
+        Row(
+          children: [
+            Text(
+              'Auto-rerun on new matches',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(width: Spacing.level2),
+            Tooltip(
+              message:
+                  'When enabled, new test results matching this issue\'s attachment rules will automatically be queued for rerun',
+              child: Icon(
+                Icons.help_outline,
+                size: 20,
+                color: Theme.of(context).hintColor,
+              ),
+            ),
+            const SizedBox(width: Spacing.level3),
+            Switch(
+              value: widget.issue.autoRerunEnabled,
+              onChanged: (value) async {
+                try {
+                  await ref
+                      .read(
+                        issue_provider.issueProvider(widget.issue.id).notifier,
+                      )
+                      .setAutoRerun(
+                        issueId: widget.issue.id,
+                        enabled: value,
+                      );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to update auto-rerun: $e'),
+                        backgroundColor: YaruColors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
         ),
 
         testResultsAsync.when(

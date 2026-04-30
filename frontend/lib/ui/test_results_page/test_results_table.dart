@@ -1,30 +1,31 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2025 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:yaru/yaru.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/detailed_test_results.dart';
 import '../../models/test_result.dart';
 import '../../models/test_execution.dart';
 import '../../models/artefact.dart';
 import '../../models/environment.dart';
+import '../../models/family_name.dart';
+import '../../routing.dart';
 import 'test_results_details_dialog.dart';
-import 'test_results_helpers.dart';
 
 class TestResultsTable extends StatelessWidget {
   final List<TestResultWithContext> testResults;
@@ -452,6 +453,19 @@ class _ActionsCell extends StatelessWidget {
   }
 
   void _navigateToTestExecution(TestResultWithContext result) {
-    TestResultHelpers.navigateToTestExecution(result);
+    final family = FamilyName.values.firstWhere(
+      (f) => f.name == result.artefact.family,
+      orElse: () => FamilyName.values.first,
+    );
+    final fragment = getArtefactPagePathForFamily(
+      family,
+      result.artefact.id,
+      testExecutionId: result.testExecution.id,
+      testResultId: result.testResult.id,
+    );
+    launchUrl(
+      Uri.base.replace(fragment: fragment),
+      mode: LaunchMode.externalApplication,
+    );
   }
 }

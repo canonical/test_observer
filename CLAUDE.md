@@ -1,3 +1,22 @@
+<!-- 
+Copyright 2023 Canonical Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -117,9 +136,30 @@ skaffold dev --no-prune=false --cache-artifacts=false
 - `db`: PostgreSQL database with persistent volume
 - Automatic migrations and seeding via `dev_entrypoint.sh`
 
+**Charm Observability:**
+
+The Test Observer charm provides observability features for production deployments:
+- Prometheus metrics endpoint on port 9000 (exposed via `metrics-endpoint` relation)
+- Pre-configured Grafana dashboard (14900_rev2.json) via `grafana-dashboard` relation
+- Integration with charm libraries: `prometheus_k8s.prometheus_scrape` (v0) and `grafana_k8s.grafana_dashboard` (v0)
+
 ## Architecture Overview
 
-**Test Observer** is a dashboard for viewing and managing test results on software artefacts (debs, snaps, charms, images) across different environments. The system does not run tests itself, but provides APIs for reporting and reviewing test results.
+### Core Design Principle
+
+**Test Observer is a generic test observation platform.** It is explicitly not a tool specific to any artefact type, package format, or distribution system. Its job is to receive, store, and surface test results — nothing more.
+
+This means:
+- The system must not contain logic that is specific to snaps, debs, charms, images, or any other artefact kind
+- There must be no branching behaviour based on artefact family (e.g. `if family == "snap": ...`)
+- Integrations with external systems (Snapcraft, Launchpad, etc.) that are family-specific are considered **technical debt** and should be tracked and removed over time
+- New contributions must not introduce artefact-specific logic; such additions must be flagged in review
+
+Any artefact-specific logic that currently exists in the codebase (including family-specific frontend routes, external API integrations, or family-conditioned database queries) is **acknowledged technical debt**.
+
+---
+
+**Test Observer** is a dashboard for viewing and managing test results on artefacts across different environments. The system does not run tests itself, but provides APIs for reporting and reviewing test results.
 
 ### Backend Architecture
 
@@ -137,7 +177,7 @@ skaffold dev --no-prune=false --cache-artifacts=false
 
 - **Framework**: Flutter web application with Riverpod state management
 - **Entry Point**: `frontend/lib/main.dart`
-- **Navigation**: Router-based SPA with family-specific routes (snaps, debs, charms, images)
+- **Navigation**: Router-based SPA with family-specific routes (snaps, debs, charms, images) — these family-specific routes are **technical debt**
 - **State Management**: Riverpod providers for API state and caching
 - **API Communication**: HTTP REST calls via Dio client through `ApiRepository`
 
@@ -158,7 +198,7 @@ The system centers around **Artefacts** (software packages) that go through test
 - **Partial Unique Constraints**: Database handles different artefact family requirements
 - **Event-Driven Architecture**: TestEvents provide audit trail of test execution
 - **Soft Delete**: Uses `archived` field instead of physical deletion
-- **External Integrations**: Launchpad API, Snapcraft API for artefact metadata
+- **External Integrations**: Launchpad API, Snapcraft API for artefact metadata — these are artefact-specific integrations and are considered **technical debt**
 
 ## Important Conventions
 

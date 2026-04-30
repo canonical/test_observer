@@ -1,26 +1,29 @@
-// Copyright (C) 2023 Canonical Ltd.
+// Copyright 2025 Canonical Ltd.
 //
-// This file is part of Test Observer Frontend.
-//
-// Test Observer Frontend is free software: you can redistribute it and/or modify
+// This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 3, as
 // published by the Free Software Foundation.
-//
-// Test Observer Frontend is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/detailed_test_results.dart';
+import '../../models/family_name.dart';
+import '../../routing.dart';
 import '../execution_metadata.dart';
 import '../date_time.dart';
+import '../artefact_page/issue_attachments/issue_widget.dart';
 
 class TestResultDetailsDialog extends StatelessWidget {
   final TestResultWithContext result;
@@ -40,7 +43,7 @@ class TestResultDetailsDialog extends StatelessWidget {
           children: [
             _DialogHeader(onClose: () => context.pop()),
             _DialogContent(result: result),
-            _DialogFooter(onClose: () => context.pop()),
+            _DialogFooter(onClose: () => context.pop(), result: result),
           ],
         ),
       ),
@@ -175,6 +178,36 @@ class _DialogContent extends StatelessWidget {
               ],
             ),
 
+            // Issues if present
+            if (result.testResult.issueAttachments.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _DialogSection(
+                title: 'Issues',
+                children: result.testResult.issueAttachments
+                    .map(
+                      (attachment) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => launchUrl(
+                            Uri.base.replace(
+                              fragment: '/issues/${attachment.issue.id}',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: IssueWidget(issue: attachment.issue),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+
             // IO Log if present
             if (result.testResult.ioLog.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -194,8 +227,9 @@ class _DialogContent extends StatelessWidget {
 
 class _DialogFooter extends StatelessWidget {
   final VoidCallback onClose;
+  final TestResultWithContext result;
 
-  const _DialogFooter({required this.onClose});
+  const _DialogFooter({required this.onClose, required this.result});
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +245,39 @@ class _DialogFooter extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          InkWell(
+            onTap: () {
+              final family = FamilyName.values.firstWhere(
+                (f) => f.name == result.artefact.family,
+                orElse: () => FamilyName.values.first,
+              );
+              final fragment = getArtefactPagePathForFamily(
+                family,
+                result.artefact.id,
+                testExecutionId: result.testExecution.id,
+                testResultId: result.testResult.id,
+              );
+              launchUrl(
+                Uri.base.replace(fragment: fragment),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.launch, size: 16, color: YaruColors.orange),
+                  const SizedBox(width: 4),
+                  Text(
+                    'View Run',
+                    style: TextStyle(color: YaruColors.orange),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
           TextButton(
             onPressed: onClose,
             child: const Text('Close'),

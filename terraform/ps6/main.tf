@@ -1,3 +1,20 @@
+# Copyright 2025 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
 resource "juju_application" "api_ingress" {
   name  = "api-ingress"
   model = var.juju_model
@@ -89,6 +106,19 @@ resource "juju_application" "pg" {
     revision = 495
   }
 
+  config = {
+    # NOTE: idle_in_transaction_session_timeout is not exposed by postgresql-k8s 14/stable
+    # It must be set manually via: ALTER SYSTEM SET idle_in_transaction_session_timeout = '10min';
+
+    # Log queries taking longer than 1 second (in milliseconds)
+    # Helps identify performance bottlenecks
+    logging_log_min_duration_statement = 1000
+
+    # Log when queries wait for locks
+    # Helps identify blocking queries
+    logging_log_lock_waits = true
+  }
+
   storage_directives = {
     pgdata = var.pg_storage_size
   }
@@ -100,20 +130,22 @@ resource "juju_application" "test-observer-api" {
 
   charm {
     name    = "test-observer-api"
-    channel = "latest/edge"
+    channel = var.api_channel
     base    = "ubuntu@22.04"
   }
 
   config = {
-    hostname              = var.api_hostname
-    frontend_hostname     = var.frontend_hostname
-    port                  = var.api_port
-    sentry_dsn            = var.sentry_dsn
-    saml_idp_metadata_url = var.saml_idp_metadata_url
-    saml_sp_cert          = var.saml_sp_cert
-    saml_sp_key           = var.saml_sp_key
-    sessions_secret       = var.sessions_secret
-    ignore_permissions    = join(",", var.ignore_permissions)
+    hostname                = var.api_hostname
+    additional_cors_origins = var.additional_cors_origins
+    frontend_hostname       = var.frontend_hostname
+    port                    = var.api_port
+    sentry_dsn              = var.sentry_dsn
+    saml_idp_metadata_url   = var.saml_idp_metadata_url
+    saml_sp_cert            = var.saml_sp_cert
+    saml_sp_key             = var.saml_sp_key
+    sessions_secret         = var.sessions_secret
+    ignore_permissions      = join(",", var.ignore_permissions)
+    enable_issue_sync       = var.enable_issue_sync
   }
 
   units = 3
@@ -125,12 +157,13 @@ resource "juju_application" "test-observer-frontend" {
 
   charm {
     name    = "test-observer-frontend"
-    channel = "latest/edge"
+    channel = var.frontend_channel
     base    = "ubuntu@22.04"
   }
 
   config = {
     hostname                 = var.frontend_hostname
+    frontend-config          = var.frontend_config
     test-observer-api-scheme = var.api_scheme
   }
 
