@@ -42,6 +42,8 @@ final appRouter = GoRouter(
       return null;
     }
 
+    // This will make a network request to the backend API every time
+    // a redirect is evaluated. If this becomes an issue, we can consider caching the auth status
     final isAuthenticated = await _isUserAuthenticated();
 
     return getAuthenticationRedirect(

@@ -99,5 +99,10 @@ String buildFrontendReturnToUrl({
         .toString();
   }
 
-  return baseUri.resolve(normalizedPath).toString();
+  // For path-based routing, preserve any non-root deployment prefix from the
+  // current URL (for example `/app/`) by resolving an app-local relative path
+  // instead of an origin-absolute one.
+  final relativePath =
+      normalizedPath == '/' ? '.' : normalizedPath.substring(1);
+  return baseUri.resolve(relativePath).toString();
 }
