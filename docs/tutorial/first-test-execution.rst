@@ -29,7 +29,7 @@ The integrated workflow consists of three main steps:
        participant TO as Test Observer
     
        Runner->>TO: Start a test execution
-       TO-->>Runner: Return <test_execution_id>
+       TO-->>Runner: Return test_execution_id
        Runner-->>Runner: Execute tests and collect results
        Runner->>TO: Submit test results
        Runner->>TO: Complete the test execution
@@ -93,6 +93,9 @@ Create a file named ``submit_test.py`` and add the following code to set up auth
     # Basic configuration
     API_URL = "https://test-observer-api.example.com"  # Replace with your Test Observer API URL
     API_KEY = os.getenv("TO_API_KEY")
+    
+    if not API_KEY:
+        sys.exit("Error: TO_API_KEY environment variable not set")
 
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -127,7 +130,7 @@ The test execution is defined by the artefact details and environment. The follo
 
 .. note::
 
-    You can find the required fields for different artefact families in the `Open API specification <../reference/openapi>`_.
+    You can find the required fields for different artefact families in the :doc:`Open API specification <../reference/openapi>`.
 
 Send a PUT request to the ``/v1/test-executions/start-test`` endpoint with this payload to register the test execution. Add the following code to your ``submit_test.py`` file:
 

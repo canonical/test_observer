@@ -30,6 +30,7 @@ SSO
 tex
 texlive
 TOC
+triaging
 utils
 VPN
 WCAG
