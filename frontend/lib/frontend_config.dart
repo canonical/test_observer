@@ -55,13 +55,13 @@ class FrontendConfig {
     bool requireAuthentication = false,
     List<String>? tabs,
   }) {
-    final bool tabsAreValid =
-        tabs != null && tabs.every((tab) => _validTabs.contains(tab));
-
     // Default to the full set of valid tabs if the provided tabs are invalid or null
+    tabs =
+        (tabs != null && tabs.every(_validTabs.contains)) ? tabs : _validTabs;
+
     return FrontendConfig._internal(
       requireAuthentication: requireAuthentication,
-      tabs: tabsAreValid ? tabs : _validTabs,
+      tabs: List.unmodifiable(tabs),
     );
   }
 }
