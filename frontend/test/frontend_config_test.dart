@@ -111,5 +111,13 @@ void main() {
       expect(config.requireAuthentication, isTrue);
       expect(config.tabs, ['images']);
     });
+
+    test('preserves require_authentication when tabs has an invalid type', () {
+      final config = parseFrontendConfig(
+        'require_authentication: true\ntabs: snaps',
+      );
+      expect(config.requireAuthentication, isTrue);
+      expect(config.tabs, allTabs);
+    });
   });
 }

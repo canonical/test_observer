@@ -74,11 +74,13 @@ FrontendConfig parseFrontendConfig(String yamlString) {
   try {
     final decoded = loadYaml(yamlString);
     if (decoded is YamlMap) {
+      final requireAuthentication = decoded['require_authentication'] == true;
+      final tabs = decoded['tabs'] is YamlList
+          ? decoded['tabs'].map((tab) => tab.toString()).toList()
+          : null;
       final config = FrontendConfig(
-        requireAuthentication: decoded['require_authentication'] == true,
-        tabs: (decoded['tabs'] as YamlList?)
-            ?.map((tab) => tab.toString())
-            .toList(),
+        requireAuthentication: requireAuthentication,
+        tabs: tabs,
       );
       return config;
     }
