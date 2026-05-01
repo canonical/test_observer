@@ -33,7 +33,7 @@ TextStyle? _navbarTextStyle(BuildContext context) {
   return Theme.of(context).textTheme.titleMedium?.apply(color: Colors.white);
 }
 
-String tabDisplayName(String tab) {
+String _tabDisplayName(String tab) {
   return switch (tab) {
     'snaps' => 'Snap Testing',
     'debs' => 'Deb Testing',
@@ -86,7 +86,7 @@ class Navbar extends ConsumerWidget {
                 children: [
                   ...frontendConfig.tabs.map(
                     (tab) => _NavbarEntry(
-                      title: tabDisplayName(tab),
+                      title: _tabDisplayName(tab),
                       route: '/$tab',
                     ),
                   ),

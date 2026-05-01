@@ -55,7 +55,9 @@ class FrontendConfig {
     bool requireAuthentication = false,
     List<String>? tabs,
   }) {
-    // Default to the full set of valid tabs if the provided tabs are invalid or null
+    // Default to the full set of valid tabs if the provided tabs are null
+    // or contain invalid values. An empty list is considered valid and can
+    // be used to hide all tabs
     tabs =
         (tabs != null && tabs.every(_validTabs.contains)) ? tabs : _validTabs;
 
@@ -76,7 +78,7 @@ FrontendConfig parseFrontendConfig(String yamlString) {
     if (decoded is YamlMap) {
       final requireAuthentication = decoded['require_authentication'] == true;
       final tabs = decoded['tabs'] is YamlList
-          ? decoded['tabs'].map((tab) => tab.toString()).toList()
+          ? decoded['tabs'].map<String>((tab) => tab.toString()).toList()
           : null;
       final config = FrontendConfig(
         requireAuthentication: requireAuthentication,
