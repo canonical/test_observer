@@ -15,43 +15,21 @@
 
 // ignore_for_file: avoid_web_libraries_in_flutter
 
-import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
-
-import 'package:web/web.dart' as web;
-
-import 'package:dio/dio.dart';
-import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../utils/dio.dart';
 import '../repositories/api_repository.dart';
 import 'global_error_message.dart';
 
 part 'api.g.dart';
 
-final apiUrl = web.window.getProperty('testObserverAPIBaseURI'.toJS).toString();
-
 @riverpod
 ApiRepository api(Ref ref) {
-  final dio = Dio(BaseOptions(baseUrl: apiUrl));
-  // Send cookies with requests
-  dio.options.extra['withCredentials'] = true;
-  dio.options.headers['X-CSRF-Token'] = '1';
-  dio.interceptors.add(RetryInterceptor(dio: dio));
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onError: (e, handler) {
-        final errorDetails = e.response?.data?['detail'];
-        if (errorDetails != null) {
-          ref
-              .read(globalErrorMessageProvider.notifier)
-              .set(errorDetails.toString());
-        } else {
-          return handler.next(e);
-        }
-      },
-    ),
+  final dio = createConfiguredDio(
+    onErrorDetails: (details) {
+      ref.read(globalErrorMessageProvider.notifier).set(details);
+    },
   );
   return ApiRepository(dio: dio);
 }

@@ -47,6 +47,24 @@ void main() {
 
       expect(returnTo, 'http://localhost:30001/#/');
     });
+
+    test('falls back to root for protocol-relative path with hash routing', () {
+      final returnTo = buildFrontendReturnToUrl(
+        baseUri: Uri.parse('http://localhost:30001/#/login'),
+        localPath: '//example.com/path',
+      );
+
+      expect(returnTo, 'http://localhost:30001/#/');
+    });
+
+    test('falls back to root for protocol-relative path with path routing', () {
+      final returnTo = buildFrontendReturnToUrl(
+        baseUri: Uri.parse('http://localhost:30001/login'),
+        localPath: '//example.com/path',
+      );
+
+      expect(returnTo, 'http://localhost:30001/');
+    });
   });
 
   group('LoginPromptPage', () {

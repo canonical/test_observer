@@ -16,7 +16,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../providers/api.dart';
+import '../utils/dio.dart';
 
 class LoginPromptPage extends StatelessWidget {
   const LoginPromptPage({super.key, this.returnTo});
@@ -73,8 +73,7 @@ class LoginPromptPage extends StatelessWidget {
   }
 
   String _resolvedReturnTo() {
-    final localPath =
-        returnTo != null && returnTo!.startsWith('/') ? returnTo! : '/';
+    final localPath = sanitizeFrontendReturnPath(returnTo);
     return buildFrontendReturnToUrl(
       baseUri: Uri.base,
       localPath: localPath,
@@ -82,11 +81,30 @@ class LoginPromptPage extends StatelessWidget {
   }
 }
 
+String sanitizeFrontendReturnPath(String? returnPath) {
+  if (returnPath == null || !returnPath.startsWith('/')) {
+    return '/';
+  }
+
+  // Reject protocol-relative paths (e.g. //example.com/path), which can
+  // otherwise resolve to an external URL in path-based routing.
+  if (returnPath.startsWith('//')) {
+    return '/';
+  }
+
+  final uri = Uri.tryParse(returnPath);
+  if (uri == null || uri.hasScheme || uri.hasAuthority) {
+    return '/';
+  }
+
+  return returnPath;
+}
+
 String buildFrontendReturnToUrl({
   required Uri baseUri,
   required String localPath,
 }) {
-  final normalizedPath = localPath.startsWith('/') ? localPath : '/';
+  final normalizedPath = sanitizeFrontendReturnPath(localPath);
 
   // Flutter web uses hash URLs by default (e.g. /#/route). In that case,
   // return_to must keep the destination inside the fragment.

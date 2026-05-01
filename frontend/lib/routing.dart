@@ -15,13 +15,11 @@
 
 import 'package:dartx/dartx.dart';
 import 'package:dio/dio.dart';
-import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'models/family_name.dart';
 import 'frontend_config.dart';
-import 'providers/api.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/issue_page/issue_page.dart';
@@ -30,16 +28,12 @@ import 'ui/login.dart';
 import 'ui/notifications_page/notifications_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
+import 'utils/dio.dart';
 
-final _authCheckDio = _createAuthCheckDio();
-
-Dio _createAuthCheckDio() {
-  final dio = Dio(BaseOptions(baseUrl: apiUrl));
-  dio.options.extra['withCredentials'] = true;
-  dio.options.headers['X-CSRF-Token'] = '1';
-  dio.interceptors.add(RetryInterceptor(dio: dio));
-  return dio;
-}
+// We create a separate Dio instance for auth checks
+// because routing runs outside a Riverpod provider context,
+// unlike the general API provider
+final _authCheckDio = createConfiguredDio();
 
 final appRouter = GoRouter(
   redirect: (context, state) async {
@@ -168,13 +162,9 @@ Future<bool> _isUserAuthenticated() async {
   try {
     final response = await _authCheckDio.get('/v1/users/me');
     return response.data != null;
-  } on DioException catch (error) {
-    if (error.response?.statusCode == 401) {
-      return false;
-    }
-
-    // Avoid trapping users on the login page for transient backend failures.
-    return true;
+  } on DioException catch (_) {
+    // Fail closed: if auth status cannot be determined, treat as unauthenticated.
+    return false;
   }
 }
 
