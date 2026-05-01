@@ -68,5 +68,15 @@ void main() {
 
       expect(redirect, '/');
     });
+
+    test('drops protocol-relative returnTo values and redirects to root', () {
+      final redirect = getAuthenticationRedirect(
+        requireAuthentication: true,
+        isAuthenticated: true,
+        destinationUri: Uri.parse('/login?returnTo=%2F%2Fevil.example%2Fpath'),
+      );
+
+      expect(redirect, '/');
+    });
   });
 }

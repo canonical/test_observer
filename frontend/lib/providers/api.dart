@@ -13,8 +13,6 @@
 // SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-// ignore_for_file: avoid_web_libraries_in_flutter
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

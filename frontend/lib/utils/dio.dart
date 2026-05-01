@@ -13,6 +13,8 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
+// ignore_for_file: avoid_web_libraries_in_flutter
+
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
@@ -36,9 +38,8 @@ Dio createConfiguredDio({void Function(String errorDetails)? onErrorDetails}) {
           final errorDetails = e.response?.data?['detail'];
           if (errorDetails != null) {
             onErrorDetails(errorDetails.toString());
-          } else {
-            return handler.next(e);
           }
+          return handler.next(e);
         },
       ),
     );

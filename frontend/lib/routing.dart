@@ -18,6 +18,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'helpers.dart';
 import 'models/family_name.dart';
 import 'frontend_config.dart';
 import 'ui/artefact_page/artefact_page.dart';
@@ -54,7 +55,7 @@ final appRouter = GoRouter(
       path: AppRoutes.login,
       pageBuilder: (_, state) => NoTransitionPage(
         child: LoginPromptPage(
-          returnTo: _sanitizeInternalReturnTo(
+          returnTo: sanitizeReturnPath(
             state.uri.queryParameters[AppRoutes.returnToQueryParameter],
           ),
         ),
@@ -188,25 +189,12 @@ String? getAuthenticationRedirect({
   }
 
   if (isAuthenticated && destinationUri.path == AppRoutes.login) {
-    return _sanitizeInternalReturnTo(
-          destinationUri.queryParameters[AppRoutes.returnToQueryParameter],
-        ) ??
-        '/';
+    return sanitizeReturnPath(
+      destinationUri.queryParameters[AppRoutes.returnToQueryParameter],
+    );
   }
 
   return null;
-}
-
-String? _sanitizeInternalReturnTo(String? returnTo) {
-  if (returnTo == null || returnTo.isEmpty) {
-    return null;
-  }
-
-  if (!returnTo.startsWith('/')) {
-    return null;
-  }
-
-  return returnTo;
 }
 
 enum SortDirection {
