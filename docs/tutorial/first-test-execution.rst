@@ -39,13 +39,16 @@ Set up your workspace
 
 Before starting, ensure you have the following prerequisites: 
 
-- Access to Test Observer instance (the Canonical production and staging instances require VPN access)
+- Access to Test Observer instance (the Canonical production and staging instances require VPN access), including:
+
+  - API server for submitting results (e.g. ``https://test-observer-api.example.com``)
+  - Web dashboard for viewing results (e.g. ``https://test-observer.example.com``)
+
 - An API key with ``change_test`` permission to the instance (contact Test Observer administrators)
 
 .. note::
 
-    We will use the Canonical staging instance in this tutorial as an example. The staging API server is available at: `https://test-observer-api-staging.canonical.com/ <https://test-observer-api-staging.canonical.com/>`_. If you need to use other instances, replace the base URL accordingly.
-
+    This tutorial uses placeholder URLs for the API server and web dashboard. Please replace these with your actual instance URLs.
 
 Create a project directory and install the ``requests`` library to communicate with the Test Observer API:
 
@@ -78,7 +81,7 @@ Create a file named ``submit_test.py`` and add the following code to set up auth
     import sys
 
     # Basic configuration
-    BASE_URL = "https://test-observer-api-staging.canonical.com"
+    API_URL = "https://test-observer-api.example.com"  # Replace with your Test Observer API URL
     API_KEY = os.getenv("TO_API_KEY")
 
     headers = {
@@ -114,20 +117,19 @@ The test execution is defined by the artefact details and environment. The follo
 
 .. note::
 
-    You can find the required fields for different artefact families in the `Staging API <https://test-observer-api-staging.canonical.com/docs>`_ or  `Production API <https://test-observer-api.canonical.com/docs>`_ specification.
-
+    You can find the required fields for different artefact families in the `Open API specification <../reference/openapi>`_.
 
 Send a PUT request to the ``/v1/test-executions/start-test`` endpoint with this payload to register the test execution. Add the following code to your ``submit_test.py`` file:
 
 .. code-block:: python
 
-    print(f"Base URL: {BASE_URL}")
+    print(f"Base URL: {API_URL}")
     print(f"Starting test execution for {payload['name']} {payload['version']}...")
 
     # Send PUT request to start the execution
     try:
         response = requests.put(
-            f"{BASE_URL}/v1/test-executions/start-test",
+            f"{API_URL}/v1/test-executions/start-test",
             json=payload,
             headers=headers,
             timeout=30
@@ -147,7 +149,7 @@ Run the updated script:
 
     $ python3 submit_test.py
 
-    Base URL: https://test-observer-api-staging.canonical.com
+    Base URL: https://test-observer-api.example.com
     Starting test execution for hello-world-app 1.0.0-ubuntu1...
     Execution ID: 42
 
@@ -199,7 +201,7 @@ To submit the list of test results, send a POST request to the ``/v1/test-execut
 
     try:
         response = requests.post(
-            f"{BASE_URL}/v1/test-executions/{execution_id}/test-results",
+            f"{API_URL}/v1/test-executions/{execution_id}/test-results",
             json=test_results,
             headers=headers,
             timeout=30
@@ -243,7 +245,7 @@ Call the PATCH endpoint to mark the execution as complete:
 
    try:
        response = requests.patch(
-           f"{BASE_URL}/v1/test-executions/{execution_id}",
+           f"{API_URL}/v1/test-executions/{execution_id}",
            json={"status": "COMPLETED"},
            headers=headers,
            timeout=30
@@ -267,8 +269,11 @@ Run the complete script:
 
 Verify in the dashboard
 -----------------------
+You can view your test execution results through the web dashboard. Navigate to your Test Observer web URL, for example:
 
-You can view your test execution results through the web interface. To find your execution, navigate to https://test-observer-staging.canonical.com/artefacts?family=deb and use the search box and filters to find the artefact name: ``hello-world-app`` and version ``1.0.0-ubuntu1``
+``https://test-observer.example.com/artefacts?family=deb``
+
+Use the search box and filters to find the artefact name: ``hello-world-app`` and version ``1.0.0-ubuntu1``. Click on the test execution to see the overall status and individual test results.
 
 The execution status should show ``FAILED`` because one test failed in our submitted results. Expand and check the individual test results and their logs.
 
@@ -279,7 +284,7 @@ Next steps
 
 To further explore Test Observer, consider the following resources:
 
-- `Staging API`_ or `Production API`_ documentation for detailed API specifications
+- :doc:`../reference/openapi` for detailed API specifications
 - :doc:`../explanation/glossary` for key terminology
 - :doc:`../explanation/authentication-and-authorization` for managing API keys and permissions
 - :doc:`../how-to/triage-test-results` to learn how to triage and approve artefacts
