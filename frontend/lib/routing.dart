@@ -29,7 +29,12 @@ import 'ui/test_results_page/test_results_page.dart';
 
 final appRouter = GoRouter(
   routes: [
-    GoRoute(path: '/', redirect: (context, state) => configuredTabs.first),
+    GoRoute(
+      path: '/',
+      redirect: (context, state) => frontendConfig.tabs.isNotEmpty
+          ? '/${frontendConfig.tabs.first}'
+          : AppRoutes.testResults,
+    ),
     ShellRoute(
       builder: (_, __, dashboard) => Skeleton(
         body: dashboard,
