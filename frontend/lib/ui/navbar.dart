@@ -19,12 +19,12 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
-import '../providers/api.dart';
 import '../providers/current_user.dart';
 import '../providers/notifications.dart';
 import '../routing.dart';
 import '../frontend_config.dart';
 import 'spacing.dart';
+import '../utils/dio.dart';
 
 const _navbarHeight = 57.0;
 final _navbarSelectedColor = YaruColors.titleBarDark.scale(lightness: 0.07);
