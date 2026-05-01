@@ -92,7 +92,10 @@ String buildFrontendReturnToUrl({
   // return_to must keep the destination inside the fragment.
   if (baseUri.fragment.startsWith('/')) {
     return baseUri
-        .replace(path: '/', queryParameters: null, fragment: normalizedPath)
+        .replace(
+          queryParameters: null,
+          fragment: normalizedPath,
+        )
         .toString();
   }
 

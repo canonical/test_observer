@@ -42,7 +42,10 @@ String sanitizeReturnPath(String? returnPath) {
   }
 
   final uri = Uri.tryParse(returnPath);
-  if (uri == null || uri.hasScheme || uri.hasAuthority || !uri.path.startsWith('/')) {
+  if (uri == null ||
+      uri.hasScheme ||
+      uri.hasAuthority ||
+      !uri.path.startsWith('/')) {
     return '/';
   }
 

@@ -65,6 +65,15 @@ void main() {
 
       expect(returnTo, 'http://localhost:30001/');
     });
+
+    test('preserves non-root base path in hash routing mode', () {
+      final returnTo = buildFrontendReturnToUrl(
+        baseUri: Uri.parse('http://localhost:30001/app/#/login'),
+        localPath: '/test-results',
+      );
+
+      expect(returnTo, 'http://localhost:30001/app/#/test-results');
+    });
   });
 
   group('LoginPromptPage', () {

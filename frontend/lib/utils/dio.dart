@@ -35,9 +35,12 @@ Dio createConfiguredDio({void Function(String errorDetails)? onErrorDetails}) {
     dio.interceptors.add(
       InterceptorsWrapper(
         onError: (e, handler) {
-          final errorDetails = e.response?.data?['detail'];
-          if (errorDetails != null) {
-            onErrorDetails(errorDetails.toString());
+          final data = e.response?.data;
+          if (data is Map) {
+            final errorDetails = data['detail'];
+            if (errorDetails != null) {
+              onErrorDetails(errorDetails.toString());
+            }
           }
           return handler.next(e);
         },
