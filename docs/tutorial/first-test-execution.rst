@@ -3,7 +3,17 @@ Start your first test execution
 
 Test Observer is a dashboard for viewing and managing test results on software artefacts across different environments. You can integrate Test Observer with your testing pipelines to monitor test results over time.
 
-In this tutorial, you will learn how to report test results to Test Observer using its REST API. You will create a Python script that starts a test execution, submits test results, and marks the execution as complete.
+Test Observer provides two separate interfaces:
+
+- **Web dashboard**: user interface for viewing test results, managing artefacts, and triaging releases.
+- **API server**: REST endpoints for external test runners to create test executions, submit results, and manage artefacts.
+
+In this tutorial, you will learn how to report test results to Test Observer using its REST API and verify the results on the web dashboard. You will create a Python script that starts a test execution, submits test results, and marks the execution as complete.
+
+.. note::
+
+    The Test Observer API documentation is available at :doc:`../reference/openapi` and at the API server under the ``/docs`` URL path (e.g., ``https://<API_URL>/docs``).
+
 
 Understand the workflow
 -----------------------
