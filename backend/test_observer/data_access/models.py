@@ -961,3 +961,36 @@ TestExecution.is_triaged = column_property(
         )
     )
 )
+
+
+release_manifest_charm_manifest_association = Table(
+    "release_manifest_charm_manifest_association",
+    Base.metadata,
+    Column("release_manifest_id", ForeignKey("release_manifest.id"), primary_key=True),
+    Column("charm_manifest_id", ForeignKey("charm_manifest.id"), primary_key=True),
+)
+
+
+class CharmManifest(Base):
+    __tablename__ = "charm_manifest"
+
+    name: Mapped[str] = mapped_column(String(100))
+    revision: Mapped[int]
+
+    release_manifests: Mapped[list["ReleaseManifest"]] = relationship(
+        secondary=release_manifest_charm_manifest_association, back_populates="revisions"
+    )
+
+
+class ReleaseManifest(Base):
+    __tablename__ = "release_manifest"
+
+    name: Mapped[str] = mapped_column(String(100))
+    source: Mapped[str] = mapped_column(String(200))
+    version: Mapped[str] = mapped_column(String(100))
+    track: Mapped[str] = mapped_column(String(100))
+    risk: Mapped[str] = mapped_column(String(100))
+
+    revisions: Mapped[list[CharmManifest]] = relationship(
+        secondary=release_manifest_charm_manifest_association, back_populates="release_manifests"
+    )
