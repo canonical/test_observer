@@ -35,6 +35,7 @@ SSO
 tex
 texlive
 TOC
+triaging
 triaged
 Triaging
 utils
