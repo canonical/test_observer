@@ -40,14 +40,14 @@ A **test execution** represents a single run of a test plan against an artefact 
 
 ``ENDED_PREMATURELY``
     The execution completed without producing a clear pass/fail outcome. This occurs when:
-    
+
     - Completion signals (status updates, events) indicate the job finished
     - The execution is neither ``PASSED`` nor ``FAILED`` because no results were submitted or all results were skipped.
-    
+
     This state captures cases where testing was attempted but did not produce definitive outcomes, such as infrastructure failures, timeouts, or intentional skips.
 
 ``NOT_TESTED``
-    The execution was intentionally skipped or not performed. Used when testing is not applicable for a particular environment or configuration.
+    The execution was intentionally skipped or not performed. Used when testing is not applicable for a particular environment or configuration. This status can be manually set outside the automated execution lifecycle shown in the state diagram above.
 
 Artefact states
 ------------------
