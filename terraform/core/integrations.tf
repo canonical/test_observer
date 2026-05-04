@@ -13,7 +13,7 @@ resource "juju_integration" "db-backups-restore" {
 }
 
 resource "juju_integration" "db-backups" {
-  count      = var.deploy_database && var.enable_backups ? 1 : 0
+  count      = var.enable_backups ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
