@@ -89,18 +89,16 @@ Test result triaging
 
 **Triaging** is the process of documenting why tests failed or were skipped by linking them to tracked issues. This provides accountability and justification for approving artefacts despite test failures.
 
-A test execution is triaged when every ``FAILED`` or ``SKIPPED`` result has at least one attached issue. Failed or skipped tests must be linked to issues (Jira, GitHub, Launchpad) before an artefact can be approved.
+A test execution is triaged when ``FAILED`` or ``SKIPPED`` results have been investigated and have issues attached. Failed or skipped tests should be linked to issues (Jira, GitHub, Launchpad, etc.) to document known problems before artefact approval, indicating failures have been reviewed.
 
 .. mermaid::
 
    flowchart TD
-      Failed[Test Result: FAILED/SKIPPED]
-
-      Failed --> Attached{Issue<br/>attached?}
-      Attached -->|Yes| Triaged[Triaged]
-      Attached -->|No| Queue[Appears in triage queue]
-
-      Queue --> Link[Reviewer links to<br/>Jira/GitHub/Launchpad]
+      Execution[Test Execution with<br/>FAILED/SKIPPED results]
+      
+      Execution --> Queue[Appears in triage queue]
+      Queue --> Review[Reviewer investigates failures]
+      Review --> Link[Reviewer links to<br/>Jira/GitHub/Launchpad]
       Link --> Triaged
 
       Triaged --> Auto{Auto-rerun<br/>enabled?}
