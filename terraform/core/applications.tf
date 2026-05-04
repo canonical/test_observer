@@ -44,6 +44,21 @@ resource "juju_application" "database" {
   units  = var.database_config.units
 }
 
+resource "juju_application" "backup-db" {
+  count = var.enable_backups ? 1 : 0
+  name  = "backup-db"
+  model_uuid = data.juju_model.model.uuid
+
+  charm {
+    name = "postgresql-k8s"
+    channel = var.database_config.channel
+    base = var.database_config.base
+    revision = var.database_config.revision
+  }
+
+  config = var.database_config.config
+}
+
 #Hardcoded for now, will be replaced with ValKey 
 resource "juju_application" "redis" {
   name       = "redis"
