@@ -29,3 +29,25 @@ String? validateIssueUrl(String? url) {
   }
   return null;
 }
+
+String sanitizeReturnPath(String? returnPath) {
+  if (returnPath == null || !returnPath.startsWith('/')) {
+    return '/';
+  }
+
+  // Reject protocol-relative paths (e.g. //example.com/path), which can
+  // otherwise resolve to an external URL in path-based routing.
+  if (returnPath.startsWith('//')) {
+    return '/';
+  }
+
+  final uri = Uri.tryParse(returnPath);
+  if (uri == null ||
+      uri.hasScheme ||
+      uri.hasAuthority ||
+      !uri.path.startsWith('/')) {
+    return '/';
+  }
+
+  return returnPath;
+}

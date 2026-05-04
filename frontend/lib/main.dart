@@ -21,6 +21,6 @@ import 'frontend_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await loadFrontendConfig();
+  frontendConfig = await loadFrontendConfig();
   runApp(const ProviderScope(child: App()));
 }
