@@ -7,7 +7,7 @@ variable "api_config" {
   description = "Full configuration for the test observer front end"
   type = object({
     name     = string
-    channel  = string
+    channel  = optional(string)
     base     = optional(string, "ubuntu@22.04")
     units    = optional(number, 3)
     config   = map(string)
