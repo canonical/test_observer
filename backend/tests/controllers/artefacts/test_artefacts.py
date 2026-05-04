@@ -229,12 +229,12 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
 
 def test_get_artefact_environment_reviews_counts_only_latest_build(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
-    ab = generator.gen_artefact_build(artefact=a, revision=1)
+    ab = generator.gen_artefact_build(artefacts=a, revision=1)
     e = generator.gen_environment()
     # Test Execution for the first artefact build
     generator.gen_artefact_build_environment_review(ab, e)
 
-    ab_second = generator.gen_artefact_build(artefact=a, revision=2)
+    ab_second = generator.gen_artefact_build(artefacts=a, revision=2)
     # Test Execution for the second artefact build
     generator.gen_artefact_build_environment_review(
         ab_second,
@@ -1424,3 +1424,34 @@ class TestArtefactPatchAMRPermissions:
             assert response.json()["comment"] == "Updated despite no permissions"
         finally:
             del app.dependency_overrides[get_current_user]
+
+
+def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator):
+    """Test that two solution artefacts with identical builds cannot be created."""
+    # GIVEN a solution was created
+    solution1 = generator.gen_artefact(
+        name="my-solution",
+        family=FamilyName.solution,
+        stage=StageName.stable,
+        version="1.0",
+        track="latest",
+        source="my-source",
+        risk="stable",
+    )
+    build1 = generator.gen_artefact_build(solution1, architecture="amd64")
+
+    # WHEN we attempt to create another identical solution
+    solution2 = generator.gen_artefact(
+        name="my-solution",
+        family=FamilyName.solution,
+        stage=StageName.stable,
+        version="1.0",
+        track="latest",
+        source="my-source",
+        risk="stable",
+    )
+
+    # TODO(raul) change this to instead add an association between build1 and solution2 after the build <-> artefact relation is many to many
+    assert False
+
+    # THEN then unique constraint prevents the second solution from being created

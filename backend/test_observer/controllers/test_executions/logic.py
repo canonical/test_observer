@@ -78,7 +78,7 @@ def get_previous_test_results(
         )
         .join(TestResult.test_execution)
         .join(TestExecution.artefact_build)
-        .join(ArtefactBuild.artefact)
+        .join(ArtefactBuild.artefacts)
         .where(
             TestExecution.environment_id == test_execution.environment_id,
             ArtefactBuild.architecture == test_execution.artefact_build.architecture,

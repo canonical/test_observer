@@ -1136,8 +1136,8 @@ class TestAssignReviewersToEnvironments:
             reviewers=[reviewer1, reviewer2, reviewer3],
         )
 
-        build1 = generator.gen_artefact_build(artefact=artefact, architecture="amd64")
-        build2 = generator.gen_artefact_build(artefact=artefact, architecture="arm64")
+        build1 = generator.gen_artefact_build(artefacts=artefact, architecture="amd64")
+        build2 = generator.gen_artefact_build(artefacts=artefact, architecture="arm64")
 
         # GIVEN environment reviews without reviewers assigned
         env1 = generator.gen_environment(name="env1")

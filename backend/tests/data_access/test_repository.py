@@ -35,7 +35,7 @@ def test_create_test_execution_relevant_link(db_session: Session, generator: Dat
     """Test creating a relevant link for a test execution."""
     # Arrange
     artefact = generator.gen_artefact()
-    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    artefact_build = generator.gen_artefact_build(artefacts=artefact)
     environment = generator.gen_environment()
 
     test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)

@@ -54,7 +54,7 @@ def post_results(
         TestExecution,
         id,
         options=[
-            selectinload(TestExecution.artefact_build).selectinload(ArtefactBuild.artefact),
+            selectinload(TestExecution.artefact_build).selectinload(ArtefactBuild.artefacts),
             selectinload(TestExecution.environment),
             selectinload(TestExecution.execution_metadata),
         ],

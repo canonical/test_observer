@@ -35,7 +35,7 @@ def get_artefacts_by_family(
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
-    Get all the artefacts
+    Get the most recent instance of every artefact belonging to a given family
 
     :session: DB session
     :family: name of the family
@@ -109,6 +109,25 @@ def get_artefacts_by_family(
                         Artefact.created_at == subquery.c.max_created,
                         Artefact.os == subquery.c.os,
                         Artefact.release == subquery.c.release,
+                    ),
+                )
+
+            case FamilyName.solution:
+                subquery = (
+                    base_query.add_columns(Artefact.source, Artefact.track, Artefact.risk)
+                    .group_by(Artefact.source, Artefact.track, Artefact.risk)
+                    .subquery()
+                )
+
+                query = session.query(Artefact).join(
+                    subquery,
+                    and_(
+                        Artefact.stage == subquery.c.stage,
+                        Artefact.name == subquery.c.name,
+                        Artefact.created_at == subquery.c.max_created,
+                        Artefact.source == subquery.c.source,
+                        Artefact.track == subquery.c.track,
+                        Artefact.risk == subquery.c.risk,
                     ),
                 )
 

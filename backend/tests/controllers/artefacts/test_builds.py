@@ -121,8 +121,8 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
 
 def test_get_artefact_builds_only_latest(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
-    generator.gen_artefact_build(artefact=artefact, revision=1)
-    artefact_build2 = generator.gen_artefact_build(artefact=artefact, revision=2)
+    generator.gen_artefact_build(artefacts=artefact, revision=1)
+    artefact_build2 = generator.gen_artefact_build(artefacts=artefact, revision=2)
 
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/artefacts/{artefact.id}/builds"),

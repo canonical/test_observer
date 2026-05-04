@@ -147,6 +147,7 @@ class DataGenerator:
         bug_link: str = "",
         due_date: date | None = None,
         reviewers: list[User] | None = None,
+        risk: str = "",
     ) -> Artefact:
         family = FamilyName(family)
 
@@ -180,6 +181,7 @@ class DataGenerator:
             bug_link=bug_link,
             due_date=due_date,
             reviewers=reviewers,
+            risk=risk,
         )
         self._add_object(artefact)
         return artefact
@@ -221,18 +223,25 @@ class DataGenerator:
 
     def gen_artefact_build(
         self,
-        artefact: Artefact,
+        artefacts: Artefact | list[Artefact],
         architecture: str = DEFAULT_ARCHITECTURE,
         revision: int | None = None,
     ) -> ArtefactBuild:
-        match artefact.family:
+        if isinstance(artefacts, list):
+            artefacts_value = artefacts
+            artefact_family = artefacts[0].family
+        else:
+            artefacts_value = [artefacts]  
+            artefact_family = artefacts.family
+
+        match artefact_family:
             case FamilyName.snap | FamilyName.charm:
                 revision = revision or 1
 
         build = ArtefactBuild(
             architecture=architecture,
             revision=revision,
-            artefact=artefact,
+            artefacts=artefacts_value,
         )
         self._add_object(build)
         return build

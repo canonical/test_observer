@@ -114,7 +114,7 @@ def get_issues(
                 .join(IssueTestResultAttachment.test_result)
                 .join(TestResult.test_execution)
                 .join(TestExecution.artefact_build)
-                .join(ArtefactBuild.artefact)
+                .join(ArtefactBuild.artefacts)
                 .where(Artefact.family.in_(families))
             )
         )

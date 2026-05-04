@@ -1156,7 +1156,7 @@ class TestRerunAMRPermissions:
     def _create_test_execution_for_artefact(
         self, generator: DataGenerator, artefact: Artefact, environment: Environment | None = None
     ) -> TestExecution:
-        build = generator.gen_artefact_build(artefact=artefact)
+        build = generator.gen_artefact_build(artefacts=artefact)
         if environment is None:
             environment = generator.gen_environment("test-env")
         return generator.gen_test_execution(artefact_build=build, environment=environment)
