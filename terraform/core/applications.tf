@@ -103,4 +103,6 @@ resource "juju_application" "otelcol" {
     revision = var.otelcol_config.revision
     base     = var.otelcol_config.base
   }
+
+  config = var.otelcol_config.config
 }

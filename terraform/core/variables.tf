@@ -123,10 +123,11 @@ variable "cos_offers" {
 }
 
 variable "otelcol_config" {
-  description = "OTel Collector config to use for the charm. Should be a valid OTel Collector config YAML string."
+  description = "OTel Collector config to use for the charm."
   type = object({
     channel  = optional(string, "2/stable")
     revision = optional(number)
     base     = optional(string, "ubuntu@22.04")
+    config   = optional(map(string))
   })
 }
