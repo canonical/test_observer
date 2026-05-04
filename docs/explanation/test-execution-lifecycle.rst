@@ -33,10 +33,10 @@ A **test execution** represents a single run of a test plan against an artefact 
     Test results are being actively submitted. Transitions from ``NOT_STARTED`` when the first result arrives.
 
 ``PASSED``
-    All submitted test results have status ``PASSED``. Indicates successful test execution with no failures or skips.
+    All submitted test results have status ``PASSED`` or ``SKIPPED``, with no ``FAILED`` results. Indicates successful test execution with no failures.
 
 ``FAILED``
-    At least one test result has status ``FAILED`` or ``SKIPPED``. The execution produced test evidence but found problems.
+    At least one test result has status ``FAILED``. The execution produced test evidence but found problems.
 
 ``ENDED_PREMATURELY``
     The execution completed without producing a clear pass/fail outcome. This occurs when:
