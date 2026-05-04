@@ -45,14 +45,14 @@ resource "juju_application" "database" {
 }
 
 resource "juju_application" "backup-db" {
-  count = var.enable_backups ? 1 : 0
-  name  = "backup-db"
+  count      = var.enable_backups ? 1 : 0
+  name       = "backup-db"
   model_uuid = data.juju_model.model.uuid
 
   charm {
-    name = "postgresql-k8s"
-    channel = var.database_config.channel
-    base = var.database_config.base
+    name     = "postgresql-k8s"
+    channel  = var.database_config.channel
+    base     = var.database_config.base
     revision = var.database_config.revision
   }
 
@@ -96,7 +96,7 @@ resource "juju_application" "s3-integrator" {
 resource "juju_application" "otelcol" {
   count      = var.cos_offers != null ? 1 : 0
   name       = "otelcol"
-  model_uuid = data.juju_model.model.name
+  model_uuid = data.juju_model.model.uuid
   charm {
     name     = "opentelemetry-collector"
     channel  = var.otelcol_config.channel

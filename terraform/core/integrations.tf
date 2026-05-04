@@ -1,6 +1,6 @@
 ##### DB-S3 Integrations #####
 resource "juju_integration" "db-backups-restore" {
-  count      = var.deploy_test_observer_frontend && var.enable_backups ? 1 : 0
+  count      = var.deploy_database && var.enable_backups ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -13,7 +13,7 @@ resource "juju_integration" "db-backups-restore" {
 }
 
 resource "juju_integration" "db-backups" {
-  count      = var.deploy_test_observer_frontend && var.enable_backups ? 1 : 0
+  count      = var.deploy_database && var.enable_backups ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {

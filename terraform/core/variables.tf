@@ -62,7 +62,7 @@ variable "database_config" {
   default = null
 
   validation {
-    condition     = var.deploy_database && var.database_config != null
+    condition     = !var.deploy_database || (var.deploy_database && var.database_config != null)
     error_message = "database config must be set if deployed"
   }
 }
@@ -130,4 +130,10 @@ variable "otelcol_config" {
     base     = optional(string, "ubuntu@22.04")
     config   = optional(map(string))
   })
+  default = null
+
+  validation {
+    condition     = var.cos_offers == null || (var.cos_offers != null && var.otelcol_config != null)
+    error_message = "otelcol_config must be set when cos_offers is provided"
+  }
 }
