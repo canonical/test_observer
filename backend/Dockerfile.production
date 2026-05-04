@@ -17,7 +17,7 @@ FROM ubuntu:24.04
 
 ARG UV_DYNAMIC_VERSIONING_BYPASS=0.0.0
 
-COPY --from=ghcr.io/astral-sh/uv:0.6.5 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /bin/
 ENV UV_SYSTEM_PYTHON=true
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
