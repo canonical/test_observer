@@ -84,6 +84,11 @@ variable "enable_backups" {
   description = "Enable database backups"
   type        = bool
   default     = false
+
+  validation {
+    condition     = !var.enable_backups || var.deploy_database
+    error_message = "enable_backups requires deploy_database to be true"
+  }
 }
 
 variable "s3_backups_config" {
@@ -105,7 +110,7 @@ variable "s3_backups_config" {
 
   validation {
     condition     = !var.enable_backups || (var.enable_backups && var.s3_backups_config != null)
-    error_message = "S# backup configs must be set if backups are enabled"
+    error_message = "S3 backup configs must be set if backups are enabled"
   }
 }
 

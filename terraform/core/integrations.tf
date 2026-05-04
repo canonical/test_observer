@@ -27,6 +27,7 @@ resource "juju_integration" "db-backups" {
 
 ##### API - DB Integration #####
 resource "juju_integration" "test-observer-api-database-access" {
+  count      = var.deploy_database ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
@@ -38,9 +39,23 @@ resource "juju_integration" "test-observer-api-database-access" {
   }
 }
 
+resource "juju_integration" "test-observer-api-external-database-access" {
+  count      = var.deploy_database ? 0 : 1
+  model_uuid = data.juju_model.model.uuid
+
+  application {
+    name = juju_application.test-observer-api.name
+  }
+
+  application {
+    offer_url = var.external_database_url
+  }
+}
+
 
 ##### API - Frontend Integration #####
 resource "juju_integration" "test-observer-frontend-to-rest-api-access" {
+  count      = var.deploy_test_observer_frontend ? 1 : 0
   model_uuid = data.juju_model.model.uuid
 
   application {
