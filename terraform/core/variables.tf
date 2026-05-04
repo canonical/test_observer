@@ -108,3 +108,25 @@ variable "s3_backups_config" {
     error_message = "S# backup configs must be set if backups are enabled"
   }
 }
+
+######### COS #########
+
+variable "cos_offers" {
+  description = "Map of COS offers to integrate with, keyed by the application name to integrate with. The value should be the offer URL for the COS offer."
+  type = object({
+    loki    = optional(string)
+    tempo   = optional(string)
+    mimir   = optional(string)
+    grafana = optional(string)
+  })
+  default = null
+}
+
+variable "otelcol_config" {
+  description = "OTel Collector config to use for the charm. Should be a valid OTel Collector config YAML string."
+  type = object({
+    channel  = optional(string, "2/stable")
+    revision = optional(number)
+    base     = optional(string, "ubuntu@22.04")
+  })
+}

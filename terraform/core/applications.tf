@@ -77,3 +77,15 @@ resource "juju_application" "s3-integrator" {
     s3-uri-style = var.s3_backups_config.config.s3_uri_style
   }
 }
+
+resource "juju_application" "otelcol" {
+  count      = var.cos_offers != null ? 1 : 0
+  name       = "otelcol"
+  model_uuid = data.juju_model.model.name
+  charm {
+    name     = "opentelemetry-collector"
+    channel  = var.otelcol_config.channel
+    revision = var.otelcol_config.revision
+    base     = var.otelcol_config.base
+  }
+}
