@@ -9,9 +9,9 @@ variable "api_config" {
     name     = string
     channel  = string
     base     = optional(string, "ubuntu@22.04")
-    units    = number
+    units    = optional(number, 3)
     config   = map(string)
-    revision = number
+    revision = optional(number)
   })
 }
 
@@ -28,14 +28,14 @@ variable "frontend_config" {
     name     = string
     channel  = string
     base     = optional(string, "ubuntu@22.04")
-    units    = number
+    units    = optional(number, 3)
     config   = map(string)
-    revision = number
+    revision = optional(number)
   })
   default = null
 
   validation {
-    condition     = var.deploy_test_observer_frontend && var.frontend_config != null
+    condition     = !var.deploy_test_observer_frontend || (var.deploy_test_observer_frontend && var.frontend_config != null)
     error_message = "frontend config must be set if deployed"
   }
 }
@@ -57,7 +57,7 @@ variable "database_config" {
     base     = optional(string, "ubuntu@22.04")
     units    = number
     config   = map(string)
-    revision = number
+    revision = optional(number)
   })
   default = null
 
@@ -73,7 +73,38 @@ variable "external_database_url" {
   type        = string
 
   validation {
-    condition     = var.deploy_database == false && var.external_database_url != null
+    condition     = var.deploy_database || (!var.deploy_database && var.external_database_url != null)
     error_message = "Database url must be set if not deploying an internal database"
+  }
+}
+
+######### Backups #########
+
+variable "enable_backups" {
+  description = "Enable database backups"
+  type        = bool
+  default     = false
+}
+
+variable "s3_backups_config" {
+  description = "Configuration of the S3 buckets backups are stored in"
+  type = object({
+    name     = string
+    channel  = optional(string, "latest/stable")
+    base     = optional(string, "ubuntu@22.04")
+    revision = optional(number)
+    config = object({
+      endpoint     = string
+      region       = string
+      bucket       = string
+      path         = string
+      s3_uri_style = string
+    })
+  })
+  default = null
+
+  validation {
+    condition     = !var.enable_backups || (var.enable_backups && var.s3_backups_config != null)
+    error_message = "S# backup configs must be set if backups are enabled"
   }
 }

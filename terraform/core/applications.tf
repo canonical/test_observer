@@ -56,3 +56,24 @@ resource "juju_application" "redis" {
     revision = 27
   }
 }
+
+resource "juju_application" "s3-integrator" {
+  count      = var.enable_backups ? 1 : 0
+  name       = "backups-s3-integrator"
+  model_uuid = data.juju_model.model.uuid
+
+  charm {
+    name     = "s3-integrator"
+    channel  = var.s3_backups_config.channel
+    revision = var.s3_backups_config.revision
+    base     = var.s3_backups_config.base
+  }
+
+  config = {
+    endpoint     = var.s3_backups_config.config.endpoint
+    region       = var.s3_backups_config.config.region
+    bucket       = var.s3_backups_config.config.bucket
+    path         = var.s3_backups_config.config.path
+    s3-uri-style = var.s3_backups_config.config.s3_uri_style
+  }
+}
