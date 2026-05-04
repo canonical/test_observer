@@ -348,11 +348,11 @@ def get_rerun_requests(
     stmt = (
         select(TestExecutionRerunRequest)
         .join(TestExecutionRerunRequest.artefact_build)
-        .join(ArtefactBuild.artefact)
+        .join(ArtefactBuild.artefacts)
         .join(TestExecutionRerunRequest.environment)
         .options(
             selectinload(TestExecutionRerunRequest.artefact_build)
-            .selectinload(ArtefactBuild.artefact)
+            .selectinload(ArtefactBuild.artefacts)
             .selectinload(Artefact.reviewers),
             selectinload(TestExecutionRerunRequest.environment),
             selectinload(TestExecutionRerunRequest.test_plan),

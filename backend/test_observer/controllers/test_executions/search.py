@@ -59,7 +59,7 @@ _TEST_RESULT_QUERY_OPTIONS = [
     selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
     selectinload(TestResult.test_execution)
     .selectinload(TestExecution.artefact_build)
-    .selectinload(ArtefactBuild.artefact),
+    .selectinload(ArtefactBuild.artefacts),
     selectinload(TestResult.issue_attachments),
     selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
     selectinload(TestResult.test_execution).selectinload(TestExecution.relevant_links),
@@ -252,7 +252,7 @@ def _apply_te_joins(query: Select, joins_needed: set[JoinName]) -> Select:
     if "artefact_build" in joins_needed:
         query = query.join(TestExecution.artefact_build)
     if "artefact" in joins_needed:
-        query = query.join(ArtefactBuild.artefact)
+        query = query.join(ArtefactBuild.artefacts)
     if "environment" in joins_needed:
         query = query.join(TestExecution.environment)
     return query

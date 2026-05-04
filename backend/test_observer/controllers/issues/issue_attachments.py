@@ -57,7 +57,7 @@ def load_test_results_with_relations(db: Session, test_result_ids: list[int] | s
         .options(
             selectinload(TestResult.test_execution)
             .selectinload(TestExecution.artefact_build)
-            .selectinload(ArtefactBuild.artefact),
+            .selectinload(ArtefactBuild.artefacts),
             selectinload(TestResult.test_execution).selectinload(TestExecution.test_plan),
             selectinload(TestResult.test_case),
         )

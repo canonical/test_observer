@@ -158,7 +158,7 @@ def test_query_matching_test_result_attachment_rules(
     db_session: Session,
 ):
     artefact = generator.gen_artefact()
-    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    artefact_build = generator.gen_artefact_build(artefacts=artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
         artefact_build=artefact_build,
@@ -209,7 +209,7 @@ def test_apply_test_result_attachment_rules(
     db_session: Session,
 ):
     artefact = generator.gen_artefact()
-    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    artefact_build = generator.gen_artefact_build(artefacts=artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case(template_id="some-template")

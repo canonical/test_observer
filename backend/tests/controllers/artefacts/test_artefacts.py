@@ -229,12 +229,12 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
 
 def test_get_artefact_environment_reviews_counts_only_latest_build(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
-    ab = generator.gen_artefact_build(artefact=a, revision=1)
+    ab = generator.gen_artefact_build(artefacts=a, revision=1)
     e = generator.gen_environment()
     # Test Execution for the first artefact build
     generator.gen_artefact_build_environment_review(ab, e)
 
-    ab_second = generator.gen_artefact_build(artefact=a, revision=2)
+    ab_second = generator.gen_artefact_build(artefacts=a, revision=2)
     # Test Execution for the second artefact build
     generator.gen_artefact_build_environment_review(
         ab_second,

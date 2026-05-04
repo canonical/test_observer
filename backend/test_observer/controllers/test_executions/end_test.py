@@ -75,7 +75,7 @@ def _find_related_test_execution(request: EndTestExecutionRequest, db: Session) 
         select(TestExecution)
         .where(TestExecution.ci_link == request.ci_link)
         .options(
-            joinedload(TestExecution.artefact_build).joinedload(ArtefactBuild.artefact),
+            joinedload(TestExecution.artefact_build).joinedload(ArtefactBuild.artefacts),
             joinedload(TestExecution.test_results).joinedload(TestResult.test_case),
         )
         .with_for_update(of=TestExecution)

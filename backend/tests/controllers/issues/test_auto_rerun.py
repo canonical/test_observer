@@ -119,7 +119,7 @@ def test_auto_rerun_creates_rerun_request_when_enabled(
     """Test that matching test results trigger rerun requests when auto_rerun is enabled"""
     # Create test data
     artefact = generator.gen_artefact(family=FamilyName.snap)
-    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    artefact_build = generator.gen_artefact_build(artefacts=artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case()
@@ -160,7 +160,7 @@ def test_auto_rerun_does_not_create_rerun_request_when_disabled(
     """Test that rerun requests are NOT created when auto_rerun is disabled"""
     # Create test data
     artefact = generator.gen_artefact(family=FamilyName.snap)
-    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    artefact_build = generator.gen_artefact_build(artefacts=artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case()
@@ -193,7 +193,7 @@ def test_auto_rerun_multiple_issues_with_different_settings(
     """Test that only issues with auto_rerun enabled trigger reruns"""
     # Create test data
     artefact = generator.gen_artefact(family=FamilyName.snap)
-    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    artefact_build = generator.gen_artefact_build(artefacts=artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case = generator.gen_test_case()
@@ -239,7 +239,7 @@ def test_auto_rerun_no_duplicate_rerun_requests(
     """Test that duplicate rerun requests are not created"""
     # Create test data
     artefact = generator.gen_artefact(family=FamilyName.snap)
-    artefact_build = generator.gen_artefact_build(artefact=artefact)
+    artefact_build = generator.gen_artefact_build(artefacts=artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build=artefact_build, environment=environment)
     test_case1 = generator.gen_test_case(name="test1")

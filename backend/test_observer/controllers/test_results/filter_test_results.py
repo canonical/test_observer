@@ -184,7 +184,7 @@ def apply_joins(query: Select, joins_needed: set[str]) -> Select:
         query = query.join(TestExecution.artefact_build)
 
     if "artefact" in joins_needed:
-        query = query.join(ArtefactBuild.artefact)
+        query = query.join(ArtefactBuild.artefacts)
 
     if "test_case" in joins_needed:
         query = query.join(TestResult.test_case)
