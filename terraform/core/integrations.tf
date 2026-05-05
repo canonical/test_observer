@@ -93,3 +93,18 @@ resource "juju_integration" "otelcol_prod_cos" {
     offer_url = each.value.url
   }
 }
+
+resource "juju_integration" "otel-api" {
+  model_uuid = data.juju_model.model.uuid
+  for_each   = var.cos_offers == null? {} : local.otelcol_relations
+
+  application {
+    name     = juju_application.test-observer-api.name
+    endpoint = each.value.app_endpoint
+  }
+
+  application {
+    name     = juju_application.otelcol[0].name
+    endpoint = each.value.otelcol_endpoint
+  }
+}
