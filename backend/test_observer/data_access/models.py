@@ -458,11 +458,11 @@ class Artefact(Base):
 
 
 def calculate_bundled_builds_hash(build_ids: list[int]) -> str:
-    ordered_ids = ",".join(str(id) for id in sorted(build_ids))
+    ordered_ids = ",".join(str(build_id) for build_id in sorted(build_ids))
     return hashlib.sha256(ordered_ids.encode()).hexdigest()
 
 
-def refresh_artefact_hash(artefact: Artefact):
+def refresh_artefact_hash(artefact: Artefact) -> None:
     if artefact.family == FamilyName.solution:
         build_ids = [b.id for b in artefact.bundled_builds if b.id]
         artefact.bundled_builds_hash = calculate_bundled_builds_hash(build_ids)
