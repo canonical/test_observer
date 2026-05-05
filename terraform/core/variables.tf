@@ -4,7 +4,7 @@ variable "juju_model_uuid" {
 }
 ######### API #########
 variable "api_config" {
-  description = "Full configuration for the test observer front end"
+  description = "Full configuration for the test observer API"
   type = object({
     name     = string
     channel  = optional(string)
