@@ -1144,6 +1144,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
+        "bundled_builds": [],
     }
     if artefact.reviewers:
         expected["reviewers"] = [

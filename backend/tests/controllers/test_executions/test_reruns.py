@@ -161,6 +161,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 if test_execution.artefact_build.artefact.reviewers
                 else None
             ),
+            "bundled_builds": [],
             "reviewers": test_execution.artefact_build.artefact.reviewers,
             "due_date": test_execution.artefact_build.artefact.due_date,
             "bug_link": test_execution.artefact_build.artefact.bug_link,
