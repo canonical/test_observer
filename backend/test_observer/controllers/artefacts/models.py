@@ -143,6 +143,7 @@ class ArtefactBuildResponse(BaseModel):
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionResponse]
+    included_in: list["ArtefactMinimalResponse"] = Field(default_factory=list)
 
 
 class ArtefactPatch(BaseModel):
@@ -208,6 +209,15 @@ class ArtefactBuildMinimalResponse(BaseModel):
     id: int
     architecture: str
     revision: int | None
+
+
+class ArtefactMinimalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    version: str
+    family: str
 
 
 class ArtefactSearchResponse(BaseModel):

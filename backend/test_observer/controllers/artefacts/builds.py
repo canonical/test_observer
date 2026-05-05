@@ -13,8 +13,9 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, Security
-from sqlalchemy.orm import selectinload
+from fastapi import APIRouter, Depends, HTTPException, Security
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
@@ -26,6 +27,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
 )
+from test_observer.data_access.setup import get_db
 
 from .models import (
     ArtefactBuildResponse,
@@ -42,7 +44,8 @@ router = APIRouter(tags=["artefact-builds"])
 def get_artefact_builds(
     artefact: Artefact = Depends(
         ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions).options(*TEST_EXECUTION_OPTIONS)
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions).options(*TEST_EXECUTION_OPTIONS),
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.bundled_in),
         )
     ),
 ):
