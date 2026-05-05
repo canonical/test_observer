@@ -114,6 +114,22 @@ artefact_reviewers_association = Table(
 )
 
 
+artefact_build_bundle_solution = Table(
+    "artefact_build_bundle_solution",
+    Base.metadata,
+    Column(
+        "artefact_id",
+        ForeignKey("artefact.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "artefact_build_id",
+        ForeignKey("artefact_build.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
+
 environment_review_reviewers_association = Table(
     "environment_review_reviewers_association",
     Base.metadata,
@@ -329,6 +345,7 @@ class Artefact(Base):
 
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
+    bundled_builds: Mapped[list["ArtefactBuild"]] = relationship(secondary=artefact_build_bundle_solution, back_populates="bundled_in")
     builds_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
@@ -444,6 +461,7 @@ class ArtefactBuild(Base):
     # Relationships
     artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id", ondelete="CASCADE"), index=True)
     artefact: Mapped[Artefact] = relationship(back_populates="builds", foreign_keys=[artefact_id])
+    bundled_in: Mapped[list["Artefact"]] = relationship(secondary=artefact_build_bundle_solution, back_populates="bundled_builds")
     test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete"
     )
