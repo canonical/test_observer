@@ -39,9 +39,10 @@ resource "juju_application" "database" {
     base     = var.database_config.base
     revision = var.database_config.revision
   }
-  trust  = true
-  config = var.database_config.config
-  units  = var.database_config.units
+  trust              = true
+  storage_directives = var.database_config.storage_directives
+  config             = var.database_config.config
+  units              = var.database_config.units
 }
 
 resource "juju_application" "backup-db" {
