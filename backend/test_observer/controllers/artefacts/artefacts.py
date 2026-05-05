@@ -86,6 +86,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             db,
             family,
             load_environment_reviews=True,
+            load_bundled_builds=True,
             order_by_columns=order_by,
         )
     else:
@@ -94,6 +95,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 db,
                 family,
                 load_environment_reviews=True,
+                load_bundled_builds=True,
                 order_by_columns=order_by,
             )
 
@@ -189,7 +191,10 @@ def get_artefact_history(
         .order_by(Artefact.id.desc())
         .limit(limit)
         .offset(offset)
-        .options(selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions))
+        .options(
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions),
+            selectinload(Artefact.bundled_builds),
+        )
     )
 
     if stage is not None:
@@ -219,7 +224,10 @@ def get_artefact_history(
 )
 def get_artefact(
     artefact: Artefact = Depends(
-        ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
+        ArtefactRetriever(
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+            selectinload(Artefact.bundled_builds),
+        )
     ),
 ):
     return artefact
@@ -236,7 +244,10 @@ def patch_artefact(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
     artefact: Artefact = Depends(
-        ArtefactRetriever(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
+        ArtefactRetriever(
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+            selectinload(Artefact.bundled_builds),
+        )
     ),
 ):
     check_artefact_permission(db, user, app, artefact, Permission.change_artefact)
@@ -330,6 +341,29 @@ def patch_artefact(
             NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
         )
 
+    # Handle bundled_builds
+    if "bundled_builds" in request.model_fields_set:
+        if request.bundled_builds is None:
+            artefact.bundled_builds = []
+        elif len(request.bundled_builds) != len(set(request.bundled_builds)):
+            raise HTTPException(
+                status_code=422,
+                detail="Duplicate build ids are not allowed in bundled_builds",
+            )
+        else:
+            builds = db.scalars(select(ArtefactBuild).where(ArtefactBuild.id.in_(request.bundled_builds))).all()
+            builds_by_id = {build.id: build for build in builds}
+            bundled_builds = []
+            for build_id in request.bundled_builds:
+                build = builds_by_id.get(build_id)
+                if build is None:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"ArtefactBuild with id {build_id} not found",
+                    )
+                bundled_builds.append(build)
+            artefact.bundled_builds = bundled_builds
+
     db.commit()
 
     if len(newly_assigned_reviewers) > 0 and artefact.jira_issue is not None:
@@ -377,7 +411,10 @@ def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
     response_model=list[ArtefactVersionResponse],
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
-def get_artefact_versions(artefact: Artefact = Depends(ArtefactRetriever()), db: Session = Depends(get_db)):
+def get_artefact_versions(
+    artefact: Artefact = Depends(ArtefactRetriever(selectinload(Artefact.bundled_builds))),
+    db: Session = Depends(get_db),
+):
     return db.scalars(
         select(Artefact)
         .where(Artefact.name == artefact.name)
@@ -387,6 +424,7 @@ def get_artefact_versions(artefact: Artefact = Depends(ArtefactRetriever()), db:
         .where(Artefact.repo == artefact.repo)
         .where(Artefact.os == artefact.os)
         .where(Artefact.release == artefact.release)
+        .options(selectinload(Artefact.bundled_builds))
         .order_by(Artefact.id.desc())
     )
 
