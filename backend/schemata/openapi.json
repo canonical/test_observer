@@ -5362,6 +5362,13 @@
             },
             "type": "array",
             "title": "Test Executions"
+          },
+          "included_in": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactMinimalResponse"
+            },
+            "type": "array",
+            "title": "Included In"
           }
         },
         "type": "object",
@@ -5986,6 +5993,34 @@
         "title": "ArtefactMatchingRuleResponse",
         "description": "Artefact matching rule with associated teams"
       },
+      "ArtefactMinimalResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "family": {
+            "type": "string",
+            "title": "Family"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "family"
+        ],
+        "title": "ArtefactMinimalResponse"
+      },
       "ArtefactPatch": {
         "properties": {
           "status": {
@@ -6040,6 +6075,21 @@
               }
             ],
             "title": "Jira Issue"
+          },
+          "bundled_builds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundled Builds",
+            "description": "List of ArtefactBuild IDs to bundle with this artefact"
           },
           "assignee_id": {
             "anyOf": [
@@ -6224,6 +6274,13 @@
           "completed_environment_reviews_count": {
             "type": "integer",
             "title": "Completed Environment Reviews Count"
+          },
+          "bundled_builds": {
+            "items": {
+              "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+            },
+            "type": "array",
+            "title": "Bundled Builds"
           },
           "assignee": {
             "anyOf": [
@@ -6708,7 +6765,8 @@
           "snap",
           "deb",
           "charm",
-          "image"
+          "image",
+          "solution"
         ],
         "title": "FamilyName"
       },
