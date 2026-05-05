@@ -427,6 +427,8 @@ def get_artefact_versions(
         .where(Artefact.os == artefact.os)
         .where(Artefact.release == artefact.release)
         .where(Artefact.risk == artefact.risk)
+        .where(Artefact.source == artefact.source)
+        .where(Artefact.bundled_builds_hash == artefact.bundled_builds_hash)
         .options(selectinload(Artefact.bundled_builds))
         .order_by(Artefact.id.desc())
     )

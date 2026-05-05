@@ -471,7 +471,7 @@ def refresh_artefact_hash(artefact: Artefact):
 @event.listens_for(Session, "before_flush")
 def receive_before_flush(session: Session, *args: Any) -> None:  # noqa: ANN401, ARG001
     for obj in session.new | session.dirty:
-        if isinstance(obj, Artefact) and obj.family == "solution":
+        if isinstance(obj, Artefact) and obj.family == FamilyName.solution:
             refresh_artefact_hash(obj)
 
 
