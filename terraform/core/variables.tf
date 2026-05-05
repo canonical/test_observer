@@ -52,12 +52,13 @@ variable "deploy_database" {
 variable "database_config" {
   description = "Full configuration for the test observer database, if not external"
   type = object({
-    name     = string
-    channel  = string
-    base     = optional(string, "ubuntu@22.04")
-    units    = number
-    config   = map(string)
-    revision = optional(number)
+    name               = string
+    channel            = string
+    base               = optional(string, "ubuntu@22.04")
+    units              = number
+    config             = map(string)
+    revision           = optional(number)
+    storage_directives = optional(map(string))
   })
   default = null
 
