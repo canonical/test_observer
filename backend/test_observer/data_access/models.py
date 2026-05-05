@@ -17,7 +17,9 @@ import secrets
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, TypeVar
+import hashlib
 
+from sqlalchemy.orm import Session
 from sqlalchemy import (
     Boolean,
     Column,
@@ -35,6 +37,7 @@ from sqlalchemy import (
     desc,
     exists,
     select,
+    event,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -114,8 +117,8 @@ artefact_reviewers_association = Table(
 )
 
 
-artefact_build_bundle_solution = Table(
-    "artefact_build_bundle_solution",
+artefact_bundled_builds_association = Table(
+    "artefact_bundled_builds_association",
     Base.metadata,
     Column(
         "artefact_id",
@@ -345,7 +348,7 @@ class Artefact(Base):
 
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
-    bundled_builds: Mapped[list["ArtefactBuild"]] = relationship(secondary=artefact_build_bundle_solution, back_populates="bundled_in")
+    bundled_builds: Mapped[list["ArtefactBuild"]] = relationship(secondary=artefact_bundled_builds_association, back_populates="bundled_in")
     bundled_builds_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
@@ -452,6 +455,36 @@ class Artefact(Base):
         return sum(len([er for er in ab.environment_reviews if er.review_decision]) for ab in self.latest_builds)
 
 
+def calculate_bundled_builds_hash(build_ids: list[int]) -> str | None:
+    if not build_ids:
+        return None
+    ordered_ids = ",".join(str(id) for id in sorted(build_ids))
+    return hashlib.md5(ordered_ids.encode()).hexdigest()
+
+
+def refresh_artefact_hash(artefact):
+    if artefact.family == "solution":
+        build_ids = [b.id for b in artefact.bundled_builds if b.id]
+        artefact.bundled_builds_hash = calculate_bundled_builds_hash(build_ids)
+
+
+@event.listens_for(Session, "before_flush")
+def receive_before_flush(session, flush_context, instances):
+    for obj in session.new | session.dirty:
+        if isinstance(obj, Artefact) and obj.family == "solution":
+            refresh_artefact_hash(obj)
+
+
+@event.listens_for(Artefact.bundled_builds, "append")
+def bundle_append(target, value, initiator):
+    refresh_artefact_hash(target)
+
+
+@event.listens_for(Artefact.bundled_builds, "remove")
+def bundle_remove(target, value, initiator):
+    refresh_artefact_hash(target)
+
+
 class ArtefactBuild(Base):
     """A model to represent specific builds of artefact (e.g. arm64 revision 2)"""
 
@@ -462,7 +495,7 @@ class ArtefactBuild(Base):
     # Relationships
     artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id", ondelete="CASCADE"), index=True)
     artefact: Mapped[Artefact] = relationship(back_populates="builds", foreign_keys=[artefact_id])
-    bundled_in: Mapped[list["Artefact"]] = relationship(secondary=artefact_build_bundle_solution, back_populates="bundled_builds")
+    bundled_in: Mapped[list["Artefact"]] = relationship(secondary=artefact_bundled_builds_association, back_populates="bundled_builds")
     test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete"
     )

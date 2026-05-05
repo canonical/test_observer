@@ -20,6 +20,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import Artefact, Notification, TestExecution
@@ -1426,10 +1427,14 @@ class TestArtefactPatchAMRPermissions:
             del app.dependency_overrides[get_current_user]
 
 
-def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator):
-    """Test that two solution artefacts with identical builds cannot be created."""
+def test_solution_artefacts_with_same_builds_in_different_order_cannot_be_created(generator: DataGenerator):
+    """Test that two solution artefacts with identical bundled builds set, but listed in a different order, cannot be created."""
     # GIVEN a solution was created
-    solution1 = generator.gen_artefact(
+    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
+    build1 = generator.gen_artefact_build(charm, architecture="amd64")
+    build2 = generator.gen_artefact_build(charm, architecture="arm64")
+
+    generator.gen_artefact(
         name="my-solution",
         family=FamilyName.solution,
         stage=StageName.stable,
@@ -1437,10 +1442,74 @@ def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator
         track="latest",
         source="my-source",
         risk="stable",
+        bundled_builds=[build2, build1],
     )
-    build1 = generator.gen_artefact_build(solution1, architecture="amd64")
 
     # WHEN we attempt to create another identical solution
+    # THEN then unique constraint prevents the second solution from being created
+    with pytest.raises(IntegrityError):
+        generator.gen_artefact(
+            name="my-solution",
+            family=FamilyName.solution,
+            stage=StageName.stable,
+            version="1.0",
+            track="latest",
+            source="my-source",
+            risk="stable",
+            bundled_builds=[build1, build2]
+        )
+
+
+def test_solution_artefacts_with_different_builds_are_created(generator: DataGenerator):
+    """Test that two solution artefacts with different bundled builds can be created."""
+    # GIVEN two different builds and a solution using one of them
+    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
+    build1 = generator.gen_artefact_build(charm, architecture="amd64")
+    build2 = generator.gen_artefact_build(charm, architecture="arm64")
+
+    generator.gen_artefact(
+        name="my-solution",
+        family=FamilyName.solution,
+        stage=StageName.stable,
+        version="1.0",
+        track="latest",
+        source="my-source",
+        risk="stable",
+        bundled_builds=[build1],
+    )
+
+    # WHEN we attempt to create another solution with a different build
+    # THEN the unique constraint does not block this operation
+    generator.gen_artefact(
+        name="my-solution",
+        family=FamilyName.solution,
+        stage=StageName.stable,
+        version="1.0",
+        track="latest",
+        source="my-source",
+        risk="stable",
+        bundled_builds=[build2]
+    )
+
+
+def test_updating_solution_to_have_same_bundled_builds_as_another_is_blocked_by_unique_constraint(generator: DataGenerator):
+    """Test that updating a solution artefact to have the same bundled builds as another solution is blocked by the unique constraint."""
+    # GIVEN two solutions with different builds
+    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
+    build1 = generator.gen_artefact_build(charm, architecture="amd64")
+    build2 = generator.gen_artefact_build(charm, architecture="arm64")
+
+    generator.gen_artefact(
+        name="my-solution",
+        family=FamilyName.solution,
+        stage=StageName.stable,
+        version="1.0",
+        track="latest",
+        source="my-source",
+        risk="stable",
+        bundled_builds=[build1],
+    )
+
     solution2 = generator.gen_artefact(
         name="my-solution",
         family=FamilyName.solution,
@@ -1449,9 +1518,11 @@ def test_solution_artefacts_with_same_builds_are_unique(generator: DataGenerator
         track="latest",
         source="my-source",
         risk="stable",
+        bundled_builds=[build2],
     )
 
-    # TODO(raul) change this to instead add an association between build1 and solution2 after the build <-> artefact relation is many to many
-    assert False
-
-    # THEN then unique constraint prevents the second solution from being created
+    # WHEN we attempt to update solution2 to have the same bundled build as solution1
+    # THEN the unique constraint prevents this update from succeeding
+    with pytest.raises(IntegrityError):
+        solution2.bundled_builds = [build1]
+        generator._add_object(solution2)
