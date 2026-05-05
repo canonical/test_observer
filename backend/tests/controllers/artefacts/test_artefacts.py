@@ -19,8 +19,8 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import Artefact, Notification, TestExecution
@@ -1428,7 +1428,8 @@ class TestArtefactPatchAMRPermissions:
 
 
 def test_solution_artefacts_with_same_builds_in_different_order_cannot_be_created(generator: DataGenerator):
-    """Test that two solution artefacts with identical bundled builds set, but listed in a different order, cannot be created."""
+    """Test that two solution artefacts with identical bundled builds set, but listed in a different order, cannot be
+    created."""
     # GIVEN a solution was created
     charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
     build1 = generator.gen_artefact_build(charm, architecture="amd64")
@@ -1456,7 +1457,7 @@ def test_solution_artefacts_with_same_builds_in_different_order_cannot_be_create
             track="latest",
             source="my-source",
             risk="stable",
-            bundled_builds=[build1, build2]
+            bundled_builds=[build1, build2],
         )
 
 
@@ -1488,12 +1489,15 @@ def test_solution_artefacts_with_different_builds_are_created(generator: DataGen
         track="latest",
         source="my-source",
         risk="stable",
-        bundled_builds=[build2]
+        bundled_builds=[build2],
     )
 
 
-def test_updating_solution_to_have_same_bundled_builds_as_another_is_blocked_by_unique_constraint(generator: DataGenerator):
-    """Test that updating a solution artefact to have the same bundled builds as another solution is blocked by the unique constraint."""
+def test_updating_solution_to_have_same_bundled_builds_as_another_is_blocked_by_unique_constraint(
+    generator: DataGenerator,
+):
+    """Test that updating a solution artefact to have the same bundled builds as another solution is blocked by the
+    unique constraint."""
     # GIVEN two solutions with different builds
     charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
     build1 = generator.gen_artefact_build(charm, architecture="amd64")

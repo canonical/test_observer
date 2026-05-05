@@ -35,13 +35,21 @@ def downgrade() -> None:
 
 def alter_columns_types_to_new_enum() -> None:
     op.execute("ALTER TABLE artefact ALTER COLUMN family TYPE familyname USING family::text::familyname")
-    op.execute("ALTER TABLE issue_test_result_attachment_rule ALTER COLUMN families TYPE familyname[] USING families::text[]::familyname[]")
+    op.execute(
+        """ALTER TABLE issue_test_result_attachment_rule
+        ALTER COLUMN families TYPE familyname[]
+        USING families::text[]::familyname[]"""
+    )
     op.execute("ALTER TABLE artefact_matching_rule ALTER COLUMN family TYPE familyname USING family::text::familyname")
 
 
 def delete_rows_with_solution_family() -> None:
     op.execute("DELETE FROM artefact WHERE family = 'solution'")
-    op.execute("UPDATE issue_test_result_attachment_rule SET families = array_remove(families, 'solution') WHERE 'solution' = ANY(families)")
+    op.execute(
+        """UPDATE issue_test_result_attachment_rule
+        SET families = array_remove(families, 'solution')
+        WHERE 'solution' = ANY(families)"""
+    )
     op.execute("DELETE FROM artefact_matching_rule WHERE family = 'solution'")
 
 
