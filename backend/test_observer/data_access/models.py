@@ -463,7 +463,7 @@ def calculate_bundled_builds_hash(build_ids: list[int]) -> str:
 
 
 def refresh_artefact_hash(artefact: Artefact):
-    if artefact.family == "solution":
+    if artefact.family == FamilyName.solution:
         build_ids = [b.id for b in artefact.bundled_builds if b.id]
         artefact.bundled_builds_hash = calculate_bundled_builds_hash(build_ids)
 
