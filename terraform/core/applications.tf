@@ -39,7 +39,7 @@ resource "juju_application" "database" {
     base     = var.database_config.base
     revision = var.database_config.revision
   }
-
+  trust  = true
   config = var.database_config.config
   units  = var.database_config.units
 }
@@ -98,11 +98,11 @@ resource "juju_application" "otelcol" {
   name       = "otelcol"
   model_uuid = data.juju_model.model.uuid
   charm {
-    name     = "opentelemetry-collector"
+    name     = "opentelemetry-collector-k8s"
     channel  = var.otelcol_config.channel
     revision = var.otelcol_config.revision
     base     = var.otelcol_config.base
   }
-
+  trust = true
   config = var.otelcol_config.config
 }
