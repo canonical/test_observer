@@ -223,25 +223,18 @@ class DataGenerator:
 
     def gen_artefact_build(
         self,
-        artefacts: Artefact | list[Artefact],
+        artefact: Artefact,
         architecture: str = DEFAULT_ARCHITECTURE,
         revision: int | None = None,
     ) -> ArtefactBuild:
-        if isinstance(artefacts, list):
-            artefacts_value = artefacts
-            artefact_family = artefacts[0].family
-        else:
-            artefacts_value = [artefacts]  
-            artefact_family = artefacts.family
-
-        match artefact_family:
+        match artefact.family:
             case FamilyName.snap | FamilyName.charm:
                 revision = revision or 1
 
         build = ArtefactBuild(
             architecture=architecture,
             revision=revision,
-            artefacts=artefacts_value,
+            artefact=artefact,
         )
         self._add_object(build)
         return build

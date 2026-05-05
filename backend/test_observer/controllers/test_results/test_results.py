@@ -126,7 +126,7 @@ def _search_with_result_details(
     _artefact = (
         selectinload(TestResult.test_execution)
         .selectinload(TestExecution.artefact_build)
-        .selectinload(ArtefactBuild.artefacts)
+        .selectinload(ArtefactBuild.artefact)
     )
     query = select(TestResult).options(
         selectinload(TestResult.test_case),
