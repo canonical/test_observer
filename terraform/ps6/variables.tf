@@ -106,10 +106,16 @@ variable "frontend_hostname" {
   type        = string
 }
 
-variable "frontend_config" {
-  description = "config for frontend"
+variabel "frontend_require_authentication" {
+  description = "Whether to require authentication to view the frontend"
+  type        = bool
+  default     = false
+}
+
+variable "frontend_tabs" {
+  description = "A comma-separated list of tabs to display on the frontend"
   type        = string
-  default     = ""
+  default     = "images"
 }
 
 variable "api_scheme" {
