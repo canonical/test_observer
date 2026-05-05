@@ -77,6 +77,7 @@ class ArtefactResponse(BaseModel):
     created_at: datetime
     bug_link: str
     jira_issue: str | None
+    risk: str
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
     bundled_builds: list["ArtefactBuildMinimalResponse"] = Field(default_factory=list)
@@ -143,7 +144,7 @@ class ArtefactBuildResponse(BaseModel):
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionResponse]
-    included_in: list["ArtefactMinimalResponse"] = Field(default_factory=list)
+    bundled_in: list["ArtefactMinimalResponse"] = Field(default_factory=list)
 
 
 class ArtefactPatch(BaseModel):
@@ -152,6 +153,7 @@ class ArtefactPatch(BaseModel):
     stage: StageName | None = None
     comment: str | None = None
     jira_issue: str | None = None
+    risk: str | None = None
     bundled_builds: list[int] | None = Field(
         default=None,
         description="List of ArtefactBuild IDs to bundle with this artefact",

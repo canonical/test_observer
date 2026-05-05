@@ -38,7 +38,7 @@ def test_get_artefact_builds(test_client: TestClient, generator: DataGenerator):
             "id": ab.id,
             "revision": ab.revision,
             "architecture": ab.architecture,
-            "included_in": [],
+            "bundled_in": [],
             "test_executions": [
                 {
                     "id": te.id,
@@ -80,7 +80,7 @@ def test_get_artefact_builds_sorts_test_executions_by_environment_name(
             "id": ab.id,
             "revision": ab.revision,
             "architecture": ab.architecture,
-            "included_in": [],
+            "bundled_in": [],
             "test_executions": [
                 {
                     "id": te1.id,
@@ -137,7 +137,7 @@ def test_get_artefact_builds_only_latest(test_client: TestClient, generator: Dat
             "id": artefact_build2.id,
             "revision": artefact_build2.revision,
             "architecture": artefact_build2.architecture,
-            "included_in": [],
+            "bundled_in": [],
             "test_executions": [],
         }
     ]
@@ -161,7 +161,7 @@ def test_get_artefact_builds_with_rerun_requested(test_client: TestClient, gener
             "id": ab.id,
             "revision": ab.revision,
             "architecture": ab.architecture,
-            "included_in": [],
+            "bundled_in": [],
             "test_executions": [
                 {
                     "id": te.id,

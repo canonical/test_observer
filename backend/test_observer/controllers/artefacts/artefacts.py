@@ -264,6 +264,8 @@ def patch_artefact(
         artefact.comment = request.comment
     if "jira_issue" in request.model_fields_set:
         artefact.jira_issue = request.jira_issue
+    if request.risk is not None:
+        artefact.risk = request.risk
 
     reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
     reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set
@@ -424,6 +426,7 @@ def get_artefact_versions(
         .where(Artefact.repo == artefact.repo)
         .where(Artefact.os == artefact.os)
         .where(Artefact.release == artefact.release)
+        .where(Artefact.risk == artefact.risk)
         .options(selectinload(Artefact.bundled_builds))
         .order_by(Artefact.id.desc())
     )

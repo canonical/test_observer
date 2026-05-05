@@ -5363,12 +5363,12 @@
             "type": "array",
             "title": "Test Executions"
           },
-          "included_in": {
+          "bundled_in": {
             "items": {
               "$ref": "#/components/schemas/ArtefactMinimalResponse"
             },
             "type": "array",
-            "title": "Included In"
+            "title": "Bundled In"
           }
         },
         "type": "object",

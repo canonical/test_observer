@@ -457,11 +457,9 @@ class Artefact(Base):
         return sum(len([er for er in ab.environment_reviews if er.review_decision]) for ab in self.latest_builds)
 
 
-def calculate_bundled_builds_hash(build_ids: list[int]) -> str | None:
-    if not build_ids:
-        return None
+def calculate_bundled_builds_hash(build_ids: list[int]) -> str:
     ordered_ids = ",".join(str(id) for id in sorted(build_ids))
-    return hashlib.md5(ordered_ids.encode()).hexdigest()
+    return hashlib.sha256(ordered_ids.encode()).hexdigest()
 
 
 def refresh_artefact_hash(artefact: Artefact):
