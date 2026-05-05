@@ -9,7 +9,7 @@ locals {
   otelcol_relations = {
     grafana_dashboard = {
       app_endpoint     = "grafana-dashboard"
-      otelcol_endpoint = "grafana-dashboard-consumer"
+      otelcol_endpoint = "grafana-dashboards-consumer"
     }
 
     metrics = {
