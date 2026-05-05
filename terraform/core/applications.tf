@@ -103,6 +103,7 @@ resource "juju_application" "otelcol" {
     revision = var.otelcol_config.revision
     base     = var.otelcol_config.base
   }
-  trust = true
-  config = var.otelcol_config.config
+  trust              = true
+  storage_directives = var.otelcol_config.storage_directives
+  config             = var.otelcol_config.config
 }
