@@ -60,7 +60,7 @@ class TestCharm(unittest.TestCase):
             .read()
         )
 
-        self.assertRegexpMatches(nginx_config, r"https:\/\/teh-backend")
+        self.assertRegex(nginx_config, r"https:\/\/teh-backend")
 
     def test_config_invalid_port(self):
         self.harness.set_can_connect("frontend", True)

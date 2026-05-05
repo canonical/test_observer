@@ -28,6 +28,7 @@ from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
+    ConfigData,
     MaintenanceStatus,
     ModelError,
     WaitingStatus,
@@ -81,9 +82,15 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         self._update_layer_and_restart(event)
 
-    def _config_is_valid(self, config) -> Tuple[bool, Optional[str]]:
+    def _config_is_valid(self, config: ConfigData) -> Tuple[bool, Optional[str]]:
         """Validate the provided config."""
-        if config["port"] < 1 or config["port"] > 65535:
+        if not isinstance(config["port"], int):
+            return False, "port must be an integer"
+
+        if not isinstance(config["require-authentication"], bool):
+            return False, "require-authentication must be a boolean"
+
+        if int(config["port"]) < 1 or int(config["port"]) > 65535:
             return False, "port must be between 1 and 65535"
 
         if config["test-observer-api-scheme"] not in ["http://", "https://"]:
@@ -95,6 +102,10 @@ class TestObserverFrontendCharm(ops.CharmBase):
         if config["hostname"] == "":
             return False, "hostname must be set"
 
+        for tab in str(config["tabs"]).split(","):
+            if tab.strip() not in ["snaps", "debs", "charms", "images"]:
+                return False, f"invalid tab '{tab.strip()}' in tabs config"
+
         return True, None
 
     def _on_rest_api_relation_update(self, event):
@@ -104,26 +115,25 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self._update_layer_and_restart(event)
 
     def _update_frontend_config(self):
-        config_str = self.config.get("frontend-config", "")
-        if not config_str:
-            logger.info("No frontend-config provided, using defaults")
+        is_valid, _ = self._config_is_valid(self.config)
+        if not is_valid:
+            logger.warning(
+                "Skipping frontend config update due to invalid charm config.\n"
+                "Config:\n%s", self.config,
+            )
             return
 
-        try:
-            config = yaml.safe_load(config_str)
-        except yaml.YAMLError:
-            logger.warning("frontend-config contains invalid YAML")
-            return
-
-        if not isinstance(config, dict):
-            logger.warning("frontend-config must be a YAML mapping")
-            return
-
+        config: dict[str, bool | list[str]] = {
+            # TODO: Standardize config keys to use dashes instead of underscores
+            "require_authentication": bool(self.config["require-authentication"]),
+            "tabs": [tab.strip() for tab in str(self.config["tabs"]).split(",") if tab.strip()],
+        }
         self.container.push(
             "/usr/share/nginx/html/assets/assets/config.yaml",
             yaml.dump(config),
             make_dirs=True,
         )
+
         logger.info("Updated frontend config from charm config")
 
     def _update_header_image(self):
@@ -145,7 +155,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         logger.debug("REST API relation broken")
         self._handle_no_api_relation()
 
-    def _update_layer_and_restart(self, event):
+    def _update_layer_and_restart(self, _=None):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         if self.container.can_connect():
