@@ -346,7 +346,7 @@ class Artefact(Base):
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
     bundled_builds: Mapped[list["ArtefactBuild"]] = relationship(secondary=artefact_build_bundle_solution, back_populates="bundled_in")
-    builds_hash: Mapped[str | None] = mapped_column(String(64), default=None)
+    bundled_builds_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
@@ -399,7 +399,7 @@ class Artefact(Base):
             "version",
             "track",
             "risk",
-            "builds_hash",
+            "bundled_builds_hash",
             postgresql_where=column("family") == FamilyName.solution.name,
             unique=True,
         ),
@@ -426,6 +426,7 @@ class Artefact(Base):
             "due_date",
             "status",
             "archived",
+            "bundled_builds_hash",
         )
 
     @hybrid_property
