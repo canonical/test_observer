@@ -1794,4 +1794,3 @@ def test_patch_artefact_bundled_builds_preserves_order(generator: DataGenerator,
     assert len(data["bundled_builds"]) == 3
     returned_ids = [b["id"] for b in data["bundled_builds"]]
     assert returned_ids == [build3.id, build1.id, build2.id]
-
