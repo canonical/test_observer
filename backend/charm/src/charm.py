@@ -537,7 +537,6 @@ class TestObserverBackendCharm(CharmBase):
 
         This provides the API/backend data so it's available to the frontend.
         """
-
         if not self.unit.is_leader():
             return
 
