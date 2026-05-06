@@ -116,6 +116,12 @@ class TestObserverBackendCharm(CharmBase):
             self.on.promote_user_to_admin_action, self._on_promote_user_to_admin_action
         )
 
+    # TODO: This really needs to handle all possible states
+    # and should act as a state-reconciliation function.
+    # Presently, it can overwrite statuses set by other handlers.
+    # The challenge is that the specific handlers can fairly easily determine whether to be blocked,
+    # but they cannot easily determine whether to be active.
+    # That is what this function should ideally do.
     def _on_collect_unit_status(self, event: CollectStatusEvent) -> None:
         """Set the unit status based on the current state.
 
@@ -531,6 +537,10 @@ class TestObserverBackendCharm(CharmBase):
 
         This provides the API/backend data so it's available to the frontend.
         """
+
+        if not self.unit.is_leader():
+            return
+
         data = {"url": self._get_url()}
         logger.debug("Updating data bag for %s with\n: %s", self.app, data)
 
