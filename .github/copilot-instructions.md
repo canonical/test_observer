@@ -85,6 +85,7 @@ When reviewing PRs, **flag any new artefact-specific logic as a blocking issue**
    - New integrations with artefact-specific external APIs (Snapcraft, Launchpad, etc.)
    - New family-specific frontend routes, widgets, or UI branches
    - These violate the core design principle and must not be introduced in new code
+   - **Exception**: Hardcoded family-specific URIs/paths in backend **tests** are acceptable (e.g., test data with `/snaps/:id` or `/debs/:id` in mock responses/fixtures)
 
 2. **Resource leaks**:
    - Missing `finally` blocks for state cleanup
