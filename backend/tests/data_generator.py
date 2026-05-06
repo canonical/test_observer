@@ -147,6 +147,8 @@ class DataGenerator:
         bug_link: str = "",
         due_date: date | None = None,
         reviewers: list[User] | None = None,
+        risk: str = "",
+        bundled_builds: list[ArtefactBuild] | None = None,
     ) -> Artefact:
         family = FamilyName(family)
 
@@ -162,6 +164,7 @@ class DataGenerator:
 
         created_at = created_at or datetime.utcnow()
         reviewers = reviewers or []
+        bundled_builds = bundled_builds or []
 
         artefact = Artefact(
             name=name,
@@ -180,6 +183,8 @@ class DataGenerator:
             bug_link=bug_link,
             due_date=due_date,
             reviewers=reviewers,
+            risk=risk,
+            bundled_builds=bundled_builds,
         )
         self._add_object(artefact)
         return artefact

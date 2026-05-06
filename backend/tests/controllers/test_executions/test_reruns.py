@@ -145,6 +145,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "store": test_execution.artefact_build.artefact.store,
             "branch": test_execution.artefact_build.artefact.branch,
             "series": test_execution.artefact_build.artefact.series,
+            "risk": test_execution.artefact_build.artefact.risk,
             "repo": test_execution.artefact_build.artefact.repo,
             "source": test_execution.artefact_build.artefact.source,
             "os": test_execution.artefact_build.artefact.os,
@@ -161,6 +162,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 if test_execution.artefact_build.artefact.reviewers
                 else None
             ),
+            "bundled_builds": [],
             "reviewers": test_execution.artefact_build.artefact.reviewers,
             "due_date": test_execution.artefact_build.artefact.due_date,
             "bug_link": test_execution.artefact_build.artefact.bug_link,
