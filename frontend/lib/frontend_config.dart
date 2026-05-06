@@ -36,57 +36,69 @@
 import 'package:flutter/services.dart';
 import 'package:yaml/yaml.dart';
 
-import 'routing.dart';
+import 'models/family_name.dart';
 
-const _validTabs = {'snaps', 'debs', 'charms', 'images'};
+class FrontendConfig {
+  // Map 'snap' to 'snaps', 'deb' to 'debs', etc
+  static final List<String> _validTabs =
+      FamilyName.values.map((family) => '${family.name}s').toList();
 
-List<String> configuredTabs = [
-  AppRoutes.snaps,
-  AppRoutes.debs,
-  AppRoutes.charms,
-  AppRoutes.images,
-];
+  final bool requireAuthentication;
+  final List<String> tabs;
 
-String familyDisplayName(String route) {
-  switch (route) {
-    case AppRoutes.snaps:
-      return 'Snap Testing';
-    case AppRoutes.debs:
-      return 'Deb Testing';
-    case AppRoutes.charms:
-      return 'Charm Testing';
-    case AppRoutes.images:
-      return 'Image Testing';
-    default:
-      return '';
+  FrontendConfig._internal({
+    required this.requireAuthentication,
+    required this.tabs,
+  });
+
+  factory FrontendConfig({
+    bool requireAuthentication = false,
+    List<String>? tabs,
+  }) {
+    // Default to the full set of valid tabs if the provided tabs are null
+    // or contain invalid values. An empty list is considered valid and can
+    // be used to hide all tabs
+    tabs =
+        (tabs != null && tabs.every(_validTabs.contains)) ? tabs : _validTabs;
+
+    return FrontendConfig._internal(
+      requireAuthentication: requireAuthentication,
+      tabs: List.unmodifiable(tabs),
+    );
   }
 }
 
-List<String>? parseFrontendConfig(String yamlString) {
+// The actual YAML will get loaded at runtime in main.dart,
+// but we initialize with the default
+FrontendConfig frontendConfig = FrontendConfig();
+
+FrontendConfig parseFrontendConfig(String yamlString) {
   try {
     final decoded = loadYaml(yamlString);
-    if (decoded is! YamlMap) return null;
-
-    final tabs = decoded['tabs'];
-    if (tabs is! YamlList || tabs.isEmpty) return null;
-
-    final tabStrings = tabs.cast<String>();
-    if (!tabStrings.every((t) => _validTabs.contains(t))) return null;
-
-    return tabStrings.map<String>((t) => '/$t').toList();
-  } catch (_) {
-    return null;
-  }
-}
-
-Future<void> loadFrontendConfig() async {
-  try {
-    final yaml = await rootBundle.loadString('assets/config.yaml');
-    final parsed = parseFrontendConfig(yaml);
-    if (parsed != null) {
-      configuredTabs = parsed;
+    if (decoded is YamlMap) {
+      final requireAuthentication = decoded['require_authentication'] == true;
+      final tabs = decoded['tabs'] is YamlList
+          ? decoded['tabs'].map<String>((tab) => tab.toString()).toList()
+          : null;
+      final config = FrontendConfig(
+        requireAuthentication: requireAuthentication,
+        tabs: tabs,
+      );
+      return config;
     }
   } catch (_) {
+    // Fall through to default
+  }
+  return FrontendConfig();
+}
+
+Future<FrontendConfig> loadFrontendConfig() async {
+  try {
+    final yaml = await rootBundle.loadString('assets/config.yaml');
+    final config = parseFrontendConfig(yaml);
+    return config;
+  } catch (_) {
     // Keep default config
+    return FrontendConfig();
   }
 }
