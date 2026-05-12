@@ -185,7 +185,9 @@ def search_test_results(
     ] = None,
     environment_contains: Annotated[
         list[str] | None,
-        Query(description="Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"),
+        Query(
+            description="Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"
+        ),
     ] = None,
     test_cases: Annotated[
         list[str] | None,

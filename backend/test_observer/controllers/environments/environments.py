@@ -20,6 +20,7 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.common.helpers import normalize_contains_terms
 from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import (
     Artefact,
@@ -92,8 +93,8 @@ def get_environments(
 
     # Apply environment_contains filter (AND'd ILIKE per value)
     if environment_contains:
-        for value in environment_contains:
-            query = query.where(Environment.name.ilike(f"%{value}%"))
+        for value in normalize_contains_terms(environment_contains):
+            query = query.where(Environment.name.ilike(f"%{value}%", escape="\\"))
 
     # Count total before pagination
     count_query = select(func.count()).select_from(query.subquery())

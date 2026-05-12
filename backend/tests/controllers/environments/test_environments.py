@@ -18,6 +18,7 @@ import uuid
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
+from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -430,8 +431,6 @@ def test_environment_contains_no_match(test_client: TestClient):
 
 def test_environment_contains_scoped_by_family(test_client: TestClient, generator: DataGenerator):
     """environment_contains combined with families only returns matching environments for that family."""
-    from test_observer.data_access.models_enums import FamilyName
-
     unique_marker = uuid.uuid4().hex[:8]
     env_name = f"desktop-{unique_marker}"
 

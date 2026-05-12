@@ -35,3 +35,20 @@ def get_artefact_url(artefact: Artefact) -> str:
     """
     family_path = f"{artefact.family.value}s"  # snap -> snaps, deb -> debs, etc.
     return f"{FRONTEND_URL}/{family_path}/{artefact.id}"
+
+
+def normalize_contains_terms(values: list[str] | None) -> list[str]:
+    """Normalize and escape user-provided terms for SQL LIKE contains matching."""
+    if not values:
+        return []
+
+    terms: list[str] = []
+    for value in values:
+        stripped = value.strip()
+        if not stripped:
+            continue
+
+        escaped = stripped.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        terms.append(escaped)
+
+    return terms

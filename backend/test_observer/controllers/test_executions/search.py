@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, aliased, selectinload
 
 from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
+from test_observer.common.helpers import normalize_contains_terms
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_executions.shared_models import (
@@ -187,8 +188,8 @@ def _build_execution_filters(
         joins_needed.add("environment")
 
     if filters.environment_contains:
-        for value in filters.environment_contains:
-            query_filters.append(Environment.name.ilike(f"%{value}%"))
+        for value in normalize_contains_terms(filters.environment_contains):
+            query_filters.append(Environment.name.ilike(f"%{value}%", escape="\\"))
         joins_needed.add("environment")
 
     if filters.execution_metadata and len(filters.execution_metadata) > 0:
@@ -360,7 +361,9 @@ def search_test_executions(
     ] = None,
     environment_contains: Annotated[
         list[str] | None,
-        Query(description="Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"),
+        Query(
+            description="Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"
+        ),
     ] = None,
     execution_metadata: Annotated[ExecutionMetadata | None, Depends(parse_execution_metadata)] = None,
     test_execution_statuses: Annotated[
