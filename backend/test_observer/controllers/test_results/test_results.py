@@ -183,6 +183,10 @@ def search_test_results(
         list[str] | None,
         Query(description="Filter by environment names"),
     ] = None,
+    environment_contains: Annotated[
+        list[str] | None,
+        Query(description="Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"),
+    ] = None,
     test_cases: Annotated[
         list[str] | None,
         Query(description="Filter by test case names"),
@@ -237,6 +241,7 @@ def search_test_results(
         artefacts=artefacts or [],
         artefact_is_archived=artefact_is_archived,
         environments=environments or [],
+        environment_contains=environment_contains or [],
         test_cases=test_cases or [],
         template_ids=template_ids or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),

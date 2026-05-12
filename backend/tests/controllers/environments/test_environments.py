@@ -332,3 +332,131 @@ def test_get_environments_pagination_metadata(test_client: TestClient, generator
     assert data["limit"] == 2
     assert data["offset"] == 1
     assert len(data["environments"]) == 2
+
+
+def test_environment_contains_single_value(test_client: TestClient, generator: DataGenerator):
+    """environment_contains with a single value should match names containing that substring."""
+    art = generator.gen_artefact(name=generate_unique_name("artefact"))
+    art_build = generator.gen_artefact_build(art)
+    test_case = generator.gen_test_case(name=generate_unique_name("test_case"))
+    unique_marker = uuid.uuid4().hex[:8]
+
+    desktop_jammy = f"{unique_marker}-desktop-jammy"
+    desktop_focal = f"{unique_marker}-desktop-focal"
+    server_jammy = f"{unique_marker}-server-jammy"
+
+    for name in [desktop_jammy, desktop_focal, server_jammy]:
+        env = generator.gen_environment(name=name)
+        te = generator.gen_test_execution(art_build, env)
+        generator.gen_test_result(test_case, te)
+
+    resp = make_authenticated_request(
+        lambda: test_client.get("/v1/environments", params={"environment_contains": f"{unique_marker}-desktop"}),
+        Permission.view_test,
+    )
+    assert resp.status_code == 200
+    envs = resp.json()["environments"]
+    assert desktop_jammy in envs
+    assert desktop_focal in envs
+    assert server_jammy not in envs
+
+
+def test_environment_contains_multiple_values_anded(test_client: TestClient, generator: DataGenerator):
+    """Multiple environment_contains values should be ANDed."""
+    art = generator.gen_artefact(name=generate_unique_name("artefact"))
+    art_build = generator.gen_artefact_build(art)
+    test_case = generator.gen_test_case(name=generate_unique_name("test_case"))
+    unique_marker = uuid.uuid4().hex[:8]
+
+    desktop_jammy = f"{unique_marker}-desktop-jammy"
+    desktop_focal = f"{unique_marker}-desktop-focal"
+    server_jammy = f"{unique_marker}-server-jammy"
+
+    for name in [desktop_jammy, desktop_focal, server_jammy]:
+        env = generator.gen_environment(name=name)
+        te = generator.gen_test_execution(art_build, env)
+        generator.gen_test_result(test_case, te)
+
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments",
+            params=[
+                ("environment_contains", f"{unique_marker}-desktop"),
+                ("environment_contains", "jammy"),
+            ],
+        ),
+        Permission.view_test,
+    )
+    assert resp.status_code == 200
+    envs = resp.json()["environments"]
+    assert desktop_jammy in envs
+    assert desktop_focal not in envs
+    assert server_jammy not in envs
+
+
+def test_environment_contains_case_insensitive(test_client: TestClient, generator: DataGenerator):
+    """environment_contains matching should be case-insensitive."""
+    art = generator.gen_artefact(name=generate_unique_name("artefact"))
+    art_build = generator.gen_artefact_build(art)
+    test_case = generator.gen_test_case(name=generate_unique_name("test_case"))
+    unique_marker = uuid.uuid4().hex[:8]
+
+    env_name = f"Desktop-Jammy-{unique_marker}"
+    env = generator.gen_environment(name=env_name)
+    te = generator.gen_test_execution(art_build, env)
+    generator.gen_test_result(test_case, te)
+
+    for search_term in [f"desktop-jammy-{unique_marker}", f"DESKTOP-JAMMY-{unique_marker}"]:
+        resp = make_authenticated_request(
+            lambda: test_client.get("/v1/environments", params={"environment_contains": search_term}),  # noqa: B023
+            Permission.view_test,
+        )
+        assert resp.status_code == 200
+        assert env_name in resp.json()["environments"]
+
+
+def test_environment_contains_no_match(test_client: TestClient):
+    """environment_contains with no matching environments returns empty list."""
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments",
+            params={"environment_contains": "nonexistent_env_xyz_456"},
+        ),
+        Permission.view_test,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["environments"] == []
+
+
+def test_environment_contains_scoped_by_family(test_client: TestClient, generator: DataGenerator):
+    """environment_contains combined with families only returns matching environments for that family."""
+    from test_observer.data_access.models_enums import FamilyName
+
+    unique_marker = uuid.uuid4().hex[:8]
+    env_name = f"desktop-{unique_marker}"
+
+    snap_artefact = generator.gen_artefact(family=FamilyName.snap)
+    snap_build = generator.gen_artefact_build(snap_artefact)
+    deb_artefact = generator.gen_artefact(family=FamilyName.deb)
+    deb_build = generator.gen_artefact_build(deb_artefact)
+    test_case = generator.gen_test_case()
+
+    snap_env = generator.gen_environment(name=f"snap-{env_name}")
+    snap_te = generator.gen_test_execution(snap_build, snap_env)
+    generator.gen_test_result(test_case, snap_te)
+
+    deb_env = generator.gen_environment(name=f"deb-{env_name}")
+    deb_te = generator.gen_test_execution(deb_build, deb_env)
+    generator.gen_test_result(test_case, deb_te)
+
+    resp = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/environments",
+            params={"families": "snap", "environment_contains": env_name},
+        ),
+        Permission.view_test,
+    )
+    assert resp.status_code == 200
+    envs = resp.json()["environments"]
+    assert snap_env.name in envs
+    assert deb_env.name not in envs

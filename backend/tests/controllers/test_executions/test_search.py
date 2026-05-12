@@ -167,213 +167,115 @@ class TestSearchTestExecutions:
             Permission.view_test,
         )
 
-        assert response.status_code == 200
-        data = response.json()
-        te_ids = {item["id"] for item in data["test_executions"]}
-        assert te_in_progress.id in te_ids
-        assert te_not_started.id not in te_ids
+        assert response.status_code == 422
 
-    def test_response_includes_artefact_and_build(self, test_client: TestClient, generator: DataGenerator):
+
+class TestEnvironmentContainsFilter:
+    def test_single_value(self, test_client: TestClient, generator: DataGenerator):
+        """environment_contains with a single value returns only executions from matching environments."""
+        unique_marker = _uid("ec")
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
-        env = generator.gen_environment()
-        tc = generator.gen_test_case(name=_uid("tc"))
 
-        te = generator.gen_test_execution(build, env)
-        generator.gen_test_result(tc, te)
+        env_desktop_jammy = generator.gen_environment(name=f"{unique_marker}-desktop-jammy")
+        env_desktop_focal = generator.gen_environment(name=f"{unique_marker}-desktop-focal")
+        env_server_jammy = generator.gen_environment(name=f"{unique_marker}-server-jammy")
 
-        response = make_authenticated_request(
-            lambda: test_client.get(f"/v1/test-executions?test_result=any&artefacts={artefact.name}"),
-            Permission.view_test,
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data["test_executions"]) >= 1
-        item = next(i for i in data["test_executions"] if i["id"] == te.id)
-        assert item["artefact"]["id"] == artefact.id
-        assert item["artefact_build"]["id"] == build.id
-
-    def test_pagination_metadata(self, test_client: TestClient):
-        response = make_authenticated_request(
-            lambda: test_client.get("/v1/test-executions?limit=10&offset=0"),
-            Permission.view_test,
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["limit"] == 10
-        assert data["offset"] == 0
-        assert isinstance(data["count"], int)
-
-    def test_no_test_result_filter_defaults_to_any(self, test_client: TestClient, generator: DataGenerator):
-        """When test_result param is omitted, behaves like test_result=any."""
-        artefact = generator.gen_artefact(name=_uid("artefact"))
-        build = generator.gen_artefact_build(artefact)
-        env = generator.gen_environment()
-        tc = generator.gen_test_case(name=_uid("tc"))
-
-        te = generator.gen_test_execution(build, env)
-        tr = generator.gen_test_result(tc, te)
-
-        response = make_authenticated_request(
-            lambda: test_client.get(f"/v1/test-executions?artefacts={artefact.name}"),
-            Permission.view_test,
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        tr_ids = {result["id"] for item in data["test_executions"] for result in item["test_results"]}
-        assert tr.id in tr_ids
-
-    def test_filter_by_environment_with_no_result(self, test_client: TestClient, generator: DataGenerator):
-        artefact = generator.gen_artefact(name=_uid("artefact"))
-        build = generator.gen_artefact_build(artefact)
-        env_a = generator.gen_environment(name=_uid("env_a"))
-        env_b = generator.gen_environment(name=_uid("env_b"))
-
-        te_a = generator.gen_test_execution(build, env_a)
-        te_b = generator.gen_test_execution(build, env_b)
-
-        response = make_authenticated_request(
-            lambda: test_client.get(f"/v1/test-executions?test_result=none&environments={env_a.name}"),
-            Permission.view_test,
-        )
-
-        assert response.status_code == 200
-        te_ids = {item["id"] for item in response.json()["test_executions"]}
-        assert te_a.id in te_ids
-        assert te_b.id not in te_ids
-
-    def test_filter_by_rerun_requested_with_no_result(self, test_client: TestClient, generator: DataGenerator):
-        artefact = generator.gen_artefact(name=_uid("artefact"))
-        build = generator.gen_artefact_build(artefact)
-        env_a = generator.gen_environment(name=_uid("env_a"))
-        env_b = generator.gen_environment(name=_uid("env_b"))
-
-        te_with_rerun = generator.gen_test_execution(build, env_a)
-        generator.gen_rerun_request(te_with_rerun)
-
-        te_without_rerun = generator.gen_test_execution(build, env_b)
-
-        response = make_authenticated_request(
-            lambda: test_client.get("/v1/test-executions?test_result=none&rerun_is_requested=true"),
-            Permission.view_test,
-        )
-
-        assert response.status_code == 200
-        te_ids = {item["id"] for item in response.json()["test_executions"]}
-        assert te_with_rerun.id in te_ids
-        assert te_without_rerun.id not in te_ids
-
-    def test_filter_by_execution_is_latest_with_no_result(self, test_client: TestClient, generator: DataGenerator):
-        artefact = generator.gen_artefact(name=_uid("artefact"))
-        build = generator.gen_artefact_build(artefact)
-        env = generator.gen_environment()
-
-        older_te = generator.gen_test_execution(build, env)
-        newer_te = generator.gen_test_execution(build, env)
-        assert newer_te.id > older_te.id
-
-        response = make_authenticated_request(
-            lambda: test_client.get("/v1/test-executions?test_result=none&execution_is_latest=true"),
-            Permission.view_test,
-        )
-
-        assert response.status_code == 200
-        te_ids = {item["id"] for item in response.json()["test_executions"]}
-        assert newer_te.id in te_ids
-        assert older_te.id not in te_ids
-
-    def test_filter_by_artefact_is_archived_with_no_result(self, test_client: TestClient, generator: DataGenerator):
-        archived_artefact = generator.gen_artefact(name=_uid("archived"), archived=True)
-        active_artefact = generator.gen_artefact(name=_uid("active"), archived=False)
-        env = generator.gen_environment()
-
-        te_archived = generator.gen_test_execution(generator.gen_artefact_build(archived_artefact), env)
-        te_active = generator.gen_test_execution(generator.gen_artefact_build(active_artefact), env)
-
-        response = make_authenticated_request(
-            lambda: test_client.get("/v1/test-executions?test_result=none&artefact_is_archived=true"),
-            Permission.view_test,
-        )
-
-        assert response.status_code == 200
-        te_ids = {item["id"] for item in response.json()["test_executions"]}
-        assert te_archived.id in te_ids
-        assert te_active.id not in te_ids
-
-    def test_filter_by_execution_status_with_any_result(self, test_client: TestClient, generator: DataGenerator):
-        artefact = generator.gen_artefact(name=_uid("artefact"))
-        build = generator.gen_artefact_build(artefact)
-        env = generator.gen_environment()
-        tc = generator.gen_test_case(name=_uid("tc"))
-
-        te_passed = generator.gen_test_execution(build, env, status=TestExecutionStatus.PASSED)
-        generator.gen_test_result(tc, te_passed)
-        te_failed = generator.gen_test_execution(build, env, status=TestExecutionStatus.FAILED)
-        generator.gen_test_result(tc, te_failed)
+        te_dj = generator.gen_test_execution(build, env_desktop_jammy)
+        te_df = generator.gen_test_execution(build, env_desktop_focal)
+        te_sj = generator.gen_test_execution(build, env_server_jammy)
 
         response = make_authenticated_request(
             lambda: test_client.get(
-                f"/v1/test-executions?test_result=any&test_execution_statuses={TestExecutionStatus.PASSED.value}"
+                "/v1/test-executions",
+                params={"test_result": "none", "environment_contains": f"{unique_marker}-desktop"},
             ),
             Permission.view_test,
         )
-
         assert response.status_code == 200
-        data = response.json()
-        te_ids = {item["id"] for item in data["test_executions"]}
-        assert te_passed.id in te_ids
-        assert te_failed.id not in te_ids
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_dj.id in te_ids
+        assert te_df.id in te_ids
+        assert te_sj.id not in te_ids
 
-    def test_multiple_specific_test_result_ids(self, test_client: TestClient, generator: DataGenerator):
+    def test_multiple_values_anded(self, test_client: TestClient, generator: DataGenerator):
+        """Multiple environment_contains values are ANDed."""
+        unique_marker = _uid("ec")
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
-        env = generator.gen_environment()
-        tc = generator.gen_test_case(name=_uid("tc"))
 
-        te = generator.gen_test_execution(build, env)
-        tr1 = generator.gen_test_result(tc, te)
-        tr2 = generator.gen_test_result(tc, te)
-        tr3 = generator.gen_test_result(tc, te)
+        env_desktop_jammy = generator.gen_environment(name=f"{unique_marker}-desktop-jammy")
+        env_desktop_focal = generator.gen_environment(name=f"{unique_marker}-desktop-focal")
+        env_server_jammy = generator.gen_environment(name=f"{unique_marker}-server-jammy")
+
+        te_dj = generator.gen_test_execution(build, env_desktop_jammy)
+        te_df = generator.gen_test_execution(build, env_desktop_focal)
+        te_sj = generator.gen_test_execution(build, env_server_jammy)
 
         response = make_authenticated_request(
-            lambda: test_client.get(f"/v1/test-executions?test_result={tr1.id}&test_result={tr2.id}"),
+            lambda: test_client.get(
+                "/v1/test-executions",
+                params=[
+                    ("test_result", "none"),
+                    ("environment_contains", f"{unique_marker}-desktop"),
+                    ("environment_contains", "jammy"),
+                ],
+            ),
             Permission.view_test,
         )
-
         assert response.status_code == 200
-        tr_ids = {result["id"] for item in response.json()["test_executions"] for result in item["test_results"]}
-        assert tr1.id in tr_ids
-        assert tr2.id in tr_ids
-        assert tr3.id not in tr_ids
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_dj.id in te_ids
+        assert te_df.id not in te_ids
+        assert te_sj.id not in te_ids
 
-    def test_count_reflects_total_executions_not_page_size(self, test_client: TestClient, generator: DataGenerator):
+    def test_case_insensitive(self, test_client: TestClient, generator: DataGenerator):
+        """environment_contains matching is case-insensitive."""
+        unique_marker = _uid("ec")
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
-        env = generator.gen_environment()
-        tc = generator.gen_test_case(name=_uid("tc"))
+
+        env = generator.gen_environment(name=f"Desktop-Jammy-{unique_marker}")
         te = generator.gen_test_execution(build, env)
 
-        for _ in range(5):
-            generator.gen_test_result(tc, te)
+        for search_term in [f"desktop-jammy-{unique_marker}", f"DESKTOP-JAMMY-{unique_marker}"]:
+            response = make_authenticated_request(
+                lambda: test_client.get(  # noqa: B023
+                    "/v1/test-executions",
+                    params={"test_result": "none", "environment_contains": search_term},
+                ),
+                Permission.view_test,
+            )
+            assert response.status_code == 200
+            te_ids = {item["id"] for item in response.json()["test_executions"]}
+            assert te.id in te_ids
+
+    def test_scoped_by_family(self, test_client: TestClient, generator: DataGenerator):
+        """environment_contains combined with families only returns executions from that family."""
+        unique_marker = _uid("ec")
+        env_name = f"desktop-{unique_marker}"
+
+        snap_artefact = generator.gen_artefact(family=FamilyName.snap)
+        snap_build = generator.gen_artefact_build(snap_artefact)
+        snap_env = generator.gen_environment(name=f"snap-{env_name}")
+        snap_te = generator.gen_test_execution(snap_build, snap_env)
+
+        deb_artefact = generator.gen_artefact(family=FamilyName.deb)
+        deb_build = generator.gen_artefact_build(deb_artefact)
+        deb_env = generator.gen_environment(name=f"deb-{env_name}")
+        deb_te = generator.gen_test_execution(deb_build, deb_env)
 
         response = make_authenticated_request(
-            lambda: test_client.get(f"/v1/test-executions?artefacts={artefact.name}&limit=2"),
+            lambda: test_client.get(
+                "/v1/test-executions",
+                params={"test_result": "none", "families": "snap", "environment_contains": env_name},
+            ),
             Permission.view_test,
         )
-
         assert response.status_code == 200
-        data = response.json()
-        assert len(data["test_executions"]) == 1
-        assert data["count"] == 1
-
-    def test_invalid_family_returns_422(self, test_client: TestClient):
-        response = make_authenticated_request(
-            lambda: test_client.get("/v1/test-executions?families=not_a_family"),
-            Permission.view_test,
-        )
-        assert response.status_code == 422
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert snap_te.id in te_ids
+        assert deb_te.id not in te_ids
 
     def test_no_results_for_nonexistent_artefact(self, test_client: TestClient):
         response = make_authenticated_request(

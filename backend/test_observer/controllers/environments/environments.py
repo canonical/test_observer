@@ -51,6 +51,10 @@ def get_environments(
         list[FamilyName] | None,
         Query(description="Filter by artefact families"),
     ] = None,
+    environment_contains: Annotated[
+        list[str] | None,
+        Query(description="Filter environments whose names contain all of these substrings (case-insensitive, ANDed)"),
+    ] = None,
     limit: Annotated[
         int,
         Query(
@@ -85,6 +89,11 @@ def get_environments(
     if q and q.strip():
         search_term = f"%{q.strip()}%"
         query = query.where(Environment.name.ilike(search_term))
+
+    # Apply environment_contains filter (AND'd ILIKE per value)
+    if environment_contains:
+        for value in environment_contains:
+            query = query.where(Environment.name.ilike(f"%{value}%"))
 
     # Count total before pagination
     count_query = select(func.count()).select_from(query.subquery())

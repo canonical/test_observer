@@ -1673,3 +1673,123 @@ class TestWindowFunctionSpecific:
         result_ids = [tr["test_result"]["id"] for tr in data["test_results"]]
         assert tr1.id in result_ids
         assert tr2.id in result_ids
+
+
+class TestEnvironmentContainsFilter:
+    def test_single_value_matches_containing_substring(self, test_client: TestClient, generator: DataGenerator):
+        """environment_contains with a single value returns only results from matching environments."""
+        unique_marker = uuid.uuid4().hex[:8]
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        test_case = generator.gen_test_case(name=generate_unique_name("tc"))
+
+        desktop_jammy = generator.gen_environment(name=f"{unique_marker}-desktop-jammy")
+        desktop_focal = generator.gen_environment(name=f"{unique_marker}-desktop-focal")
+        server_jammy = generator.gen_environment(name=f"{unique_marker}-server-jammy")
+
+        te_dj = generator.gen_test_execution(build, desktop_jammy)
+        tr_dj = generator.gen_test_result(test_case, te_dj)
+        te_df = generator.gen_test_execution(build, desktop_focal)
+        tr_df = generator.gen_test_result(test_case, te_df)
+        te_sj = generator.gen_test_execution(build, server_jammy)
+        tr_sj = generator.gen_test_result(test_case, te_sj)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results",
+                params={"environment_contains": f"{unique_marker}-desktop"},
+            ),
+            Permission.view_test,
+        )
+        assert response.status_code == 200
+        result_ids = {tr["test_result"]["id"] for tr in response.json()["test_results"]}
+        assert tr_dj.id in result_ids
+        assert tr_df.id in result_ids
+        assert tr_sj.id not in result_ids
+
+    def test_multiple_values_are_anded(self, test_client: TestClient, generator: DataGenerator):
+        """Multiple environment_contains values are ANDed — only results matching all values are returned."""
+        unique_marker = uuid.uuid4().hex[:8]
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        test_case = generator.gen_test_case(name=generate_unique_name("tc"))
+
+        desktop_jammy = generator.gen_environment(name=f"{unique_marker}-desktop-jammy")
+        desktop_focal = generator.gen_environment(name=f"{unique_marker}-desktop-focal")
+        server_jammy = generator.gen_environment(name=f"{unique_marker}-server-jammy")
+
+        te_dj = generator.gen_test_execution(build, desktop_jammy)
+        tr_dj = generator.gen_test_result(test_case, te_dj)
+        te_df = generator.gen_test_execution(build, desktop_focal)
+        tr_df = generator.gen_test_result(test_case, te_df)
+        te_sj = generator.gen_test_execution(build, server_jammy)
+        tr_sj = generator.gen_test_result(test_case, te_sj)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results",
+                params=[
+                    ("environment_contains", f"{unique_marker}-desktop"),
+                    ("environment_contains", "jammy"),
+                ],
+            ),
+            Permission.view_test,
+        )
+        assert response.status_code == 200
+        result_ids = {tr["test_result"]["id"] for tr in response.json()["test_results"]}
+        assert tr_dj.id in result_ids
+        assert tr_df.id not in result_ids
+        assert tr_sj.id not in result_ids
+
+    def test_case_insensitive(self, test_client: TestClient, generator: DataGenerator):
+        """environment_contains matching is case-insensitive."""
+        unique_marker = uuid.uuid4().hex[:8]
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        test_case = generator.gen_test_case(name=generate_unique_name("tc"))
+
+        env = generator.gen_environment(name=f"Desktop-Jammy-{unique_marker}")
+        te = generator.gen_test_execution(build, env)
+        tr = generator.gen_test_result(test_case, te)
+
+        for search_term in [f"desktop-jammy-{unique_marker}", f"DESKTOP-JAMMY-{unique_marker}"]:
+            response = make_authenticated_request(
+                lambda: test_client.get(  # noqa: B023
+                    "/v1/test-results",
+                    params={"environment_contains": search_term},
+                ),
+                Permission.view_test,
+            )
+            assert response.status_code == 200
+            result_ids = {r["test_result"]["id"] for r in response.json()["test_results"]}
+            assert tr.id in result_ids
+
+    def test_scoped_by_family(self, test_client: TestClient, generator: DataGenerator):
+        """environment_contains combined with families only returns results from that family."""
+        unique_marker = uuid.uuid4().hex[:8]
+        env_name = f"desktop-{unique_marker}"
+        test_case = generator.gen_test_case()
+
+        snap_artefact = generator.gen_artefact(family=FamilyName.snap)
+        snap_build = generator.gen_artefact_build(snap_artefact)
+        snap_env = generator.gen_environment(name=f"snap-{env_name}")
+        snap_te = generator.gen_test_execution(snap_build, snap_env)
+        snap_tr = generator.gen_test_result(test_case, snap_te)
+
+        deb_artefact = generator.gen_artefact(family=FamilyName.deb)
+        deb_build = generator.gen_artefact_build(deb_artefact)
+        deb_env = generator.gen_environment(name=f"deb-{env_name}")
+        deb_te = generator.gen_test_execution(deb_build, deb_env)
+        deb_tr = generator.gen_test_result(test_case, deb_te)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results",
+                params={"families": "snap", "environment_contains": env_name},
+            ),
+            Permission.view_test,
+        )
+        assert response.status_code == 200
+        result_ids = {r["test_result"]["id"] for r in response.json()["test_results"]}
+        assert snap_tr.id in result_ids
+        assert deb_tr.id not in result_ids

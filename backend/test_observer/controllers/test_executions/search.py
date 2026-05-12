@@ -186,6 +186,11 @@ def _build_execution_filters(
         query_filters.append(Environment.name.in_(filters.environments))
         joins_needed.add("environment")
 
+    if filters.environment_contains:
+        for value in filters.environment_contains:
+            query_filters.append(Environment.name.ilike(f"%{value}%"))
+        joins_needed.add("environment")
+
     if filters.execution_metadata and len(filters.execution_metadata) > 0:
         query_filters.append(_filter_execution_metadata(filters.execution_metadata))
 
@@ -353,6 +358,10 @@ def search_test_executions(
         list[str] | None,
         Query(description="Filter by environment names"),
     ] = None,
+    environment_contains: Annotated[
+        list[str] | None,
+        Query(description="Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"),
+    ] = None,
     execution_metadata: Annotated[ExecutionMetadata | None, Depends(parse_execution_metadata)] = None,
     test_execution_statuses: Annotated[
         list[TestExecutionStatus] | None,
@@ -416,6 +425,7 @@ def search_test_executions(
         artefacts=artefacts or [],
         artefact_is_archived=artefact_is_archived,
         environments=environments or [],
+        environment_contains=environment_contains or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
         test_execution_statuses=test_execution_statuses or [],
         reviewer_ids=parse_list_or_query_value(reviewer_ids),  # type: ignore[arg-type]

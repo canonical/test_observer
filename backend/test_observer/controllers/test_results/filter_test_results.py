@@ -80,6 +80,11 @@ def build_query_filters_and_joins(
         query_filters.append(Environment.name.in_(filters.environments))
         joins_needed.update(["test_execution", "environment"])
 
+    if len(filters.environment_contains) > 0:
+        for value in filters.environment_contains:
+            query_filters.append(Environment.name.ilike(f"%{value}%"))
+        joins_needed.update(["test_execution", "environment"])
+
     if len(filters.test_cases) > 0:
         query_filters.append(TestCase.name.in_(filters.test_cases))
         joins_needed.add("test_case")
