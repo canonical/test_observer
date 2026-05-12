@@ -16,7 +16,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Security
-from sqlalchemy import distinct, func, select
+from sqlalchemy import distinct, false, func, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
@@ -93,7 +93,10 @@ def get_environments(
 
     # Apply environment_contains filter (AND'd ILIKE per value)
     if environment_contains:
-        for value in normalize_contains_terms(environment_contains):
+        contains_terms = normalize_contains_terms(environment_contains)
+        if not contains_terms:
+            query = query.where(false())
+        for value in contains_terms:
             query = query.where(Environment.name.ilike(f"%{value}%", escape="\\"))
 
     # Count total before pagination

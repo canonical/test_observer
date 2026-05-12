@@ -1754,9 +1754,9 @@ class TestEnvironmentContainsFilter:
 
         for search_term in [f"desktop-jammy-{unique_marker}", f"DESKTOP-JAMMY-{unique_marker}"]:
             response = make_authenticated_request(
-                lambda: test_client.get(  # noqa: B023
+                lambda current_search_term=search_term: test_client.get(
                     "/v1/test-results",
-                    params={"environment_contains": search_term},
+                    params={"environment_contains": current_search_term},
                 ),
                 Permission.view_test,
             )
@@ -1793,3 +1793,49 @@ class TestEnvironmentContainsFilter:
         result_ids = {r["test_result"]["id"] for r in response.json()["test_results"]}
         assert snap_tr.id in result_ids
         assert deb_tr.id not in result_ids
+
+    def test_empty_values_only_returns_no_results(self, test_client: TestClient, generator: DataGenerator):
+        """Empty/whitespace-only environment_contains values should not match everything."""
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        test_case = generator.gen_test_case(name=generate_unique_name("tc"))
+        env = generator.gen_environment(name=generate_unique_name("desktop"))
+        te = generator.gen_test_execution(build, env)
+        generator.gen_test_result(test_case, te)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results",
+                params=[("environment_contains", ""), ("environment_contains", "   ")],
+            ),
+            Permission.view_test,
+        )
+        assert response.status_code == 200
+        assert response.json()["test_results"] == []
+
+    def test_like_wildcards_are_treated_as_literals(self, test_client: TestClient, generator: DataGenerator):
+        """% and _ in environment_contains are treated as literal characters, not wildcards."""
+        unique_marker = uuid.uuid4().hex[:8]
+        artefact = generator.gen_artefact(name=generate_unique_name("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        test_case = generator.gen_test_case(name=generate_unique_name("tc"))
+
+        env_with_percent = generator.gen_environment(name=f"env%-{unique_marker}")
+        env_without_percent = generator.gen_environment(name=f"envX-{unique_marker}")
+
+        te_with = generator.gen_test_execution(build, env_with_percent)
+        tr_with = generator.gen_test_result(test_case, te_with)
+        te_without = generator.gen_test_execution(build, env_without_percent)
+        tr_without = generator.gen_test_result(test_case, te_without)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-results",
+                params={"environment_contains": f"env%-{unique_marker}"},
+            ),
+            Permission.view_test,
+        )
+        assert response.status_code == 200
+        result_ids = {r["test_result"]["id"] for r in response.json()["test_results"]}
+        assert tr_with.id in result_ids
+        assert tr_without.id not in result_ids

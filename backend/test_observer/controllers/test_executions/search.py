@@ -18,7 +18,7 @@ from collections import defaultdict
 from typing import Annotated, Literal, TypeVar
 
 from fastapi import Depends, HTTPException, Query, Security
-from sqlalchemy import Select, and_, desc, exists, func, select, true
+from sqlalchemy import Select, and_, desc, exists, false, func, select, true
 from sqlalchemy.orm import Session, aliased, selectinload
 
 from test_observer.common.constants import QueryValue
@@ -188,7 +188,10 @@ def _build_execution_filters(
         joins_needed.add("environment")
 
     if filters.environment_contains:
-        for value in normalize_contains_terms(filters.environment_contains):
+        contains_terms = normalize_contains_terms(filters.environment_contains)
+        if not contains_terms:
+            query_filters.append(false())
+        for value in contains_terms:
             query_filters.append(Environment.name.ilike(f"%{value}%", escape="\\"))
         joins_needed.add("environment")
 
