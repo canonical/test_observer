@@ -1,0 +1,105 @@
+# Migration Context — SvelteKit Rewrite
+
+current_phase: 1        # 1=arch, 2=design, 3=build, 4=final-qa
+current_step: 1         # within build phase (1-8)
+completed_steps: []
+issues: []
+blueprint_approved: false
+design_approved: false
+
+# Source reference
+flutter_app_path: frontend/
+backend_api_path: backend/test_observer/controllers/
+backend_base_url: http://localhost:30000
+api_prefix: /v1
+
+# Pragma
+pragma_repo: https://github.com/canonical/pragma
+pragma_svelte_pkg: "@canonical/svelte-ds-app-launchpad"
+pragma_styles_pkg: "@canonical/styles"
+pragma_version: 0.11.0
+
+# Design System
+design_system_repo: https://github.com/canonical/design-system
+
+# Runtime config (from frontend/assets/config.yaml)
+require_authentication: false
+tabs:
+  - snaps
+  - debs
+  - charms
+  - images
+
+# Key models to port (from frontend/lib/models/)
+models:
+  - Artefact
+  - ArtefactBuild
+  - ArtefactVersion
+  - ArtefactEnvironment
+  - AttachmentRule
+  - AttachmentRuleFilters
+  - Environment
+  - EnvironmentIssue
+  - EnvironmentReview
+  - ExecutionMetadata
+  - FamilyName (enum: snap, deb, charm, image)
+  - Issue
+  - IssueAttachment
+  - RerunRequest
+  - StageName (enum)
+  - TestEvent
+  - TestExecution
+  - TestExecutionRelevantLink
+  - TestIssue
+  - TestResult
+  - TestResultsFilters
+  - User
+  - UserNotification
+  - ViewModes
+
+# API endpoints (from router.py)
+api_endpoints:
+  - GET /v1/artefacts
+  - PATCH /v1/artefacts/{id}
+  - GET /v1/artefacts/{id}/builds
+  - GET /v1/artefacts/{id}/versions
+  - GET /v1/artefacts/{id}/environment-reviews
+  - PATCH /v1/artefacts/{id}/environment-reviews
+  - PATCH /v1/artefacts/{id}/environment-reviews/{review_id}
+  - GET /v1/artefacts/search
+  - GET /v1/test-executions/start-test
+  - POST /v1/test-executions/reruns
+  - DELETE /v1/test-executions/reruns
+  - GET /v1/test-executions/{id}/test-results
+  - GET /v1/test-executions/{id}/status_update
+  - GET /v1/test-results
+  - POST /v1/test-executions/{id}/test-results
+  - GET /v1/test-cases/reported-issues
+  - PUT /v1/test-cases/reported-issues/{id}
+  - POST /v1/test-cases/reported-issues
+  - DELETE /v1/test-cases/reported-issues/{id}
+  - GET /v1/environments
+  - GET /v1/environments/reported-issues
+  - POST /v1/environments/reported-issues
+  - PUT /v1/environments/reported-issues/{id}
+  - DELETE /v1/environments/reported-issues/{id}
+  - GET /v1/issues
+  - PUT /v1/issues
+  - GET /v1/issues/{id}
+  - POST /v1/issues/{id}/attach
+  - POST /v1/issues/{id}/detach
+  - PATCH /v1/issues/{id}
+  - POST /v1/issues/{id}/attachment-rules
+  - DELETE /v1/issues/{id}/attachment-rules/{rule_id}
+  - PATCH /v1/issues/{id}/attachment-rules/{rule_id}
+  - GET /v1/execution-metadata
+  - GET /v1/users/me
+  - GET /v1/users
+  - GET /v1/users/{id}
+  - GET /v1/users/me/notifications
+  - GET /v1/users/me/notifications/count
+  - POST /v1/users/me/notifications/{id}/dismiss
+  - GET /v1/auth
+  - GET /v1/version
+  - GET /health/live
+  - GET /health/ready
