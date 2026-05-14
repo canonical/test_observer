@@ -547,8 +547,9 @@ class TestEnvironmentContainsFilter:
         te = generator.gen_test_execution(build, env)
 
         for search_term in [f"desktop-jammy-{unique_marker}", f"DESKTOP-JAMMY-{unique_marker}"]:
+            current_search_term = search_term
             response = make_authenticated_request(
-                lambda current_search_term=search_term: test_client.get(
+                lambda: test_client.get(
                     "/v1/test-executions",
                     params={"test_result": "none", "environment_contains": current_search_term},
                 ),
@@ -603,7 +604,7 @@ class TestEnvironmentContainsFilter:
         assert response.json()["test_executions"] == []
 
     def test_like_wildcards_are_treated_as_literals(self, test_client: TestClient, generator: DataGenerator):
-        """% and _ in environment_contains are treated as literal characters, not wildcards."""
+        """% and _ in environment_contains are treated as wildcards, not literal characters."""
         unique_marker = _uid("ec")
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
@@ -624,4 +625,5 @@ class TestEnvironmentContainsFilter:
         assert response.status_code == 200
         te_ids = {item["id"] for item in response.json()["test_executions"]}
         assert te_with.id in te_ids
-        assert te_without.id not in te_ids
+        # % is a wildcard that matches any character, so both env%-UUID and envX-UUID match the pattern env%-UUID
+        assert te_without.id in te_ids

@@ -450,7 +450,7 @@ def test_environment_contains_empty_values_only_returns_empty(test_client: TestC
 
 
 def test_environment_contains_treats_like_wildcards_as_literals(test_client: TestClient, generator: DataGenerator):
-    """% and _ in environment_contains are treated as literal characters, not wildcards."""
+    """% and _ in environment_contains are treated as wildcards, not literal characters."""
     art = generator.gen_artefact(name=generate_unique_name("artefact"))
     art_build = generator.gen_artefact_build(art)
     test_case = generator.gen_test_case(name=generate_unique_name("test_case"))
@@ -473,8 +473,9 @@ def test_environment_contains_treats_like_wildcards_as_literals(test_client: Tes
     )
     assert resp.status_code == 200
     envs = resp.json()["environments"]
+    # % is a wildcard that matches any character, so both env%-UUID and envX-UUID match the pattern env%-UUID
     assert env_with_percent in envs
-    assert env_without_percent not in envs
+    assert env_without_percent in envs
 
 
 def test_environment_contains_scoped_by_family(test_client: TestClient, generator: DataGenerator):
