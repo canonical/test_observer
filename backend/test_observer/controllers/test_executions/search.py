@@ -188,7 +188,10 @@ def _build_execution_filters(
 
     if filters.environment_contains:
         for value in filters.environment_contains:
-            query_filters.append(Environment.name.icontains(value, escape="\\"))
+            normalized_value = value.strip()
+            if not normalized_value:
+                continue
+            query_filters.append(Environment.name.icontains(normalized_value, escape="\\"))
         joins_needed.add("environment")
 
     if filters.execution_metadata and len(filters.execution_metadata) > 0:

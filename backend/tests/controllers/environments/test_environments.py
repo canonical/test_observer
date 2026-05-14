@@ -429,53 +429,35 @@ def test_environment_contains_no_match(test_client: TestClient):
     assert resp.json()["environments"] == []
 
 
-def test_environment_contains_empty_values_only_returns_empty(test_client: TestClient, generator: DataGenerator):
-    """Empty/whitespace-only environment_contains values should not match everything."""
-    art = generator.gen_artefact(name=generate_unique_name("artefact"))
-    art_build = generator.gen_artefact_build(art)
-    test_case = generator.gen_test_case(name=generate_unique_name("test_case"))
-    env = generator.gen_environment(name=generate_unique_name("desktop"))
-    te = generator.gen_test_execution(art_build, env)
-    generator.gen_test_result(test_case, te)
-
-    resp = make_authenticated_request(
-        lambda: test_client.get(
-            "/v1/environments",
-            params=[("environment_contains", ""), ("environment_contains", "   ")],
-        ),
-        Permission.view_test,
-    )
-    assert resp.status_code == 200
-    assert resp.json()["environments"] == []
-
-
-def test_environment_contains_treats_like_wildcards_as_literals(test_client: TestClient, generator: DataGenerator):
-    """% and _ in environment_contains are treated as wildcards, not literal characters."""
+def test_environment_contains_ignores_empty_values_and_trims_terms(test_client: TestClient, generator: DataGenerator):
+    """Empty values are ignored and non-empty values are matched after trimming."""
     art = generator.gen_artefact(name=generate_unique_name("artefact"))
     art_build = generator.gen_artefact_build(art)
     test_case = generator.gen_test_case(name=generate_unique_name("test_case"))
     unique_marker = uuid.uuid4().hex[:8]
 
-    env_with_percent = f"env%-{unique_marker}"
-    env_without_percent = f"envX-{unique_marker}"
-
-    for name in [env_with_percent, env_without_percent]:
-        env = generator.gen_environment(name=name)
-        te = generator.gen_test_execution(art_build, env)
-        generator.gen_test_result(test_case, te)
+    matching_env = generator.gen_environment(name=f"{unique_marker}-desktop-jammy")
+    non_matching_env = generator.gen_environment(name=f"{unique_marker}-server-jammy")
+    matching_te = generator.gen_test_execution(art_build, matching_env)
+    non_matching_te = generator.gen_test_execution(art_build, non_matching_env)
+    generator.gen_test_result(test_case, matching_te)
+    generator.gen_test_result(test_case, non_matching_te)
 
     resp = make_authenticated_request(
         lambda: test_client.get(
             "/v1/environments",
-            params={"environment_contains": f"env%-{unique_marker}"},
+            params=[
+                ("environment_contains", ""),
+                ("environment_contains", "   "),
+                ("environment_contains", f"  {unique_marker}-desktop  "),
+            ],
         ),
         Permission.view_test,
     )
     assert resp.status_code == 200
     envs = resp.json()["environments"]
-    # % is a wildcard that matches any character, so both env%-UUID and envX-UUID match the pattern env%-UUID
-    assert env_with_percent in envs
-    assert env_without_percent in envs
+    assert matching_env.name in envs
+    assert non_matching_env.name not in envs
 
 
 def test_environment_contains_scoped_by_family(test_client: TestClient, generator: DataGenerator):

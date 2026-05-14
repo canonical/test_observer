@@ -93,7 +93,10 @@ def get_environments(
     # Apply environment_contains filter (AND'd ICONTAINS per value)
     if environment_contains:
         for value in environment_contains:
-            query = query.where(Environment.name.icontains(value, escape="\\"))
+            normalized_value = value.strip()
+            if not normalized_value:
+                continue
+            query = query.where(Environment.name.icontains(normalized_value, escape="\\"))
 
     # Count total before pagination
     count_query = select(func.count()).select_from(query.subquery())

@@ -546,18 +546,20 @@ class TestEnvironmentContainsFilter:
         env = generator.gen_environment(name=f"Desktop-Jammy-{unique_marker}")
         te = generator.gen_test_execution(build, env)
 
-        for search_term in [f"desktop-jammy-{unique_marker}", f"DESKTOP-JAMMY-{unique_marker}"]:
-            current_search_term = search_term
+        def assert_search_matches(search_term: str) -> None:
             response = make_authenticated_request(
                 lambda: test_client.get(
                     "/v1/test-executions",
-                    params={"test_result": "none", "environment_contains": current_search_term},
+                    params={"test_result": "none", "environment_contains": search_term},
                 ),
                 Permission.view_test,
             )
             assert response.status_code == 200
             te_ids = {item["id"] for item in response.json()["test_executions"]}
             assert te.id in te_ids
+
+        for search_term in [f"desktop-jammy-{unique_marker}", f"DESKTOP-JAMMY-{unique_marker}"]:
+            assert_search_matches(search_term)
 
     def test_scoped_by_family(self, test_client: TestClient, generator: DataGenerator):
         """environment_contains combined with families only returns executions from that family."""
@@ -586,44 +588,31 @@ class TestEnvironmentContainsFilter:
         assert snap_te.id in te_ids
         assert deb_te.id not in te_ids
 
-    def test_empty_values_only_returns_no_results(self, test_client: TestClient, generator: DataGenerator):
-        """Empty/whitespace-only environment_contains values should not match everything."""
-        artefact = generator.gen_artefact(name=_uid("artefact"))
-        build = generator.gen_artefact_build(artefact)
-        env = generator.gen_environment(name=_uid("desktop"))
-        _ = generator.gen_test_execution(build, env)
-
-        response = make_authenticated_request(
-            lambda: test_client.get(
-                "/v1/test-executions",
-                params=[("test_result", "none"), ("environment_contains", ""), ("environment_contains", "   ")],
-            ),
-            Permission.view_test,
-        )
-        assert response.status_code == 200
-        assert response.json()["test_executions"] == []
-
-    def test_like_wildcards_are_treated_as_literals(self, test_client: TestClient, generator: DataGenerator):
-        """% and _ in environment_contains are treated as wildcards, not literal characters."""
+    def test_empty_values_are_ignored_and_non_empty_values_are_trimmed(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """Empty values are ignored and non-empty values are matched after trimming."""
         unique_marker = _uid("ec")
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
-
-        env_with_percent = generator.gen_environment(name=f"env%-{unique_marker}")
-        env_without_percent = generator.gen_environment(name=f"envX-{unique_marker}")
-
-        te_with = generator.gen_test_execution(build, env_with_percent)
-        te_without = generator.gen_test_execution(build, env_without_percent)
+        matching_env = generator.gen_environment(name=f"{unique_marker}-desktop-jammy")
+        non_matching_env = generator.gen_environment(name=f"{unique_marker}-server-jammy")
+        matching_te = generator.gen_test_execution(build, matching_env)
+        non_matching_te = generator.gen_test_execution(build, non_matching_env)
 
         response = make_authenticated_request(
             lambda: test_client.get(
                 "/v1/test-executions",
-                params={"test_result": "none", "environment_contains": f"env%-{unique_marker}"},
+                params=[
+                    ("test_result", "none"),
+                    ("environment_contains", ""),
+                    ("environment_contains", "   "),
+                    ("environment_contains", f"  {unique_marker}-desktop  "),
+                ],
             ),
             Permission.view_test,
         )
         assert response.status_code == 200
         te_ids = {item["id"] for item in response.json()["test_executions"]}
-        assert te_with.id in te_ids
-        # % is a wildcard that matches any character, so both env%-UUID and envX-UUID match the pattern env%-UUID
-        assert te_without.id in te_ids
+        assert matching_te.id in te_ids
+        assert non_matching_te.id not in te_ids

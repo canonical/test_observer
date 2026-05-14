@@ -82,7 +82,10 @@ def build_query_filters_and_joins(
 
     if len(filters.environment_contains) > 0:
         for value in filters.environment_contains:
-            query_filters.append(Environment.name.icontains(value, escape="\\"))
+            normalized_value = value.strip()
+            if not normalized_value:
+                continue
+            query_filters.append(Environment.name.icontains(normalized_value, escape="\\"))
         joins_needed.update(["test_execution", "environment"])
 
     if len(filters.test_cases) > 0:
