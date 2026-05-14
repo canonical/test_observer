@@ -1,0 +1,6 @@
+require_authentication: false
+tabs:
+  - snaps
+  - debs
+  - charms
+  - images

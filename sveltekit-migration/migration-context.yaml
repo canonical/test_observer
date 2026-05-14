@@ -1,11 +1,11 @@
 # Migration Context — SvelteKit Rewrite + UI Redesign
 
-current_phase: 2        # 1=arch, 2=design, 3=build, 4=final-qa
-current_step: 1         # within build phase (1-8)
-completed_steps: []
+current_phase: 5        # 1=arch, 2=design, 3=build, 4=final-qa, 5=done
+current_step: 8         # within build phase (1-8)
+completed_steps: [1, 2, 3, 4, 5, 6, 7, 8]
 issues: []
 blueprint_approved: true
-design_approved: false
+design_approved: true
 
 # ─── Project goals ────────────────────────────────────────────────────────────
 
