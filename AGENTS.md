@@ -75,9 +75,9 @@ docker compose exec test-observer-api pytest  # run backend tests in container
 - Migrations + seeding run automatically via `dev_entrypoint.sh`.
 - SAML IdP test users: `certbot`/`password`, `mark`/`password` (see `backend/saml/simplesamlphp/authsources.php`).
 
-## justfile (alternative to Docker)
+## justfile (optional alternative to Docker Compose)
 
-A `justfile` at repo root provides LXD-container-friendly recipes: `just install-deps`, `just setup`, `just dev`, `just test-backend`, `just lint-backend`, `just test-frontend`, `just lint-frontend`.
+A `justfile` at repo root provides recipes for running services directly on the host without Docker: `just install-deps`, `just setup`, `just dev`, `just test-backend`, `just lint-backend`, `just test-frontend`, `just lint-frontend`. Prefer `docker compose` for day-to-day development.
 
 ## API structure
 

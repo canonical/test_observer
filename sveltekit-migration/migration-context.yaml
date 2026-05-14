@@ -1,10 +1,10 @@
 # Migration Context — SvelteKit Rewrite + UI Redesign
 
-current_phase: 1        # 1=arch, 2=design, 3=build, 4=final-qa
+current_phase: 2        # 1=arch, 2=design, 3=build, 4=final-qa
 current_step: 1         # within build phase (1-8)
 completed_steps: []
 issues: []
-blueprint_approved: false
+blueprint_approved: true
 design_approved: false
 
 # ─── Project goals ────────────────────────────────────────────────────────────
@@ -24,6 +24,18 @@ extensibility_goal: |
   tabs list in config.yaml.  No family name (snap, deb, charm, image) may
   appear as a literal string in source code, route matchers, or conditional
   branches.  Adding a new family = editing config.yaml only.
+
+# ─── SvelteKit deployment ──────────────────────────────────────────────────────
+
+# The SvelteKit UI is deployed alongside the existing Flutter UI.
+# Flutter UI stays at its current URLs (e.g. /snaps, /test-results, ...).
+# SvelteKit UI is served under base_path (e.g. /svelte/).
+#
+# base_path is the single source of truth: it is read into svelte.config.js
+# via the BASE_PATH env var.  To cut over to SvelteKit as the main UI, set
+# BASE_PATH="" (empty string) and redeploy — zero code changes required.
+base_path: "/svelte"
+base_path_env_var: BASE_PATH
 
 # ─── Source reference ─────────────────────────────────────────────────────────
 
@@ -96,6 +108,8 @@ models:
 api_endpoints:
   # Artefacts
   - GET /v1/artefacts
+  - GET /v1/artefacts/{id}
+  - GET /v1/artefacts/history
   - PATCH /v1/artefacts/{id}
   - GET /v1/artefacts/{id}/builds
   - GET /v1/artefacts/{id}/versions
@@ -109,7 +123,7 @@ api_endpoints:
   - PATCH /v1/artefact-matching-rules/{id}
   - DELETE /v1/artefact-matching-rules/{id}
   # Test executions
-  - GET /v1/test-executions/start-test
+  - PUT /v1/test-executions/start-test
   - POST /v1/test-executions/reruns
   - DELETE /v1/test-executions/reruns
   - GET /v1/test-executions/{id}/test-results
@@ -118,6 +132,7 @@ api_endpoints:
   - GET /v1/test-results
   - POST /v1/test-executions/{id}/test-results
   # Test cases / reported issues
+  - GET /v1/test-cases
   - GET /v1/test-cases/reported-issues
   - PUT /v1/test-cases/reported-issues/{id}
   - POST /v1/test-cases/reported-issues

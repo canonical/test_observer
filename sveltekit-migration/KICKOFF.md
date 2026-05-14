@@ -32,33 +32,69 @@ before starting.
 
 ## How to run the workflow
 
-### Option A: AI assistant sessions (recommended)
+### Option A: opencode (recommended)
+
+opencode drives each phase directly — no copy-pasting of file contents.
+
+**Each phase = a fresh opencode conversation** (avoids context window exhaustion
+across the full 8-step build).  Phase 1 (Architecture) is already complete.
+
+#### Phase 2 — Designer
+Start a new opencode conversation and say:
+
+```
+Read sveltekit-migration/agents/designer.md and act as that agent.
+Your inputs are:
+  - sveltekit-migration/migration-blueprint.md  (approved architecture)
+  - sveltekit-migration/migration-context.yaml  (constraints and goals)
+  - sveltekit-migration/pragma-svelte-reference.md
+  - frontend/assets/config.yaml
+  - frontend/lib/  (Flutter UI for capability reference only)
+Produce design-spec.md in sveltekit-migration/ as instructed.
+```
+
+After the Designer produces `design-spec.md`, ask opencode to act as the QA
+agent (`agents/qa.md`) and run Stage 2 validation.  On pass, set
+`design_approved: true` in `migration-context.yaml`.
+
+#### Phase 3 — Builder (one conversation per step)
+Start a fresh opencode conversation for each step:
+
+```
+Read sveltekit-migration/agents/builder.md and act as that agent.
+Implement Step N as described in sveltekit-migration/migration-blueprint.md
+and sveltekit-migration/design-spec.md.
+The project lives at frontend-svelte/ (create it on Step 1).
+After completing the step, run the self-check commands and report results.
+```
+
+Run QA (Stage 3+4) at the end of each step by asking opencode to act as
+`agents/qa.md`.  opencode can directly update `migration-context.yaml`
+(mark steps completed, log issues).
+
+#### Phase 4 — Final QA
+```
+Read sveltekit-migration/agents/qa.md.  Run the full Phase 4 final validation
+against frontend-svelte/.
+```
+
+### Option B: Traditional AI assistant sessions
 
 Each agent file is a **persona prompt** for a dedicated AI assistant session.
+Copy-paste the agent file content + the relevant input files into the session.
 
-1. **Architect session** — provide `architect.md` + context files listed in `./orchestrator.sh phase1`
-   → produces refined `migration-blueprint.md`
-2. **QA Stage 1** — provide `qa.md` + blueprint → validates architecture
-3. Mark `blueprint_approved: true` in `migration-context.yaml` if QA passes
-4. **Designer session** — provide `designer.md` + approved blueprint + Flutter UI files
-   → produces `design-spec.md`
-5. **QA Stage 2** → validates design; mark `design_approved: true` if passes
-6. **Builder sessions** (one per step, or parallel for steps 5/6/7) → each produces
-   code in `frontend-svelte/`
-7. After each Builder step, run QA Stages 3+4
-8. After all 8 steps, run QA Phase 4 (final validation)
-
-### Option B: Single-session orchestration
-
-If your AI tool supports multi-agent delegation (e.g. via the Task tool), drive
-everything from one session using `orchestrator.md` as the top-level persona.
-The Orchestrator delegates to sub-agents with the appropriate persona file.
+1. **Architect** — `architect.md` + `./orchestrator.sh phase1` context → `migration-blueprint.md`
+2. QA Stage 1 → mark `blueprint_approved: true`
+3. **Designer** — `designer.md` + approved blueprint + Flutter UI → `design-spec.md`
+4. QA Stage 2 → mark `design_approved: true`
+5. **Builder** (one session per step) → code in `frontend-svelte/`
+6. QA Stage 3+4 after each step
 
 ### Option C: Manual with orchestrator.sh
 
 ```bash
 ./orchestrator.sh setup     # verify prerequisites
-./orchestrator.sh phase1    # instructions for Architect
+./orchestrator.sh phase1    # instructions for Architect  [COMPLETE]
 ./orchestrator.sh phase2    # instructions for Designer (after blueprint approved)
 ./orchestrator.sh phase3 1  # instructions for Builder step 1
 ./orchestrator.sh phase4    # run final validation
@@ -154,6 +190,7 @@ Read these before starting any agent session:
 | State management | Svelte 5 runes; `.svelte.ts` stores for cross-page | Modern idiomatic Svelte |
 | SvelteKit adapter | `adapter-node` | Self-hosted, Docker |
 | API base URL | `VITE_API_BASE_URL` env var, default `http://localhost:30000` | |
+| SvelteKit base path | `BASE_PATH` env var, default `/svelte` | Set `BASE_PATH=` (empty) to cut over |
 | SAML handling | `hooks.server.ts` checks auth, redirects to backend `/v1/auth` | |
 | Testing | vitest + Playwright browser mode | Pragma convention |
 
@@ -185,3 +222,9 @@ Read these before starting any agent session:
 
 8. **Don't skip copyright headers.**  Every file needs SPDX headers.
    The REUSE tool enforces this in CI.
+
+9. **Don't hardcode `/svelte` in source code.**  The base path comes from
+   `svelte.config.js` via `process.env.BASE_PATH`.  Use `base` imported from
+   `$app/paths` whenever constructing a URL or checking the current path.
+   `href="/svelte/issues"` is wrong; `href="{base}/issues"` is correct.
+   Forgetting this is the most common cause of broken links after a cutover.

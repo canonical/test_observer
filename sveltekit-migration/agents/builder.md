@@ -54,6 +54,47 @@ bun run biome check .
 > **Do NOT install** `@canonical/styles`, `@canonical/ds-assets`, or
 > `@canonical/ds-types` — these are React/vanilla packages and are not used here.
 
+## Base Path Configuration
+
+The SvelteKit app is deployed at `/svelte/` alongside the Flutter UI.  The base
+path is controlled entirely by a single env var so that cutting over to SvelteKit
+as the main UI requires no code changes — only an environment change.
+
+```js
+// svelte.config.js
+import adapter from "@sveltejs/adapter-node";
+
+const config = {
+  kit: {
+    adapter: adapter(),
+    paths: {
+      // BASE_PATH="/svelte" in production (alongside Flutter).
+      // BASE_PATH=""         to cut over to SvelteKit as main UI.
+      base: process.env.BASE_PATH ?? "/svelte",
+    },
+  },
+};
+
+export default config;
+```
+
+**Rules for using `base` in application code:**
+
+```ts
+// Always import base from $app/paths wherever you construct a URL
+import { base } from "$app/paths";
+
+// ✅ In <a href> tags:           href="{base}/issues"
+// ✅ In redirect() (server):     redirect(302, `${base}/login`)
+// ✅ In URL helpers:             `${base}/${family}/${id}`
+// ✅ In active-route checks:     currentPath.startsWith(`${base}/${family}`)
+// ✅ goto() calls (client nav):  goto('/issues')  ← SvelteKit prepends base automatically
+// ❌ Never hardcode '/svelte'   in source code
+```
+
+**Never hardcode `/svelte` in source.** If you find yourself writing the string
+`"/svelte"` anywhere other than `svelte.config.js`, stop — use `base` instead.
+
 ## Styles Setup
 
 Styles are imported in `src/routes/+layout.svelte`, **not** in a global `app.css`:
@@ -141,24 +182,26 @@ export type { Props as ArtefactCardProps } from "./types.js";
 ```svelte
 <!-- AppShell/Sidebar.svelte -->
 <script lang="ts">
+  import { base } from "$app/paths";
   import { SideNavigation } from "@canonical/svelte-ds-app-launchpad";
   import type { Props } from "./types.js";
 
   const { tabs, currentPath }: Props = $props();
 
-  // Family names come from config.yaml — never hardcoded here
+  // Family names come from config.yaml — never hardcoded here.
+  // All hrefs prepend `base` so the app works at any sub-path.
   const familyItems = $derived(tabs.map(family => ({
-    href: `/${family}`,
+    href: `${base}/${family}`,
     label: family.charAt(0).toUpperCase() + family.slice(1),
-    active: currentPath.startsWith(`/${family}`),
+    active: currentPath.startsWith(`${base}/${family}`),
   })));
 </script>
 
 <SideNavigation items={[
   ...familyItems,
-  { href: "/test-results", label: "Test Results", active: currentPath === "/test-results" },
-  { href: "/issues", label: "Issues", active: currentPath.startsWith("/issues") },
-  { href: "/notifications", label: "Notifications", active: currentPath === "/notifications" },
+  { href: `${base}/test-results`, label: "Test Results", active: currentPath === `${base}/test-results` },
+  { href: `${base}/issues`,        label: "Issues",       active: currentPath.startsWith(`${base}/issues`) },
+  { href: `${base}/notifications`, label: "Notifications", active: currentPath === `${base}/notifications` },
 ]} />
 ```
 
@@ -300,3 +343,6 @@ Report failures to the Orchestrator with the exact error message.
 - `if (family === "snap") { ... }` — no family-specific branches anywhere
 - Hardcoded nav items — always read from `config.tabs`
 - `export * from "./something"` — use explicit named exports
+- `href="/issues"` — always `href="{base}/issues"` (import `base` from `$app/paths`)
+- `redirect(302, '/login')` — always `redirect(302, \`${base}/login\`)` in server code
+- `"/svelte"` literal anywhere in source — use `base` from `$app/paths` instead
