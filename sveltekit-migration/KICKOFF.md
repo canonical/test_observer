@@ -32,7 +32,111 @@ before starting.
 
 ## How to run the workflow
 
-### Option A: opencode (recommended)
+### Option A: VS Code Copilot Chat — Agent mode (recommended)
+
+VS Code Copilot Chat in **Agent mode** handles each phase without copy-pasting
+file contents — the agent reads files directly and can write output files.
+Agent mode uses subagents internally, which is more billing-efficient than
+running a single large-context model session.
+
+**Setup:** Open the VS Code Copilot Chat panel, click the model-selector
+dropdown at the bottom of the input box, and switch to **Agent** mode.
+Use `#file:` to attach specific files; the agent can also browse `@workspace`.
+
+**Each phase = a fresh chat session** (avoids context window exhaustion).
+Phase 1 (Architecture) is already complete.
+
+#### Phase 2 — Designer
+
+Paste this into a new Agent-mode chat session:
+
+```
+Act as the Designer agent described in #file:sveltekit-migration/agents/designer.md
+
+**Current state:** Phase 2 — Design. Blueprint is approved (Phase 1 complete).
+
+**Your inputs:**
+- Approved architecture: #file:sveltekit-migration/migration-blueprint.md
+- Project goals & constraints: #file:sveltekit-migration/migration-context.yaml
+- Pragma Svelte reference: #file:sveltekit-migration/pragma-svelte-reference.md
+- Runtime config: #file:frontend/assets/config.yaml
+- Flutter UI (capability reference only): read the files in frontend/lib/ui/
+  using your file tools — you are redesigning, not porting.
+
+**Deliverable:** Create sveltekit-migration/design-spec.md covering all
+sections listed in your agent persona.
+
+**Critical constraints:**
+- No artefact-specific logic; no hardcoded family names (snap/deb/charm/image)
+- Config-driven navigation: family list comes only from config.yaml
+- Use only Pragma Svelte components (@canonical/svelte-ds-app-launchpad)
+```
+
+After `design-spec.md` is written, start a **new** chat session for QA:
+
+```
+Act as the QA agent described in #file:sveltekit-migration/agents/qa.md
+
+Run the Stage 2 (Design Review) checklist against:
+- #file:sveltekit-migration/design-spec.md
+- #file:sveltekit-migration/migration-blueprint.md
+- #file:sveltekit-migration/migration-context.yaml
+
+Report all blockers, criticals, and warnings.
+If no blockers, set design_approved: true in sveltekit-migration/migration-context.yaml.
+```
+
+#### Phase 3 — Builder (one chat session per step)
+
+Start a **new** Agent-mode session for each step (1–8):
+
+```
+Act as the Builder agent described in #file:sveltekit-migration/agents/builder.md
+
+Implement Step N: <step name from migration-blueprint.md>
+
+**Your inputs:**
+- #file:sveltekit-migration/migration-blueprint.md
+- #file:sveltekit-migration/design-spec.md
+- #file:sveltekit-migration/migration-context.yaml
+- #file:sveltekit-migration/pragma-svelte-reference.md
+- Current frontend-svelte/ codebase (read it with your file tools; skip on Step 1)
+
+The project lives at frontend-svelte/ (create it on Step 1).
+After completing the step, run these checks in the terminal:
+  cd frontend-svelte && bun run svelte-check && bun run biome check . && bun run vitest --run
+Also run: rg '"snap"\|"deb"\|"charm"\|"image"' frontend-svelte/src/ | wc -l  (must be 0)
+Report the results.
+```
+
+After the Builder finishes each step, run QA in a **new** session:
+
+```
+Act as the QA agent described in #file:sveltekit-migration/agents/qa.md
+
+Run QA Stages 3 and 4 for Step N against the current frontend-svelte/ codebase.
+Reference: #file:sveltekit-migration/migration-blueprint.md
+           #file:sveltekit-migration/design-spec.md
+           #file:sveltekit-migration/migration-context.yaml
+
+Report results. If QA passes (no blockers), update migration-context.yaml:
+mark step N complete and advance current_step to N+1.
+```
+
+#### Phase 4 — Final QA
+
+```
+Act as the QA agent described in #file:sveltekit-migration/agents/qa.md
+
+Run the full Phase 4 final validation against frontend-svelte/.
+Reference: #file:sveltekit-migration/migration-blueprint.md
+           #file:sveltekit-migration/design-spec.md
+           #file:sveltekit-migration/migration-context.yaml
+
+Run all validation commands in the terminal and report results.
+```
+
+### Option B: opencode
 
 opencode drives each phase directly — no copy-pasting of file contents.
 
