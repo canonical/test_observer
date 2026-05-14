@@ -4,6 +4,7 @@
   import { base } from "$app/paths";
   import { page } from "$app/state";
   import { capitalize } from "$lib/utils/formatting.js";
+  import { SideNavigation } from "$lib/components/SideNavigation/index.js";
 
   interface Props {
     tabs: string[];
@@ -11,6 +12,7 @@
 
   const { tabs }: Props = $props();
 
+  let expanded = $state(true);
   const currentPath = $derived(page.url.pathname);
 
   const navItems = $derived([
@@ -37,46 +39,44 @@
   ]);
 </script>
 
-<nav class="ds side-navigation" aria-label="Main navigation">
-  <ul class="ds side-navigation__list">
-    {#each navItems as item}
-      <li class="ds side-navigation__item" class:active={item.active}>
-        <a href={item.href} class="ds side-navigation__link" aria-current={item.active ? "page" : undefined}>
-          {item.label}
-        </a>
-      </li>
-    {/each}
-  </ul>
-</nav>
+<SideNavigation {expanded}>
+  {#snippet logo()}
+    <a href="{base}/" class="app-logo" aria-label="Test Observer home">
+      Test Observer
+    </a>
+  {/snippet}
+  {#snippet expandToggle(toggleProps)}
+    <SideNavigation.ExpandToggle
+      {...toggleProps}
+      onclick={() => (expanded = !expanded)}
+    />
+  {/snippet}
+  {#each navItems as item}
+    <SideNavigation.NavigationItem
+      href={item.href}
+      selected={item.active}
+      aria-current={item.active ? "page" : undefined}
+    >
+      {item.label}
+    </SideNavigation.NavigationItem>
+  {/each}
+</SideNavigation>
 
 <style>
-  .ds.side-navigation {
-    padding: var(--spacing-3) 0;
-  }
-
-  .ds.side-navigation__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .ds.side-navigation__item {
-    margin: 0;
-  }
-
-  .ds.side-navigation__link {
+  .app-logo {
     display: block;
-    padding: var(--spacing-2) var(--spacing-4);
-    text-decoration: none;
-    color: var(--color-text);
-  }
-
-  .ds.side-navigation__link:hover {
-    background-color: var(--color-background);
-  }
-
-  .ds.side-navigation__item.active .ds.side-navigation__link {
+    font-size: 0.9375rem;
     font-weight: 600;
-    border-left: 3px solid var(--color-text);
+    color: var(--lp-color-text-default);
+    text-decoration: none;
+    padding: var(--lp-dimension-spacing-block-s) 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-logo:hover {
+    text-decoration: none;
+    color: var(--lp-color-text-default);
   }
 </style>

@@ -42,6 +42,7 @@
         <Badge value={unreadCount} />
       {/if}
     </a>
+    <div class="ds header__divider" aria-hidden="true"></div>
     <div class="ds header__user">
       <span>{user.name}</span>
     </div>
@@ -53,11 +54,26 @@
     display: flex;
     align-items: center;
     width: 100%;
-    gap: var(--spacing-3);
+    gap: var(--spacing-4);
+    background-color: var(--lp-color-background-brand-default);
+    color: var(--lp-color-text-reversed);
+  }
+
+  .ds.header__logo strong {
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    color: var(--lp-color-text-reversed);
   }
 
   .ds.header__spacer {
     flex: 1;
+  }
+
+  .ds.header__divider {
+    width: 1px;
+    height: 1.25rem;
+    background-color: rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
   }
 
   .ds.header__notifications {
@@ -65,10 +81,21 @@
     align-items: center;
     gap: var(--spacing-2);
     text-decoration: none;
-    color: var(--color-text);
+    color: var(--lp-color-text-reversed);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--lp-dimension-radius-small);
   }
 
   .ds.header__notifications:hover {
-    text-decoration: underline;
+    background-color: rgba(255, 255, 255, 0.15);
+    text-decoration: none;
+  }
+
+  .ds.header__user {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    color: var(--lp-color-text-reversed);
+    font-weight: 500;
   }
 </style>

@@ -12,6 +12,27 @@ export class ApiError extends Error {
   }
 }
 
+/** Convert a single snake_case key to camelCase. */
+function snakeToCamel(key: string): string {
+  return key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
+/** Recursively convert all object keys from snake_case to camelCase. */
+function deepCamelCase<T>(val: unknown): T {
+  if (Array.isArray(val)) {
+    return val.map(deepCamelCase) as T;
+  }
+  if (val !== null && typeof val === "object") {
+    return Object.fromEntries(
+      Object.entries(val as Record<string, unknown>).map(([k, v]) => [
+        snakeToCamel(k),
+        deepCamelCase(v),
+      ]),
+    ) as T;
+  }
+  return val as T;
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -29,5 +50,6 @@ export async function apiFetch<T>(
   if (!response.ok) {
     throw new ApiError(response.status, await response.text());
   }
-  return response.json() as Promise<T>;
+  const raw: unknown = await response.json();
+  return deepCamelCase<T>(raw);
 }

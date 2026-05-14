@@ -4,10 +4,18 @@
 import { apiFetch } from "./client.js";
 import type { UserNotification } from "$lib/types/notification.js";
 
-export function getNotifications(
+interface NotificationsResponse {
+  notifications: UserNotification[];
+  count: number;
+  limit: number;
+  offset: number;
+}
+
+export async function getNotifications(
   fetchFn: typeof fetch = fetch,
 ): Promise<UserNotification[]> {
-  return apiFetch<UserNotification[]>("/v1/users/me/notifications", {}, fetchFn);
+  const result = await apiFetch<NotificationsResponse>("/v1/users/me/notifications", {}, fetchFn);
+  return result.notifications;
 }
 
 export function getUnreadNotificationCount(

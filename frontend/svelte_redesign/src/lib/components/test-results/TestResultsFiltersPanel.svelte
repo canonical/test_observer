@@ -17,7 +17,7 @@
 
   const allStatuses: TestResultStatus[] = ["PASSED", "FAILED", "SKIPPED"];
 
-  let draft: TestResultsFilters = $state(undefined!);
+  let draft: TestResultsFilters = $state(structuredClone(filters));
 
   $effect(() => {
     draft = structuredClone($state.snapshot(filters));

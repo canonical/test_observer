@@ -27,7 +27,7 @@
 <style>
   .ds.app-shell {
     display: grid;
-    grid-template-columns: var(--sidebar-width, 240px) 1fr;
+    grid-template-columns: auto 1fr;
     grid-template-rows: var(--header-height, 56px) 1fr;
     grid-template-areas:
       "sidebar header"
@@ -38,9 +38,7 @@
 
   .ds.app-shell__sidebar {
     grid-area: sidebar;
-    overflow-y: auto;
-    border-right: 1px solid var(--color-border);
-    background-color: var(--color-background-alt);
+    overflow: hidden;
   }
 
   .ds.app-shell__header {
@@ -48,13 +46,13 @@
     display: flex;
     align-items: center;
     padding: 0 var(--spacing-4);
-    border-bottom: 1px solid var(--color-border);
-    background-color: var(--color-background);
+    background-color: var(--lp-color-background-brand-default);
   }
 
   .ds.app-shell__content {
     grid-area: content;
     overflow-y: auto;
     padding: var(--spacing-4);
+    background-color: var(--lp-color-background-default);
   }
 </style>
