@@ -86,7 +86,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 3: Build the SvelteKit redesign (svelte_redesign) with Bun
 # ---------------------------------------------------------------------------
-FROM oven/bun:1-alpine as svelte-redesign-builder
+FROM docker.io/oven/bun:1-alpine as svelte-redesign-builder
 
 ENV TAR_OPTIONS="--no-same-owner"
 
