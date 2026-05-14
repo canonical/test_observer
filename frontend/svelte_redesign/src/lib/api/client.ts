@@ -18,8 +18,13 @@ export async function apiFetch<T>(
   fetchFn: typeof fetch = fetch,
 ): Promise<T> {
   const response = await fetchFn(`${API_BASE}${path}`, {
+    credentials: "include",
     ...options,
-    headers: { "Content-Type": "application/json", ...options.headers },
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": "1",
+      ...options.headers,
+    },
   });
   if (!response.ok) {
     throw new ApiError(response.status, await response.text());

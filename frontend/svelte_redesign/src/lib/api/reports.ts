@@ -9,7 +9,10 @@ export async function downloadReport(
 ): Promise<Blob> {
   const qs = new URLSearchParams(params).toString();
   const path = qs ? `/v1/reports?${qs}` : "/v1/reports";
-  const response = await fetchFn(`${API_BASE}${path}`);
+  const response = await fetchFn(`${API_BASE}${path}`, {
+    credentials: "include",
+    headers: { "X-CSRF-Token": "1" },
+  });
   if (!response.ok) {
     throw new Error(`Report download failed: ${response.status}`);
   }
