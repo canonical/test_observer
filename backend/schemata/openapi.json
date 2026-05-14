@@ -692,6 +692,27 @@
             "description": "Filter by environment names"
           },
           {
+            "name": "environment_contains",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)",
+              "title": "Environment Contains"
+            },
+            "description": "Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"
+          },
+          {
             "name": "test_execution_statuses",
             "in": "query",
             "required": false,
@@ -2504,6 +2525,27 @@
             "description": "Filter by artefact families"
           },
           {
+            "name": "environment_contains",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter environments whose names contain all of these substrings (case-insensitive, ANDed)",
+              "title": "Environment Contains"
+            },
+            "description": "Filter environments whose names contain all of these substrings (case-insensitive, ANDed)"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -3271,6 +3313,27 @@
               "title": "Environments"
             },
             "description": "Filter by environment names"
+          },
+          {
+            "name": "environment_contains",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)",
+              "title": "Environment Contains"
+            },
+            "description": "Filter by environments whose names contain all of these substrings (case-insensitive, ANDed)"
           },
           {
             "name": "test_cases",
@@ -8788,6 +8851,13 @@
             },
             "type": "array",
             "title": "Environments"
+          },
+          "environment_contains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environment Contains"
           },
           "test_cases": {
             "items": {
