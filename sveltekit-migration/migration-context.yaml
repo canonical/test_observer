@@ -1,4 +1,4 @@
-# Migration Context — SvelteKit Rewrite
+# Migration Context — SvelteKit Rewrite + UI Redesign
 
 current_phase: 1        # 1=arch, 2=design, 3=build, 4=final-qa
 current_step: 1         # within build phase (1-8)
@@ -7,30 +7,62 @@ issues: []
 blueprint_approved: false
 design_approved: false
 
-# Source reference
+# ─── Project goals ────────────────────────────────────────────────────────────
+
+# This effort is a REDESIGN, not a pixel-perfect port.
+# Use Pragma components and Canonical design principles.
+# The existing Flutter UI is a reference for capabilities, not a design template.
+
+# Critical extensibility goal (IN SCOPE for this redesign):
+# Test Observer currently handles snaps/debs/charms/images with hard-coded,
+# family-specific routes and logic.  The new UI must make it trivially easy to
+# add a new artefact family: the only change required should be adding an entry
+# to config.yaml.  Zero code changes.  See AGENTS.md for the "no
+# artefact-specific logic" constraint.
+extensibility_goal: |
+  Routes, navigation items, and dashboard views must be driven entirely by the
+  tabs list in config.yaml.  No family name (snap, deb, charm, image) may
+  appear as a literal string in source code, route matchers, or conditional
+  branches.  Adding a new family = editing config.yaml only.
+
+# ─── Source reference ─────────────────────────────────────────────────────────
+
 flutter_app_path: frontend/
 backend_api_path: backend/test_observer/controllers/
 backend_base_url: http://localhost:30000
 api_prefix: /v1
 
-# Pragma
+# ─── Pragma ───────────────────────────────────────────────────────────────────
+
 pragma_repo: https://github.com/canonical/pragma
-pragma_svelte_pkg: "@canonical/svelte-ds-app-launchpad"
-pragma_styles_pkg: "@canonical/styles"
-pragma_version: 0.11.0
+# Current monorepo version (all packages share one version number):
+pragma_version: "0.27.0"
 
-# Design System
-design_system_repo: https://github.com/canonical/design-system
+# Svelte-specific packages (use ONLY these for Svelte — do NOT use React packages):
+pragma_svelte_pkg: "@canonical/svelte-ds-app-launchpad"   # components
+pragma_svelte_icons_pkg: "@canonical/svelte-icons"         # icons (dep of above)
+pragma_design_tokens_pkg: "@canonical/launchpad-design-tokens"  # CSS tokens (dep of above)
+# NB: @canonical/styles is for the *React/vanilla* Canonical DS — do NOT import it.
+# NB: @canonical/ds-assets is the *React* icon package — do NOT import it.
 
-# Runtime config (from frontend/assets/config.yaml)
+# ─── Design System ────────────────────────────────────────────────────────────
+
+design_system_repo: https://github.com/canonical/design-system   # private; use GitHub token
+github_token_path: ~/.github_llm_ro_token   # read-only token at this absolute path
+
+# ─── Runtime config (from frontend/assets/config.yaml) ───────────────────────
+
 require_authentication: false
 tabs:
   - snaps
   - debs
   - charms
   - images
+# The tabs list is the only place family names are configured.
+# The new SvelteKit app must read this at runtime or build time.
 
-# Key models to port (from frontend/lib/models/)
+# ─── Key models to port (from frontend/lib/models/) ──────────────────────────
+
 models:
   - Artefact
   - ArtefactBuild
@@ -42,11 +74,11 @@ models:
   - EnvironmentIssue
   - EnvironmentReview
   - ExecutionMetadata
-  - FamilyName (enum: snap, deb, charm, image)
+  - FamilyName             # enum values driven by config, not hardcoded
   - Issue
   - IssueAttachment
   - RerunRequest
-  - StageName (enum)
+  - StageName              # enum
   - TestEvent
   - TestExecution
   - TestExecutionRelevantLink
@@ -57,8 +89,12 @@ models:
   - UserNotification
   - ViewModes
 
-# API endpoints (from router.py)
+# ─── API endpoints (from backend/test_observer/controllers/router.py) ─────────
+# Check router.py directly for the authoritative list; the entries below are a
+# guide for type-checking the API client layer.
+
 api_endpoints:
+  # Artefacts
   - GET /v1/artefacts
   - PATCH /v1/artefacts/{id}
   - GET /v1/artefacts/{id}/builds
@@ -67,22 +103,32 @@ api_endpoints:
   - PATCH /v1/artefacts/{id}/environment-reviews
   - PATCH /v1/artefacts/{id}/environment-reviews/{review_id}
   - GET /v1/artefacts/search
+  # Artefact matching rules
+  - GET /v1/artefact-matching-rules
+  - POST /v1/artefact-matching-rules
+  - PATCH /v1/artefact-matching-rules/{id}
+  - DELETE /v1/artefact-matching-rules/{id}
+  # Test executions
   - GET /v1/test-executions/start-test
   - POST /v1/test-executions/reruns
   - DELETE /v1/test-executions/reruns
   - GET /v1/test-executions/{id}/test-results
   - GET /v1/test-executions/{id}/status_update
+  # Test results
   - GET /v1/test-results
   - POST /v1/test-executions/{id}/test-results
+  # Test cases / reported issues
   - GET /v1/test-cases/reported-issues
   - PUT /v1/test-cases/reported-issues/{id}
   - POST /v1/test-cases/reported-issues
   - DELETE /v1/test-cases/reported-issues/{id}
+  # Environments
   - GET /v1/environments
   - GET /v1/environments/reported-issues
   - POST /v1/environments/reported-issues
   - PUT /v1/environments/reported-issues/{id}
   - DELETE /v1/environments/reported-issues/{id}
+  # Issues
   - GET /v1/issues
   - PUT /v1/issues
   - GET /v1/issues/{id}
@@ -92,13 +138,27 @@ api_endpoints:
   - POST /v1/issues/{id}/attachment-rules
   - DELETE /v1/issues/{id}/attachment-rules/{rule_id}
   - PATCH /v1/issues/{id}/attachment-rules/{rule_id}
+  # Execution metadata
   - GET /v1/execution-metadata
+  # Users & notifications
   - GET /v1/users/me
   - GET /v1/users
   - GET /v1/users/{id}
   - GET /v1/users/me/notifications
   - GET /v1/users/me/notifications/count
   - POST /v1/users/me/notifications/{id}/dismiss
+  # Teams
+  - GET /v1/teams
+  - POST /v1/teams
+  - GET /v1/teams/{id}
+  - PATCH /v1/teams/{id}
+  # Permissions
+  - GET /v1/permissions
+  # Applications
+  - GET /v1/applications
+  # Reports
+  - GET /v1/reports
+  # Auth & version
   - GET /v1/auth
   - GET /v1/version
   - GET /health/live
