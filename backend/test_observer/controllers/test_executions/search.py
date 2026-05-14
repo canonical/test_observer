@@ -18,12 +18,11 @@ from collections import defaultdict
 from typing import Annotated, Literal, TypeVar
 
 from fastapi import Depends, HTTPException, Query, Security
-from sqlalchemy import Select, and_, desc, exists, false, func, select, true
+from sqlalchemy import Select, and_, desc, exists, func, select, true
 from sqlalchemy.orm import Session, aliased, selectinload
 
 from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
-from test_observer.common.helpers import normalize_contains_terms
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_executions.shared_models import (
@@ -188,11 +187,8 @@ def _build_execution_filters(
         joins_needed.add("environment")
 
     if filters.environment_contains:
-        contains_terms = normalize_contains_terms(filters.environment_contains)
-        if not contains_terms:
-            query_filters.append(false())
-        for value in contains_terms:
-            query_filters.append(Environment.name.ilike(f"%{value}%", escape="\\"))
+        for value in filters.environment_contains:
+            query_filters.append(Environment.name.icontains(value, escape="\\"))
         joins_needed.add("environment")
 
     if filters.execution_metadata and len(filters.execution_metadata) > 0:

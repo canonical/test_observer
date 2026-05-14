@@ -16,11 +16,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Security
-from sqlalchemy import distinct, false, func, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.common.helpers import normalize_contains_terms
 from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import (
     Artefact,
@@ -91,13 +90,10 @@ def get_environments(
         search_term = f"%{q.strip()}%"
         query = query.where(Environment.name.ilike(search_term))
 
-    # Apply environment_contains filter (AND'd ILIKE per value)
+    # Apply environment_contains filter (AND'd ICONTAINS per value)
     if environment_contains:
-        contains_terms = normalize_contains_terms(environment_contains)
-        if not contains_terms:
-            query = query.where(false())
-        for value in contains_terms:
-            query = query.where(Environment.name.ilike(f"%{value}%", escape="\\"))
+        for value in environment_contains:
+            query = query.where(Environment.name.icontains(value, escape="\\"))
 
     # Count total before pagination
     count_query = select(func.count()).select_from(query.subquery())

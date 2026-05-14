@@ -13,11 +13,10 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from sqlalchemy import Select, and_, exists, false, select, true
+from sqlalchemy import Select, and_, exists, select, true
 from sqlalchemy.orm import aliased
 
 from test_observer.common.constants import QueryValue
-from test_observer.common.helpers import normalize_contains_terms
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models import (
@@ -82,11 +81,8 @@ def build_query_filters_and_joins(
         joins_needed.update(["test_execution", "environment"])
 
     if len(filters.environment_contains) > 0:
-        contains_terms = normalize_contains_terms(filters.environment_contains)
-        if not contains_terms:
-            query_filters.append(false())
-        for value in contains_terms:
-            query_filters.append(Environment.name.ilike(f"%{value}%", escape="\\"))
+        for value in filters.environment_contains:
+            query_filters.append(Environment.name.icontains(value, escape="\\"))
         joins_needed.update(["test_execution", "environment"])
 
     if len(filters.test_cases) > 0:
