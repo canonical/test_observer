@@ -3,9 +3,12 @@
 ## What's been prepared
 
 ```
+.github/agents/
+└── sveltekit-migration.agent.md  # VS Code orchestrator agent — drives the full migration
+
 sveltekit-migration/
 ├── agents/
-│   ├── orchestrator.md    # Coordinates all agents; read this first
+│   ├── orchestrator.md    # Orchestrator reference (persona prompts for subagents)
 │   ├── architect.md       # Designs routes, data flow, types, project structure
 │   ├── designer.md        # Maps capabilities to Pragma components, defines visual language
 │   ├── builder.md         # Implements the SvelteKit app (TypeScript, Svelte 5 runes)
@@ -32,167 +35,71 @@ before starting.
 
 ## How to run the workflow
 
-### Option A: VS Code Copilot Chat — Agent mode (recommended)
+### Option A: VS Code Copilot Chat — Orchestrator Agent (recommended)
 
-VS Code Copilot Chat in **Agent mode** handles each phase without copy-pasting
-file contents — the agent reads files directly and can write output files.
-Agent mode uses subagents internally, which is more billing-efficient than
-running a single large-context model session.
+A single orchestrator agent drives the entire migration autonomously. It
+delegates to specialised subagents (Designer, Builder, QA), manages hand-offs,
+runs QA gates after every deliverable, and handles rework loops when QA fails.
 
-**Setup:** Open the VS Code Copilot Chat panel, click the model-selector
-dropdown at the bottom of the input box, and switch to **Agent** mode.
-Use `#file:` to attach specific files; the agent can also browse `@workspace`.
+**Setup:**
 
-**Each phase = a fresh chat session** (avoids context window exhaustion).
-Phase 1 (Architecture) is already complete.
+1. Open the VS Code Copilot Chat panel
+2. Click the agent/mode selector at the bottom of the input box
+3. Select **"SvelteKit Migration Orchestrator"** from the list
+   (defined in `.github/agents/sveltekit-migration.agent.md`)
 
-#### Phase 2 — Designer
-
-Paste this into a new Agent-mode chat session:
+**Run it:**
 
 ```
-Act as the Designer agent described in #file:sveltekit-migration/agents/designer.md
-
-**Current state:** Phase 2 — Design. Blueprint is approved (Phase 1 complete).
-
-**Your inputs:**
-- Approved architecture: #file:sveltekit-migration/migration-blueprint.md
-- Project goals & constraints: #file:sveltekit-migration/migration-context.yaml
-- Pragma Svelte reference: #file:sveltekit-migration/pragma-svelte-reference.md
-- Runtime config: #file:frontend/assets/config.yaml
-- Flutter UI (capability reference only): read the files in frontend/lib/ui/
-  using your file tools — you are redesigning, not porting.
-
-**Deliverable:** Create sveltekit-migration/design-spec.md covering all
-sections listed in your agent persona.
-
-**Critical constraints:**
-- No artefact-specific logic; no hardcoded family names (snap/deb/charm/image)
-- Config-driven navigation: family list comes only from config.yaml
-- Use only Pragma Svelte components (@canonical/svelte-ds-app-launchpad)
+Start the SvelteKit migration. Phase 1 (Architecture) is already complete.
+Continue from the current state.
 ```
 
-After `design-spec.md` is written, start a **new** chat session for QA:
+That's it. The orchestrator will:
 
-```
-Act as the QA agent described in #file:sveltekit-migration/agents/qa.md
+1. Read `migration-context.yaml` to determine current state
+2. Run the **Designer** subagent → produce `design-spec.md`
+3. Run the **QA** subagent (Stage 2) → validate the design
+4. If QA fails, rework: re-invoke Designer with QA findings (up to 3 retries)
+5. On QA pass, advance to Phase 3 and run **Builder** subagent for each step (1-8)
+6. After each Builder step, run **QA** subagent (Stage 3+4)
+7. On QA failure, route back to Builder with specific fix instructions
+8. After all 8 steps pass, run **QA** subagent (Phase 4 final validation)
+9. Update `migration-context.yaml` at every transition
 
-Run the Stage 2 (Design Review) checklist against:
-- #file:sveltekit-migration/design-spec.md
-- #file:sveltekit-migration/migration-blueprint.md
-- #file:sveltekit-migration/migration-context.yaml
+**The orchestrator handles:**
+- **Hand-offs:** Automatically composes the right context for each subagent
+- **QA gates:** Runs QA after every deliverable — nothing proceeds without passing
+- **Rework loops:** Routes QA failures back to the responsible agent with specifics
+- **Backtracking:** If a build-phase issue traces to a design flaw, routes back to Designer
+- **State tracking:** Updates `migration-context.yaml` after each successful gate
+- **Progress reporting:** Tells you what completed, what failed, what's next
 
-Report all blockers, criticals, and warnings.
-If no blockers, set design_approved: true in sveltekit-migration/migration-context.yaml.
-```
+**Manual intervention points:**
+- The orchestrator asks for confirmation before starting the first subagent
+- After 3 failed rework attempts on any issue, it stops and asks you for guidance
+- You can pause at any time; the orchestrator resumes from `migration-context.yaml`
 
-#### Phase 3 — Builder (one chat session per step)
+**Agent file locations:**
+| Agent | File | Purpose |
+|-------|------|---------|
+| Orchestrator | `.github/agents/sveltekit-migration.agent.md` | Coordinates everything |
+| Designer | `sveltekit-migration/agents/designer.md` | Persona used by subagent |
+| Builder | `sveltekit-migration/agents/builder.md` | Persona used by subagent |
+| QA | `sveltekit-migration/agents/qa.md` | Persona used by subagent |
+| Architect | `sveltekit-migration/agents/architect.md` | Phase 1 (already complete) |
 
-Start a **new** Agent-mode session for each step (1–8):
+### Option B: VS Code Copilot Chat — Manual per-phase sessions
 
-```
-Act as the Builder agent described in #file:sveltekit-migration/agents/builder.md
+If you prefer manual control over each phase, you can run each agent in a
+separate chat session. See the agent persona files in `sveltekit-migration/agents/`
+for the prompts to use. The general pattern:
 
-Implement Step N: <step name from migration-blueprint.md>
-
-**Your inputs:**
-- #file:sveltekit-migration/migration-blueprint.md
-- #file:sveltekit-migration/design-spec.md
-- #file:sveltekit-migration/migration-context.yaml
-- #file:sveltekit-migration/pragma-svelte-reference.md
-- Current frontend-svelte/ codebase (read it with your file tools; skip on Step 1)
-
-The project lives at frontend-svelte/ (create it on Step 1).
-After completing the step, run these checks in the terminal:
-  cd frontend-svelte && bun run svelte-check && bun run biome check . && bun run vitest --run
-Also run: rg '"snap"\|"deb"\|"charm"\|"image"' frontend-svelte/src/ | wc -l  (must be 0)
-Report the results.
-```
-
-After the Builder finishes each step, run QA in a **new** session:
-
-```
-Act as the QA agent described in #file:sveltekit-migration/agents/qa.md
-
-Run QA Stages 3 and 4 for Step N against the current frontend-svelte/ codebase.
-Reference: #file:sveltekit-migration/migration-blueprint.md
-           #file:sveltekit-migration/design-spec.md
-           #file:sveltekit-migration/migration-context.yaml
-
-Report results. If QA passes (no blockers), update migration-context.yaml:
-mark step N complete and advance current_step to N+1.
-```
-
-#### Phase 4 — Final QA
-
-```
-Act as the QA agent described in #file:sveltekit-migration/agents/qa.md
-
-Run the full Phase 4 final validation against frontend-svelte/.
-Reference: #file:sveltekit-migration/migration-blueprint.md
-           #file:sveltekit-migration/design-spec.md
-           #file:sveltekit-migration/migration-context.yaml
-
-Run all validation commands in the terminal and report results.
-```
-
-### Option B: opencode
-
-opencode drives each phase directly — no copy-pasting of file contents.
-
-**Each phase = a fresh opencode conversation** (avoids context window exhaustion
-across the full 8-step build).  Phase 1 (Architecture) is already complete.
-
-#### Phase 2 — Designer
-Start a new opencode conversation and say:
-
-```
-Read sveltekit-migration/agents/designer.md and act as that agent.
-Your inputs are:
-  - sveltekit-migration/migration-blueprint.md  (approved architecture)
-  - sveltekit-migration/migration-context.yaml  (constraints and goals)
-  - sveltekit-migration/pragma-svelte-reference.md
-  - frontend/assets/config.yaml
-  - frontend/lib/  (Flutter UI for capability reference only)
-Produce design-spec.md in sveltekit-migration/ as instructed.
-```
-
-After the Designer produces `design-spec.md`, ask opencode to act as the QA
-agent (`agents/qa.md`) and run Stage 2 validation.  On pass, set
-`design_approved: true` in `migration-context.yaml`.
-
-#### Phase 3 — Builder (one conversation per step)
-Start a fresh opencode conversation for each step:
-
-```
-Read sveltekit-migration/agents/builder.md and act as that agent.
-Implement Step N as described in sveltekit-migration/migration-blueprint.md
-and sveltekit-migration/design-spec.md.
-The project lives at frontend-svelte/ (create it on Step 1).
-After completing the step, run the self-check commands and report results.
-```
-
-Run QA (Stage 3+4) at the end of each step by asking opencode to act as
-`agents/qa.md`.  opencode can directly update `migration-context.yaml`
-(mark steps completed, log issues).
-
-#### Phase 4 — Final QA
-```
-Read sveltekit-migration/agents/qa.md.  Run the full Phase 4 final validation
-against frontend-svelte/.
-```
-
-### Option B: Traditional AI assistant sessions
-
-Each agent file is a **persona prompt** for a dedicated AI assistant session.
-Copy-paste the agent file content + the relevant input files into the session.
-
-1. **Architect** — `architect.md` + `./orchestrator.sh phase1` context → `migration-blueprint.md`
-2. QA Stage 1 → mark `blueprint_approved: true`
-3. **Designer** — `designer.md` + approved blueprint + Flutter UI → `design-spec.md`
-4. QA Stage 2 → mark `design_approved: true`
-5. **Builder** (one session per step) → code in `frontend-svelte/`
-6. QA Stage 3+4 after each step
+1. **Designer** — paste `agents/designer.md` persona + input files → `design-spec.md`
+2. **QA Stage 2** — paste `agents/qa.md` persona → validate design
+3. **Builder** (one session per step) — paste `agents/builder.md` persona → code
+4. **QA Stage 3+4** after each step
+5. **QA Stage 5** — final validation
 
 ### Option C: Manual with orchestrator.sh
 
