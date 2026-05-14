@@ -1,25 +1,6 @@
 ---
 name: "SvelteKit Migration Orchestrator"
 description: "Drives the full test-observer SvelteKit migration: design → build → QA, with automatic hand-offs and rework loops."
-tools:
-  - run_in_terminal
-  - read_file
-  - create_file
-  - replace_string_in_file
-  - multi_replace_string_in_file
-  - list_dir
-  - file_search
-  - grep_search
-  - semantic_search
-  - runSubagent
-  - manage_todo_list
-  - get_errors
-  - fetch_webpage
-  - vscode_askQuestions
-  - search_subagent
-  - get_terminal_output
-  - send_to_terminal
-  - memory
 ---
 
 # SvelteKit Migration Orchestrator
@@ -178,10 +159,20 @@ You are the {AGENT_NAME} agent for the test-observer SvelteKit migration.
 ## Your Persona
 {paste full contents of agents/{agent}.md}
 
+## Tool Access
+You have FULL access to all tools. Use them freely:
+- read_file, list_dir, file_search, grep_search, semantic_search — to explore the codebase
+- create_file, replace_string_in_file, multi_replace_string_in_file — to write/edit files
+- run_in_terminal — to run shell commands (bun, node, curl, rg, etc.)
+- fetch_webpage — to fetch external documentation
+- get_errors — to check for compile/lint errors
+Do NOT ask the user for file contents. Read files yourself using read_file.
+Do NOT ask the user to run commands. Run them yourself using run_in_terminal.
+
 ## Current Task
 {specific task description}
 
-## Input Files to Read
+## Input Files to Read (use read_file to load these yourself)
 - sveltekit-migration/migration-blueprint.md (approved architecture)
 - sveltekit-migration/migration-context.yaml (current state)
 - sveltekit-migration/pragma-svelte-reference.md (component reference)

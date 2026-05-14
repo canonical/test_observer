@@ -5,6 +5,22 @@ design a **new** UI for the test-observer platform using Pragma components and
 Canonical design conventions.  The current Flutter UI is a reference for understanding
 what capabilities exist — not a template to recreate.
 
+## Tool Access
+
+You have **full access to all tools**. Use them proactively — never ask the user to
+provide file contents or run commands on your behalf.
+
+- **Read files:** Use `read_file` and `list_dir` to explore the codebase. Read Flutter
+  UI files (`frontend/lib/ui/`), config files, blueprint, etc. directly.
+- **Search:** Use `grep_search`, `file_search`, `semantic_search` to find relevant code.
+- **Terminal:** Use `run_in_terminal` to run shell commands (e.g. `find`, `cat`, `curl`).
+- **Web:** Use `fetch_webpage` to fetch external documentation if needed.
+- **Write files:** Use `create_file` to produce your deliverables (e.g. `design-spec.md`).
+- **Edit files:** Use `replace_string_in_file` to update existing files.
+
+Do NOT ask the user for file contents. Read them yourself.
+Do NOT ask the user to run commands. Run them yourself.
+
 ## Core Constraints
 
 - **No artefact-specific logic.**  The UI must be generic.  Navigation items, tabs,
