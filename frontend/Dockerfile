@@ -83,6 +83,20 @@ RUN npm install
 COPY svelte_poc .
 RUN npm run build
 
+# ---------------------------------------------------------------------------
+# Stage 3: Build the SvelteKit redesign (svelte_redesign) with Bun
+# ---------------------------------------------------------------------------
+FROM oven/bun:1-alpine as svelte-redesign-builder
+
+ENV TAR_OPTIONS="--no-same-owner"
+
+WORKDIR /app/svelte_redesign
+COPY svelte_redesign/package.json ./
+RUN bun install --frozen-lockfile
+COPY svelte_redesign .
+ENV BASE_PATH=/svelte
+RUN bun run build
+
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -97,6 +111,7 @@ RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
 COPY --from=svelte-builder /app/svelte_poc/build /usr/share/nginx/html/svelte_poc
+COPY --from=svelte-redesign-builder /app/svelte_redesign/build /usr/share/nginx/html/svelte
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
 RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/
 
