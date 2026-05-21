@@ -150,7 +150,7 @@ jobs:
 
       - name: Upload charm to charmhub
         # The version seems to really apply to the whole repo, rather than this specific action
-        uses: canonical/charming-actions/upload-charm@1753e0803f70445132e92acd45c905aba6473225 # v2.7.0
+        uses: canonical/charming-actions/upload-charm@1753e0803f70445132e92acd45c905aba6473225 # 2.7.0
         with:
           charm-path: "backend/charm"
           # Ignoring until we set up environments
