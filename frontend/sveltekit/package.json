@@ -1,0 +1,26 @@
+{
+  "name": "test-observer-sveltekit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.0",
+    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "@canonical/svelte-ds-app-launchpad": "^0.27.1-experimental.0",
+    "@canonical/launchpad-design-tokens": "^1.1.1",
+    "@canonical/svelte-icons": "^0.0.9",
+    "@floating-ui/dom": "^1.7.6"
+  }
+}

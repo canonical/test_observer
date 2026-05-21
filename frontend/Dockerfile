@@ -16,15 +16,16 @@
 FROM ubuntu:24.04 as builder
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Prevent tar from attempting chown to UIDs outside the LXD user namespace.
+ENV TAR_OPTIONS="--no-same-owner"
 RUN apt-get update && \
     apt-get install -y \
     curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
     python3
 
-RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
-    cd /opt/flutter && git checkout '3.29.3' && \
-    /opt/flutter/bin/flutter doctor && \
-    /opt/flutter/bin/flutter config --enable-web
+RUN git clone --depth 1 --branch 3.29.3 https://github.com/flutter/flutter.git /opt/flutter && \
+    cd /opt/flutter && \
+    /opt/flutter/bin/flutter config --enable-web --no-enable-android
 
 ENV PATH $PATH:/opt/flutter/bin
 
@@ -56,12 +57,33 @@ RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
     find build/web/ -type f -exec sed -i -e 's/flutter_bootstrap.js/flutter_bootstrap.'$RANDOMVALUE'.js/g' {} \; && \
     find build/web/ -type f -exec sed -i -e 's/main.dart.js/main.dart.'$RANDOMVALUE'.js/g' {} \;
 
+# ---------------------------------------------------------------------------
+# SvelteKit WIP frontend (served at /wip)
+# To change the web root, update BASE_PATH here. It is the single source of
+# truth — svelte.config.js reads it via process.env.BASE_PATH at build time.
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS sveltekit-builder
+
+ENV TAR_OPTIONS="--no-same-owner"
+
+ARG APT_PROXY
+RUN if [ -n "$APT_PROXY" ]; then npm config set proxy "$APT_PROXY"; fi
+
+WORKDIR /app/sveltekit
+COPY sveltekit/package.json ./
+COPY sveltekit/vendor ./vendor
+RUN npm install
+COPY sveltekit .
+ENV BASE_PATH=/wip
+RUN npm run build
+
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y nginx
 RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
+COPY --from=sveltekit-builder /app/sveltekit/build /usr/share/nginx/html/wip
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
 RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/
 

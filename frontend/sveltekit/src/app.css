@@ -1,0 +1,7 @@
+/* Import Pragma design tokens and base styles */
+@import "@canonical/svelte-ds-app-launchpad/styles.css";
+@import "@canonical/launchpad-design-tokens/dist/css/dimension/responsive.css";
+@import "@canonical/launchpad-design-tokens/dist/css/typography/responsive.css";
+@import "@canonical/launchpad-design-tokens/dist/css/opacity/opacity.css";
+@import "@canonical/launchpad-design-tokens/dist/css/transition/preferred.css";
+@import "@canonical/launchpad-design-tokens/dist/css/color/modifier.css";
