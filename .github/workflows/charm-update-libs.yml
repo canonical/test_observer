@@ -28,7 +28,7 @@ jobs:
     permissions:
       contents: write  # Necessary to create branches
       pull-requests: write  # Necessary to create PR with updated libs
-    uses: canonical/observability/.github/workflows/charm-update-libs.yaml@dd6c66dc595da864fcc880464f9d7526aa2d6b2b # v1
+    uses: canonical/observability/.github/workflows/charm-update-libs.yaml@8c65edc8dd1ddff01941293e7fef932836106888 # v2
     strategy:
       fail-fast: false  # Allow all jobs to run even if one fails
       matrix:
