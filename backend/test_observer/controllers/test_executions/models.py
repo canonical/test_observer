@@ -42,6 +42,7 @@ from test_observer.data_access.models_enums import (
     FamilyName,
     ImageStage,
     SnapStage,
+    SolutionStage,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -233,6 +234,34 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     )
     image_url: HttpUrl = Field(
         description="Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL."
+    )
+
+
+class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
+    family: Literal[FamilyName.solution]
+    track: str = Field(
+        description="Solution release track being tested. "
+        "Tracks represent different versions or streams of the solution. "
+        "Examples: 'latest' (default), version-based tracks like '1.0', '2.0'. "
+        "Use 'latest' if unsure."
+    )
+    source: str = Field(
+        max_length=200,
+        description="Source identifier for the solution. "
+        "This identifies the packaging source or origin of the solution. "
+        "Examples: 'ppa:team/ppa-name', 'custom-repo', 'internal-source'.",
+    )
+    risk: str = Field(
+        description="Risk level or channel of the solution being tested. "
+        "This represents the stability/maturity level of the solution release. "
+        "Examples: 'stable', 'candidate', 'beta', 'edge', 'experimental'. "
+        "Use 'stable' for production-ready releases."
+    )
+    execution_stage: SolutionStage = Field(
+        description="Distribution channel/risk level of the solution being tested. "
+        "Options: 'edge' (cutting-edge updates), 'beta' (pre-release), "
+        "'candidate' (release candidate), 'stable' (production). "
+        "Choose based on where the solution currently resides in the release pipeline."
     )
 
 

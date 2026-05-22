@@ -54,6 +54,7 @@ from .models import (
     StartDebTestExecutionRequest,
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
+    StartSolutionTestExecutionRequest,
 )
 from .router import router
 
@@ -86,6 +87,7 @@ class StartTestExecutionController:
             | StartDebTestExecutionRequest
             | StartCharmTestExecutionRequest
             | StartImageTestExecutionRequest
+            | StartSolutionTestExecutionRequest
         ) = Body(discriminator="family"),
         db: Session = Depends(get_db),
     ):
@@ -319,6 +321,10 @@ class StartTestExecutionController:
                 filter_kwargs["sha256"] = self.request.sha256
                 filter_kwargs["owner"] = self.request.owner
                 filter_kwargs["image_url"] = str(self.request.image_url)
+            case StartSolutionTestExecutionRequest():
+                filter_kwargs["track"] = self.request.track
+                filter_kwargs["source"] = self.request.source
+                filter_kwargs["risk"] = self.request.risk
 
         self.artefact = get_or_create(
             self.db,
