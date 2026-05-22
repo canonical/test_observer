@@ -27,7 +27,7 @@ dependencies = [
     "pg8000>=1.29.4,<2.0.0",
     "alembic>=1.10.3,<2.0.0",
     "requests>=2.33.0,<3.0.0",
-    "sentry-sdk==2.8.0",
+    "sentry-sdk==2.60.0",
     "launchpadlib>=1.11.0,<2.0.0",
     "PyGithub>=2.0.0,<3.0.0",
     "jira>=3.10.0,<4.0.0",
